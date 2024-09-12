@@ -3,7 +3,7 @@
     "name": "my-react-native-game",
     "slug": "my-react-native-game",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
@@ -19,6 +19,14 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
+      },
+      "tablet": true,
+      "useNextNotificationsApi": true,
+      "package": "com.yourcompany.myapp",
+      "permissions": [],
+      "resizeableActivity": true,
+      "config": {
+        "screenOrientation": "sensor"
       }
     },
     "web": {

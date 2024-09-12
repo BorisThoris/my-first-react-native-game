@@ -10,7 +10,7 @@ const HomeScreen = () => {
       <Text style={styles.subtitle}>This is a test for navigating between screens.</Text>
       <Button
         title="Go to our game"
-        onPress={() => router.push("/game")}
+        onPress={() => router.push("/GameMainMenu")}
         color="#6200ea" // Styled button color
       />
     </View>
