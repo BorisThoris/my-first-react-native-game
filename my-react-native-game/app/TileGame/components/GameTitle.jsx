@@ -1,17 +1,15 @@
-import { Animated } from "react-native";
-import styles from "../styles";
-import { useGameContext } from "../../../contexts/GameContext";
+import React, { useMemo } from 'react';
+import { Animated } from 'react-native';
+import { useGameContext } from '../../../contexts/GameContext';
+import styles from '../styles';
 
 const GameTitle = () => {
-  const { titleScale } = useGameContext();
+    const { titleScale } = useGameContext();
 
-  return (
-    <Animated.Text
-      style={[styles.title, { transform: [{ scale: titleScale }] }]}
-    >
-      Memory Game
-    </Animated.Text>
-  );
+    const transformStyle = useMemo(() => ({ transform: [{ scale: titleScale }] }), [titleScale]);
+    const titleStyle = useMemo(() => [styles.title, transformStyle], [transformStyle]);
+
+    return <Animated.Text style={titleStyle}>Memory Game</Animated.Text>;
 };
 
 export default GameTitle;

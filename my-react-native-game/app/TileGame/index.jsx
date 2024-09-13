@@ -1,3 +1,3 @@
-import MemoryGame from "./TileGame";
+import MemoryGame from './TileGame';
 
-export default MemoryGame
+export default MemoryGame;

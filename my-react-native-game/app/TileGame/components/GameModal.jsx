@@ -1,33 +1,24 @@
 // GameModal.js
-import React from "react";
-import { View, Text, TouchableOpacity, Modal } from "react-native";
-import styles from "../styles";
-import { useGameContext } from "../../../contexts/GameContext";
+import React from 'react';
+import { Modal, Text, TouchableOpacity, View } from 'react-native';
+import { useGameContext } from '../../../contexts/GameContext';
+import styles from '../styles';
 
 const GameModal = () => {
-  const {
-    modalVisible,
-    modalMessage,
-    hideModal,
-  } = useGameContext();
+    const { hideModal, modalMessage, modalVisible } = useGameContext();
 
-  return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={modalVisible}
-      onRequestClose={hideModal}
-    >
-      <View style={styles.modalContainer}>
-        <View style={styles.modalView}>
-          <Text style={styles.modalText}>{modalMessage}</Text>
-          <TouchableOpacity style={styles.modalButton} onPress={hideModal}>
-            <Text style={styles.modalButtonText}>OK</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
-  );
+    return (
+        <Modal animationType="slide" transparent visible={modalVisible} onRequestClose={hideModal}>
+            <View style={styles.modalContainer}>
+                <View style={styles.modalView}>
+                    <Text style={styles.modalText}>{modalMessage}</Text>
+                    <TouchableOpacity style={styles.modalButton} onPress={hideModal}>
+                        <Text style={styles.modalButtonText}>OK</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        </Modal>
+    );
 };
 
 export default GameModal;

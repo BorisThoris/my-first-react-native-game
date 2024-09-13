@@ -1,42 +1,41 @@
-import { useRouter } from "expo-router";
-import { View, Text, Button, StyleSheet } from "react-native";
-
-const HomeScreen = () => {
-  const router = useRouter();
-
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Navigation Test Screen</Text>
-      <Text style={styles.subtitle}>This is a test for navigating between screens.</Text>
-      <Button
-        title="Go to our game"
-        onPress={() => router.push("/GameMainMenu")}
-        color="#6200ea" // Styled button color
-      />
-    </View>
-  );
-};
+import { useRouter } from 'expo-router';
+import React, { useCallback } from 'react';
+import { Button, StyleSheet, Text, View } from 'react-native';
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f0f0f5",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 16,
-    color: "#333",
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#666",
-    marginBottom: 32,
-    textAlign: "center",
-  },
+    container: {
+        alignItems: 'center',
+        backgroundColor: '#f0f0f5',
+        flex: 1,
+        justifyContent: 'center',
+        padding: 20
+    },
+    subtitle: {
+        color: '#666',
+        fontSize: 16,
+        marginBottom: 32,
+        textAlign: 'center'
+    },
+    title: {
+        color: '#333',
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginBottom: 16
+    }
 });
+
+const HomeScreen = () => {
+    const router = useRouter();
+
+    const navigateToGameMenu = useCallback(() => router.push('/GameMainMenu'), [router]);
+
+    return (
+        <View style={styles.container}>
+            <Text style={styles.title}>Navigation Test Screen</Text>
+            <Text style={styles.subtitle}>This is a test for navigating between screens.</Text>
+            <Button title="Go to our game" onPress={navigateToGameMenu} color="#6200ea" />
+        </View>
+    );
+};
 
 export default HomeScreen;
