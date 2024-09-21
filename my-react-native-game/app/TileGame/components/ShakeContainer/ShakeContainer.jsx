@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Animated } from 'react-native';
-import { useGameContext } from '../../../contexts/GameContext';
-import styles from '../styles';
+import { useGameContext } from '../../../../contexts/GameContext';
+import styles from './styles';
 
 const ShakeContainer = ({ children }) => {
     const { shakeAnim } = useGameContext();

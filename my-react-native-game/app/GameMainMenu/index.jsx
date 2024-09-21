@@ -1,110 +1,80 @@
-import React, { useContext, useState, useRef } from "react";
-import { Text, View, Image,  Animated, StyleSheet } from "react-native";
-import { useRouter } from "expo-router";
-
-import doYouWantToPlayImage from "../../assets/images/doYouWantToPlay.jpg";
-import GlobalContext from "../../contexts/GlobalStorage";
-import UserNameModal from "./components/UserNameModal";
-import ButtonComponent from "./components/ButtonComponent";
+import { useRouter } from 'expo-router';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { Animated, Image, Text, View } from 'react-native';
+import doYouWantToPlayImage from '../../assets/images/doYouWantToPlay.jpg';
+import { useGameContext } from '../../contexts/GameContext';
+import ButtonComponent from './components/ButtonComponent';
+import UserNameModal from './components/UserNameModal/UserNameModal';
+import styles from './styles';
 
 export default function GameScreen() {
-  const { userName } = useContext(GlobalContext);
-  const [isModalVisible, setModalVisible] = useState(false);
-  const [noSelected, setNoSelected] = useState(false);
-  const shakeAnimation = useRef(new Animated.Value(0)).current;
-  const router = useRouter();
+    const { userName } = useGameContext();
+    const [isModalVisible, setModalVisible] = useState(false);
+    const [noSelected, setNoSelected] = useState(false);
+    const shakeAnimation = useRef(new Animated.Value(0)).current;
+    const router = useRouter();
 
-  const handleNoAction = async () => {
-    setNoSelected(true);
-    const shakeValues = [15, -15, 0];
-    const animations = shakeValues.map((value) =>
-      Animated.timing(shakeAnimation, {
-        toValue: value,
-        duration: 100,
-        useNativeDriver: true,
-      })
+    const handleNoAction = useCallback(async () => {
+        setNoSelected(true);
+        const shakeValues = [15, -15, 0];
+        const animations = shakeValues.map((value) =>
+            Animated.timing(shakeAnimation, {
+                duration: 100,
+                toValue: value,
+                useNativeDriver: true
+            })
+        );
+        Animated.sequence(animations).start();
+    }, [shakeAnimation]);
+
+    const handleYesAction = useCallback(() => {
+        router.push('/TileGame');
+    }, [router]);
+
+    const handleCloseModal = useCallback(() => {
+        setModalVisible(false);
+    }, []);
+
+    const openModalIfNoUserName = useCallback(() => {
+        if (!userName) {
+            setModalVisible(true);
+        }
+    }, [userName]);
+
+    useMemo(() => {
+        if (!userName) {
+            openModalIfNoUserName();
+        }
+    }, [userName, openModalIfNoUserName]);
+
+    const animatedImageStyle = useMemo(
+        () => [styles.imageContainer, { transform: [{ translateX: shakeAnimation }] }],
+        [shakeAnimation]
     );
-    Animated.sequence(animations).start();
-  };
 
-  const handleYesAction = () => {
-    router.push("/TileGame"); // Navigate to TileGame when "Yes" is pressed
-  };
+    return (
+        <View style={styles.container}>
+            <UserNameModal isVisible={isModalVisible} onClose={handleCloseModal} />
 
-  if (!userName) {
-    setTimeout(() => {
-      setModalVisible(true);
-    }, 0);
-  }
+            {userName && (
+                <>
+                    <Text style={styles.greetingText}>Hello, {userName}!</Text>
+                    <Animated.View style={animatedImageStyle}>
+                        <Image source={doYouWantToPlayImage} style={styles.image} />
+                    </Animated.View>
 
-  return (
-    <View style={styles.container}>
-      <UserNameModal
-        isVisible={isModalVisible}
-        onClose={() => setModalVisible(false)}
-      />
+                    <View style={styles.buttonContainer}>
+                        <ButtonComponent text="Yes" onPress={handleYesAction} />
+                        {!noSelected ? (
+                            <ButtonComponent text="No" onPress={handleNoAction} isNoButton />
+                        ) : (
+                            <ButtonComponent text="Yes" onPress={handleYesAction} />
+                        )}
+                    </View>
 
-      {userName && (
-        <>
-          <Text style={styles.greetingText}>Hello, {userName}!</Text>
-          <Animated.View
-            style={[
-              styles.imageContainer,
-              { transform: [{ translateX: shakeAnimation }] },
-            ]}
-          >
-            <Image source={doYouWantToPlayImage} style={styles.image} />
-          </Animated.View>
-
-          <View style={styles.buttonContainer}>
-            <ButtonComponent text="Yes" onPress={handleYesAction} />
-            {!noSelected ? (
-              <ButtonComponent text="No" onPress={handleNoAction} isNoButton />
-            ) : (
-              <ButtonComponent text="Yes" onPress={handleYesAction} />
+                    {noSelected && <Text style={styles.noOptionText}>No was never an option</Text>}
+                </>
             )}
-          </View>
-
-          {noSelected && (
-            <Text style={styles.noOptionText}>No was never an option</Text>
-          )}
-        </>
-      )}
-    </View>
-  );
+        </View>
+    );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f5f5f5",
-    padding: 20,
-  },
-  greetingText: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    color: "#333",
-  },
-  imageContainer: {},
-  image: {
-    width: 200,
-    height: 200,
-    marginVertical: 20,
-    borderRadius: 10,
-  },
-  buttonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: "60%",
-    marginVertical: 20,
-  },
-  noOptionText: {
-    marginTop: 20,
-    fontSize: 16,
-    color: "red",
-    fontWeight: "bold",
-  },
-});

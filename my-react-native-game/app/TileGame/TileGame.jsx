@@ -1,33 +1,46 @@
 import React from 'react';
 import { Text, View } from 'react-native';
 import { useGameContext } from '../../contexts/GameContext';
-import CheatButton from './components/CheatButton';
-import CheaterText from './components/CheaterText';
-import GameModal from './components/GameModal';
-import GameTitle from './components/GameTitle';
-import Lives from './components/Lives';
-import ShakeContainer from './components/ShakeContainer';
-import TileGrid from './components/TileGrid';
+import CheatButton from './components/CheatButton/CheatButton';
+import CheaterText from './components/CheaterText/CheaterText';
+import GameModal from './components/GameModal/GameModal';
+import GameTitle from './components/GameTitle/GameTitle';
+import Lives from './components/Lives/Lives';
+import Player from './components/Player/Player';
+import ShakeContainer from './components/ShakeContainer/ShakeContainer';
+import TileGrid from './components/TileGrid/TileGrid';
 import styles from './styles';
 
-export const TileGame = () => {
-    const { flippedTiles, lives, tiles } = useGameContext();
+const TileGame = () => {
+    const { currentLevelScore, lives, rating, tiles, totalScore } = useGameContext();
 
     return (
         <ShakeContainer>
-            <Lives lives={lives} />
-
             <GameTitle />
 
-            <Text style={styles.livesText}>Lives: {lives}</Text>
+            <View style={styles.currentScoreContainer}>
+                <View style={styles.rankContainer}>
+                    <Text style={styles.rankText}>{rating}</Text>
+                </View>
 
-            <TileGrid tiles={tiles} flippedTiles={flippedTiles} />
-            <CheaterText />
-
-            <View style={styles.buttonContainer}>
-                <CheatButton />
+                <Text style={styles.currentScoreText}>Current Level Score: {currentLevelScore}</Text>
             </View>
 
+            <View style={styles.scoreContainer}>
+                <Text style={styles.scoreText}>Total Score: {totalScore}</Text>
+            </View>
+
+            <View style={styles.playerContainer}>
+                <Player />
+            </View>
+
+            <View style={styles.livesContainer}>
+                <Lives lives={lives} />
+            </View>
+
+            <TileGrid tiles={tiles} />
+            <CheaterText />
+            <CheatButton />
             <GameModal />
         </ShakeContainer>
     );

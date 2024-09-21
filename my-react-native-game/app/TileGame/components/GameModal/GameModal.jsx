@@ -1,8 +1,8 @@
 // GameModal.js
 import React from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
-import { useGameContext } from '../../../contexts/GameContext';
-import styles from '../styles';
+import { useGameContext } from '../../../../contexts/GameContext';
+import styles from './styles';
 
 const GameModal = () => {
     const { hideModal, modalMessage, modalVisible } = useGameContext();
