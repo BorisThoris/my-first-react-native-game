@@ -53,9 +53,13 @@ export const gameReducer = (state, action) => {
         case 'TOGGLE_CHEAT':
             return {
                 ...state,
+                // Reset flipped tiles when cheat mode is disabled
                 cheated: !state.cheated,
-                flippedTiles: !state.cheated ? state.tiles.map((_, i) => i) : state.matchedTiles
+                flippedTiles: !state.cheated
+                    ? state.tiles.map((_, i) => i).filter((tile) => !state.matchedTiles.includes(tile))
+                    : []
             };
+
         case 'START_GAME':
             return {
                 ...initialGameState,
