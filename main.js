@@ -27,13 +27,6 @@ function createWindow() {
         // Load the index.html file after logging the files
         const indexPath = path.join(distPath, 'index.html');
 
-        console.log('lo');
-        console.log(indexPath);
-        console.log(
-            'Requested file path:',
-            path.join(__dirname, '_expo/static/js/web/entry-50130ce69362c693e5e6e9f772b0d6e.js')
-        );
-
         win.loadFile(indexPath);
     });
 }

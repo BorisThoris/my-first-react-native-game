@@ -4,6 +4,11 @@ import React, { useMemo } from 'react';
 import { GameProvider } from '../contexts/GameContext';
 import { GlobalProvider } from '../contexts/GlobalStorage';
 
+// export const unstable_settings = {
+//     // Ensure any route can link back to `/`
+//     initialRouteName: 'GameMainMenu/index'
+// };
+
 export default function Layout() {
     const screenOptions = useMemo(
         () => ({
@@ -15,10 +20,7 @@ export default function Layout() {
     return (
         <GlobalProvider>
             <GameProvider>
-                <Stack initialRouteName="GameMainMenu/index" screenOptions={screenOptions}>
-                    <Stack.Screen name="GameMainMenu/index" options={{ title: 'Game Menu' }} />
-                    <Stack.Screen name="TileGame/index" options={{ title: 'Tile Game' }} />
-                </Stack>
+                <Stack screenOptions={screenOptions} />
             </GameProvider>
         </GlobalProvider>
     );
