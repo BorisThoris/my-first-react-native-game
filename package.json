@@ -10,7 +10,19 @@
     "web": "expo start --web",
     "test": "jest --watchAll",
     "lint": "eslint .",
-    "lint-fix": "eslint . --fix"
+    "lint-fix": "eslint . --fix",
+    "build:web": "npx expo export --public-url ./",
+    "electron-build": "electron-builder",
+    "electron-dev": "electron  main.js"
+  },
+  "build": {
+    "appId": "com.yourapp.id",
+    "win": {
+      "target": "nsis"
+    },
+    "extraMetadata": {
+      "main": "./main.js"
+    }
   },
   "jest": {
     "preset": "jest-expo"
@@ -44,6 +56,8 @@
     "@types/react": "~18.2.45",
     "@types/react-test-renderer": "^18.0.7",
     "babel-eslint": "^10.1.0",
+    "electron": "^32.1.2",
+    "electron-builder": "^25.0.5",
     "eslint": "^8.57.0",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-config-prettier": "^9.1.0",
