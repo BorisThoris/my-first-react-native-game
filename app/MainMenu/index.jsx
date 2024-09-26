@@ -28,7 +28,7 @@ export default function GameScreen() {
     }, [shakeAnimation]);
 
     const handleYesAction = useCallback(() => {
-        router.push('/TileGame');
+        router.push('/MemoryGame');
     }, [router]);
 
     const handleCloseModal = useCallback(() => {
