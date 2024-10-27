@@ -53,7 +53,7 @@ export default function FastestTapperGame() {
     const [lastTapTime, setLastTapTime] = useState(0);
     const [emojiIndex, setEmojiIndex] = useState(0);
     const scaleValue = useState(new Animated.Value(1))[0];
-    const backgroundColor = useState(new Animated.Value(0))[0];
+    const backgroundColorVal = useState(new Animated.Value(0))[0];
     const timerRef = useRef(null);
 
     // Анимиране на бутона
@@ -72,13 +72,13 @@ export default function FastestTapperGame() {
                 })
             ]).start();
 
-            Animated.timing(backgroundColor, {
+            Animated.timing(backgroundColorVal, {
                 duration: 200,
                 toValue: intensity,
                 useNativeDriver: false
             }).start();
         },
-        [scaleValue, backgroundColor]
+        [scaleValue, backgroundColorVal]
     );
 
     const handleTap = useCallback(() => {
@@ -141,7 +141,7 @@ export default function FastestTapperGame() {
                     const newEmojiIndex = Math.max(emojiIndex - 1, 0);
                     setEmojiIndex(newEmojiIndex);
 
-                    Animated.timing(backgroundColor, {
+                    Animated.timing(backgroundColorVal, {
                         duration: 500,
                         toValue: 0,
                         useNativeDriver: false
@@ -151,9 +151,9 @@ export default function FastestTapperGame() {
 
             return () => clearInterval(interval);
         }
-    }, [lastTapTime, emojiIndex, backgroundColor, isPlaying]);
+    }, [lastTapTime, emojiIndex, backgroundColorVal, isPlaying]);
 
-    const interpolatedColor = backgroundColor.interpolate({
+    const interpolatedColor = backgroundColorVal.interpolate({
         inputRange: [0, 1],
         outputRange: GAME_CONFIG.backgroundColorRange
     });
