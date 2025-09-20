@@ -4,6 +4,9 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
+    "start:clear": "expo start --clear",
+    "start:tunnel": "expo start --tunnel",
+    "start:lan": "expo start --lan",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "ios": "expo run:ios",
@@ -13,7 +16,11 @@
     "lint-fix": "eslint . --fix",
     "build:web": "npx expo export",
     "electron-build": "electron-builder",
-    "electron-dev": "electron  main.js"
+    "electron-dev": "electron  main.js",
+    "clean": "rm -rf .expo node_modules/.cache && yarn install",
+    "clean:win": "if exist .expo rmdir /s /q .expo && if exist node_modules\\.cache rmdir /s /q node_modules\\.cache && yarn install",
+    "doctor": "npx expo-doctor",
+    "prestart": "node -e \"console.log('Node version:', process.version); if (parseInt(process.version.slice(1).split('.')[0]) > 20) console.warn('⚠️  Warning: Node.js v' + process.version + ' may cause Expo issues. Consider using Node.js v18 or v20.');\""
   },
   "build": {
     "appId": "com.yourapp.id",
@@ -28,9 +35,9 @@
     "preset": "jest-expo"
   },
   "dependencies": {
-    "@expo/metro-config": "^54.0.4",
+    "@expo/metro-config": "54.0.4",
     "@expo/vector-icons": "15.0.2",
-    "@react-native-community/cli-server-api": "^20.0.2",
+    "@react-native-community/cli-server-api": "20.0.2",
     "@react-navigation/native": "6.1.18",
     "electron": "38.1.2",
     "expo": "51.0.39",
@@ -43,19 +50,19 @@
     "expo-status-bar": "1.12.1",
     "expo-system-ui": "3.0.7",
     "expo-web-browser": "13.0.3",
-    "metro": "^0.80.12",
-    "metro-cache": "^0.80.12",
-    "metro-resolver": "^0.80.12",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-native": "^0.74.5",
+    "metro": "0.80.12",
+    "metro-cache": "0.80.12",
+    "metro-resolver": "0.80.12",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-native": "0.74.5",
     "react-native-gesture-handler": "2.28.0",
     "react-native-reanimated": "4.1.0",
     "react-native-safe-area-context": "5.6.1",
     "react-native-screens": "4.16.0",
     "react-native-web": "0.21.1",
-    "react-native-worklets": "^0.5.1",
-    "react-native-worklets-core": "^1.6.2"
+    "react-native-worklets": "0.5.1",
+    "react-native-worklets-core": "1.6.2"
   },
   "devDependencies": {
     "@babel/core": "7.28.4",
@@ -80,7 +87,7 @@
     "jest-expo": "51.0.4",
     "prettier": "3.6.2",
     "prettier-eslint": "16.4.2",
-    "react-test-renderer": "^18.3.1",
+    "react-test-renderer": "18.3.1",
     "typescript": "5.9.2"
   },
   "private": true
