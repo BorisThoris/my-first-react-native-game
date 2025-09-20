@@ -1,5 +1,5 @@
 // Tile.js
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Text, TouchableOpacity } from 'react-native';
 import { useGameContext } from '../../../../contexts/GameContext';
 import tileStyles from './styles';

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Button, Modal, Text, TextInput, View } from 'react-native';
 import { useGameContext } from '../../../../contexts/GameContext';
 import styles from './styles';

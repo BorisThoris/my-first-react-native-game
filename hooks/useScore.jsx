@@ -43,7 +43,7 @@ export const useScore = (level) => {
   }, [tries, calculateScore, resetTries]);
 
   const resetScores = useCallback(() => {
-    console.log('RESET');
+    // console.log('RESET');
     setTries(0);
     setCurrentLevelScore(0);
     setTotalScore(0);

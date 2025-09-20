@@ -1,4 +1,3 @@
-import React from 'react';
 import { ScrollView, View } from 'react-native';
 import { useGameContext } from '../../../../contexts/GameContext';
 import Tile from '../Tile/Tile';

@@ -1,10 +1,11 @@
 import { useRouter } from 'expo-router';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { Animated, Image, Text, View } from 'react-native';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { Animated, View, Text, Image } from 'react-native';
 import doYouWantToPlayImage from '../../assets/images/doYouWantToPlay.jpg';
 import { useGameContext } from '../../contexts/GameContext';
-import ButtonComponent from './components/ButtonComponent';
 import UserNameModal from './components/UserNameModal/UserNameModal';
+import ButtonComponent from './components/ButtonComponent';
+
 import styles from './styles';
 
 export default function GameScreen() {

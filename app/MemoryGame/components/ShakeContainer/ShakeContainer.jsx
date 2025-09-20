@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Animated } from 'react-native';
 import { useGameContext } from '../../../../contexts/GameContext';
 import styles from './styles';

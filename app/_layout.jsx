@@ -1,6 +1,6 @@
 // app/_layout.js
 import { Stack } from 'expo-router';
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { GameProvider } from '../contexts/GameContext';
 import { GlobalProvider } from '../contexts/GlobalStorage';
 

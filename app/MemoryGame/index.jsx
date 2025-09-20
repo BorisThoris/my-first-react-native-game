@@ -1,14 +1,13 @@
-import React from 'react';
-import { Text, View } from 'react-native';
+import { View, Text } from 'react-native';
 import { useGameContext } from '../../contexts/GameContext';
-import CheatButton from './components/CheatButton/CheatButton';
-import CheaterText from './components/CheaterText/CheaterText';
-import GameModal from './components/GameModal/GameModal';
-import GameTitle from './components/GameTitle/GameTitle';
-import Lives from './components/Lives/Lives';
-import Player from './components/Player/Player';
 import ShakeContainer from './components/ShakeContainer/ShakeContainer';
+import GameTitle from './components/GameTitle/GameTitle';
+import Player from './components/Player/Player';
+import Lives from './components/Lives/Lives';
 import TileGrid from './components/TileGrid/TileGrid';
+import CheaterText from './components/CheaterText/CheaterText';
+import CheatButton from './components/CheatButton/CheatButton';
+import GameModal from './components/GameModal/GameModal';
 import styles from './styles';
 
 const TileGame = () => {

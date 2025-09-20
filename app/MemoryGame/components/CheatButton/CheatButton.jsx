@@ -1,5 +1,5 @@
 // CheatButton.js
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Animated, TouchableOpacity } from 'react-native';
 import { useGameContext } from '../../../../contexts/GameContext';
 import styles from './styles';

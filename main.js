@@ -19,9 +19,9 @@ function createWindow() {
   // Log all files in the 'dist' directory
   fs.readdir(distPath, (err, files) => {
     if (err) {
-      console.error('Error reading dist directory:', err);
+      // console.error('Error reading dist directory:', err);
     } else {
-      console.log('Available files in dist directory:', files);
+      // console.log('Available files in dist directory:', files);
     }
 
     // Load the index.html file after logging the files
