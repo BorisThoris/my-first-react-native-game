@@ -15,22 +15,22 @@ export const TILE_RESET_DELAY = 1000;
  * @returns {string} - A randomly generated shape.
  */
 const generateRandomShape = () => {
-    const emojis = ['🔴', '🔷', '🔺', '⭐', '⚪', '⬛', '🔶', '⬜', '💎', '🍀', '🔥', '🌊'];
-    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const numbers = '0123456789';
+  const emojis = ['🔴', '🔷', '🔺', '⭐', '⚪', '⬛', '🔶', '⬜', '💎', '🍀', '🔥', '🌊'];
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const numbers = '0123456789';
 
-    // Randomly pick an emoji, letter, or number
-    const randomType = Math.floor(Math.random() * 3); // 0 = emoji, 1 = letter, 2 = number
-    switch (randomType) {
-        case 0: // Pick an emoji
-            return emojis[Math.floor(Math.random() * emojis.length)];
-        case 1: // Pick a letter
-            return letters[Math.floor(Math.random() * letters.length)];
-        case 2: // Pick a number
-            return numbers[Math.floor(Math.random() * numbers.length)];
-        default:
-            return '?'; // Fallback, though this should never occur
-    }
+  // Randomly pick an emoji, letter, or number
+  const randomType = Math.floor(Math.random() * 3); // 0 = emoji, 1 = letter, 2 = number
+  switch (randomType) {
+    case 0: // Pick an emoji
+      return emojis[Math.floor(Math.random() * emojis.length)];
+    case 1: // Pick a letter
+      return letters[Math.floor(Math.random() * letters.length)];
+    case 2: // Pick a number
+      return numbers[Math.floor(Math.random() * numbers.length)];
+    default:
+      return '?'; // Fallback, though this should never occur
+  }
 };
 
 /**
@@ -42,16 +42,16 @@ const generateRandomShape = () => {
  * @returns {Array} - An array of tiles with matching pairs.
  */
 export const initializeTiles = (totalPairs) => {
-    const predefinedShapes = ['🔴', '🔷', '🔺', '⭐', '⚪', '⬛', '🔶', '⬜', '💎', '🍀', '🔥', '🌊'];
+  const predefinedShapes = ['🔴', '🔷', '🔺', '⭐', '⚪', '⬛', '🔶', '⬜', '💎', '🍀', '🔥', '🌊'];
 
-    return Array.from({ length: totalPairs }, (_, i) => {
-        // Use predefined shapes or generate a random one if we're out of predefined shapes
-        const shape = predefinedShapes[i] || generateRandomShape();
-        return [
-            { id: i * 2, shape }, // First tile of the pair
-            { id: i * 2, shape } // Second tile of the pair
-        ];
-    }).flat();
+  return Array.from({ length: totalPairs }, (_, i) => {
+    // Use predefined shapes or generate a random one if we're out of predefined shapes
+    const shape = predefinedShapes[i] || generateRandomShape();
+    return [
+      { id: i * 2, shape }, // First tile of the pair
+      { id: i * 2, shape }, // Second tile of the pair
+    ];
+  }).flat();
 };
 
 /**
@@ -61,10 +61,10 @@ export const initializeTiles = (totalPairs) => {
  * @returns {Array} - The shuffled array of tiles.
  */
 export const shuffleTiles = (tiles) => {
-    return tiles
-        .map((tile) => ({ ...tile, sort: Math.random() }))
-        .sort((a, b) => a.sort - b.sort)
-        .map((tile) => ({ id: tile.id, shape: tile.shape }));
+  return tiles
+    .map((tile) => ({ ...tile, sort: Math.random() }))
+    .sort((a, b) => a.sort - b.sort)
+    .map((tile) => ({ id: tile.id, shape: tile.shape }));
 };
 
 /**
@@ -74,5 +74,5 @@ export const shuffleTiles = (tiles) => {
  * @returns {number} - The calculated tile size.
  */
 export const getTileSize = (gridSize) => {
-    return Math.min((SCREEN_WIDTH - SCREEN_PADDING) / gridSize - TILE_MARGIN * 2, MAX_TILE_SIZE);
+  return Math.min((SCREEN_WIDTH - SCREEN_PADDING) / gridSize - TILE_MARGIN * 2, MAX_TILE_SIZE);
 };

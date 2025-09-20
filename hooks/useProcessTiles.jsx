@@ -2,69 +2,74 @@ import { useCallback, useMemo } from 'react';
 import { TILE_RESET_DELAY } from '../gameUtils';
 
 export const useProcessTiles = ({ dispatch, gameState, incrementTries, triggerShakeEffect }) => {
-    // Destructure gameState properties
-    const { cheated, flippedTiles, matchedTiles, tiles } = gameState;
+  // Destructure gameState properties
+  const { cheated, flippedTiles, matchedTiles, tiles } = gameState;
 
-    // Reset flipped tiles after a delay
-    const resetFlippedTiles = useCallback(() => {
-        dispatch({ type: 'RESET_FLIPPED_TILES' });
-    }, [dispatch]);
+  // Reset flipped tiles after a delay
+  const resetFlippedTiles = useCallback(() => {
+    setTimeout(() => {
+      dispatch({ type: 'RESET_FLIPPED_TILES' });
+    }, TILE_RESET_DELAY);
+  }, [dispatch]);
 
-    // Handle tile matching logic
-    const processTileMatch = useCallback(
-        (isMatch, firstIndex, secondIndex) => {
-            if (isMatch) {
-                dispatch({ payload: [firstIndex, secondIndex], type: 'MATCH_TILES' });
-            } else {
-                incrementTries();
-                dispatch({ type: 'MISMATCH_TILES' });
-                triggerShakeEffect();
-            }
+  // Handle tile matching logic
+  const processTileMatch = useCallback(
+    (isMatch, firstIndex, secondIndex) => {
+      if (isMatch) {
+        dispatch({ payload: [firstIndex, secondIndex], type: 'MATCH_TILES' });
+      } else {
+        incrementTries();
+        dispatch({ type: 'MISMATCH_TILES' });
+        triggerShakeEffect();
+      }
 
-            resetFlippedTiles();
-        },
-        [dispatch, incrementTries, triggerShakeEffect, resetFlippedTiles]
-    );
+      // Always reset flipped tiles after processing
+      resetFlippedTiles();
+    },
+    [dispatch, incrementTries, triggerShakeEffect, resetFlippedTiles]
+  );
 
-    // Evaluate whether the flipped tiles are a match
-    const evaluateFlippedTiles = useCallback(() => {
-        const [firstFlippedIndex, secondFlippedIndex] = flippedTiles;
-        const firstTileId = tiles[firstFlippedIndex]?.id;
-        const secondTileId = tiles[secondFlippedIndex]?.id;
+  // Evaluate whether the flipped tiles are a match
+  const evaluateFlippedTiles = useCallback(() => {
+    if (flippedTiles.length !== 2) return;
 
-        // Determine if the two flipped tiles are a match
-        const isMatch = firstTileId === secondTileId;
-        processTileMatch(isMatch, firstFlippedIndex, secondFlippedIndex);
-    }, [flippedTiles, tiles, processTileMatch]);
+    const [firstFlippedIndex, secondFlippedIndex] = flippedTiles;
+    const firstTile = tiles[firstFlippedIndex];
+    const secondTile = tiles[secondFlippedIndex];
 
-    // Check if the tile can be flipped
-    const isTileFlippable = useCallback(
-        (index) => {
-            const lessThanTwoFlippedTiles = flippedTiles.length < 2;
-            const isNotFlippedAlready = !flippedTiles.includes(index);
-            const isNotAlreadyMatched = !matchedTiles.includes(index);
+    // Check if tiles exist and have the same shape
+    const isMatch = firstTile && secondTile && firstTile.shape === secondTile.shape;
+    processTileMatch(isMatch, firstFlippedIndex, secondFlippedIndex);
+  }, [flippedTiles, tiles, processTileMatch]);
 
-            // Tile is flippable if there are fewer than two flipped, and it's neither flipped nor matched
-            return lessThanTwoFlippedTiles && isNotFlippedAlready && isNotAlreadyMatched;
-        },
-        [flippedTiles, matchedTiles]
-    );
+  // Check if the tile can be flipped
+  const isTileFlippable = useCallback(
+    (index) => {
+      const lessThanTwoFlippedTiles = flippedTiles.length < 2;
+      const isNotFlippedAlready = !flippedTiles.includes(index);
+      const isNotAlreadyMatched = !matchedTiles.includes(index);
 
-    // Handle tile flipping
-    const handleFlip = useCallback(
-        (index) => {
-            const canFlipTile = isTileFlippable(index) && !cheated;
+      // Tile is flippable if there are fewer than two flipped, and it's neither flipped nor matched
+      return lessThanTwoFlippedTiles && isNotFlippedAlready && isNotAlreadyMatched;
+    },
+    [flippedTiles, matchedTiles]
+  );
 
-            if (canFlipTile) {
-                dispatch({ payload: index, type: 'FLIP_TILE' });
-            }
-        },
-        [cheated, isTileFlippable, dispatch]
-    );
+  // Handle tile flipping
+  const handleFlip = useCallback(
+    (index) => {
+      const canFlipTile = isTileFlippable(index) && !cheated;
 
-    return useMemo(() => {
-        return { evaluateFlippedTiles, handleFlip };
-    }, [evaluateFlippedTiles, handleFlip]);
+      if (canFlipTile) {
+        dispatch({ payload: index, type: 'FLIP_TILE' });
+      }
+    },
+    [cheated, isTileFlippable, dispatch]
+  );
+
+  return useMemo(() => {
+    return { evaluateFlippedTiles, handleFlip };
+  }, [evaluateFlippedTiles, handleFlip]);
 };
 
 export default useProcessTiles;

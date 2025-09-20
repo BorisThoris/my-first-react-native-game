@@ -5,17 +5,17 @@ import { useGameContext } from '../../../../contexts/GameContext';
 import styles from './styles';
 
 const CheatButton = () => {
-    const { cheated, handleCheat } = useGameContext();
+  const { cheated, handleCheat } = useGameContext();
 
-    const buttonText = useMemo(() => (cheated ? 'Turn off Cheat' : 'Cheat?'), [cheated]);
+  const buttonText = useMemo(() => (cheated ? 'Turn off Cheat' : 'Cheat?'), [cheated]);
 
-    const handlePress = useMemo(() => handleCheat, [handleCheat]);
+  const handlePress = useMemo(() => handleCheat, [handleCheat]);
 
-    return (
-        <TouchableOpacity onPress={handlePress} style={styles.cheatButton}>
-            <Animated.Text style={styles.buttonText}>{buttonText}</Animated.Text>
-        </TouchableOpacity>
-    );
+  return (
+    <TouchableOpacity onPress={handlePress} style={styles.cheatButton}>
+      <Animated.Text style={styles.buttonText}>{buttonText}</Animated.Text>
+    </TouchableOpacity>
+  );
 };
 
 export default CheatButton;

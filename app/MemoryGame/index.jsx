@@ -12,38 +12,38 @@ import TileGrid from './components/TileGrid/TileGrid';
 import styles from './styles';
 
 const TileGame = () => {
-    const { currentLevelScore, lives, rating, tiles, totalScore } = useGameContext();
+  const { currentLevelScore, lives, rating, tiles, totalScore } = useGameContext();
 
-    return (
-        <ShakeContainer>
-            <GameTitle />
+  return (
+    <ShakeContainer>
+      <GameTitle />
 
-            <View style={styles.currentScoreContainer}>
-                <View style={styles.rankContainer}>
-                    <Text style={styles.rankText}>{rating}</Text>
-                </View>
+      <View style={styles.currentScoreContainer}>
+        <View style={styles.rankContainer}>
+          <Text style={styles.rankText}>{rating}</Text>
+        </View>
 
-                <Text style={styles.currentScoreText}>Current Level Score: {currentLevelScore}</Text>
-            </View>
+        <Text style={styles.currentScoreText}>Current Level Score: {currentLevelScore}</Text>
+      </View>
 
-            <View style={styles.scoreContainer}>
-                <Text style={styles.scoreText}>Total Score: {totalScore}</Text>
-            </View>
+      <View style={styles.scoreContainer}>
+        <Text style={styles.scoreText}>Total Score: {totalScore}</Text>
+      </View>
 
-            <View style={styles.playerContainer}>
-                <Player />
-            </View>
+      <View style={styles.playerContainer}>
+        <Player />
+      </View>
 
-            <View style={styles.livesContainer}>
-                <Lives lives={lives} />
-            </View>
+      <View style={styles.livesContainer}>
+        <Lives lives={lives} />
+      </View>
 
-            <TileGrid tiles={tiles} />
-            <CheaterText />
-            <CheatButton />
-            <GameModal />
-        </ShakeContainer>
-    );
+      <TileGrid tiles={tiles} />
+      <CheaterText />
+      <CheatButton />
+      <GameModal />
+    </ShakeContainer>
+  );
 };
 
 export default TileGame;

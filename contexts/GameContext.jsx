@@ -9,148 +9,166 @@ import gameReducer, { initialGameState } from '../reducers/gameReducer';
 const GameContext = createContext();
 
 export const GameProvider = ({ children }) => {
-    const [gameState, dispatch] = useReducer(gameReducer, initialGameState);
-    const { cheated, flippedTiles, level, lives, matchedTiles, tiles } = gameState; // Destructure gameState
-    const [userName, setUserName] = useState(false);
-    const prevLevel = useRef(level);
-    const [hasStarted, setHasStarter] = useState(false);
+  const [gameState, dispatch] = useReducer(gameReducer, initialGameState);
+  const { cheated, flippedTiles, level, lives, matchedTiles, tiles } = gameState; // Destructure gameState
+  const [userName, setUserName] = useState(false);
+  const prevLevel = useRef(level);
+  const [hasStarted, setHasStarted] = useState(false);
 
-    // Custom hooks
-    const { shakeAnim, triggerShakeEffect } = useVisualEffects();
-    const { completeLevel, currentLevelScore, incrementTries, rating, resetScores, resetTries, totalScore } =
-        useScore(level);
-    const { hideModal, modalMessage, modalVisible, showModal } = useModal();
+  // Custom hooks
+  const { shakeAnim, triggerShakeEffect } = useVisualEffects();
+  const { completeLevel, currentLevelScore, incrementTries, rating, resetScores, resetTries, totalScore } =
+    useScore(level);
+  const { hideModal, modalMessage, modalVisible, showModal } = useModal();
 
-    const { evaluateFlippedTiles, handleFlip } = useProcessTiles({
-        dispatch,
-        gameState,
-        incrementTries,
-        triggerShakeEffect
+  const { evaluateFlippedTiles, handleFlip } = useProcessTiles({
+    dispatch,
+    gameState,
+    incrementTries,
+    triggerShakeEffect,
+  });
+
+  // Derived values
+  const generateLevel = useCallback((lvl) => {
+    const basePairs = 1;
+    const additionalPairs = lvl;
+    const gridSize = (basePairs + additionalPairs) * 2;
+
+    return {
+      gridSize,
+      totalPairs: basePairs + additionalPairs,
+    };
+  }, []);
+
+  const currentLevel = useMemo(() => generateLevel(level), [generateLevel, level]);
+  const TILE_SIZE = getTileSize(currentLevel.gridSize || 0);
+
+  // Game handlers
+  const handleCheat = useCallback(() => {
+    dispatch({ type: 'TOGGLE_CHEAT' });
+  }, []);
+
+  const resetGameState = useCallback(() => {
+    dispatch({ type: 'RESET_GAME' });
+  }, []);
+
+  const startNewLevel = useCallback(() => {
+    const nextLevel = level + 1;
+    const newLevel = generateLevel(nextLevel);
+
+    completeLevel();
+    dispatch({
+      payload: { tiles: shuffleTiles(initializeTiles(newLevel.totalPairs)) },
+      type: 'START_NEW_LEVEL',
     });
+  }, [generateLevel, level, completeLevel]);
 
-    // Derived values
-    const generateLevel = useCallback((lvl) => {
-        const basePairs = 1;
-        const additionalPairs = lvl;
-        const gridSize = (basePairs + additionalPairs) * 2;
+  const onHideModal = useCallback(() => {
+    hideModal();
 
-        return {
-            gridSize,
-            totalPairs: basePairs + additionalPairs
-        };
-    }, []);
+    startNewLevel();
+  }, [hideModal, startNewLevel]);
 
-    const currentLevel = useMemo(() => generateLevel(level), [generateLevel, level]);
-    const TILE_SIZE = getTileSize(currentLevel.gridSize || 0);
+  // Effect hooks
+  useEffect(() => {
+    if (prevLevel.current !== level) {
+      resetTries();
+      prevLevel.current = level;
+    }
+  }, [level, resetTries]);
 
-    // Game handlers
-    const handleCheat = useCallback(() => {
-        dispatch({ type: 'TOGGLE_CHEAT' });
-    }, []);
+  useEffect(() => {
+    if (flippedTiles.length === 2) evaluateFlippedTiles();
+  }, [evaluateFlippedTiles, flippedTiles]);
 
-    const resetGameState = useCallback(() => {
-        dispatch({ type: 'RESET_GAME' });
-    }, []);
+  useEffect(() => {
+    if (!hasStarted && tiles.length === 0) {
+      const newLevel = generateLevel(1); // Start with level 1
 
-    const startNewLevel = useCallback(() => {
-        const newLevel = generateLevel(level);
+      dispatch({
+        payload: {
+          tiles: shuffleTiles(initializeTiles(newLevel.totalPairs)),
+        },
+        type: 'START_GAME',
+      });
 
-        completeLevel();
-        dispatch({
-            payload: { tiles: shuffleTiles(initializeTiles(newLevel.totalPairs)) },
-            type: 'START_NEW_LEVEL'
-        });
-    }, [generateLevel, level, completeLevel]);
+      setHasStarted(true);
+    }
+  }, [hasStarted, generateLevel, dispatch, tiles.length]);
 
-    const onHideModal = useCallback(() => {
-        hideModal();
+  useEffect(() => {
+    if (lives === 0 && hasStarted) {
+      showModal('Game Over', `You've run out of lives! Total score: ${totalScore}.`);
+      resetScores();
+      resetGameState();
+      setHasStarted(false);
+    }
+  }, [lives, resetGameState, resetScores, showModal, totalScore, hasStarted]);
 
-        startNewLevel();
-    }, [hideModal, startNewLevel]);
+  useEffect(() => {
+    if (
+      matchedTiles.length === tiles.length &&
+      tiles.length > 0 &&
+      !modalVisible &&
+      !cheated &&
+      hasStarted &&
+      flippedTiles.length === 0
+    ) {
+      showModal('Success', `You've completed the level! Score for this level: ${currentLevelScore}`);
+    }
+  }, [
+    matchedTiles,
+    tiles.length,
+    modalVisible,
+    showModal,
+    currentLevelScore,
+    cheated,
+    hasStarted,
+    flippedTiles.length,
+  ]);
 
-    // Effect hooks
-    useEffect(() => {
-        if (prevLevel.current !== level) {
-            resetTries();
-            prevLevel.current = level;
-        }
-    }, [level, resetTries]);
+  // Memoized context value
+  const contextValue = useMemo(
+    () => ({
+      cheated,
+      currentLevelScore,
+      flippedTiles,
+      handleCheat,
+      handleFlip,
+      hideModal: onHideModal,
+      lives,
+      matchedTiles,
+      modalMessage,
+      modalVisible,
+      rating,
+      setUserName,
+      shakeAnim,
+      TILE_SIZE,
+      tiles,
+      totalScore,
+      userName,
+    }),
+    [
+      cheated,
+      flippedTiles,
+      matchedTiles,
+      tiles,
+      lives,
+      currentLevelScore,
+      handleCheat,
+      handleFlip,
+      onHideModal,
+      modalMessage,
+      modalVisible,
+      rating,
+      shakeAnim,
+      TILE_SIZE,
+      totalScore,
+      userName,
+    ]
+  );
 
-    useEffect(() => {
-        if (flippedTiles.length === 2) evaluateFlippedTiles();
-    }, [evaluateFlippedTiles, flippedTiles]);
-
-    useEffect(() => {
-        if (!hasStarted) {
-            const newLevel = generateLevel(level);
-
-            dispatch({
-                payload: {
-                    tiles: shuffleTiles(initializeTiles(newLevel.totalPairs))
-                },
-                type: 'START_GAME'
-            });
-
-            setHasStarter(true);
-        }
-    }, [tiles.length, hasStarted, generateLevel, dispatch, level]);
-
-    useEffect(() => {
-        if (lives === 0) {
-            showModal('Game Over', `You've run out of lives! Total score: ${totalScore}.`);
-            resetScores();
-            resetGameState();
-        }
-    }, [lives, resetGameState, resetScores, showModal, startNewLevel, totalScore]);
-
-    useEffect(() => {
-        if (matchedTiles.length === tiles.length && tiles.length > 0 && !modalVisible && !cheated) {
-            showModal('Success', `You've completed the level! Score for this level: ${currentLevelScore}`);
-        }
-    }, [matchedTiles, tiles.length, modalVisible, showModal, currentLevelScore, cheated]);
-
-    // Memoized context value
-    const contextValue = useMemo(
-        () => ({
-            cheated,
-            currentLevelScore,
-            flippedTiles,
-            handleCheat,
-            handleFlip,
-            hideModal: onHideModal,
-            lives,
-            matchedTiles,
-            modalMessage,
-            modalVisible,
-            rating,
-            setUserName,
-            shakeAnim,
-            TILE_SIZE,
-            tiles,
-            totalScore,
-            userName
-        }),
-        [
-            cheated,
-            flippedTiles,
-            matchedTiles,
-            tiles,
-            lives,
-            currentLevelScore,
-            handleCheat,
-            handleFlip,
-            onHideModal,
-            modalMessage,
-            modalVisible,
-            rating,
-            shakeAnim,
-            TILE_SIZE,
-            totalScore,
-            userName
-        ]
-    );
-
-    return <GameContext.Provider value={contextValue}>{children}</GameContext.Provider>;
+  return <GameContext.Provider value={contextValue}>{children}</GameContext.Provider>;
 };
 
 export const useGameContext = () => useContext(GameContext);

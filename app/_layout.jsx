@@ -10,18 +10,18 @@ import { GlobalProvider } from '../contexts/GlobalStorage';
 // };
 
 export default function Layout() {
-    const screenOptions = useMemo(
-        () => ({
-            headerShown: false
-        }),
-        []
-    );
+  const screenOptions = useMemo(
+    () => ({
+      headerShown: false,
+    }),
+    []
+  );
 
-    return (
-        <GlobalProvider>
-            <GameProvider>
-                <Stack screenOptions={screenOptions} />
-            </GameProvider>
-        </GlobalProvider>
-    );
+  return (
+    <GlobalProvider>
+      <GameProvider>
+        <Stack screenOptions={screenOptions} />
+      </GameProvider>
+    </GlobalProvider>
+  );
 }
