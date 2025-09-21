@@ -1,12 +1,15 @@
 import { create } from 'zustand';
 import { RoomTypes, createRoom, createFloor, Room, Floor, GameState } from '../types/gameTypes';
 import { generateFloor } from '../algorithms/dungeonGenerator';
+import { InteractiveElement } from '../types/interactiveTypes';
+import { InteractiveGenerator } from '../algorithms/interactiveGenerator';
 
 interface DungeonState {
   currentFloor: number;
   currentRoom: Room | null;
   floors: Floor[];
   gameState: GameState;
+  floorInteractives: { [floorNumber: number]: InteractiveElement[] };
 }
 
 interface DungeonActions {
@@ -15,9 +18,13 @@ interface DungeonActions {
   saveRoomState: (roomId: string, flippedTiles: string[], matchedTiles: string[]) => void;
   completeRoom: (roomId: string) => void;
   advanceFloor: () => void;
+  generateNextFloor: () => void;
+  generateFloor: (floorNumber: number) => void;
   getCurrentFloor: () => Floor | undefined;
   getAvailableRooms: () => Room[];
   getCompletedRooms: () => Room[];
+  getCurrentFloorInteractives: () => InteractiveElement[];
+  interactWithElement: (elementId: string) => void;
   resetRun: () => void;
 }
 
@@ -29,20 +36,20 @@ const useDungeonStore = create<DungeonStore>((set, get) => ({
   currentRoom: null,
   floors: [],
   gameState: 'exploring' as GameState,
+  floorInteractives: {},
   
   // Actions
   generateNewRun: () => {
-    const floors: Floor[] = [];
-    // Generate 3 floors for demo
-    for (let i = 1; i <= 3; i++) {
-      floors.push(generateFloor(i));
-    }
+    // Generate only the first floor initially
+    const firstFloor = generateFloor(1);
+    const interactives = InteractiveGenerator.generateFloorInteractives(1, firstFloor.rooms.length);
     
     set({
       currentFloor: 1,
       currentRoom: null,
-      floors,
-      gameState: 'exploring' as GameState
+      floors: [firstFloor],
+      gameState: 'exploring' as GameState,
+      floorInteractives: { 1: interactives }
     });
   },
   
@@ -94,11 +101,15 @@ const useDungeonStore = create<DungeonStore>((set, get) => ({
       room.completed = true;
       room.roomState = 'completed';
       
+      // Check if this was a boss room
+      const isBossRoom = room.type === RoomTypes.BOSS;
+      
       // Check if floor is completed
       if (floor) {
         const allRoomsCompleted = floor.rooms.every(r => r.completed);
         if (allRoomsCompleted) {
           floor.completed = true;
+          floor.bossDefeated = isBossRoom;
         }
       }
       
@@ -107,6 +118,11 @@ const useDungeonStore = create<DungeonStore>((set, get) => ({
         gameState: 'exploring' as GameState,
         floors: [...floors]
       });
+      
+      // If boss was defeated, generate next floor
+      if (isBossRoom) {
+        get().generateNextFloor();
+      }
     }
   },
   
@@ -128,6 +144,32 @@ const useDungeonStore = create<DungeonStore>((set, get) => ({
     }
   },
   
+  generateNextFloor: (playerStats?: any) => {
+    const { floors, currentFloor } = get();
+    const nextFloorNumber = currentFloor + 1;
+    
+    // Generate the next floor with player stats
+    const newFloor = generateFloor(nextFloorNumber, playerStats);
+    
+    set({
+      floors: [...floors, newFloor],
+      currentFloor: nextFloorNumber,
+      currentRoom: null,
+      gameState: 'exploring' as GameState
+    });
+  },
+  
+  generateFloor: (floorNumber: number, playerStats?: any) => {
+    const { floors } = get();
+    
+    // Generate floor with player stats
+    const newFloor = generateFloor(floorNumber, playerStats);
+    
+    set({
+      floors: [...floors, newFloor]
+    });
+  },
+  
   getCurrentFloor: () => {
     const { floors, currentFloor } = get();
     return floors.find(f => f.floorNumber === currentFloor);
@@ -145,12 +187,36 @@ const useDungeonStore = create<DungeonStore>((set, get) => ({
     return floor?.rooms.filter(r => r.completed) || [];
   },
   
+  getCurrentFloorInteractives: () => {
+    const { floorInteractives, currentFloor } = get();
+    return floorInteractives[currentFloor] || [];
+  },
+  
+  interactWithElement: (elementId: string) => {
+    const { floorInteractives, currentFloor } = get();
+    const interactives = floorInteractives[currentFloor] || [];
+    const element = interactives.find(e => e.id === elementId);
+    
+    if (element) {
+      // Update element state
+      element.state = element.type === 'treasure-chest' ? 'opened' : 'destroyed';
+      
+      set({
+        floorInteractives: {
+          ...floorInteractives,
+          [currentFloor]: [...interactives]
+        }
+      });
+    }
+  },
+  
   resetRun: () => {
     set({
       currentFloor: 1,
       currentRoom: null,
       floors: [],
-      gameState: 'exploring' as GameState
+      gameState: 'exploring' as GameState,
+      floorInteractives: {}
     });
   }
 }));

@@ -9,14 +9,16 @@ interface TileProps {
 }
 
 const Tile: React.FC<TileProps> = ({ tile, size }) => {
-    const { handleTilePress, flippedTiles, matchedTiles } = useTileMatching();
+    const { handleTilePress, flippedTiles, matchedTiles, previewTiles, isPreviewing } = useTileMatching();
 
     const isFlipped = flippedTiles.includes(tile.id);
     const isMatched = matchedTiles.includes(tile.id);
+    const isPreview = previewTiles.includes(tile.id);
 
     const getTileState = (): string => {
         if (isMatched) return TileStates.MATCHED;
         if (isFlipped) return TileStates.FLIPPED;
+        if (isPreview) return TileStates.PREVIEW;
         return TileStates.HIDDEN;
     };
 
@@ -29,13 +31,14 @@ const Tile: React.FC<TileProps> = ({ tile, size }) => {
                 { width: size, height: size },
                 tileState === TileStates.HIDDEN && styles.hidden,
                 tileState === TileStates.FLIPPED && styles.flipped,
-                tileState === TileStates.MATCHED && styles.matched
+                tileState === TileStates.MATCHED && styles.matched,
+                tileState === TileStates.PREVIEW && styles.preview
             ]}
             onPress={() => handleTilePress(tile.id)}
         >
-            {(tileState === TileStates.FLIPPED || tileState === TileStates.MATCHED) && (
-                <Text style={styles.text}>{tile.shape}</Text>
-            )}
+            {(tileState === TileStates.FLIPPED ||
+                tileState === TileStates.MATCHED ||
+                tileState === TileStates.PREVIEW) && <Text style={styles.text}>{tile.shape}</Text>}
         </TouchableOpacity>
     );
 };
@@ -48,7 +51,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderWidth: 2,
         borderColor: '#666',
-        margin: 2
+        flex: 1,
+        margin: 1
     },
     hidden: {
         backgroundColor: '#333',
@@ -63,6 +67,11 @@ const styles = StyleSheet.create({
         borderColor: '#2E7D32',
         opacity: 0.7
     },
+    preview: {
+        backgroundColor: '#FFA726',
+        borderColor: '#FF9800',
+        opacity: 0.8
+    },
     text: {
         fontSize: 24,
         color: '#fff'
@@ -70,4 +79,3 @@ const styles = StyleSheet.create({
 });
 
 export default Tile;
-

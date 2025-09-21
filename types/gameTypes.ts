@@ -4,7 +4,15 @@ export const RoomTypes = {
   MEMORY_CHAMBER: 'memory-chamber',
   BOSS: 'boss',
   TREASURE: 'treasure',
-  TRAP: 'trap'
+  TRAP: 'trap',
+  SHOP: 'shop',
+  SECRET: 'secret',
+  CURSE: 'curse',
+  CHALLENGE: 'challenge',
+  LIBRARY: 'library',
+  CURSED_ROOM: 'cursed-room',
+  DEVIL_ROOM: 'devil-room',
+  ANGEL_ROOM: 'angel-room'
 } as const;
 
 export const GameStates = {
@@ -18,7 +26,8 @@ export const TileStates = {
   HIDDEN: 'hidden',
   FLIPPED: 'flipped',
   MATCHED: 'matched',
-  MISMATCHED: 'mismatched'
+  MISMATCHED: 'mismatched',
+  PREVIEW: 'preview'
 } as const;
 
 // Type definitions
@@ -36,7 +45,13 @@ export interface PlayerStats {
   items: Item[];
   currentFloor: number;
   roomsCompleted: number;
-  totalScore: number;
+  points: number;
+  streak: number;
+  maxStreak: number;
+  shopItems: ShopItem[];
+  keys: number;
+  bombs: number;
+  consumables: { [key: string]: number };
 }
 
 export interface Item {
@@ -46,6 +61,17 @@ export interface Item {
   effect: Partial<PlayerStats>;
   type: 'passive' | 'consumable' | 'equipment';
   rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+}
+
+export interface ShopItem {
+  id: string;
+  name: string;
+  description: string;
+  cost: number;
+  type: 'life' | 'boss-skip' | 'key' | 'bomb' | 'streak-boost' | 'point-multiplier';
+  effect: Partial<PlayerStats>;
+  maxUses?: number;
+  currentUses?: number;
 }
 
 export interface Tile {
@@ -72,6 +98,9 @@ export interface Room {
   flippedTiles: string[];
   matchedTiles: string[];
   roomState: 'incomplete' | 'completed';
+  isLocked?: boolean;
+  requiresKey?: boolean;
+  specialProperties?: { [key: string]: any };
 }
 
 export interface Floor {
@@ -92,7 +121,13 @@ export const createPlayerStats = (): PlayerStats => ({
   items: [],
   currentFloor: 1,
   roomsCompleted: 0,
-  totalScore: 0
+  points: 0,
+  streak: 0,
+  maxStreak: 0,
+  shopItems: [],
+  keys: 0,
+  bombs: 0,
+  consumables: {}
 });
 
 export const createItem = (id: string, name: string, description: string, effect: Partial<PlayerStats>, type: Item['type']): Item => ({
@@ -102,6 +137,17 @@ export const createItem = (id: string, name: string, description: string, effect
   effect,
   type,
   rarity: 'common'
+});
+
+export const createShopItem = (id: string, name: string, description: string, cost: number, type: ShopItem['type'], effect: Partial<PlayerStats>, maxUses?: number): ShopItem => ({
+  id,
+  name,
+  description,
+  cost,
+  type,
+  effect,
+  maxUses,
+  currentUses: maxUses || 0
 });
 
 export const createTile = (id: string, shape: string, x: number, y: number, pairId: string | null = null): Tile => ({

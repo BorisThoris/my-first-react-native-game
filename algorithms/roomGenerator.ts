@@ -8,7 +8,7 @@ interface Reward {
   probability: number;
 }
 
-class RoomGenerator {
+export class RoomGenerator {
   static generateRoom(type: RoomType, difficulty: number, floorNumber: number, seed: string | null = null): Room {
     const roomId = `room-${floorNumber}-${type}-${Math.random().toString(36).substr(2, 9)}`;
     const gridSize = this.getRoomSize(type, difficulty);
@@ -38,7 +38,15 @@ class RoomGenerator {
       [RoomTypes.MEMORY_CHAMBER]: 2 + Math.floor(difficulty / 2),
       [RoomTypes.BOSS]: 4 + Math.floor(difficulty / 2),
       [RoomTypes.TREASURE]: 2,
-      [RoomTypes.TRAP]: 2 + Math.floor(difficulty / 3)
+      [RoomTypes.TRAP]: 2 + Math.floor(difficulty / 3),
+      [RoomTypes.SHOP]: 2,
+      [RoomTypes.SECRET]: 2 + Math.floor(difficulty / 4),
+      [RoomTypes.CURSE]: 2 + Math.floor(difficulty / 2),
+      [RoomTypes.CHALLENGE]: 3 + Math.floor(difficulty / 2),
+      [RoomTypes.LIBRARY]: 2 + Math.floor(difficulty / 3),
+      [RoomTypes.CURSED_ROOM]: 3 + Math.floor(difficulty / 2),
+      [RoomTypes.DEVIL_ROOM]: 4 + Math.floor(difficulty / 2),
+      [RoomTypes.ANGEL_ROOM]: 3 + Math.floor(difficulty / 2)
     };
     
     const size = baseSizes[type] || 2;
@@ -71,7 +79,15 @@ class RoomGenerator {
       [RoomTypes.MEMORY_CHAMBER]: ['🔴', '🔷', '🔺', '⭐', '⚪', '⬛', '🔶', '⬜'],
       [RoomTypes.BOSS]: ['💎', '🍀', '🔥', '🌊', '⚡', '❄️', '🌟', '💫'],
       [RoomTypes.TREASURE]: ['💰', '💎', '🏆', '👑'],
-      [RoomTypes.TRAP]: ['💀', '☠️', '⚠️', '🚫']
+      [RoomTypes.TRAP]: ['💀', '☠️', '⚠️', '🚫'],
+      [RoomTypes.SHOP]: ['🛒', '💰', '💳', '🏪'],
+      [RoomTypes.SECRET]: ['🔍', '🗝️', '🔐', '🕵️'],
+      [RoomTypes.CURSE]: ['💀', '☠️', '👻', '🦇'],
+      [RoomTypes.CHALLENGE]: ['⚔️', '🛡️', '🏹', '🗡️'],
+      [RoomTypes.LIBRARY]: ['📚', '📖', '📝', '✍️'],
+      [RoomTypes.CURSED_ROOM]: ['👹', '😈', '🔥', '💀'],
+      [RoomTypes.DEVIL_ROOM]: ['😈', '👹', '🔥', '⚡'],
+      [RoomTypes.ANGEL_ROOM]: ['😇', '👼', '✨', '🌟']
     };
     
     const typeShapes = shapes[type] || shapes[RoomTypes.MEMORY_CHAMBER];
@@ -117,21 +133,75 @@ class RoomGenerator {
   static generateRewards(type: RoomType, difficulty: number): Reward[] {
     const rewards: Reward[] = [];
     
-    if (type === RoomTypes.TREASURE) {
-      rewards.push({
-        type: 'item',
-        item: 'focus-crystal',
-        probability: 0.8
-      });
-    }
-    
-    if (type === RoomTypes.BOSS) {
-      rewards.push({
-        type: 'stat',
-        stat: 'focus',
-        value: 5,
-        probability: 1.0
-      });
+    switch (type) {
+      case RoomTypes.TREASURE:
+        rewards.push({
+          type: 'item',
+          item: 'focus-crystal',
+          probability: 0.8
+        });
+        break;
+        
+      case RoomTypes.BOSS:
+        rewards.push({
+          type: 'stat',
+          stat: 'focus',
+          value: 5,
+          probability: 1.0
+        });
+        break;
+        
+      case RoomTypes.SHOP:
+        // Shop rewards are handled separately
+        break;
+        
+      case RoomTypes.SECRET:
+        rewards.push({
+          type: 'item',
+          item: 'memory-boost',
+          probability: 0.6
+        });
+        break;
+        
+      case RoomTypes.CHALLENGE:
+        rewards.push({
+          type: 'item',
+          item: 'perfect-memory',
+          probability: 0.7
+        });
+        break;
+        
+      case RoomTypes.LIBRARY:
+        rewards.push({
+          type: 'item',
+          item: 'eidetic-memory',
+          probability: 0.5
+        });
+        break;
+        
+      case RoomTypes.CURSED_ROOM:
+        rewards.push({
+          type: 'item',
+          item: 'cursed-eye',
+          probability: 0.8
+        });
+        break;
+        
+      case RoomTypes.DEVIL_ROOM:
+        rewards.push({
+          type: 'item',
+          item: 'boss-slayer',
+          probability: 0.9
+        });
+        break;
+        
+      case RoomTypes.ANGEL_ROOM:
+        rewards.push({
+          type: 'item',
+          item: 'room-master',
+          probability: 0.8
+        });
+        break;
     }
     
     return rewards;
