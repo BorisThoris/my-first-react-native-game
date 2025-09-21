@@ -22,7 +22,8 @@ export const useRoomState = (room: Room) => {
   }, [room, flippedTiles, matchedTiles, saveToDungeon]);
 
   const isCompleted = useCallback((): boolean => {
-    return isRoomCompleted(room);
+    // Check if this specific room is completed
+    return room.completed || (room.tiles && room.tiles.length > 0 && room.matchedTiles && room.matchedTiles.length === room.tiles.length);
   }, [room]);
 
   return {

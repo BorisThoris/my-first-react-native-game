@@ -178,9 +178,11 @@ export class SpecialRoomGenerator {
     static isMemoryRoom(roomType: string): boolean {
         return [
             RoomTypes.MEMORY_CHAMBER,
+            RoomTypes.TREASURE,
             RoomTypes.CHALLENGE,
             RoomTypes.CURSED_ROOM,
-            RoomTypes.SECRET
+            RoomTypes.SECRET,
+            RoomTypes.LIBRARY
         ].includes(roomType as any);
     }
     

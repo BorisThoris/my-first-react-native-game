@@ -23,9 +23,37 @@ const RoomButton: React.FC<RoomButtonProps> = ({ room, availableRooms, onPress }
                 return '💰';
             case 'trap':
                 return '⚠️';
+            case 'shop':
+                return '🛒';
+            case 'secret':
+                return '🔍';
+            case 'curse':
+                return '💀';
+            case 'challenge':
+                return '⚔️';
+            case 'library':
+                return '📚';
+            case 'cursed-room':
+                return '👹';
+            case 'devil-room':
+                return '😈';
+            case 'angel-room':
+                return '😇';
             default:
                 return '❓';
         }
+    };
+
+    const getDifficultyStars = (): string => {
+        const stars = Math.min(room.difficulty, 5);
+        return '⭐'.repeat(stars);
+    };
+
+    const getDifficultyColor = (): string => {
+        if (room.difficulty <= 2) return '#4CAF50'; // Green - Easy
+        if (room.difficulty <= 4) return '#FFC107'; // Yellow - Medium
+        if (room.difficulty <= 6) return '#FF9800'; // Orange - Hard
+        return '#F44336'; // Red - Very Hard
     };
 
     return (
@@ -42,7 +70,9 @@ const RoomButton: React.FC<RoomButtonProps> = ({ room, availableRooms, onPress }
         >
             <Text style={styles.icon}>{getRoomIcon()}</Text>
             <Text style={styles.type}>{room.type.replace('-', ' ').toUpperCase()}</Text>
-            <Text style={styles.difficulty}>Difficulty: {room.difficulty}</Text>
+            <Text style={[styles.difficulty, { color: getDifficultyColor() }]}>
+                {getDifficultyStars()} ({room.difficulty})
+            </Text>
             {status === 'completed-locked' && <Text style={styles.completedText}>✓</Text>}
             {status === 'completed-returnable' && <Text style={styles.returnableText}>↻</Text>}
         </TouchableOpacity>
@@ -91,9 +121,9 @@ const styles = StyleSheet.create({
         marginBottom: 2
     },
     difficulty: {
-        color: '#ccc',
         fontSize: 8,
-        textAlign: 'center'
+        textAlign: 'center',
+        fontWeight: 'bold'
     },
     completedText: {
         color: '#4CAF50',
@@ -114,4 +144,3 @@ const styles = StyleSheet.create({
 });
 
 export default RoomButton;
-

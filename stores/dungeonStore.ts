@@ -178,7 +178,7 @@ const useDungeonStore = create<DungeonStore>((set, get) => ({
   getAvailableRooms: () => {
     const { floors, currentFloor } = get();
     const floor = floors.find(f => f.floorNumber === currentFloor);
-    return floor?.rooms.filter(r => !r.completed) || [];
+    return floor?.rooms.filter(r => !r.completed || r.returnable) || [];
   },
   
   getCompletedRooms: () => {

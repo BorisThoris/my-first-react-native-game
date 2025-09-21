@@ -4,9 +4,11 @@ import useDungeonStore from '../../stores/dungeonStore';
 import useGameStore from '../../stores/gameStore';
 import DungeonMap from '../../components/dungeon/DungeonMap';
 import RoomView from '../../components/dungeon/RoomView';
+import SpecialRoomRouter from '../../components/dungeon/special/SpecialRoomRouter';
 import PlayerStats from '../../components/ui/PlayerStats';
 import Shop from '../../components/shop/Shop';
 import DebugPanel from '../../components/debug/DebugPanel';
+import StreakCelebration from '../../components/ui/StreakCelebration';
 import { initializeShopItems } from '../../data/shopItems';
 
 const GameController: React.FC = () => {
@@ -34,28 +36,7 @@ const GameController: React.FC = () => {
         updateStats({ shopItems });
     }, []);
 
-    useEffect(() => {
-        if (currentRoom && isRoomCompleted()) {
-            const { flippedTiles, matchedTiles } = useGameStore.getState();
-            saveRoomState(currentRoom.id, flippedTiles, matchedTiles);
-
-            const isBossRoom = currentRoom.type === 'boss';
-            completeRoom(currentRoom.id);
-
-            if (isBossRoom) {
-                Alert.alert('Boss Defeated!', 'Congratulations! You defeated the boss and unlocked the next floor!', [
-                    { text: 'Continue', onPress: () => {} }
-                ]);
-            } else {
-                const floor = getCurrentFloor();
-                if (floor && floor.rooms.every((room) => room.completed)) {
-                    Alert.alert('Floor Complete!', 'All rooms cleared! Advance to next floor?', [
-                        { text: 'Continue', onPress: advanceFloor }
-                    ]);
-                }
-            }
-        }
-    }, [isRoomCompleted, currentRoom]);
+    // Remove the global room completion logic - let each room handle its own completion
 
     useEffect(() => {
         if (isGameOver()) {
@@ -101,32 +82,56 @@ const GameController: React.FC = () => {
     if (showShop) {
         return (
             <View style={{ flex: 1, backgroundColor: '#1a1a1a' }}>
-                <Shop onClose={handleShopClose} />
+                <View style={{ flex: 1 }}>
+                    <Shop onClose={handleShopClose} />
+                </View>
                 <DebugPanel />
+                <StreakCelebration />
             </View>
         );
     }
 
     if (gameState === 'in-room' && currentRoom) {
+        // Check if it's a special room that needs special handling
+        const isSpecialRoom = [
+            'treasure',
+            'shop',
+            'secret',
+            'library',
+            'challenge',
+            'devil-room',
+            'angel-room'
+        ].includes(currentRoom.type);
+
         return (
-            <View style={{ flex: 1, backgroundColor: '#1a1a1a', padding: 20 }}>
-                <PlayerStats />
-                <RoomView room={currentRoom} onBack={() => completeRoom(currentRoom.id)} />
+            <View style={{ flex: 1, backgroundColor: '#1a1a1a' }}>
+                <View style={{ flex: 1, padding: 20 }}>
+                    <PlayerStats />
+                    {isSpecialRoom ? (
+                        <SpecialRoomRouter room={currentRoom} onComplete={() => completeRoom(currentRoom.id)} />
+                    ) : (
+                        <RoomView room={currentRoom} onBack={() => completeRoom(currentRoom.id)} />
+                    )}
+                </View>
                 <DebugPanel />
+                <StreakCelebration />
             </View>
         );
     }
 
     return (
-        <View style={{ flex: 1, backgroundColor: '#1a1a1a', padding: 20 }}>
-            <PlayerStats />
-            <DungeonMap
-                floor={getCurrentFloor()}
-                availableRooms={getAvailableRooms()}
-                onRoomSelect={handleRoomSelect}
-                onShopOpen={handleShopOpen}
-            />
+        <View style={{ flex: 1, backgroundColor: '#1a1a1a' }}>
+            <View style={{ flex: 1, padding: 20 }}>
+                <PlayerStats />
+                <DungeonMap
+                    floor={getCurrentFloor()}
+                    availableRooms={getAvailableRooms()}
+                    onRoomSelect={handleRoomSelect}
+                    onShopOpen={handleShopOpen}
+                />
+            </View>
             <DebugPanel />
+            <StreakCelebration />
         </View>
     );
 };

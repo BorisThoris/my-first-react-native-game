@@ -1,24 +1,35 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
 import Tile from './Tile';
 import { Room } from '../../types/gameTypes';
+import useGameStore from '../../stores/gameStore';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface TileGridProps {
     room: Room;
+    onRoomComplete?: () => void;
 }
 
-const TileGrid: React.FC<TileGridProps> = ({ room }) => {
+const TileGrid: React.FC<TileGridProps> = ({ room, onRoomComplete }) => {
+    const { isRoomCompleted } = useGameStore();
+
     if (!room || !room.tiles) return null;
 
     const gridSize = room.gridSize;
 
+    // Check for room completion
+    useEffect(() => {
+        if (isRoomCompleted() && onRoomComplete) {
+            onRoomComplete();
+        }
+    }, [isRoomCompleted, onRoomComplete]);
+
     // Calculate optimal tile size based on screen dimensions
     const availableWidth = SCREEN_WIDTH - 100; // Account for padding
-    const availableHeight = SCREEN_HEIGHT - 400; // Account for header, stats, and footer
+    const availableHeight = SCREEN_HEIGHT - 500; // Account for header, stats, helper panel, and footer
     const maxTileSize = Math.min(availableWidth, availableHeight) / gridSize;
-    const tileSize = Math.min(maxTileSize, 80); // Cap at 80px per tile
+    const tileSize = Math.min(maxTileSize, 70); // Cap at 70px per tile to leave more space
 
     // Create a proper 2D grid layout using absolute positioning
     const renderGrid = (): React.ReactElement[] => {

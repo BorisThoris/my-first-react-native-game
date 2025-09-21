@@ -35,22 +35,22 @@ export class RoomGenerator {
   
   static getRoomSize(type: RoomType, difficulty: number): number {
     const baseSizes: Record<RoomType, number> = {
-      [RoomTypes.MEMORY_CHAMBER]: 2 + Math.floor(difficulty / 2),
-      [RoomTypes.BOSS]: 4 + Math.floor(difficulty / 2),
-      [RoomTypes.TREASURE]: 2,
-      [RoomTypes.TRAP]: 2 + Math.floor(difficulty / 3),
+      [RoomTypes.MEMORY_CHAMBER]: 2 + Math.floor(difficulty / 1.5), // More responsive to difficulty
+      [RoomTypes.BOSS]: 4 + Math.floor(difficulty / 1.2),
+      [RoomTypes.TREASURE]: 2 + Math.floor(difficulty / 4),
+      [RoomTypes.TRAP]: 2 + Math.floor(difficulty / 2.5),
       [RoomTypes.SHOP]: 2,
-      [RoomTypes.SECRET]: 2 + Math.floor(difficulty / 4),
-      [RoomTypes.CURSE]: 2 + Math.floor(difficulty / 2),
-      [RoomTypes.CHALLENGE]: 3 + Math.floor(difficulty / 2),
-      [RoomTypes.LIBRARY]: 2 + Math.floor(difficulty / 3),
-      [RoomTypes.CURSED_ROOM]: 3 + Math.floor(difficulty / 2),
-      [RoomTypes.DEVIL_ROOM]: 4 + Math.floor(difficulty / 2),
-      [RoomTypes.ANGEL_ROOM]: 3 + Math.floor(difficulty / 2)
+      [RoomTypes.SECRET]: 2 + Math.floor(difficulty / 3),
+      [RoomTypes.CURSE]: 2 + Math.floor(difficulty / 1.8),
+      [RoomTypes.CHALLENGE]: 3 + Math.floor(difficulty / 1.5),
+      [RoomTypes.LIBRARY]: 2 + Math.floor(difficulty / 2.5),
+      [RoomTypes.CURSED_ROOM]: 3 + Math.floor(difficulty / 1.5),
+      [RoomTypes.DEVIL_ROOM]: 4 + Math.floor(difficulty / 1.2),
+      [RoomTypes.ANGEL_ROOM]: 3 + Math.floor(difficulty / 1.5)
     };
     
     const size = baseSizes[type] || 2;
-    return Math.min(size, 8); // Cap at 8x8 for mobile
+    return Math.min(Math.max(size, 2), 8); // Min 2x2, max 8x8 for mobile
   }
   
   static generateTiles(type: RoomType, difficulty: number, gridSize: number, seed: string | null): Tile[] {
@@ -75,7 +75,7 @@ export class RoomGenerator {
   }
   
   static generateTileShape(type: RoomType, difficulty: number, index: number): string {
-    const shapes: Record<RoomType, string[]> = {
+    const baseShapes: Record<RoomType, string[]> = {
       [RoomTypes.MEMORY_CHAMBER]: ['🔴', '🔷', '🔺', '⭐', '⚪', '⬛', '🔶', '⬜'],
       [RoomTypes.BOSS]: ['💎', '🍀', '🔥', '🌊', '⚡', '❄️', '🌟', '💫'],
       [RoomTypes.TREASURE]: ['💰', '💎', '🏆', '👑'],
@@ -90,7 +90,16 @@ export class RoomGenerator {
       [RoomTypes.ANGEL_ROOM]: ['😇', '👼', '✨', '🌟']
     };
     
-    const typeShapes = shapes[type] || shapes[RoomTypes.MEMORY_CHAMBER];
+    // Add more complex shapes for higher difficulty
+    const complexShapes = ['🔸', '🔹', '🔻', '🔺', '🔶', '🔷', '🔴', '🔵', '🟡', '🟢', '🟠', '🟣', '⚫', '⚪', '🟤', '🟨', '🟧', '🟩', '🟦', '🟪', '🟫'];
+    
+    let typeShapes = baseShapes[type] || baseShapes[RoomTypes.MEMORY_CHAMBER];
+    
+    // For memory chambers, add more complex shapes as difficulty increases
+    if (type === RoomTypes.MEMORY_CHAMBER && difficulty > 2) {
+      typeShapes = [...typeShapes, ...complexShapes.slice(0, Math.min(difficulty * 2, 10))];
+    }
+    
     return typeShapes[index % typeShapes.length];
   }
   

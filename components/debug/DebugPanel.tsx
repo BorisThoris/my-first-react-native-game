@@ -135,19 +135,15 @@ const DebugPanel: React.FC = () => {
 
 const styles = StyleSheet.create({
     container: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
         backgroundColor: 'rgba(0, 0, 0, 0.9)',
         paddingVertical: 8,
         paddingHorizontal: 10,
         borderTopWidth: 2,
         borderTopColor: '#ff6b6b',
-        zIndex: 1000,
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between'
+        justifyContent: 'space-between',
+        flexShrink: 0 // Prevent shrinking
     },
     title: {
         color: '#ff6b6b',

@@ -11,6 +11,19 @@ interface GameState {
   matchedTiles: string[];
   previewTiles: string[];
   isPreviewing: boolean;
+  // Helper modifiers
+  availableHelpers: {
+    extraLife: boolean;
+    tileFlip: boolean;
+    hint: boolean;
+    timeExtension: boolean;
+  };
+  helperUses: {
+    extraLife: number;
+    tileFlip: number;
+    hint: number;
+    timeExtension: number;
+  };
 }
 
 interface GameActions {
@@ -52,6 +65,15 @@ interface GameActions {
   addBombs: (amount: number) => void;
   useKey: () => boolean;
   useBomb: () => boolean;
+  // Helper modifiers
+  updateAvailableHelpers: () => void;
+  useHelper: (helperType: 'extraLife' | 'tileFlip' | 'hint' | 'timeExtension') => boolean;
+  getAvailableHelpers: () => { extraLife: boolean; tileFlip: boolean; hint: boolean; timeExtension: boolean };
+  getHelperUses: () => { extraLife: number; tileFlip: number; hint: number; timeExtension: number };
+  // Special abilities
+  flipRandomTiles: (count: number) => void;
+  showHint: () => string[];
+  extendTime: (seconds: number) => void;
 }
 
 type GameStore = GameState & GameActions;
@@ -65,6 +87,19 @@ const useGameStore = create<GameStore>((set, get) => ({
   matchedTiles: [],
   previewTiles: [],
   isPreviewing: false,
+  // Helper modifiers
+  availableHelpers: {
+    extraLife: false,
+    tileFlip: false,
+    hint: false,
+    timeExtension: false,
+  },
+  helperUses: {
+    extraLife: 0,
+    tileFlip: 0,
+    hint: 0,
+    timeExtension: 0,
+  },
   
   // Actions
   updateStats: (statUpdates: Partial<PlayerStats>) => {
@@ -267,7 +302,7 @@ const useGameStore = create<GameStore>((set, get) => ({
   isGameOver: () => get().playerStats.lives <= 0,
   isRoomCompleted: () => {
     const { currentRoomTiles, matchedTiles } = get();
-    return currentRoomTiles.every(tile => matchedTiles.includes(tile.id));
+    return currentRoomTiles.length > 0 && currentRoomTiles.every(tile => matchedTiles.includes(tile.id));
   },
   
   // Streak and points
@@ -281,13 +316,49 @@ const useGameStore = create<GameStore>((set, get) => ({
   },
   
   updateStreak: (increment: boolean) => {
+    const currentStreak = get().playerStats.streak;
+    const newStreak = increment ? currentStreak + 1 : 0;
+    
     set(state => ({
       playerStats: {
         ...state.playerStats,
-        streak: increment ? state.playerStats.streak + 1 : 0,
-        maxStreak: increment ? Math.max(state.playerStats.maxStreak, state.playerStats.streak + 1) : state.playerStats.maxStreak
+        streak: newStreak,
+        maxStreak: increment ? Math.max(state.playerStats.maxStreak, newStreak) : state.playerStats.maxStreak
       }
     }));
+
+    // Give helper uses based on streak milestones
+    if (increment) {
+      const { helperUses } = get();
+      const newHelperUses = { ...helperUses };
+      
+      // Give helper uses at streak milestones
+      if (newStreak === 3) {
+        // Auto-give extra life immediately
+        get().gainLife();
+        newHelperUses.tileFlip += 2;
+      } else if (newStreak === 5) {
+        newHelperUses.hint += 3;
+        newHelperUses.tileFlip += 1;
+      } else if (newStreak === 7) {
+        // Auto-give extra life immediately
+        get().gainLife();
+        newHelperUses.timeExtension += 1;
+      } else if (newStreak === 10) {
+        // Big milestone - auto-give extra lives and all helpers
+        get().gainLife();
+        get().gainLife(); // Give 2 extra lives
+        newHelperUses.tileFlip += 3;
+        newHelperUses.hint += 5;
+        newHelperUses.timeExtension += 2;
+      }
+      
+      set({ helperUses: newHelperUses });
+      get().updateAvailableHelpers();
+    } else {
+      // Reset helper availability when streak is broken
+      get().updateAvailableHelpers();
+    }
   },
   
   resetStreak: () => {
@@ -490,6 +561,122 @@ const useGameStore = create<GameStore>((set, get) => ({
       return true;
     }
     return false;
+  },
+
+  // Helper modifiers
+  updateAvailableHelpers: () => {
+    const { playerStats } = get();
+    const streak = playerStats.streak;
+    const roomsCompleted = playerStats.roomsCompleted;
+    
+    set({
+      availableHelpers: {
+        extraLife: streak >= 3 || roomsCompleted >= 5,
+        tileFlip: streak >= 2 || roomsCompleted >= 3,
+        hint: streak >= 1 || roomsCompleted >= 2,
+        timeExtension: streak >= 4 || roomsCompleted >= 7,
+      }
+    });
+  },
+
+  useHelper: (helperType: 'extraLife' | 'tileFlip' | 'hint' | 'timeExtension') => {
+    const { availableHelpers, helperUses, playerStats } = get();
+    
+    if (!availableHelpers[helperType] || helperUses[helperType] <= 0) {
+      return false;
+    }
+
+    // Update helper uses
+    set(state => ({
+      helperUses: {
+        ...state.helperUses,
+        [helperType]: state.helperUses[helperType] - 1
+      }
+    }));
+
+    // Apply helper effect
+    switch (helperType) {
+      case 'extraLife':
+        get().gainLife();
+        break;
+      case 'tileFlip':
+        get().flipRandomTiles(2);
+        break;
+      case 'hint':
+        // Hint is handled by showHint function
+        break;
+      case 'timeExtension':
+        get().extendTime(30);
+        break;
+    }
+
+    return true;
+  },
+
+  getAvailableHelpers: () => {
+    return get().availableHelpers;
+  },
+
+  getHelperUses: () => {
+    return get().helperUses;
+  },
+
+  // Special abilities
+  flipRandomTiles: (count: number) => {
+    const { currentRoomTiles, matchedTiles, flippedTiles } = get();
+    const availableTiles = currentRoomTiles.filter(
+      tile => !matchedTiles.includes(tile.id) && !flippedTiles.includes(tile.id)
+    );
+    
+    const tilesToFlip = availableTiles
+      .sort(() => Math.random() - 0.5)
+      .slice(0, Math.min(count, availableTiles.length))
+      .map(tile => tile.id);
+    
+    // Only flip if we have available tiles and won't exceed the 2-tile limit
+    if (tilesToFlip.length > 0 && flippedTiles.length + tilesToFlip.length <= 2) {
+      set({
+        flippedTiles: [...flippedTiles, ...tilesToFlip]
+      });
+      
+      // If we flipped exactly 2 tiles, trigger match check after a delay
+      if (flippedTiles.length + tilesToFlip.length === 2) {
+        setTimeout(() => {
+          get().checkMatch();
+        }, 1000);
+      }
+    }
+  },
+
+  showHint: () => {
+    const { currentRoomTiles, matchedTiles, flippedTiles } = get();
+    const availableTiles = currentRoomTiles.filter(
+      tile => !matchedTiles.includes(tile.id) && !flippedTiles.includes(tile.id)
+    );
+    
+    // Find a pair of matching tiles
+    const shapes = new Map<string, string[]>();
+    availableTiles.forEach(tile => {
+      if (!shapes.has(tile.shape)) {
+        shapes.set(tile.shape, []);
+      }
+      shapes.get(tile.shape)!.push(tile.id);
+    });
+    
+    // Find first pair
+    for (const [shape, tileIds] of shapes) {
+      if (tileIds.length >= 2) {
+        return tileIds.slice(0, 2);
+      }
+    }
+    
+    return [];
+  },
+
+  extendTime: (seconds: number) => {
+    // This will be handled by the room components that have timers
+    // For now, we'll just add points as a bonus
+    get().addPoints(seconds * 10);
   }
 }));
 
