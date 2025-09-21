@@ -98,6 +98,7 @@ export interface Room {
   flippedTiles: string[];
   matchedTiles: string[];
   roomState: 'incomplete' | 'completed';
+  memoryGameType?: string; // Memory game type for this room
   isLocked?: boolean;
   requiresKey?: boolean;
   specialProperties?: { [key: string]: any };
@@ -118,7 +119,33 @@ export const createPlayerStats = (): PlayerStats => ({
   recall: 0,
   patternRecognition: 0,
   concentration: 0,
-  items: [],
+  items: [
+    // Sample items for testing inventory
+    {
+      id: 'memory-boost',
+      name: 'Memory Boost',
+      description: 'Increases preview time by 0.5s',
+      effect: { focus: 1 },
+      type: 'passive',
+      rarity: 'common'
+    },
+    {
+      id: 'lucky-coin',
+      name: 'Lucky Coin',
+      description: '10% chance for double points',
+      effect: { points: 10 },
+      type: 'passive',
+      rarity: 'common'
+    },
+    {
+      id: 'red-heart',
+      name: 'Red Heart',
+      description: 'Restores 1 life',
+      effect: { lives: 1 },
+      type: 'consumable',
+      rarity: 'common'
+    }
+  ],
   currentFloor: 1,
   roomsCompleted: 0,
   points: 0,

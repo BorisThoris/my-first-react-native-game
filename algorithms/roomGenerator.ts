@@ -1,4 +1,5 @@
 import { RoomTypes, createTile, TileStates, Room, RoomType, Tile } from '../types/gameTypes';
+import { MemoryGameType, getGameTypeForDifficulty } from '../types/memoryGameTypes';
 
 interface Reward {
   type: 'item' | 'stat';
@@ -29,10 +30,128 @@ export class RoomGenerator {
       // State persistence
       flippedTiles: [],
       matchedTiles: [],
-      roomState: 'incomplete'
+      roomState: 'incomplete',
+      memoryGameType: this.getMemoryGameType(type, difficulty)
     };
   }
   
+  static getMemoryGameType(type: RoomType, difficulty: number): string {
+    // Only memory-based rooms get specific game types
+    const memoryRooms = [
+      RoomTypes.MEMORY_CHAMBER,
+      RoomTypes.TREASURE,
+      RoomTypes.SECRET,
+      RoomTypes.LIBRARY,
+      RoomTypes.CHALLENGE,
+      RoomTypes.DEVIL_ROOM,
+      RoomTypes.ANGEL_ROOM
+    ];
+    
+    if (memoryRooms.includes(type)) {
+      // Use room type and difficulty to determine the best game type
+      return this.selectGameTypeForRoom(type, difficulty);
+    }
+    
+    return MemoryGameType.CLASSIC_PAIRS; // Default for other rooms
+  }
+
+  static selectGameTypeForRoom(type: RoomType, difficulty: number): string {
+    // Room-specific game type preferences
+    const roomPreferences: Record<RoomType, MemoryGameType[]> = {
+      [RoomTypes.MEMORY_CHAMBER]: [
+        MemoryGameType.CLASSIC_PAIRS,
+        MemoryGameType.SEQUENCE_MEMORY,
+        MemoryGameType.COLOR_MEMORY,
+        MemoryGameType.NUMBER_MEMORY,
+        MemoryGameType.PATTERN_MEMORY
+      ],
+      [RoomTypes.TREASURE]: [
+        MemoryGameType.CLASSIC_PAIRS,
+        MemoryGameType.COLOR_MEMORY,
+        MemoryGameType.NUMBER_MEMORY
+      ],
+      [RoomTypes.SECRET]: [
+        MemoryGameType.SEQUENCE_MEMORY,
+        MemoryGameType.PATTERN_MEMORY,
+        MemoryGameType.CLASSIC_PAIRS
+      ],
+      [RoomTypes.LIBRARY]: [
+        MemoryGameType.NUMBER_MEMORY,
+        MemoryGameType.SEQUENCE_MEMORY,
+        MemoryGameType.CLASSIC_PAIRS
+      ],
+      [RoomTypes.CHALLENGE]: [
+        MemoryGameType.SEQUENCE_MEMORY,
+        MemoryGameType.PATTERN_MEMORY,
+        MemoryGameType.COLOR_MEMORY
+      ],
+      [RoomTypes.DEVIL_ROOM]: [
+        MemoryGameType.PATTERN_MEMORY,
+        MemoryGameType.SEQUENCE_MEMORY
+      ],
+      [RoomTypes.ANGEL_ROOM]: [
+        MemoryGameType.COLOR_MEMORY,
+        MemoryGameType.NUMBER_MEMORY,
+        MemoryGameType.CLASSIC_PAIRS
+      ]
+    };
+
+    const preferences = roomPreferences[type] || [MemoryGameType.CLASSIC_PAIRS];
+    
+    // Filter preferences based on difficulty
+    const difficultyFiltered = preferences.filter(gameType => {
+      switch (gameType) {
+        case MemoryGameType.CLASSIC_PAIRS:
+        case MemoryGameType.COLOR_MEMORY:
+          return difficulty >= 1; // Available at all difficulties
+        case MemoryGameType.NUMBER_MEMORY:
+          return difficulty >= 2; // Available from difficulty 2
+        case MemoryGameType.SEQUENCE_MEMORY:
+          return difficulty >= 3; // Available from difficulty 3
+        case MemoryGameType.PATTERN_MEMORY:
+          return difficulty >= 4; // Available from difficulty 4
+        default:
+          return true;
+      }
+    });
+
+    // If no games are available for this difficulty, fall back to classic pairs
+    if (difficultyFiltered.length === 0) {
+      return MemoryGameType.CLASSIC_PAIRS;
+    }
+
+    // Randomly select from available games, with higher difficulty games being more likely
+    const weights = difficultyFiltered.map(gameType => {
+      switch (gameType) {
+        case MemoryGameType.CLASSIC_PAIRS:
+          return 1;
+        case MemoryGameType.COLOR_MEMORY:
+          return 1.2;
+        case MemoryGameType.NUMBER_MEMORY:
+          return 1.5;
+        case MemoryGameType.SEQUENCE_MEMORY:
+          return 2;
+        case MemoryGameType.PATTERN_MEMORY:
+          return 2.5;
+        default:
+          return 1;
+      }
+    });
+
+    // Weighted random selection
+    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+    let random = Math.random() * totalWeight;
+    
+    for (let i = 0; i < difficultyFiltered.length; i++) {
+      random -= weights[i];
+      if (random <= 0) {
+        return difficultyFiltered[i];
+      }
+    }
+    
+    return difficultyFiltered[difficultyFiltered.length - 1];
+  }
+
   static getRoomSize(type: RoomType, difficulty: number): number {
     const baseSizes: Record<RoomType, number> = {
       [RoomTypes.MEMORY_CHAMBER]: 2 + Math.floor(difficulty / 1.5), // More responsive to difficulty

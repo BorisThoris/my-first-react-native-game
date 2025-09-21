@@ -1,12 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Room } from '../../types/gameTypes';
+import {
+    MemoryGameType,
+    getRandomGameType,
+    getGameTypeForDifficulty,
+    MEMORY_GAME_CONFIGS
+} from '../../types/memoryGameTypes';
 import { useRoomState } from '../../hooks/useRoomState';
 import { useRoomCompletion } from '../../hooks/useRoomCompletion';
 import useGameStore from '../../stores/gameStore';
 import TileGrid from './TileGrid';
 import RoomHeader from '../dungeon/RoomHeader';
 import HelperPanel from '../ui/HelperPanel';
+
+// Import game components
+import ClassicPairs from './games/ClassicPairs';
+import SequenceMemory from './games/SequenceMemory';
+import PatternMemory from './games/PatternMemory';
+import ColorMemory from './games/ColorMemory';
+import NumberMemory from './games/NumberMemory';
 
 interface MemoryGameProps {
     room: Room;
@@ -19,27 +32,50 @@ interface MemoryGameProps {
     showCheatButton?: boolean;
     customFooter?: React.ReactNode;
     onRoomComplete?: () => void;
+    gameType?: MemoryGameType | 'random' | 'auto';
 }
 
 const MemoryGame: React.FC<MemoryGameProps> = ({
     room,
     onComplete,
     onBack,
-    title = 'Memory Challenge',
-    subtitle = 'Find matching pairs to complete the room!',
-    instruction = 'Find matching pairs to clear the room!',
+    title,
+    subtitle,
+    instruction,
     showHelperPanel = true,
     showCheatButton = true,
     customFooter,
-    onRoomComplete
+    onRoomComplete,
+    gameType = 'auto'
 }) => {
     const { loadRoom, saveRoom, isCompleted } = useRoomState(room);
     const { playerStats, cheatPreview, isPreviewing } = useGameStore();
     const { handleRoomCompletion } = useRoomCompletion(room);
+    const [selectedGameType, setSelectedGameType] = useState<MemoryGameType | null>(null);
 
     useEffect(() => {
         loadRoom();
     }, [loadRoom]);
+
+    useEffect(() => {
+        // Determine game type
+        let gameTypeToUse: MemoryGameType;
+
+        if (gameType === 'random') {
+            gameTypeToUse = getRandomGameType();
+        } else if (gameType === 'auto') {
+            // Use room's assigned memory game type, or fall back to difficulty-based selection
+            if (room.memoryGameType && Object.values(MemoryGameType).includes(room.memoryGameType as MemoryGameType)) {
+                gameTypeToUse = room.memoryGameType as MemoryGameType;
+            } else {
+                gameTypeToUse = getGameTypeForDifficulty(room.difficulty);
+            }
+        } else {
+            gameTypeToUse = gameType as MemoryGameType;
+        }
+
+        setSelectedGameType(gameTypeToUse);
+    }, [gameType, room.difficulty, room.memoryGameType]);
 
     const handleBackPress = (): void => {
         if (isCompleted()) {
@@ -78,6 +114,90 @@ const MemoryGame: React.FC<MemoryGameProps> = ({
         }
     };
 
+    const renderGameComponent = () => {
+        if (!selectedGameType) {
+            return (
+                <View style={styles.loadingContainer}>
+                    <Text style={styles.loadingText}>Loading game...</Text>
+                </View>
+            );
+        }
+
+        const gameConfig = MEMORY_GAME_CONFIGS[selectedGameType];
+        const gameTitle = title || gameConfig.title;
+        const gameSubtitle = subtitle || gameConfig.subtitle;
+        const gameInstruction = instruction || gameConfig.instruction;
+
+        switch (selectedGameType) {
+            case MemoryGameType.CLASSIC_PAIRS:
+                return (
+                    <View style={styles.gameContainer}>
+                        <View style={styles.header}>
+                            <Text style={styles.title}>{gameTitle}</Text>
+                            <Text style={styles.subtitle}>{gameSubtitle}</Text>
+                        </View>
+                        <View style={styles.gameArea}>
+                            <ClassicPairs room={room} onComplete={handleMemoryGameComplete} />
+                        </View>
+                    </View>
+                );
+            case MemoryGameType.SEQUENCE_MEMORY:
+                return (
+                    <View style={styles.gameContainer}>
+                        <View style={styles.header}>
+                            <Text style={styles.title}>{gameTitle}</Text>
+                            <Text style={styles.subtitle}>{gameSubtitle}</Text>
+                        </View>
+                        <View style={styles.gameArea}>
+                            <SequenceMemory room={room} onComplete={handleMemoryGameComplete} />
+                        </View>
+                    </View>
+                );
+            case MemoryGameType.PATTERN_MEMORY:
+                return (
+                    <View style={styles.gameContainer}>
+                        <View style={styles.header}>
+                            <Text style={styles.title}>{gameTitle}</Text>
+                            <Text style={styles.subtitle}>{gameSubtitle}</Text>
+                        </View>
+                        <View style={styles.gameArea}>
+                            <PatternMemory room={room} onComplete={handleMemoryGameComplete} />
+                        </View>
+                    </View>
+                );
+            case MemoryGameType.COLOR_MEMORY:
+                return (
+                    <View style={styles.gameContainer}>
+                        <View style={styles.header}>
+                            <Text style={styles.title}>{gameTitle}</Text>
+                            <Text style={styles.subtitle}>{gameSubtitle}</Text>
+                        </View>
+                        <View style={styles.gameArea}>
+                            <ColorMemory room={room} onComplete={handleMemoryGameComplete} />
+                        </View>
+                    </View>
+                );
+            case MemoryGameType.NUMBER_MEMORY:
+                return (
+                    <View style={styles.gameContainer}>
+                        <View style={styles.header}>
+                            <Text style={styles.title}>{gameTitle}</Text>
+                            <Text style={styles.subtitle}>{gameSubtitle}</Text>
+                        </View>
+                        <View style={styles.gameArea}>
+                            <NumberMemory room={room} onComplete={handleMemoryGameComplete} />
+                        </View>
+                    </View>
+                );
+            default:
+                return (
+                    <View style={styles.errorContainer}>
+                        <Text style={styles.error}>Unknown game type</Text>
+                    </View>
+                );
+        }
+    };
+
     if (!room) {
         return (
             <View style={styles.container}>
@@ -90,23 +210,21 @@ const MemoryGame: React.FC<MemoryGameProps> = ({
         <View style={styles.container}>
             <RoomHeader room={room} onBack={onBack || onComplete} />
 
-            <View style={styles.header}>
-                <Text style={styles.title}>{title}</Text>
-                <Text style={styles.subtitle}>{subtitle}</Text>
-            </View>
-
-            <View style={styles.gameArea}>
-                <TileGrid room={room} onRoomComplete={handleMemoryGameComplete} />
-            </View>
+            {renderGameComponent()}
 
             <View style={styles.bottomSection}>
                 {showHelperPanel && <HelperPanel room={room} />}
 
                 <View style={styles.footer}>
-                    <Text style={styles.instruction}>{instruction}</Text>
+                    <Text style={styles.instruction}>
+                        {instruction ||
+                            (selectedGameType
+                                ? MEMORY_GAME_CONFIGS[selectedGameType].instruction
+                                : 'Complete the memory challenge!')}
+                    </Text>
                     {playerStats.lives <= 0 && <Text style={styles.gameOver}>Game Over - No lives remaining!</Text>}
 
-                    {showCheatButton && (
+                    {showCheatButton && selectedGameType === MemoryGameType.CLASSIC_PAIRS && (
                         <View style={styles.cheatContainer}>
                             <TouchableOpacity
                                 style={[
@@ -186,6 +304,23 @@ const styles = StyleSheet.create({
         fontSize: 18,
         textAlign: 'center',
         marginTop: 50
+    },
+    gameContainer: {
+        flex: 1
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    loadingText: {
+        color: '#ccc',
+        fontSize: 16
+    },
+    errorContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center'
     },
     cheatContainer: {
         marginTop: 15,

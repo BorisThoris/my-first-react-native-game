@@ -9,10 +9,12 @@ import PlayerStats from '../../components/ui/PlayerStats';
 import Shop from '../../components/shop/Shop';
 import DebugPanel from '../../components/debug/DebugPanel';
 import StreakCelebration from '../../components/ui/StreakCelebration';
+import InventoryScreen from '../../components/inventory/InventoryScreen';
 import { initializeShopItems } from '../../data/shopItems';
 
 const GameController: React.FC = () => {
     const [showShop, setShowShop] = useState(false);
+    const [showInventory, setShowInventory] = useState(false);
 
     const {
         currentFloor,
@@ -79,6 +81,14 @@ const GameController: React.FC = () => {
         setShowShop(false);
     };
 
+    const handleInventoryOpen = (): void => {
+        setShowInventory(true);
+    };
+
+    const handleInventoryClose = (): void => {
+        setShowInventory(false);
+    };
+
     if (showShop) {
         return (
             <View style={{ flex: 1, backgroundColor: '#1a1a1a' }}>
@@ -87,6 +97,7 @@ const GameController: React.FC = () => {
                 </View>
                 <DebugPanel />
                 <StreakCelebration />
+                <InventoryScreen isVisible={showInventory} onClose={handleInventoryClose} />
             </View>
         );
     }
@@ -106,7 +117,7 @@ const GameController: React.FC = () => {
         return (
             <View style={{ flex: 1, backgroundColor: '#1a1a1a' }}>
                 <View style={{ flex: 1, padding: 20 }}>
-                    <PlayerStats />
+                    <PlayerStats onInventoryPress={handleInventoryOpen} />
                     {isSpecialRoom ? (
                         <SpecialRoomRouter room={currentRoom} onComplete={() => completeRoom(currentRoom.id)} />
                     ) : (
@@ -115,6 +126,7 @@ const GameController: React.FC = () => {
                 </View>
                 <DebugPanel />
                 <StreakCelebration />
+                <InventoryScreen isVisible={showInventory} onClose={handleInventoryClose} />
             </View>
         );
     }
@@ -122,7 +134,7 @@ const GameController: React.FC = () => {
     return (
         <View style={{ flex: 1, backgroundColor: '#1a1a1a' }}>
             <View style={{ flex: 1, padding: 20 }}>
-                <PlayerStats />
+                <PlayerStats onInventoryPress={handleInventoryOpen} />
                 <DungeonMap
                     floor={getCurrentFloor()}
                     availableRooms={getAvailableRooms()}
@@ -132,6 +144,7 @@ const GameController: React.FC = () => {
             </View>
             <DebugPanel />
             <StreakCelebration />
+            <InventoryScreen isVisible={showInventory} onClose={handleInventoryClose} />
         </View>
     );
 };

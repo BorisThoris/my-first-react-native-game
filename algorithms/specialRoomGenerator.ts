@@ -124,6 +124,8 @@ export class SpecialRoomGenerator {
             room.gridSize = gridSize;
             room.tiles = RoomGenerator.generateTiles(roomType as any, room.difficulty, gridSize, null);
             room.matrix = this.createMatrix(room.tiles, gridSize);
+            // Assign memory game type
+            room.memoryGameType = RoomGenerator.getMemoryGameType(roomType as any, room.difficulty);
         }
         
         // Add rewards based on room type

@@ -1,32 +1,67 @@
 import React from 'react';
-import { View, StyleSheet, Text } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import StatDisplay from './StatDisplay';
 import useGameStore from '../../stores/gameStore';
 
-const PlayerStats: React.FC = () => {
+interface PlayerStatsProps {
+    onInventoryPress?: () => void;
+}
+
+const PlayerStats: React.FC<PlayerStatsProps> = ({ onInventoryPress }) => {
     const { playerStats, getHelperUses } = useGameStore();
     const helperUses = getHelperUses();
     const totalHelpers = Object.values(helperUses).reduce((sum, uses) => sum + uses, 0);
 
     return (
         <View style={styles.container}>
-            <StatDisplay label="Lives" value={playerStats.lives} />
-            <StatDisplay label="Floor" value={playerStats.currentFloor} />
-            <StatDisplay label="Score" value={playerStats.totalScore} />
-            <StatDisplay label="Streak" value={playerStats.streak} />
-            <StatDisplay label="Helpers" value={totalHelpers} />
+            <View style={styles.statsRow}>
+                <StatDisplay label="Lives" value={playerStats.lives} />
+                <StatDisplay label="Floor" value={playerStats.currentFloor} />
+                <StatDisplay label="Score" value={playerStats.totalScore} />
+                <StatDisplay label="Streak" value={playerStats.streak} />
+                <StatDisplay label="Helpers" value={totalHelpers} />
+            </View>
+            {onInventoryPress && (
+                <TouchableOpacity style={styles.inventoryButton} onPress={onInventoryPress}>
+                    <Text style={styles.inventoryIcon}>📦</Text>
+                    <Text style={styles.inventoryText}>Inventory ({playerStats.items.length})</Text>
+                </TouchableOpacity>
+            )}
         </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
         backgroundColor: '#2a2a2a',
         padding: 10,
         borderRadius: 8,
         marginBottom: 20
+    },
+    statsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        marginBottom: 10
+    },
+    inventoryButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#4CAF50',
+        paddingVertical: 8,
+        paddingHorizontal: 15,
+        borderRadius: 6,
+        borderWidth: 1,
+        borderColor: '#45a049'
+    },
+    inventoryIcon: {
+        fontSize: 16,
+        marginRight: 8
+    },
+    inventoryText: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: 'bold'
     }
 });
 
