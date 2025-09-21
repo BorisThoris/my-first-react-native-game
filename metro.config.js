@@ -2,8 +2,8 @@ const { getDefaultConfig } = require('@expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
 
-// Add support for additional file extensions
-config.resolver.sourceExts.push('cjs');
+// Ensure TypeScript files are properly handled
+config.resolver.sourceExts = ['ts', 'tsx', 'js', 'jsx', 'json', 'cjs'];
 
 module.exports = config;
 
