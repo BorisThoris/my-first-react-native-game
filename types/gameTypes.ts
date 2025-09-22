@@ -36,21 +36,41 @@ export type GameState = typeof GameStates[keyof typeof GameStates];
 export type TileState = typeof TileStates[keyof typeof TileStates];
 
 export interface PlayerStats {
+  // Core Stats
   lives: number;
   maxLives: number;
+  level: number;
+  experience: number;
+  
+  // Memory Stats
   focus: number;
   recall: number;
   patternRecognition: number;
   concentration: number;
-  items: Item[];
-  currentFloor: number;
-  roomsCompleted: number;
+  intuition: number;
+  perception: number;
+  
+  // Resources
   points: number;
-  streak: number;
-  maxStreak: number;
-  shopItems: ShopItem[];
   keys: number;
   bombs: number;
+  currency: number;
+  
+  // Progression
+  currentFloor: number;
+  roomsCompleted: number;
+  streak: number;
+  maxStreak: number;
+  
+  // Collections
+  items: Item[];
+  abilities: any[]; // Using any[] for now to avoid circular imports
+  skills: any[]; // Using any[] for now to avoid circular imports
+  tomes: any[]; // Using any[] for now to avoid circular imports
+  relics: any[]; // Using any[] for now to avoid circular imports
+  
+  // Legacy
+  shopItems: ShopItem[];
   consumables: { [key: string]: number };
 }
 
@@ -58,7 +78,7 @@ export interface Item {
   id: string;
   name: string;
   description: string;
-  effect: Partial<PlayerStats>;
+  effects: Partial<PlayerStats>; // Changed from effect to effects to match collectible types
   type: 'passive' | 'consumable' | 'equipment';
   rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 }
@@ -112,48 +132,42 @@ export interface Floor {
 }
 
 // Factory functions
-export const createPlayerStats = (): PlayerStats => ({
+export const createPlayerStats = (): any => ({
+  // Core Stats
   lives: 3,
   maxLives: 3,
+  level: 1,
+  experience: 0,
+  
+  // Memory Stats
   focus: 0,
   recall: 0,
   patternRecognition: 0,
   concentration: 0,
-  items: [
-    // Sample items for testing inventory
-    {
-      id: 'memory-boost',
-      name: 'Memory Boost',
-      description: 'Increases preview time by 0.5s',
-      effect: { focus: 1 },
-      type: 'passive',
-      rarity: 'common'
-    },
-    {
-      id: 'lucky-coin',
-      name: 'Lucky Coin',
-      description: '10% chance for double points',
-      effect: { points: 10 },
-      type: 'passive',
-      rarity: 'common'
-    },
-    {
-      id: 'red-heart',
-      name: 'Red Heart',
-      description: 'Restores 1 life',
-      effect: { lives: 1 },
-      type: 'consumable',
-      rarity: 'common'
-    }
-  ],
-  currentFloor: 1,
-  roomsCompleted: 0,
+  intuition: 0,
+  perception: 0,
+  
+  // Resources
   points: 0,
-  streak: 0,
-  maxStreak: 0,
-  shopItems: [],
   keys: 0,
   bombs: 0,
+  currency: 0,
+  
+  // Progression
+  currentFloor: 1,
+  roomsCompleted: 0,
+  streak: 0,
+  maxStreak: 0,
+  
+  // Collections - Start empty, items earned through gameplay
+  items: [],
+  abilities: [],
+  skills: [],
+  tomes: [],
+  relics: [],
+  
+  // Legacy
+  shopItems: [],
   consumables: {}
 });
 

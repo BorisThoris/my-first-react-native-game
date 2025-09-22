@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { createPlayerStats, createItem, createShopItem, PlayerStats, Tile, GameState as GameStateType, Room, ShopItem } from '../types/gameTypes';
+import { createPlayerStats, createItem, createShopItem, Tile, GameState as GameStateType, Room, ShopItem } from '../types/gameTypes';
+import { PlayerStats } from '../types/collectibleTypes';
 import { Item, ItemType, ConsumableType } from '../types/itemTypes';
 import useDungeonStore from './dungeonStore';
 
@@ -307,12 +308,24 @@ const useGameStore = create<GameStore>((set, get) => ({
   
   // Streak and points
   addPoints: (points: number) => {
-    set(state => ({
-      playerStats: {
-        ...state.playerStats,
-        points: state.playerStats.points + points
-      }
-    }));
+    set(state => {
+      // Calculate points multiplier from items
+      let pointsMultiplier = 1;
+      [...state.playerStats.items, ...state.playerStats.abilities, ...state.playerStats.skills, ...state.playerStats.tomes, ...state.playerStats.relics].forEach(collectible => {
+        if (collectible.effects?.points_multiplier) {
+          pointsMultiplier *= collectible.effects.points_multiplier;
+        }
+      });
+      
+      const finalPoints = Math.floor(points * pointsMultiplier);
+      
+      return {
+        playerStats: {
+          ...state.playerStats,
+          points: state.playerStats.points + finalPoints
+        }
+      };
+    });
   },
   
   updateStreak: (increment: boolean) => {
@@ -447,6 +460,17 @@ const useGameStore = create<GameStore>((set, get) => ({
       return false;
     }
     
+    // Calculate preview time bonus from items
+    let previewTimeBonus = 0;
+    [...playerStats.items, ...playerStats.abilities, ...playerStats.skills, ...playerStats.tomes, ...playerStats.relics].forEach(collectible => {
+      if (collectible.effects?.preview_time) {
+        previewTimeBonus += collectible.effects.preview_time;
+      }
+    });
+    
+    const basePreviewTime = 1000; // 1 second base
+    const totalPreviewTime = basePreviewTime + (previewTimeBonus * 1000); // Convert to milliseconds
+    
     // Deduct points and start preview
     set(state => ({
       playerStats: {
@@ -457,10 +481,10 @@ const useGameStore = create<GameStore>((set, get) => ({
       isPreviewing: true
     }));
     
-    // End preview after 1 second
+    // End preview after calculated time
     setTimeout(() => {
       get().endPreview();
-    }, 1000);
+    }, totalPreviewTime);
     
     return true;
   },

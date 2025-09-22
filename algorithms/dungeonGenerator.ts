@@ -1,5 +1,5 @@
 import { RoomTypes, createFloor, Floor } from '../types/gameTypes';
-import RoomGenerator from './roomGenerator';
+import { RoomGenerator } from './roomGenerator';
 import { SpecialRoomGenerator } from './specialRoomGenerator';
 
 const generateFloor = (floorNumber: number, playerStats?: any): Floor => {

@@ -79,3 +79,4 @@ export const INTERACTIVE_ICONS = {
     [InteractiveType.SECRET_PASSAGE]: '🕳️'
 };
 
+

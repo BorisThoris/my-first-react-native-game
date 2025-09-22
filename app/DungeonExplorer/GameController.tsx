@@ -6,15 +6,16 @@ import DungeonMap from '../../components/dungeon/DungeonMap';
 import RoomView from '../../components/dungeon/RoomView';
 import SpecialRoomRouter from '../../components/dungeon/special/SpecialRoomRouter';
 import PlayerStats from '../../components/ui/PlayerStats';
-import Shop from '../../components/shop/Shop';
 import DebugPanel from '../../components/debug/DebugPanel';
 import StreakCelebration from '../../components/ui/StreakCelebration';
 import InventoryScreen from '../../components/inventory/InventoryScreen';
+import ProgressionScreen from '../../components/progression/ProgressionScreen';
 import { initializeShopItems } from '../../data/shopItems';
+import { useItemEffects } from '../../hooks/useItemEffects';
 
 const GameController: React.FC = () => {
-    const [showShop, setShowShop] = useState(false);
     const [showInventory, setShowInventory] = useState(false);
+    const [showProgression, setShowProgression] = useState(false);
 
     const {
         currentFloor,
@@ -30,6 +31,9 @@ const GameController: React.FC = () => {
     } = useDungeonStore();
 
     const { playerStats, isGameOver, isRoomCompleted, resetGame, updateStats } = useGameStore();
+
+    // Apply item effects to gameplay
+    useItemEffects();
 
     useEffect(() => {
         generateNewRun();
@@ -73,14 +77,6 @@ const GameController: React.FC = () => {
         enterRoom(roomId);
     };
 
-    const handleShopOpen = (): void => {
-        setShowShop(true);
-    };
-
-    const handleShopClose = (): void => {
-        setShowShop(false);
-    };
-
     const handleInventoryOpen = (): void => {
         setShowInventory(true);
     };
@@ -89,18 +85,13 @@ const GameController: React.FC = () => {
         setShowInventory(false);
     };
 
-    if (showShop) {
-        return (
-            <View style={{ flex: 1, backgroundColor: '#1a1a1a' }}>
-                <View style={{ flex: 1 }}>
-                    <Shop onClose={handleShopClose} />
-                </View>
-                <DebugPanel />
-                <StreakCelebration />
-                <InventoryScreen isVisible={showInventory} onClose={handleInventoryClose} />
-            </View>
-        );
-    }
+    const handleProgressionOpen = (): void => {
+        setShowProgression(true);
+    };
+
+    const handleProgressionClose = (): void => {
+        setShowProgression(false);
+    };
 
     if (gameState === 'in-room' && currentRoom) {
         // Check if it's a special room that needs special handling
@@ -117,7 +108,7 @@ const GameController: React.FC = () => {
         return (
             <View style={{ flex: 1, backgroundColor: '#1a1a1a' }}>
                 <View style={{ flex: 1, padding: 20 }}>
-                    <PlayerStats onInventoryPress={handleInventoryOpen} />
+                    <PlayerStats onInventoryPress={handleInventoryOpen} onProgressionPress={handleProgressionOpen} />
                     {isSpecialRoom ? (
                         <SpecialRoomRouter room={currentRoom} onComplete={() => completeRoom(currentRoom.id)} />
                     ) : (
@@ -127,6 +118,7 @@ const GameController: React.FC = () => {
                 <DebugPanel />
                 <StreakCelebration />
                 <InventoryScreen isVisible={showInventory} onClose={handleInventoryClose} />
+                <ProgressionScreen isVisible={showProgression} onClose={handleProgressionClose} />
             </View>
         );
     }
@@ -134,17 +126,17 @@ const GameController: React.FC = () => {
     return (
         <View style={{ flex: 1, backgroundColor: '#1a1a1a' }}>
             <View style={{ flex: 1, padding: 20 }}>
-                <PlayerStats onInventoryPress={handleInventoryOpen} />
+                <PlayerStats onInventoryPress={handleInventoryOpen} onProgressionPress={handleProgressionOpen} />
                 <DungeonMap
                     floor={getCurrentFloor()}
                     availableRooms={getAvailableRooms()}
                     onRoomSelect={handleRoomSelect}
-                    onShopOpen={handleShopOpen}
                 />
             </View>
             <DebugPanel />
             <StreakCelebration />
             <InventoryScreen isVisible={showInventory} onClose={handleInventoryClose} />
+            <ProgressionScreen isVisible={showProgression} onClose={handleProgressionClose} />
         </View>
     );
 };

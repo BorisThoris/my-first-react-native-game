@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
 import useGameStore from '../../stores/gameStore';
 import { Item } from '../../types/itemTypes';
+import { CollectibleType, Rarity, getRarityColor, getRarityIcon } from '../../types/collectibleTypes';
 
 interface InventoryScreenProps {
     isVisible: boolean;
@@ -12,20 +13,45 @@ const InventoryScreen: React.FC<InventoryScreenProps> = ({ isVisible, onClose })
     const { playerStats } = useGameStore();
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
+    // Safety check for playerStats
+    if (!playerStats) {
+        return null;
+    }
+
     const categories = [
         { id: 'all', name: 'All Items', icon: '📦' },
-        { id: 'passive', name: 'Passive', icon: '✨' },
-        { id: 'consumable', name: 'Consumable', icon: '🧪' },
-        { id: 'equipment', name: 'Equipment', icon: '⚔️' },
-        { id: 'tomes', name: 'Tomes', icon: '📚' },
+        { id: 'items', name: 'Items', icon: '📦' },
+        { id: 'abilities', name: 'Abilities', icon: '✨' },
+        { id: 'skills', name: 'Skills', icon: '📚' },
+        { id: 'tomes', name: 'Tomes', icon: '📖' },
         { id: 'relics', name: 'Relics', icon: '🏺' }
     ];
 
-    const getItemsByCategory = (category: string): Item[] => {
+    const getItemsByCategory = (category: string): any[] => {
         if (category === 'all') {
-            return playerStats.items;
+            return [
+                ...playerStats.items,
+                ...playerStats.abilities,
+                ...playerStats.skills,
+                ...playerStats.tomes,
+                ...playerStats.relics
+            ];
         }
-        return playerStats.items.filter((item) => item.type === category);
+
+        switch (category) {
+            case 'items':
+                return playerStats.items;
+            case 'abilities':
+                return playerStats.abilities;
+            case 'skills':
+                return playerStats.skills;
+            case 'tomes':
+                return playerStats.tomes;
+            case 'relics':
+                return playerStats.relics;
+            default:
+                return playerStats.items.filter((item) => item.type === category);
+        }
     };
 
     const getRarityColor = (rarity: string): string => {
@@ -95,26 +121,30 @@ const InventoryScreen: React.FC<InventoryScreenProps> = ({ isVisible, onClose })
                     <Text style={styles.statsTitle}>Collection Stats</Text>
                     <View style={styles.statsGrid}>
                         <View style={styles.statItem}>
-                            <Text style={styles.statValue}>{playerStats.items.length}</Text>
+                            <Text style={styles.statValue}>
+                                {playerStats.items.length +
+                                    playerStats.abilities.length +
+                                    playerStats.skills.length +
+                                    playerStats.tomes.length +
+                                    playerStats.relics.length}
+                            </Text>
                             <Text style={styles.statLabel}>Total Items</Text>
                         </View>
                         <View style={styles.statItem}>
-                            <Text style={styles.statValue}>
-                                {playerStats.items.filter((item) => item.rarity === 'legendary').length}
-                            </Text>
-                            <Text style={styles.statLabel}>Legendary</Text>
+                            <Text style={styles.statValue}>{playerStats.abilities.length}</Text>
+                            <Text style={styles.statLabel}>Abilities</Text>
                         </View>
                         <View style={styles.statItem}>
-                            <Text style={styles.statValue}>
-                                {playerStats.items.filter((item) => item.type === 'passive').length}
-                            </Text>
-                            <Text style={styles.statLabel}>Passive</Text>
+                            <Text style={styles.statValue}>{playerStats.skills.length}</Text>
+                            <Text style={styles.statLabel}>Skills</Text>
                         </View>
                         <View style={styles.statItem}>
-                            <Text style={styles.statValue}>
-                                {playerStats.items.filter((item) => item.type === 'consumable').length}
-                            </Text>
-                            <Text style={styles.statLabel}>Consumable</Text>
+                            <Text style={styles.statValue}>{playerStats.tomes.length}</Text>
+                            <Text style={styles.statLabel}>Tomes</Text>
+                        </View>
+                        <View style={styles.statItem}>
+                            <Text style={styles.statValue}>{playerStats.relics.length}</Text>
+                            <Text style={styles.statLabel}>Relics</Text>
                         </View>
                     </View>
                 </View>
@@ -165,7 +195,10 @@ const InventoryScreen: React.FC<InventoryScreenProps> = ({ isVisible, onClose })
                                                 {item.name}
                                             </Text>
                                             <Text style={styles.itemType}>
-                                                {item.type.charAt(0).toUpperCase() + item.type.slice(1)} • {item.rarity}
+                                                {item.type
+                                                    ? item.type.charAt(0).toUpperCase() + item.type.slice(1)
+                                                    : 'Unknown'}{' '}
+                                                • {item.rarity}
                                             </Text>
                                         </View>
                                     </View>
@@ -175,7 +208,7 @@ const InventoryScreen: React.FC<InventoryScreenProps> = ({ isVisible, onClose })
 
                                 <View style={styles.effectsContainer}>
                                     <Text style={styles.effectsTitle}>Effects:</Text>
-                                    <Text style={styles.effectsText}>{formatEffect(item.effect)}</Text>
+                                    <Text style={styles.effectsText}>{formatEffect(item.effects || {})}</Text>
                                 </View>
                             </View>
                         ))

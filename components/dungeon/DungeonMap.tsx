@@ -9,10 +9,9 @@ interface DungeonMapProps {
     floor: Floor | undefined;
     availableRooms: Room[];
     onRoomSelect: (roomId: string) => void;
-    onShopOpen: () => void;
 }
 
-const DungeonMap: React.FC<DungeonMapProps> = ({ floor, availableRooms, onRoomSelect, onShopOpen }) => {
+const DungeonMap: React.FC<DungeonMapProps> = ({ floor, availableRooms, onRoomSelect }) => {
     const { getCurrentFloorInteractives, interactWithElement } = useDungeonStore();
     const interactives = getCurrentFloorInteractives();
     if (!floor) {
@@ -28,9 +27,6 @@ const DungeonMap: React.FC<DungeonMapProps> = ({ floor, availableRooms, onRoomSe
             <ScrollView>
                 <View style={styles.header}>
                     <Text style={styles.title}>Floor {floor.floorNumber}</Text>
-                    <TouchableOpacity style={styles.shopButton} onPress={onShopOpen}>
-                        <Text style={styles.shopButtonText}>🛒 Shop</Text>
-                    </TouchableOpacity>
                 </View>
 
                 <View style={styles.roomsGrid}>
@@ -79,18 +75,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#fff',
         flex: 1
-    },
-    shopButton: {
-        backgroundColor: '#4CAF50',
-        paddingHorizontal: 15,
-        paddingVertical: 8,
-        borderRadius: 8,
-        marginLeft: 10
-    },
-    shopButtonText: {
-        color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 14
     },
     roomsGrid: {
         flexDirection: 'row',
