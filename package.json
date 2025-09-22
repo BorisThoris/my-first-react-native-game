@@ -1,6 +1,7 @@
 {
   "name": "my-react-native-game",
   "main": "expo-router/entry",
+  "web": "web/index.js",
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",

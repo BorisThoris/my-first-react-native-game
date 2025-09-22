@@ -32,9 +32,18 @@
         "web": {
             "bundler": "metro",
             "output": "static",
-            "favicon": "./assets/images/favicon.png"
+            "favicon": "./assets/images/favicon.png",
+            "name": "Memory Dungeon",
+            "shortName": "MemoryDungeon",
+            "description": "A roguelike memory game",
+            "startUrl": "/",
+            "display": "standalone",
+            "themeColor": "#1a1a1a",
+            "backgroundColor": "#1a1a1a"
         },
-        "plugins": ["expo-router"],
+        "plugins": [
+            "expo-router"
+        ],
         "experiments": {
             "typedRoutes": true,
             "baseUrl": "./"
