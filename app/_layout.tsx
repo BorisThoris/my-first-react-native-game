@@ -20,6 +20,7 @@ export default function Layout() {
         <Stack screenOptions={screenOptions}>
             <Stack.Screen name="index" />
             <Stack.Screen name="DungeonExplorer" />
+            <Stack.Screen name="three" />
         </Stack>
     );
 }
