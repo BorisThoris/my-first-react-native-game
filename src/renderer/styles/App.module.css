@@ -1,8 +1,14 @@
 .app {
     --ui-scale: 1;
-    min-height: 100vh;
+    min-height: 100dvh;
+    height: 100dvh;
     position: relative;
     overflow: hidden;
+    padding:
+        env(safe-area-inset-top)
+        env(safe-area-inset-right)
+        env(safe-area-inset-bottom)
+        env(safe-area-inset-left);
     background:
         radial-gradient(circle at top right, rgba(214, 160, 63, 0.18), transparent 25%),
         radial-gradient(circle at bottom left, rgba(61, 118, 193, 0.24), transparent 35%),
@@ -22,14 +28,17 @@
 
 .content {
     position: relative;
-    min-height: 100vh;
-    transform: scale(var(--ui-scale));
+    min-height: 100%;
+    height: 100%;
+    min-width: 0;
+    overflow: hidden;
+    zoom: var(--ui-scale);
     transform-origin: top center;
-    transition: transform 180ms ease;
+    transition: zoom 180ms ease;
 }
 
 .boot {
-    min-height: 100vh;
+    min-height: 100dvh;
     display: grid;
     place-items: center;
     font-size: 1.25rem;
@@ -44,4 +53,8 @@
 
 .app[data-reduce-motion='true'] .content {
     transition: none;
+}
+
+.app[data-density='compact'] .content {
+    zoom: 1;
 }

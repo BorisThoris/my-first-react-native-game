@@ -4,10 +4,12 @@ import GameOverScreen from './components/GameOverScreen';
 import GameScreen from './components/GameScreen';
 import MainMenu from './components/MainMenu';
 import SettingsScreen from './components/SettingsScreen';
+import { useViewportSize } from './hooks/useViewportSize';
 import styles from './styles/App.module.css';
 import { useAppStore } from './store/useAppStore';
 
 const App = () => {
+    const { height, width } = useViewportSize();
     const {
         dismissHowToPlay,
         hydrated,
@@ -21,23 +23,28 @@ const App = () => {
         startRun,
         steamConnected,
         view
-    } =
-        useAppStore(
-            useShallow((state) => ({
-                dismissHowToPlay: state.dismissHowToPlay,
-                hydrated: state.hydrated,
-                hydrate: state.hydrate,
-                newlyUnlockedAchievements: state.newlyUnlockedAchievements,
-                openSettings: state.openSettings,
-                resume: state.resume,
-                run: state.run,
-                saveData: state.saveData,
-                settings: state.settings,
-                startRun: state.startRun,
-                steamConnected: state.steamConnected,
-                view: state.view
-            }))
-        );
+    } = useAppStore(
+        useShallow((state) => ({
+            dismissHowToPlay: state.dismissHowToPlay,
+            hydrated: state.hydrated,
+            hydrate: state.hydrate,
+            newlyUnlockedAchievements: state.newlyUnlockedAchievements,
+            openSettings: state.openSettings,
+            resume: state.resume,
+            run: state.run,
+            saveData: state.saveData,
+            settings: state.settings,
+            startRun: state.startRun,
+            steamConnected: state.steamConnected,
+            view: state.view
+        }))
+    );
+    const isCompactViewport = width <= 760 || height <= 760;
+    const safeUiScale = isCompactViewport
+        ? 1
+        : width <= 1220
+          ? Math.min(settings.uiScale, 1.08)
+          : Math.min(settings.uiScale, 1.15);
 
     useEffect(() => {
         void hydrate();
@@ -64,7 +71,9 @@ const App = () => {
         <div
             className={styles.app}
             data-reduce-motion={settings.reduceMotion ? 'true' : 'false'}
-            style={{ ['--ui-scale' as string]: settings.uiScale }}
+            data-density={isCompactViewport ? 'compact' : 'roomy'}
+            data-viewport={width <= 760 ? 'mobile' : width <= 1220 ? 'tablet' : 'desktop'}
+            style={{ ['--ui-scale' as string]: safeUiScale }}
         >
             <div className={styles.ambientGlow} />
             <div className={styles.content}>

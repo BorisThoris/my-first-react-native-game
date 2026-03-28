@@ -1,6 +1,7 @@
 import { ACHIEVEMENTS } from '../../shared/achievements';
 import type { RunState } from '../../shared/contracts';
 import { useShallow } from 'zustand/react/shallow';
+import { useViewportSize } from '../hooks/useViewportSize';
 import styles from './GameOverScreen.module.css';
 import { useAppStore } from '../store/useAppStore';
 
@@ -9,6 +10,7 @@ interface GameOverScreenProps {
 }
 
 const GameOverScreen = ({ run }: GameOverScreenProps) => {
+    const { height, width } = useViewportSize();
     const { goToMenu, restartRun } = useAppStore(
         useShallow((state) => ({
             goToMenu: state.goToMenu,
@@ -16,6 +18,7 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
         }))
     );
     const summary = run.lastRunSummary;
+    const isCompact = width <= 760 || height <= 760;
 
     if (!summary) {
         return null;
@@ -40,14 +43,6 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
                         <strong>{summary.totalScore.toLocaleString()}</strong>
                     </article>
                     <article className={styles.card}>
-                        <span>Best Score</span>
-                        <strong>{summary.bestScore.toLocaleString()}</strong>
-                    </article>
-                    <article className={styles.card}>
-                        <span>Floors Cleared</span>
-                        <strong>{summary.levelsCleared}</strong>
-                    </article>
-                    <article className={styles.card}>
                         <span>Highest Level</span>
                         <strong>{summary.highestLevel}</strong>
                     </article>
@@ -59,6 +54,18 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
                         <span>Perfect Floors</span>
                         <strong>{summary.perfectClears}</strong>
                     </article>
+                    {!isCompact && (
+                        <>
+                            <article className={styles.card}>
+                                <span>Best Score</span>
+                                <strong>{summary.bestScore.toLocaleString()}</strong>
+                            </article>
+                            <article className={styles.card}>
+                                <span>Floors Cleared</span>
+                                <strong>{summary.levelsCleared}</strong>
+                            </article>
+                        </>
+                    )}
                 </div>
 
                 <div className={styles.statusBanner}>

@@ -21,10 +21,13 @@ body,
     margin: 0;
     min-height: 100%;
     min-width: 100%;
+    height: 100%;
 }
 
 body {
     overflow: hidden;
+    overscroll-behavior-y: none;
+    background: #090d18;
 }
 
 button,

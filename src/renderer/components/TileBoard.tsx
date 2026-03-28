@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { BoardState, Tile } from '../../shared/contracts';
 import styles from './TileBoard.module.css';
 
@@ -7,6 +7,7 @@ interface TileBoardProps {
     debugPeekActive: boolean;
     interactive: boolean;
     previewActive: boolean;
+    frameStyle?: CSSProperties;
     onTileSelect: (tileId: string) => void;
 }
 
@@ -20,7 +21,7 @@ const getTileClassName = (tile: Tile, faceUp: boolean, locked: boolean): string 
         .filter(Boolean)
         .join(' ');
 
-const TileBoard = ({ board, debugPeekActive, interactive, previewActive, onTileSelect }: TileBoardProps) => {
+const TileBoard = ({ board, debugPeekActive, interactive, previewActive, frameStyle, onTileSelect }: TileBoardProps) => {
     const tileRefs = useRef<Array<HTMLButtonElement | null>>([]);
     const [focusedIndex, setFocusedIndex] = useState(0);
     const locked = board.flippedTileIds.length === 2;
@@ -80,7 +81,7 @@ const TileBoard = ({ board, debugPeekActive, interactive, previewActive, onTileS
     };
 
     return (
-        <div className={styles.frame}>
+        <div className={styles.frame} style={frameStyle}>
             <div className={styles.board} style={{ gridTemplateColumns: `repeat(${board.columns}, minmax(0, 1fr))` }}>
                 {board.tiles.map((tile, index) => {
                     const disabled = disabledIndexes.has(index);

@@ -3,6 +3,7 @@ import type { AchievementId, RunState, SaveData } from '../../shared/contracts';
 import { useShallow } from 'zustand/react/shallow';
 import OverlayModal from './OverlayModal';
 import TileBoard from './TileBoard';
+import { useViewportSize } from '../hooks/useViewportSize';
 import styles from './GameScreen.module.css';
 import { useAppStore } from '../store/useAppStore';
 
@@ -31,6 +32,7 @@ const getPhaseCopy = (run: RunState): string => {
 };
 
 const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenProps) => {
+    const { height, width } = useViewportSize();
     const { continueToNextLevel, goToMenu, openSettings, pause, pressTile, resume, settings, triggerDebugReveal } =
         useAppStore(
             useShallow((state) => ({
@@ -43,7 +45,18 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
                 settings: state.settings,
                 triggerDebugReveal: state.triggerDebugReveal
             }))
-        );
+    );
+    const isCompact = width <= 760 || height <= 760;
+    const isTight = width <= 430 || height <= 620;
+    const isSplitLayout = width > 1220;
+    const boardHorizontalBudget = isCompact
+        ? Math.max(180, width - (isTight ? 24 : 32))
+        : isSplitLayout
+          ? Math.max(320, width - 64 - 336)
+          : Math.max(320, width - 64);
+    const boardVerticalBudget = isCompact
+        ? Math.max(180, height - (isTight ? 330 : 400))
+        : Math.max(300, height - 340);
 
     if (!run.board) {
         return null;
@@ -52,6 +65,42 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
     const unlockedDefinitions = achievements
         .map((achievementId) => ACHIEVEMENTS.find((item) => item.id === achievementId))
         .filter((achievement): achievement is (typeof ACHIEVEMENTS)[number] => Boolean(achievement));
+    const tileSize = Math.max(
+        isCompact ? 48 : 64,
+        Math.min(
+            isCompact ? (isTight ? 96 : width <= 390 ? 112 : 120) : Number.POSITIVE_INFINITY,
+            Math.floor(Math.min(boardHorizontalBudget / run.board.columns, boardVerticalBudget / run.board.rows))
+        )
+    );
+    const boardStyle = {
+        ['--board-width' as string]: `${tileSize * run.board.columns}px`,
+        ['--board-height' as string]: `${tileSize * run.board.rows}px`
+    };
+    const metrics = isCompact
+        ? isTight
+            ? [
+                  { label: 'Lives', value: run.lives },
+                  { label: 'Run Score', value: run.stats.totalScore.toLocaleString() }
+              ]
+            : [
+                  { label: 'Lives', value: run.lives },
+                  { label: 'Run Score', value: run.stats.totalScore.toLocaleString() },
+                  { label: 'Streak', value: run.stats.currentStreak },
+                  { label: 'Best Score', value: saveData.bestScore.toLocaleString() }
+              ]
+        : [
+              { label: 'Lives', value: run.lives },
+              { label: 'Run Score', value: run.stats.totalScore.toLocaleString() },
+              { label: 'Level Score', value: run.stats.currentLevelScore.toLocaleString() },
+              { label: 'Streak', value: run.stats.currentStreak },
+              { label: 'Mistakes', value: run.stats.tries },
+              { label: 'Best Score', value: saveData.bestScore.toLocaleString() }
+          ];
+    const phaseCopy = isCompact
+        ? isTight
+            ? `${getPhaseCopy(run)} Arrows, Enter, Escape.`
+            : `${getPhaseCopy(run)} Arrows move focus. Enter or Space flips. Escape pauses.`
+        : getPhaseCopy(run);
 
     return (
         <section className={styles.shell}>
@@ -85,39 +134,22 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
             </header>
 
             <div className={styles.hudGrid}>
-                <article className={styles.metricCard}>
-                    <span className={styles.metricLabel}>Lives</span>
-                    <strong className={styles.metricValue}>{run.lives}</strong>
-                </article>
-                <article className={styles.metricCard}>
-                    <span className={styles.metricLabel}>Run Score</span>
-                    <strong className={styles.metricValue}>{run.stats.totalScore.toLocaleString()}</strong>
-                </article>
-                <article className={styles.metricCard}>
-                    <span className={styles.metricLabel}>Level Score</span>
-                    <strong className={styles.metricValue}>{run.stats.currentLevelScore.toLocaleString()}</strong>
-                </article>
-                <article className={styles.metricCard}>
-                    <span className={styles.metricLabel}>Streak</span>
-                    <strong className={styles.metricValue}>{run.stats.currentStreak}</strong>
-                </article>
-                <article className={styles.metricCard}>
-                    <span className={styles.metricLabel}>Mistakes</span>
-                    <strong className={styles.metricValue}>{run.stats.tries}</strong>
-                </article>
-                <article className={styles.metricCard}>
-                    <span className={styles.metricLabel}>Best Score</span>
-                    <strong className={styles.metricValue}>{saveData.bestScore.toLocaleString()}</strong>
-                </article>
+                {metrics.map((metric) => (
+                    <article className={styles.metricCard} key={metric.label}>
+                        <span className={styles.metricLabel}>{metric.label}</span>
+                        <strong className={styles.metricValue}>{metric.value}</strong>
+                    </article>
+                ))}
             </div>
 
-            <div className={styles.phaseBanner}>{getPhaseCopy(run)}</div>
+            <div className={styles.phaseBanner}>{phaseCopy}</div>
 
             <div className={styles.boardArea}>
                 <TileBoard
                     board={run.board}
                     debugPeekActive={run.debugPeekActive}
                     interactive={run.status === 'playing'}
+                    frameStyle={boardStyle}
                     onTileSelect={(tileId) => {
                         if (run.status === 'playing') {
                             pressTile(tileId);
@@ -126,55 +158,59 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
                     previewActive={run.status === 'memorize'}
                 />
 
-                <aside className={styles.sidePanel}>
-                    <div className={styles.panelBlock}>
-                        <span className={styles.panelLabel}>Pairs Remaining</span>
-                        <strong className={styles.panelValue}>{run.board.pairCount - run.board.matchedPairs}</strong>
-                        <p className={styles.panelCopy}>
-                            Perfect floors restore one life. Mistakes break streaks and cost momentum.
-                        </p>
-                    </div>
-
-                    <div className={styles.panelBlock}>
-                        <span className={styles.panelLabel}>Run Stats</span>
-                        <div className={styles.inlineStats}>
-                            <div>
-                                <strong>{run.stats.matchesFound}</strong>
-                                <span>Matches</span>
-                            </div>
-                            <div>
-                                <strong>{run.stats.bestStreak}</strong>
-                                <span>Best Streak</span>
-                            </div>
-                            <div>
-                                <strong>{run.stats.perfectClears}</strong>
-                                <span>Perfect Floors</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className={styles.panelBlock}>
-                        <span className={styles.panelLabel}>Controls</span>
-                        <p className={styles.panelCopy}>Arrow keys move focus. Enter or Space flips. Escape pauses.</p>
-                    </div>
-
-                    {unlockedDefinitions.length > 0 && (
+                {!isCompact && (
+                    <aside className={styles.sidePanel}>
                         <div className={styles.panelBlock}>
-                            <span className={styles.panelLabel}>Unlocked This Turn</span>
-                            <div className={styles.achievementRail}>
-                                {unlockedDefinitions.map((achievement) => (
-                                    <article className={styles.achievementCard} key={achievement.id}>
-                                        <strong>{achievement.title}</strong>
-                                        <p>{achievement.description}</p>
-                                    </article>
-                                ))}
+                            <span className={styles.panelLabel}>Pairs Remaining</span>
+                            <strong className={styles.panelValue}>{run.board.pairCount - run.board.matchedPairs}</strong>
+                            <p className={styles.panelCopy}>
+                                Perfect floors restore one life. Mistakes break streaks and cost momentum.
+                            </p>
+                        </div>
+
+                        <div className={styles.panelBlock}>
+                            <span className={styles.panelLabel}>Run Stats</span>
+                            <div className={styles.inlineStats}>
+                                <div>
+                                    <strong>{run.stats.matchesFound}</strong>
+                                    <span>Matches</span>
+                                </div>
+                                <div>
+                                    <strong>{run.stats.bestStreak}</strong>
+                                    <span>Best Streak</span>
+                                </div>
+                                <div>
+                                    <strong>{run.stats.perfectClears}</strong>
+                                    <span>Perfect Floors</span>
+                                </div>
                             </div>
                         </div>
-                    )}
-                </aside>
+
+                        <div className={styles.panelBlock}>
+                            <span className={styles.panelLabel}>Controls</span>
+                            <p className={styles.panelCopy}>Arrow keys move focus. Enter or Space flips. Escape pauses.</p>
+                        </div>
+
+                        {unlockedDefinitions.length > 0 && (
+                            <div className={styles.panelBlock}>
+                                <span className={styles.panelLabel}>Unlocked This Turn</span>
+                                <div className={styles.achievementRail}>
+                                    {unlockedDefinitions.map((achievement) => (
+                                        <article className={styles.achievementCard} key={achievement.id}>
+                                            <strong>{achievement.title}</strong>
+                                            <p>{achievement.description}</p>
+                                        </article>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </aside>
+                )}
             </div>
 
-            <p className={styles.footerHint}>Deeper floors rotate symbol themes and compress the memorize window.</p>
+            {!isCompact && (
+                <p className={styles.footerHint}>Deeper floors rotate symbol themes and compress the memorize window.</p>
+            )}
 
             {run.status === 'paused' && (
                 <OverlayModal

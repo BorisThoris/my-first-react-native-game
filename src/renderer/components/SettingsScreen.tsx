@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Settings } from '../../shared/contracts';
+import { useViewportSize } from '../hooks/useViewportSize';
 import styles from './SettingsScreen.module.css';
 import { useAppStore } from '../store/useAppStore';
 
@@ -14,6 +15,8 @@ const SettingsScreen = () => {
     );
     const [draft, setDraft] = useState<Settings>(settings);
     const isDev = import.meta.env.DEV;
+    const { height, width } = useViewportSize();
+    const isCompact = width <= 760 || height <= 760;
 
     useEffect(() => {
         setDraft(settings);
@@ -104,10 +107,12 @@ const SettingsScreen = () => {
                             This demo is keyboard-first on desktop: arrow keys move focus, Enter or Space flips, and
                             Escape pauses the run.
                         </p>
-                        <p className={styles.copy}>
-                            Audio sliders stay in the save schema for future compatibility, but this build does not ship
-                            live audio controls yet.
-                        </p>
+                        {!isCompact && (
+                            <p className={styles.copy}>
+                                Audio sliders stay in the save schema for future compatibility, but this build does
+                                not ship live audio controls yet.
+                            </p>
+                        )}
                         <p className={styles.copy}>Settings persist locally through the desktop bridge.</p>
                     </section>
 
