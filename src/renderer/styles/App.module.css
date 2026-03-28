@@ -25,6 +25,7 @@
     min-height: 100vh;
     transform: scale(var(--ui-scale));
     transform-origin: top center;
+    transition: transform 180ms ease;
 }
 
 .boot {
@@ -35,4 +36,12 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: #ffdf91;
+}
+
+.app[data-reduce-motion='true'] .ambientGlow {
+    opacity: 0.45;
+}
+
+.app[data-reduce-motion='true'] .content {
+    transition: none;
 }

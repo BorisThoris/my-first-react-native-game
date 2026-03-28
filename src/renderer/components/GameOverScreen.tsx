@@ -44,12 +44,20 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
                         <strong>{summary.bestScore.toLocaleString()}</strong>
                     </article>
                     <article className={styles.card}>
-                        <span>Levels Cleared</span>
+                        <span>Floors Cleared</span>
                         <strong>{summary.levelsCleared}</strong>
                     </article>
                     <article className={styles.card}>
                         <span>Highest Level</span>
                         <strong>{summary.highestLevel}</strong>
+                    </article>
+                    <article className={styles.card}>
+                        <span>Best Streak</span>
+                        <strong>{summary.bestStreak}</strong>
+                    </article>
+                    <article className={styles.card}>
+                        <span>Perfect Floors</span>
+                        <strong>{summary.perfectClears}</strong>
                     </article>
                 </div>
 

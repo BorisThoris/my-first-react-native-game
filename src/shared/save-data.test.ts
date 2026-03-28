@@ -12,6 +12,7 @@ describe('save normalization', () => {
         expect(saveData.bestScore).toBe(420);
         expect(saveData.settings.displayMode).toBe(DEFAULT_SETTINGS.displayMode);
         expect(saveData.achievements.ACH_FIRST_CLEAR).toBe(false);
+        expect(saveData.onboardingDismissed).toBe(false);
     });
 
     it('merges nested debug settings without dropping defaults', () => {

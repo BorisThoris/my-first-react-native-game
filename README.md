@@ -1,6 +1,8 @@
 # Memory Dungeon
 
-Windows-first desktop arcade rebuild of the original memory game, packaged with Electron and designed for Steam.
+Windows-first desktop arcade rebuild of Memory Dungeon, packaged with Electron and designed for Steam.
+
+The active application lives under `src/`. The older Expo/roguelike implementation has been archived under `legacy/expo-roguelike/` and is kept as reference only.
 
 ## Stack
 
@@ -50,3 +52,9 @@ This v1 desktop build is intentionally narrow:
 - Mouse + keyboard only
 - Local saves, settings, and achievements
 - Windows x64 only
+
+## Archived Legacy Code
+
+- `legacy/expo-roguelike/` contains the older Expo, web, and roguelike prototype tree.
+- The archived code is not part of the supported build, lint, or test workflow for the desktop product.
+- New work should target `src/` unless the archived code is being consulted for reference.

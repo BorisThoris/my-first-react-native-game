@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 import { evaluateAchievementUnlocks } from '../../shared/achievements';
-import { DEBUG_REVEAL_MS, MATCH_DELAY_MS, type AchievementId, type RunState, type SaveData, type Settings, type ViewState } from '../../shared/contracts';
+import type { AchievementId, RunState, SaveData, Settings, ViewState } from '../../shared/contracts';
 import {
     advanceToNextLevel,
     createNewRun,
     createRunSummary,
     disableDebugPeek,
     enableDebugPeek,
+    finishMemorizePhase,
     flipTile,
     pauseRun,
     resolveBoardTurn,
@@ -14,6 +15,11 @@ import {
 } from '../../shared/game';
 import { createDefaultSaveData, normalizeSaveData } from '../../shared/save-data';
 import { desktopClient } from '../desktop-client';
+
+interface ActiveTimer {
+    deadline: number;
+    timeout: ReturnType<typeof setTimeout>;
+}
 
 interface AppState {
     hydrated: boolean;
@@ -31,6 +37,7 @@ interface AppState {
     openSettings: (returnView?: Exclude<ViewState, 'boot' | 'settings'>) => void;
     closeSettings: () => void;
     updateSettings: (settings: Settings) => Promise<void>;
+    dismissHowToPlay: () => Promise<void>;
     pressTile: (tileId: string) => void;
     pause: () => void;
     resume: () => void;
@@ -40,22 +47,219 @@ interface AppState {
     triggerDebugReveal: () => void;
 }
 
-let resolveTurnTimer: ReturnType<typeof setTimeout> | null = null;
-let debugRevealTimer: ReturnType<typeof setTimeout> | null = null;
+let memorizeTimer: ActiveTimer | null = null;
+let resolveTimer: ActiveTimer | null = null;
+let debugRevealTimer: ActiveTimer | null = null;
 
-const clearTimers = (): void => {
-    if (resolveTurnTimer) {
-        clearTimeout(resolveTurnTimer);
-        resolveTurnTimer = null;
-    }
+const persistSaveData = async (saveData: SaveData): Promise<SaveData> => normalizeSaveData(await desktopClient.saveGame(saveData));
 
-    if (debugRevealTimer) {
-        clearTimeout(debugRevealTimer);
-        debugRevealTimer = null;
+const clearTimer = (timer: ActiveTimer | null): void => {
+    if (timer) {
+        clearTimeout(timer.timeout);
     }
 };
 
-const persistSaveData = async (saveData: SaveData): Promise<SaveData> => normalizeSaveData(await desktopClient.saveGame(saveData));
+const clearMemorizeTimer = (): void => {
+    clearTimer(memorizeTimer);
+    memorizeTimer = null;
+};
+
+const clearResolveTimer = (): void => {
+    clearTimer(resolveTimer);
+    resolveTimer = null;
+};
+
+const clearDebugRevealTimer = (): void => {
+    clearTimer(debugRevealTimer);
+    debugRevealTimer = null;
+};
+
+const clearAllTimers = (): void => {
+    clearMemorizeTimer();
+    clearResolveTimer();
+    clearDebugRevealTimer();
+};
+
+const getRemainingMs = (timer: ActiveTimer | null, fallback: number | null): number | null => {
+    if (!timer) {
+        return fallback;
+    }
+
+    return Math.max(timer.deadline - Date.now(), 0);
+};
+
+const applyResolvedRun = (resolvedRun: RunState): void => {
+    const state = useAppStore.getState();
+    let nextRun = resolvedRun.status === 'playing' ? resolvedRun : disableDebugPeek(resolvedRun);
+    const unlockedAchievements = evaluateAchievementUnlocks(nextRun, state.saveData);
+    let nextSave = normalizeSaveData({
+        ...state.saveData,
+        bestScore: Math.max(state.saveData.bestScore, nextRun.stats.bestScore)
+    });
+
+    if (unlockedAchievements.length > 0) {
+        nextSave = normalizeSaveData({
+            ...nextSave,
+            achievements: {
+                ...nextSave.achievements,
+                ...Object.fromEntries(unlockedAchievements.map((achievementId) => [achievementId, true]))
+            }
+        });
+
+        void Promise.all(unlockedAchievements.map((achievementId) => desktopClient.unlockAchievement(achievementId)));
+    }
+
+    if (nextRun.status === 'gameOver') {
+        nextRun = createRunSummary(nextRun, unlockedAchievements);
+        nextSave = normalizeSaveData({
+            ...nextSave,
+            onboardingDismissed: true,
+            lastRunSummary: nextRun.lastRunSummary
+        });
+
+        useAppStore.setState({
+            run: nextRun,
+            view: 'gameOver',
+            saveData: nextSave,
+            settings: nextSave.settings,
+            newlyUnlockedAchievements: unlockedAchievements
+        });
+    } else {
+        useAppStore.setState({
+            run: nextRun,
+            view: 'playing',
+            saveData: nextSave,
+            settings: nextSave.settings,
+            newlyUnlockedAchievements: unlockedAchievements
+        });
+    }
+
+    void persistSaveData(nextSave);
+};
+
+function scheduleMemorizeTimer(duration: number): void {
+    clearMemorizeTimer();
+
+    if (duration <= 0) {
+        const { run } = useAppStore.getState();
+
+        if (run && run.status === 'memorize') {
+            useAppStore.setState({ run: finishMemorizePhase(run) });
+        }
+
+        return;
+    }
+
+    memorizeTimer = {
+        deadline: Date.now() + duration,
+        timeout: setTimeout(() => {
+            memorizeTimer = null;
+            const { run } = useAppStore.getState();
+
+            if (!run || run.status !== 'memorize') {
+                return;
+            }
+
+            useAppStore.setState({ run: finishMemorizePhase(run) });
+        }, duration)
+    };
+}
+
+function scheduleResolveTimer(duration: number): void {
+    clearResolveTimer();
+
+    if (duration <= 0) {
+        const { run } = useAppStore.getState();
+
+        if (run && run.status === 'resolving') {
+            applyResolvedRun(resolveBoardTurn(run));
+        }
+
+        return;
+    }
+
+    resolveTimer = {
+        deadline: Date.now() + duration,
+        timeout: setTimeout(() => {
+            resolveTimer = null;
+            const { run } = useAppStore.getState();
+
+            if (!run || run.status !== 'resolving') {
+                return;
+            }
+
+            applyResolvedRun(resolveBoardTurn(run));
+        }, duration)
+    };
+}
+
+function scheduleDebugRevealTimer(duration: number): void {
+    clearDebugRevealTimer();
+
+    if (duration <= 0) {
+        const { run } = useAppStore.getState();
+
+        if (run?.debugPeekActive) {
+            useAppStore.setState({ run: disableDebugPeek(run) });
+        }
+
+        return;
+    }
+
+    debugRevealTimer = {
+        deadline: Date.now() + duration,
+        timeout: setTimeout(() => {
+            debugRevealTimer = null;
+            const { run } = useAppStore.getState();
+
+            if (!run?.debugPeekActive) {
+                return;
+            }
+
+            useAppStore.setState({ run: disableDebugPeek(run) });
+        }, duration)
+    };
+}
+
+const freezeRun = (run: RunState): RunState => {
+    const pausedRun = pauseRun(run);
+
+    return {
+        ...pausedRun,
+        timerState: {
+            ...pausedRun.timerState,
+            memorizeRemainingMs:
+                run.status === 'memorize'
+                    ? getRemainingMs(memorizeTimer, run.timerState.memorizeRemainingMs)
+                    : pausedRun.timerState.memorizeRemainingMs,
+            resolveRemainingMs:
+                run.status === 'resolving'
+                    ? getRemainingMs(resolveTimer, run.timerState.resolveRemainingMs)
+                    : pausedRun.timerState.resolveRemainingMs,
+            debugRevealRemainingMs: run.debugPeekActive
+                ? getRemainingMs(debugRevealTimer, run.timerState.debugRevealRemainingMs)
+                : pausedRun.timerState.debugRevealRemainingMs
+        }
+    };
+};
+
+const resumeRunWithTimers = (run: RunState): RunState => {
+    const resumedRun = resumeRun(run);
+
+    if (resumedRun.status === 'memorize' && resumedRun.timerState.memorizeRemainingMs) {
+        scheduleMemorizeTimer(resumedRun.timerState.memorizeRemainingMs);
+    }
+
+    if (resumedRun.status === 'resolving' && resumedRun.timerState.resolveRemainingMs) {
+        scheduleResolveTimer(resumedRun.timerState.resolveRemainingMs);
+    }
+
+    if (resumedRun.debugPeekActive && resumedRun.timerState.debugRevealRemainingMs) {
+        scheduleDebugRevealTimer(resumedRun.timerState.debugRevealRemainingMs);
+    }
+
+    return resumedRun;
+};
 
 export const useAppStore = create<AppState>((set, get) => ({
     hydrated: false,
@@ -91,16 +295,22 @@ export const useAppStore = create<AppState>((set, get) => ({
     },
 
     startRun: () => {
-        clearTimers();
+        clearAllTimers();
+        const run = createNewRun(get().saveData.bestScore);
+
         set({
             view: 'playing',
             newlyUnlockedAchievements: [],
-            run: createNewRun(get().saveData.bestScore)
+            run
         });
+
+        if (run.timerState.memorizeRemainingMs) {
+            scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
+        }
     },
 
     goToMenu: () => {
-        clearTimers();
+        clearAllTimers();
         set({
             view: 'menu',
             run: null,
@@ -112,10 +322,16 @@ export const useAppStore = create<AppState>((set, get) => ({
         const { run } = get();
 
         if (returnView === 'playing' && run) {
+            const nextRun =
+                run.status === 'paused' || run.status === 'levelComplete' || run.status === 'gameOver'
+                    ? run
+                    : freezeRun(run);
+
+            clearAllTimers();
             set({
                 view: 'settings',
                 settingsReturnView: returnView,
-                run: pauseRun(run)
+                run: nextRun
             });
             return;
         }
@@ -130,9 +346,11 @@ export const useAppStore = create<AppState>((set, get) => ({
         const { settingsReturnView, run } = get();
 
         if (settingsReturnView === 'playing' && run) {
+            const nextRun = run.status === 'paused' ? resumeRunWithTimers(run) : run;
+
             set({
                 view: 'playing',
-                run: resumeRun(run)
+                run: nextRun
             });
             return;
         }
@@ -153,6 +371,20 @@ export const useAppStore = create<AppState>((set, get) => ({
         });
     },
 
+    dismissHowToPlay: async () => {
+        const nextSave = normalizeSaveData({
+            ...get().saveData,
+            onboardingDismissed: true
+        });
+
+        set({
+            saveData: nextSave,
+            settings: nextSave.settings
+        });
+
+        await persistSaveData(nextSave);
+    },
+
     pressTile: (tileId) => {
         const { run, view } = get();
 
@@ -168,106 +400,71 @@ export const useAppStore = create<AppState>((set, get) => ({
 
         set({ run: nextRun });
 
-        if (nextRun.board?.flippedTileIds.length !== 2) {
-            return;
+        if (nextRun.status === 'resolving' && nextRun.timerState.resolveRemainingMs) {
+            scheduleResolveTimer(nextRun.timerState.resolveRemainingMs);
         }
-
-        if (resolveTurnTimer) {
-            clearTimeout(resolveTurnTimer);
-        }
-
-        resolveTurnTimer = setTimeout(() => {
-            const currentRun = get().run;
-
-            if (!currentRun) {
-                return;
-            }
-
-            let resolvedRun = resolveBoardTurn(currentRun);
-            const unlockedAchievements = evaluateAchievementUnlocks(resolvedRun, get().saveData);
-            let nextSave = get().saveData;
-
-            if (unlockedAchievements.length > 0) {
-                nextSave = normalizeSaveData({
-                    ...nextSave,
-                    achievements: {
-                        ...nextSave.achievements,
-                        ...Object.fromEntries(unlockedAchievements.map((achievementId) => [achievementId, true]))
-                    },
-                    bestScore: Math.max(nextSave.bestScore, resolvedRun.stats.bestScore)
-                });
-
-                void Promise.all(unlockedAchievements.map((achievementId) => desktopClient.unlockAchievement(achievementId)));
-            }
-
-            if (resolvedRun.status === 'gameOver') {
-                resolvedRun = createRunSummary(resolvedRun, unlockedAchievements);
-                nextSave = normalizeSaveData({
-                    ...nextSave,
-                    bestScore: Math.max(nextSave.bestScore, resolvedRun.stats.bestScore),
-                    lastRunSummary: resolvedRun.lastRunSummary
-                });
-
-                set({
-                    run: resolvedRun,
-                    view: 'gameOver',
-                    saveData: nextSave,
-                    settings: nextSave.settings,
-                    newlyUnlockedAchievements: unlockedAchievements
-                });
-            } else {
-                nextSave = normalizeSaveData({
-                    ...nextSave,
-                    bestScore: Math.max(nextSave.bestScore, resolvedRun.stats.bestScore)
-                });
-
-                set({
-                    run: resolvedRun,
-                    saveData: nextSave,
-                    settings: nextSave.settings,
-                    newlyUnlockedAchievements: unlockedAchievements
-                });
-            }
-
-            void persistSaveData(nextSave);
-            resolveTurnTimer = null;
-        }, MATCH_DELAY_MS);
     },
 
     pause: () => {
         const { run } = get();
-        if (!run) return;
-        set({ run: pauseRun(run) });
+
+        if (!run) {
+            return;
+        }
+
+        const pausedRun = freezeRun(run);
+        clearAllTimers();
+        set({ run: pausedRun });
     },
 
     resume: () => {
         const { run } = get();
-        if (!run) return;
-        set({ run: resumeRun(run) });
+
+        if (!run) {
+            return;
+        }
+
+        set({ run: resumeRunWithTimers(run) });
     },
 
     continueToNextLevel: () => {
         const { run } = get();
-        if (!run) return;
+
+        if (!run) {
+            return;
+        }
+
+        clearAllTimers();
+        const nextRun = advanceToNextLevel(run);
 
         set({
             newlyUnlockedAchievements: [],
             view: 'playing',
-            run: advanceToNextLevel(run)
+            run: nextRun
         });
+
+        if (nextRun.timerState.memorizeRemainingMs) {
+            scheduleMemorizeTimer(nextRun.timerState.memorizeRemainingMs);
+        }
     },
 
     restartRun: () => {
-        clearTimers();
+        clearAllTimers();
+        const run = createNewRun(get().saveData.bestScore);
+
         set({
             view: 'playing',
             newlyUnlockedAchievements: [],
-            run: createNewRun(get().saveData.bestScore)
+            run
         });
+
+        if (run.timerState.memorizeRemainingMs) {
+            scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
+        }
     },
 
     endRun: () => {
-        clearTimers();
+        clearAllTimers();
         set({
             view: 'menu',
             run: null,
@@ -282,19 +479,12 @@ export const useAppStore = create<AppState>((set, get) => ({
             return;
         }
 
-        if (debugRevealTimer) {
-            clearTimeout(debugRevealTimer);
+        const nextRun = enableDebugPeek(run, settings.debugFlags.disableAchievementsOnDebug);
+
+        set({ run: nextRun });
+
+        if (nextRun.timerState.debugRevealRemainingMs) {
+            scheduleDebugRevealTimer(nextRun.timerState.debugRevealRemainingMs);
         }
-
-        set({
-            run: enableDebugPeek(run, settings.debugFlags.disableAchievementsOnDebug)
-        });
-
-        debugRevealTimer = setTimeout(() => {
-            const currentRun = get().run;
-            if (!currentRun) return;
-            set({ run: disableDebugPeek(currentRun) });
-            debugRevealTimer = null;
-        }, DEBUG_REVEAL_MS);
     }
 }));

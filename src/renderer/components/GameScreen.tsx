@@ -13,6 +13,23 @@ interface GameScreenProps {
     steamConnected: boolean;
 }
 
+const getPhaseCopy = (run: RunState): string => {
+    switch (run.status) {
+        case 'memorize':
+            return 'Memorize the layout before the veil drops.';
+        case 'resolving':
+            return 'Hold steady. The board is resolving.';
+        case 'paused':
+            return 'Run paused. Resume when ready.';
+        case 'levelComplete':
+            return 'Floor cleared. Bank the bonus and descend.';
+        case 'gameOver':
+            return 'Expedition complete.';
+        default:
+            return 'Stay sharp. Clean reads and streaks are worth more now.';
+    }
+};
+
 const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenProps) => {
     const { continueToNextLevel, goToMenu, openSettings, pause, pressTile, resume, settings, triggerDebugReveal } =
         useAppStore(
@@ -73,12 +90,16 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
                     <strong className={styles.metricValue}>{run.lives}</strong>
                 </article>
                 <article className={styles.metricCard}>
-                    <span className={styles.metricLabel}>Score</span>
+                    <span className={styles.metricLabel}>Run Score</span>
                     <strong className={styles.metricValue}>{run.stats.totalScore.toLocaleString()}</strong>
                 </article>
                 <article className={styles.metricCard}>
-                    <span className={styles.metricLabel}>Level Rating</span>
-                    <strong className={styles.metricValue}>{run.stats.rating}</strong>
+                    <span className={styles.metricLabel}>Level Score</span>
+                    <strong className={styles.metricValue}>{run.stats.currentLevelScore.toLocaleString()}</strong>
+                </article>
+                <article className={styles.metricCard}>
+                    <span className={styles.metricLabel}>Streak</span>
+                    <strong className={styles.metricValue}>{run.stats.currentStreak}</strong>
                 </article>
                 <article className={styles.metricCard}>
                     <span className={styles.metricLabel}>Mistakes</span>
@@ -90,22 +111,28 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
                 </article>
             </div>
 
+            <div className={styles.phaseBanner}>{getPhaseCopy(run)}</div>
+
             <div className={styles.boardArea}>
                 <TileBoard
                     board={run.board}
                     debugPeekActive={run.debugPeekActive}
+                    interactive={run.status === 'playing'}
                     onTileSelect={(tileId) => {
                         if (run.status === 'playing') {
                             pressTile(tileId);
                         }
                     }}
+                    previewActive={run.status === 'memorize'}
                 />
 
                 <aside className={styles.sidePanel}>
                     <div className={styles.panelBlock}>
                         <span className={styles.panelLabel}>Pairs Remaining</span>
                         <strong className={styles.panelValue}>{run.board.pairCount - run.board.matchedPairs}</strong>
-                        <p className={styles.panelCopy}>Clear the board to descend deeper and bank the level score.</p>
+                        <p className={styles.panelCopy}>
+                            Perfect floors restore one life. Mistakes break streaks and cost momentum.
+                        </p>
                     </div>
 
                     <div className={styles.panelBlock}>
@@ -116,14 +143,19 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
                                 <span>Matches</span>
                             </div>
                             <div>
-                                <strong>{run.stats.mismatches}</strong>
-                                <span>Mismatches</span>
+                                <strong>{run.stats.bestStreak}</strong>
+                                <span>Best Streak</span>
                             </div>
                             <div>
-                                <strong>{run.stats.highestLevel}</strong>
-                                <span>Highest</span>
+                                <strong>{run.stats.perfectClears}</strong>
+                                <span>Perfect Floors</span>
                             </div>
                         </div>
+                    </div>
+
+                    <div className={styles.panelBlock}>
+                        <span className={styles.panelLabel}>Controls</span>
+                        <p className={styles.panelCopy}>Arrow keys move focus. Enter or Space flips. Escape pauses.</p>
                     </div>
 
                     {unlockedDefinitions.length > 0 && (
@@ -142,9 +174,7 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
                 </aside>
             </div>
 
-            <p className={styles.footerHint}>
-                Match fast and stay clean. Each mistake drops a life and drags your level rating down.
-            </p>
+            <p className={styles.footerHint}>Deeper floors rotate symbol themes and compress the memorize window.</p>
 
             {run.status === 'paused' && (
                 <OverlayModal
@@ -153,7 +183,7 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
                         { label: 'Settings', onClick: () => openSettings('playing'), variant: 'secondary' },
                         { label: 'Retreat', onClick: goToMenu, variant: 'danger' }
                     ]}
-                    subtitle="The board is frozen until you return."
+                    subtitle="The board, memorize phase, and debug timers are frozen until you return."
                     title="Run Paused"
                 />
             )}
@@ -171,6 +201,10 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
                         <div>
                             <strong>{run.lastLevelResult.rating}</strong>
                             <span>Rating</span>
+                        </div>
+                        <div>
+                            <strong>{run.lastLevelResult.mistakes}</strong>
+                            <span>Mistakes</span>
                         </div>
                         <div>
                             <strong>{run.lastLevelResult.livesRemaining}</strong>

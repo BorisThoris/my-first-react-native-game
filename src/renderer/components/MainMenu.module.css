@@ -8,7 +8,7 @@
 }
 
 .hero {
-    max-width: 720px;
+    max-width: 760px;
 }
 
 .eyebrow {
@@ -42,8 +42,8 @@
     flex-wrap: wrap;
 }
 
-.button {
-    min-width: 180px;
+.button,
+.dismissButton {
     border: 1px solid transparent;
     border-radius: 999px;
     padding: 0.95rem 1.4rem;
@@ -56,7 +56,12 @@
         box-shadow 140ms ease;
 }
 
-.button:hover {
+.button {
+    min-width: 180px;
+}
+
+.button:hover,
+.dismissButton:hover {
     transform: translateY(-1px);
 }
 
@@ -66,10 +71,64 @@
     box-shadow: 0 16px 40px rgba(213, 169, 96, 0.25);
 }
 
-.secondary {
+.secondary,
+.dismissButton {
     background: rgba(10, 16, 30, 0.6);
     border-color: rgba(213, 169, 96, 0.35);
     color: #f5eed3;
+}
+
+.controls {
+    margin: 1rem 0 0;
+    color: rgba(219, 228, 240, 0.72);
+    letter-spacing: 0.04em;
+}
+
+.guideCard {
+    margin-top: 1.8rem;
+    padding: 1.4rem;
+    border-radius: 1.5rem;
+    background:
+        linear-gradient(165deg, rgba(18, 24, 40, 0.94), rgba(9, 14, 26, 0.92)),
+        rgba(9, 14, 26, 0.92);
+    border: 1px solid rgba(240, 222, 180, 0.12);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.24);
+}
+
+.guideEyebrow {
+    margin: 0;
+    color: #d7ab64;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-size: 0.72rem;
+}
+
+.guideTitle {
+    margin: 0.45rem 0 0;
+    color: #fff4cb;
+    font-size: clamp(1.4rem, 4vw, 2rem);
+}
+
+.guideGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.85rem;
+    margin-top: 1rem;
+}
+
+.guideGrid strong {
+    display: block;
+    color: #fff0c4;
+}
+
+.guideGrid p {
+    margin: 0.35rem 0 0;
+    color: rgba(219, 228, 240, 0.74);
+    line-height: 1.5;
+}
+
+.dismissButton {
+    margin-top: 1rem;
 }
 
 .grid {
@@ -89,7 +148,7 @@
 }
 
 .wide {
-    min-height: 220px;
+    min-height: 260px;
 }
 
 .label {
@@ -103,7 +162,7 @@
 .value {
     display: block;
     margin-top: 0.55rem;
-    font-size: clamp(1.6rem, 4vw, 2.8rem);
+    font-size: clamp(1.5rem, 3vw, 2.5rem);
     color: #fff7d9;
 }
 
@@ -128,7 +187,7 @@
 
 .summaryGrid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0.85rem;
     margin-top: 1rem;
 }
@@ -147,9 +206,31 @@
     color: rgba(219, 228, 240, 0.72);
 }
 
+:global([data-reduce-motion='true']) .button,
+:global([data-reduce-motion='true']) .dismissButton {
+    transition: none;
+}
+
+:global([data-reduce-motion='true']) .button:hover,
+:global([data-reduce-motion='true']) .dismissButton:hover {
+    transform: none;
+}
+
 @media (max-width: 1100px) {
     .shell {
         grid-template-columns: 1fr;
         padding: 2.5rem 1.5rem;
+    }
+
+    .guideGrid,
+    .summaryGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 720px) {
+    .guideGrid,
+    .summaryGrid {
+        grid-template-columns: 1fr;
     }
 }

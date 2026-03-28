@@ -49,7 +49,7 @@ describe('desktop app flow', () => {
         expect(await screen.findByRole('heading', { name: /tune the run for steam desktop play/i })).toBeInTheDocument();
 
         fireEvent.change(screen.getByLabelText(/ui scale/i), { target: { value: '1.15' } });
-        await user.click(screen.getByLabelText(/reduce motion/i));
+        await user.click(screen.getByRole('checkbox', { name: /reduce hover lift/i }));
         await user.click(screen.getByRole('button', { name: /save changes/i }));
 
         await waitFor(() => {
@@ -64,6 +64,26 @@ describe('desktop app flow', () => {
         expect(parsed.settings.reduceMotion).toBe(true);
     });
 
+    it('dismisses the how-to panel and persists the onboarding flag', async () => {
+        const user = userEvent.setup();
+
+        render(<App />);
+
+        expect(await screen.findByRole('heading', { name: /memorize fast, play clean, protect the streak/i })).toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: /dismiss/i }));
+
+        await waitFor(() => {
+            expect(screen.queryByRole('heading', { name: /memorize fast, play clean, protect the streak/i })).not.toBeInTheDocument();
+        });
+
+        const rawSave = window.localStorage.getItem('memory-dungeon-save-data');
+        expect(rawSave).not.toBeNull();
+
+        const parsed = JSON.parse(rawSave ?? '{}') as ReturnType<typeof createDefaultSaveData>;
+        expect(parsed.onboardingDismissed).toBe(true);
+    });
+
     it('pauses and resumes the run with Escape', async () => {
         const user = userEvent.setup();
 
@@ -73,7 +93,7 @@ describe('desktop app flow', () => {
         expect(await screen.findByRole('heading', { name: /level 1/i })).toBeInTheDocument();
 
         fireEvent.keyDown(window, { key: 'Escape' });
-        const modalTitle = await screen.findByText(/run paused/i);
+        const modalTitle = await screen.findByRole('heading', { name: /run paused/i });
         expect(modalTitle).toBeInTheDocument();
 
         const modal = modalTitle.closest('section');

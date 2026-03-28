@@ -8,9 +8,23 @@ import styles from './styles/App.module.css';
 import { useAppStore } from './store/useAppStore';
 
 const App = () => {
-    const { hydrated, hydrate, newlyUnlockedAchievements, openSettings, resume, run, saveData, settings, startRun, steamConnected, view } =
+    const {
+        dismissHowToPlay,
+        hydrated,
+        hydrate,
+        newlyUnlockedAchievements,
+        openSettings,
+        resume,
+        run,
+        saveData,
+        settings,
+        startRun,
+        steamConnected,
+        view
+    } =
         useAppStore(
             useShallow((state) => ({
+                dismissHowToPlay: state.dismissHowToPlay,
                 hydrated: state.hydrated,
                 hydrate: state.hydrate,
                 newlyUnlockedAchievements: state.newlyUnlockedAchievements,
@@ -35,10 +49,10 @@ const App = () => {
                 return;
             }
 
-            if (run.status === 'playing') {
-                useAppStore.getState().pause();
-            } else if (run.status === 'paused') {
+            if (run.status === 'paused') {
                 resume();
+            } else if (run.status !== 'levelComplete' && run.status !== 'gameOver') {
+                useAppStore.getState().pause();
             }
         };
 
@@ -47,7 +61,11 @@ const App = () => {
     }, [resume, run, view]);
 
     return (
-        <div className={styles.app} style={{ ['--ui-scale' as string]: settings.uiScale }}>
+        <div
+            className={styles.app}
+            data-reduce-motion={settings.reduceMotion ? 'true' : 'false'}
+            style={{ ['--ui-scale' as string]: settings.uiScale }}
+        >
             <div className={styles.ambientGlow} />
             <div className={styles.content}>
                 {!hydrated && <div className={styles.boot}>Preparing dungeon memory core...</div>}
@@ -56,8 +74,10 @@ const App = () => {
                     <MainMenu
                         bestScore={saveData.bestScore}
                         lastRunSummary={saveData.lastRunSummary}
+                        onDismissHowToPlay={dismissHowToPlay}
                         onOpenSettings={() => openSettings('menu')}
                         onPlay={startRun}
+                        showHowToPlay={!saveData.onboardingDismissed}
                         steamConnected={steamConnected}
                     />
                 )}

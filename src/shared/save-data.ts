@@ -42,6 +42,7 @@ export const createDefaultSaveData = (): SaveData => ({
     bestScore: 0,
     achievements: createAchievementState(),
     settings: { ...DEFAULT_SETTINGS, debugFlags: { ...DEFAULT_SETTINGS.debugFlags } },
+    onboardingDismissed: false,
     lastRunSummary: null
 });
 
@@ -67,6 +68,7 @@ export const normalizeSaveData = (input?: Partial<SaveData> | null): SaveData =>
                 ...(input.settings?.debugFlags ?? {})
             }
         },
+        onboardingDismissed: typeof input.onboardingDismissed === 'boolean' ? input.onboardingDismissed : defaults.onboardingDismissed,
         lastRunSummary: input.lastRunSummary ?? defaults.lastRunSummary
     };
 };

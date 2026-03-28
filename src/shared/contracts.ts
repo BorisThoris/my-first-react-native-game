@@ -1,13 +1,18 @@
-export const SAVE_SCHEMA_VERSION = 1;
+export const SAVE_SCHEMA_VERSION = 2;
+export const INITIAL_LIVES = 4;
 export const MAX_LIVES = 5;
 export const MATCH_DELAY_MS = 850;
 export const DEBUG_REVEAL_MS = 1500;
+export const MEMORIZE_BASE_MS = 1200;
+export const MEMORIZE_STEP_MS = 60;
+export const MEMORIZE_MIN_MS = 450;
 
 export type DisplayMode = 'windowed' | 'fullscreen';
 export type TileState = 'hidden' | 'flipped' | 'matched';
-export type Rating = 'S++' | 'S+' | 'S' | 'A' | 'B' | 'C' | 'D' | 'F';
+export type Rating = 'S++' | 'S' | 'A' | 'B' | 'C' | 'D' | 'F';
 export type ViewState = 'boot' | 'menu' | 'settings' | 'playing' | 'gameOver';
-export type RunStatus = 'idle' | 'playing' | 'paused' | 'levelComplete' | 'gameOver';
+export type ResumableRunStatus = 'memorize' | 'playing' | 'resolving';
+export type RunStatus = ResumableRunStatus | 'paused' | 'levelComplete' | 'gameOver';
 
 export type AchievementId =
     | 'ACH_FIRST_CLEAR'
@@ -36,6 +41,7 @@ export interface Tile {
     id: string;
     pairKey: string;
     symbol: string;
+    label: string;
     state: TileState;
 }
 
@@ -59,6 +65,9 @@ export interface SessionStats {
     matchesFound: number;
     mismatches: number;
     highestLevel: number;
+    currentStreak: number;
+    bestStreak: number;
+    perfectClears: number;
 }
 
 export interface LevelResult {
@@ -67,6 +76,7 @@ export interface LevelResult {
     rating: Rating;
     livesRemaining: number;
     perfect: boolean;
+    mistakes: number;
 }
 
 export interface RunSummary {
@@ -76,6 +86,15 @@ export interface RunSummary {
     highestLevel: number;
     achievementsEnabled: boolean;
     unlockedAchievements: AchievementId[];
+    bestStreak: number;
+    perfectClears: number;
+}
+
+export interface RunTimerState {
+    memorizeRemainingMs: number | null;
+    resolveRemainingMs: number | null;
+    debugRevealRemainingMs: number | null;
+    pausedFromStatus: ResumableRunStatus | null;
 }
 
 export interface RunState {
@@ -86,6 +105,7 @@ export interface RunState {
     achievementsEnabled: boolean;
     debugUsed: boolean;
     debugPeekActive: boolean;
+    timerState: RunTimerState;
     lastLevelResult: LevelResult | null;
     lastRunSummary: RunSummary | null;
 }
@@ -97,6 +117,7 @@ export interface SaveData {
     bestScore: number;
     achievements: AchievementState;
     settings: Settings;
+    onboardingDismissed: boolean;
     lastRunSummary: RunSummary | null;
 }
 

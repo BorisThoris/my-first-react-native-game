@@ -89,6 +89,12 @@
     accent-color: #e7c46d;
 }
 
+.copy {
+    margin: 0 0 0.95rem;
+    color: rgba(232, 237, 245, 0.84);
+    line-height: 1.55;
+}
+
 .selectField select {
     border: 1px solid rgba(244, 236, 214, 0.14);
     border-radius: 0.8rem;

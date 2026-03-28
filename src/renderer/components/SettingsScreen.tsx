@@ -4,8 +4,6 @@ import type { Settings } from '../../shared/contracts';
 import styles from './SettingsScreen.module.css';
 import { useAppStore } from '../store/useAppStore';
 
-const formatPercent = (value: number): string => `${Math.round(value * 100)}%`;
-
 const SettingsScreen = () => {
     const { closeSettings, settings, updateSettings } = useAppStore(
         useShallow((state) => ({
@@ -59,49 +57,6 @@ const SettingsScreen = () => {
 
                 <div className={styles.grid}>
                     <section className={styles.section}>
-                        <h3 className={styles.sectionTitle}>Audio</h3>
-
-                        <label className={styles.field}>
-                            <span>Master Volume</span>
-                            <strong>{formatPercent(draft.masterVolume)}</strong>
-                            <input
-                                max="1"
-                                min="0"
-                                onChange={(event) => patchSettings('masterVolume', Number(event.currentTarget.value))}
-                                step="0.05"
-                                type="range"
-                                value={draft.masterVolume}
-                            />
-                        </label>
-
-                        <label className={styles.field}>
-                            <span>Music Volume</span>
-                            <strong>{formatPercent(draft.musicVolume)}</strong>
-                            <input
-                                max="1"
-                                min="0"
-                                onChange={(event) => patchSettings('musicVolume', Number(event.currentTarget.value))}
-                                step="0.05"
-                                type="range"
-                                value={draft.musicVolume}
-                            />
-                        </label>
-
-                        <label className={styles.field}>
-                            <span>SFX Volume</span>
-                            <strong>{formatPercent(draft.sfxVolume)}</strong>
-                            <input
-                                max="1"
-                                min="0"
-                                onChange={(event) => patchSettings('sfxVolume', Number(event.currentTarget.value))}
-                                step="0.05"
-                                type="range"
-                                value={draft.sfxVolume}
-                            />
-                        </label>
-                    </section>
-
-                    <section className={styles.section}>
                         <h3 className={styles.sectionTitle}>Display</h3>
 
                         <label className={styles.selectField}>
@@ -139,8 +94,21 @@ const SettingsScreen = () => {
                                 onChange={(event) => patchSettings('reduceMotion', event.currentTarget.checked)}
                                 type="checkbox"
                             />
-                            <span>Reduce motion for transitions and hover movement.</span>
+                            <span>Reduce hover lift, board transitions, and ambient motion.</span>
                         </label>
+                    </section>
+
+                    <section className={styles.section}>
+                        <h3 className={styles.sectionTitle}>Controls and Save</h3>
+                        <p className={styles.copy}>
+                            This demo is keyboard-first on desktop: arrow keys move focus, Enter or Space flips, and
+                            Escape pauses the run.
+                        </p>
+                        <p className={styles.copy}>
+                            Audio sliders stay in the save schema for future compatibility, but this build does not ship
+                            live audio controls yet.
+                        </p>
+                        <p className={styles.copy}>Settings persist locally through the desktop bridge.</p>
                     </section>
 
                     {isDev && (
@@ -184,7 +152,7 @@ const SettingsScreen = () => {
                 </div>
 
                 <footer className={styles.footer}>
-                    <p className={styles.note}>Settings persist locally through the desktop bridge.</p>
+                    <p className={styles.note}>Only active demo controls are exposed in this screen.</p>
                     <div className={styles.footerActions}>
                         <button className={styles.secondaryButton} onClick={closeSettings} type="button">
                             Cancel
