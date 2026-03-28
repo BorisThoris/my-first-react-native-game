@@ -1,0 +1,235 @@
+.shell {
+    min-height: 100vh;
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
+    gap: 1.2rem;
+    padding: 2rem 2.25rem;
+    position: relative;
+}
+
+.header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.eyebrow {
+    margin: 0 0 0.45rem;
+    color: #d7ab64;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-size: 0.78rem;
+}
+
+.title {
+    margin: 0;
+    font-size: clamp(2rem, 5vw, 3.8rem);
+    line-height: 0.95;
+    color: #fff6d8;
+}
+
+.statusLine {
+    margin: 0.7rem 0 0;
+    color: rgba(220, 229, 242, 0.74);
+}
+
+.actions {
+    display: flex;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.actionButton,
+.debugButton {
+    border-radius: 999px;
+    padding: 0.8rem 1.15rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.actionButton {
+    border: 1px solid rgba(255, 240, 203, 0.16);
+    background: rgba(8, 12, 22, 0.56);
+    color: #f7eed3;
+}
+
+.debugButton {
+    border: 1px solid rgba(255, 145, 104, 0.2);
+    background: rgba(116, 28, 16, 0.34);
+    color: #ffd1b6;
+}
+
+.hudGrid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+.metricCard {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 240, 203, 0.08);
+    border-radius: 1.15rem;
+    padding: 1rem;
+}
+
+.metricLabel {
+    display: block;
+    color: rgba(220, 229, 242, 0.68);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+}
+
+.metricValue {
+    display: block;
+    margin-top: 0.45rem;
+    color: #fff5d2;
+    font-size: 1.5rem;
+}
+
+.boardArea {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 1rem;
+    align-items: start;
+}
+
+.sidePanel {
+    display: grid;
+    gap: 1rem;
+}
+
+.panelBlock {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 240, 203, 0.08);
+    border-radius: 1.25rem;
+    padding: 1.15rem;
+}
+
+.panelLabel {
+    display: block;
+    color: rgba(220, 229, 242, 0.68);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+}
+
+.panelValue {
+    display: block;
+    margin-top: 0.45rem;
+    color: #fff5d2;
+    font-size: 2.2rem;
+}
+
+.panelCopy {
+    margin: 0.7rem 0 0;
+    color: rgba(220, 229, 242, 0.76);
+}
+
+.inlineStats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.65rem;
+    margin-top: 0.85rem;
+}
+
+.inlineStats strong {
+    display: block;
+    color: #f4d685;
+    font-size: 1.35rem;
+}
+
+.inlineStats span {
+    display: block;
+    margin-top: 0.2rem;
+    color: rgba(220, 229, 242, 0.68);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.68rem;
+}
+
+.achievementRail {
+    display: grid;
+    gap: 0.7rem;
+    margin-top: 0.9rem;
+}
+
+.achievementCard {
+    border-radius: 1rem;
+    padding: 0.85rem;
+    background: rgba(224, 193, 121, 0.1);
+    border: 1px solid rgba(224, 193, 121, 0.16);
+}
+
+.achievementCard strong {
+    display: block;
+    color: #fff5d2;
+}
+
+.achievementCard p {
+    margin: 0.35rem 0 0;
+    color: rgba(220, 229, 242, 0.74);
+}
+
+.footerHint {
+    margin: 0;
+    color: rgba(220, 229, 242, 0.7);
+}
+
+.modalStats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+.modalStats div {
+    border-radius: 1rem;
+    padding: 0.9rem;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.modalStats strong {
+    display: block;
+    color: #fff2c4;
+    font-size: 1.45rem;
+}
+
+.modalStats span {
+    display: block;
+    margin-top: 0.2rem;
+    color: rgba(220, 229, 242, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.7rem;
+}
+
+@media (max-width: 1220px) {
+    .hudGrid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .boardArea {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 760px) {
+    .shell {
+        padding: 1.5rem;
+    }
+
+    .header {
+        flex-direction: column;
+    }
+
+    .actions {
+        justify-content: flex-start;
+    }
+
+    .hudGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
