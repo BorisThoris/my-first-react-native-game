@@ -1,0 +1,38 @@
+.app {
+    --ui-scale: 1;
+    min-height: 100vh;
+    position: relative;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at top right, rgba(214, 160, 63, 0.18), transparent 25%),
+        radial-gradient(circle at bottom left, rgba(61, 118, 193, 0.24), transparent 35%),
+        linear-gradient(145deg, #060911 0%, #0d1321 48%, #111827 100%);
+}
+
+.ambientGlow {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    background-size: 72px 72px;
+    mask-image: radial-gradient(circle at center, black, transparent 80%);
+    pointer-events: none;
+}
+
+.content {
+    position: relative;
+    min-height: 100vh;
+    transform: scale(var(--ui-scale));
+    transform-origin: top center;
+}
+
+.boot {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    font-size: 1.25rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #ffdf91;
+}

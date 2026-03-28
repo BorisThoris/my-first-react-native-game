@@ -1,0 +1,70 @@
+.backdrop {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 1.5rem;
+    background: rgba(2, 4, 10, 0.72);
+    backdrop-filter: blur(10px);
+    z-index: 20;
+}
+
+.modal {
+    width: min(560px, 100%);
+    background:
+        linear-gradient(180deg, rgba(17, 25, 41, 0.96), rgba(7, 11, 20, 0.96)),
+        rgba(7, 11, 20, 0.96);
+    border: 1px solid rgba(255, 240, 203, 0.14);
+    border-radius: 1.5rem;
+    padding: 1.75rem;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+}
+
+.title {
+    margin: 0;
+    font-size: 1.8rem;
+    color: #fff4cf;
+}
+
+.subtitle {
+    margin: 0.6rem 0 0;
+    color: rgba(223, 230, 242, 0.8);
+}
+
+.body {
+    margin-top: 1rem;
+}
+
+.actions {
+    margin-top: 1.35rem;
+    display: flex;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+}
+
+.button {
+    flex: 1 1 160px;
+    border-radius: 999px;
+    padding: 0.9rem 1.25rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.primary {
+    border: none;
+    background: linear-gradient(135deg, #dca45b 0%, #f4d98b 100%);
+    color: #140f05;
+}
+
+.secondary {
+    border: 1px solid rgba(255, 240, 203, 0.16);
+    background: rgba(255, 255, 255, 0.03);
+    color: #f7eed3;
+}
+
+.danger {
+    border: 1px solid rgba(255, 120, 110, 0.25);
+    background: rgba(120, 16, 18, 0.35);
+    color: #ffd7d2;
+}
