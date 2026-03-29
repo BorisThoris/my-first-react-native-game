@@ -250,7 +250,7 @@ const resumeRunWithTimers = (run: RunState): RunState => {
         scheduleMemorizeTimer(resumedRun.timerState.memorizeRemainingMs);
     }
 
-    if (resumedRun.status === 'resolving' && resumedRun.timerState.resolveRemainingMs) {
+    if (resumedRun.status === 'resolving' && resumedRun.timerState.resolveRemainingMs !== null) {
         scheduleResolveTimer(resumedRun.timerState.resolveRemainingMs);
     }
 
@@ -400,7 +400,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
         set({ run: nextRun });
 
-        if (nextRun.status === 'resolving' && nextRun.timerState.resolveRemainingMs) {
+        if (nextRun.status === 'resolving' && nextRun.timerState.resolveRemainingMs !== null) {
             scheduleResolveTimer(nextRun.timerState.resolveRemainingMs);
         }
     },

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BoardState, RunState, Tile } from './contracts';
+import { MATCH_DELAY_MS } from './contracts';
 import {
     advanceToNextLevel,
     buildBoard,
@@ -65,6 +66,24 @@ describe('game rules', () => {
         expect(resolved.stats.currentStreak).toBe(0);
         expect(resolved.stats.totalScore).toBe(0);
         expect(resolved.board?.tiles.every((tile) => tile.state === 'hidden')).toBe(true);
+    });
+
+    it('keeps mismatch resolve delay but resolves matching flips immediately', () => {
+        const tiles: Tile[] = [
+            createTile('a1', 'A', 'A'),
+            createTile('a2', 'A', 'A'),
+            createTile('b1', 'B', 'B'),
+            createTile('b2', 'B', 'B')
+        ];
+        const started = createRun(tiles);
+
+        const mismatchPending = flipTile(flipTile(started, 'a1'), 'b1');
+        expect(mismatchPending.status).toBe('resolving');
+        expect(mismatchPending.timerState.resolveRemainingMs).toBe(MATCH_DELAY_MS);
+
+        const matchPending = flipTile(flipTile(started, 'a1'), 'a2');
+        expect(matchPending.status).toBe('resolving');
+        expect(matchPending.timerState.resolveRemainingMs).toBe(0);
     });
 
     it('awards immediate match score and perfect clear bonuses on a flawless level', () => {

@@ -222,6 +222,10 @@ export const flipTile = (run: RunState, tileId: string): RunState => {
     }
 
     const flippedTileIds = [...run.board.flippedTileIds, tileId];
+    const firstFlippedId = run.board.flippedTileIds[0] ?? null;
+    const firstFlippedTile = firstFlippedId ? run.board.tiles.find((candidate) => candidate.id === firstFlippedId) ?? null : null;
+    const resolvesMatchImmediately =
+        flippedTileIds.length === 2 && firstFlippedTile !== null && firstFlippedTile.pairKey === tile.pairKey;
 
     return {
         ...run,
@@ -235,7 +239,7 @@ export const flipTile = (run: RunState, tileId: string): RunState => {
         },
         timerState: {
             ...run.timerState,
-            resolveRemainingMs: flippedTileIds.length === 2 ? MATCH_DELAY_MS : run.timerState.resolveRemainingMs,
+            resolveRemainingMs: flippedTileIds.length === 2 ? (resolvesMatchImmediately ? 0 : MATCH_DELAY_MS) : run.timerState.resolveRemainingMs,
             pausedFromStatus: null
         }
     };

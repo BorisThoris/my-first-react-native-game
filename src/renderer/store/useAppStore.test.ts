@@ -72,4 +72,48 @@ describe('useAppStore timers', () => {
         expect(useAppStore.getState().run?.stats.tries).toBe(1);
         expect(useAppStore.getState().run?.lives).toBe(3);
     });
+
+    it('resolves matches immediately so the next pair can be started right away', async () => {
+        useAppStore.getState().startRun();
+
+        const memorizeDuration = useAppStore.getState().run?.timerState.memorizeRemainingMs ?? 0;
+        await vi.advanceTimersByTimeAsync(memorizeDuration + 1);
+
+        const run = useAppStore.getState().run;
+        expect(run?.status).toBe('playing');
+
+        const board = run?.board;
+        expect(board).not.toBeNull();
+
+        const firstTile = board?.tiles[0];
+        const matchingTile = board?.tiles.find(
+            (tile) => tile.id !== firstTile?.id && tile.pairKey === firstTile?.pairKey
+        );
+        const nextPairTile = board?.tiles.find((tile) => tile.pairKey !== firstTile?.pairKey);
+
+        expect(firstTile).toBeDefined();
+        expect(matchingTile).toBeDefined();
+        expect(nextPairTile).toBeDefined();
+
+        useAppStore.getState().pressTile(firstTile!.id);
+        useAppStore.getState().pressTile(matchingTile!.id);
+
+        const matchedRun = useAppStore.getState().run;
+        expect(matchedRun?.status).toBe('playing');
+        expect(matchedRun?.board).not.toBeNull();
+        const matchedBoard = matchedRun?.board;
+
+        if (!matchedBoard) {
+            throw new Error('Expected board to exist after immediate match resolution.');
+        }
+
+        expect(matchedBoard.flippedTileIds).toHaveLength(0);
+        expect(matchedBoard.tiles.find((tile) => tile.id === firstTile!.id)?.state).toBe('matched');
+        expect(matchedBoard.tiles.find((tile) => tile.id === matchingTile!.id)?.state).toBe('matched');
+
+        useAppStore.getState().pressTile(nextPairTile!.id);
+        const runAfterNextPress = useAppStore.getState().run;
+        expect(runAfterNextPress?.board).not.toBeNull();
+        expect(runAfterNextPress?.board?.flippedTileIds).toContain(nextPairTile!.id);
+    });
 });
