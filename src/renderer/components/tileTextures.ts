@@ -364,29 +364,52 @@ const drawGlyphs = (context: CanvasRenderingContext2D, canvas: HTMLCanvasElement
     const matched = variant === 'matched';
     const symbolSize = tile.symbol.length > 2 ? 130 : tile.symbol.length > 1 ? 152 : 182;
     const labelSize = Math.max(20, Math.round(width * 0.042));
-    const titleGradient = context.createLinearGradient(0, height * 0.2, 0, height * 0.7);
+    const plaqueX = width * 0.15;
+    const plaqueY = height * 0.2;
+    const plaqueWidth = width * 0.7;
+    const plaqueHeight = height * 0.48;
+    const plaqueRadius = Math.round(width * 0.09);
+    const plaque = context.createLinearGradient(plaqueX, plaqueY, plaqueX + plaqueWidth, plaqueY + plaqueHeight);
 
-    titleGradient.addColorStop(0, matched ? '#ffffff' : '#f7fdff');
-    titleGradient.addColorStop(1, matched ? '#d2fff1' : '#e6f4ff');
+    plaque.addColorStop(0, matched ? 'rgba(11, 43, 34, 0.3)' : 'rgba(10, 26, 45, 0.36)');
+    plaque.addColorStop(0.48, matched ? 'rgba(18, 72, 54, 0.45)' : 'rgba(10, 30, 52, 0.5)');
+    plaque.addColorStop(1, matched ? 'rgba(11, 43, 34, 0.24)' : 'rgba(8, 21, 38, 0.3)');
 
     context.save();
     context.textAlign = 'center';
     context.textBaseline = 'middle';
-    context.shadowColor = matched ? 'rgba(160, 244, 219, 0.24)' : 'rgba(162, 208, 255, 0.28)';
-    context.shadowBlur = Math.round(width * 0.03);
-    context.fillStyle = titleGradient;
+    context.fillStyle = plaque;
+    context.beginPath();
+    context.roundRect(plaqueX, plaqueY, plaqueWidth, plaqueHeight, plaqueRadius);
+    context.fill();
+    context.strokeStyle = matched ? 'rgba(225, 255, 244, 0.3)' : 'rgba(232, 245, 255, 0.26)';
+    context.lineWidth = Math.max(2, Math.round(width * 0.005));
+    context.stroke();
+
+    context.fillStyle = matched ? 'rgba(240, 255, 250, 0.24)' : 'rgba(247, 252, 255, 0.16)';
+    context.fillRect(plaqueX + width * 0.04, plaqueY + height * 0.03, plaqueWidth - width * 0.08, Math.max(2, Math.round(height * 0.01)));
+
+    context.shadowColor = 'rgba(2, 8, 16, 0.58)';
+    context.shadowBlur = Math.round(width * 0.018);
+    context.fillStyle = matched ? '#f8fff9' : '#f7fbff';
+    context.strokeStyle = matched ? 'rgba(9, 47, 35, 0.7)' : 'rgba(9, 22, 39, 0.8)';
+    context.lineWidth = Math.max(6, Math.round(width * 0.008));
     context.font = `900 ${symbolSize}px "Segoe UI", "Avenir Next", "Arial", sans-serif`;
+    context.strokeText(tile.symbol, width / 2, height * 0.455);
     context.fillText(tile.symbol, width / 2, height * 0.46);
 
     context.shadowBlur = 0;
-    context.fillStyle = matched ? 'rgba(221, 255, 247, 0.9)' : 'rgba(222, 236, 251, 0.86)';
+    context.strokeStyle = matched ? 'rgba(8, 38, 30, 0.44)' : 'rgba(8, 20, 36, 0.48)';
+    context.lineWidth = Math.max(2, Math.round(width * 0.004));
+    context.fillStyle = matched ? 'rgba(245, 255, 249, 0.92)' : 'rgba(244, 249, 255, 0.92)';
     context.font = `800 ${labelSize}px "Segoe UI", "Avenir Next", "Arial", sans-serif`;
+    context.strokeText(tile.label.toUpperCase(), width / 2, height * 0.79);
     context.fillText(tile.label.toUpperCase(), width / 2, height * 0.79);
 
-    context.fillStyle = matched ? 'rgba(167, 237, 198, 0.18)' : 'rgba(165, 198, 255, 0.14)';
+    context.fillStyle = matched ? 'rgba(167, 237, 198, 0.16)' : 'rgba(165, 198, 255, 0.16)';
     context.fillRect(width * 0.2, height * 0.13, width * 0.6, Math.max(5, Math.round(height * 0.018)));
 
-    context.fillStyle = matched ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.06)';
+    context.fillStyle = matched ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.07)';
     context.fillRect(width * 0.11, height * 0.18, width * 0.06, height * 0.56);
 
     if (layer === 'core') {
