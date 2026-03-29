@@ -1,68 +1,67 @@
 import { useFrame, useThree } from '@react-three/fiber';
-import { useRef } from 'react';
+import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { FrontSide, MathUtils, type Group } from 'three';
 import type { BoardState, Tile } from '../../shared/contracts';
-import { getTileFaceRoughnessTexture, getTileFaceTexture, type CubeFace, type FaceVariant } from './tileTextures';
+import {
+    getCardBackStaticTexture,
+    getTileFaceOverlayTexture,
+    getTileFaceRoughnessTexture,
+    getTileFaceTexture,
+    subscribeTextureImageUpdates,
+    type FaceVariant
+} from './tileTextures';
+import {
+    CORE_SCALE,
+    SHELL_SCALE,
+    TILE_DEPTH,
+    TILE_SPACING
+} from './tileShatter';
+import { RENDERER_THEME } from '../styles/theme';
 
 interface TileBoardSceneProps {
     board: BoardState;
     compact: boolean;
     debugPeekActive: boolean;
+    hoverTiltRef: MutableRefObject<TileHoverTiltState>;
     previewActive: boolean;
     reduceMotion: boolean;
 }
 
-interface TileCubeProps {
+interface TileBezelProps {
     compact: boolean;
     faceUp: boolean;
-    index: number;
+    hoverTiltRef: MutableRefObject<TileHoverTiltState>;
     reduceMotion: boolean;
-    row: number;
+    textureRevision: number;
     tile: Tile;
-    totalColumns: number;
-    totalRows: number;
+    transform: TileTransform;
 }
 
-interface FaceMaterialConfig {
-    attach: 'material-0' | 'material-1' | 'material-2' | 'material-3' | 'material-4' | 'material-5';
-    color: string;
-    clearcoat: number;
-    clearcoatRoughness: number;
-    displacementBias?: number;
-    displacementScale?: number;
-    emissive: string;
-    emissiveIntensity: number;
-    envMapIntensity: number;
-    face: CubeFace;
-    ior?: number;
-    metalness: number;
-    opacity?: number;
-    specularColor?: string;
-    specularIntensity?: number;
-    roughness: number;
-    thicknessMap?: boolean;
-    transmission?: number;
-    transparent?: boolean;
-    thickness?: number;
-    attenuationColor?: string;
-    attenuationDistance?: number;
-    depthWrite?: boolean;
-    bumpScale: number;
+export interface TileHoverTiltState {
+    tileId: string | null;
+    x: number;
+    y: number;
 }
 
-const TILE_SPACING = 1.18;
-const TILE_DEPTH = 0.72;
-const SHELL_SCALE = 1.12;
-const CORE_SCALE = 0.84;
+interface TileTransform {
+    baseX: number;
+    baseY: number;
+    baseScale: number;
+    bezelScale: number;
+    panelScale: number;
+    imperfectionRotationX: number;
+    imperfectionRotationZ: number;
+    imperfectionX: number;
+    imperfectionY: number;
+    targetRotation: number;
+    seed: number;
+}
 
-const FACE_ORDER: Array<{ attach: FaceMaterialConfig['attach']; face: CubeFace }> = [
-    { attach: 'material-0', face: 'right' },
-    { attach: 'material-1', face: 'left' },
-    { attach: 'material-2', face: 'top' },
-    { attach: 'material-3', face: 'bottom' },
-    { attach: 'material-4', face: 'front' },
-    { attach: 'material-5', face: 'back' }
-];
+const CARD_WIDTH = 0.74;
+const CARD_HEIGHT = 1.08;
+const CARD_FACE_INSET = 0.016;
+const CARD_FACE_WIDTH = CARD_WIDTH - CARD_FACE_INSET * 2;
+const CARD_FACE_HEIGHT = CARD_HEIGHT - CARD_FACE_INSET * 2;
 
 const hashString = (value: string): number => {
     let hash = 0;
@@ -77,350 +76,92 @@ const hashString = (value: string): number => {
 const getSurfaceVariant = (tile: Tile, faceUp: boolean): FaceVariant =>
     tile.state === 'matched' ? 'matched' : faceUp ? 'active' : 'hidden';
 
-const createIceShaderPatch = (seed: number, layer: 'shell' | 'core') => (shader: {
-    fragmentShader: string;
-    uniforms: Record<string, { value: number }>;
-}): void => {
-    const roughnessBoost = layer === 'shell' ? 0.34 : 0.18;
-    const frequency = layer === 'shell' ? 'vec2(26.0, 22.0)' : 'vec2(18.0, 16.0)';
-
-    shader.uniforms.uIceSeed = { value: seed % 997 };
-    shader.fragmentShader = shader.fragmentShader.replace(
-        'void main() {',
-        `
-            uniform float uIceSeed;
-
-            float iceHash(vec2 p) {
-                vec2 q = p + vec2(uIceSeed * 0.0017, uIceSeed * 0.0023);
-                return fract(sin(dot(q, vec2(127.1, 311.7))) * 43758.5453123);
-            }
-
-            void main() {
-        `
-    );
-    shader.fragmentShader = shader.fragmentShader.replace(
-        '#include <roughnessmap_fragment>',
-        `
-            #include <roughnessmap_fragment>
-            float iceNoise = iceHash(vRoughnessMapUv * ${frequency});
-            roughnessFactor = clamp(roughnessFactor + (iceNoise - 0.5) * ${roughnessBoost}, 0.0, 1.0);
-        `
-    );
-};
-
-const getMaterialConfigs = (surfaceVariant: FaceVariant, layer: 'shell' | 'core'): FaceMaterialConfig[] => {
-    const shell = layer === 'shell';
-
-    if (shell) {
-        return [
-            {
-                attach: 'material-0',
-                attenuationColor: surfaceVariant === 'matched' ? '#e7fff7' : '#daf4ff',
-                attenuationDistance: 1.85,
-                bumpScale: 0.09,
-                clearcoat: 0.16,
-                clearcoatRoughness: 0.84,
-                color: surfaceVariant === 'matched' ? '#f5ffff' : surfaceVariant === 'active' ? '#edf9ff' : '#e8f7ff',
-                depthWrite: false,
-                displacementBias: -0.018,
-                displacementScale: 0.058,
-                emissive: surfaceVariant === 'matched' ? '#183f32' : '#12314d',
-                emissiveIntensity: surfaceVariant === 'matched' ? 0.015 : 0.011,
-                envMapIntensity: 0.24,
-                face: 'right',
-                ior: 1.31,
-                metalness: 0,
-                opacity: 1,
-                roughness: 0.74,
-                specularColor: surfaceVariant === 'matched' ? '#f8fffd' : '#ecf8ff',
-                specularIntensity: 0.92,
-                transmission: 0.9,
-                transparent: true,
-                thickness: 0.94,
-                thicknessMap: true
-            },
-            {
-                attach: 'material-1',
-                attenuationColor: surfaceVariant === 'matched' ? '#e7fff7' : '#daf4ff',
-                attenuationDistance: 1.92,
-                bumpScale: 0.088,
-                clearcoat: 0.14,
-                clearcoatRoughness: 0.86,
-                color: surfaceVariant === 'matched' ? '#f5ffff' : surfaceVariant === 'active' ? '#e9f6ff' : '#e2f1fc',
-                depthWrite: false,
-                displacementBias: -0.02,
-                displacementScale: 0.054,
-                emissive: surfaceVariant === 'matched' ? '#183f32' : '#12314d',
-                emissiveIntensity: surfaceVariant === 'matched' ? 0.013 : 0.009,
-                envMapIntensity: 0.22,
-                face: 'left',
-                ior: 1.31,
-                metalness: 0,
-                opacity: 1,
-                roughness: 0.78,
-                specularColor: surfaceVariant === 'matched' ? '#f8fffd' : '#ecf8ff',
-                specularIntensity: 0.9,
-                transmission: 0.91,
-                transparent: true,
-                thickness: 0.96,
-                thicknessMap: true
-            },
-            {
-                attach: 'material-2',
-                attenuationColor: surfaceVariant === 'matched' ? '#e7fff7' : '#daf4ff',
-                attenuationDistance: 1.88,
-                bumpScale: 0.1,
-                clearcoat: 0.18,
-                clearcoatRoughness: 0.8,
-                color: surfaceVariant === 'matched' ? '#f7ffff' : surfaceVariant === 'active' ? '#f0fbff' : '#e8f7ff',
-                depthWrite: false,
-                displacementBias: -0.016,
-                displacementScale: 0.06,
-                emissive: surfaceVariant === 'matched' ? '#184235' : '#132e48',
-                emissiveIntensity: surfaceVariant === 'matched' ? 0.016 : 0.01,
-                envMapIntensity: 0.28,
-                face: 'top',
-                ior: 1.31,
-                metalness: 0,
-                opacity: 1,
-                roughness: 0.72,
-                specularColor: surfaceVariant === 'matched' ? '#f9fffe' : '#eef9ff',
-                specularIntensity: 0.95,
-                transmission: 0.88,
-                transparent: true,
-                thickness: 1.02,
-                thicknessMap: true
-            },
-            {
-                attach: 'material-3',
-                attenuationColor: surfaceVariant === 'matched' ? '#e7fff7' : '#daf4ff',
-                attenuationDistance: 1.98,
-                bumpScale: 0.08,
-                clearcoat: 0.12,
-                clearcoatRoughness: 0.9,
-                color: surfaceVariant === 'matched' ? '#f3fff9' : surfaceVariant === 'active' ? '#ebf7ff' : '#e1effb',
-                depthWrite: false,
-                displacementBias: -0.018,
-                displacementScale: 0.05,
-                emissive: surfaceVariant === 'matched' ? '#183f32' : '#12314d',
-                emissiveIntensity: surfaceVariant === 'matched' ? 0.012 : 0.007,
-                envMapIntensity: 0.2,
-                face: 'bottom',
-                ior: 1.31,
-                metalness: 0,
-                opacity: 1,
-                roughness: 0.8,
-                specularColor: surfaceVariant === 'matched' ? '#f8fffd' : '#ecf8ff',
-                specularIntensity: 0.88,
-                transmission: 0.92,
-                transparent: true,
-                thickness: 0.88,
-                thicknessMap: true
-            },
-            {
-                attach: 'material-4',
-                attenuationColor: surfaceVariant === 'matched' ? '#e7fff7' : '#daf4ff',
-                attenuationDistance: 1.82,
-                bumpScale: 0.1,
-                clearcoat: 0.18,
-                clearcoatRoughness: 0.8,
-                color: surfaceVariant === 'matched' ? '#f8ffff' : surfaceVariant === 'active' ? '#effaff' : '#e7f6ff',
-                depthWrite: false,
-                displacementBias: -0.014,
-                displacementScale: 0.06,
-                emissive: surfaceVariant === 'matched' ? '#1b5e46' : '#163755',
-                emissiveIntensity: surfaceVariant === 'matched' ? 0.018 : 0.011,
-                envMapIntensity: 0.26,
-                face: 'front',
-                ior: 1.31,
-                metalness: 0,
-                opacity: 1,
-                roughness: 0.7,
-                specularColor: surfaceVariant === 'matched' ? '#fafffe' : '#eef9ff',
-                specularIntensity: 1,
-                transmission: 0.87,
-                transparent: true,
-                thickness: 1.08,
-                thicknessMap: true
-            },
-            {
-                attach: 'material-5',
-                attenuationColor: surfaceVariant === 'matched' ? '#e7fff7' : '#daf4ff',
-                attenuationDistance: 1.95,
-                bumpScale: 0.084,
-                clearcoat: 0.14,
-                clearcoatRoughness: 0.86,
-                color: surfaceVariant === 'matched' ? '#f4ffff' : surfaceVariant === 'active' ? '#eaf7ff' : '#e3f1fd',
-                depthWrite: false,
-                displacementBias: -0.016,
-                displacementScale: 0.052,
-                emissive: surfaceVariant === 'matched' ? '#183f32' : '#12314d',
-                emissiveIntensity: surfaceVariant === 'matched' ? 0.012 : 0.007,
-                envMapIntensity: 0.22,
-                face: 'back',
-                ior: 1.31,
-                metalness: 0,
-                opacity: 1,
-                roughness: 0.76,
-                specularColor: surfaceVariant === 'matched' ? '#f8fffd' : '#ecf8ff',
-                specularIntensity: 0.9,
-                transmission: 0.9,
-                transparent: true,
-                thickness: 0.94,
-                thicknessMap: true
-            }
-        ];
-    }
-
-    return [
-        {
-            attach: 'material-0',
-            bumpScale: 0.06,
-            clearcoat: 0.08,
-            clearcoatRoughness: 0.92,
-            color: surfaceVariant === 'matched' ? '#e8f8ff' : surfaceVariant === 'active' ? '#dfeffa' : '#d7e8f5',
-            displacementBias: -0.01,
-            displacementScale: 0.028,
-            emissive: surfaceVariant === 'matched' ? '#16392f' : '#10213a',
-            emissiveIntensity: surfaceVariant === 'matched' ? 0.012 : 0.008,
-            envMapIntensity: 0.1,
-            face: 'right',
-            metalness: 0.02,
-            roughness: 0.94,
-            specularColor: surfaceVariant === 'matched' ? '#f5fffe' : '#edf9ff',
-            specularIntensity: 0.68
-        },
-        {
-            attach: 'material-1',
-            bumpScale: 0.058,
-            clearcoat: 0.08,
-            clearcoatRoughness: 0.94,
-            color: surfaceVariant === 'matched' ? '#ecfbff' : surfaceVariant === 'active' ? '#daecf8' : '#d2e4f0',
-            displacementBias: -0.012,
-            displacementScale: 0.026,
-            emissive: surfaceVariant === 'matched' ? '#16392f' : '#10213a',
-            emissiveIntensity: surfaceVariant === 'matched' ? 0.01 : 0.006,
-            envMapIntensity: 0.09,
-            face: 'left',
-            metalness: 0.02,
-            roughness: 0.96,
-            specularColor: surfaceVariant === 'matched' ? '#f5fffe' : '#edf9ff',
-            specularIntensity: 0.64
-        },
-        {
-            attach: 'material-2',
-            bumpScale: 0.064,
-            clearcoat: 0.1,
-            clearcoatRoughness: 0.88,
-            color: surfaceVariant === 'matched' ? '#f2fff8' : surfaceVariant === 'active' ? '#e6f4ff' : '#d9e9f5',
-            displacementBias: -0.008,
-            displacementScale: 0.03,
-            emissive: surfaceVariant === 'matched' ? '#163d33' : '#11243d',
-            emissiveIntensity: surfaceVariant === 'matched' ? 0.014 : 0.008,
-            envMapIntensity: 0.12,
-            face: 'top',
-            metalness: 0.02,
-            roughness: 0.92,
-            specularColor: surfaceVariant === 'matched' ? '#f7fffe' : '#edf9ff',
-            specularIntensity: 0.7
-        },
-        {
-            attach: 'material-3',
-            bumpScale: 0.05,
-            clearcoat: 0.06,
-            clearcoatRoughness: 0.96,
-            color: surfaceVariant === 'matched' ? '#e3f4ff' : surfaceVariant === 'active' ? '#d8e7f4' : '#cfdeeb',
-            displacementBias: -0.014,
-            displacementScale: 0.022,
-            emissive: surfaceVariant === 'matched' ? '#16392f' : '#10213a',
-            emissiveIntensity: surfaceVariant === 'matched' ? 0.008 : 0.005,
-            envMapIntensity: 0.06,
-            face: 'bottom',
-            metalness: 0.015,
-            roughness: 0.98,
-            specularColor: surfaceVariant === 'matched' ? '#f5fffe' : '#edf9ff',
-            specularIntensity: 0.56
-        },
-        {
-            attach: 'material-4',
-            bumpScale: 0.074,
-            clearcoat: 0.1,
-            clearcoatRoughness: 0.88,
-            color: surfaceVariant === 'matched' ? '#f3fffc' : surfaceVariant === 'active' ? '#e9f6ff' : '#e0eef8',
-            displacementBias: -0.01,
-            displacementScale: 0.03,
-            emissive: surfaceVariant === 'matched' ? '#1a5f48' : '#17365a',
-            emissiveIntensity: surfaceVariant === 'matched' ? 0.018 : 0.012,
-            envMapIntensity: 0.12,
-            face: 'front',
-            metalness: 0.02,
-            roughness: 0.9,
-            specularColor: surfaceVariant === 'matched' ? '#f8fffe' : '#edf9ff',
-            specularIntensity: 0.76
-        },
-        {
-            attach: 'material-5',
-            bumpScale: 0.056,
-            clearcoat: 0.08,
-            clearcoatRoughness: 0.94,
-            color: surfaceVariant === 'matched' ? '#e6f5ff' : surfaceVariant === 'active' ? '#dceaf5' : '#d3e3ef',
-            displacementBias: -0.012,
-            displacementScale: 0.024,
-            emissive: surfaceVariant === 'matched' ? '#16392f' : '#10213a',
-            emissiveIntensity: surfaceVariant === 'matched' ? 0.008 : 0.005,
-            envMapIntensity: 0.08,
-            face: 'back',
-            metalness: 0.015,
-            roughness: 0.96,
-            specularColor: surfaceVariant === 'matched' ? '#f5fffe' : '#edf9ff',
-            specularIntensity: 0.58
-        }
-    ];
-};
-
-const TileCube = ({
-    compact,
-    faceUp,
-    index,
-    reduceMotion,
-    row,
-    tile,
-    totalColumns,
-    totalRows
-}: TileCubeProps) => {
-    const groupRef = useRef<Group | null>(null);
+const getTileTransform = (tile: Tile, index: number, totalColumns: number, totalRows: number, compact: boolean, faceUp: boolean): TileTransform => {
     const seed = hashString(tile.id);
     const column = index % totalColumns;
     const baseX = (column - (totalColumns - 1) / 2) * TILE_SPACING;
-    const baseY = ((totalRows - 1) / 2 - row) * TILE_SPACING;
-    const isMatched = tile.state === 'matched';
+    const baseY = ((totalRows - 1) / 2 - Math.floor(index / totalColumns)) * TILE_SPACING;
+    const imperfectionX = (((seed % 19) - 9) * 0.0025) / (compact ? 1.2 : 1);
+    const imperfectionY = ((((seed >> 3) % 19) - 9) * 0.0024) / (compact ? 1.2 : 1);
+    const imperfectionRotationX = (((seed >> 5) % 11) - 5) * 0.0028;
+    const imperfectionRotationZ = (((seed >> 7) % 11) - 5) * 0.0026;
+    const baseScale = 0.968 + ((seed % 7) * 0.0018);
+    const bezelScale = SHELL_SCALE + ((seed % 5) * 0.0028);
+    const panelScale = CORE_SCALE + ((seed % 5) * 0.002);
     const targetRotation = faceUp ? 0 : Math.PI;
-    const surfaceVariant = getSurfaceVariant(tile, faceUp);
-    const shellFaceTextures = FACE_ORDER.reduce<Partial<Record<CubeFace, ReturnType<typeof getTileFaceTexture>>>>((textures, { face }) => {
-        textures[face] = getTileFaceTexture(tile, face, surfaceVariant, 'shell');
-        return textures;
-    }, {});
-    const shellRoughnessTextures = FACE_ORDER.reduce<Partial<Record<CubeFace, ReturnType<typeof getTileFaceRoughnessTexture>>>>((textures, { face }) => {
-        textures[face] = getTileFaceRoughnessTexture(tile, face, surfaceVariant, 'shell');
-        return textures;
-    }, {});
-    const coreFaceTextures = FACE_ORDER.reduce<Partial<Record<CubeFace, ReturnType<typeof getTileFaceTexture>>>>((textures, { face }) => {
-        textures[face] = getTileFaceTexture(tile, face, surfaceVariant, 'core');
-        return textures;
-    }, {});
-    const coreRoughnessTextures = FACE_ORDER.reduce<Partial<Record<CubeFace, ReturnType<typeof getTileFaceRoughnessTexture>>>>((textures, { face }) => {
-        textures[face] = getTileFaceRoughnessTexture(tile, face, surfaceVariant, 'core');
-        return textures;
-    }, {});
-    const shellMaterials = getMaterialConfigs(surfaceVariant, 'shell');
-    const coreMaterials = getMaterialConfigs(surfaceVariant, 'core');
-    const imperfectionX = (((seed % 19) - 9) * 0.0034) / (compact ? 1.25 : 1);
-    const imperfectionY = ((((seed >> 3) % 19) - 9) * 0.0032) / (compact ? 1.25 : 1);
-    const imperfectionRotationX = (((seed >> 5) % 11) - 5) * 0.0035;
-    const imperfectionRotationZ = (((seed >> 7) % 11) - 5) * 0.0032;
-    const baseScale = 0.975 + ((seed % 7) * 0.0035);
-    const shellScale = SHELL_SCALE + ((seed % 5) * 0.004);
-    const coreScale = CORE_SCALE + ((seed % 5) * 0.0025);
+
+    return {
+        baseScale,
+        baseX,
+        baseY,
+        bezelScale,
+        imperfectionRotationX,
+        imperfectionRotationZ,
+        imperfectionX,
+        imperfectionY,
+        panelScale,
+        seed,
+        targetRotation
+    };
+};
+
+const getEdgeMaterialProfile = (surfaceVariant: FaceVariant): {
+    color: string;
+    emissive: string;
+    emissiveIntensity: number;
+    roughness: number;
+    metalness: number;
+    specularColor: string;
+    specularIntensity: number;
+} => {
+    const { colors } = RENDERER_THEME;
+
+    if (surfaceVariant === 'matched') {
+        return {
+            color: colors.goldDeep,
+            emissive: colors.goldDeep,
+            emissiveIntensity: 0.12,
+            roughness: 0.34,
+            metalness: 0.56,
+            specularColor: colors.goldBright,
+            specularIntensity: 0.9
+        };
+    }
+
+    if (surfaceVariant === 'active') {
+        return {
+            color: colors.stoneEdge,
+            emissive: colors.cyanDeep,
+            emissiveIntensity: 0.12,
+            roughness: 0.38,
+            metalness: 0.44,
+            specularColor: colors.cyanBright,
+            specularIntensity: 0.82
+        };
+    }
+
+    return {
+        color: colors.smokeDeep,
+        emissive: colors.goldDeep,
+        emissiveIntensity: 0.06,
+        roughness: 0.44,
+        metalness: 0.34,
+        specularColor: colors.gold,
+        specularIntensity: 0.7
+    };
+};
+
+const TileBezel = ({
+    compact,
+    faceUp,
+    hoverTiltRef,
+    reduceMotion,
+    textureRevision,
+    tile,
+    transform
+}: TileBezelProps) => {
+    const groupRef = useRef<Group | null>(null);
+    const isMatched = tile.state === 'matched';
 
     useFrame((state, delta) => {
         const group = groupRef.current;
@@ -430,144 +171,199 @@ const TileCube = ({
         }
 
         const time = state.clock.elapsedTime;
-        const idleDrift = reduceMotion ? 0 : Math.sin(time * 0.08 + seed * 0.019) * (isMatched ? 0.00045 : 0.00028);
-        const settle = reduceMotion ? 0 : Math.sin(time * 0.07 + seed * 0.011) * (isMatched ? 0.0007 : 0.00038);
-        const targetLift = isMatched ? 0.016 : faceUp ? 0.005 : 0;
-        const targetDepth = isMatched ? 0.04 : faceUp ? 0.012 : 0;
-        const rotationDamp = reduceMotion ? 32 : isMatched ? 0.92 : 0.72;
+        const idleDrift = reduceMotion ? 0 : Math.sin(time * 0.09 + transform.seed * 0.017) * (isMatched ? 0.00038 : 0.00024);
+        const settle = reduceMotion ? 0 : Math.sin(time * 0.08 + transform.seed * 0.013) * (isMatched ? 0.00048 : 0.0003);
+        const hoverTilt = hoverTiltRef.current;
+        const hovered = !reduceMotion && hoverTilt.tileId === tile.id;
+        const hoverTiltX = hovered ? MathUtils.clamp(-hoverTilt.y, -1, 1) * (isMatched ? 0.046 : 0.1) : 0;
+        const hoverTiltZ = hovered ? MathUtils.clamp(hoverTilt.x, -1, 1) * (isMatched ? 0.042 : 0.092) : 0;
+        const hoverLift = hovered ? (isMatched ? 0.001 : 0.0022) : 0;
+        const hoverDepth = hovered ? (isMatched ? 0.0014 : 0.0032) : 0;
+        const targetLift = isMatched ? 0.0024 : faceUp ? 0.0012 : 0;
+        const targetDepth = isMatched ? 0.0036 : faceUp ? 0.0018 : 0;
+        const rotationDamp = reduceMotion ? 42 : faceUp ? 18 : 16;
 
-        group.rotation.x = imperfectionRotationX;
-        group.rotation.z = imperfectionRotationZ;
-        group.rotation.y = reduceMotion ? targetRotation : MathUtils.damp(group.rotation.y, targetRotation, rotationDamp, delta);
-        group.position.x = baseX + imperfectionX;
-        group.position.y = baseY + imperfectionY + targetLift + idleDrift + settle;
-        group.position.z = targetDepth;
-        group.scale.x = group.scale.y = group.scale.z = baseScale;
+        group.rotation.x = MathUtils.damp(
+            group.rotation.x,
+            transform.imperfectionRotationX + hoverTiltX,
+            reduceMotion ? 42 : 22,
+            delta
+        );
+        group.rotation.z = MathUtils.damp(
+            group.rotation.z,
+            transform.imperfectionRotationZ + hoverTiltZ,
+            reduceMotion ? 42 : 22,
+            delta
+        );
+        group.rotation.y = reduceMotion ? transform.targetRotation : MathUtils.damp(group.rotation.y, transform.targetRotation, rotationDamp, delta);
+        group.position.x = transform.baseX + transform.imperfectionX;
+        group.position.y = transform.baseY + transform.imperfectionY + targetLift + hoverLift + idleDrift + settle;
+        group.position.z = targetDepth + hoverDepth;
+        group.scale.x = group.scale.y = group.scale.z = transform.baseScale;
     });
+
+    const surfaceVariant = getSurfaceVariant(tile, faceUp);
+    const edgeMaterialProfile = getEdgeMaterialProfile(surfaceVariant);
+    const edgeTexture = getTileFaceTexture(tile, 'left', surfaceVariant, 'bezel');
+    const edgeRoughnessTexture = getTileFaceRoughnessTexture(tile, 'left', surfaceVariant, 'bezel');
+    const hiddenBackTexture = surfaceVariant === 'hidden' ? getCardBackStaticTexture() : null;
+    const frontDisplayTexture = hiddenBackTexture ?? getTileFaceTexture(tile, 'front', surfaceVariant, 'panel');
+    const backDisplayTexture = hiddenBackTexture ?? getTileFaceTexture(tile, 'back', surfaceVariant, 'panel');
+    const overlayTexture = surfaceVariant === 'hidden' ? null : getTileFaceOverlayTexture(tile, surfaceVariant === 'matched' ? 'matched' : 'active');
+    const forceTextureRefreshKey = textureRevision;
 
     return (
         <group ref={groupRef}>
-            <mesh castShadow={false} receiveShadow={!compact && !reduceMotion} scale={[shellScale, shellScale, shellScale]}>
-                <boxGeometry args={[1, 1, TILE_DEPTH * 1.08, 8, 8, 4]} />
-                {shellMaterials.map((config) => {
-                    const shaderSeed = hashString(`${tile.id}:shell:${config.face}:${surfaceVariant}`);
-
-                    return (
-                        <meshPhysicalMaterial
-                            attach={config.attach}
-                            attenuationColor={config.attenuationColor}
-                            attenuationDistance={config.attenuationDistance}
-                            bumpMap={shellRoughnessTextures[config.face] ?? undefined}
-                            bumpScale={config.bumpScale}
-                            clearcoat={config.clearcoat}
-                            clearcoatRoughness={config.clearcoatRoughness}
-                            color={config.color}
-                            depthWrite={config.depthWrite}
-                            displacementBias={config.displacementBias}
-                            displacementMap={shellRoughnessTextures[config.face] ?? undefined}
-                            displacementScale={config.displacementScale}
-                            emissive={config.emissive}
-                            emissiveIntensity={config.emissiveIntensity}
-                            envMapIntensity={config.envMapIntensity}
-                            key={`shell-${config.face}`}
-                            ior={config.ior}
-                            map={shellFaceTextures[config.face] ?? undefined}
-                            metalness={config.metalness}
-                            opacity={config.opacity}
-                            onBeforeCompile={createIceShaderPatch(shaderSeed, 'shell')}
-                            specularColor={config.specularColor}
-                            specularIntensity={config.specularIntensity}
-                            roughness={config.roughness}
-                            roughnessMap={shellRoughnessTextures[config.face] ?? undefined}
-                            side={FrontSide}
-                            thickness={config.thickness}
-                            thicknessMap={config.thicknessMap ? (shellRoughnessTextures[config.face] ?? undefined) : undefined}
-                            transmission={config.transmission}
-                            transparent={config.transparent}
-                        />
-                    );
-                })}
+            <mesh
+                castShadow={!compact && !reduceMotion}
+                key={`card-body-${tile.id}-${forceTextureRefreshKey}`}
+                receiveShadow={!compact && !reduceMotion}
+                scale={[transform.bezelScale, transform.bezelScale, transform.bezelScale]}
+            >
+                <boxGeometry args={[CARD_WIDTH, CARD_HEIGHT, TILE_DEPTH]} />
+                <meshPhysicalMaterial
+                    attach="material-0"
+                    clearcoat={0.48}
+                    clearcoatRoughness={0.34}
+                    color={edgeMaterialProfile.color}
+                    emissive={edgeMaterialProfile.emissive}
+                    emissiveIntensity={edgeMaterialProfile.emissiveIntensity}
+                    map={edgeTexture ?? undefined}
+                    metalness={edgeMaterialProfile.metalness}
+                    roughness={edgeMaterialProfile.roughness}
+                    roughnessMap={edgeRoughnessTexture ?? undefined}
+                    side={FrontSide}
+                    specularColor={edgeMaterialProfile.specularColor}
+                    specularIntensity={edgeMaterialProfile.specularIntensity}
+                />
+                <meshPhysicalMaterial
+                    attach="material-1"
+                    clearcoat={0.48}
+                    clearcoatRoughness={0.34}
+                    color={edgeMaterialProfile.color}
+                    emissive={edgeMaterialProfile.emissive}
+                    emissiveIntensity={edgeMaterialProfile.emissiveIntensity}
+                    map={edgeTexture ?? undefined}
+                    metalness={edgeMaterialProfile.metalness}
+                    roughness={edgeMaterialProfile.roughness}
+                    roughnessMap={edgeRoughnessTexture ?? undefined}
+                    side={FrontSide}
+                    specularColor={edgeMaterialProfile.specularColor}
+                    specularIntensity={edgeMaterialProfile.specularIntensity}
+                />
+                <meshPhysicalMaterial
+                    attach="material-2"
+                    clearcoat={0.48}
+                    clearcoatRoughness={0.34}
+                    color={edgeMaterialProfile.color}
+                    emissive={edgeMaterialProfile.emissive}
+                    emissiveIntensity={edgeMaterialProfile.emissiveIntensity}
+                    map={edgeTexture ?? undefined}
+                    metalness={edgeMaterialProfile.metalness}
+                    roughness={edgeMaterialProfile.roughness}
+                    roughnessMap={edgeRoughnessTexture ?? undefined}
+                    side={FrontSide}
+                    specularColor={edgeMaterialProfile.specularColor}
+                    specularIntensity={edgeMaterialProfile.specularIntensity}
+                />
+                <meshPhysicalMaterial
+                    attach="material-3"
+                    clearcoat={0.48}
+                    clearcoatRoughness={0.34}
+                    color={edgeMaterialProfile.color}
+                    emissive={edgeMaterialProfile.emissive}
+                    emissiveIntensity={edgeMaterialProfile.emissiveIntensity}
+                    map={edgeTexture ?? undefined}
+                    metalness={edgeMaterialProfile.metalness}
+                    roughness={edgeMaterialProfile.roughness}
+                    roughnessMap={edgeRoughnessTexture ?? undefined}
+                    side={FrontSide}
+                    specularColor={edgeMaterialProfile.specularColor}
+                    specularIntensity={edgeMaterialProfile.specularIntensity}
+                />
+                <meshBasicMaterial
+                    attach="material-4"
+                    color="#ffffff"
+                    map={frontDisplayTexture ?? undefined}
+                    toneMapped={false}
+                />
+                <meshBasicMaterial
+                    attach="material-5"
+                    color="#ffffff"
+                    map={backDisplayTexture ?? undefined}
+                    toneMapped={false}
+                />
             </mesh>
 
-            <mesh castShadow={!compact && !reduceMotion} receiveShadow={!compact && !reduceMotion} scale={[coreScale, coreScale, coreScale]}>
-                <boxGeometry args={[1, 1, TILE_DEPTH * 0.82, 6, 6, 3]} />
-                {coreMaterials.map((config) => {
-                    const shaderSeed = hashString(`${tile.id}:core:${config.face}:${surfaceVariant}`);
-
-                    return (
-                        <meshPhysicalMaterial
-                            attach={config.attach}
-                            bumpMap={coreRoughnessTextures[config.face] ?? undefined}
-                            bumpScale={config.bumpScale}
-                            clearcoat={config.clearcoat}
-                            clearcoatRoughness={config.clearcoatRoughness}
-                            color={config.color}
-                            depthWrite={config.depthWrite}
-                            displacementBias={config.displacementBias}
-                            displacementMap={coreRoughnessTextures[config.face] ?? undefined}
-                            displacementScale={config.displacementScale}
-                            emissive={config.emissive}
-                            emissiveIntensity={config.emissiveIntensity}
-                            envMapIntensity={config.envMapIntensity}
-                            key={`core-${config.face}`}
-                            map={coreFaceTextures[config.face] ?? undefined}
-                            metalness={config.metalness}
-                            onBeforeCompile={createIceShaderPatch(shaderSeed, 'core')}
-                            specularColor={config.specularColor}
-                            specularIntensity={config.specularIntensity}
-                            roughness={config.roughness}
-                            roughnessMap={coreRoughnessTextures[config.face] ?? undefined}
-                            side={FrontSide}
-                        />
-                    );
-                })}
-            </mesh>
+            {overlayTexture ? (
+                <mesh position={[0, 0, TILE_DEPTH * 0.56]} renderOrder={10}>
+                    <planeGeometry args={[CARD_FACE_WIDTH, CARD_FACE_HEIGHT]} />
+                    <meshBasicMaterial
+                        alphaTest={0.08}
+                        depthTest={false}
+                        depthWrite={false}
+                        map={overlayTexture}
+                        toneMapped={false}
+                        transparent={true}
+                    />
+                </mesh>
+            ) : null}
         </group>
     );
 };
 
-const TileBoardScene = ({ board, compact, debugPeekActive, previewActive, reduceMotion }: TileBoardSceneProps) => {
+const TileBoardScene = ({
+    board,
+    compact,
+    debugPeekActive,
+    hoverTiltRef,
+    previewActive,
+    reduceMotion
+}: TileBoardSceneProps) => {
     const { viewport } = useThree();
+    const { colors } = RENDERER_THEME;
     const totalColumns = board.columns;
     const totalRows = board.rows;
     const boardWidth = (totalColumns - 1) * TILE_SPACING + 1;
     const boardHeight = (totalRows - 1) * TILE_SPACING + 1;
     const margin = compact ? 0.72 : 0.85;
     const fitScale = Math.min((viewport.width * margin) / boardWidth, (viewport.height * margin) / boardHeight);
+    const [textureRevision, setTextureRevision] = useState(0);
+
+    useEffect(() => subscribeTextureImageUpdates(() => setTextureRevision((current) => current + 1)), []);
 
     return (
         <>
-            <ambientLight intensity={compact ? 1.04 : 1.12} color="#e8f3ff" />
+            <ambientLight color={colors.text} intensity={compact ? 0.56 : 0.64} />
             <directionalLight
                 castShadow={!compact && !reduceMotion}
-                color="#dff0ff"
-                intensity={compact ? 0.9 : 1.14}
-                position={[5.5, 7.5, 9]}
+                color={colors.goldBright}
+                intensity={compact ? 0.9 : 1.02}
+                position={[5.4, 7.2, 8.5]}
             />
-            <directionalLight color="#9bc7ff" intensity={compact ? 0.24 : 0.34} position={[-6, 2, 7]} />
-            <pointLight color="#f3fbff" intensity={compact ? 0.16 : 0.24} position={[0, 0, 7]} />
+            <directionalLight color={colors.cyan} intensity={compact ? 0.14 : 0.18} position={[-5.8, 2.2, 6.8]} />
+            <pointLight color={colors.gold} intensity={compact ? 0.14 : 0.2} position={[0, -2.2, 5.4]} />
 
-            <mesh position={[0, 0, -1.68]} receiveShadow={!compact && !reduceMotion}>
+            <mesh position={[0, 0, -1.42]} receiveShadow={!compact && !reduceMotion}>
                 <planeGeometry args={[boardWidth * 2, boardHeight * 2]} />
-                <meshStandardMaterial color="#08111b" metalness={0.02} roughness={1} />
+                <meshStandardMaterial color={colors.voidAlt} metalness={0.12} roughness={0.96} />
             </mesh>
 
             <group rotation={[-0.1, 0.08, 0]} scale={[fitScale, fitScale, fitScale]}>
                 {board.tiles.map((tile, index) => {
-                    const row = Math.floor(index / totalColumns);
                     const faceUp = tile.state !== 'hidden' || previewActive || debugPeekActive;
+                    const transform = getTileTransform(tile, index, totalColumns, totalRows, compact, faceUp);
 
                     return (
-                        <TileCube
+                        <TileBezel
                             compact={compact}
                             faceUp={faceUp}
-                            index={index}
+                            hoverTiltRef={hoverTiltRef}
                             key={tile.id}
                             reduceMotion={reduceMotion}
-                            row={row}
+                            textureRevision={textureRevision}
                             tile={tile}
-                            totalColumns={totalColumns}
-                            totalRows={totalRows}
+                            transform={transform}
                         />
                     );
                 })}

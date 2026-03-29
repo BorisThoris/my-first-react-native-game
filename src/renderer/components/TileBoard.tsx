@@ -1,9 +1,18 @@
 import { Canvas } from '@react-three/fiber';
-import { Component, useMemo, type CSSProperties, type ReactNode } from 'react';
+import {
+    Component,
+    useEffect,
+    useMemo,
+    useRef,
+    type CSSProperties,
+    type MouseEvent,
+    type PointerEvent,
+    type ReactNode
+} from 'react';
 import type { BoardState, Tile } from '../../shared/contracts';
 import { useViewportSize } from '../hooks/useViewportSize';
 import styles from './TileBoard.module.css';
-import TileBoardScene from './TileBoardScene';
+import TileBoardScene, { type TileHoverTiltState } from './TileBoardScene';
 
 interface TileBoardProps {
     board: BoardState;
@@ -12,17 +21,34 @@ interface TileBoardProps {
     previewActive: boolean;
     reduceMotion: boolean;
     frameStyle?: CSSProperties;
-    onTileSelect: (tileId: string) => void;
+    onTileSelect: (tileId: string, event?: MouseEvent<HTMLButtonElement>) => void;
 }
 
 interface TileBoardFallbackProps {
     board: BoardState;
     debugPeekActive: boolean;
     interactive: boolean;
+    onHoverLeave: (tileId: string, event: PointerEvent<HTMLButtonElement>) => void;
+    onHoverMove: (tileId: string, event: PointerEvent<HTMLButtonElement>) => void;
     previewActive: boolean;
-    onTileSelect: (tileId: string) => void;
+    onTileSelect: (tileId: string, event?: MouseEvent<HTMLButtonElement>) => void;
     tileGridStyle: CSSProperties;
 }
+
+const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
+
+const normalizeHoverPoint = (
+    event: PointerEvent<HTMLButtonElement>
+): {
+    x: number;
+    y: number;
+} => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = clamp(((event.clientX - rect.left) / rect.width) * 2 - 1, -1, 1);
+    const y = clamp(((event.clientY - rect.top) / rect.height) * 2 - 1, -1, 1);
+
+    return { x, y };
+};
 
 const canUseWebGL = (): boolean => {
     if (typeof document === 'undefined') {
@@ -39,7 +65,7 @@ const canUseWebGL = (): boolean => {
 
 const getTileClassName = (tile: Tile, faceUp: boolean, locked: boolean): string =>
     [
-        styles.legacyTile,
+        styles.fallbackTile,
         faceUp ? styles.faceUp : '',
         tile.state === 'matched' ? styles.matched : '',
         locked && tile.state === 'hidden' ? styles.locked : ''
@@ -52,28 +78,59 @@ const buildTileGridStyle = (board: BoardState): CSSProperties => ({
     gridTemplateRows: `repeat(${board.rows}, minmax(0, 1fr))`
 });
 
-const TileBoardFallback = ({ board, debugPeekActive, interactive, previewActive, onTileSelect, tileGridStyle }: TileBoardFallbackProps) => {
+const getTilePosition = (index: number, columns: number): { row: number; column: number } => ({
+    row: Math.floor(index / columns) + 1,
+    column: (index % columns) + 1
+});
+
+const getTileAriaLabel = (tile: Tile, faceUp: boolean, row: number, column: number): string =>
+    faceUp ? `Tile ${tile.label}, row ${row}, column ${column}` : `Hidden tile, row ${row}, column ${column}`;
+
+const TileBoardFallback = ({
+    board,
+    debugPeekActive,
+    interactive,
+    onHoverLeave,
+    onHoverMove,
+    previewActive,
+    onTileSelect,
+    tileGridStyle
+}: TileBoardFallbackProps) => {
     const locked = board.flippedTileIds.length === 2;
 
     return (
-        <div className={styles.legacyBoard} style={tileGridStyle}>
-            {board.tiles.map((tile) => {
+        <div className={styles.fallbackBoard} style={tileGridStyle}>
+            {board.tiles.map((tile, index) => {
                 const disabled = tile.state === 'matched' || !interactive || (locked && tile.state === 'hidden');
                 const faceUp = tile.state !== 'hidden' || debugPeekActive || previewActive;
+                const { row, column } = getTilePosition(index, board.columns);
 
                 return (
                     <button
-                        aria-label={faceUp ? `Tile ${tile.label}` : 'Hidden tile'}
+                        aria-label={getTileAriaLabel(tile, faceUp, row, column)}
                         className={getTileClassName(tile, faceUp, locked)}
                         disabled={disabled}
                         key={tile.id}
                         onClick={() => onTileSelect(tile.id)}
-                        tabIndex={-1}
+                        onPointerEnter={(event) => onHoverMove(tile.id, event)}
+                        onPointerLeave={(event) => onHoverLeave(tile.id, event)}
+                        onPointerMove={(event) => onHoverMove(tile.id, event)}
                         type="button"
                     >
-                        <span className={styles.legacyInner}>
-                            <span className={styles.tileGlow} />
-                            <span className={styles.symbol}>{faceUp ? tile.symbol : '?'}</span>
+                        <span className={styles.tileFace}>
+                            <span className={styles.pulseGlow} />
+                            {faceUp ? (
+                                <span className={styles.cardFront}>
+                                    <span className={styles.cardFrontBadge}>{tile.label.toUpperCase()}</span>
+                                    <span className={styles.tileSymbol}>{tile.symbol}</span>
+                                    <span className={styles.cardFrontLabel}>{tile.label.toUpperCase()}</span>
+                                </span>
+                            ) : (
+                                <span aria-hidden="true" className={styles.cardBack}>
+                                    <span className={styles.cardBackPattern} />
+                                    <span className={styles.cardBackEmblem} />
+                                </span>
+                            )}
                         </span>
                     </button>
                 );
@@ -98,6 +155,7 @@ const TileBoard = ({ board, debugPeekActive, interactive, previewActive, reduceM
     const { height, width } = useViewportSize();
     const compact = width <= 760 || height <= 760;
     const threeEnabled = useMemo(() => canUseWebGL(), []);
+    const hoverTiltRef = useRef<TileHoverTiltState>({ tileId: null, x: 0, y: 0 });
     const mergedFrameStyle = useMemo(
         () => ({
             ...frameStyle,
@@ -107,13 +165,39 @@ const TileBoard = ({ board, debugPeekActive, interactive, previewActive, reduceM
     );
     const tileGridStyle = buildTileGridStyle(board);
     const dpr = compact ? 1 : Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 1.75);
+    const handleTileSelect = (tileId: string): void => onTileSelect(tileId);
+    const clearHoverTilt = (tileId: string, event: PointerEvent<HTMLButtonElement>): void => {
+        if (hoverTiltRef.current.tileId === tileId) {
+            hoverTiltRef.current = { tileId: null, x: 0, y: 0 };
+        }
+
+        event.currentTarget.style.setProperty('--hover-x', '0');
+        event.currentTarget.style.setProperty('--hover-y', '0');
+    };
+    const updateHoverTilt = (tileId: string, event: PointerEvent<HTMLButtonElement>): void => {
+        if (reduceMotion || event.pointerType === 'touch' || event.pointerType === 'pen') {
+            clearHoverTilt(tileId, event);
+            return;
+        }
+
+        const { x, y } = normalizeHoverPoint(event);
+        hoverTiltRef.current = { tileId, x, y };
+        event.currentTarget.style.setProperty('--hover-x', x.toFixed(4));
+        event.currentTarget.style.setProperty('--hover-y', y.toFixed(4));
+    };
+
+    useEffect(() => {
+        hoverTiltRef.current = { tileId: null, x: 0, y: 0 };
+    }, [board.level, board.tiles.length, reduceMotion]);
 
     const fallback = (
         <TileBoardFallback
             board={board}
             debugPeekActive={debugPeekActive}
             interactive={interactive}
-            onTileSelect={onTileSelect}
+            onHoverLeave={clearHoverTilt}
+            onHoverMove={updateHoverTilt}
+            onTileSelect={handleTileSelect}
             previewActive={previewActive}
             tileGridStyle={tileGridStyle}
         />
@@ -133,33 +217,40 @@ const TileBoard = ({ board, debugPeekActive, interactive, previewActive, reduceM
                                         alpha: true,
                                         powerPreference: 'high-performance'
                                     }}
-                                shadows={!compact && !reduceMotion}
+                                    shadows={!compact && !reduceMotion}
                                     camera={{ fov: 42, near: 0.1, far: 100, position: [0, 0, 10.5] }}
                                 >
-                                <TileBoardScene
-                                    board={board}
-                                    compact={compact}
-                                    debugPeekActive={debugPeekActive}
-                                    previewActive={previewActive}
-                                    reduceMotion={reduceMotion}
-                                />
+                                    <TileBoardScene
+                                        board={board}
+                                        compact={compact}
+                                        key={board.level}
+                                        debugPeekActive={debugPeekActive}
+                                        hoverTiltRef={hoverTiltRef}
+                                        previewActive={previewActive}
+                                        reduceMotion={reduceMotion}
+                                    />
                             </Canvas>
                         </div>
 
                         <div className={styles.interactionLayer} style={tileGridStyle}>
-                            {board.tiles.map((tile) => {
+                            {board.tiles.map((tile, index) => {
                                 const locked = board.flippedTileIds.length === 2;
                                 const faceUp = tile.state !== 'hidden' || debugPeekActive || previewActive;
                                 const disabled = tile.state === 'matched' || !interactive || (locked && tile.state === 'hidden');
+                                const { row, column } = getTilePosition(index, board.columns);
 
                                 return (
                                     <button
-                                        aria-label={faceUp ? `Tile ${tile.label}` : 'Hidden tile'}
-                                        className={styles.hitButton}
+                                        aria-label={getTileAriaLabel(tile, faceUp, row, column)}
+                                        className={`${styles.hitButton} ${faceUp ? styles.hitButtonFaceUp : ''} ${
+                                            tile.state === 'matched' ? styles.hitButtonMatched : ''
+                                        }`}
                                         disabled={disabled}
                                         key={tile.id}
-                                        onClick={() => onTileSelect(tile.id)}
-                                        tabIndex={-1}
+                                        onClick={() => handleTileSelect(tile.id)}
+                                        onPointerEnter={(event) => updateHoverTilt(tile.id, event)}
+                                        onPointerLeave={(event) => clearHoverTilt(tile.id, event)}
+                                        onPointerMove={(event) => updateHoverTilt(tile.id, event)}
                                         type="button"
                                     />
                                 );
