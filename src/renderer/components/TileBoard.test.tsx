@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { BoardState } from '../../shared/contracts';
 import TileBoard from './TileBoard';
@@ -18,8 +18,8 @@ const board: BoardState = {
     ]
 };
 
-describe('TileBoard keyboard controls', () => {
-    it('moves focus with arrow keys and flips with Enter', async () => {
+describe('TileBoard touch and click controls', () => {
+    it('flips a tile when clicked', () => {
         const onTileSelect = vi.fn();
 
         render(
@@ -29,23 +29,48 @@ describe('TileBoard keyboard controls', () => {
                 interactive={true}
                 onTileSelect={onTileSelect}
                 previewActive={false}
+                reduceMotion={false}
             />
         );
 
         const hiddenTiles = screen.getAllByRole('button', { name: /hidden tile/i });
-
-        await waitFor(() => {
-            expect(hiddenTiles[0]).toHaveFocus();
-        });
-
-        fireEvent.keyDown(hiddenTiles[0], { key: 'ArrowRight' });
-
-        await waitFor(() => {
-            expect(hiddenTiles[1]).toHaveFocus();
-        });
-
-        fireEvent.keyDown(hiddenTiles[1], { key: 'Enter' });
+        fireEvent.click(hiddenTiles[1]);
 
         expect(onTileSelect).toHaveBeenCalledWith('a2');
+    });
+
+    it('reveals the board during the memorize preview', () => {
+        render(
+            <TileBoard
+                board={board}
+                debugPeekActive={false}
+                interactive={true}
+                onTileSelect={vi.fn()}
+                previewActive={true}
+                reduceMotion={false}
+            />
+        );
+
+        expect(screen.getAllByRole('button', { name: /tile/i })).toHaveLength(4);
+    });
+
+    it('falls back to the DOM board when WebGL support is unavailable', () => {
+        const getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => null);
+        try {
+            render(
+                <TileBoard
+                    board={board}
+                    debugPeekActive={false}
+                    interactive={true}
+                    onTileSelect={vi.fn()}
+                    previewActive={false}
+                    reduceMotion={false}
+                />
+            );
+
+            expect(screen.getAllByRole('button', { name: /hidden tile/i })).toHaveLength(4);
+        } finally {
+            getContext.mockRestore();
+        }
     });
 });

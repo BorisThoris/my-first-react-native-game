@@ -84,7 +84,7 @@ describe('desktop app flow', () => {
         expect(parsed.onboardingDismissed).toBe(true);
     });
 
-    it('pauses and resumes the run with Escape', async () => {
+    it('pauses and resumes the run with the on-screen controls', async () => {
         const user = userEvent.setup();
 
         render(<App />);
@@ -92,7 +92,7 @@ describe('desktop app flow', () => {
         await user.click(await screen.findByRole('button', { name: /play arcade/i }));
         expect(await screen.findByRole('heading', { name: /level 1/i })).toBeInTheDocument();
 
-        fireEvent.keyDown(window, { key: 'Escape' });
+        await user.click(screen.getByRole('button', { name: /pause/i }));
         const modalTitle = await screen.findByRole('heading', { name: /run paused/i });
         expect(modalTitle).toBeInTheDocument();
 

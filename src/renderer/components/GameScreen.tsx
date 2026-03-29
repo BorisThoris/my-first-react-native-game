@@ -96,11 +96,7 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
               { label: 'Mistakes', value: run.stats.tries },
               { label: 'Best Score', value: saveData.bestScore.toLocaleString() }
           ];
-    const phaseCopy = isCompact
-        ? isTight
-            ? `${getPhaseCopy(run)} Arrows, Enter, Escape.`
-            : `${getPhaseCopy(run)} Arrows move focus. Enter or Space flips. Escape pauses.`
-        : getPhaseCopy(run);
+    const phaseCopy = getPhaseCopy(run);
 
     return (
         <section className={styles.shell}>
@@ -156,6 +152,7 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
                         }
                     }}
                     previewActive={run.status === 'memorize'}
+                    reduceMotion={settings.reduceMotion}
                 />
 
                 {!isCompact && (
@@ -188,7 +185,7 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
 
                         <div className={styles.panelBlock}>
                             <span className={styles.panelLabel}>Controls</span>
-                            <p className={styles.panelCopy}>Arrow keys move focus. Enter or Space flips. Escape pauses.</p>
+                            <p className={styles.panelCopy}>Tap or click a tile to flip it.</p>
                         </div>
 
                         {unlockedDefinitions.length > 0 && (
@@ -208,9 +205,7 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
                 )}
             </div>
 
-            {!isCompact && (
-                <p className={styles.footerHint}>Deeper floors rotate symbol themes and compress the memorize window.</p>
-            )}
+            {!isCompact && <p className={styles.footerHint}>Deeper floors rotate symbol themes and compress the memorize window.</p>}
 
             {run.status === 'paused' && (
                 <OverlayModal

@@ -16,7 +16,6 @@ const App = () => {
         hydrate,
         newlyUnlockedAchievements,
         openSettings,
-        resume,
         run,
         saveData,
         settings,
@@ -30,7 +29,6 @@ const App = () => {
             hydrate: state.hydrate,
             newlyUnlockedAchievements: state.newlyUnlockedAchievements,
             openSettings: state.openSettings,
-            resume: state.resume,
             run: state.run,
             saveData: state.saveData,
             settings: state.settings,
@@ -50,23 +48,6 @@ const App = () => {
         void hydrate();
     }, [hydrate]);
 
-    useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key !== 'Escape' || view !== 'playing' || !run) {
-                return;
-            }
-
-            if (run.status === 'paused') {
-                resume();
-            } else if (run.status !== 'levelComplete' && run.status !== 'gameOver') {
-                useAppStore.getState().pause();
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [resume, run, view]);
-
     return (
         <div
             className={styles.app}
@@ -83,11 +64,11 @@ const App = () => {
                     <MainMenu
                         bestScore={saveData.bestScore}
                         lastRunSummary={saveData.lastRunSummary}
+                        reduceMotion={settings.reduceMotion}
                         onDismissHowToPlay={dismissHowToPlay}
                         onOpenSettings={() => openSettings('menu')}
                         onPlay={startRun}
                         showHowToPlay={!saveData.onboardingDismissed}
-                        steamConnected={steamConnected}
                     />
                 )}
 

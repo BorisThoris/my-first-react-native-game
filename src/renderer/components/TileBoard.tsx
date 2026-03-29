@@ -1,19 +1,45 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { Component, useMemo, type CSSProperties, type ReactNode } from 'react';
 import type { BoardState, Tile } from '../../shared/contracts';
+import { useViewportSize } from '../hooks/useViewportSize';
 import styles from './TileBoard.module.css';
+import TileBoardScene from './TileBoardScene';
 
 interface TileBoardProps {
     board: BoardState;
     debugPeekActive: boolean;
     interactive: boolean;
     previewActive: boolean;
+    reduceMotion: boolean;
     frameStyle?: CSSProperties;
     onTileSelect: (tileId: string) => void;
 }
 
+interface TileBoardFallbackProps {
+    board: BoardState;
+    debugPeekActive: boolean;
+    interactive: boolean;
+    previewActive: boolean;
+    onTileSelect: (tileId: string) => void;
+    tileGridStyle: CSSProperties;
+}
+
+const canUseWebGL = (): boolean => {
+    if (typeof document === 'undefined') {
+        return false;
+    }
+
+    try {
+        const canvas = document.createElement('canvas');
+        return Boolean(canvas.getContext('webgl2') ?? canvas.getContext('webgl') ?? canvas.getContext('experimental-webgl'));
+    } catch {
+        return false;
+    }
+};
+
 const getTileClassName = (tile: Tile, faceUp: boolean, locked: boolean): string =>
     [
-        styles.tile,
+        styles.legacyTile,
         faceUp ? styles.faceUp : '',
         tile.state === 'matched' ? styles.matched : '',
         locked && tile.state === 'hidden' ? styles.locked : ''
@@ -21,122 +47,128 @@ const getTileClassName = (tile: Tile, faceUp: boolean, locked: boolean): string 
         .filter(Boolean)
         .join(' ');
 
-const TileBoard = ({ board, debugPeekActive, interactive, previewActive, frameStyle, onTileSelect }: TileBoardProps) => {
-    const tileRefs = useRef<Array<HTMLButtonElement | null>>([]);
-    const [focusedIndex, setFocusedIndex] = useState(0);
+const buildTileGridStyle = (board: BoardState): CSSProperties => ({
+    gridTemplateColumns: `repeat(${board.columns}, minmax(0, 1fr))`,
+    gridTemplateRows: `repeat(${board.rows}, minmax(0, 1fr))`
+});
+
+const TileBoardFallback = ({ board, debugPeekActive, interactive, previewActive, onTileSelect, tileGridStyle }: TileBoardFallbackProps) => {
     const locked = board.flippedTileIds.length === 2;
 
-    const disabledIndexes = useMemo(
-        () =>
-            new Set(
-                board.tiles.flatMap((tile, index) =>
-                    tile.state === 'matched' || !interactive || (locked && tile.state === 'hidden') ? [index] : []
-                )
-            ),
-        [board.tiles, interactive, locked]
+    return (
+        <div className={styles.legacyBoard} style={tileGridStyle}>
+            {board.tiles.map((tile) => {
+                const disabled = tile.state === 'matched' || !interactive || (locked && tile.state === 'hidden');
+                const faceUp = tile.state !== 'hidden' || debugPeekActive || previewActive;
+
+                return (
+                    <button
+                        aria-label={faceUp ? `Tile ${tile.label}` : 'Hidden tile'}
+                        className={getTileClassName(tile, faceUp, locked)}
+                        disabled={disabled}
+                        key={tile.id}
+                        onClick={() => onTileSelect(tile.id)}
+                        tabIndex={-1}
+                        type="button"
+                    >
+                        <span className={styles.legacyInner}>
+                            <span className={styles.tileGlow} />
+                            <span className={styles.symbol}>{faceUp ? tile.symbol : '?'}</span>
+                        </span>
+                    </button>
+                );
+            })}
+        </div>
     );
-    const firstEnabledIndex = useMemo(
-        () => board.tiles.findIndex((_tile, index) => !disabledIndexes.has(index)),
-        [board.tiles, disabledIndexes]
+};
+
+class TileBoardErrorBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { hasError: boolean }> {
+    state = { hasError: false };
+
+    static getDerivedStateFromError(): { hasError: boolean } {
+        return { hasError: true };
+    }
+
+    render(): ReactNode {
+        return this.state.hasError ? this.props.fallback : this.props.children;
+    }
+}
+
+const TileBoard = ({ board, debugPeekActive, interactive, previewActive, reduceMotion, frameStyle, onTileSelect }: TileBoardProps) => {
+    const { height, width } = useViewportSize();
+    const compact = width <= 760 || height <= 760;
+    const threeEnabled = useMemo(() => canUseWebGL(), []);
+    const mergedFrameStyle = useMemo(
+        () => ({
+            ...frameStyle,
+            ['--board-aspect' as string]: `${board.columns} / ${board.rows}`
+        }),
+        [board.columns, board.rows, frameStyle]
     );
-    const activeIndex = disabledIndexes.has(focusedIndex) && firstEnabledIndex >= 0 ? firstEnabledIndex : focusedIndex;
+    const tileGridStyle = buildTileGridStyle(board);
+    const dpr = compact ? 1 : Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 1.75);
 
-    useEffect(() => {
-        if (!interactive || disabledIndexes.has(activeIndex)) {
-            return;
-        }
-
-        tileRefs.current[activeIndex]?.focus();
-    }, [activeIndex, disabledIndexes, interactive]);
-
-    const moveFocus = (startIndex: number, rowDelta: number, columnDelta: number): void => {
-        let nextIndex = startIndex;
-
-        while (true) {
-            const currentRow = Math.floor(nextIndex / board.columns);
-            const currentColumn = nextIndex % board.columns;
-            const targetRow = currentRow + rowDelta;
-            const targetColumn = currentColumn + columnDelta;
-
-            if (
-                targetRow < 0 ||
-                targetColumn < 0 ||
-                targetColumn >= board.columns ||
-                targetRow >= Math.ceil(board.tiles.length / board.columns)
-            ) {
-                return;
-            }
-
-            nextIndex = targetRow * board.columns + targetColumn;
-
-            if (nextIndex >= board.tiles.length) {
-                return;
-            }
-
-            if (!disabledIndexes.has(nextIndex)) {
-                setFocusedIndex(nextIndex);
-                return;
-            }
-        }
-    };
+    const fallback = (
+        <TileBoardFallback
+            board={board}
+            debugPeekActive={debugPeekActive}
+            interactive={interactive}
+            onTileSelect={onTileSelect}
+            previewActive={previewActive}
+            tileGridStyle={tileGridStyle}
+        />
+    );
 
     return (
-        <div className={styles.frame} style={frameStyle}>
-            <div className={styles.board} style={{ gridTemplateColumns: `repeat(${board.columns}, minmax(0, 1fr))` }}>
-                {board.tiles.map((tile, index) => {
-                    const disabled = disabledIndexes.has(index);
-                    const faceUp = tile.state !== 'hidden' || debugPeekActive || previewActive;
+        <div className={styles.frame} style={mergedFrameStyle}>
+            <div className={styles.stage}>
+                {threeEnabled ? (
+                    <TileBoardErrorBoundary fallback={fallback}>
+                        <div className={styles.scene}>
+                                <Canvas
+                                    className={styles.canvas}
+                                    dpr={dpr}
+                                    gl={{
+                                        antialias: !compact,
+                                        alpha: true,
+                                        powerPreference: 'high-performance'
+                                    }}
+                                shadows={!compact && !reduceMotion}
+                                    camera={{ fov: 42, near: 0.1, far: 100, position: [0, 0, 10.5] }}
+                                >
+                                <TileBoardScene
+                                    board={board}
+                                    compact={compact}
+                                    debugPeekActive={debugPeekActive}
+                                    previewActive={previewActive}
+                                    reduceMotion={reduceMotion}
+                                />
+                            </Canvas>
+                        </div>
 
-                    return (
-                        <button
-                            aria-label={faceUp ? `Tile ${tile.label}` : 'Hidden tile'}
-                            className={getTileClassName(tile, faceUp, locked)}
-                            disabled={disabled}
-                            key={tile.id}
-                            onClick={() => onTileSelect(tile.id)}
-                            onFocus={() => setFocusedIndex(index)}
-                            onKeyDown={(event) => {
-                                switch (event.key) {
-                                    case 'ArrowUp':
-                                        event.preventDefault();
-                                        moveFocus(index, -1, 0);
-                                        break;
-                                    case 'ArrowDown':
-                                        event.preventDefault();
-                                        moveFocus(index, 1, 0);
-                                        break;
-                                    case 'ArrowLeft':
-                                        event.preventDefault();
-                                        moveFocus(index, 0, -1);
-                                        break;
-                                    case 'ArrowRight':
-                                        event.preventDefault();
-                                        moveFocus(index, 0, 1);
-                                        break;
-                                    case 'Enter':
-                                    case ' ':
-                                        if (!disabled) {
-                                            event.preventDefault();
-                                            onTileSelect(tile.id);
-                                        }
-                                        break;
-                                    default:
-                                        break;
-                                }
-                            }}
-                            ref={(element) => {
-                                tileRefs.current[index] = element;
-                            }}
-                            tabIndex={interactive && !disabled && activeIndex === index ? 0 : -1}
-                            type="button"
-                        >
-                            <span className={styles.inner}>
-                                <span className={styles.tileGlow} />
-                                <span className={styles.symbol}>{faceUp ? tile.symbol : '?'}</span>
-                            </span>
-                        </button>
-                    );
-                })}
+                        <div className={styles.interactionLayer} style={tileGridStyle}>
+                            {board.tiles.map((tile) => {
+                                const locked = board.flippedTileIds.length === 2;
+                                const faceUp = tile.state !== 'hidden' || debugPeekActive || previewActive;
+                                const disabled = tile.state === 'matched' || !interactive || (locked && tile.state === 'hidden');
+
+                                return (
+                                    <button
+                                        aria-label={faceUp ? `Tile ${tile.label}` : 'Hidden tile'}
+                                        className={styles.hitButton}
+                                        disabled={disabled}
+                                        key={tile.id}
+                                        onClick={() => onTileSelect(tile.id)}
+                                        tabIndex={-1}
+                                        type="button"
+                                    />
+                                );
+                            })}
+                        </div>
+                    </TileBoardErrorBoundary>
+                ) : (
+                    fallback
+                )}
             </div>
         </div>
     );

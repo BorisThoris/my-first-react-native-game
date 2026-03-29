@@ -104,8 +104,7 @@ const SettingsScreen = () => {
                     <section className={styles.section}>
                         <h3 className={styles.sectionTitle}>Controls and Save</h3>
                         <p className={styles.copy}>
-                            This demo is keyboard-first on desktop: arrow keys move focus, Enter or Space flips, and
-                            Escape pauses the run.
+                            This demo is built for touch and mouse play.
                         </p>
                         {!isCompact && (
                             <p className={styles.copy}>

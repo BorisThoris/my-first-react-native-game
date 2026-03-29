@@ -1,5 +1,8 @@
 .shell {
     min-height: 100dvh;
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
     display: grid;
     grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
     gap: clamp(1rem, 1.8vw, 1.75rem);
@@ -9,9 +12,85 @@
     min-height: 0;
 }
 
+.atmosphereLayer {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.atmosphereCanvas {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    mix-blend-mode: screen;
+    opacity: 0.92;
+    filter: saturate(1.1);
+}
+
+.shell::before,
+.shell::after {
+    content: '';
+    position: absolute;
+    inset: -8%;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.shell::before {
+    background:
+        radial-gradient(circle at 18% 24%, rgba(232, 184, 100, 0.18), transparent 22%),
+        radial-gradient(circle at 84% 22%, rgba(101, 140, 255, 0.16), transparent 26%),
+        radial-gradient(circle at 52% 72%, rgba(230, 186, 108, 0.08), transparent 34%);
+    filter: blur(14px);
+}
+
+.shell::after {
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 18% 82%, rgba(255, 255, 255, 0.02)),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+    background-size:
+        auto,
+        90px 90px,
+        90px 90px;
+    mask-image: radial-gradient(circle at center, black, transparent 82%);
+    opacity: 0.45;
+}
+
+.roomyShell {
+    align-items: center;
+    grid-template-columns: minmax(0, 1.06fr) minmax(340px, 0.94fr);
+    gap: clamp(1.5rem, 3vw, 2.75rem);
+    width: min(100%, 1380px);
+    margin-inline: auto;
+    padding-block: clamp(1.75rem, 4.5vh, 4rem);
+    align-content: center;
+}
+
+.compactShell {
+    align-items: start;
+}
+
 .hero {
     max-width: 720px;
     min-width: 0;
+    position: relative;
+    z-index: 1;
+}
+
+.roomyShell .hero {
+    min-height: min(74vh, 760px);
+    align-self: center;
+}
+
+.roomyShell .grid {
+    align-content: center;
+    min-height: min(74vh, 760px);
+    z-index: 1;
 }
 
 .eyebrow {
@@ -24,18 +103,13 @@
 
 .title {
     margin: 0;
-    font-size: clamp(2.6rem, 7vw, 5.25rem);
+    font-size: clamp(2.8rem, 7.4vw, 6rem);
     line-height: 0.92;
     letter-spacing: -0.04em;
     color: #fff4cb;
     text-transform: uppercase;
-}
-
-.lead {
-    margin: 1.15rem 0 0;
-    max-width: 42rem;
-    color: rgba(243, 239, 224, 0.82);
-    font-size: clamp(1rem, 1.6vw, 1.1rem);
+    text-wrap: balance;
+    text-shadow: 0 10px 28px rgba(8, 10, 18, 0.42);
 }
 
 .actions {
@@ -53,6 +127,7 @@
     font-weight: 700;
     letter-spacing: 0.05em;
     text-transform: uppercase;
+    min-height: 3.4rem;
     transition:
         transform 140ms ease,
         border-color 140ms ease,
@@ -79,18 +154,6 @@
     background: rgba(10, 16, 30, 0.6);
     border-color: rgba(213, 169, 96, 0.35);
     color: #f5eed3;
-}
-
-.controls {
-    margin: 0.95rem 0 0;
-    color: rgba(219, 228, 240, 0.72);
-    letter-spacing: 0.04em;
-}
-
-.compactStatus {
-    margin: 0.7rem 0 0;
-    color: rgba(219, 228, 240, 0.68);
-    font-size: 0.92rem;
 }
 
 .guideCard {
@@ -161,21 +224,91 @@
     display: grid;
     gap: 1rem;
     min-width: 0;
+    align-self: center;
+    position: relative;
+    z-index: 1;
+}
+
+.roomyShell .grid {
+    align-self: center;
+}
+
+.roomyShell .lead {
+    max-width: 42rem;
+}
+
+.roomyShell .actions {
+    justify-content: flex-start;
+}
+
+.roomyShell .guideCard {
+    width: min(100%, 720px);
 }
 
 .card {
     background:
-        linear-gradient(160deg, rgba(17, 24, 39, 0.94), rgba(9, 14, 26, 0.86)),
-        rgba(9, 14, 26, 0.9);
+        linear-gradient(160deg, rgba(17, 24, 39, 0.92), rgba(8, 12, 22, 0.88)),
+        rgba(9, 14, 26, 0.92);
     border: 1px solid rgba(240, 222, 180, 0.12);
-    border-radius: 1.5rem;
-    padding: 1.4rem;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.24);
-    backdrop-filter: blur(16px);
+    border-radius: 1.75rem;
+    padding: clamp(1.15rem, 2.2vw, 1.45rem);
+    box-shadow: 0 28px 72px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(22px) saturate(160%);
+    position: relative;
+    z-index: 1;
+}
+
+.featuredCard {
+    background:
+        radial-gradient(circle at top left, rgba(246, 215, 135, 0.16), transparent 38%),
+        linear-gradient(160deg, rgba(23, 29, 42, 0.98), rgba(10, 14, 24, 0.92));
+    border-color: rgba(240, 210, 140, 0.2);
+    box-shadow:
+        0 30px 80px rgba(0, 0, 0, 0.32),
+        inset 0 1px 0 rgba(255, 244, 214, 0.08);
+}
+
+.featuredCard::before,
+.dossierCard::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+}
+
+.featuredCard::before {
+    background: linear-gradient(180deg, rgba(255, 235, 171, 0.1), transparent 30%);
+}
+
+.dossierCard {
+    background:
+        radial-gradient(circle at top right, rgba(101, 140, 255, 0.08), transparent 28%),
+        linear-gradient(160deg, rgba(13, 19, 32, 0.98), rgba(8, 12, 22, 0.92));
+}
+
+.dossierCard::before {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 22%);
 }
 
 .wide {
     min-height: 260px;
+}
+
+.featuredCard,
+.dossierCard {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+}
+
+.featuredCard {
+    min-height: 220px;
+}
+
+.dossierCard {
+    min-height: 220px;
 }
 
 .label {
@@ -193,45 +326,92 @@
     color: #fff7d9;
 }
 
-.good {
-    display: block;
-    margin-top: 0.55rem;
-    font-size: 1.8rem;
-    color: #8fe0b5;
+.featuredValue {
+    font-size: clamp(3rem, 6vw, 4.25rem);
+    line-height: 0.92;
+    letter-spacing: -0.05em;
+    color: #f6d88b;
+    text-shadow: 0 8px 26px rgba(231, 190, 92, 0.22);
 }
 
-.warn {
-    display: block;
-    margin-top: 0.55rem;
-    font-size: 1.8rem;
-    color: #ffcf8e;
-}
-
-.subtext {
-    margin: 0.9rem 0 0;
-    color: rgba(219, 228, 240, 0.72);
-}
-
-.summaryGrid {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 0.85rem;
-    margin-top: 1rem;
-    min-width: 0;
-}
-
-.metricLabel {
-    display: block;
-    margin-top: 0.25rem;
-    color: rgba(219, 228, 240, 0.7);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-size: 0.72rem;
-}
-
-.emptyState {
+.cardNote {
     margin: 1rem 0 0;
-    color: rgba(219, 228, 240, 0.72);
+    color: rgba(220, 229, 242, 0.7);
+    font-size: 0.9rem;
+    letter-spacing: 0.02em;
+}
+
+.featuredCard .cardNote {
+    color: rgba(247, 222, 165, 0.82);
+}
+
+.expeditionEmpty {
+    margin-top: 0.8rem;
+    display: grid;
+    gap: 0.45rem;
+    flex: 1;
+    align-content: center;
+}
+
+.expeditionEmpty strong {
+    color: #fff2c4;
+    font-size: clamp(1.1rem, 2.1vw, 1.5rem);
+    letter-spacing: -0.02em;
+}
+
+.expeditionEmpty p {
+    margin: 0;
+    color: rgba(220, 229, 242, 0.72);
+    line-height: 1.5;
+}
+
+.summaryStrip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+    margin-top: 1rem;
+}
+
+.summaryChip {
+    flex: 1 1 10rem;
+    min-width: min(10rem, 100%);
+    padding: 0.9rem 1rem;
+    border-radius: 1.05rem;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.025)),
+        rgba(12, 18, 30, 0.62);
+    border: 1px solid rgba(255, 244, 214, 0.1);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        0 10px 28px rgba(0, 0, 0, 0.16);
+}
+
+.summaryChipLabel {
+    display: block;
+    color: rgba(219, 228, 240, 0.62);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 0.68rem;
+}
+
+.summaryChipValue {
+    display: block;
+    margin-top: 0.34rem;
+    color: #f7dfa1;
+    font-size: clamp(1.1rem, 2.2vw, 1.75rem);
+    line-height: 1;
+}
+
+.summaryChip:nth-child(odd) {
+    background:
+        linear-gradient(180deg, rgba(255, 244, 214, 0.08), rgba(255, 255, 255, 0.03)),
+        rgba(18, 24, 38, 0.64);
+}
+
+.summaryChip:nth-child(even) {
+    background:
+        linear-gradient(180deg, rgba(120, 162, 255, 0.06), rgba(255, 255, 255, 0.025)),
+        rgba(10, 16, 28, 0.64);
 }
 
 :global([data-reduce-motion='true']) .button,
@@ -244,21 +424,25 @@
     transform: none;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 960px) {
     .shell {
         grid-template-columns: 1fr;
         padding: clamp(0.9rem, 2vw, 1.5rem);
     }
 
-    .guideGrid,
-    .summaryGrid {
+    .guideGrid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
 @media (max-width: 720px) {
-    .shell {
+    .shell,
+    .roomyShell,
+    .compactShell {
         gap: 0.8rem;
+        align-items: start;
+        grid-template-columns: 1fr;
+        padding-block: clamp(0.9rem, 1.8vw, 1.5rem);
     }
 
     .title {
@@ -282,17 +466,12 @@
         min-width: 0;
     }
 
-    .controls {
-        font-size: 0.94rem;
-    }
-
     .guideCard {
         padding: 0.95rem;
         border-radius: 1.2rem;
     }
 
-    .guideGrid,
-    .summaryGrid {
+    .guideGrid {
         grid-template-columns: 1fr;
     }
 
@@ -305,20 +484,29 @@
         font-size: 0.94rem;
     }
 
-    .card {
-        padding: 1rem;
+    .featuredCard,
+    .dossierCard {
+        min-height: 0;
     }
 
     .value {
         font-size: clamp(1.4rem, 7vw, 2rem);
     }
 
+    .featuredValue {
+        font-size: clamp(2.7rem, 18vw, 3.6rem);
+    }
+
+    .expeditionEmpty strong {
+        font-size: 1.05rem;
+    }
+
     .compactWide {
         grid-column: 1 / -1;
     }
 
-    .compactStatus {
-        font-size: 0.9rem;
+    .summaryChip {
+        flex-basis: 100%;
     }
 }
 
@@ -327,17 +515,8 @@
         max-width: none;
     }
 
-    .lead {
-        margin-top: 0.75rem;
-    }
-
     .guideCard {
         padding: 0.85rem;
-    }
-
-    .compactStatus,
-    .controls {
-        font-size: 0.86rem;
     }
 
     .guideCardTight {
