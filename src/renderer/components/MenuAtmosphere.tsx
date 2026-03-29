@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import styles from './MainMenu.module.css';
+import { RENDERER_THEME } from '../styles/theme';
 
 interface MenuAtmosphereProps {
     height: number;
@@ -25,24 +26,26 @@ interface Particle {
     y: number;
 }
 
-const GOLD = 'rgba(246, 216, 139, 1)';
-const BLUE = 'rgba(120, 162, 255, 1)';
-const PEARL = 'rgba(255, 248, 232, 1)';
+const { colors } = RENDERER_THEME;
+const GOLD = colors.goldBright;
+const BLUE = colors.cyan;
+const PEARL = colors.rune;
+const EMBER = colors.ember;
 
 const getParticleCount = (width: number, height: number): number => {
     if (width <= 430 || height <= 620) {
-        return 8;
+        return 10;
     }
 
     if (width <= 760 || height <= 760) {
-        return 14;
+        return 18;
     }
 
     if (width <= 1220) {
-        return 20;
+        return 24;
     }
 
-    return 28;
+    return 32;
 };
 
 const randomBetween = (min: number, max: number): number => min + Math.random() * (max - min);
@@ -58,29 +61,29 @@ const pickColor = (index: number): string => {
         return BLUE;
     }
 
-    return PEARL;
+    return bucket === 5 ? EMBER : PEARL;
 };
 
 const buildParticles = (width: number, height: number): Particle[] => {
     const particleCount = getParticleCount(width, height);
-    const streakCount = Math.max(2, Math.round(particleCount * 0.2));
+    const streakCount = Math.max(3, Math.round(particleCount * 0.26));
 
     return Array.from({ length: particleCount }, (_unused, index) => {
         const streak = index < streakCount && index % 2 === 0;
         const radius = streak ? randomBetween(1.8, 3.8) : randomBetween(10, 28);
 
         return {
-            alpha: streak ? randomBetween(0.05, 0.1) : randomBetween(0.06, 0.14),
+            alpha: streak ? randomBetween(0.05, 0.1) : randomBetween(0.06, 0.13),
             angle: randomBetween(0, Math.PI * 2),
             color: pickColor(index),
-            drift: streak ? randomBetween(0.35, 0.8) : randomBetween(0.8, 1.6),
+            drift: streak ? randomBetween(0.42, 0.9) : randomBetween(0.9, 1.8),
             kind: streak ? 'streak' : 'orb',
             phase: randomBetween(0, Math.PI * 2),
             radius,
-            rotationSpeed: randomBetween(-0.08, 0.08),
-            stretch: streak ? randomBetween(2.6, 5.6) : randomBetween(1.05, 1.7),
-            vx: streak ? randomBetween(-14, 14) : randomBetween(-8, 8),
-            vy: streak ? randomBetween(-7, 7) : randomBetween(-5, 5),
+            rotationSpeed: randomBetween(-0.1, 0.1),
+            stretch: streak ? randomBetween(2.8, 6.2) : randomBetween(1.05, 1.8),
+            vx: streak ? randomBetween(-16, 16) : randomBetween(-10, 10),
+            vy: streak ? randomBetween(-8, 8) : randomBetween(-6, 6),
             x: randomBetween(0, width),
             y: randomBetween(0, height)
         };

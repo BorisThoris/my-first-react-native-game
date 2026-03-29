@@ -3,6 +3,7 @@ node_modules/
 dist/
 dist-electron/
 release/
+output/
 coverage/
 *.log
 *.orig.*

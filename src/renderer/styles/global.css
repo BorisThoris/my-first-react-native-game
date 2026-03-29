@@ -1,6 +1,6 @@
 :root {
-    color: #f6f1df;
-    background: #090d18;
+    color: var(--theme-text, #f8f4ea);
+    background: var(--theme-void, #050608);
     font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
     line-height: 1.4;
     font-weight: 400;
@@ -27,7 +27,16 @@ body,
 body {
     overflow: hidden;
     overscroll-behavior-y: none;
-    background: #090d18;
+    background:
+        radial-gradient(circle at 18% 12%, var(--theme-glow-gold-soft, rgba(255, 220, 140, 0.14)), transparent 30%),
+        radial-gradient(circle at 84% 18%, var(--theme-glow-cyan-soft, rgba(194, 245, 255, 0.14)), transparent 28%),
+        radial-gradient(circle at 50% 86%, rgba(255, 139, 57, 0.12), transparent 26%),
+        linear-gradient(160deg, var(--theme-void, #050608) 0%, var(--theme-void-soft, #090d15) 54%, var(--theme-smoke-deep, #10141c) 100%);
+}
+
+::selection {
+    background: var(--theme-glow-gold, rgba(215, 162, 77, 0.22));
+    color: var(--theme-text, #f8f4ea);
 }
 
 button,
@@ -43,6 +52,6 @@ button {
 button:focus-visible,
 select:focus-visible,
 input:focus-visible {
-    outline: 2px solid #f4d98b;
+    outline: 2px solid var(--theme-focus, #ffd57d);
     outline-offset: 2px;
 }

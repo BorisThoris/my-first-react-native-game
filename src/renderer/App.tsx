@@ -6,6 +6,7 @@ import MainMenu from './components/MainMenu';
 import SettingsScreen from './components/SettingsScreen';
 import { useViewportSize } from './hooks/useViewportSize';
 import styles from './styles/App.module.css';
+import { buildRendererThemeStyle } from './styles/theme';
 import { useAppStore } from './store/useAppStore';
 
 const App = () => {
@@ -43,6 +44,7 @@ const App = () => {
         : width <= 1220
           ? Math.min(settings.uiScale, 1.08)
           : Math.min(settings.uiScale, 1.15);
+    const themeStyle = buildRendererThemeStyle(safeUiScale);
 
     useEffect(() => {
         void hydrate();
@@ -54,7 +56,7 @@ const App = () => {
             data-reduce-motion={settings.reduceMotion ? 'true' : 'false'}
             data-density={isCompactViewport ? 'compact' : 'roomy'}
             data-viewport={width <= 760 ? 'mobile' : width <= 1220 ? 'tablet' : 'desktop'}
-            style={{ ['--ui-scale' as string]: safeUiScale }}
+            style={themeStyle}
         >
             <div className={styles.ambientGlow} />
             <div className={styles.content}>

@@ -105,7 +105,7 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
                     <p className={styles.eyebrow}>Arcade Expedition</p>
                     <h1 className={styles.title}>Level {run.board.level}</h1>
                     <p className={styles.statusLine}>
-                        {steamConnected ? 'Steam bridge online' : 'Local desktop mode'} ·{' '}
+                        {steamConnected ? 'Steam bridge online' : 'Local desktop mode'} |{' '}
                         {run.achievementsEnabled ? 'Achievements active' : 'Achievements disabled'}
                     </p>
                 </div>
@@ -253,3 +253,4 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
 };
 
 export default GameScreen;
+

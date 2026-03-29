@@ -14,6 +14,7 @@ export default tseslint.config(
             'dist/**',
             'dist-electron/**',
             'release/**',
+            'output/**',
             'node_modules/**',
             'docs/**',
             'legacy/expo-roguelike/**',

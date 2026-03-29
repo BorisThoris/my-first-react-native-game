@@ -19,7 +19,7 @@
 
 .eyebrow {
     margin: 0 0 0.45rem;
-    color: #d7ab64;
+    color: var(--theme-gold-bright);
     letter-spacing: 0.18em;
     text-transform: uppercase;
     font-size: 0.78rem;
@@ -29,12 +29,13 @@
     margin: 0;
     font-size: clamp(2rem, 5vw, 3.8rem);
     line-height: 0.95;
-    color: #fff6d8;
+    color: var(--theme-text);
+    text-shadow: 0 0 24px var(--theme-glow-gold);
 }
 
 .statusLine {
     margin: 0.7rem 0 0;
-    color: rgba(220, 229, 242, 0.74);
+    color: var(--theme-text-muted);
     line-height: 1.45;
 }
 
@@ -52,18 +53,40 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    transition:
+        transform 140ms ease,
+        border-color 140ms ease,
+        box-shadow 140ms ease,
+        background 140ms ease;
 }
 
 .actionButton {
-    border: 1px solid rgba(255, 240, 203, 0.16);
-    background: rgba(8, 12, 22, 0.56);
-    color: #f7eed3;
+    border: 1px solid var(--theme-border);
+    background: var(--theme-control-surface);
+    color: var(--theme-text);
 }
 
 .debugButton {
-    border: 1px solid rgba(255, 145, 104, 0.2);
-    background: rgba(116, 28, 16, 0.34);
-    color: #ffd1b6;
+    border: 1px solid rgba(255, 214, 133, 0.22);
+    background:
+        radial-gradient(circle at top left, rgba(255, 139, 57, 0.1), transparent 42%),
+        rgba(34, 17, 13, 0.58);
+    color: rgba(255, 226, 194, 0.92);
+}
+
+.actionButton:hover,
+.debugButton:hover {
+    transform: translateY(-1px);
+}
+
+.actionButton:hover {
+    border-color: var(--theme-border-strong);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+}
+
+.debugButton:hover {
+    border-color: rgba(255, 214, 133, 0.34);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
 }
 
 .hudGrid {
@@ -74,15 +97,16 @@
 }
 
 .metricCard {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 240, 203, 0.08);
+    background: var(--theme-panel-surface-muted);
+    border: 1px solid var(--theme-border);
     border-radius: 1.15rem;
     padding: 1rem;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .metricLabel {
     display: block;
-    color: rgba(220, 229, 242, 0.68);
+    color: var(--theme-text-subtle);
     letter-spacing: 0.1em;
     text-transform: uppercase;
     font-size: 0.72rem;
@@ -91,18 +115,21 @@
 .metricValue {
     display: block;
     margin-top: 0.45rem;
-    color: #fff5d2;
+    color: var(--theme-rune);
     font-size: 1.5rem;
 }
 
 .phaseBanner {
     padding: 0.85rem 1rem;
     border-radius: 1rem;
-    background: rgba(214, 160, 63, 0.1);
-    border: 1px solid rgba(214, 160, 63, 0.14);
-    color: #f5dfaa;
+    background: var(--theme-panel-surface-muted);
+    border: 1px solid var(--theme-border);
+    color: #f8e6b3;
     letter-spacing: 0.03em;
     line-height: 1.45;
+    box-shadow:
+        inset 3px 0 0 rgba(255, 214, 133, 0.44),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .boardArea {
@@ -120,15 +147,16 @@
 }
 
 .panelBlock {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 240, 203, 0.08);
+    background: var(--theme-panel-surface-accent);
+    border: 1px solid var(--theme-border);
     border-radius: 1.25rem;
     padding: 1.15rem;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .panelLabel {
     display: block;
-    color: rgba(220, 229, 242, 0.68);
+    color: var(--theme-text-subtle);
     letter-spacing: 0.1em;
     text-transform: uppercase;
     font-size: 0.72rem;
@@ -137,13 +165,13 @@
 .panelValue {
     display: block;
     margin-top: 0.45rem;
-    color: #fff5d2;
+    color: var(--theme-gold-bright);
     font-size: 2.2rem;
 }
 
 .panelCopy {
     margin: 0.7rem 0 0;
-    color: rgba(220, 229, 242, 0.76);
+    color: var(--theme-text-muted);
     line-height: 1.5;
 }
 
@@ -156,14 +184,14 @@
 
 .inlineStats strong {
     display: block;
-    color: #f4d685;
+    color: var(--theme-gold-bright);
     font-size: 1.35rem;
 }
 
 .inlineStats span {
     display: block;
     margin-top: 0.2rem;
-    color: rgba(220, 229, 242, 0.68);
+    color: var(--theme-text-subtle);
     text-transform: uppercase;
     letter-spacing: 0.08em;
     font-size: 0.68rem;
@@ -178,23 +206,23 @@
 .achievementCard {
     border-radius: 1rem;
     padding: 0.85rem;
-    background: rgba(224, 193, 121, 0.1);
-    border: 1px solid rgba(224, 193, 121, 0.16);
+    background: var(--theme-control-surface);
+    border: 1px solid rgba(87, 220, 255, 0.16);
 }
 
 .achievementCard strong {
     display: block;
-    color: #fff5d2;
+    color: var(--theme-text);
 }
 
 .achievementCard p {
     margin: 0.35rem 0 0;
-    color: rgba(220, 229, 242, 0.74);
+    color: var(--theme-text-muted);
 }
 
 .footerHint {
     margin: 0;
-    color: rgba(220, 229, 242, 0.7);
+    color: var(--theme-text-muted);
 }
 
 .modalStats {
@@ -206,26 +234,38 @@
 .modalStats div {
     border-radius: 1rem;
     padding: 0.9rem;
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--theme-panel-surface-muted);
+    border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .modalStats strong {
     display: block;
-    color: #fff2c4;
+    color: var(--theme-rune);
     font-size: 1.45rem;
 }
 
 .modalStats span {
     display: block;
     margin-top: 0.2rem;
-    color: rgba(220, 229, 242, 0.7);
+    color: var(--theme-text-subtle);
     text-transform: uppercase;
     letter-spacing: 0.08em;
     font-size: 0.7rem;
 }
 
 :global([data-reduce-motion='true']) .phaseBanner {
-    background: rgba(214, 160, 63, 0.08);
+    background: var(--theme-panel-surface-muted);
+}
+
+:global([data-reduce-motion='true']) .actionButton,
+:global([data-reduce-motion='true']) .debugButton {
+    transition: none;
+}
+
+:global([data-reduce-motion='true']) .actionButton:hover,
+:global([data-reduce-motion='true']) .debugButton:hover {
+    transform: none;
+    box-shadow: none;
 }
 
 @media (max-width: 1220px) {
@@ -327,5 +367,4 @@
         padding: 0.7rem 0.8rem;
         font-size: 0.86rem;
     }
-
 }

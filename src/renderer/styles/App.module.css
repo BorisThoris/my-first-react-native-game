@@ -10,9 +10,10 @@
         env(safe-area-inset-bottom)
         env(safe-area-inset-left);
     background:
-        radial-gradient(circle at top right, rgba(214, 160, 63, 0.18), transparent 25%),
-        radial-gradient(circle at bottom left, rgba(61, 118, 193, 0.24), transparent 35%),
-        linear-gradient(145deg, #060911 0%, #0d1321 48%, #111827 100%);
+        radial-gradient(circle at 14% 14%, var(--theme-glow-gold-soft), transparent 24%),
+        radial-gradient(circle at 84% 18%, var(--theme-glow-cyan-soft), transparent 26%),
+        radial-gradient(circle at 50% 84%, rgba(255, 139, 57, 0.14), transparent 28%),
+        linear-gradient(145deg, var(--theme-void) 0%, var(--theme-void-soft) 42%, var(--theme-smoke-deep) 100%);
 }
 
 .ambientGlow {
@@ -20,11 +21,13 @@
     inset: 0;
     z-index: 0;
     background:
-        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-    background-size: 72px 72px;
-    mask-image: radial-gradient(circle at center, black, transparent 80%);
+        linear-gradient(var(--theme-glow-stone) 1px, transparent 1px),
+        linear-gradient(90deg, var(--theme-glow-stone) 1px, transparent 1px),
+        radial-gradient(circle at center, rgba(255, 255, 255, 0.02), transparent 70%);
+    background-size: 96px 96px, 96px 96px, 100% 100%;
+    mask-image: radial-gradient(circle at center, black, transparent 78%);
     pointer-events: none;
+    opacity: 0.58;
 }
 
 .content {
@@ -46,7 +49,8 @@
     font-size: 1.25rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #ffdf91;
+    color: var(--theme-rune);
+    text-shadow: 0 0 24px var(--theme-glow-gold);
 }
 
 .app[data-reduce-motion='true'] .ambientGlow {
