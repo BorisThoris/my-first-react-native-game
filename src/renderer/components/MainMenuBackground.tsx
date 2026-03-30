@@ -35,6 +35,8 @@ interface ParticleState {
     lightAlpha: number;
     lightShift: number;
     lightSprite: Sprite;
+    lightX: number;
+    lightY: number;
     phase: number;
     rotation: number;
     rotationSpeed: number;
@@ -43,6 +45,7 @@ interface ParticleState {
     sprite: Sprite;
     vx: number;
     vy: number;
+    wrapPadding: number;
     x: number;
     y: number;
 }
@@ -60,12 +63,16 @@ const PARTICLE_COLORS = [colors.goldBright, colors.cyan, colors.rune, colors.emb
 
 const clamp = (value: number, min: number, max: number): number => Math.min(Math.max(value, min), max);
 
-const positiveMod = (value: number, modulus: number): number => {
-    if (modulus === 0) {
-        return 0;
+const wrapCoordinate = (value: number, size: number, padding: number): number => {
+    if (value < -padding) {
+        return size + padding;
     }
 
-    return ((value % modulus) + modulus) % modulus;
+    if (value > size + padding) {
+        return -padding;
+    }
+
+    return value;
 };
 
 const hashUnit = (index: number, salt: number): number => {
@@ -390,6 +397,9 @@ const createSceneController = (
             lightSprite.tint = hexToColorNumber(color);
             lightSprite.width = gridSpacing * (kind === 'streak' ? 1.45 : 1.18);
             lightSprite.height = gridSpacing * (kind === 'streak' ? 1.45 : 1.18);
+            const startX = hashUnit(index, 16) * surfaceWidth;
+            const startY = hashUnit(index, 17) * surfaceHeight;
+            const wrapPadding = Math.max(sprite.width, lightSprite.width) * (kind === 'streak' ? 0.95 : 0.8) + 40;
 
             gridLightLayer.addChild(lightSprite);
             particleLayer.addChild(sprite);
@@ -403,6 +413,8 @@ const createSceneController = (
                 lightAlpha: kind === 'streak' ? 0.08 + hashUnit(index, 18) * 0.04 : 0.05 + hashUnit(index, 18) * 0.03,
                 lightShift: 0.022 + hashUnit(index, 19) * 0.03,
                 lightSprite,
+                lightX: startX,
+                lightY: startY,
                 phase: hashUnit(index, 9) * Math.PI * 2,
                 rotation: hashUnit(index, 10) * Math.PI * 2,
                 rotationSpeed: (hashUnit(index, 11) - 0.5) * (kind === 'streak' ? 0.14 : 0.08),
@@ -411,8 +423,9 @@ const createSceneController = (
                 sprite,
                 vx: (hashUnit(index, 14) - 0.5) * (kind === 'streak' ? 28 : 18),
                 vy: (hashUnit(index, 15) - 0.5) * (kind === 'streak' ? 14 : 9),
-                x: hashUnit(index, 16) * surfaceWidth,
-                y: hashUnit(index, 17) * surfaceHeight
+                wrapPadding,
+                x: startX,
+                y: startY
             });
         }
 
@@ -437,14 +450,23 @@ const createSceneController = (
             const lightGridX = clamp(Math.floor(particleX / gridSpacing) * gridSpacing + gridSpacing / 2, gridSpacing / 2, surfaceWidth - gridSpacing / 2);
             const lightGridY = clamp(Math.floor(particleY / gridSpacing) * gridSpacing + gridSpacing / 2, gridSpacing / 2, surfaceHeight - gridSpacing / 2);
             const lightPulse = reduceMotion ? 0 : Math.sin(time * particle.shimmer * 0.74 + particle.phase);
+            const lightEase = reduceMotion ? 1 : particle.kind === 'streak' ? 0.12 : 0.16;
+            const lightMix = particle.kind === 'streak' ? 0.42 : 0.32;
+            const insideView =
+                particleX >= -particle.wrapPadding &&
+                particleX <= surfaceWidth + particle.wrapPadding &&
+                particleY >= -particle.wrapPadding &&
+                particleY <= surfaceHeight + particle.wrapPadding;
 
             particle.sprite.x = particleX;
             particle.sprite.y = particleY;
             particle.sprite.rotation = particle.rotation + (reduceMotion ? 0 : Math.sin(time * particle.speed * 0.48 + particle.phase) * particle.rotationSpeed);
             particle.sprite.alpha = particle.alpha + (reduceMotion ? 0 : Math.sin(time * particle.shimmer + particle.phase) * particle.alphaShift);
-            particle.lightSprite.x = lightGridX;
-            particle.lightSprite.y = lightGridY;
-            particle.lightSprite.alpha = particle.lightAlpha + lightPulse * particle.lightShift;
+            particle.lightX += (lightGridX - particle.lightX) * lightEase;
+            particle.lightY += (lightGridY - particle.lightY) * lightEase;
+            particle.lightSprite.x = particleX * (1 - lightMix) + particle.lightX * lightMix;
+            particle.lightSprite.y = particleY * (1 - lightMix) + particle.lightY * lightMix;
+            particle.lightSprite.alpha = insideView ? particle.lightAlpha + lightPulse * particle.lightShift : 0;
         }
     };
 
@@ -455,8 +477,8 @@ const createSceneController = (
         lastFrameTime = now;
 
         for (const particle of particles) {
-            particle.x = positiveMod(particle.x + particle.vx * deltaSeconds, surfaceWidth);
-            particle.y = positiveMod(particle.y + particle.vy * deltaSeconds, surfaceHeight);
+            particle.x = wrapCoordinate(particle.x + particle.vx * deltaSeconds, surfaceWidth, particle.wrapPadding);
+            particle.y = wrapCoordinate(particle.y + particle.vy * deltaSeconds, surfaceHeight, particle.wrapPadding);
         }
 
         applyTransforms(now);
