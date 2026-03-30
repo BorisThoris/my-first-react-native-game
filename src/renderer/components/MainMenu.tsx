@@ -1,6 +1,6 @@
 import type { RunSummary } from '../../shared/contracts';
 import { useViewportSize } from '../hooks/useViewportSize';
-import MenuAtmosphere from './MenuAtmosphere';
+import MainMenuBackground from './MainMenuBackground';
 import styles from './MainMenu.module.css';
 
 interface MainMenuProps {
@@ -48,9 +48,7 @@ const MainMenu = ({
 
     return (
         <section className={`${styles.shell} ${isCompact ? styles.compactShell : styles.roomyShell}`}>
-            <div className={styles.atmosphereLayer}>
-                <MenuAtmosphere height={height} reduceMotion={reduceMotion} width={width} />
-            </div>
+            <MainMenuBackground height={height} reduceMotion={reduceMotion} width={width} />
 
             <div className={styles.hero}>
                 <p className={styles.eyebrow}>Steam Demo Build</p>
@@ -99,8 +97,8 @@ const MainMenu = ({
                                     <p>Matches award immediate score and streak bonus. Mistakes break the chain.</p>
                                 </div>
                                 <div>
-                                    <strong>3. Perfect floors heal</strong>
-                                    <p>There is no life gain per match. Clear a floor with zero mistakes to recover one life.</p>
+                                    <strong>3. Build survival chains</strong>
+                                    <p>Each 4-match streak grants a guard. Each 8-match streak restores one life.</p>
                                 </div>
                             </div>
                         )}

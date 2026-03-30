@@ -20,45 +20,42 @@
     overflow: hidden;
 }
 
+.atmosphereHost {
+    position: absolute;
+    inset: 0;
+}
+
 .atmosphereCanvas {
     position: absolute;
     inset: 0;
     display: block;
     width: 100%;
     height: 100%;
-    mix-blend-mode: screen;
-    opacity: 0.72;
-    filter: saturate(1.08) contrast(1.02);
+    opacity: 0.94;
+    filter: saturate(1.03);
 }
 
-.shell::before,
-.shell::after {
-    content: '';
+.atmosphereFallback {
     position: absolute;
-    inset: -8%;
-    pointer-events: none;
-    z-index: 0;
-}
-
-.shell::before {
+    inset: 0;
     background:
-        radial-gradient(circle at 16% 22%, var(--theme-glow-gold), transparent 24%),
-        radial-gradient(circle at 84% 20%, var(--theme-glow-cyan), transparent 24%),
-        radial-gradient(circle at 52% 72%, var(--theme-glow-ember), transparent 32%);
-    filter: blur(16px);
-}
-
-.shell::after {
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 18% 82%, rgba(255, 255, 255, 0.03)),
-        linear-gradient(90deg, var(--theme-glow-stone) 1px, transparent 1px),
-        linear-gradient(var(--theme-glow-stone) 1px, transparent 1px);
+        radial-gradient(circle at 16% 18%, rgba(255, 215, 127, 0.16), transparent 28%),
+        radial-gradient(circle at 84% 16%, rgba(194, 245, 255, 0.15), transparent 30%),
+        radial-gradient(circle at 54% 76%, rgba(255, 177, 107, 0.1), transparent 30%),
+        radial-gradient(circle at center, rgba(14, 19, 29, 0.02), rgba(5, 6, 8, 0.42) 88%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 16% 84%, rgba(255, 255, 255, 0.02)),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+        linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
     background-size:
+        auto,
+        auto,
+        auto,
+        auto,
         auto,
         88px 88px,
         88px 88px;
-    mask-image: radial-gradient(circle at center, black, transparent 82%);
-    opacity: 0.32;
+    mask-image: radial-gradient(circle at center, black 0, rgba(0, 0, 0, 0.96) 68%, transparent 90%);
+    opacity: 0.62;
 }
 
 .roomyShell {

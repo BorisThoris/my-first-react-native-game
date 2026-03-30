@@ -27,7 +27,7 @@ const getPhaseCopy = (run: RunState): string => {
         case 'gameOver':
             return 'Expedition complete.';
         default:
-            return 'Stay sharp. Clean reads and streaks are worth more now.';
+            return 'Stay sharp. Every 4-match chain grants a guard; every 8-match chain restores 1 life.';
     }
 };
 
@@ -80,16 +80,19 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
         ? isTight
             ? [
                   { label: 'Lives', value: run.lives },
+                  { label: 'Guards', value: run.stats.guardTokens },
                   { label: 'Run Score', value: run.stats.totalScore.toLocaleString() }
               ]
             : [
                   { label: 'Lives', value: run.lives },
+                  { label: 'Guards', value: run.stats.guardTokens },
                   { label: 'Run Score', value: run.stats.totalScore.toLocaleString() },
                   { label: 'Streak', value: run.stats.currentStreak },
                   { label: 'Best Score', value: saveData.bestScore.toLocaleString() }
               ]
         : [
               { label: 'Lives', value: run.lives },
+              { label: 'Guards', value: run.stats.guardTokens },
               { label: 'Run Score', value: run.stats.totalScore.toLocaleString() },
               { label: 'Level Score', value: run.stats.currentLevelScore.toLocaleString() },
               { label: 'Streak', value: run.stats.currentStreak },
@@ -161,7 +164,7 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
                             <span className={styles.panelLabel}>Pairs Remaining</span>
                             <strong className={styles.panelValue}>{run.board.pairCount - run.board.matchedPairs}</strong>
                             <p className={styles.panelCopy}>
-                                Perfect floors restore one life. Mistakes break streaks and cost momentum.
+                                Every 4-match streak grants a guard token. Every 8-match streak restores one life.
                             </p>
                         </div>
 

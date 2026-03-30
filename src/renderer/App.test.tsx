@@ -1,6 +1,10 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+vi.mock('./components/MainMenuBackground', () => ({
+    default: () => <div aria-hidden="true" data-testid="menu-background" />
+}));
+
 import App from './App';
 import { createDefaultSaveData } from '../shared/save-data';
 import { useAppStore } from './store/useAppStore';
@@ -23,21 +27,39 @@ const resetStore = (): void => {
     });
 };
 
+const dismissStartupIntro = async (user: ReturnType<typeof userEvent.setup>): Promise<void> => {
+    await user.click(await screen.findByRole('button', { name: /skip intro/i }));
+};
+
 describe('desktop app flow', () => {
     beforeEach(() => {
         window.localStorage.clear();
         resetStore();
     });
 
-    it('hydrates to the main menu and starts an arcade run', async () => {
+    it('gates menu interaction behind the startup intro and starts an arcade run after skip', async () => {
         const user = userEvent.setup();
 
         render(<App />);
 
+        expect(screen.queryByRole('button', { name: /play arcade/i })).not.toBeInTheDocument();
+
+        await dismissStartupIntro(user);
         await user.click(await screen.findByRole('button', { name: /play arcade/i }));
 
         expect(await screen.findByRole('heading', { name: /level 1/i })).toBeInTheDocument();
         expect(screen.getByText(/pairs remaining/i)).toBeInTheDocument();
+    });
+
+    it('turns off the app-level ambient grid while the menu background is active', async () => {
+        const user = userEvent.setup();
+        const { container } = render(<App />);
+
+        await dismissStartupIntro(user);
+        await screen.findByRole('button', { name: /play arcade/i });
+
+        expect(container.firstElementChild).toHaveAttribute('data-view', 'menu');
+        expect(container.firstElementChild).toHaveAttribute('data-ambient-grid', 'off');
     });
 
     it('opens settings and persists changes through the desktop fallback bridge', async () => {
@@ -45,6 +67,7 @@ describe('desktop app flow', () => {
 
         render(<App />);
 
+        await dismissStartupIntro(user);
         await user.click(await screen.findByRole('button', { name: /settings/i }));
         expect(await screen.findByRole('heading', { name: /tune the run for steam desktop play/i })).toBeInTheDocument();
 
@@ -55,6 +78,7 @@ describe('desktop app flow', () => {
         await waitFor(() => {
             expect(screen.getByRole('button', { name: /play arcade/i })).toBeInTheDocument();
         });
+        expect(screen.queryByRole('dialog', { name: /startup relic intro/i })).not.toBeInTheDocument();
 
         const rawSave = window.localStorage.getItem('memory-dungeon-save-data');
         expect(rawSave).not.toBeNull();
@@ -69,6 +93,7 @@ describe('desktop app flow', () => {
 
         render(<App />);
 
+        await dismissStartupIntro(user);
         expect(await screen.findByRole('heading', { name: /memorize fast, play clean, protect the streak/i })).toBeInTheDocument();
 
         await user.click(screen.getByRole('button', { name: /dismiss/i }));
@@ -89,6 +114,7 @@ describe('desktop app flow', () => {
 
         render(<App />);
 
+        await dismissStartupIntro(user);
         await user.click(await screen.findByRole('button', { name: /play arcade/i }));
         expect(await screen.findByRole('heading', { name: /level 1/i })).toBeInTheDocument();
 

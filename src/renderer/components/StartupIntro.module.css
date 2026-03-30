@@ -1,0 +1,316 @@
+.overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    overflow: hidden;
+    display: grid;
+    align-items: stretch;
+    padding: clamp(1rem, 2.4vw, 2.6rem);
+    background:
+        radial-gradient(circle at 18% 22%, rgba(255, 215, 127, 0.14), transparent 28%),
+        radial-gradient(circle at 82% 18%, rgba(87, 220, 255, 0.12), transparent 30%),
+        linear-gradient(180deg, rgba(3, 4, 8, 0.72), rgba(4, 6, 10, 0.86) 38%, rgba(4, 6, 10, 0.92));
+    backdrop-filter: blur(7px) saturate(1.04);
+    animation: overlayReveal 260ms ease-out both;
+}
+
+.chromaticVeil,
+.edgeNoise {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.chromaticVeil {
+    background:
+        radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.03), transparent 34%),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.018), transparent 22%, rgba(255, 255, 255, 0.026) 52%, transparent 78%);
+    mix-blend-mode: screen;
+    opacity: 0.8;
+}
+
+.edgeNoise {
+    background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 88px 88px;
+    mask-image: radial-gradient(circle at center, black, transparent 82%);
+    opacity: 0.16;
+}
+
+.stage {
+    position: relative;
+    z-index: 1;
+    width: min(100%, 1380px);
+    margin: auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1.16fr) minmax(280px, 0.84fr);
+    gap: clamp(1.1rem, 2.6vw, 2.8rem);
+    align-items: center;
+}
+
+.sceneFrame {
+    position: relative;
+    min-height: clamp(420px, 64vh, 760px);
+    border-radius: clamp(1.6rem, 3vw, 2.8rem);
+    overflow: hidden;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+}
+
+.sceneFrame::before,
+.sceneFrame::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.sceneFrame::before {
+    display: none;
+}
+
+.sceneFrame::after {
+    display: none;
+}
+
+.canvasViewport,
+.fallbackFrame {
+    position: absolute;
+    inset: 0;
+    display: block;
+}
+
+.canvasViewport {
+    overflow: hidden;
+}
+
+.canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.fallbackFrame {
+    display: grid;
+    place-items: center;
+    background: transparent;
+}
+
+.fallbackAura {
+    position: absolute;
+    width: min(88%, 760px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle, rgba(255, 215, 127, 0.3), rgba(255, 95, 42, 0.1) 42%, transparent 70%);
+    filter: blur(26px);
+    opacity: 0.9;
+    animation: auraBreathe 2.9s ease-in-out infinite;
+}
+
+.fallbackImage {
+    position: relative;
+    z-index: 1;
+    width: min(118%, 1120px);
+    max-height: 92%;
+    object-fit: contain;
+    opacity: 0.95;
+    filter:
+        drop-shadow(0 0 22px rgba(255, 215, 127, 0.18))
+        drop-shadow(0 18px 36px rgba(0, 0, 0, 0.44));
+}
+
+.copyBlock {
+    align-self: end;
+    display: grid;
+    gap: 0.7rem;
+    padding-bottom: clamp(0.4rem, 0.8vw, 0.8rem);
+}
+
+.eyebrow {
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: 0.74rem;
+    color: var(--theme-gold-bright);
+}
+
+.title {
+    margin: 0;
+    font-size: clamp(2.3rem, 5vw, 4.8rem);
+    line-height: 0.92;
+    letter-spacing: -0.05em;
+    text-transform: uppercase;
+    color: var(--theme-text);
+    text-shadow:
+        0 0 18px rgba(255, 215, 127, 0.12),
+        0 10px 24px rgba(0, 0, 0, 0.45);
+}
+
+.subtitle,
+.status {
+    margin: 0;
+    max-width: 32rem;
+    color: var(--theme-text-muted);
+}
+
+.subtitle {
+    font-size: 1rem;
+}
+
+.subtitle kbd {
+    padding: 0.14rem 0.38rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--theme-text);
+    font-size: 0.92em;
+}
+
+.status {
+    font-size: 0.92rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--theme-text-subtle);
+}
+
+.skipButton {
+    position: absolute;
+    top: clamp(1rem, 2vw, 1.8rem);
+    right: clamp(1rem, 2vw, 1.8rem);
+    z-index: 2;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    padding: 0.8rem 1.2rem;
+    min-height: 3rem;
+    color: var(--theme-text);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015)),
+        rgba(6, 9, 13, 0.72);
+    box-shadow:
+        0 12px 30px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    transition:
+        transform 140ms ease,
+        border-color 140ms ease,
+        box-shadow 140ms ease;
+}
+
+.skipButton:hover {
+    transform: translateY(-1px);
+    border-color: rgba(255, 215, 127, 0.26);
+    box-shadow:
+        0 14px 34px rgba(0, 0, 0, 0.34),
+        0 0 16px rgba(255, 215, 127, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.overlay[data-preset='royal-sheen'] .sceneFrame::after {
+    animation: sheenSweep 2.5s linear infinite;
+}
+
+.overlay[data-preset='ember-fire'] .fallbackAura {
+    background:
+        radial-gradient(circle, rgba(255, 139, 57, 0.34), rgba(255, 95, 42, 0.16) 40%, transparent 70%);
+}
+
+.overlay[data-preset='ember-fire'] .sceneFrame {
+    box-shadow: none;
+}
+
+.overlay[data-preset='molten-liquify'] .sceneFrame::after {
+    background:
+        radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.03), transparent 38%),
+        linear-gradient(140deg, transparent 20%, rgba(255, 139, 57, 0.05) 50%, transparent 76%);
+    filter: blur(1px);
+}
+
+.overlay[data-preset='arcane-pulse'] .sceneFrame {
+    box-shadow: none;
+}
+
+.overlay[data-preset='arcane-pulse'] .fallbackAura {
+    background:
+        radial-gradient(circle, rgba(87, 220, 255, 0.28), rgba(194, 245, 255, 0.1) 44%, transparent 72%);
+}
+
+@media (max-width: 960px) {
+    .stage {
+        grid-template-columns: minmax(0, 1fr);
+        align-content: center;
+    }
+
+    .sceneFrame {
+        min-height: clamp(360px, 50vh, 520px);
+    }
+
+    .copyBlock {
+        text-align: center;
+        justify-items: center;
+    }
+
+    .subtitle,
+    .status {
+        max-width: 28rem;
+    }
+}
+
+@media (max-width: 560px) {
+    .overlay {
+        padding-top: 4.4rem;
+        padding-bottom: 1rem;
+    }
+
+    .skipButton {
+        top: 0.9rem;
+        right: 0.9rem;
+        left: 0.9rem;
+    }
+
+    .sceneFrame {
+        min-height: clamp(290px, 38vh, 380px);
+    }
+}
+
+@keyframes overlayReveal {
+    from {
+        opacity: 0;
+        transform: scale(1.015);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes auraBreathe {
+    0%,
+    100% {
+        transform: scale(0.94);
+        opacity: 0.72;
+    }
+
+    50% {
+        transform: scale(1.03);
+        opacity: 0.98;
+    }
+}
+
+@keyframes sheenSweep {
+    from {
+        transform: translateX(-18%);
+        opacity: 0.34;
+    }
+
+    50% {
+        opacity: 0.54;
+    }
+
+    to {
+        transform: translateX(12%);
+        opacity: 0.22;
+    }
+}

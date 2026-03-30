@@ -1,9 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import GameOverScreen from './components/GameOverScreen';
 import GameScreen from './components/GameScreen';
 import MainMenu from './components/MainMenu';
 import SettingsScreen from './components/SettingsScreen';
+import StartupIntro from './components/StartupIntro';
+import type { IntroPlaybackState } from './components/startupIntroConfig';
 import { useViewportSize } from './hooks/useViewportSize';
 import styles from './styles/App.module.css';
 import { buildRendererThemeStyle } from './styles/theme';
@@ -45,6 +47,12 @@ const App = () => {
           ? Math.min(settings.uiScale, 1.08)
           : Math.min(settings.uiScale, 1.15);
     const themeStyle = buildRendererThemeStyle(safeUiScale);
+    const activeView = hydrated ? view : 'boot';
+    const ambientGridState = hydrated && view === 'menu' ? 'off' : 'on';
+    const [introPlayback, setIntroPlayback] = useState<Exclude<IntroPlaybackState, 'playing'>>('pending');
+    const resolvedIntroPlayback: IntroPlaybackState =
+        hydrated && view === 'menu' && introPlayback === 'pending' ? 'playing' : introPlayback;
+    const introVisible = resolvedIntroPlayback === 'playing';
 
     useEffect(() => {
         void hydrate();
@@ -53,8 +61,10 @@ const App = () => {
     return (
         <div
             className={styles.app}
+            data-ambient-grid={ambientGridState}
             data-reduce-motion={settings.reduceMotion ? 'true' : 'false'}
             data-density={isCompactViewport ? 'compact' : 'roomy'}
+            data-view={activeView}
             data-viewport={width <= 760 ? 'mobile' : width <= 1220 ? 'tablet' : 'desktop'}
             style={themeStyle}
         >
@@ -63,15 +73,29 @@ const App = () => {
                 {!hydrated && <div className={styles.boot}>Preparing dungeon memory core...</div>}
 
                 {hydrated && view === 'menu' && (
-                    <MainMenu
-                        bestScore={saveData.bestScore}
-                        lastRunSummary={saveData.lastRunSummary}
-                        reduceMotion={settings.reduceMotion}
-                        onDismissHowToPlay={dismissHowToPlay}
-                        onOpenSettings={() => openSettings('menu')}
-                        onPlay={startRun}
-                        showHowToPlay={!saveData.onboardingDismissed}
-                    />
+                    <>
+                        <div
+                            aria-hidden={introVisible}
+                            className={`${styles.menuLayer} ${introVisible ? styles.menuLayerIntro : ''}`}
+                        >
+                            <MainMenu
+                                bestScore={saveData.bestScore}
+                                lastRunSummary={saveData.lastRunSummary}
+                                reduceMotion={settings.reduceMotion}
+                                onDismissHowToPlay={dismissHowToPlay}
+                                onOpenSettings={() => openSettings('menu')}
+                                onPlay={startRun}
+                                showHowToPlay={!saveData.onboardingDismissed}
+                            />
+                        </div>
+
+                        {introVisible && (
+                            <StartupIntro
+                                onComplete={() => setIntroPlayback('done')}
+                                reduceMotion={settings.reduceMotion}
+                            />
+                        )}
+                    </>
                 )}
 
                 {hydrated && view === 'settings' && <SettingsScreen />}

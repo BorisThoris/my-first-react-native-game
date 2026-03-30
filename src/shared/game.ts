@@ -1,7 +1,10 @@
 import {
+    CHAIN_HEAL_STREAK_STEP,
+    COMBO_GUARD_STREAK_STEP,
     DEBUG_REVEAL_MS,
     INITIAL_LIVES,
     MATCH_DELAY_MS,
+    MAX_GUARD_TOKENS,
     MAX_LIVES,
     MEMORIZE_BASE_MS,
     MEMORIZE_MIN_MS,
@@ -150,7 +153,8 @@ const createSessionStats = (bestScore: number): SessionStats => ({
     highestLevel: 1,
     currentStreak: 0,
     bestStreak: 0,
-    perfectClears: 0
+    perfectClears: 0,
+    guardTokens: 0
 });
 
 const createTiles = (level: number, pairCount: number): Tile[] => {
@@ -318,6 +322,10 @@ export const resolveBoardTurn = (run: RunState): RunState => {
             )
         };
         const currentStreak = run.stats.currentStreak + 1;
+        const guardTokenGain = currentStreak % COMBO_GUARD_STREAK_STEP === 0 ? 1 : 0;
+        const guardTokens = Math.min(MAX_GUARD_TOKENS, run.stats.guardTokens + guardTokenGain);
+        const chainHealLifeGain = currentStreak % CHAIN_HEAL_STREAK_STEP === 0 ? 1 : 0;
+        const lives = Math.min(MAX_LIVES, run.lives + chainHealLifeGain);
         const matchScore = calculateMatchScore(board.level, currentStreak);
         const totalScore = run.stats.totalScore + matchScore;
         const currentLevelScore = run.stats.currentLevelScore + matchScore;
@@ -326,6 +334,7 @@ export const resolveBoardTurn = (run: RunState): RunState => {
         const nextRun: RunState = {
             ...run,
             status: 'playing',
+            lives,
             board,
             stats: {
                 ...run.stats,
@@ -335,7 +344,8 @@ export const resolveBoardTurn = (run: RunState): RunState => {
                 matchesFound: run.stats.matchesFound + 1,
                 currentStreak,
                 bestStreak: Math.max(run.stats.bestStreak, currentStreak),
-                highestLevel: Math.max(run.stats.highestLevel, board.level)
+                highestLevel: Math.max(run.stats.highestLevel, board.level),
+                guardTokens
             },
             timerState: clearResolveState(run)
         };
@@ -344,7 +354,8 @@ export const resolveBoardTurn = (run: RunState): RunState => {
     }
 
     const tries = run.stats.tries + 1;
-    const lives = run.lives - 1;
+    const hasGuardToken = run.stats.guardTokens > 0;
+    const lives = hasGuardToken ? run.lives : run.lives - 1;
     const board: BoardState = {
         ...run.board,
         flippedTileIds: [],
@@ -353,6 +364,7 @@ export const resolveBoardTurn = (run: RunState): RunState => {
         )
     };
     const status = lives <= 0 ? 'gameOver' : 'playing';
+    const guardTokens = hasGuardToken ? run.stats.guardTokens - 1 : run.stats.guardTokens;
 
     return {
         ...run,
@@ -365,7 +377,8 @@ export const resolveBoardTurn = (run: RunState): RunState => {
             mismatches: run.stats.mismatches + 1,
             currentStreak: 0,
             rating: calculateRating(tries),
-            highestLevel: Math.max(run.stats.highestLevel, board.level)
+            highestLevel: Math.max(run.stats.highestLevel, board.level),
+            guardTokens
         },
         timerState: clearResolveState(run)
     };

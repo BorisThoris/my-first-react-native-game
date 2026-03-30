@@ -64,8 +64,36 @@ describe('game rules', () => {
         expect(resolved.stats.tries).toBe(1);
         expect(resolved.stats.mismatches).toBe(1);
         expect(resolved.stats.currentStreak).toBe(0);
+        expect(resolved.stats.guardTokens).toBe(0);
         expect(resolved.stats.totalScore).toBe(0);
         expect(resolved.board?.tiles.every((tile) => tile.state === 'hidden')).toBe(true);
+    });
+
+    it('consumes a guard token on mismatch and prevents life loss', () => {
+        const tiles: Tile[] = [
+            createTile('a1', 'A', 'A'),
+            createTile('a2', 'A', 'A'),
+            createTile('b1', 'B', 'B'),
+            createTile('b2', 'B', 'B')
+        ];
+        const started = {
+            ...createRun(tiles),
+            lives: 1,
+            stats: {
+                ...createRun(tiles).stats,
+                currentStreak: 5,
+                guardTokens: 1
+            }
+        };
+
+        const resolved = resolveBoardTurn(flipTile(flipTile(started, 'a1'), 'b1'));
+
+        expect(resolved.status).toBe('playing');
+        expect(resolved.lives).toBe(1);
+        expect(resolved.stats.guardTokens).toBe(0);
+        expect(resolved.stats.currentStreak).toBe(0);
+        expect(resolved.stats.tries).toBe(1);
+        expect(resolved.stats.mismatches).toBe(1);
     });
 
     it('keeps mismatch resolve delay but resolves matching flips immediately', () => {
@@ -121,6 +149,64 @@ describe('game rules', () => {
         expect(secondMatch.stats.bestStreak).toBe(2);
     });
 
+    it('grants guard tokens every 4 streak and restores life every 8 streak', () => {
+        const tiles: Tile[] = [createTile('a1', 'A', 'A'), createTile('a2', 'A', 'A')];
+
+        const atStreakFour = {
+            ...createRun(tiles),
+            lives: 3,
+            stats: {
+                ...createRun(tiles).stats,
+                tries: 1,
+                currentStreak: 3,
+                guardTokens: 0
+            }
+        };
+        const resolvedAtFour = resolveBoardTurn(flipTile(flipTile(atStreakFour, 'a1'), 'a2'));
+
+        expect(resolvedAtFour.status).toBe('levelComplete');
+        expect(resolvedAtFour.lives).toBe(3);
+        expect(resolvedAtFour.stats.currentStreak).toBe(4);
+        expect(resolvedAtFour.stats.guardTokens).toBe(1);
+
+        const atStreakEight = {
+            ...createRun(tiles),
+            lives: 3,
+            stats: {
+                ...createRun(tiles).stats,
+                tries: 1,
+                currentStreak: 7,
+                guardTokens: 1
+            }
+        };
+        const resolvedAtEight = resolveBoardTurn(flipTile(flipTile(atStreakEight, 'a1'), 'a2'));
+
+        expect(resolvedAtEight.status).toBe('levelComplete');
+        expect(resolvedAtEight.lives).toBe(4);
+        expect(resolvedAtEight.stats.currentStreak).toBe(8);
+        expect(resolvedAtEight.stats.guardTokens).toBe(2);
+    });
+
+    it('caps guard tokens and chain-heal life gains at their max values', () => {
+        const tiles: Tile[] = [createTile('a1', 'A', 'A'), createTile('a2', 'A', 'A')];
+        const started = {
+            ...createRun(tiles),
+            lives: 5,
+            stats: {
+                ...createRun(tiles).stats,
+                tries: 1,
+                currentStreak: 15,
+                guardTokens: 2
+            }
+        };
+        const resolved = resolveBoardTurn(flipTile(flipTile(started, 'a1'), 'a2'));
+
+        expect(resolved.status).toBe('levelComplete');
+        expect(resolved.lives).toBe(5);
+        expect(resolved.stats.currentStreak).toBe(16);
+        expect(resolved.stats.guardTokens).toBe(2);
+    });
+
     it('advances to the next level in memorize phase and resets per-level stats', () => {
         const finishedLevel = {
             ...createNewRun(250),
@@ -133,7 +219,8 @@ describe('game rules', () => {
                 currentStreak: 3,
                 bestStreak: 3,
                 perfectClears: 1,
-                highestLevel: 1
+                highestLevel: 1,
+                guardTokens: 2
             },
             timerState: {
                 memorizeRemainingMs: null,
@@ -149,6 +236,7 @@ describe('game rules', () => {
         expect(nextRun.stats.tries).toBe(0);
         expect(nextRun.stats.currentLevelScore).toBe(0);
         expect(nextRun.stats.currentStreak).toBe(0);
+        expect(nextRun.stats.guardTokens).toBe(2);
         expect(nextRun.stats.totalScore).toBe(300);
         expect(nextRun.timerState.memorizeRemainingMs).toBe(1140);
     });
