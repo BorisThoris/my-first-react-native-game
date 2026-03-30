@@ -3,6 +3,7 @@
     "version": "1.0.0",
     "private": true,
     "author": "Memory Dungeon",
+    "packageManager": "yarn@1.22.22",
     "license": "UNLICENSED",
     "description": "Windows-first Steam desktop arcade rebuild of Memory Dungeon.",
     "main": "dist-electron/main/index.js",
@@ -12,6 +13,7 @@
         "dev:electron:watch": "tsup --config tsup.config.ts --watch",
         "dev:electron": "wait-on tcp:5173 file:dist-electron/main/index.js file:dist-electron/preload/index.js && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electronmon dist-electron/main/index.js",
         "build": "yarn clean && yarn build:renderer && yarn build:electron",
+        "build:cloudflare": "yarn build:renderer",
         "build:renderer": "vite build",
         "build:electron": "tsup --config tsup.config.ts",
         "clean": "rimraf dist dist-electron release",
@@ -21,7 +23,7 @@
         "test:watch": "vitest",
         "package:dir": "yarn build && electron-builder --dir",
         "package:win": "yarn build && electron-builder --win nsis",
-        "postinstall": "electron-builder install-app-deps"
+        "postinstall": "node scripts/postinstall.cjs"
     },
     "dependencies": {
         "@react-three/fiber": "^9.5.0",
