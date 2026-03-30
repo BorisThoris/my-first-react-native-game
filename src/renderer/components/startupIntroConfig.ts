@@ -30,13 +30,23 @@ const REDUCED_MOTION_WEIGHTS: WeightedPreset[] = [
     { preset: 'arcane-pulse', weight: 0.42 }
 ];
 
-export const DEFAULT_INTRO_DURATION_MS = 3200;
-export const REDUCED_MOTION_INTRO_DURATION_MS = 1400;
+export const DEFAULT_INTRO_DURATION_MS = 4200;
+export const REDUCED_MOTION_INTRO_DURATION_MS = 1800;
+export const DEFAULT_INTRO_ENTER_DURATION_MS = 520;
+export const REDUCED_MOTION_INTRO_ENTER_DURATION_MS = 220;
+export const DEFAULT_INTRO_EXIT_DURATION_MS = 460;
+export const REDUCED_MOTION_INTRO_EXIT_DURATION_MS = 220;
 
 const FALLBACK_SEED = 0xa341316c;
 
 export const getIntroDurationMs = (reduceMotion: boolean): number =>
     reduceMotion ? REDUCED_MOTION_INTRO_DURATION_MS : DEFAULT_INTRO_DURATION_MS;
+
+export const getIntroEnterDurationMs = (reduceMotion: boolean): number =>
+    reduceMotion ? REDUCED_MOTION_INTRO_ENTER_DURATION_MS : DEFAULT_INTRO_ENTER_DURATION_MS;
+
+export const getIntroExitDurationMs = (reduceMotion: boolean): number =>
+    reduceMotion ? REDUCED_MOTION_INTRO_EXIT_DURATION_MS : DEFAULT_INTRO_EXIT_DURATION_MS;
 
 export const getLocalHourBucket = (value: Date): string =>
     `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}-${String(

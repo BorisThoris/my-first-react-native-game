@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StartupIntro from './StartupIntro';
+import { getIntroExitDurationMs } from './startupIntroConfig';
 
 const mockHasWebGLSupport = vi.fn();
 const mockLoadRelicTextures = vi.fn();
@@ -24,10 +25,10 @@ describe('StartupIntro', () => {
         render(<StartupIntro onComplete={onComplete} reduceMotion={false} />);
 
         expect(screen.getByRole('dialog', { name: /startup relic intro/i })).toBeInTheDocument();
-        expect(screen.getByText(/fallback sigil render active/i)).toBeInTheDocument();
+        expect(screen.getByRole('img', { name: /obsidian relic sigil/i })).toBeInTheDocument();
 
         act(() => {
-            vi.advanceTimersByTime(3199);
+            vi.advanceTimersByTime(4199);
         });
 
         expect(onComplete).not.toHaveBeenCalled();
@@ -52,6 +53,31 @@ describe('StartupIntro', () => {
 
         fireEvent.keyDown(window, { key: 'Escape' });
 
+        expect(onComplete).not.toHaveBeenCalled();
+
+        act(() => {
+            vi.advanceTimersByTime(getIntroExitDurationMs(true));
+        });
+
+        expect(onComplete).toHaveBeenCalledTimes(1);
+    });
+
+    it('skips when the intro overlay is clicked', () => {
+        const onComplete = vi.fn();
+
+        render(<StartupIntro onComplete={onComplete} reduceMotion={false} />);
+
+        fireEvent.pointerDown(screen.getByRole('dialog', { name: /startup relic intro/i }), {
+            button: 0,
+            pointerType: 'mouse'
+        });
+
+        expect(onComplete).not.toHaveBeenCalled();
+
+        act(() => {
+            vi.advanceTimersByTime(getIntroExitDurationMs(false));
+        });
+
         expect(onComplete).toHaveBeenCalledTimes(1);
     });
 
@@ -66,7 +92,6 @@ describe('StartupIntro', () => {
             await Promise.resolve();
         });
 
-        expect(screen.getByText(/fallback sigil render active/i)).toBeInTheDocument();
         expect(mockLoadRelicTextures).toHaveBeenCalledTimes(1);
         expect(screen.getByRole('img', { name: /obsidian relic sigil/i })).toBeInTheDocument();
     });

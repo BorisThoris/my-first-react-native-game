@@ -11,7 +11,16 @@
         radial-gradient(circle at 82% 18%, rgba(87, 220, 255, 0.12), transparent 30%),
         linear-gradient(180deg, rgba(3, 4, 8, 0.72), rgba(4, 6, 10, 0.86) 38%, rgba(4, 6, 10, 0.92));
     backdrop-filter: blur(7px) saturate(1.04);
-    animation: overlayReveal 260ms ease-out both;
+    opacity: 1;
+}
+
+.overlay[data-phase='enter'] {
+    animation: introOverlayIn var(--intro-enter-ms, 520ms) cubic-bezier(0.2, 0.86, 0.22, 1) both;
+}
+
+.overlay[data-phase='exit'] {
+    pointer-events: none;
+    animation: introOverlayOut var(--intro-exit-ms, 460ms) cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 .chromaticVeil,
@@ -41,22 +50,41 @@
 .stage {
     position: relative;
     z-index: 1;
-    width: min(100%, 1380px);
+    width: min(100%, 1180px);
     margin: auto;
-    display: grid;
-    grid-template-columns: minmax(0, 1.16fr) minmax(280px, 0.84fr);
-    gap: clamp(1.1rem, 2.6vw, 2.8rem);
+    display: flex;
     align-items: center;
+    justify-content: center;
+    transform-origin: center center;
+    will-change: transform, opacity, filter;
+}
+
+.overlay[data-phase='enter'] .stage {
+    animation: introStageIn var(--intro-enter-ms, 520ms) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.overlay[data-phase='exit'] .stage {
+    animation: introStageOut var(--intro-exit-ms, 460ms) cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 .sceneFrame {
     position: relative;
-    min-height: clamp(420px, 64vh, 760px);
+    width: min(100%, 980px);
+    min-height: clamp(420px, 70vh, 840px);
     border-radius: clamp(1.6rem, 3vw, 2.8rem);
     overflow: hidden;
     background: transparent;
     border: 0;
     box-shadow: none;
+    transform-origin: center center;
+}
+
+.overlay[data-phase='enter'] .sceneFrame {
+    animation: introLogoIn var(--intro-enter-ms, 520ms) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.overlay[data-phase='exit'] .sceneFrame {
+    animation: introLogoOut var(--intro-exit-ms, 460ms) cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 .sceneFrame::before,
@@ -113,98 +141,13 @@
 .fallbackImage {
     position: relative;
     z-index: 1;
-    width: min(118%, 1120px);
-    max-height: 92%;
+    width: min(100%, 960px);
+    max-height: 88%;
     object-fit: contain;
     opacity: 0.95;
     filter:
         drop-shadow(0 0 22px rgba(255, 215, 127, 0.18))
         drop-shadow(0 18px 36px rgba(0, 0, 0, 0.44));
-}
-
-.copyBlock {
-    align-self: end;
-    display: grid;
-    gap: 0.7rem;
-    padding-bottom: clamp(0.4rem, 0.8vw, 0.8rem);
-}
-
-.eyebrow {
-    margin: 0;
-    text-transform: uppercase;
-    letter-spacing: 0.22em;
-    font-size: 0.74rem;
-    color: var(--theme-gold-bright);
-}
-
-.title {
-    margin: 0;
-    font-size: clamp(2.3rem, 5vw, 4.8rem);
-    line-height: 0.92;
-    letter-spacing: -0.05em;
-    text-transform: uppercase;
-    color: var(--theme-text);
-    text-shadow:
-        0 0 18px rgba(255, 215, 127, 0.12),
-        0 10px 24px rgba(0, 0, 0, 0.45);
-}
-
-.subtitle,
-.status {
-    margin: 0;
-    max-width: 32rem;
-    color: var(--theme-text-muted);
-}
-
-.subtitle {
-    font-size: 1rem;
-}
-
-.subtitle kbd {
-    padding: 0.14rem 0.38rem;
-    border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    background: rgba(255, 255, 255, 0.06);
-    color: var(--theme-text);
-    font-size: 0.92em;
-}
-
-.status {
-    font-size: 0.92rem;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    color: var(--theme-text-subtle);
-}
-
-.skipButton {
-    position: absolute;
-    top: clamp(1rem, 2vw, 1.8rem);
-    right: clamp(1rem, 2vw, 1.8rem);
-    z-index: 2;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 999px;
-    padding: 0.8rem 1.2rem;
-    min-height: 3rem;
-    color: var(--theme-text);
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015)),
-        rgba(6, 9, 13, 0.72);
-    box-shadow:
-        0 12px 30px rgba(0, 0, 0, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    transition:
-        transform 140ms ease,
-        border-color 140ms ease,
-        box-shadow 140ms ease;
-}
-
-.skipButton:hover {
-    transform: translateY(-1px);
-    border-color: rgba(255, 215, 127, 0.26);
-    box-shadow:
-        0 14px 34px rgba(0, 0, 0, 0.34),
-        0 0 16px rgba(255, 215, 127, 0.12),
-        inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .overlay[data-preset='royal-sheen'] .sceneFrame::after {
@@ -237,23 +180,9 @@
 }
 
 @media (max-width: 960px) {
-    .stage {
-        grid-template-columns: minmax(0, 1fr);
-        align-content: center;
-    }
-
     .sceneFrame {
-        min-height: clamp(360px, 50vh, 520px);
-    }
-
-    .copyBlock {
-        text-align: center;
-        justify-items: center;
-    }
-
-    .subtitle,
-    .status {
-        max-width: 28rem;
+        width: min(100%, 760px);
+        min-height: clamp(360px, 56vh, 620px);
     }
 }
 
@@ -263,26 +192,90 @@
         padding-bottom: 1rem;
     }
 
-    .skipButton {
-        top: 0.9rem;
-        right: 0.9rem;
-        left: 0.9rem;
-    }
-
     .sceneFrame {
         min-height: clamp(290px, 38vh, 380px);
     }
 }
 
-@keyframes overlayReveal {
+@keyframes introOverlayIn {
     from {
         opacity: 0;
-        transform: scale(1.015);
+        filter: blur(8px);
+    }
+
+    to {
+        opacity: 1;
+        filter: blur(0);
+    }
+}
+
+@keyframes introOverlayOut {
+    from {
+        opacity: 1;
+        filter: blur(0);
+    }
+
+    to {
+        opacity: 0;
+        filter: blur(6px);
+    }
+}
+
+@keyframes introStageIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.94);
+    }
+
+    55% {
+        opacity: 1;
+        transform: translateY(0) scale(1.018);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes introStageOut {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(-12px) scale(1.045);
+    }
+}
+
+@keyframes introLogoIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+
+    60% {
+        opacity: 1;
+        transform: scale(1.02);
     }
 
     to {
         opacity: 1;
         transform: scale(1);
+    }
+}
+
+@keyframes introLogoOut {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: scale(1.06);
     }
 }
 

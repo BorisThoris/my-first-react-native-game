@@ -28,7 +28,10 @@ const resetStore = (): void => {
 };
 
 const dismissStartupIntro = async (user: ReturnType<typeof userEvent.setup>): Promise<void> => {
-    await user.click(await screen.findByRole('button', { name: /skip intro/i }));
+    await user.click(await screen.findByRole('dialog', { name: /startup relic intro/i }));
+    await waitFor(() => {
+        expect(screen.queryByRole('dialog', { name: /startup relic intro/i })).not.toBeInTheDocument();
+    });
 };
 
 describe('desktop app flow', () => {

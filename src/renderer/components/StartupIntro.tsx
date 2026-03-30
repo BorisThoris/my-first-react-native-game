@@ -1,5 +1,5 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
 import {
     AdditiveBlending,
     Color,
@@ -14,6 +14,8 @@ import relicSvgUrl from '../../../VECFINAL.svg?url';
 import { RENDERER_THEME } from '../styles/theme';
 import {
     createSeededRandom,
+    getIntroEnterDurationMs,
+    getIntroExitDurationMs,
     resolveIntroVariant,
     type IntroPreset
 } from './startupIntroConfig';
@@ -26,6 +28,7 @@ interface StartupIntroProps {
 }
 
 type IntroRenderMode = 'loading' | 'three' | 'fallback';
+type IntroPhase = 'enter' | 'idle' | 'exit';
 
 interface ParticleDefinition {
     baseX: number;
@@ -53,13 +56,6 @@ interface SurfaceProfile {
 const { colors } = RENDERER_THEME;
 const RELIC_FILL_WIDTH_RATIO = 0.92;
 const RELIC_FILL_HEIGHT_RATIO = 0.88;
-
-const PRESET_LABELS: Record<IntroPreset, string> = {
-    'arcane-pulse': 'Arcane Pulse',
-    'ember-fire': 'Ember Fire',
-    'molten-liquify': 'Molten Liquify',
-    'royal-sheen': 'Royal Sheen'
-};
 
 const toHex = (color: Color): string => `#${color.getHexString()}`;
 
@@ -564,11 +560,26 @@ const RelicIntroScene = ({
 const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
     const [renderMode, setRenderMode] = useState<IntroRenderMode>(() => (hasWebGLSupport() ? 'loading' : 'fallback'));
     const [textureSet, setTextureSet] = useState<RelicTextureSet | null>(null);
+    const [phase, setPhase] = useState<IntroPhase>('enter');
     const [variant] = useState(() => resolveIntroVariant({ reduceMotion }));
     const [sceneFrameRef, sceneFrameSize] = useElementSize<HTMLDivElement>();
     const overlayRef = useRef<HTMLElement | null>(null);
     const completedRef = useRef(false);
+    const exitStartedRef = useRef(false);
+    const autoExitTimeoutRef = useRef<number | null>(null);
+    const autoCompleteTimeoutRef = useRef<number | null>(null);
+    const manualExitTimeoutRef = useRef<number | null>(null);
     const targetFootprint = sceneFrameSize;
+    const enterDurationMs = getIntroEnterDurationMs(reduceMotion);
+    const exitDurationMs = getIntroExitDurationMs(reduceMotion);
+    const timingStyle = useMemo(
+        () =>
+            ({
+                '--intro-enter-ms': `${enterDurationMs}ms`,
+                '--intro-exit-ms': `${exitDurationMs}ms`
+            }) as CSSProperties,
+        [enterDurationMs, exitDurationMs]
+    );
     const completeIntro = useCallback(() => {
         if (completedRef.current) {
             return;
@@ -577,26 +588,87 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
         completedRef.current = true;
         onComplete();
     }, [onComplete]);
+    const beginExit = useCallback(() => {
+        if (completedRef.current || exitStartedRef.current) {
+            return;
+        }
+
+        exitStartedRef.current = true;
+        if (autoExitTimeoutRef.current !== null) {
+            window.clearTimeout(autoExitTimeoutRef.current);
+            autoExitTimeoutRef.current = null;
+        }
+        if (autoCompleteTimeoutRef.current !== null) {
+            window.clearTimeout(autoCompleteTimeoutRef.current);
+            autoCompleteTimeoutRef.current = null;
+        }
+        if (manualExitTimeoutRef.current !== null) {
+            window.clearTimeout(manualExitTimeoutRef.current);
+        }
+        setPhase('exit');
+        manualExitTimeoutRef.current = window.setTimeout(() => {
+            completeIntro();
+        }, exitDurationMs);
+    }, [completeIntro, exitDurationMs]);
+
+    useEffect(() => {
+        return () => {
+            if (autoExitTimeoutRef.current !== null) {
+                window.clearTimeout(autoExitTimeoutRef.current);
+            }
+            if (autoCompleteTimeoutRef.current !== null) {
+                window.clearTimeout(autoCompleteTimeoutRef.current);
+            }
+            if (manualExitTimeoutRef.current !== null) {
+                window.clearTimeout(manualExitTimeoutRef.current);
+            }
+        };
+    }, []);
 
     useEffect(() => {
         overlayRef.current?.focus({ preventScroll: true });
     }, []);
 
     useEffect(() => {
+        if (phase !== 'enter') {
+            return;
+        }
+
         const timeoutId = window.setTimeout(() => {
-            completeIntro();
-        }, variant.durationMs);
+            setPhase('idle');
+        }, enterDurationMs);
 
         return () => {
             window.clearTimeout(timeoutId);
         };
-    }, [completeIntro, variant.durationMs]);
+    }, [enterDurationMs, phase]);
+
+    useEffect(() => {
+        const autoExitDelay = Math.max(0, variant.durationMs - exitDurationMs);
+        autoExitTimeoutRef.current = window.setTimeout(() => {
+            beginExit();
+        }, autoExitDelay);
+        autoCompleteTimeoutRef.current = window.setTimeout(() => {
+            completeIntro();
+        }, variant.durationMs);
+
+        return () => {
+            if (autoExitTimeoutRef.current !== null) {
+                window.clearTimeout(autoExitTimeoutRef.current);
+                autoExitTimeoutRef.current = null;
+            }
+            if (autoCompleteTimeoutRef.current !== null) {
+                window.clearTimeout(autoCompleteTimeoutRef.current);
+                autoCompleteTimeoutRef.current = null;
+            }
+        };
+    }, [beginExit, completeIntro, exitDurationMs, variant.durationMs]);
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent): void => {
             if (event.key === 'Enter' || event.key === 'Escape' || event.key === ' ' || event.key === 'Spacebar') {
                 event.preventDefault();
-                completeIntro();
+                beginExit();
             }
         };
 
@@ -605,7 +677,7 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [completeIntro]);
+    }, [beginExit]);
 
     useEffect(() => {
         if (renderMode === 'fallback') {
@@ -647,7 +719,7 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
             return;
         }
 
-        completeIntro();
+        beginExit();
     };
 
     return (
@@ -655,11 +727,13 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
             aria-label="Startup relic intro"
             aria-modal="true"
             className={styles.overlay}
+            data-phase={phase}
             data-preset={variant.preset}
             data-render-mode={renderMode}
             onPointerDown={handlePointerDown}
             ref={overlayRef}
             role="dialog"
+            style={timingStyle}
             tabIndex={-1}
         >
             <div aria-hidden="true" className={styles.chromaticVeil} />
@@ -684,26 +758,7 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
                         </div>
                     )}
                 </div>
-
-                <div className={styles.copyBlock}>
-                    <p className={styles.eyebrow}>Startup Relic</p>
-                    <h2 className={styles.title}>Memory Dungeon</h2>
-                    <p className={styles.subtitle}>
-                        {PRESET_LABELS[variant.preset]} calibration. Click anywhere or press <kbd>Space</kbd> to skip.
-                    </p>
-                    <p className={styles.status}>
-                        {renderMode === 'three'
-                            ? 'Vector sigil active.'
-                            : renderMode === 'loading'
-                              ? 'Forging 3D sigil from the relic mark...'
-                              : 'Fallback sigil render active.'}
-                    </p>
-                </div>
             </div>
-
-            <button className={styles.skipButton} onClick={completeIntro} type="button">
-                Skip Intro
-            </button>
         </section>
     );
 };

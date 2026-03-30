@@ -32,6 +32,9 @@ interface ParticleState {
     driftX: number;
     driftY: number;
     kind: ParticleKind;
+    lightAlpha: number;
+    lightShift: number;
+    lightSprite: Sprite;
     phase: number;
     rotation: number;
     rotationSpeed: number;
@@ -257,10 +260,12 @@ const createSceneController = (
     const root = new pixi.Container();
     const fogLayer = new pixi.Container();
     const gridLayer = new pixi.Container();
+    const gridLightLayer = new pixi.Container();
     const particleLayer = new pixi.Container();
 
     root.addChild(fogLayer);
     root.addChild(gridLayer);
+    root.addChild(gridLightLayer);
     root.addChild(particleLayer);
     app.stage.addChild(root);
 
@@ -276,6 +281,7 @@ const createSceneController = (
     let reduceMotion = initialReduceMotion;
     let surfaceWidth = Math.max(1, initialWidth);
     let surfaceHeight = Math.max(1, initialHeight);
+    let gridSpacing = surfaceWidth <= 720 || surfaceHeight <= 720 ? 72 : 88;
     let animationActive = false;
     let lastFrameTime = performance.now();
 
@@ -318,11 +324,13 @@ const createSceneController = (
     const rebuildScene = (): void => {
         destroyChildren(fogLayer);
         destroyChildren(gridLayer);
+        destroyChildren(gridLightLayer);
         destroyChildren(particleLayer);
         destroyDynamicTextures();
 
         glows.length = 0;
         particles.length = 0;
+        gridSpacing = surfaceWidth <= 720 || surfaceHeight <= 720 ? 72 : 88;
 
         const backdrop = new pixi.Sprite(registerDynamicTexture(createBackdropTexture(pixi, surfaceWidth, surfaceHeight)));
         backdrop.width = surfaceWidth;
@@ -332,10 +340,10 @@ const createSceneController = (
 
         const maxDimension = Math.max(surfaceWidth, surfaceHeight);
         const glowDefinitions = [
-            { alpha: 0.15, color: colors.goldBright, driftX: 12, driftY: 8, phase: 0.3, pulse: 0.018, scaleX: 1.2, scaleY: 0.94, speed: 0.00011, x: 0.16, y: 0.16 },
-            { alpha: 0.13, color: colors.cyanBright, driftX: -10, driftY: 12, phase: 1.2, pulse: 0.02, scaleX: 1.32, scaleY: 1.04, speed: 0.00009, x: 0.84, y: 0.14 },
-            { alpha: 0.09, color: colors.emberSoft, driftX: 10, driftY: -14, phase: 2.4, pulse: 0.014, scaleX: 0.96, scaleY: 1.18, speed: 0.00008, x: 0.54, y: 0.76 },
-            { alpha: 0.05, color: colors.rune, driftX: 7, driftY: 5, phase: 3.1, pulse: 0.01, scaleX: 0.6, scaleY: 0.5, speed: 0.00007, x: 0.48, y: 0.42 }
+            { alpha: 0.17, color: colors.goldBright, driftX: 18, driftY: 11, phase: 0.3, pulse: 0.024, scaleX: 1.2, scaleY: 0.94, speed: 0.00019, x: 0.16, y: 0.16 },
+            { alpha: 0.15, color: colors.cyanBright, driftX: -16, driftY: 16, phase: 1.2, pulse: 0.026, scaleX: 1.32, scaleY: 1.04, speed: 0.00016, x: 0.84, y: 0.14 },
+            { alpha: 0.1, color: colors.emberSoft, driftX: 16, driftY: -20, phase: 2.4, pulse: 0.018, scaleX: 0.96, scaleY: 1.18, speed: 0.00013, x: 0.54, y: 0.76 },
+            { alpha: 0.06, color: colors.rune, driftX: 10, driftY: 8, phase: 3.1, pulse: 0.012, scaleX: 0.6, scaleY: 0.5, speed: 0.00012, x: 0.48, y: 0.42 }
         ] as const;
 
         for (const definition of glowDefinitions) {
@@ -364,36 +372,45 @@ const createSceneController = (
         grid.alpha = 0.88;
         gridLayer.addChild(grid);
 
-        const particleCount = getParticleCount(surfaceWidth, surfaceHeight);
-        const streakCount = Math.max(2, Math.round(particleCount * 0.22));
+        const particleCount = getParticleCount(surfaceWidth, surfaceHeight) + (surfaceWidth <= 760 ? 2 : 4);
+        const streakCount = Math.max(3, Math.round(particleCount * 0.28));
 
         for (let index = 0; index < particleCount; index += 1) {
             const kind: ParticleKind = index < streakCount && index % 2 === 0 ? 'streak' : 'orb';
             const sprite = new pixi.Sprite(kind === 'streak' ? sharedTextures.streak : sharedTextures.orb);
+            const lightSprite = new pixi.Sprite(sharedTextures.orb);
             const color = pickParticleColor(index);
-            const scale = kind === 'streak' ? 0.28 + hashUnit(index, 4) * 0.46 : 0.14 + hashUnit(index, 4) * 0.34;
+            const scale = kind === 'streak' ? 0.34 + hashUnit(index, 4) * 0.56 : 0.16 + hashUnit(index, 4) * 0.4;
 
             sprite.anchor.set(0.5);
             sprite.tint = hexToColorNumber(color);
             sprite.width = sharedTextures[kind].width * scale * (kind === 'streak' ? 1.9 : 1);
             sprite.height = sharedTextures[kind].height * scale * (kind === 'streak' ? 0.9 : 1);
+            lightSprite.anchor.set(0.5);
+            lightSprite.tint = hexToColorNumber(color);
+            lightSprite.width = gridSpacing * (kind === 'streak' ? 1.45 : 1.18);
+            lightSprite.height = gridSpacing * (kind === 'streak' ? 1.45 : 1.18);
 
+            gridLightLayer.addChild(lightSprite);
             particleLayer.addChild(sprite);
 
             particles.push({
-                alpha: kind === 'streak' ? 0.08 + hashUnit(index, 5) * 0.03 : 0.07 + hashUnit(index, 5) * 0.05,
-                alphaShift: 0.012 + hashUnit(index, 6) * 0.018,
-                driftX: kind === 'streak' ? 6 + hashUnit(index, 7) * 10 : 5 + hashUnit(index, 7) * 8,
-                driftY: kind === 'streak' ? 4 + hashUnit(index, 8) * 7 : 4 + hashUnit(index, 8) * 6,
+                alpha: kind === 'streak' ? 0.1 + hashUnit(index, 5) * 0.04 : 0.08 + hashUnit(index, 5) * 0.06,
+                alphaShift: 0.018 + hashUnit(index, 6) * 0.024,
+                driftX: kind === 'streak' ? 10 + hashUnit(index, 7) * 14 : 7 + hashUnit(index, 7) * 11,
+                driftY: kind === 'streak' ? 7 + hashUnit(index, 8) * 10 : 6 + hashUnit(index, 8) * 8,
                 kind,
+                lightAlpha: kind === 'streak' ? 0.08 + hashUnit(index, 18) * 0.04 : 0.05 + hashUnit(index, 18) * 0.03,
+                lightShift: 0.022 + hashUnit(index, 19) * 0.03,
+                lightSprite,
                 phase: hashUnit(index, 9) * Math.PI * 2,
                 rotation: hashUnit(index, 10) * Math.PI * 2,
-                rotationSpeed: (hashUnit(index, 11) - 0.5) * (kind === 'streak' ? 0.08 : 0.04),
-                shimmer: 0.0003 + hashUnit(index, 12) * 0.00025,
-                speed: 0.00016 + hashUnit(index, 13) * 0.00022,
+                rotationSpeed: (hashUnit(index, 11) - 0.5) * (kind === 'streak' ? 0.14 : 0.08),
+                shimmer: 0.0005 + hashUnit(index, 12) * 0.00034,
+                speed: 0.00032 + hashUnit(index, 13) * 0.0003,
                 sprite,
-                vx: (hashUnit(index, 14) - 0.5) * (kind === 'streak' ? 16 : 10),
-                vy: (hashUnit(index, 15) - 0.5) * (kind === 'streak' ? 8 : 6),
+                vx: (hashUnit(index, 14) - 0.5) * (kind === 'streak' ? 28 : 18),
+                vy: (hashUnit(index, 15) - 0.5) * (kind === 'streak' ? 14 : 9),
                 x: hashUnit(index, 16) * surfaceWidth,
                 y: hashUnit(index, 17) * surfaceHeight
             });
@@ -415,11 +432,19 @@ const createSceneController = (
         for (const particle of particles) {
             const movement = reduceMotion ? 0 : Math.sin(time * particle.speed + particle.phase);
             const altitude = reduceMotion ? 0 : Math.cos(time * particle.speed * 0.92 + particle.phase) * 0.85;
+            const particleX = particle.x + movement * particle.driftX;
+            const particleY = particle.y + altitude * particle.driftY;
+            const lightGridX = clamp(Math.floor(particleX / gridSpacing) * gridSpacing + gridSpacing / 2, gridSpacing / 2, surfaceWidth - gridSpacing / 2);
+            const lightGridY = clamp(Math.floor(particleY / gridSpacing) * gridSpacing + gridSpacing / 2, gridSpacing / 2, surfaceHeight - gridSpacing / 2);
+            const lightPulse = reduceMotion ? 0 : Math.sin(time * particle.shimmer * 0.74 + particle.phase);
 
-            particle.sprite.x = particle.x + movement * particle.driftX;
-            particle.sprite.y = particle.y + altitude * particle.driftY;
+            particle.sprite.x = particleX;
+            particle.sprite.y = particleY;
             particle.sprite.rotation = particle.rotation + (reduceMotion ? 0 : Math.sin(time * particle.speed * 0.48 + particle.phase) * particle.rotationSpeed);
             particle.sprite.alpha = particle.alpha + (reduceMotion ? 0 : Math.sin(time * particle.shimmer + particle.phase) * particle.alphaShift);
+            particle.lightSprite.x = lightGridX;
+            particle.lightSprite.y = lightGridY;
+            particle.lightSprite.alpha = particle.lightAlpha + lightPulse * particle.lightShift;
         }
     };
 
@@ -453,6 +478,7 @@ const createSceneController = (
             stopAnimation();
             destroyChildren(fogLayer);
             destroyChildren(gridLayer);
+            destroyChildren(gridLightLayer);
             destroyChildren(particleLayer);
             destroyDynamicTextures();
             sharedTextures.orb.destroy();

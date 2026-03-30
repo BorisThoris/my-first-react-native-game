@@ -26,7 +26,7 @@ describe('startup intro seed + preset selection', () => {
                 now: new Date('2026-03-30T12:34:56.000'),
                 reduceMotion: false
             }).durationMs
-        ).toBe(3200);
+        ).toBe(4200);
 
         expect(
             resolveIntroVariant({
@@ -34,7 +34,7 @@ describe('startup intro seed + preset selection', () => {
                 now: new Date('2026-03-30T12:34:56.000'),
                 reduceMotion: true
             }).durationMs
-        ).toBe(1400);
+        ).toBe(1800);
     });
 
     it('avoids fire and liquify presets when reduced motion is enabled', () => {
