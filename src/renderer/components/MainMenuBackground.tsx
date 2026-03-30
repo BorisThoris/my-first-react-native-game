@@ -35,8 +35,6 @@ interface ParticleState {
     lightAlpha: number;
     lightShift: number;
     lightSprite: Sprite;
-    lightX: number;
-    lightY: number;
     phase: number;
     rotation: number;
     rotationSpeed: number;
@@ -413,8 +411,6 @@ const createSceneController = (
                 lightAlpha: kind === 'streak' ? 0.08 + hashUnit(index, 18) * 0.04 : 0.05 + hashUnit(index, 18) * 0.03,
                 lightShift: 0.022 + hashUnit(index, 19) * 0.03,
                 lightSprite,
-                lightX: startX,
-                lightY: startY,
                 phase: hashUnit(index, 9) * Math.PI * 2,
                 rotation: hashUnit(index, 10) * Math.PI * 2,
                 rotationSpeed: (hashUnit(index, 11) - 0.5) * (kind === 'streak' ? 0.14 : 0.08),
@@ -447,25 +443,23 @@ const createSceneController = (
             const altitude = reduceMotion ? 0 : Math.cos(time * particle.speed * 0.92 + particle.phase) * 0.85;
             const particleX = particle.x + movement * particle.driftX;
             const particleY = particle.y + altitude * particle.driftY;
-            const lightGridX = clamp(Math.floor(particleX / gridSpacing) * gridSpacing + gridSpacing / 2, gridSpacing / 2, surfaceWidth - gridSpacing / 2);
-            const lightGridY = clamp(Math.floor(particleY / gridSpacing) * gridSpacing + gridSpacing / 2, gridSpacing / 2, surfaceHeight - gridSpacing / 2);
             const lightPulse = reduceMotion ? 0 : Math.sin(time * particle.shimmer * 0.74 + particle.phase);
-            const lightEase = reduceMotion ? 1 : particle.kind === 'streak' ? 0.12 : 0.16;
-            const lightMix = particle.kind === 'streak' ? 0.42 : 0.32;
             const insideView =
                 particleX >= -particle.wrapPadding &&
                 particleX <= surfaceWidth + particle.wrapPadding &&
                 particleY >= -particle.wrapPadding &&
                 particleY <= surfaceHeight + particle.wrapPadding;
+            const lightLagX = reduceMotion ? 0 : Math.cos(time * particle.speed * 0.58 + particle.phase * 1.1) * (particle.kind === 'streak' ? 12 : 8);
+            const lightLagY = reduceMotion ? 0 : Math.sin(time * particle.speed * 0.54 + particle.phase * 0.8) * (particle.kind === 'streak' ? 9 : 6);
+            const lightScale = particle.kind === 'streak' ? 1.05 : 0.92;
 
             particle.sprite.x = particleX;
             particle.sprite.y = particleY;
             particle.sprite.rotation = particle.rotation + (reduceMotion ? 0 : Math.sin(time * particle.speed * 0.48 + particle.phase) * particle.rotationSpeed);
             particle.sprite.alpha = particle.alpha + (reduceMotion ? 0 : Math.sin(time * particle.shimmer + particle.phase) * particle.alphaShift);
-            particle.lightX += (lightGridX - particle.lightX) * lightEase;
-            particle.lightY += (lightGridY - particle.lightY) * lightEase;
-            particle.lightSprite.x = particleX * (1 - lightMix) + particle.lightX * lightMix;
-            particle.lightSprite.y = particleY * (1 - lightMix) + particle.lightY * lightMix;
+            particle.lightSprite.x = particleX + lightLagX;
+            particle.lightSprite.y = particleY + lightLagY;
+            particle.lightSprite.scale.set(lightScale + lightPulse * 0.08);
             particle.lightSprite.alpha = insideView ? particle.lightAlpha + lightPulse * particle.lightShift : 0;
         }
     };

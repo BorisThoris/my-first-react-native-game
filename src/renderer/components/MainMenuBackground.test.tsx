@@ -33,6 +33,7 @@ class MockSprite {
     destroy = vi.fn();
     height = 0;
     rotation = 0;
+    scale = { set: vi.fn() };
     tint = 0;
     width = 0;
     x = 0;
