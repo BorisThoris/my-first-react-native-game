@@ -9,6 +9,8 @@ interface MainMenuBackgroundProps {
     fieldTiltRef: MutableRefObject<TiltVector>;
     height: number;
     reduceMotion: boolean;
+    /** When true, hide the patterned fallback so nothing reads as “loading” behind the startup intro. */
+    suppressLoadingFallback?: boolean;
     width: number;
 }
 
@@ -548,7 +550,13 @@ const createSceneController = (
     };
 };
 
-const MainMenuBackground = ({ fieldTiltRef: menuFieldTiltRef, width, height, reduceMotion }: MainMenuBackgroundProps) => {
+const MainMenuBackground = ({
+    fieldTiltRef: menuFieldTiltRef,
+    height,
+    reduceMotion,
+    suppressLoadingFallback = false,
+    width
+}: MainMenuBackgroundProps) => {
     const hostRef = useRef<HTMLDivElement | null>(null);
     const sceneRef = useRef<SceneController | null>(null);
     const latestPropsRef = useRef({ height, reduceMotion, width });
@@ -641,7 +649,12 @@ const MainMenuBackground = ({ fieldTiltRef: menuFieldTiltRef, width, height, red
     return (
         <div className={styles.atmosphereLayer}>
             <div aria-hidden="true" className={styles.atmosphereHost} data-render-status={renderStatus} ref={hostRef}>
-                {renderStatus !== 'ready' && <div className={styles.atmosphereFallback} />}
+                {renderStatus !== 'ready' &&
+                    (suppressLoadingFallback ? (
+                        <div className={styles.atmospherePlaceholder} />
+                    ) : (
+                        <div className={styles.atmosphereFallback} />
+                    ))}
             </div>
         </div>
     );

@@ -10,6 +10,7 @@ interface MainMenuProps {
     lastRunSummary: RunSummary | null;
     reduceMotion: boolean;
     showHowToPlay: boolean;
+    suppressMenuBackgroundFallback?: boolean;
     onDismissHowToPlay: () => Promise<void>;
     onPlay: () => void;
     onOpenSettings: () => void;
@@ -20,6 +21,7 @@ const MainMenu = ({
     lastRunSummary,
     reduceMotion,
     showHowToPlay,
+    suppressMenuBackgroundFallback = false,
     onDismissHowToPlay,
     onPlay,
     onOpenSettings
@@ -64,6 +66,7 @@ const MainMenu = ({
                 fieldTiltRef={menuFieldTiltRef}
                 height={height}
                 reduceMotion={reduceMotion}
+                suppressLoadingFallback={suppressMenuBackgroundFallback}
                 width={width}
             />
 

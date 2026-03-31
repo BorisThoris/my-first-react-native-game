@@ -41,6 +41,55 @@ const emitTextureImageUpdate = (): void => {
     textureImageUpdateListeners.forEach((listener) => listener());
 };
 
+/** Ensures all card PNGs are decoded so the tile board can build CanvasTextures without a first-frame hitch. */
+export const preloadTileTextureImages = (): Promise<void> => {
+    if (!canDraw()) {
+        return Promise.resolve();
+    }
+
+    const ids = Object.keys(textureImageUrls) as TextureImageId[];
+
+    return Promise.all(
+        ids.map(
+            (id) =>
+                new Promise<void>((resolve) => {
+                    const existing = textureImages.get(id);
+
+                    if (existing?.status === 'loaded') {
+                        resolve();
+                        return;
+                    }
+
+                    if (existing?.status === 'error') {
+                        resolve();
+                        return;
+                    }
+
+                    const image = new Image();
+                    image.decoding = 'async';
+
+                    image.onload = () => {
+                        textureImages.set(id, { image, status: 'loaded' });
+                        textureCache.clear();
+                        emitTextureImageUpdate();
+                        resolve();
+                    };
+
+                    image.onerror = () => {
+                        textureImages.set(id, { image: null, status: 'error' });
+                        resolve();
+                    };
+
+                    if (!textureImages.has(id)) {
+                        textureImages.set(id, { image: null, status: 'loading' });
+                    }
+
+                    image.src = textureImageUrls[id];
+                })
+        )
+    ).then(() => undefined);
+};
+
 const hashString = (value: string): number => {
     let hash = 0;
 

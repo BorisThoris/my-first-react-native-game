@@ -35,6 +35,13 @@
     filter: saturate(1.03);
 }
 
+.atmospherePlaceholder {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: transparent;
+}
+
 .atmosphereFallback {
     position: absolute;
     inset: 0;

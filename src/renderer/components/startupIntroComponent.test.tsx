@@ -13,6 +13,10 @@ vi.mock('./startupIntroTextures', () => ({
     loadRelicTextures: (source: string) => mockLoadRelicTextures(source)
 }));
 
+vi.mock('./tileTextures', () => ({
+    preloadTileTextureImages: vi.fn(() => Promise.resolve())
+}));
+
 const renderIntro = (ui: ReactElement): ReturnType<typeof render> =>
     render(<PlatformTiltProvider>{ui}</PlatformTiltProvider>);
 

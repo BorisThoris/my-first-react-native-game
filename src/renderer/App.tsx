@@ -50,9 +50,11 @@ const App = () => {
     const activeView = hydrated ? view : 'boot';
     const ambientGridState = hydrated && view === 'menu' ? 'off' : 'on';
     const [introPlayback, setIntroPlayback] = useState<Exclude<IntroPlaybackState, 'playing'>>('pending');
-    const resolvedIntroPlayback: IntroPlaybackState =
-        hydrated && view === 'menu' && introPlayback === 'pending' ? 'playing' : introPlayback;
-    const introVisible = resolvedIntroPlayback === 'playing';
+    const introOverlayVisible =
+        introPlayback === 'pending' && (!hydrated || (hydrated && view === 'menu'));
+    const showMainMenu = hydrated && view === 'menu';
+    const showMenuShell = showMainMenu || (!hydrated && introPlayback === 'pending');
+    const menuShellBlurred = showMainMenu && introOverlayVisible;
 
     useEffect(() => {
         void hydrate();
@@ -70,32 +72,31 @@ const App = () => {
         >
             <div className={styles.ambientGlow} />
             <div className={styles.content}>
-                {!hydrated && <div className={styles.boot}>Preparing dungeon memory core...</div>}
-
-                {hydrated && view === 'menu' && (
-                    <>
-                        <div
-                            aria-hidden={introVisible}
-                            className={`${styles.menuLayer} ${introVisible ? styles.menuLayerIntro : ''}`}
-                        >
+                {showMenuShell && (
+                    <div
+                        aria-hidden={introOverlayVisible}
+                        className={`${styles.menuLayer} ${menuShellBlurred ? styles.menuLayerIntro : ''}`}
+                    >
+                        {showMainMenu ? (
                             <MainMenu
                                 bestScore={saveData.bestScore}
                                 lastRunSummary={saveData.lastRunSummary}
                                 reduceMotion={settings.reduceMotion}
+                                suppressMenuBackgroundFallback={introOverlayVisible}
                                 onDismissHowToPlay={dismissHowToPlay}
                                 onOpenSettings={() => openSettings('menu')}
                                 onPlay={startRun}
                                 showHowToPlay={!saveData.onboardingDismissed}
                             />
-                        </div>
+                        ) : null}
+                    </div>
+                )}
 
-                        {introVisible && (
-                            <StartupIntro
-                                onComplete={() => setIntroPlayback('done')}
-                                reduceMotion={settings.reduceMotion}
-                            />
-                        )}
-                    </>
+                {introOverlayVisible && (
+                    <StartupIntro
+                        onComplete={() => setIntroPlayback('done')}
+                        reduceMotion={settings.reduceMotion}
+                    />
                 )}
 
                 {hydrated && view === 'settings' && <SettingsScreen />}

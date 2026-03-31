@@ -31,6 +31,7 @@ import {
     resolveIntroVariant,
     type IntroPreset
 } from './startupIntroConfig';
+import { preloadTileTextureImages } from './tileTextures';
 import { hasWebGLSupport, loadRelicTextures, type RelicTextureSet } from './startupIntroTextures';
 import styles from './StartupIntro.module.css';
 
@@ -39,7 +40,7 @@ interface StartupIntroProps {
     reduceMotion: boolean;
 }
 
-type IntroRenderMode = 'loading' | 'three' | 'fallback';
+type IntroRenderMode = 'three' | 'fallback';
 type IntroPhase = 'enter' | 'idle' | 'exit';
 
 interface ParticleDefinition {
@@ -543,7 +544,7 @@ const RelicIntroScene = ({
     targetFootprint
 }: {
     fieldTiltRef: MutableRefObject<TiltVector>;
-    textureSet: RelicTextureSet;
+    textureSet: RelicTextureSet | null;
     preset: IntroPreset;
     reduceMotion: boolean;
     sessionSeed: number;
@@ -568,20 +569,22 @@ const RelicIntroScene = ({
             <directionalLight color={palette.halo} intensity={preset === 'arcane-pulse' ? 0.66 : 0.26} position={[-3.4, 1.4, 5.3]} />
             <pointLight color={palette.glow} intensity={preset === 'ember-fire' ? 0.92 : 0.38} position={[0.24, -0.88, 4.3]} />
             <ParticleField preset={preset} reduceMotion={reduceMotion} sessionSeed={sessionSeed} />
-            <RelicMedallion
-                fieldTiltRef={fieldTiltRef}
-                textureSet={textureSet}
-                preset={preset}
-                reduceMotion={reduceMotion}
-                sessionSeed={sessionSeed}
-                targetFootprint={targetFootprint}
-            />
+            {textureSet ? (
+                <RelicMedallion
+                    fieldTiltRef={fieldTiltRef}
+                    preset={preset}
+                    reduceMotion={reduceMotion}
+                    sessionSeed={sessionSeed}
+                    targetFootprint={targetFootprint}
+                    textureSet={textureSet}
+                />
+            ) : null}
         </Canvas>
     );
 };
 
 const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
-    const [renderMode, setRenderMode] = useState<IntroRenderMode>(() => (hasWebGLSupport() ? 'loading' : 'fallback'));
+    const [renderMode, setRenderMode] = useState<IntroRenderMode>(() => (hasWebGLSupport() ? 'three' : 'fallback'));
     const [textureSet, setTextureSet] = useState<RelicTextureSet | null>(null);
     const [phase, setPhase] = useState<IntroPhase>('enter');
     const [variant] = useState(() => resolveIntroVariant({ reduceMotion }));
@@ -728,11 +731,13 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
     }, [beginExit]);
 
     useEffect(() => {
-        if (renderMode === 'fallback') {
+        if (!hasWebGLSupport()) {
             return;
         }
 
         let cancelled = false;
+
+        void preloadTileTextureImages();
 
         void loadRelicTextures(relicSvgUrl)
             .then((nextTextureSet) => {
@@ -742,7 +747,6 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
                 }
 
                 setTextureSet(nextTextureSet);
-                setRenderMode('three');
             })
             .catch(() => {
                 if (!cancelled) {
@@ -753,7 +757,7 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
         return () => {
             cancelled = true;
         };
-    }, [renderMode]);
+    }, []);
 
     useEffect(
         () => () => {
@@ -791,15 +795,15 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
 
             <div className={styles.stage}>
                 <div className={styles.sceneFrame} ref={sceneFrameRef}>
-                    {renderMode === 'three' && textureSet ? (
+                    {renderMode === 'three' ? (
                         <div className={styles.canvasViewport}>
                             <RelicIntroScene
                                 fieldTiltRef={introFieldTiltRef}
-                                textureSet={textureSet}
                                 preset={variant.preset}
                                 reduceMotion={reduceMotion}
                                 sessionSeed={variant.seed.sessionSeed}
                                 targetFootprint={targetFootprint}
+                                textureSet={textureSet}
                             />
                         </div>
                     ) : (
