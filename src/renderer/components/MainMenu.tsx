@@ -2,6 +2,7 @@ import type { RunSummary } from '../../shared/contracts';
 import { useRef } from 'react';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
+import { Eyebrow, Panel, ScreenTitle, UiButton } from '../ui';
 import MainMenuBackground from './MainMenuBackground';
 import styles from './MainMenu.module.css';
 
@@ -36,26 +37,11 @@ const MainMenu = ({
     const { height, width } = useViewportSize();
     const isCompact = width <= 760 || height <= 760;
     const isTight = width <= 430 || height <= 620;
-    const summaryMetrics = lastRunSummary
+    const lastRunLine = lastRunSummary
         ? isTight
-            ? [
-                  { value: lastRunSummary.totalScore.toLocaleString(), label: 'Total Score' },
-                  { value: lastRunSummary.highestLevel, label: 'Highest Level' }
-              ]
-            : isCompact
-              ? [
-                    { value: lastRunSummary.totalScore.toLocaleString(), label: 'Total Score' },
-                    { value: lastRunSummary.highestLevel, label: 'Highest Level' },
-                    { value: lastRunSummary.bestStreak, label: 'Best Streak' }
-                ]
-              : [
-                    { value: lastRunSummary.totalScore.toLocaleString(), label: 'Total Score' },
-                    { value: lastRunSummary.levelsCleared, label: 'Floors Cleared' },
-                    { value: lastRunSummary.highestLevel, label: 'Highest Level' },
-                    { value: lastRunSummary.bestStreak, label: 'Best Streak' },
-                    { value: lastRunSummary.perfectClears, label: 'Perfect Floors' }
-                ]
-        : [];
+            ? `${lastRunSummary.totalScore.toLocaleString()} pts · Floor ${lastRunSummary.highestLevel}`
+            : `${lastRunSummary.totalScore.toLocaleString()} pts · ${lastRunSummary.levelsCleared} floors · high ${lastRunSummary.highestLevel} · streak ${lastRunSummary.bestStreak} · ${lastRunSummary.perfectClears} perfect`
+        : null;
 
     return (
         <section
@@ -71,17 +57,19 @@ const MainMenu = ({
             />
 
             <div className={styles.hero}>
-                <p className={styles.eyebrow}>Steam Demo Build</p>
+                <Eyebrow tone="menu">Steam Demo Build</Eyebrow>
 
-                <h1 className={styles.title}>Memory Dungeon</h1>
+                <ScreenTitle className={styles.heroTitle} role="display">
+                    Memory Dungeon
+                </ScreenTitle>
 
                 <div className={styles.actions}>
-                    <button className={`${styles.button} ${styles.primary}`} onClick={onPlay} type="button">
+                    <UiButton size="lg" variant="primary" onClick={onPlay}>
                         Play Arcade
-                    </button>
-                    <button className={`${styles.button} ${styles.secondary}`} onClick={onOpenSettings} type="button">
+                    </UiButton>
+                    <UiButton size="lg" variant="secondary" onClick={onOpenSettings}>
                         Settings
-                    </button>
+                    </UiButton>
                 </div>
 
                 {showHowToPlay && (
@@ -89,20 +77,23 @@ const MainMenu = ({
                         {isTight ? (
                             <>
                                 <div className={styles.guideCompactHeader}>
-                                    <p className={styles.guideEyebrow}>How To Play</p>
-                                    <button
-                                        className={`${styles.dismissButton} ${styles.dismissButtonTight}`}
+                                    <Eyebrow tone="tight">How To Play</Eyebrow>
+                                    <UiButton
+                                        className={styles.dismissButtonTight}
                                         onClick={() => void onDismissHowToPlay()}
-                                        type="button"
+                                        size="sm"
+                                        variant="secondary"
                                     >
                                         Dismiss
-                                    </button>
+                                    </UiButton>
                                 </div>
                             </>
                         ) : (
                             <div>
-                                <p className={styles.guideEyebrow}>How To Play</p>
-                                <h2 className={styles.guideTitle}>Memorize fast, play clean, protect the streak.</h2>
+                                <Eyebrow tone="tight">How To Play</Eyebrow>
+                                <ScreenTitle as="h2" className={styles.guideTitleSpacing} role="screenMd">
+                                    Memorize fast, play clean, protect the streak.
+                                </ScreenTitle>
                             </div>
                         )}
 
@@ -124,9 +115,16 @@ const MainMenu = ({
                         )}
 
                         {!isTight && (
-                            <button className={styles.dismissButton} onClick={() => void onDismissHowToPlay()} type="button">
-                                Dismiss
-                            </button>
+                            <div className={styles.dismissWrap}>
+                                <UiButton
+                                    fullWidth
+                                    onClick={() => void onDismissHowToPlay()}
+                                    size="md"
+                                    variant="secondary"
+                                >
+                                    Dismiss
+                                </UiButton>
+                            </div>
                         )}
                     </aside>
                 )}
@@ -134,37 +132,41 @@ const MainMenu = ({
 
             {!(isTight && showHowToPlay) && (
                 <div className={styles.grid}>
-                    <article className={`${styles.card} ${styles.featuredCard}`}>
-                        <span className={styles.label}>Best Score</span>
-                        <strong className={`${styles.value} ${styles.featuredValue}`}>{bestScore.toLocaleString()}</strong>
-                        <p className={styles.cardNote}>All-time record</p>
-                    </article>
+                    <Panel
+                        className={`${styles.dossierUnified} ${styles.tiltSurface}`}
+                        padding="md"
+                        variant="strong"
+                    >
+                        <span className={styles.label}>Record & last run</span>
 
-                    <article className={`${styles.card} ${styles.dossierCard} ${isCompact ? styles.compactWide : styles.wide}`}>
-                        <span className={styles.label}>Last Expedition</span>
-                        {lastRunSummary ? (
-                            <>
-                                <div className={styles.summaryStrip}>
-                                    {summaryMetrics.map((metric) => (
-                                        <div className={styles.summaryChip} key={metric.label}>
-                                            <span className={styles.summaryChipLabel}>{metric.label}</span>
-                                            <strong className={styles.summaryChipValue}>{metric.value}</strong>
-                                        </div>
-                                    ))}
-                                </div>
-                                <p className={styles.cardNote}>
-                                    {lastRunSummary.achievementsEnabled
-                                        ? 'Achievements were eligible in that run.'
-                                        : 'Debug tools were used, so achievements were disabled.'}
-                                </p>
-                            </>
-                        ) : (
-                            <div className={styles.expeditionEmpty}>
-                                <strong>No expedition logged yet.</strong>
-                                <p>Start a run and the recap will appear here.</p>
+                        <div className={styles.dossierColumns}>
+                            <div className={styles.dossierCol}>
+                                <span className={styles.colEyebrow}>Personal best</span>
+                                <strong className={styles.colFigure}>
+                                    {bestScore > 0 ? bestScore.toLocaleString() : '—'}
+                                </strong>
                             </div>
-                        )}
-                    </article>
+                            <div className={`${styles.dossierCol} ${lastRunSummary ? '' : styles.dossierColMuted}`}>
+                                <span className={styles.colEyebrow}>Last run</span>
+                                {lastRunSummary && lastRunLine ? (
+                                    <>
+                                        <p className={styles.lastRunLine}>{lastRunLine}</p>
+                                        <p className={styles.colNote}>
+                                            {lastRunSummary.achievementsEnabled
+                                                ? 'Achievements counted for that run.'
+                                                : 'Achievements off (debug tools).'}
+                                        </p>
+                                    </>
+                                ) : (
+                                    <p className={styles.colPlaceholder}>
+                                        {bestScore > 0
+                                            ? 'Finish a run to see score, floors, and streaks here.'
+                                            : 'Your last run summary appears after your first expedition.'}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    </Panel>
                 </div>
             )}
         </section>

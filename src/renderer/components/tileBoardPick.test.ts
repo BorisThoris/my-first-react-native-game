@@ -12,12 +12,12 @@ const hiddenTile = (id: string): Tile => ({
     state: 'hidden'
 });
 
-const revealedTile = (id: string): Tile => ({
+const flippedTile = (id: string): Tile => ({
     id,
     pairKey: 'A',
     symbol: 'A',
     label: 'A',
-    state: 'revealed'
+    state: 'flipped'
 });
 
 const matchedTile = (id: string): Tile => ({
@@ -70,7 +70,7 @@ describe('isTilePickable', () => {
         expect(isTilePickable(hiddenTile('t1'), true, false)).toBe(true);
     });
 
-    it('returns true for revealed tiles while locked', () => {
-        expect(isTilePickable(revealedTile('t1'), true, true)).toBe(true);
+    it('returns true for flipped tiles while locked', () => {
+        expect(isTilePickable(flippedTile('t1'), true, true)).toBe(true);
     });
 });

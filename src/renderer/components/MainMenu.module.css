@@ -12,81 +12,6 @@
     min-height: 0;
 }
 
-.atmosphereLayer {
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    overflow: hidden;
-}
-
-.atmosphereHost {
-    position: absolute;
-    inset: 0;
-}
-
-.atmosphereCanvas {
-    position: absolute;
-    inset: 0;
-    display: block;
-    width: 100%;
-    height: 100%;
-    opacity: 0.94;
-    filter: saturate(1.03);
-}
-
-.atmospherePlaceholder {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: transparent;
-}
-
-.atmosphereFallback {
-    position: absolute;
-    inset: 0;
-    background:
-        radial-gradient(circle at 16% 18%, rgba(255, 215, 127, 0.16), transparent 28%),
-        radial-gradient(circle at 84% 16%, rgba(194, 245, 255, 0.15), transparent 30%),
-        radial-gradient(circle at 54% 76%, rgba(255, 177, 107, 0.1), transparent 30%),
-        radial-gradient(circle at center, rgba(14, 19, 29, 0.02), rgba(5, 6, 8, 0.42) 88%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 16% 84%, rgba(255, 255, 255, 0.02)),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px),
-        linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-    background-size:
-        auto,
-        auto,
-        auto,
-        auto,
-        auto,
-        calc(88px + var(--tilt-x, 0) * 6px) calc(88px + var(--tilt-y, 0) * 6px),
-        calc(88px + var(--tilt-x, 0) * 6px) calc(88px + var(--tilt-y, 0) * 6px);
-    background-position:
-        0 0,
-        0 0,
-        0 0,
-        0 0,
-        0 0,
-        calc(var(--tilt-x, 0) * -10px) calc(var(--tilt-y, 0) * -10px),
-        calc(var(--tilt-x, 0) * -10px) calc(var(--tilt-y, 0) * -10px);
-    mask-image: radial-gradient(circle at center, black 0, rgba(0, 0, 0, 0.96) 68%, transparent 90%);
-    opacity: 0.62;
-    transform: translate3d(calc(var(--tilt-x, 0) * 14px), calc(var(--tilt-y, 0) * 12px), 0);
-}
-
-:global([data-reduce-motion='true']) .atmosphereFallback {
-    transform: none;
-    background-size:
-        auto,
-        auto,
-        auto,
-        auto,
-        auto,
-        88px 88px,
-        88px 88px;
-    background-position: 0 0;
-}
-
 .roomyShell {
     align-items: center;
     grid-template-columns: minmax(0, 1.06fr) minmax(340px, 0.94fr);
@@ -109,35 +34,26 @@
 }
 
 .roomyShell .hero {
-    min-height: min(74vh, 760px);
     align-self: center;
 }
 
 .roomyShell .grid {
-    align-content: center;
-    min-height: min(74vh, 760px);
+    align-content: start;
     z-index: 1;
 }
 
-.eyebrow {
-    margin: 0 0 0.75rem;
-    color: var(--theme-gold-bright);
-    letter-spacing: 0.24em;
-    text-transform: uppercase;
-    font-size: 0.8rem;
-}
-
-.title {
-    margin: 0;
-    font-size: clamp(2.8rem, 7.4vw, 6rem);
-    line-height: 0.92;
-    letter-spacing: -0.04em;
-    color: var(--theme-text);
-    text-transform: uppercase;
-    text-wrap: balance;
+.heroTitle {
     text-shadow:
         0 0 26px var(--theme-glow-gold),
         0 10px 28px rgba(0, 0, 0, 0.48);
+}
+
+.guideTitleSpacing {
+    margin-top: 0.45rem;
+}
+
+.dismissWrap {
+    margin-top: 1rem;
 }
 
 .actions {
@@ -147,48 +63,14 @@
     flex-wrap: wrap;
 }
 
-.button,
-.dismissButton {
-    border: 1px solid transparent;
-    border-radius: 999px;
-    padding: 0.95rem 1.4rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    min-height: 3.4rem;
-    transition:
-        transform 140ms ease,
-        border-color 140ms ease,
-        box-shadow 140ms ease,
-        background 140ms ease;
-}
-
-.button {
-    min-width: 180px;
-}
-
-.button:hover,
-.dismissButton:hover {
-    transform: translateY(-1px);
-}
-
-.primary {
-    background: var(--theme-primary-surface);
-    color: var(--theme-void);
-    box-shadow: var(--theme-primary-shadow);
-}
-
-.secondary,
-.dismissButton {
-    background: var(--theme-control-surface);
-    border-color: var(--theme-border);
-    color: var(--theme-text);
+.tiltSurface {
+    transform: perspective(1200px) rotateX(calc(var(--tilt-y, 0) * -6deg)) rotateY(calc(var(--tilt-x, 0) * 6deg));
 }
 
 .guideCard {
     margin-top: 1.8rem;
     padding: 1.4rem;
-    border-radius: 1.5rem;
+    border-radius: var(--ui-radius-modal);
     background: var(--theme-panel-surface);
     border: 1px solid var(--theme-border);
     box-shadow: var(--theme-panel-shadow);
@@ -255,10 +137,6 @@
     line-height: 1.45;
 }
 
-.dismissButton {
-    margin-top: 1rem;
-}
-
 .grid {
     display: grid;
     gap: 1rem;
@@ -276,63 +154,23 @@
     width: min(100%, 720px);
 }
 
-.card {
-    background: var(--theme-panel-surface);
-    border: 1px solid var(--theme-border);
-    border-radius: 1.75rem;
-    padding: clamp(1.15rem, 2.2vw, 1.45rem);
-    box-shadow: var(--theme-panel-shadow);
-    backdrop-filter: blur(22px) saturate(150%);
-    position: relative;
-    z-index: 1;
-    transform: perspective(1200px) rotateX(calc(var(--tilt-y, 0) * -6deg)) rotateY(calc(var(--tilt-x, 0) * 6deg));
+.dossierUnified {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    overflow: hidden;
+    min-height: 0;
 }
 
-.featuredCard {
-    background: var(--theme-panel-surface-strong);
-    border-color: var(--theme-border-strong);
-    box-shadow: var(--theme-panel-shadow-strong);
-}
-
-.featuredCard::before,
-.dossierCard::before {
+.dossierUnified::before {
     content: '';
     position: absolute;
     inset: 0;
     pointer-events: none;
     border-radius: inherit;
-}
-
-.featuredCard::before {
-    background: linear-gradient(180deg, rgba(255, 235, 171, 0.14), transparent 30%);
-}
-
-.dossierCard {
-    background: var(--theme-panel-surface-accent);
-}
-
-.dossierCard::before {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 22%);
-}
-
-.wide {
-    min-height: 260px;
-}
-
-.featuredCard,
-.dossierCard {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    overflow: hidden;
-}
-
-.featuredCard {
-    min-height: 220px;
-}
-
-.dossierCard {
-    min-height: 220px;
+    background:
+        linear-gradient(180deg, rgba(255, 235, 171, 0.1), transparent 28%),
+        linear-gradient(180deg, rgba(87, 220, 255, 0.04), transparent 42%);
 }
 
 .label {
@@ -343,107 +181,65 @@
     font-size: 0.76rem;
 }
 
-.value {
-    display: block;
-    margin-top: 0.55rem;
-    color: var(--theme-text);
-    font-size: clamp(1.5rem, 3vw, 2.5rem);
-}
-
-.featuredValue {
-    font-size: clamp(3rem, 6vw, 4.25rem);
-    line-height: 0.92;
-    letter-spacing: -0.05em;
-    color: var(--theme-gold-bright);
-    text-shadow: 0 8px 26px var(--theme-glow-gold);
-}
-
-.cardNote {
-    margin: 1rem 0 0;
-    color: var(--theme-text-muted);
-    font-size: 0.9rem;
-    letter-spacing: 0.02em;
-}
-
-.featuredCard .cardNote {
-    color: rgba(255, 230, 170, 0.88);
-}
-
-.expeditionEmpty {
-    margin-top: 0.8rem;
+.dossierColumns {
     display: grid;
-    gap: 0.45rem;
-    flex: 1;
-    align-content: center;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+    gap: 1rem 1.35rem;
+    margin-top: 0.35rem;
+    align-items: start;
 }
 
-.expeditionEmpty strong {
-    color: var(--theme-rune);
-    font-size: clamp(1.1rem, 2.1vw, 1.5rem);
-    letter-spacing: -0.02em;
-}
-
-.expeditionEmpty p {
-    margin: 0;
-    color: var(--theme-text-muted);
-    line-height: 1.5;
-}
-
-.summaryStrip {
+.dossierCol {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.7rem;
-    margin-top: 1rem;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 0;
 }
 
-.summaryChip {
-    flex: 1 1 10rem;
-    min-width: min(10rem, 100%);
-    padding: 0.9rem 1rem;
-    border-radius: 1.05rem;
-    background: var(--theme-control-surface);
-    border: 1px solid rgba(255, 244, 214, 0.1);
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.06),
-        0 10px 28px rgba(0, 0, 0, 0.16);
+.dossierColMuted .colPlaceholder {
+    color: var(--theme-text-muted);
 }
 
-.summaryChipLabel {
-    display: block;
+.colEyebrow {
     color: var(--theme-text-subtle);
     text-transform: uppercase;
-    letter-spacing: 0.1em;
-    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    font-size: 0.7rem;
 }
 
-.summaryChipValue {
-    display: block;
-    margin-top: 0.34rem;
-    color: var(--theme-rune);
-    font-size: clamp(1.1rem, 2.2vw, 1.75rem);
+.colFigure {
+    margin: 0;
+    font-size: clamp(1.65rem, 3.8vw, 2.45rem);
     line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--theme-gold-bright);
+    text-shadow: 0 6px 18px var(--theme-glow-gold);
 }
 
-.summaryChip:nth-child(odd) {
-    border-color: rgba(255, 214, 133, 0.14);
+.lastRunLine {
+    margin: 0;
+    color: var(--theme-rune);
+    font-size: clamp(0.88rem, 1.9vw, 1.02rem);
+    line-height: 1.45;
+    letter-spacing: 0.01em;
 }
 
-.summaryChip:nth-child(even) {
-    border-color: rgba(87, 220, 255, 0.18);
+.colNote {
+    margin: 0;
+    color: var(--theme-text-muted);
+    font-size: 0.78rem;
+    line-height: 1.4;
 }
 
-:global([data-reduce-motion='true']) .button,
-:global([data-reduce-motion='true']) .dismissButton {
-    transition: none;
-}
-
-:global([data-reduce-motion='true']) .button:hover,
-:global([data-reduce-motion='true']) .dismissButton:hover {
-    transform: none;
+.colPlaceholder {
+    margin: 0;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    color: var(--theme-text-muted);
 }
 
 :global([data-reduce-motion='true']) .guideCard,
-:global([data-reduce-motion='true']) .card {
+:global([data-reduce-motion='true']) .tiltSurface {
     transform: none;
 }
 
@@ -468,20 +264,10 @@
         padding-block: clamp(0.9rem, 1.8vw, 1.5rem);
     }
 
-    .title {
-        font-size: clamp(2rem, 13vw, 3.3rem);
-    }
-
     .actions {
         margin-top: 1.1rem;
         flex-direction: column;
         gap: 0.7rem;
-    }
-
-    .button,
-    .dismissButton {
-        width: 100%;
-        min-width: 0;
     }
 
     .guideCard {
@@ -502,29 +288,13 @@
         font-size: 0.94rem;
     }
 
-    .featuredCard,
-    .dossierCard {
-        min-height: 0;
+    .dossierColumns {
+        grid-template-columns: 1fr;
+        gap: 0.85rem;
     }
 
-    .value {
-        font-size: clamp(1.4rem, 7vw, 2rem);
-    }
-
-    .featuredValue {
-        font-size: clamp(2.7rem, 18vw, 3.6rem);
-    }
-
-    .expeditionEmpty strong {
-        font-size: 1.05rem;
-    }
-
-    .compactWide {
-        grid-column: 1 / -1;
-    }
-
-    .summaryChip {
-        flex-basis: 100%;
+    .colFigure {
+        font-size: clamp(1.5rem, 8vw, 2.1rem);
     }
 }
 
@@ -562,8 +332,6 @@
 
     .dismissButtonTight {
         margin-top: 0;
-        padding: 0.45rem 0.75rem;
         min-width: 0;
-        font-size: 0.72rem;
     }
 }

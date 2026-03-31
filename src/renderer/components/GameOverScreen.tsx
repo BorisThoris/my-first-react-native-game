@@ -2,8 +2,9 @@ import { ACHIEVEMENTS } from '../../shared/achievements';
 import type { RunState } from '../../shared/contracts';
 import { useShallow } from 'zustand/react/shallow';
 import { useViewportSize } from '../hooks/useViewportSize';
-import styles from './GameOverScreen.module.css';
+import { AccentBanner, Eyebrow, Panel, ScreenTitle, StatTile, UiButton } from '../ui';
 import { useAppStore } from '../store/useAppStore';
+import styles from './GameOverScreen.module.css';
 
 interface GameOverScreenProps {
     run: RunState;
@@ -30,53 +31,39 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
 
     return (
         <section className={styles.shell}>
-            <div className={styles.panel}>
-                <p className={styles.eyebrow}>Run Complete</p>
-                <h1 className={styles.title}>Expedition Over</h1>
+            <Panel className={styles.panel} maxViewportHeight padding="lg" scrollable variant="strong">
+                <div className={styles.lead}>
+                    <Eyebrow>Run Complete</Eyebrow>
+                    <ScreenTitle role="screenLg">Expedition Over</ScreenTitle>
+                </div>
                 <p className={styles.copy}>
                     You reached level {summary.highestLevel} and banked {summary.totalScore.toLocaleString()} points.
                 </p>
 
                 <div className={styles.summaryGrid}>
-                    <article className={styles.card}>
-                        <span>Total Score</span>
-                        <strong>{summary.totalScore.toLocaleString()}</strong>
-                    </article>
-                    <article className={styles.card}>
-                        <span>Highest Level</span>
-                        <strong>{summary.highestLevel}</strong>
-                    </article>
-                    <article className={styles.card}>
-                        <span>Best Streak</span>
-                        <strong>{summary.bestStreak}</strong>
-                    </article>
-                    <article className={styles.card}>
-                        <span>Perfect Floors</span>
-                        <strong>{summary.perfectClears}</strong>
-                    </article>
+                    <StatTile label="Total Score" value={summary.totalScore.toLocaleString()} />
+                    <StatTile label="Highest Level" value={summary.highestLevel} />
+                    <StatTile label="Best Streak" value={summary.bestStreak} />
+                    <StatTile label="Perfect Floors" value={summary.perfectClears} />
                     {!isCompact && (
                         <>
-                            <article className={styles.card}>
-                                <span>Best Score</span>
-                                <strong>{summary.bestScore.toLocaleString()}</strong>
-                            </article>
-                            <article className={styles.card}>
-                                <span>Floors Cleared</span>
-                                <strong>{summary.levelsCleared}</strong>
-                            </article>
+                            <StatTile label="Best Score" value={summary.bestScore.toLocaleString()} />
+                            <StatTile label="Floors Cleared" value={summary.levelsCleared} />
                         </>
                     )}
                 </div>
 
-                <div className={styles.statusBanner}>
+                <AccentBanner className={styles.statusBanner}>
                     {summary.achievementsEnabled
                         ? 'Achievements were enabled for this run.'
                         : 'Debug tools were used, so achievements were disabled for this run.'}
-                </div>
+                </AccentBanner>
 
                 {unlockedAchievements.length > 0 && (
                     <div className={styles.achievementBlock}>
-                        <h2 className={styles.sectionTitle}>Unlocked</h2>
+                        <ScreenTitle as="h2" className={styles.unlockedHeading} role="section">
+                            Unlocked
+                        </ScreenTitle>
                         <div className={styles.achievementGrid}>
                             {unlockedAchievements.map((achievement) => (
                                 <article className={styles.achievementCard} key={achievement.id}>
@@ -89,14 +76,14 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
                 )}
 
                 <div className={styles.actions}>
-                    <button className={styles.primaryButton} onClick={restartRun} type="button">
+                    <UiButton variant="primary" onClick={restartRun}>
                         Play Again
-                    </button>
-                    <button className={styles.secondaryButton} onClick={goToMenu} type="button">
+                    </UiButton>
+                    <UiButton variant="secondary" onClick={goToMenu}>
                         Main Menu
-                    </button>
+                    </UiButton>
                 </div>
-            </div>
+            </Panel>
         </section>
     );
 };

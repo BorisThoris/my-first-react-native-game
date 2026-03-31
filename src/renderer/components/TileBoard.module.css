@@ -1,52 +1,24 @@
+/* Size: GameScreen sets --board-width/--board-height (tileSize × columns/rows). No panel chrome — tiles read as floating on the page. */
 .frame {
     position: relative;
     width: min(100%, var(--board-width, 920px));
     max-width: 100%;
     aspect-ratio: var(--board-aspect, 1 / 1);
     max-height: min(100%, var(--board-height, 920px));
-    border-radius: 1.75rem;
-    background: var(--theme-panel-surface-strong);
-    border: 1px solid var(--theme-border);
-    box-shadow: var(--theme-panel-shadow);
-    backdrop-filter: blur(24px) saturate(150%);
-    overflow: hidden;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    backdrop-filter: none;
+    overflow: visible;
     min-width: 0;
     min-height: 0;
 }
 
-.frame::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background:
-        radial-gradient(circle at 18% 14%, rgba(255, 255, 255, 0.12), transparent 24%),
-        radial-gradient(circle at 82% 18%, rgba(87, 220, 255, 0.12), transparent 20%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 28%);
-    opacity: 0.82;
-}
-
-.frame::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background:
-        linear-gradient(90deg, rgba(255, 214, 133, 0.1), transparent 14% 86%, rgba(87, 220, 255, 0.1)),
-        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-    background-size:
-        auto,
-        84px 84px,
-        84px 84px;
-    mask-image: radial-gradient(circle at center, black, transparent 82%);
-    opacity: 0.38;
-}
-
 .stage {
     position: absolute;
-    inset: clamp(0.7rem, 1.1vw, 1rem);
-    border-radius: inherit;
+    inset: 0;
+    border-radius: 0;
+    /* Hidden so R3F/canvas size matches the CSS grid hit layer (WebGL picking). Frame stays borderless. */
     overflow: hidden;
     min-width: 0;
     min-height: 0;
@@ -54,11 +26,11 @@
 
 .motionChip {
     position: absolute;
-    bottom: 0.35rem;
-    right: 0.35rem;
+    bottom: var(--ui-space-xs);
+    right: var(--ui-space-xs);
     z-index: 5;
-    padding: 0.28rem 0.55rem;
-    border-radius: 999px;
+    padding: 0.28rem var(--ui-space-sm);
+    border-radius: var(--ui-radius-pill);
     border: 1px solid rgba(255, 214, 133, 0.45);
     background: rgba(12, 16, 24, 0.88);
     color: var(--theme-text);
@@ -86,9 +58,7 @@
     inset: 0;
     z-index: 0;
     pointer-events: none;
-    background:
-        radial-gradient(circle at center, rgba(87, 220, 255, 0.08), transparent 58%),
-        radial-gradient(circle at center, rgba(215, 162, 77, 0.08), transparent 64%);
+    background: transparent;
 }
 
 .canvas {
@@ -107,8 +77,6 @@
     z-index: 1;
     display: grid;
     gap: 0.85rem;
-    width: 100%;
-    height: 100%;
 }
 
 .hitButton {

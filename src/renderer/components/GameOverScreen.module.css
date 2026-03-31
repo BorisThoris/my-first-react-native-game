@@ -6,102 +6,51 @@
 }
 
 .panel {
-    width: min(980px, 100%);
-    background: var(--theme-panel-surface-strong);
-    border: 1px solid var(--theme-border);
-    border-radius: 1.75rem;
-    box-shadow: var(--theme-panel-shadow-strong);
-    padding: clamp(1.25rem, 2vw, 2rem);
+    width: var(--ui-panel-max);
     display: flex;
     flex-direction: column;
-    max-height: calc(100dvh - 1.5rem);
-    overflow: hidden;
 }
 
-.eyebrow {
-    margin: 0 0 0.45rem;
-    color: var(--theme-gold-bright);
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    font-size: 0.78rem;
-}
-
-.title {
-    margin: 0;
-    color: var(--theme-text);
-    font-size: clamp(2rem, 6vw, 4.2rem);
-    line-height: 0.95;
-    text-shadow: 0 0 26px var(--theme-glow-gold);
+.lead {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
 }
 
 .copy {
     margin: 0.9rem 0 0;
     color: var(--theme-text-muted);
-    font-size: 1.05rem;
+    font-size: var(--ui-font-body);
 }
 
 .summaryGrid {
     margin-top: 1.25rem;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 0.85rem;
-}
-
-.card {
-    border-radius: 1.15rem;
-    padding: 1rem;
-    background: var(--theme-panel-surface-muted);
-    border: 1px solid var(--theme-border);
-}
-
-.card span {
-    display: block;
-    color: var(--theme-text-subtle);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-size: 0.7rem;
-}
-
-.card strong {
-    display: block;
-    margin-top: 0.45rem;
-    color: var(--theme-rune);
-    font-size: 1.5rem;
+    gap: var(--ui-space-lg);
 }
 
 .statusBanner {
     margin-top: 1.1rem;
-    padding: 0.95rem 1rem;
-    border-radius: 1rem;
-    background: var(--theme-panel-surface-muted);
-    border: 1px solid var(--theme-border);
-    color: #f8e6b3;
-    box-shadow:
-        inset 3px 0 0 rgba(255, 214, 133, 0.44),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .achievementBlock {
     margin-top: 1.25rem;
 }
 
-.sectionTitle {
+.unlockedHeading {
     margin: 0 0 0.9rem;
-    color: var(--theme-text);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-size: 0.94rem;
 }
 
 .achievementGrid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 0.85rem;
+    gap: var(--ui-space-lg);
 }
 
 .achievementCard {
-    border-radius: 1rem;
-    padding: 0.95rem;
+    border-radius: var(--ui-radius-lg);
+    padding: var(--ui-space-lg);
     background: var(--theme-control-surface);
     border: 1px solid rgba(87, 220, 255, 0.16);
 }
@@ -117,112 +66,18 @@
 }
 
 .actions {
-    margin-top: 1.25rem;
+    margin-top: 1.35rem;
     display: flex;
-    gap: 0.8rem;
+    gap: var(--ui-space-lg);
     flex-wrap: wrap;
-    flex-shrink: 0;
-}
-
-.primaryButton,
-.secondaryButton {
-    flex: 1 1 180px;
-    border-radius: 999px;
-    padding: 0.95rem 1.2rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    transition:
-        transform 140ms ease,
-        border-color 140ms ease,
-        box-shadow 140ms ease,
-        background 140ms ease;
-}
-
-.primaryButton {
-    border: none;
-    background: var(--theme-primary-surface);
-    color: var(--theme-void);
-    box-shadow: var(--theme-primary-shadow);
-}
-
-.secondaryButton {
-    border: 1px solid var(--theme-border);
-    background: var(--theme-control-surface);
-    color: var(--theme-text);
-}
-
-.primaryButton:hover,
-.secondaryButton:hover {
-    transform: translateY(-1px);
-}
-
-.secondaryButton:hover {
-    border-color: var(--theme-border-strong);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
-}
-
-:global([data-reduce-motion='true']) .primaryButton,
-:global([data-reduce-motion='true']) .secondaryButton {
-    transition: none;
-}
-
-:global([data-reduce-motion='true']) .primaryButton:hover,
-:global([data-reduce-motion='true']) .secondaryButton:hover {
-    transform: none;
-    box-shadow: none;
-}
-
-@media (max-width: 900px) {
-    .summaryGrid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
 }
 
 @media (max-width: 720px) {
-    .panel {
-        padding: 1rem;
-        border-radius: 1.25rem;
-        max-height: calc(100dvh - 1rem);
-    }
-
-    .copy {
-        font-size: 0.98rem;
-    }
-
     .actions {
         flex-direction: column;
     }
 
-    .primaryButton,
-    .secondaryButton {
-        flex: 1 1 auto;
+    .actions :global(button) {
         width: 100%;
-    }
-
-    .summaryGrid {
-        gap: 0.7rem;
-    }
-
-    .card {
-        padding: 0.9rem;
-    }
-
-    .achievementGrid {
-        grid-template-columns: 1fr;
-    }
-
-    .achievementCard p {
-        display: none;
-    }
-}
-
-@media (max-width: 720px), (max-height: 700px) {
-    .title {
-        font-size: clamp(1.8rem, 8vw, 3rem);
-    }
-
-    .summaryGrid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }

@@ -59,7 +59,7 @@ describe('desktop app flow', () => {
         await user.click(await screen.findByRole('button', { name: /play arcade/i }));
 
         expect(await screen.findByRole('heading', { name: /level 1/i })).toBeInTheDocument();
-        expect(screen.getByText(/pairs remaining/i)).toBeInTheDocument();
+        expect(screen.getByRole('group', { name: /run stats/i })).toBeInTheDocument();
     });
 
     it('turns off the app-level ambient grid while the menu background is active', async () => {

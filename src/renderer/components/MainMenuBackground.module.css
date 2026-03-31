@@ -1,0 +1,74 @@
+.atmosphereLayer {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.atmosphereHost {
+    position: absolute;
+    inset: 0;
+}
+
+.atmosphereCanvas {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    opacity: 0.94;
+    filter: saturate(1.03);
+}
+
+.atmospherePlaceholder {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: transparent;
+}
+
+.atmosphereFallback {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 16% 18%, rgba(255, 215, 127, 0.16), transparent 28%),
+        radial-gradient(circle at 84% 16%, rgba(194, 245, 255, 0.15), transparent 30%),
+        radial-gradient(circle at 54% 76%, rgba(255, 177, 107, 0.1), transparent 30%),
+        radial-gradient(circle at center, rgba(14, 19, 29, 0.02), rgba(5, 6, 8, 0.42) 88%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 16% 84%, rgba(255, 255, 255, 0.02)),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+        linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    background-size:
+        auto,
+        auto,
+        auto,
+        auto,
+        auto,
+        calc(88px + var(--tilt-x, 0) * 6px) calc(88px + var(--tilt-y, 0) * 6px),
+        calc(88px + var(--tilt-x, 0) * 6px) calc(88px + var(--tilt-y, 0) * 6px);
+    background-position:
+        0 0,
+        0 0,
+        0 0,
+        0 0,
+        0 0,
+        calc(var(--tilt-x, 0) * -10px) calc(var(--tilt-y, 0) * -10px),
+        calc(var(--tilt-x, 0) * -10px) calc(var(--tilt-y, 0) * -10px);
+    mask-image: radial-gradient(circle at center, black 0, rgba(0, 0, 0, 0.96) 68%, transparent 90%);
+    opacity: 0.62;
+    transform: translate3d(calc(var(--tilt-x, 0) * 14px), calc(var(--tilt-y, 0) * 12px), 0);
+}
+
+:global([data-reduce-motion='true']) .atmosphereFallback {
+    transform: none;
+    background-size:
+        auto,
+        auto,
+        auto,
+        auto,
+        auto,
+        88px 88px,
+        88px 88px;
+    background-position: 0 0;
+}

@@ -1,0 +1,18 @@
+.root {
+    margin: 0;
+    color: var(--theme-gold-bright);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-size: var(--ui-font-eyebrow);
+}
+
+.tight {
+    letter-spacing: 0.16em;
+    font-size: 0.68rem;
+}
+
+.menu {
+    margin: 0 0 0.75rem;
+    letter-spacing: 0.24em;
+    font-size: 0.8rem;
+}

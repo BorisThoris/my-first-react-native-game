@@ -1,0 +1,52 @@
+.root {
+    margin: 0;
+    color: var(--theme-text);
+    text-shadow: 0 0 24px var(--theme-glow-gold);
+}
+
+.display {
+    font-size: var(--ui-type-display);
+    line-height: 0.92;
+    letter-spacing: -0.04em;
+    text-transform: uppercase;
+    text-wrap: balance;
+}
+
+.screen {
+    font-size: var(--ui-type-screen);
+    line-height: 1;
+}
+
+.screenMd {
+    font-size: var(--ui-type-screen-md);
+    line-height: 1.05;
+}
+
+.screenLg {
+    font-size: var(--ui-type-screen-lg);
+    line-height: 0.95;
+}
+
+.modal {
+    font-size: var(--ui-font-modal-title);
+    line-height: 1.15;
+}
+
+.section {
+    font-size: var(--ui-font-section);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-shadow: none;
+}
+
+@media (max-width: 720px) {
+    .display {
+        font-size: var(--ui-type-menu-mobile);
+    }
+}
+
+@media (max-width: 430px), (max-height: 620px) {
+    .screen {
+        font-size: clamp(1.1rem, 8vw, 1.45rem);
+    }
+}

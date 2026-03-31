@@ -1,370 +1,426 @@
+.srOnly {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 .shell {
-    min-height: 100dvh;
-    display: grid;
-    grid-template-rows: auto auto auto 1fr auto;
-    gap: clamp(0.75rem, 1.5vw, 1rem);
-    padding: clamp(0.85rem, 1.8vw, 1.5rem) clamp(0.85rem, 2.2vw, 2rem);
+    --game-deck-blur: 18px;
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.45rem clamp(0.35rem, 1vw, 0.65rem) 0.45rem;
     position: relative;
     min-width: 0;
-    min-height: 0;
+    isolation: isolate;
+    box-sizing: border-box;
 }
 
-.header {
+/* Single glass control deck — board owns the rest of the viewport */
+.topDeck {
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-    min-width: 0;
-}
-
-.eyebrow {
-    margin: 0 0 0.45rem;
-    color: var(--theme-gold-bright);
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    font-size: 0.78rem;
-}
-
-.title {
-    margin: 0;
-    font-size: clamp(2rem, 5vw, 3.8rem);
-    line-height: 0.95;
-    color: var(--theme-text);
-    text-shadow: 0 0 24px var(--theme-glow-gold);
-}
-
-.statusLine {
-    margin: 0.7rem 0 0;
-    color: var(--theme-text-muted);
-    line-height: 1.45;
-}
-
-.actions {
-    display: flex;
-    gap: 0.8rem;
     flex-wrap: wrap;
-    justify-content: flex-end;
-}
-
-.actionButton,
-.debugButton {
-    border-radius: 999px;
-    padding: 0.8rem 1.15rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    transition:
-        transform 140ms ease,
-        border-color 140ms ease,
-        box-shadow 140ms ease,
-        background 140ms ease;
-}
-
-.actionButton {
-    border: 1px solid var(--theme-border);
-    background: var(--theme-control-surface);
-    color: var(--theme-text);
-}
-
-.debugButton {
-    border: 1px solid rgba(255, 214, 133, 0.22);
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.55rem 0.75rem;
+    padding: 0.4rem 0.65rem 0.45rem;
+    border-radius: var(--ui-radius-lg);
     background:
-        radial-gradient(circle at top left, rgba(255, 139, 57, 0.1), transparent 42%),
-        rgba(34, 17, 13, 0.58);
-    color: rgba(255, 226, 194, 0.92);
-}
-
-.actionButton:hover,
-.debugButton:hover {
-    transform: translateY(-1px);
-}
-
-.actionButton:hover {
-    border-color: var(--theme-border-strong);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
-}
-
-.debugButton:hover {
-    border-color: rgba(255, 214, 133, 0.34);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
-}
-
-.hudGrid {
-    display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 0.85rem;
-    min-width: 0;
-}
-
-.metricCard {
-    background: var(--theme-panel-surface-muted);
-    border: 1px solid var(--theme-border);
-    border-radius: 1.15rem;
-    padding: 1rem;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-.metricLabel {
-    display: block;
-    color: var(--theme-text-subtle);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    font-size: 0.72rem;
-}
-
-.metricValue {
-    display: block;
-    margin-top: 0.45rem;
-    color: var(--theme-rune);
-    font-size: 1.5rem;
-}
-
-.phaseBanner {
-    padding: 0.85rem 1rem;
-    border-radius: 1rem;
-    background: var(--theme-panel-surface-muted);
-    border: 1px solid var(--theme-border);
-    color: #f8e6b3;
-    letter-spacing: 0.03em;
-    line-height: 1.45;
+        linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, transparent 42%),
+        linear-gradient(160deg, rgba(14, 17, 26, 0.92) 0%, rgba(6, 8, 12, 0.88) 100%);
+    border: 1px solid rgba(255, 214, 133, 0.12);
     box-shadow:
-        inset 3px 0 0 rgba(255, 214, 133, 0.44),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 12px 40px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(var(--game-deck-blur)) saturate(1.35);
+    position: relative;
+    z-index: 2;
 }
 
-.boardArea {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
-    gap: 1rem;
-    align-items: start;
+.deckCluster {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 0.5rem 0.65rem;
     min-width: 0;
+    flex: 1 1 auto;
 }
 
-.sidePanel {
-    display: grid;
-    gap: 1rem;
-    min-width: 0;
+.floorBadge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0.2rem 0.65rem 0.25rem;
+    min-width: 3.25rem;
+    border-radius: var(--ui-radius-md);
+    background: linear-gradient(180deg, rgba(215, 162, 77, 0.18), rgba(215, 162, 77, 0.06));
+    border: 1px solid rgba(255, 214, 133, 0.28);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-.panelBlock {
-    background: var(--theme-panel-surface-accent);
-    border: 1px solid var(--theme-border);
-    border-radius: 1.25rem;
-    padding: 1.15rem;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+.floorLabel {
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--theme-gold-bright);
+    opacity: 0.9;
 }
 
-.panelLabel {
-    display: block;
-    color: var(--theme-text-subtle);
+.floorValue {
+    font-size: clamp(1.35rem, 3.5vw, 1.75rem);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--theme-text);
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 20px var(--theme-glow-gold-soft);
+}
+
+.statRail {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 0;
+    border-radius: var(--ui-radius-md);
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(5, 7, 11, 0.45);
+}
+
+.statPill {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.08rem;
+    padding: 0.28rem 0.75rem;
+    min-width: 4.25rem;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.statPill:last-child {
+    border-right: none;
+}
+
+.statKey {
+    font-size: 0.58rem;
+    font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    font-size: 0.72rem;
-}
-
-.panelValue {
-    display: block;
-    margin-top: 0.45rem;
-    color: var(--theme-gold-bright);
-    font-size: 2.2rem;
-}
-
-.panelCopy {
-    margin: 0.7rem 0 0;
-    color: var(--theme-text-muted);
-    line-height: 1.5;
-}
-
-.inlineStats {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.65rem;
-    margin-top: 0.85rem;
-}
-
-.inlineStats strong {
-    display: block;
-    color: var(--theme-gold-bright);
-    font-size: 1.35rem;
-}
-
-.inlineStats span {
-    display: block;
-    margin-top: 0.2rem;
     color: var(--theme-text-subtle);
+}
+
+.statVal {
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: var(--theme-rune);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+
+.phaseChip {
+    flex: 1 1 12rem;
+    min-width: min(100%, 11rem);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.12rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: var(--ui-radius-md);
+    border: 1px solid rgba(87, 220, 255, 0.15);
+    background: rgba(8, 12, 20, 0.55);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.2);
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.phaseLabel {
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-size: 0.68rem;
+    color: var(--theme-cyan-bright);
 }
 
-.achievementRail {
+.phaseHint {
+    font-size: 0.72rem;
+    line-height: 1.3;
+    color: var(--theme-text-muted);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.phaseChip[data-phase='memorize'] {
+    border-color: rgba(87, 220, 255, 0.35);
+    box-shadow:
+        inset 0 0 0 1px rgba(0, 0, 0, 0.25),
+        0 0 24px rgba(87, 220, 255, 0.12);
+}
+
+.phaseChip[data-phase='play'] {
+    border-color: rgba(255, 214, 133, 0.14);
+}
+
+.phaseChip[data-phase='resolving'] {
+    border-color: rgba(255, 139, 57, 0.28);
+}
+
+.phaseChip[data-phase='paused'] {
+    border-color: rgba(255, 214, 133, 0.22);
+}
+
+.phaseChip[data-phase='cleared'],
+.phaseChip[data-phase='over'] {
+    border-color: rgba(140, 230, 184, 0.25);
+}
+
+.deckActions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
+
+.moreStats,
+.sessionFold {
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--ui-radius-pill);
+    background: rgba(6, 8, 12, 0.65);
+}
+
+.moreStatsSummary,
+.sessionSummary {
+    cursor: pointer;
+    list-style: none;
+    padding: 0.38rem 0.75rem;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--theme-text-subtle);
+    user-select: none;
+}
+
+.moreStatsSummary::-webkit-details-marker,
+.sessionSummary::-webkit-details-marker {
+    display: none;
+}
+
+.moreStats[open],
+.sessionFold[open] {
+    border-color: rgba(255, 214, 133, 0.22);
+    background: rgba(10, 12, 18, 0.92);
+    z-index: 5;
+}
+
+.moreStatsGrid {
+    position: absolute;
+    top: calc(100% + 0.35rem);
+    right: 0;
+    min-width: 11rem;
+    padding: 0.5rem 0.65rem;
+    border-radius: var(--ui-radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(8, 10, 15, 0.96);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
     display: grid;
-    gap: 0.7rem;
-    margin-top: 0.9rem;
+    gap: 0.35rem;
 }
 
-.achievementCard {
-    border-radius: 1rem;
-    padding: 0.85rem;
-    background: var(--theme-control-surface);
-    border: 1px solid rgba(87, 220, 255, 0.16);
-}
-
-.achievementCard strong {
-    display: block;
-    color: var(--theme-text);
-}
-
-.achievementCard p {
-    margin: 0.35rem 0 0;
+.moreStatsRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.75rem;
+    font-size: 0.72rem;
     color: var(--theme-text-muted);
 }
 
-.footerHint {
-    margin: 0;
+.moreStatsRow strong {
+    color: var(--theme-rune);
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.sessionBody {
+    position: absolute;
+    top: calc(100% + 0.35rem);
+    right: 0;
+    min-width: 10rem;
+    padding: 0.5rem 0.65rem;
+    border-radius: var(--ui-radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(8, 10, 15, 0.96);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+}
+
+.sessionBody p {
+    margin: 0.15rem 0;
+    font-size: 0.72rem;
     color: var(--theme-text-muted);
+    line-height: 1.35;
+}
+
+.boardStage {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    width: 100%;
+    position: relative;
+    padding: 0.15rem 0 0.35rem;
+}
+
+.boardGlow {
+    position: absolute;
+    inset: 8% 12% 12%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at center, rgba(87, 220, 255, 0.06), transparent 62%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.boardStage > :global(*) {
+    position: relative;
+    z-index: 1;
+}
+
+.toastRail {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    justify-content: center;
+    max-width: min(100%, 960px);
+    z-index: 2;
+}
+
+.toast {
+    padding: 0.35rem 0.65rem 0.4rem;
+    border-radius: var(--ui-radius-pill);
+    border: 1px solid rgba(87, 220, 255, 0.28);
+    background: linear-gradient(90deg, rgba(87, 220, 255, 0.1), rgba(8, 10, 15, 0.9));
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+    display: flex;
+    flex-direction: column;
+    gap: 0.06rem;
+    max-width: min(100%, 18rem);
+    animation: toastIn 0.35s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+
+.toastTitle {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--theme-cyan-bright);
+    letter-spacing: 0.04em;
+}
+
+.toastDesc {
+    font-size: 0.65rem;
+    color: var(--theme-text-muted);
+    line-height: 1.3;
 }
 
 .modalStats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 0.85rem;
+    gap: var(--ui-space-lg);
 }
 
-.modalStats div {
-    border-radius: 1rem;
-    padding: 0.9rem;
-    background: var(--theme-panel-surface-muted);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.modalStats strong {
-    display: block;
-    color: var(--theme-rune);
-    font-size: 1.45rem;
-}
-
-.modalStats span {
-    display: block;
-    margin-top: 0.2rem;
-    color: var(--theme-text-subtle);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-size: 0.7rem;
-}
-
-:global([data-reduce-motion='true']) .phaseBanner {
-    background: var(--theme-panel-surface-muted);
-}
-
-:global([data-reduce-motion='true']) .actionButton,
-:global([data-reduce-motion='true']) .debugButton {
-    transition: none;
-}
-
-:global([data-reduce-motion='true']) .actionButton:hover,
-:global([data-reduce-motion='true']) .debugButton:hover {
-    transform: none;
-    box-shadow: none;
-}
-
-@media (max-width: 1220px) {
-    .hudGrid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+@keyframes toastIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px) scale(0.98);
     }
 
-    .boardArea {
-        grid-template-columns: 1fr;
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
     }
+}
+
+:global([data-reduce-motion='true']) .toast {
+    animation: none;
+}
+
+:global([data-reduce-motion='true']) .topDeck {
+    backdrop-filter: none;
 }
 
 @media (max-width: 760px), (max-height: 760px) {
     .shell {
-        padding: 0.9rem;
+        padding: 0.45rem 0.5rem 0.5rem;
+        gap: 0.5rem;
     }
 
-    .header {
+    .topDeck {
+        padding: 0.35rem 0.5rem;
+    }
+
+    .deckCluster {
         flex-direction: column;
+        align-items: stretch;
     }
 
-    .actions {
-        justify-content: flex-start;
+    .phaseChip {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .phaseHint {
+        -webkit-line-clamp: 3;
+    }
+
+    .deckActions {
         width: 100%;
+        justify-content: flex-start;
     }
 
-    .hudGrid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0.7rem;
+    .deckActions :global(button) {
+        flex: 1 1 auto;
+        min-width: 0;
     }
 
-    .actionButton,
-    .debugButton {
-        flex: 1 1 100%;
+    .statRail {
+        width: 100%;
+        justify-content: space-between;
     }
 
-    .panelBlock {
-        padding: 1rem;
-    }
-
-    .panelValue {
-        font-size: 1.7rem;
-    }
-
-    .boardArea {
-        grid-template-columns: 1fr;
-        justify-items: center;
-    }
-
-    .sidePanel,
-    .footerHint {
-        display: none;
-    }
-
-    .phaseBanner {
-        font-size: 0.92rem;
-    }
-
-    .metricCard {
-        padding: 0.85rem;
-    }
-
-    .metricValue {
-        font-size: 1.3rem;
-    }
-
-    .statusLine {
-        display: none;
+    .statPill {
+        flex: 1 1 0;
+        min-width: 0;
+        align-items: center;
+        text-align: center;
+        border-right: 1px solid rgba(255, 255, 255, 0.06);
     }
 }
 
 @media (max-width: 430px), (max-height: 620px) {
-    .title {
-        font-size: clamp(1.8rem, 12vw, 2.4rem);
+    .floorBadge {
+        flex-direction: row;
+        align-items: baseline;
+        gap: 0.4rem;
+        justify-content: center;
     }
 
-    .actions {
-        gap: 0.6rem;
-    }
-
-    .actionButton,
-    .debugButton {
-        padding: 0.7rem 0.95rem;
-    }
-
-    .hudGrid {
-        gap: 0.6rem;
-    }
-
-    .metricCard {
-        padding: 0.75rem;
-    }
-
-    .metricValue {
-        font-size: 1.15rem;
-    }
-
-    .phaseBanner {
-        padding: 0.7rem 0.8rem;
-        font-size: 0.86rem;
+    .statVal {
+        font-size: 0.88rem;
     }
 }

@@ -1,0 +1,104 @@
+.root {
+    border-radius: var(--ui-radius-pill);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    transition:
+        transform 140ms ease,
+        border-color 140ms ease,
+        box-shadow 140ms ease,
+        background 140ms ease;
+}
+
+.sm {
+    padding: 0.5rem 0.95rem;
+    font-size: 0.72rem;
+}
+
+.md {
+    padding: 0.8rem 1.2rem;
+    font-size: 0.78rem;
+}
+
+.lg {
+    padding: 0.95rem 1.4rem;
+    font-size: 0.8rem;
+    min-height: 3.4rem;
+    min-width: 180px;
+}
+
+.primary {
+    border: 1px solid transparent;
+    background: var(--theme-primary-surface);
+    color: var(--theme-void);
+    box-shadow: var(--theme-primary-shadow);
+}
+
+.secondary,
+.ghost {
+    border: 1px solid var(--theme-border);
+    background: var(--theme-control-surface);
+    color: var(--theme-text);
+}
+
+.ghost {
+    background: var(--theme-control-surface);
+}
+
+.danger {
+    border: 1px solid rgba(255, 119, 87, 0.45);
+    background:
+        radial-gradient(circle at top left, rgba(255, 95, 42, 0.12), transparent 42%),
+        rgba(34, 17, 13, 0.58);
+    color: rgba(255, 226, 194, 0.95);
+}
+
+.debug {
+    border: 1px solid rgba(255, 214, 133, 0.22);
+    background:
+        radial-gradient(circle at top left, rgba(255, 139, 57, 0.1), transparent 42%),
+        rgba(34, 17, 13, 0.58);
+    color: rgba(255, 226, 194, 0.92);
+}
+
+.root:hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+.secondary:hover:not(:disabled),
+.ghost:hover:not(:disabled) {
+    border-color: var(--theme-border-strong);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+}
+
+.danger:hover:not(:disabled),
+.debug:hover:not(:disabled) {
+    border-color: rgba(255, 214, 133, 0.34);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+}
+
+.root:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.fullWidth {
+    width: 100%;
+    min-width: 0;
+}
+
+:global([data-reduce-motion='true']) .root {
+    transition: none;
+}
+
+:global([data-reduce-motion='true']) .root:hover:not(:disabled) {
+    transform: none;
+}
+
+@media (max-width: 720px) {
+    .lg {
+        width: 100%;
+        min-width: 0;
+    }
+}

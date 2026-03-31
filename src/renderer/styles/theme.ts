@@ -99,7 +99,46 @@ export const RENDERER_THEME = {
         '--theme-glow-stone': 'rgba(255, 255, 255, 0.04)',
         '--theme-focus': '#ffd57d',
         '--theme-danger': '#ff7757',
-        '--theme-success': '#8ce6b8'
+        '--theme-success': '#8ce6b8',
+
+        /* UI system: radius */
+        '--ui-radius-sm': '0.65rem',
+        '--ui-radius-md': '0.75rem',
+        '--ui-radius-lg': '1rem',
+        '--ui-radius-xl': '1.25rem',
+        '--ui-radius-panel': '1.75rem',
+        '--ui-radius-modal': '1.5rem',
+        '--ui-radius-pill': '999px',
+
+        /* UI system: spacing (rem) */
+        '--ui-space-2xs': '0.25rem',
+        '--ui-space-xs': '0.35rem',
+        '--ui-space-sm': '0.5rem',
+        '--ui-space-md': '0.65rem',
+        '--ui-space-lg': '0.85rem',
+        '--ui-space-xl': '1rem',
+        '--ui-space-2xl': '1.35rem',
+        '--ui-space-3xl': '1.75rem',
+
+        /* UI system: typography scale */
+        '--ui-font-eyebrow': '0.72rem',
+        '--ui-font-label': '0.62rem',
+        '--ui-font-body': '0.9rem',
+        '--ui-font-body-sm': '0.82rem',
+        '--ui-font-stat': '1.2rem',
+        '--ui-font-stat-lg': '1.45rem',
+        '--ui-font-section': '1rem',
+        '--ui-font-modal-title': '1.75rem',
+        '--ui-type-display': 'clamp(2.8rem, 7.4vw, 6rem)',
+        '--ui-type-screen': 'clamp(1.25rem, 3.2vw, 2rem)',
+        '--ui-type-screen-md': 'clamp(1.65rem, 3.6vw, 2.45rem)',
+        '--ui-type-screen-lg': 'clamp(2rem, 5vw, 3.25rem)',
+        '--ui-type-menu-mobile': 'clamp(2rem, 13vw, 3.3rem)',
+
+        /* Shared layout */
+        '--ui-panel-max': 'min(1040px, 100%)',
+        '--ui-shell-pad-x': 'clamp(0.65rem, 1.5vw, 1.15rem)',
+        '--ui-shell-pad-y': 'clamp(0.55rem, 1.2vw, 0.85rem)'
     } as const
 } as const;
 

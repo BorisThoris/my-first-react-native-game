@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Settings } from '../../shared/contracts';
 import { useViewportSize } from '../hooks/useViewportSize';
-import styles from './SettingsScreen.module.css';
+import { Eyebrow, Panel, ScreenTitle, UiButton } from '../ui';
 import { useAppStore } from '../store/useAppStore';
+import styles from './SettingsScreen.module.css';
 
 const SettingsScreen = () => {
     const { closeSettings, settings, updateSettings } = useAppStore(
@@ -47,20 +48,24 @@ const SettingsScreen = () => {
 
     return (
         <section className={styles.shell}>
-            <div className={styles.panel}>
+            <Panel className={styles.panel} maxViewportHeight padding="lg" scrollable variant="strong">
                 <header className={styles.header}>
                     <div>
-                        <p className={styles.eyebrow}>Desktop Settings</p>
-                        <h2 className={styles.title}>Tune the run for Steam desktop play.</h2>
+                        <Eyebrow>Desktop Settings</Eyebrow>
+                        <ScreenTitle as="h2" role="screenMd">
+                            Tune the run for Steam desktop play.
+                        </ScreenTitle>
                     </div>
-                    <button className={styles.ghostButton} onClick={closeSettings} type="button">
+                    <UiButton variant="ghost" onClick={closeSettings}>
                         Back
-                    </button>
+                    </UiButton>
                 </header>
 
                 <div className={styles.grid}>
-                    <section className={styles.section}>
-                        <h3 className={styles.sectionTitle}>Display</h3>
+                    <Panel as="section" className={styles.sectionInner} padding="section" variant="muted">
+                        <ScreenTitle as="h3" className={styles.sectionHeading} role="section">
+                            Display
+                        </ScreenTitle>
 
                         <label className={styles.selectField}>
                             <span>Window Mode</span>
@@ -99,13 +104,13 @@ const SettingsScreen = () => {
                             />
                             <span>Reduce hover lift, board transitions, and ambient motion.</span>
                         </label>
-                    </section>
+                    </Panel>
 
-                    <section className={styles.section}>
-                        <h3 className={styles.sectionTitle}>Controls and Save</h3>
-                        <p className={styles.copy}>
-                            This demo is built for touch and mouse play.
-                        </p>
+                    <Panel as="section" className={styles.sectionInner} padding="section" variant="muted">
+                        <ScreenTitle as="h3" className={styles.sectionHeading} role="section">
+                            Controls and Save
+                        </ScreenTitle>
+                        <p className={styles.copy}>This demo is built for touch and mouse play.</p>
                         {!isCompact && (
                             <p className={styles.copy}>
                                 Audio sliders stay in the save schema for future compatibility, but this build does
@@ -113,11 +118,18 @@ const SettingsScreen = () => {
                             </p>
                         )}
                         <p className={styles.copy}>Settings persist locally through the desktop bridge.</p>
-                    </section>
+                    </Panel>
 
                     {isDev && (
-                        <section className={`${styles.section} ${styles.sectionWide}`}>
-                            <h3 className={styles.sectionTitle}>Debug Tools</h3>
+                        <Panel
+                            as="section"
+                            className={`${styles.sectionInner} ${styles.sectionWide}`}
+                            padding="section"
+                            variant="muted"
+                        >
+                            <ScreenTitle as="h3" className={styles.sectionHeading} role="section">
+                                Debug Tools
+                            </ScreenTitle>
 
                             <label className={styles.checkboxRow}>
                                 <input
@@ -151,22 +163,22 @@ const SettingsScreen = () => {
                                 />
                                 <span>Disable achievements when debug reveal is used.</span>
                             </label>
-                        </section>
+                        </Panel>
                     )}
                 </div>
 
                 <footer className={styles.footer}>
                     <p className={styles.note}>Only active demo controls are exposed in this screen.</p>
                     <div className={styles.footerActions}>
-                        <button className={styles.secondaryButton} onClick={closeSettings} type="button">
+                        <UiButton variant="secondary" onClick={closeSettings}>
                             Cancel
-                        </button>
-                        <button className={styles.primaryButton} onClick={handleSave} type="button">
+                        </UiButton>
+                        <UiButton variant="primary" onClick={handleSave}>
                             Save Changes
-                        </button>
+                        </UiButton>
                     </div>
                 </footer>
-            </div>
+            </Panel>
         </section>
     );
 };

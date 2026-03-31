@@ -3,7 +3,7 @@ import type { Application, Container, Sprite, Texture } from 'pixi.js';
 import type { TiltVector } from '../platformTilt/platformTiltTypes';
 import type * as PixiNamespace from 'pixi.js';
 import { RENDERER_THEME } from '../styles/theme';
-import styles from './MainMenu.module.css';
+import styles from './MainMenuBackground.module.css';
 
 interface MainMenuBackgroundProps {
     fieldTiltRef: MutableRefObject<TiltVector>;

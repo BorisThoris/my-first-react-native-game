@@ -1,0 +1,23 @@
+.root {
+    margin: 0;
+    padding: var(--ui-space-lg) var(--ui-space-xl);
+    border-radius: var(--ui-radius-lg);
+    background: var(--theme-panel-surface-muted);
+    border: 1px solid var(--theme-border);
+    color: #f0deb8;
+    letter-spacing: 0.03em;
+    line-height: 1.45;
+    font-size: var(--ui-font-body-sm);
+    box-shadow:
+        inset 3px 0 0 rgba(255, 214, 133, 0.44),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.compact {
+    padding: var(--ui-space-md) var(--ui-space-lg);
+    font-size: 0.78rem;
+}
+
+:global([data-reduce-motion='true']) .root {
+    background: var(--theme-panel-surface-muted);
+}

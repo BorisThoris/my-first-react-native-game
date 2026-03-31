@@ -29,7 +29,7 @@ test.describe('Tile board WebGL picking', () => {
         await page.getByRole('button', { name: /play arcade/i }).click();
         await expect(page.getByRole('heading', { name: /level 1/i })).toBeVisible();
 
-        await expect(page.getByText(/Stay sharp/i)).toBeVisible({ timeout: 8000 });
+        await expect(page.getByText(/Find pairs/i)).toBeVisible({ timeout: 8000 });
 
         const canvas = page.getByTestId('tile-board-stage').locator('canvas');
         await expect(canvas).toBeVisible();

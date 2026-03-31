@@ -1,0 +1,51 @@
+.root {
+    border: 1px solid var(--theme-border);
+    border-radius: var(--ui-radius-panel);
+    backdrop-filter: blur(22px) saturate(150%);
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.default {
+    background: var(--theme-panel-surface);
+    box-shadow: var(--theme-panel-shadow);
+}
+
+.strong {
+    background: var(--theme-panel-surface-strong);
+    border-color: var(--theme-border-strong);
+    box-shadow: var(--theme-panel-shadow-strong);
+}
+
+.muted {
+    background: var(--theme-panel-surface-muted);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.accent {
+    background: var(--theme-panel-surface-accent);
+}
+
+.paddingMd {
+    padding: clamp(1.15rem, 2.2vw, 1.45rem);
+}
+
+.paddingLg {
+    padding: clamp(1.25rem, 2vw, 2rem);
+}
+
+.paddingSection {
+    padding: var(--ui-space-xl) 1.25rem;
+}
+
+.overflowAuto {
+    overflow-y: auto;
+    min-height: 0;
+}
+
+.maxHeightViewport {
+    max-height: calc(100dvh - 1.5rem);
+}

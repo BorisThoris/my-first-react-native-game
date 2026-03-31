@@ -5,6 +5,7 @@ dist-electron/
 release/
 output/
 coverage/
+tmp/
 test-results/
 playwright-report/
 playwright/.cache/

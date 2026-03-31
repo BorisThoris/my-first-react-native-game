@@ -1,11 +1,12 @@
 import { ACHIEVEMENTS } from '../../shared/achievements';
 import type { AchievementId, RunState, SaveData } from '../../shared/contracts';
 import { useShallow } from 'zustand/react/shallow';
+import { useViewportSize } from '../hooks/useViewportSize';
+import { StatTile, UiButton } from '../ui';
+import { useAppStore } from '../store/useAppStore';
 import OverlayModal from './OverlayModal';
 import TileBoard from './TileBoard';
-import { useViewportSize } from '../hooks/useViewportSize';
 import styles from './GameScreen.module.css';
-import { useAppStore } from '../store/useAppStore';
 
 interface GameScreenProps {
     achievements: AchievementId[];
@@ -14,7 +15,7 @@ interface GameScreenProps {
     steamConnected: boolean;
 }
 
-const getPhaseCopy = (run: RunState): string => {
+const getPhaseDetail = (run: RunState): string => {
     switch (run.status) {
         case 'memorize':
             return 'Memorize the layout before the veil drops.';
@@ -27,7 +28,24 @@ const getPhaseCopy = (run: RunState): string => {
         case 'gameOver':
             return 'Expedition complete.';
         default:
-            return 'Stay sharp. Every 4-match chain grants a guard; every 8-match chain restores 1 life.';
+            return 'Find pairs. Streaks earn guards and extra lives.';
+    }
+};
+
+const getPhaseLabel = (run: RunState): string => {
+    switch (run.status) {
+        case 'memorize':
+            return 'Memorize';
+        case 'resolving':
+            return 'Resolving';
+        case 'paused':
+            return 'Paused';
+        case 'levelComplete':
+            return 'Cleared';
+        case 'gameOver':
+            return 'Over';
+        default:
+            return 'Play';
     }
 };
 
@@ -48,15 +66,6 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
     );
     const isCompact = width <= 760 || height <= 760;
     const isTight = width <= 430 || height <= 620;
-    const isSplitLayout = width > 1220;
-    const boardHorizontalBudget = isCompact
-        ? Math.max(180, width - (isTight ? 24 : 32))
-        : isSplitLayout
-          ? Math.max(320, width - 64 - 336)
-          : Math.max(320, width - 64);
-    const boardVerticalBudget = isCompact
-        ? Math.max(180, height - (isTight ? 330 : 400))
-        : Math.max(300, height - 340);
 
     if (!run.board) {
         return null;
@@ -65,85 +74,121 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
     const unlockedDefinitions = achievements
         .map((achievementId) => ACHIEVEMENTS.find((item) => item.id === achievementId))
         .filter((achievement): achievement is (typeof ACHIEVEMENTS)[number] => Boolean(achievement));
+    const cols = run.board.columns;
+    const rows = run.board.rows;
+    /** Tight reserve → larger tiles; flex boardStage still absorbs leftover vertical space under the deck. */
+    const deckReserve = isCompact ? (isTight ? 100 : 118) : 82;
+    const boardHorizontalBudget = Math.max(160, width - (isTight ? 10 : 16));
+    const boardVerticalBudget = Math.max(200, height - deckReserve);
     const tileSize = Math.max(
-        isCompact ? 48 : 64,
+        isCompact ? 48 : 56,
         Math.min(
             isCompact ? (isTight ? 96 : width <= 390 ? 112 : 120) : Number.POSITIVE_INFINITY,
-            Math.floor(Math.min(boardHorizontalBudget / run.board.columns, boardVerticalBudget / run.board.rows))
+            Math.floor(Math.min(boardHorizontalBudget / cols, boardVerticalBudget / rows))
         )
     );
     const boardStyle = {
-        ['--board-width' as string]: `${tileSize * run.board.columns}px`,
-        ['--board-height' as string]: `${tileSize * run.board.rows}px`
+        ['--board-width' as string]: `${tileSize * cols}px`,
+        ['--board-height' as string]: `${tileSize * rows}px`
     };
-    const metrics = isCompact
-        ? isTight
-            ? [
-                  { label: 'Lives', value: run.lives },
-                  { label: 'Guards', value: run.stats.guardTokens },
-                  { label: 'Run Score', value: run.stats.totalScore.toLocaleString() }
-              ]
-            : [
-                  { label: 'Lives', value: run.lives },
-                  { label: 'Guards', value: run.stats.guardTokens },
-                  { label: 'Run Score', value: run.stats.totalScore.toLocaleString() },
-                  { label: 'Streak', value: run.stats.currentStreak },
-                  { label: 'Best Score', value: saveData.bestScore.toLocaleString() }
-              ]
-        : [
-              { label: 'Lives', value: run.lives },
-              { label: 'Guards', value: run.stats.guardTokens },
-              { label: 'Run Score', value: run.stats.totalScore.toLocaleString() },
-              { label: 'Level Score', value: run.stats.currentLevelScore.toLocaleString() },
-              { label: 'Streak', value: run.stats.currentStreak },
-              { label: 'Mistakes', value: run.stats.tries },
-              { label: 'Best Score', value: saveData.bestScore.toLocaleString() }
-          ];
-    const phaseCopy = getPhaseCopy(run);
+    const extraMetrics = isTight
+        ? []
+        : isCompact
+          ? [
+                { label: 'Streak', value: run.stats.currentStreak },
+                { label: 'Best', value: saveData.bestScore.toLocaleString() }
+            ]
+          : [
+                { label: 'Floor pts', value: run.stats.currentLevelScore.toLocaleString() },
+                { label: 'Streak', value: run.stats.currentStreak },
+                { label: 'Miss', value: run.stats.tries },
+                { label: 'Best', value: saveData.bestScore.toLocaleString() }
+            ];
+    const phaseDetail = getPhaseDetail(run);
+    const phaseLabel = getPhaseLabel(run);
+    const phaseState =
+        run.status === 'memorize'
+            ? 'memorize'
+            : run.status === 'resolving'
+              ? 'resolving'
+              : run.status === 'paused'
+                ? 'paused'
+                : run.status === 'levelComplete'
+                  ? 'cleared'
+                  : run.status === 'gameOver'
+                    ? 'over'
+                    : 'play';
 
     return (
         <section className={styles.shell}>
-            <header className={styles.header}>
-                <div>
-                    <p className={styles.eyebrow}>Arcade Expedition</p>
-                    <h1 className={styles.title}>Level {run.board.level}</h1>
-                    <p className={styles.statusLine}>
-                        {steamConnected ? 'Steam bridge online' : 'Local desktop mode'} |{' '}
-                        {run.achievementsEnabled ? 'Achievements active' : 'Achievements disabled'}
-                    </p>
+            <h1 className={styles.srOnly}>Level {run.board.level}</h1>
+            <header className={styles.topDeck}>
+                <div className={styles.deckCluster}>
+                    <div className={styles.floorBadge} title="Current floor">
+                        <span className={styles.floorLabel}>Floor</span>
+                        <span className={styles.floorValue}>{run.board.level}</span>
+                    </div>
+                    <div className={styles.statRail} role="group" aria-label="Run stats">
+                        <div className={styles.statPill}>
+                            <span className={styles.statKey}>Lives</span>
+                            <span className={styles.statVal}>{run.lives}</span>
+                        </div>
+                        <div className={styles.statPill}>
+                            <span className={styles.statKey}>Guards</span>
+                            <span className={styles.statVal}>{run.stats.guardTokens}</span>
+                        </div>
+                        <div className={styles.statPill}>
+                            <span className={styles.statKey}>Score</span>
+                            <span className={styles.statVal}>{run.stats.totalScore.toLocaleString()}</span>
+                        </div>
+                    </div>
+                    <div
+                        className={styles.phaseChip}
+                        data-phase={phaseState}
+                        title={phaseDetail}
+                    >
+                        <span className={styles.phaseLabel}>{phaseLabel}</span>
+                        <span className={styles.phaseHint}>{phaseDetail}</span>
+                    </div>
                 </div>
 
-                <div className={styles.actions}>
-                    <button
-                        className={styles.actionButton}
-                        onClick={run.status === 'paused' ? resume : pause}
-                        type="button"
-                    >
+                <div className={styles.deckActions}>
+                    {extraMetrics.length > 0 ? (
+                        <details className={styles.moreStats}>
+                            <summary className={styles.moreStatsSummary}>+ Stats</summary>
+                            <div className={styles.moreStatsGrid}>
+                                {extraMetrics.map((m) => (
+                                    <div className={styles.moreStatsRow} key={m.label}>
+                                        <span>{m.label}</span>
+                                        <strong>{m.value}</strong>
+                                    </div>
+                                ))}
+                            </div>
+                        </details>
+                    ) : null}
+                    <details className={styles.sessionFold}>
+                        <summary className={styles.sessionSummary}>Session</summary>
+                        <div className={styles.sessionBody}>
+                            <p>{steamConnected ? 'Steam' : 'Local save'}</p>
+                            <p>{run.achievementsEnabled ? 'Achievements on' : 'Achievements off'}</p>
+                        </div>
+                    </details>
+                    <UiButton size="sm" variant="secondary" onClick={run.status === 'paused' ? resume : pause}>
                         {run.status === 'paused' ? 'Resume' : 'Pause'}
-                    </button>
-                    <button className={styles.actionButton} onClick={() => openSettings('playing')} type="button">
+                    </UiButton>
+                    <UiButton size="sm" variant="secondary" onClick={() => openSettings('playing')}>
                         Settings
-                    </button>
+                    </UiButton>
                     {import.meta.env.DEV && settings.debugFlags.showDebugTools && settings.debugFlags.allowBoardReveal && (
-                        <button className={styles.debugButton} onClick={triggerDebugReveal} type="button">
-                            Reveal Board
-                        </button>
+                        <UiButton size="sm" variant="debug" onClick={triggerDebugReveal}>
+                            Reveal
+                        </UiButton>
                     )}
                 </div>
             </header>
 
-            <div className={styles.hudGrid}>
-                {metrics.map((metric) => (
-                    <article className={styles.metricCard} key={metric.label}>
-                        <span className={styles.metricLabel}>{metric.label}</span>
-                        <strong className={styles.metricValue}>{metric.value}</strong>
-                    </article>
-                ))}
-            </div>
-
-            <div className={styles.phaseBanner}>{phaseCopy}</div>
-
-            <div className={styles.boardArea}>
+            <div className={styles.boardStage}>
+                <div className={styles.boardGlow} aria-hidden="true" />
                 <TileBoard
                     board={run.board}
                     debugPeekActive={run.debugPeekActive}
@@ -157,58 +202,17 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
                     previewActive={run.status === 'memorize'}
                     reduceMotion={settings.reduceMotion}
                 />
-
-                {!isCompact && (
-                    <aside className={styles.sidePanel}>
-                        <div className={styles.panelBlock}>
-                            <span className={styles.panelLabel}>Pairs Remaining</span>
-                            <strong className={styles.panelValue}>{run.board.pairCount - run.board.matchedPairs}</strong>
-                            <p className={styles.panelCopy}>
-                                Every 4-match streak grants a guard token. Every 8-match streak restores one life.
-                            </p>
-                        </div>
-
-                        <div className={styles.panelBlock}>
-                            <span className={styles.panelLabel}>Run Stats</span>
-                            <div className={styles.inlineStats}>
-                                <div>
-                                    <strong>{run.stats.matchesFound}</strong>
-                                    <span>Matches</span>
-                                </div>
-                                <div>
-                                    <strong>{run.stats.bestStreak}</strong>
-                                    <span>Best Streak</span>
-                                </div>
-                                <div>
-                                    <strong>{run.stats.perfectClears}</strong>
-                                    <span>Perfect Floors</span>
-                                </div>
+                {unlockedDefinitions.length > 0 ? (
+                    <div className={styles.toastRail} role="status">
+                        {unlockedDefinitions.map((a) => (
+                            <div className={styles.toast} key={a.id}>
+                                <span className={styles.toastTitle}>{a.title}</span>
+                                <span className={styles.toastDesc}>{a.description}</span>
                             </div>
-                        </div>
-
-                        <div className={styles.panelBlock}>
-                            <span className={styles.panelLabel}>Controls</span>
-                            <p className={styles.panelCopy}>Tap or click a tile to flip it.</p>
-                        </div>
-
-                        {unlockedDefinitions.length > 0 && (
-                            <div className={styles.panelBlock}>
-                                <span className={styles.panelLabel}>Unlocked This Turn</span>
-                                <div className={styles.achievementRail}>
-                                    {unlockedDefinitions.map((achievement) => (
-                                        <article className={styles.achievementCard} key={achievement.id}>
-                                            <strong>{achievement.title}</strong>
-                                            <p>{achievement.description}</p>
-                                        </article>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </aside>
-                )}
+                        ))}
+                    </div>
+                ) : null}
             </div>
-
-            {!isCompact && <p className={styles.footerHint}>Deeper floors rotate symbol themes and compress the memorize window.</p>}
 
             {run.status === 'paused' && (
                 <OverlayModal
@@ -232,22 +236,30 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
                     title="Floor Cleared"
                 >
                     <div className={styles.modalStats}>
-                        <div>
-                            <strong>{run.lastLevelResult.rating}</strong>
-                            <span>Rating</span>
-                        </div>
-                        <div>
-                            <strong>{run.lastLevelResult.mistakes}</strong>
-                            <span>Mistakes</span>
-                        </div>
-                        <div>
-                            <strong>{run.lastLevelResult.livesRemaining}</strong>
-                            <span>Lives</span>
-                        </div>
-                        <div>
-                            <strong>{run.stats.totalScore.toLocaleString()}</strong>
-                            <span>Total</span>
-                        </div>
+                        <StatTile
+                            density="modalChild"
+                            label="Rating"
+                            value={run.lastLevelResult.rating}
+                            valueFirst
+                        />
+                        <StatTile
+                            density="modalChild"
+                            label="Mistakes"
+                            value={run.lastLevelResult.mistakes}
+                            valueFirst
+                        />
+                        <StatTile
+                            density="modalChild"
+                            label="Lives"
+                            value={run.lastLevelResult.livesRemaining}
+                            valueFirst
+                        />
+                        <StatTile
+                            density="modalChild"
+                            label="Total"
+                            value={run.stats.totalScore.toLocaleString()}
+                            valueFirst
+                        />
                     </div>
                 </OverlayModal>
             )}
@@ -256,4 +268,3 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
 };
 
 export default GameScreen;
-

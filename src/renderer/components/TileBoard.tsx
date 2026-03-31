@@ -157,7 +157,15 @@ class TileBoardErrorBoundary extends Component<{ fallback: ReactNode; children: 
     }
 }
 
-const TileBoard = ({ board, debugPeekActive, interactive, previewActive, reduceMotion, frameStyle, onTileSelect }: TileBoardProps) => {
+const TileBoard = ({
+    board,
+    debugPeekActive,
+    interactive,
+    previewActive,
+    reduceMotion,
+    frameStyle,
+    onTileSelect
+}: TileBoardProps) => {
     const { height, width } = useViewportSize();
     const compact = width <= 760 || height <= 760;
     const threeEnabled = useMemo(() => canUseWebGL(), []);

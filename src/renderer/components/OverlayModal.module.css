@@ -16,7 +16,7 @@
     width: min(560px, 100%);
     background: var(--theme-panel-surface-strong);
     border: 1px solid var(--theme-border);
-    border-radius: 1.5rem;
+    border-radius: var(--ui-radius-modal);
     padding: 1.4rem;
     box-shadow: var(--theme-panel-shadow-strong);
     max-height: calc(100dvh - 2rem);
@@ -27,9 +27,6 @@
 
 .title {
     margin: 0;
-    font-size: 1.8rem;
-    color: var(--theme-text);
-    text-shadow: 0 0 24px var(--theme-glow-gold);
 }
 
 .subtitle {
@@ -52,61 +49,8 @@
     flex-shrink: 0;
 }
 
-.button {
+.modalAction {
     flex: 1 1 160px;
-    border-radius: 999px;
-    padding: 0.9rem 1.25rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    transition:
-        transform 140ms ease,
-        border-color 140ms ease,
-        box-shadow 140ms ease,
-        background 140ms ease;
-}
-
-.primary {
-    border: none;
-    background: var(--theme-primary-surface);
-    color: var(--theme-void);
-    box-shadow: var(--theme-primary-shadow);
-}
-
-.secondary {
-    border: 1px solid var(--theme-border);
-    background: var(--theme-control-surface);
-    color: var(--theme-text);
-}
-
-.danger {
-    border: 1px solid rgba(255, 119, 87, 0.3);
-    background:
-        radial-gradient(circle at top left, rgba(255, 119, 87, 0.18), transparent 42%),
-        rgba(48, 14, 15, 0.5);
-    color: #ffd7d0;
-}
-
-.button:hover {
-    transform: translateY(-1px);
-}
-
-.secondary:hover,
-.danger:hover {
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
-}
-
-.secondary:hover {
-    border-color: var(--theme-border-strong);
-}
-
-:global([data-reduce-motion='true']) .button {
-    transition: none;
-}
-
-:global([data-reduce-motion='true']) .button:hover {
-    transform: none;
-    box-shadow: none;
 }
 
 @media (max-width: 720px) {
@@ -116,19 +60,15 @@
 
     .modal {
         padding: 1rem;
-        border-radius: 1.25rem;
+        border-radius: var(--ui-radius-xl);
         max-height: calc(100dvh - 1.5rem);
-    }
-
-    .title {
-        font-size: 1.5rem;
     }
 
     .actions {
         flex-direction: column;
     }
 
-    .button {
+    .modalAction {
         flex: 1 1 auto;
         width: 100%;
     }
@@ -137,10 +77,6 @@
 @media (max-width: 720px), (max-height: 700px) {
     .backdrop {
         align-items: start;
-    }
-
-    .title {
-        font-size: 1.4rem;
     }
 
     .subtitle {

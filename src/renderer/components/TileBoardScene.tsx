@@ -418,11 +418,6 @@ const TileBoardScene = ({
             <directionalLight color={colors.cyan} intensity={compact ? 0.14 : 0.18} position={[-5.8, 2.2, 6.8]} />
             <pointLight color={colors.gold} intensity={compact ? 0.14 : 0.2} position={[0, -2.2, 5.4]} />
 
-            <mesh position={[0, 0, -1.42]} raycast={noopMeshRaycast} receiveShadow={!compact && !reduceMotion}>
-                <planeGeometry args={[boardWidth * 2, boardHeight * 2]} />
-                <meshStandardMaterial color={colors.voidAlt} metalness={0.12} roughness={0.96} />
-            </mesh>
-
             <group rotation={[-0.1, 0.08, 0]} scale={[fitScale, fitScale, fitScale]}>
                 {board.tiles.map((tile, index) => {
                     const faceUp = tile.state !== 'hidden' || previewActive || debugPeekActive;
