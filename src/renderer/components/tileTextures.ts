@@ -1,8 +1,7 @@
 import { CanvasTexture, LinearFilter, NoColorSpace, SRGBColorSpace } from 'three';
 import type { Tile } from '../../shared/contracts';
 import { RENDERER_THEME } from '../styles/theme';
-import backTextureUrl from '../assets/textures/cards/back.png';
-import frontFaceTextureUrl from '../assets/textures/cards/front-face.png';
+import referenceBackTextureUrl from '../assets/textures/cards/reference-back.png';
 import edgeTextureUrl from '../assets/textures/cards/edge.png';
 import panelRoughnessTextureUrl from '../assets/textures/cards/panel-roughness.png';
 import edgeRoughnessTextureUrl from '../assets/textures/cards/edge-roughness.png';
@@ -16,13 +15,13 @@ export type CubeFace = TileFace;
 export type CubeLayer = 'shell' | 'core';
 
 const TEXTURE_SIZE = 512;
-const TILE_TEXTURE_VERSION = 7;
+const TILE_TEXTURE_VERSION = 9;
 const textureCache = new Map<string, CanvasTexture>();
 const textureImageUpdateListeners = new Set<() => void>();
 
 const textureImageUrls = {
-    back: backTextureUrl,
-    frontFace: frontFaceTextureUrl,
+    /** Single card raster for both faces (reference-back.png). */
+    cardReference: referenceBackTextureUrl,
     edge: edgeTextureUrl,
     panelRoughness: panelRoughnessTextureUrl,
     edgeRoughness: edgeRoughnessTextureUrl
@@ -377,7 +376,12 @@ const drawNoise = (context: CanvasRenderingContext2D, width: number, height: num
     context.restore();
 };
 
-const drawCardBackPattern = (context: CanvasRenderingContext2D, canvas: HTMLCanvasElement, palette: CardPalette, rng: () => number): void => {
+/** Rounded panel: reference-back raster plus the same hatch / emblem treatment used on the physical back. */
+const drawCardReferenceRoundPanel = (
+    context: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    palette: CardPalette
+): { inset: number; cardWidth: number; cardHeight: number; radius: number } => {
     const { width, height } = canvas;
     const inset = width * 0.03;
     const cardWidth = width - inset * 2;
@@ -395,8 +399,8 @@ const drawCardBackPattern = (context: CanvasRenderingContext2D, canvas: HTMLCanv
     context.fill();
     context.clip();
 
-    const hasBackTexture = drawTextureImage(context, canvas, 'back', 1);
-    if (hasBackTexture) {
+    const hasCardTexture = drawTextureImage(context, canvas, 'cardReference', 1);
+    if (hasCardTexture) {
         const tintOverlay = context.createLinearGradient(inset, inset, inset + cardWidth, inset + cardHeight);
         tintOverlay.addColorStop(0, 'rgba(11, 19, 30, 0.06)');
         tintOverlay.addColorStop(1, 'rgba(7, 12, 20, 0.1)');
@@ -404,7 +408,7 @@ const drawCardBackPattern = (context: CanvasRenderingContext2D, canvas: HTMLCanv
         context.fillRect(inset, inset, cardWidth, cardHeight);
     }
 
-    context.globalAlpha = hasBackTexture ? 0.12 : 0.66;
+    context.globalAlpha = hasCardTexture ? 0.12 : 0.66;
     context.strokeStyle = palette.backPattern;
     context.lineWidth = Math.max(1, Math.round(width * 0.0026));
 
@@ -429,13 +433,13 @@ const drawCardBackPattern = (context: CanvasRenderingContext2D, canvas: HTMLCanv
     const emblem = context.createRadialGradient(centerX, centerY, ring * 0.15, centerX, centerY, ring);
     emblem.addColorStop(0, palette.foil);
     emblem.addColorStop(1, 'rgba(255, 255, 255, 0)');
-    context.globalAlpha = hasBackTexture ? 0.08 : 0.35;
+    context.globalAlpha = hasCardTexture ? 0.08 : 0.35;
     context.fillStyle = emblem;
     context.beginPath();
     context.arc(centerX, centerY, ring, 0, Math.PI * 2);
     context.fill();
 
-    context.globalAlpha = hasBackTexture ? 0.28 : 0.72;
+    context.globalAlpha = hasCardTexture ? 0.28 : 0.72;
     context.strokeStyle = palette.rimSoft;
     context.lineWidth = Math.max(2, Math.round(width * 0.006));
     context.beginPath();
@@ -443,6 +447,19 @@ const drawCardBackPattern = (context: CanvasRenderingContext2D, canvas: HTMLCanv
     context.stroke();
 
     context.restore();
+
+    return { inset, cardWidth, cardHeight, radius };
+};
+
+const drawCardOuterFramesAndNoise = (
+    context: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    palette: CardPalette,
+    rng: () => number,
+    metrics: { inset: number; cardWidth: number; cardHeight: number; radius: number }
+): void => {
+    const { width, height } = canvas;
+    const { inset, cardWidth, cardHeight, radius } = metrics;
 
     drawRoundedRectFrame(
         context,
@@ -469,112 +486,10 @@ const drawCardBackPattern = (context: CanvasRenderingContext2D, canvas: HTMLCanv
     drawNoise(context, width, height, 90, 'rgba(255, 255, 255, 0.06)', rng);
 };
 
-/** Extra depth on top of front-face.png; palette follows active/matched face (cyan/gold) so it still reads with the symbol layer. */
-const drawCardFrontPlate = (
-    context: CanvasRenderingContext2D,
-    canvas: HTMLCanvasElement,
-    palette: CardPalette,
-    rng: () => number,
-    matched: boolean,
-    inset: number,
-    cardWidth: number,
-    cardHeight: number,
-    radius: number,
-    plateStrength = 1
-): void => {
-    const { width, height } = canvas;
-    const s = plateStrength;
-    const cx = inset + cardWidth / 2;
-    const cy = inset + cardHeight / 2;
-    const rayTint = matched ? 'rgba(255, 214, 133, 0.42)' : 'rgba(120, 210, 255, 0.38)';
-    const brushTint = matched ? 'rgba(255, 214, 133, 0.22)' : 'rgba(87, 220, 255, 0.18)';
-    const phase = rng() * Math.PI * 2;
-    const rayCount = 32;
-
-    context.save();
-    context.beginPath();
-    context.roundRect(inset, inset, cardWidth, cardHeight, radius);
-    context.clip();
-
-    context.globalAlpha = (matched ? 0.085 : 0.1) * s;
-    context.strokeStyle = rayTint;
-    const reach = Math.hypot(cardWidth, cardHeight) * 0.72;
-
-    for (let index = 0; index < rayCount; index += 1) {
-        const angle = phase + (index / rayCount) * Math.PI * 2;
-        context.beginPath();
-        context.moveTo(cx, cy);
-        context.lineTo(cx + Math.cos(angle) * reach, cy + Math.sin(angle) * reach);
-        context.lineWidth = index % 4 === 0 ? 1.15 : 0.5;
-        context.stroke();
-    }
-
-    context.globalAlpha = (matched ? 0.11 : 0.13) * s;
-    const bandCount = 26;
-
-    for (let band = 0; band < bandCount; band += 1) {
-        const y = inset + (band / bandCount) * cardHeight * 0.96 + inset * 0.02 + rng() * 2.5;
-        const bandGrad = context.createLinearGradient(inset, y, inset + cardWidth, y + 1.5);
-        bandGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
-        bandGrad.addColorStop(0.5, brushTint);
-        bandGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
-        context.fillStyle = bandGrad;
-        context.fillRect(inset, y, cardWidth, 1.1);
-    }
-
-    context.restore();
-
-    const bracket = Math.min(cardWidth, cardHeight) * 0.1;
-    const margin = inset + width * 0.028;
-    context.save();
-    context.globalAlpha = s;
-    context.strokeStyle = matched ? 'rgba(255, 214, 133, 0.55)' : 'rgba(87, 220, 255, 0.48)';
-    context.lineWidth = Math.max(1.4, width * 0.0038);
-    context.lineCap = 'round';
-
-    const corners: readonly [number, number, number, number][] = [
-        [margin, margin, 1, 1],
-        [inset + cardWidth - margin, margin, -1, 1],
-        [margin, inset + cardHeight - margin, 1, -1],
-        [inset + cardWidth - margin, inset + cardHeight - margin, -1, -1]
-    ];
-
-    for (const [bx, by, sx, sy] of corners) {
-        context.beginPath();
-        context.moveTo(bx, by + sy * bracket);
-        context.lineTo(bx, by);
-        context.lineTo(bx + sx * bracket, by);
-        context.stroke();
-    }
-
-    context.restore();
-
-    context.save();
-    context.beginPath();
-    context.roundRect(inset, inset, cardWidth, cardHeight, radius);
-    context.clip();
-    context.globalAlpha = (matched ? 0.06 : 0.07) * s;
-    const arcSteps = 5;
-    const ringInset = width * 0.07;
-
-    for (let ring = 0; ring < arcSteps; ring += 1) {
-        const shrink = ring * width * 0.022;
-        context.strokeStyle = matched ? 'rgba(255, 214, 133, 0.35)' : 'rgba(143, 223, 255, 0.32)';
-        context.lineWidth = 0.85;
-        context.beginPath();
-        context.roundRect(
-            inset + ringInset + shrink,
-            inset + ringInset + shrink,
-            cardWidth - (ringInset + shrink) * 2,
-            cardHeight - (ringInset + shrink) * 2,
-            radius * (0.92 - ring * 0.04)
-        );
-        context.stroke();
-    }
-
-    context.restore();
-
-    context.globalAlpha = 1;
+const drawCardBackPattern = (context: CanvasRenderingContext2D, canvas: HTMLCanvasElement, palette: CardPalette, rng: () => number): void => {
+    const hiddenPanel = getPalette('hidden', 'panel');
+    const metrics = drawCardReferenceRoundPanel(context, canvas, hiddenPanel);
+    drawCardOuterFramesAndNoise(context, canvas, palette, rng, metrics);
 };
 
 const drawCardFront = (
@@ -586,10 +501,9 @@ const drawCardFront = (
     rng: () => number
 ): void => {
     const { width, height } = canvas;
-    const inset = width * 0.03;
-    const cardWidth = width - inset * 2;
-    const cardHeight = height - inset * 2;
-    const radius = width * 0.078;
+    const hiddenPanel = getPalette('hidden', 'panel');
+    const { inset, cardWidth, cardHeight, radius } = drawCardReferenceRoundPanel(context, canvas, hiddenPanel);
+
     const symbolBaseSize = tile.symbol.length > 2 ? 138 : tile.symbol.length > 1 ? 168 : 198;
     const labelSize = Math.max(19, Math.round(width * 0.043));
     const matched = variant === 'matched';
@@ -597,63 +511,10 @@ const drawCardFront = (
     const symbolText = tile.symbol;
     const hasDistinctLabel = labelText !== symbolText.toUpperCase();
 
-    const faceGradient = context.createLinearGradient(inset, inset, inset + cardWidth, inset + cardHeight);
-    faceGradient.addColorStop(0, palette.faceBase);
-    faceGradient.addColorStop(1, palette.faceEdge);
-
     context.save();
     context.beginPath();
     context.roundRect(inset, inset, cardWidth, cardHeight, radius);
-    context.fillStyle = faceGradient;
-    context.fill();
     context.clip();
-
-    const hasFrontRaster = drawTextureImage(context, canvas, 'frontFace', 0.97);
-    drawCardFrontPlate(
-        context,
-        canvas,
-        palette,
-        rng,
-        matched,
-        inset,
-        cardWidth,
-        cardHeight,
-        radius,
-        hasFrontRaster ? 0.42 : 1
-    );
-
-    const toneOverlay = context.createLinearGradient(inset, inset, inset + cardWidth, inset + cardHeight);
-    toneOverlay.addColorStop(0, matched ? 'rgba(58, 34, 11, 0.22)' : 'rgba(9, 32, 50, 0.18)');
-    toneOverlay.addColorStop(1, matched ? 'rgba(24, 15, 8, 0.36)' : 'rgba(5, 10, 17, 0.3)');
-    context.fillStyle = toneOverlay;
-    context.fillRect(0, 0, width, height);
-
-    const foilBand = context.createLinearGradient(inset, inset + cardHeight * 0.05, inset + cardWidth, inset + cardHeight * 0.28);
-    foilBand.addColorStop(0, 'rgba(255, 255, 255, 0)');
-    foilBand.addColorStop(0.52, matched ? 'rgba(255, 214, 133, 0.36)' : 'rgba(87, 220, 255, 0.3)');
-    foilBand.addColorStop(1, 'rgba(255, 255, 255, 0)');
-    context.fillStyle = foilBand;
-    context.fillRect(inset - width * 0.16, inset, cardWidth + width * 0.32, cardHeight * 0.34);
-
-    const grainCount = matched ? 44 : 36;
-    drawNoise(context, width, height, grainCount, 'rgba(255, 255, 255, 0.04)', rng);
-
-    const centerPlate = context.createRadialGradient(width / 2, height * 0.5, width * 0.06, width / 2, height * 0.5, width * 0.28);
-    centerPlate.addColorStop(0, 'rgba(0, 0, 0, 0.44)');
-    centerPlate.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    context.fillStyle = centerPlate;
-    context.fillRect(inset, inset, cardWidth, cardHeight);
-
-    context.strokeStyle = palette.line;
-    context.lineWidth = Math.max(1, Math.round(width * 0.0028));
-    context.globalAlpha = 0.5;
-    for (let row = 0; row < 4; row += 1) {
-        const y = inset + cardHeight * (0.2 + row * 0.17);
-        context.beginPath();
-        context.moveTo(inset + cardWidth * 0.14, y);
-        context.lineTo(inset + cardWidth * 0.86, y);
-        context.stroke();
-    }
 
     const badgeWidth = cardWidth * 0.54;
     const badgeHeight = Math.max(20, Math.round(cardHeight * 0.11));
@@ -663,6 +524,7 @@ const drawCardFront = (
     const footerHeight = Math.max(20, Math.round(cardHeight * 0.11));
     const footerX = width / 2 - footerWidth / 2;
     const footerY = inset + cardHeight * 0.73;
+
     if (hasDistinctLabel) {
         context.globalAlpha = 1;
         context.fillStyle = 'rgba(0, 0, 0, 0.56)';
@@ -720,26 +582,7 @@ const drawCardFront = (
 
     context.restore();
 
-    drawRoundedRectFrame(
-        context,
-        inset,
-        inset,
-        cardWidth,
-        cardHeight,
-        radius,
-        palette.rim,
-        Math.max(2, Math.round(width * 0.005))
-    );
-    drawRoundedRectFrame(
-        context,
-        inset + width * 0.016,
-        inset + width * 0.016,
-        cardWidth - width * 0.032,
-        cardHeight - width * 0.032,
-        radius * 0.74,
-        palette.rimSoft,
-        Math.max(1, Math.round(width * 0.003))
-    );
+    drawCardOuterFramesAndNoise(context, canvas, palette, rng, { inset, cardWidth, cardHeight, radius });
 };
 
 const drawCardFrontOverlay = (
@@ -759,12 +602,6 @@ const drawCardFrontOverlay = (
     context.textAlign = 'center';
     context.textBaseline = 'middle';
     context.lineJoin = 'round';
-
-    const haze = context.createRadialGradient(width / 2, height * 0.5, width * 0.06, width / 2, height * 0.5, width * 0.28);
-    haze.addColorStop(0, 'rgba(0, 0, 0, 0.54)');
-    haze.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    context.fillStyle = haze;
-    context.fillRect(0, 0, width, height);
 
     let symbolSize = symbolBaseSize;
     context.font = `900 ${symbolSize}px "Trebuchet MS", "Segoe UI", "Arial", sans-serif`;
@@ -879,7 +716,12 @@ const drawFace = (
     const seed = hashString(buildKey(tile, face, variant, layer));
     const rng = createRng(seed);
 
-    drawCardBase(context, canvas, face, palette, rng, normalizedLayer);
+    const basePalette =
+        normalizedLayer === 'panel' && (face === 'front' || face === 'back')
+            ? getPalette('hidden', normalizedLayer)
+            : palette;
+
+    drawCardBase(context, canvas, face, basePalette, rng, normalizedLayer);
 
     if (normalizedLayer === 'bezel') {
         return;
@@ -1010,7 +852,7 @@ export const getTileFaceOverlayTexture = (
 
 export const getCardBackStaticTexture = (): CanvasTexture | null =>
     createTexture('static-card-back', (context, canvas) => {
-        const rendered = drawTextureImage(context, canvas, 'back', 1);
+        const rendered = drawTextureImage(context, canvas, 'cardReference', 1);
 
         if (!rendered) {
             const fallback = context.createLinearGradient(0, 0, canvas.width, canvas.height);

@@ -1,11 +1,10 @@
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { useEffect, useRef, useState, type MutableRefObject } from 'react';
-import { FrontSide, MathUtils, type Group } from 'three';
+import { DoubleSide, MathUtils, type Group } from 'three';
 import type { BoardState, Tile } from '../../shared/contracts';
 import {
     getCardBackStaticTexture,
     getTileFaceOverlayTexture,
-    getTileFaceRoughnessTexture,
     getTileFaceTexture,
     subscribeTextureImageUpdates,
     type FaceVariant
@@ -116,52 +115,6 @@ const getTileTransform = (tile: Tile, index: number, totalColumns: number, total
     };
 };
 
-const getEdgeMaterialProfile = (surfaceVariant: FaceVariant): {
-    color: string;
-    emissive: string;
-    emissiveIntensity: number;
-    roughness: number;
-    metalness: number;
-    specularColor: string;
-    specularIntensity: number;
-} => {
-    const { colors } = RENDERER_THEME;
-
-    if (surfaceVariant === 'matched') {
-        return {
-            color: colors.goldDeep,
-            emissive: colors.goldDeep,
-            emissiveIntensity: 0.12,
-            roughness: 0.34,
-            metalness: 0.56,
-            specularColor: colors.goldBright,
-            specularIntensity: 0.9
-        };
-    }
-
-    if (surfaceVariant === 'active') {
-        return {
-            color: colors.stoneEdge,
-            emissive: colors.cyanDeep,
-            emissiveIntensity: 0.12,
-            roughness: 0.38,
-            metalness: 0.44,
-            specularColor: colors.cyanBright,
-            specularIntensity: 0.82
-        };
-    }
-
-    return {
-        color: colors.smokeDeep,
-        emissive: colors.goldDeep,
-        emissiveIntensity: 0.06,
-        roughness: 0.44,
-        metalness: 0.34,
-        specularColor: colors.gold,
-        specularIntensity: 0.7
-    };
-};
-
 const TileBezel = ({
     compact,
     faceUp,
@@ -268,116 +221,72 @@ const TileBezel = ({
     });
 
     const surfaceVariant = getSurfaceVariant(tile, faceUp);
-    const edgeMaterialProfile = getEdgeMaterialProfile(surfaceVariant);
-    const edgeTexture = getTileFaceTexture(tile, 'left', surfaceVariant, 'bezel');
-    const edgeRoughnessTexture = getTileFaceRoughnessTexture(tile, 'left', surfaceVariant, 'bezel');
     const hiddenBackTexture = surfaceVariant === 'hidden' ? getCardBackStaticTexture() : null;
     const frontDisplayTexture = hiddenBackTexture ?? getTileFaceTexture(tile, 'front', surfaceVariant, 'panel');
     const backDisplayTexture = hiddenBackTexture ?? getTileFaceTexture(tile, 'back', surfaceVariant, 'panel');
     const overlayTexture = surfaceVariant === 'hidden' ? null : getTileFaceOverlayTexture(tile, surfaceVariant === 'matched' ? 'matched' : 'active');
     const forceTextureRefreshKey = textureRevision;
 
+    const halfDepth = TILE_DEPTH * 0.5;
+    const faceZ = halfDepth + 0.0004;
+    const overlayZ = halfDepth + 0.004;
+
     return (
         <group ref={groupRef}>
-            <mesh
-                castShadow={!compact && !reduceMotion}
-                key={`card-body-${tile.id}-${forceTextureRefreshKey}`}
-                onPointerMove={handleCardPointerMove}
-                onPointerUp={handleCardPointerUp}
-                onPointerOut={handleCardPointerOut}
-                receiveShadow={!compact && !reduceMotion}
-                raycast={pickable ? pickableMeshRaycast : noopMeshRaycast}
-                scale={[transform.bezelScale, transform.bezelScale, transform.bezelScale]}
-                userData={{ tileId: tile.id }}
-            >
-                <boxGeometry args={[CARD_WIDTH, CARD_HEIGHT, TILE_DEPTH]} />
-                <meshPhysicalMaterial
-                    attach="material-0"
-                    clearcoat={0.48}
-                    clearcoatRoughness={0.34}
-                    color={edgeMaterialProfile.color}
-                    emissive={edgeMaterialProfile.emissive}
-                    emissiveIntensity={edgeMaterialProfile.emissiveIntensity}
-                    map={edgeTexture ?? undefined}
-                    metalness={edgeMaterialProfile.metalness}
-                    roughness={edgeMaterialProfile.roughness}
-                    roughnessMap={edgeRoughnessTexture ?? undefined}
-                    side={FrontSide}
-                    specularColor={edgeMaterialProfile.specularColor}
-                    specularIntensity={edgeMaterialProfile.specularIntensity}
-                />
-                <meshPhysicalMaterial
-                    attach="material-1"
-                    clearcoat={0.48}
-                    clearcoatRoughness={0.34}
-                    color={edgeMaterialProfile.color}
-                    emissive={edgeMaterialProfile.emissive}
-                    emissiveIntensity={edgeMaterialProfile.emissiveIntensity}
-                    map={edgeTexture ?? undefined}
-                    metalness={edgeMaterialProfile.metalness}
-                    roughness={edgeMaterialProfile.roughness}
-                    roughnessMap={edgeRoughnessTexture ?? undefined}
-                    side={FrontSide}
-                    specularColor={edgeMaterialProfile.specularColor}
-                    specularIntensity={edgeMaterialProfile.specularIntensity}
-                />
-                <meshPhysicalMaterial
-                    attach="material-2"
-                    clearcoat={0.48}
-                    clearcoatRoughness={0.34}
-                    color={edgeMaterialProfile.color}
-                    emissive={edgeMaterialProfile.emissive}
-                    emissiveIntensity={edgeMaterialProfile.emissiveIntensity}
-                    map={edgeTexture ?? undefined}
-                    metalness={edgeMaterialProfile.metalness}
-                    roughness={edgeMaterialProfile.roughness}
-                    roughnessMap={edgeRoughnessTexture ?? undefined}
-                    side={FrontSide}
-                    specularColor={edgeMaterialProfile.specularColor}
-                    specularIntensity={edgeMaterialProfile.specularIntensity}
-                />
-                <meshPhysicalMaterial
-                    attach="material-3"
-                    clearcoat={0.48}
-                    clearcoatRoughness={0.34}
-                    color={edgeMaterialProfile.color}
-                    emissive={edgeMaterialProfile.emissive}
-                    emissiveIntensity={edgeMaterialProfile.emissiveIntensity}
-                    map={edgeTexture ?? undefined}
-                    metalness={edgeMaterialProfile.metalness}
-                    roughness={edgeMaterialProfile.roughness}
-                    roughnessMap={edgeRoughnessTexture ?? undefined}
-                    side={FrontSide}
-                    specularColor={edgeMaterialProfile.specularColor}
-                    specularIntensity={edgeMaterialProfile.specularIntensity}
-                />
-                <meshBasicMaterial
-                    attach="material-4"
-                    color="#ffffff"
-                    map={frontDisplayTexture ?? undefined}
-                    toneMapped={false}
-                />
-                <meshBasicMaterial
-                    attach="material-5"
-                    color="#ffffff"
-                    map={backDisplayTexture ?? undefined}
-                    toneMapped={false}
-                />
-            </mesh>
-
-            {overlayTexture ? (
-                <mesh position={[0, 0, TILE_DEPTH * 0.56]} raycast={noopMeshRaycast} renderOrder={10}>
-                    <planeGeometry args={[CARD_FACE_WIDTH, CARD_FACE_HEIGHT]} />
+            {/*
+              Rounded card art is transparent in the corners. A box mesh exposes dark side quads there.
+              Invisible pick slab + two planes lets corners composite to the scene instead.
+            */}
+            <group scale={[transform.bezelScale, transform.bezelScale, transform.bezelScale]}>
+                <mesh
+                    key={`card-pick-${tile.id}-${forceTextureRefreshKey}`}
+                    onPointerMove={handleCardPointerMove}
+                    onPointerOut={handleCardPointerOut}
+                    onPointerUp={handleCardPointerUp}
+                    raycast={pickable ? pickableMeshRaycast : noopMeshRaycast}
+                    userData={{ tileId: tile.id }}
+                >
+                    <boxGeometry args={[CARD_WIDTH, CARD_HEIGHT, TILE_DEPTH]} />
+                    <meshBasicMaterial colorWrite={false} depthWrite={false} transparent />
+                </mesh>
+                <mesh position={[0, 0, faceZ]} raycast={noopMeshRaycast}>
+                    <planeGeometry args={[CARD_WIDTH, CARD_HEIGHT]} />
                     <meshBasicMaterial
-                        alphaTest={0.08}
-                        depthTest={false}
-                        depthWrite={false}
-                        map={overlayTexture}
+                        alphaTest={0.06}
+                        color="#ffffff"
+                        depthWrite
+                        map={frontDisplayTexture ?? undefined}
+                        side={DoubleSide}
                         toneMapped={false}
-                        transparent={true}
+                        transparent
                     />
                 </mesh>
-            ) : null}
+                <mesh position={[0, 0, -faceZ]} rotation={[0, Math.PI, 0]} raycast={noopMeshRaycast}>
+                    <planeGeometry args={[CARD_WIDTH, CARD_HEIGHT]} />
+                    <meshBasicMaterial
+                        alphaTest={0.06}
+                        color="#ffffff"
+                        depthWrite
+                        map={backDisplayTexture ?? undefined}
+                        side={DoubleSide}
+                        toneMapped={false}
+                        transparent
+                    />
+                </mesh>
+                {overlayTexture ? (
+                    <mesh position={[0, 0, overlayZ]} raycast={noopMeshRaycast} renderOrder={10}>
+                        <planeGeometry args={[CARD_FACE_WIDTH, CARD_FACE_HEIGHT]} />
+                        <meshBasicMaterial
+                            alphaTest={0.08}
+                            depthTest={false}
+                            depthWrite={false}
+                            map={overlayTexture}
+                            toneMapped={false}
+                            transparent
+                        />
+                    </mesh>
+                ) : null}
+            </group>
         </group>
     );
 };
@@ -410,7 +319,7 @@ const TileBoardScene = ({
         <>
             <ambientLight color={colors.text} intensity={compact ? 0.56 : 0.64} />
             <directionalLight
-                castShadow={!compact && !reduceMotion}
+                castShadow={false}
                 color={colors.goldBright}
                 intensity={compact ? 0.9 : 1.02}
                 position={[5.4, 7.2, 8.5]}

@@ -29,13 +29,17 @@ test.describe('Tile board WebGL picking', () => {
         await page.getByRole('button', { name: /play arcade/i }).click();
         await expect(page.getByRole('heading', { name: /level 1/i })).toBeVisible();
 
-        await expect(page.getByText(/Find pairs/i)).toBeVisible({ timeout: 8000 });
+        await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible({ timeout: 8000 });
 
         const canvas = page.getByTestId('tile-board-stage').locator('canvas');
         await expect(canvas).toBeVisible();
 
+        // Run stats show during memorize; wait until play phase hides tiles again.
+        await expect
+            .poll(async () => page.getByRole('button', { name: /hidden tile/i }).count(), { timeout: 12000 })
+            .toBeGreaterThan(0);
+
         const hiddenBefore = await page.getByRole('button', { name: /hidden tile/i }).count();
-        expect(hiddenBefore).toBeGreaterThan(0);
 
         await clickThroughProxyTile(page, 1, 1, hiddenBefore);
     });

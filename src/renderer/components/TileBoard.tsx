@@ -127,6 +127,8 @@ const TileBoardFallback = ({
                             <span className={styles.pulseGlow} />
                             {faceUp ? (
                                 <span className={styles.cardFront}>
+                                    <span aria-hidden="true" className={styles.cardBackPattern} />
+                                    <span aria-hidden="true" className={styles.cardBackEmblem} />
                                     <span className={styles.cardFrontBadge}>{tile.label.toUpperCase()}</span>
                                     <span className={styles.tileSymbol}>{tile.symbol}</span>
                                     <span className={styles.cardFrontLabel}>{tile.label.toUpperCase()}</span>
@@ -255,11 +257,12 @@ const TileBoard = ({
                                     className={styles.canvas}
                                     dpr={dpr}
                                     gl={{
-                                        antialias: !compact,
                                         alpha: true,
-                                        powerPreference: 'high-performance'
+                                        antialias: !compact,
+                                        powerPreference: 'high-performance',
+                                        premultipliedAlpha: false
                                     }}
-                                    shadows={!compact && !reduceMotion}
+                                    shadows={false}
                                     camera={{ fov: 42, near: 0.1, far: 100, position: [0, 0, 10.5] }}
                                 >
                                     <TileBoardScene
