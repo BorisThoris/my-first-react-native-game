@@ -6,6 +6,18 @@
     overflow-y: auto;
 }
 
+.shellModal {
+    position: fixed;
+    inset: 0;
+    min-height: 0;
+    padding: 1.25rem;
+    background:
+        radial-gradient(circle at center, rgba(5, 6, 8, 0.16), rgba(5, 6, 8, 0.74)),
+        rgba(2, 4, 8, 0.82);
+    backdrop-filter: blur(12px) saturate(140%);
+    z-index: 24;
+}
+
 .panel {
     width: var(--ui-panel-max);
     display: flex;
@@ -13,90 +25,94 @@
     backdrop-filter: blur(18px);
 }
 
+.panelModal {
+    width: min(760px, 100%);
+    max-height: calc(100dvh - 2.5rem);
+}
+
 .header {
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: var(--ui-space-xl);
-    margin-bottom: 1.15rem;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.titleWrap {
+    display: grid;
+    gap: 0.2rem;
+    max-width: 34rem;
 }
 
 .grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--ui-space-xl);
+    gap: 0.95rem;
     flex: 1;
     overflow: visible;
-    padding-right: 0.25rem;
     min-height: 0;
 }
 
 .sectionInner {
     margin: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    min-height: 0;
 }
 
 .sectionHeading {
-    margin: 0 0 1rem;
+    margin: 0 0 0.85rem;
 }
 
-.field,
 .selectField {
     display: grid;
     gap: 0.45rem;
-    margin-bottom: 1rem;
+    margin-bottom: 0.9rem;
     color: var(--theme-text);
-}
-
-.field strong {
-    color: var(--theme-gold-bright);
-}
-
-.field input[type='range'] {
-    accent-color: var(--theme-gold-bright);
-}
-
-.copy {
-    margin: 0 0 0.95rem;
-    color: var(--theme-text-muted);
-    line-height: 1.55;
 }
 
 .selectField select {
-    border: 1px solid var(--theme-border);
-    border-radius: var(--ui-radius-md);
-    padding: 0.8rem 0.95rem;
-    background: rgba(8, 10, 15, 0.86);
+    border: 1px solid rgba(255, 214, 133, 0.14);
+    border-radius: calc(var(--ui-radius-md) + 0.1rem);
+    padding: 0.85rem 0.95rem;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent),
+        rgba(8, 10, 15, 0.88);
+    color: var(--theme-text);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.sliderField {
+    display: grid;
+    gap: 0.65rem;
     color: var(--theme-text);
 }
 
-.checkboxRow {
+.sliderHeader {
     display: flex;
-    gap: 0.8rem;
-    align-items: flex-start;
-    margin-bottom: 1rem;
-    color: var(--theme-text-muted);
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.75rem;
 }
 
-.checkboxRow input {
-    margin-top: 0.2rem;
+.sliderHeader strong {
+    color: var(--theme-gold-bright);
+    font-size: 1.05rem;
+}
+
+.rangeInput {
+    width: 100%;
     accent-color: var(--theme-gold-bright);
 }
 
 .footer {
-    margin-top: 1rem;
+    margin-top: 0.95rem;
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
-    gap: var(--ui-space-xl);
-    position: sticky;
-    bottom: 0;
-    padding-top: 1rem;
-    background: linear-gradient(180deg, rgba(7, 9, 14, 0), rgba(7, 9, 14, 0.92) 35%, rgba(7, 9, 14, 0.98));
-}
-
-.note {
-    margin: 0;
-    color: var(--theme-text-subtle);
+    padding-top: 0.95rem;
+    border-top: 1px solid rgba(255, 214, 133, 0.1);
 }
 
 .footerActions {
@@ -104,32 +120,13 @@
     gap: 0.8rem;
 }
 
-.sectionWide {
-    grid-column: 1 / -1;
-}
-
-@media (max-width: 900px) {
-    .grid {
-        grid-template-columns: 1fr;
-    }
-
-    .footer {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .footerActions {
-        justify-content: stretch;
-    }
-
-    .footerActions :global(button) {
-        flex: 1;
-    }
-}
-
 @media (max-width: 720px) {
     .shell {
         place-items: start;
+    }
+
+    .shellModal {
+        padding: 1rem;
     }
 
     .panel {
@@ -138,24 +135,36 @@
         max-height: calc(100dvh - 1rem);
     }
 
+    .header {
+        align-items: flex-start;
+    }
+
+    .grid {
+        grid-template-columns: 1fr;
+    }
+
     .footer {
         margin-top: 0.85rem;
-        flex-direction: column;
         align-items: stretch;
     }
 
     .footerActions {
+        justify-content: stretch;
         flex-direction: column;
     }
 
-    .copy {
-        font-size: 0.95rem;
+    .footerActions :global(button) {
+        width: 100%;
     }
 }
 
 @media (max-width: 720px), (max-height: 700px) {
     .shell {
         place-items: start;
+    }
+
+    .shellModal {
+        align-items: start;
     }
 
     .panel {
@@ -170,9 +179,8 @@
         margin-bottom: 0.85rem;
     }
 
-    .field,
     .selectField,
-    .checkboxRow {
+    .sliderField {
         margin-bottom: 0.8rem;
     }
 }

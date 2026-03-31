@@ -85,23 +85,37 @@ describe('desktop app flow', () => {
 
         await dismissStartupIntro(user);
         await user.click(await screen.findByRole('button', { name: /settings/i }));
-        expect(await screen.findByRole('heading', { name: /tune the run for steam desktop play/i })).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: /desktop settings/i })).toBeInTheDocument();
+        expect(screen.queryByLabelText(/ui scale/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/debug tools/i)).not.toBeInTheDocument();
+        expect(screen.queryByRole('checkbox', { name: /reduce motion/i })).not.toBeInTheDocument();
+        expect(screen.getByLabelText(/volume/i)).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /^close$/i })).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^back$/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^save$/i })).toBeDisabled();
 
-        fireEvent.change(screen.getByLabelText(/ui scale/i), { target: { value: '1.15' } });
-        await user.click(screen.getByRole('checkbox', { name: /reduce hover lift/i }));
-        await user.click(screen.getByRole('button', { name: /save changes/i }));
+        fireEvent.change(screen.getByLabelText(/volume/i), { target: { value: '0.45' } });
+        expect(screen.getByRole('button', { name: /^save$/i })).toBeEnabled();
+        await user.click(screen.getByRole('button', { name: /^save$/i }));
 
         await waitFor(() => {
-            expect(screen.getByRole('button', { name: /play arcade/i })).toBeInTheDocument();
+            expect(window.localStorage.getItem('memory-dungeon-save-data')).not.toBeNull();
         });
+        expect(screen.getByRole('heading', { name: /desktop settings/i })).toBeInTheDocument();
         expect(screen.queryByRole('dialog', { name: /startup relic intro/i })).not.toBeInTheDocument();
 
         const rawSave = window.localStorage.getItem('memory-dungeon-save-data');
         expect(rawSave).not.toBeNull();
 
         const parsed = JSON.parse(rawSave ?? '{}') as ReturnType<typeof createDefaultSaveData>;
-        expect(parsed.settings.uiScale).toBe(1.15);
-        expect(parsed.settings.reduceMotion).toBe(true);
+        expect(parsed.settings.masterVolume).toBe(0.45);
+        expect(parsed.settings.reduceMotion).toBe(false);
+
+        await user.click(screen.getByRole('button', { name: /^back$/i }));
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /play arcade/i })).toBeInTheDocument();
+        });
     });
 
     it('dismisses the how-to panel and persists the onboarding flag', async () => {
@@ -146,5 +160,44 @@ describe('desktop app flow', () => {
         await waitFor(() => {
             expect(screen.queryByText(/run paused/i)).not.toBeInTheDocument();
         });
+    });
+
+    it('opens run settings as a modal over the board', async () => {
+        const user = userEvent.setup();
+
+        renderApp();
+
+        await dismissStartupIntro(user);
+        await user.click(await screen.findByRole('button', { name: /play arcade/i }));
+        expect(await screen.findByRole('heading', { name: /level 1/i })).toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: /settings/i }));
+
+        const dialog = await screen.findByRole('dialog', { name: /run settings/i });
+        expect(dialog).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /level 1/i })).toBeInTheDocument();
+        expect(screen.queryByRole('heading', { name: /run paused/i })).not.toBeInTheDocument();
+        expect(within(dialog).queryByLabelText(/ui scale/i)).not.toBeInTheDocument();
+        expect(within(dialog).queryByText(/debug tools/i)).not.toBeInTheDocument();
+        expect(within(dialog).queryByRole('checkbox', { name: /reduce motion/i })).not.toBeInTheDocument();
+        expect(within(dialog).getByLabelText(/volume/i)).toBeInTheDocument();
+        expect(within(dialog).queryByRole('button', { name: /^close$/i })).not.toBeInTheDocument();
+        expect(within(dialog).getByRole('button', { name: /^back$/i })).toBeInTheDocument();
+        expect(within(dialog).getByRole('button', { name: /^save$/i })).toBeDisabled();
+
+        fireEvent.change(within(dialog).getByLabelText(/volume/i), { target: { value: '0.35' } });
+        expect(within(dialog).getByRole('button', { name: /^save$/i })).toBeEnabled();
+        await user.click(within(dialog).getByRole('button', { name: /^save$/i }));
+
+        await waitFor(() => {
+            expect(screen.getByRole('dialog', { name: /run settings/i })).toBeInTheDocument();
+        });
+
+        await user.click(within(dialog).getByRole('button', { name: /^back$/i }));
+
+        await waitFor(() => {
+            expect(screen.queryByRole('dialog', { name: /run settings/i })).not.toBeInTheDocument();
+        });
+        expect(screen.getByRole('heading', { name: /level 1/i })).toBeInTheDocument();
     });
 });

@@ -1,5 +1,5 @@
 import { ACHIEVEMENTS } from '../../shared/achievements';
-import type { AchievementId, RunState, SaveData } from '../../shared/contracts';
+import type { AchievementId, RunState } from '../../shared/contracts';
 import { useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useViewportSize } from '../hooks/useViewportSize';
@@ -14,11 +14,38 @@ import styles from './GameScreen.module.css';
 interface GameScreenProps {
     achievements: AchievementId[];
     run: RunState;
-    saveData: SaveData;
-    steamConnected: boolean;
+    suppressStatusOverlays?: boolean;
 }
 
-const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenProps) => {
+const PauseIcon = () => (
+    <svg aria-hidden="true" className={styles.actionIcon} viewBox="0 0 24 24">
+        <path d="M8 5.5v13" />
+        <path d="M16 5.5v13" />
+    </svg>
+);
+
+const PlayIcon = () => (
+    <svg aria-hidden="true" className={styles.actionIcon} viewBox="0 0 24 24">
+        <path d="M9 7.25 17 12l-8 4.75V7.25Z" fill="currentColor" stroke="none" />
+    </svg>
+);
+
+const SettingsIcon = () => (
+    <svg aria-hidden="true" className={styles.actionIcon} viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="3.25" />
+        <circle cx="12" cy="12" r="6.4" />
+        <path d="M12 2.75v2.2" />
+        <path d="M12 19.05v2.2" />
+        <path d="m4.93 4.93 1.56 1.56" />
+        <path d="m17.51 17.51 1.56 1.56" />
+        <path d="M2.75 12h2.2" />
+        <path d="M19.05 12h2.2" />
+        <path d="m4.93 19.07 1.56-1.56" />
+        <path d="m17.51 6.49 1.56-1.56" />
+    </svg>
+);
+
+const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameScreenProps) => {
     const shellRef = useRef<HTMLElement | null>(null);
     const { height, width } = useViewportSize();
     const { continueToNextLevel, goToMenu, openSettings, pause, pressTile, resume, settings, triggerDebugReveal } =
@@ -42,6 +69,7 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
     });
     const isCompact = width <= 760 || height <= 760;
     const isTight = width <= 430 || height <= 620;
+    const pauseActionLabel = run.status === 'paused' ? 'Resume' : 'Pause';
 
     if (!run.board) {
         return null;
@@ -67,19 +95,6 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
         ['--board-width' as string]: `${tileSize * cols}px`,
         ['--board-height' as string]: `${tileSize * rows}px`
     };
-    const extraMetrics = isTight
-        ? []
-        : isCompact
-          ? [
-                { label: 'Streak', value: run.stats.currentStreak },
-                { label: 'Best', value: saveData.bestScore.toLocaleString() }
-            ]
-          : [
-                { label: 'Floor pts', value: run.stats.currentLevelScore.toLocaleString() },
-                { label: 'Streak', value: run.stats.currentStreak },
-                { label: 'Miss', value: run.stats.tries },
-                { label: 'Best', value: saveData.bestScore.toLocaleString() }
-            ];
     return (
         <section className={styles.shell} ref={shellRef}>
             <MainMenuBackground
@@ -89,144 +104,132 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
                 width={width}
             />
             <div className={styles.gameForeground}>
-            <h1 className={styles.srOnly}>Level {run.board.level}</h1>
-            <header className={styles.hudRow}>
-                <div className={`${styles.floatingDeck} ${styles.statsDeck}`}>
-                    <div className={styles.deckCluster}>
-                        <div className={styles.floorBadge} title="Current floor">
-                            <span className={styles.floorLabel}>Floor</span>
-                            <span className={styles.floorValue}>{run.board.level}</span>
-                        </div>
-                        <div className={styles.statRail} role="group" aria-label="Run stats">
-                            <div className={styles.statPill}>
-                                <span className={styles.statKey}>Lives</span>
-                                <span className={styles.statVal}>{run.lives}</span>
+                <h1 className={styles.srOnly}>Level {run.board.level}</h1>
+                <header className={styles.hudRow}>
+                    <div className={`${styles.floatingDeck} ${styles.statsDeck}`}>
+                        <div className={styles.deckCluster}>
+                            <div className={styles.floorBadge} title="Current floor">
+                                <span className={styles.floorLabel}>Floor</span>
+                                <span className={styles.floorValue}>{run.board.level}</span>
                             </div>
-                            <div className={styles.statPill}>
-                                <span className={styles.statKey}>Guards</span>
-                                <span className={styles.statVal}>{run.stats.guardTokens}</span>
-                            </div>
-                            <div className={styles.statPill}>
-                                <span className={styles.statKey}>Score</span>
-                                <span className={styles.statVal}>{run.stats.totalScore.toLocaleString()}</span>
+                            <div className={styles.statRail} role="group" aria-label="Run stats">
+                                <div className={styles.statPill}>
+                                    <span className={styles.statKey}>Lives</span>
+                                    <span className={styles.statVal}>{run.lives}</span>
+                                </div>
+                                <div className={styles.statPill}>
+                                    <span className={styles.statKey}>Guards</span>
+                                    <span className={styles.statVal}>{run.stats.guardTokens}</span>
+                                </div>
+                                <div className={styles.statPill}>
+                                    <span className={styles.statKey}>Score</span>
+                                    <span className={styles.statVal}>{run.stats.totalScore.toLocaleString()}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <div className={`${styles.floatingDeck} ${styles.actionsDeck}`}>
-                    <div className={styles.deckActions}>
-                        {extraMetrics.length > 0 ? (
-                            <details className={styles.moreStats}>
-                                <summary className={styles.moreStatsSummary}>+ Stats</summary>
-                                <div className={styles.moreStatsGrid}>
-                                    {extraMetrics.map((m) => (
-                                        <div className={styles.moreStatsRow} key={m.label}>
-                                            <span>{m.label}</span>
-                                            <strong>{m.value}</strong>
-                                        </div>
-                                    ))}
-                                </div>
-                            </details>
-                        ) : null}
-                        <details className={styles.sessionFold}>
-                            <summary className={styles.sessionSummary}>Session</summary>
-                            <div className={styles.sessionBody}>
-                                <p>{steamConnected ? 'Steam' : 'Local save'}</p>
-                                <p>{run.achievementsEnabled ? 'Achievements on' : 'Achievements off'}</p>
-                            </div>
-                        </details>
-                        <UiButton size="sm" variant="secondary" onClick={run.status === 'paused' ? resume : pause}>
-                            {run.status === 'paused' ? 'Resume' : 'Pause'}
-                        </UiButton>
-                        <UiButton size="sm" variant="secondary" onClick={() => openSettings('playing')}>
-                            Settings
-                        </UiButton>
+                    <div className={styles.actionControls} role="group" aria-label="Game controls">
+                        <button
+                            aria-label={pauseActionLabel}
+                            className={styles.iconAction}
+                            onClick={run.status === 'paused' ? resume : pause}
+                            title={pauseActionLabel}
+                            type="button"
+                        >
+                            {run.status === 'paused' ? <PlayIcon /> : <PauseIcon />}
+                        </button>
+                        <button
+                            aria-label="Settings"
+                            className={styles.iconAction}
+                            onClick={() => openSettings('playing')}
+                            title="Settings"
+                            type="button"
+                        >
+                            <SettingsIcon />
+                        </button>
                         {import.meta.env.DEV && settings.debugFlags.showDebugTools && settings.debugFlags.allowBoardReveal && (
                             <UiButton size="sm" variant="debug" onClick={triggerDebugReveal}>
                                 Reveal
                             </UiButton>
                         )}
                     </div>
+                </header>
+
+                <div className={styles.boardStage}>
+                    <div className={styles.boardGlow} aria-hidden="true" />
+                    <TileBoard
+                        board={run.board}
+                        debugPeekActive={run.debugPeekActive}
+                        interactive={run.status === 'playing'}
+                        frameStyle={boardStyle}
+                        onTileSelect={(tileId) => {
+                            if (run.status === 'playing') {
+                                pressTile(tileId);
+                            }
+                        }}
+                        previewActive={run.status === 'memorize'}
+                        reduceMotion={settings.reduceMotion}
+                    />
+                    {unlockedDefinitions.length > 0 ? (
+                        <div className={styles.toastRail} role="status">
+                            {unlockedDefinitions.map((a) => (
+                                <div className={styles.toast} key={a.id}>
+                                    <span className={styles.toastTitle}>{a.title}</span>
+                                    <span className={styles.toastDesc}>{a.description}</span>
+                                </div>
+                            ))}
+                        </div>
+                    ) : null}
                 </div>
-            </header>
 
-            <div className={styles.boardStage}>
-                <div className={styles.boardGlow} aria-hidden="true" />
-                <TileBoard
-                    board={run.board}
-                    debugPeekActive={run.debugPeekActive}
-                    interactive={run.status === 'playing'}
-                    frameStyle={boardStyle}
-                    onTileSelect={(tileId) => {
-                        if (run.status === 'playing') {
-                            pressTile(tileId);
-                        }
-                    }}
-                    previewActive={run.status === 'memorize'}
-                    reduceMotion={settings.reduceMotion}
-                />
-                {unlockedDefinitions.length > 0 ? (
-                    <div className={styles.toastRail} role="status">
-                        {unlockedDefinitions.map((a) => (
-                            <div className={styles.toast} key={a.id}>
-                                <span className={styles.toastTitle}>{a.title}</span>
-                                <span className={styles.toastDesc}>{a.description}</span>
-                            </div>
-                        ))}
-                    </div>
-                ) : null}
-            </div>
+                {!suppressStatusOverlays && run.status === 'paused' && (
+                    <OverlayModal
+                        actions={[
+                            { label: 'Resume', onClick: resume, variant: 'primary' },
+                            { label: 'Retreat', onClick: goToMenu, variant: 'danger' }
+                        ]}
+                        subtitle="The board, memorize phase, and debug timers are frozen until you return."
+                        title="Run Paused"
+                    />
+                )}
 
-            {run.status === 'paused' && (
-                <OverlayModal
-                    actions={[
-                        { label: 'Resume', onClick: resume, variant: 'primary' },
-                        { label: 'Settings', onClick: () => openSettings('playing'), variant: 'secondary' },
-                        { label: 'Retreat', onClick: goToMenu, variant: 'danger' }
-                    ]}
-                    subtitle="The board, memorize phase, and debug timers are frozen until you return."
-                    title="Run Paused"
-                />
-            )}
-
-            {run.status === 'levelComplete' && run.lastLevelResult && (
-                <OverlayModal
-                    actions={[
-                        { label: 'Continue', onClick: continueToNextLevel, variant: 'primary' },
-                        { label: 'Main Menu', onClick: goToMenu, variant: 'secondary' }
-                    ]}
-                    subtitle={`Level ${run.lastLevelResult.level} cleared. Score +${run.lastLevelResult.scoreGained}.`}
-                    title="Floor Cleared"
-                >
-                    <div className={styles.modalStats}>
-                        <StatTile
-                            density="modalChild"
-                            label="Rating"
-                            value={run.lastLevelResult.rating}
-                            valueFirst
-                        />
-                        <StatTile
-                            density="modalChild"
-                            label="Mistakes"
-                            value={run.lastLevelResult.mistakes}
-                            valueFirst
-                        />
-                        <StatTile
-                            density="modalChild"
-                            label="Lives"
-                            value={run.lastLevelResult.livesRemaining}
-                            valueFirst
-                        />
-                        <StatTile
-                            density="modalChild"
-                            label="Total"
-                            value={run.stats.totalScore.toLocaleString()}
-                            valueFirst
-                        />
-                    </div>
-                </OverlayModal>
-            )}
+                {!suppressStatusOverlays && run.status === 'levelComplete' && run.lastLevelResult && (
+                    <OverlayModal
+                        actions={[
+                            { label: 'Continue', onClick: continueToNextLevel, variant: 'primary' },
+                            { label: 'Main Menu', onClick: goToMenu, variant: 'secondary' }
+                        ]}
+                        subtitle={`Level ${run.lastLevelResult.level} cleared. Score +${run.lastLevelResult.scoreGained}.`}
+                        title="Floor Cleared"
+                    >
+                        <div className={styles.modalStats}>
+                            <StatTile
+                                density="modalChild"
+                                label="Rating"
+                                value={run.lastLevelResult.rating}
+                                valueFirst
+                            />
+                            <StatTile
+                                density="modalChild"
+                                label="Mistakes"
+                                value={run.lastLevelResult.mistakes}
+                                valueFirst
+                            />
+                            <StatTile
+                                density="modalChild"
+                                label="Lives"
+                                value={run.lastLevelResult.livesRemaining}
+                                valueFirst
+                            />
+                            <StatTile
+                                density="modalChild"
+                                label="Total"
+                                value={run.stats.totalScore.toLocaleString()}
+                                valueFirst
+                            />
+                        </div>
+                    </OverlayModal>
+                )}
             </div>
         </section>
     );

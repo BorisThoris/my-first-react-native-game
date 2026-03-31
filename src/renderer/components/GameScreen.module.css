@@ -35,7 +35,7 @@
     padding: 0.45rem clamp(0.35rem, 1vw, 0.65rem) 0.45rem;
 }
 
-/* Two disconnected glass clusters: stats (floor + rail) and actions */
+/* Glass deck for run stats with lightweight icon actions on the opposite edge. */
 .hudRow {
     display: flex;
     flex-wrap: wrap;
@@ -64,10 +64,6 @@
 .statsDeck {
     flex: 0 1 auto;
     min-width: 0;
-}
-
-.actionsDeck {
-    flex: 0 0 auto;
 }
 
 .deckCluster {
@@ -151,93 +147,52 @@
     line-height: 1.1;
 }
 
-.deckActions {
+.actionControls {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.4rem;
+    justify-content: flex-end;
+    gap: 0.3rem;
     flex-shrink: 0;
 }
 
-.moreStats,
-.sessionFold {
-    position: relative;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+.iconAction {
+    appearance: none;
+    border: none;
+    background: transparent;
+    padding: 0.24rem;
+    width: 2.7rem;
+    height: 2.7rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(248, 244, 234, 0.82);
     border-radius: var(--ui-radius-pill);
-    background: rgba(6, 8, 12, 0.65);
+    transition:
+        color 140ms ease,
+        transform 140ms ease,
+        filter 140ms ease,
+        opacity 140ms ease;
 }
 
-.moreStatsSummary,
-.sessionSummary {
-    cursor: pointer;
-    list-style: none;
-    padding: 0.38rem 0.75rem;
-    font-size: 0.62rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--theme-text-subtle);
-    user-select: none;
+.iconAction:hover:not(:disabled) {
+    color: var(--theme-gold-bright);
+    transform: translateY(-1px);
+    filter: drop-shadow(0 0 18px rgba(255, 214, 133, 0.2));
 }
 
-.moreStatsSummary::-webkit-details-marker,
-.sessionSummary::-webkit-details-marker {
-    display: none;
+.iconAction:disabled {
+    opacity: 0.55;
 }
 
-.moreStats[open],
-.sessionFold[open] {
-    border-color: rgba(255, 214, 133, 0.22);
-    background: rgba(10, 12, 18, 0.92);
-    z-index: 5;
-}
-
-.moreStatsGrid {
-    position: absolute;
-    top: calc(100% + 0.35rem);
-    right: 0;
-    min-width: 11rem;
-    padding: 0.5rem 0.65rem;
-    border-radius: var(--ui-radius-md);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(8, 10, 15, 0.96);
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
-    display: grid;
-    gap: 0.35rem;
-}
-
-.moreStatsRow {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 0.75rem;
-    font-size: 0.72rem;
-    color: var(--theme-text-muted);
-}
-
-.moreStatsRow strong {
-    color: var(--theme-rune);
-    font-size: 0.85rem;
-    font-variant-numeric: tabular-nums;
-}
-
-.sessionBody {
-    position: absolute;
-    top: calc(100% + 0.35rem);
-    right: 0;
-    min-width: 10rem;
-    padding: 0.5rem 0.65rem;
-    border-radius: var(--ui-radius-md);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(8, 10, 15, 0.96);
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
-}
-
-.sessionBody p {
-    margin: 0.15rem 0;
-    font-size: 0.72rem;
-    color: var(--theme-text-muted);
-    line-height: 1.35;
+.actionIcon {
+    width: 1.68rem;
+    height: 1.68rem;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
 .boardStage {
@@ -339,8 +294,7 @@
         align-items: stretch;
     }
 
-    .statsDeck,
-    .actionsDeck {
+    .statsDeck {
         width: 100%;
     }
 
@@ -353,14 +307,9 @@
         align-items: stretch;
     }
 
-    .deckActions {
+    .actionControls {
         width: 100%;
-        justify-content: flex-start;
-    }
-
-    .deckActions :global(button) {
-        flex: 1 1 auto;
-        min-width: 0;
+        justify-content: flex-end;
     }
 
     .statRail {

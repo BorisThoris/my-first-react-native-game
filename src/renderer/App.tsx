@@ -21,9 +21,9 @@ const App = () => {
         openSettings,
         run,
         saveData,
+        settingsReturnView,
         settings,
         startRun,
-        steamConnected,
         view
     } = useAppStore(
         useShallow((state) => ({
@@ -34,9 +34,9 @@ const App = () => {
             openSettings: state.openSettings,
             run: state.run,
             saveData: state.saveData,
+            settingsReturnView: state.settingsReturnView,
             settings: state.settings,
             startRun: state.startRun,
-            steamConnected: state.steamConnected,
             view: state.view
         }))
     );
@@ -48,8 +48,11 @@ const App = () => {
           : Math.min(settings.uiScale, 1.15);
     const themeStyle = buildRendererThemeStyle(safeUiScale);
     const activeView = hydrated ? view : 'boot';
-    const ambientGridState = hydrated && (view === 'menu' || view === 'playing') ? 'off' : 'on';
     const [introPlayback, setIntroPlayback] = useState<Exclude<IntroPlaybackState, 'playing'>>('pending');
+    const inGameSettingsOverlay =
+        hydrated && view === 'settings' && settingsReturnView === 'playing' && Boolean(run);
+    const visualView = inGameSettingsOverlay ? 'playing' : activeView;
+    const ambientGridState = hydrated && (visualView === 'menu' || visualView === 'playing') ? 'off' : 'on';
     const introOverlayVisible =
         introPlayback === 'pending' && (!hydrated || (hydrated && view === 'menu'));
     const showMainMenu = hydrated && view === 'menu';
@@ -66,7 +69,7 @@ const App = () => {
             data-ambient-grid={ambientGridState}
             data-reduce-motion={settings.reduceMotion ? 'true' : 'false'}
             data-density={isCompactViewport ? 'compact' : 'roomy'}
-            data-view={activeView}
+            data-view={visualView}
             data-viewport={width <= 760 ? 'mobile' : width <= 1220 ? 'tablet' : 'desktop'}
             style={themeStyle}
         >
@@ -99,16 +102,17 @@ const App = () => {
                     />
                 )}
 
-                {hydrated && view === 'settings' && <SettingsScreen />}
+                {hydrated && view === 'settings' && !inGameSettingsOverlay && <SettingsScreen />}
 
-                {hydrated && view === 'playing' && run && (
+                {hydrated && (view === 'playing' || inGameSettingsOverlay) && run && (
                     <GameScreen
                         achievements={newlyUnlockedAchievements}
                         run={run}
-                        saveData={saveData}
-                        steamConnected={steamConnected}
+                        suppressStatusOverlays={inGameSettingsOverlay}
                     />
                 )}
+
+                {inGameSettingsOverlay && <SettingsScreen presentation="modal" />}
 
                 {hydrated && view === 'gameOver' && run?.lastRunSummary && <GameOverScreen run={run} />}
             </div>
