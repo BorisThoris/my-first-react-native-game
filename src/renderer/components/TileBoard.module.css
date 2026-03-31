@@ -274,8 +274,11 @@
 .cardFront {
     display: grid;
     place-items: center;
+    /* Raster face from scripts/generate-card-textures.ps1 (front-face.png), distinct from card back */
     background:
-        url('../assets/textures/cards/front-template.png') center / cover no-repeat,
+        url('../assets/textures/cards/front-face.png') center / cover no-repeat,
+        repeating-linear-gradient(90deg, transparent 0 10px, rgba(87, 220, 255, 0.05) 10px 11px),
+        radial-gradient(ellipse 88% 72% at 50% 40%, rgba(87, 220, 255, 0.09), transparent 58%),
         radial-gradient(circle at 20% 16%, rgba(255, 214, 133, 0.2), transparent 42%),
         linear-gradient(172deg, rgba(23, 29, 40, 0.96), rgba(10, 13, 20, 0.96));
 }
@@ -388,7 +391,9 @@
 .faceUp .cardFront {
     border-color: rgba(87, 220, 255, 0.42);
     background:
-        url('../assets/textures/cards/front-template.png') center / cover no-repeat,
+        url('../assets/textures/cards/front-face.png') center / cover no-repeat,
+        repeating-linear-gradient(90deg, transparent 0 10px, rgba(87, 220, 255, 0.07) 10px 11px),
+        radial-gradient(ellipse 88% 72% at 50% 40%, rgba(87, 220, 255, 0.12), transparent 58%),
         radial-gradient(circle at 20% 16%, rgba(87, 220, 255, 0.22), transparent 44%),
         linear-gradient(172deg, rgba(17, 38, 58, 0.96), rgba(10, 15, 23, 0.96));
 }
@@ -400,7 +405,9 @@
 .matched .cardFront {
     border-color: rgba(255, 214, 133, 0.62);
     background:
-        url('../assets/textures/cards/front-template.png') center / cover no-repeat,
+        url('../assets/textures/cards/front-face.png') center / cover no-repeat,
+        repeating-linear-gradient(90deg, transparent 0 10px, rgba(255, 214, 133, 0.06) 10px 11px),
+        radial-gradient(ellipse 88% 72% at 50% 40%, rgba(255, 214, 133, 0.1), transparent 58%),
         radial-gradient(circle at 20% 16%, rgba(255, 214, 133, 0.26), transparent 46%),
         linear-gradient(172deg, rgba(38, 31, 18, 0.96), rgba(14, 12, 8, 0.96));
 }

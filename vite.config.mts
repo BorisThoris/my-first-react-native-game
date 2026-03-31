@@ -13,7 +13,8 @@ export default defineConfig({
     },
     test: {
         environment: 'happy-dom',
-        setupFiles: './vitest.setup.ts'
+        setupFiles: './vitest.setup.ts',
+        include: ['src/**/*.{test,spec}.{ts,tsx}']
     },
     build: {
         outDir: 'dist',

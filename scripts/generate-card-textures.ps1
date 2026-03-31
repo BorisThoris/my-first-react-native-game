@@ -308,10 +308,97 @@ function New-CardFrontTemplateFromReference {
     $bitmap.Dispose()
 }
 
+<#
+  Card face raster: same substrate and ornament language as back.png (reference art + back pipeline),
+  then the same tone / vignette / foil / double-frame pass as the legacy front-template — reads as a matched pair.
+  Requires back.png to exist (run after New-CardBackFromReference).
+#>
+function New-CardFrontFaceImage {
+    param(
+        [string]$Path,
+        [string]$BackImagePath
+    )
+
+    if (-not (Test-Path $BackImagePath)) {
+        throw "Card back image not found (expected back.png): $BackImagePath"
+    }
+
+    $backBmp = New-Object System.Drawing.Bitmap($BackImagePath)
+    $bitmap = New-Object System.Drawing.Bitmap($Size, $Size)
+    $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+    $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+    $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+    $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+
+    $graphics.DrawImage($backBmp, 0, 0, $Size, $Size)
+    $backBmp.Dispose()
+
+    # Same treatment as New-CardFrontTemplateFromReference — keeps face in the same family as the reference back art.
+    $toneBrush = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
+        (New-Object System.Drawing.PointF(0, 0)),
+        (New-Object System.Drawing.PointF($Size, $Size)),
+        [System.Drawing.Color]::FromArgb(125, 9, 28, 46),
+        [System.Drawing.Color]::FromArgb(152, 5, 10, 16)
+    )
+    $graphics.FillRectangle($toneBrush, 0, 0, $Size, $Size)
+    $toneBrush.Dispose()
+
+    $vignetteRect = New-Object System.Drawing.RectangleF([single]($Size * 0.18), [single]($Size * 0.18), [single]($Size * 0.64), [single]($Size * 0.64))
+    $vignettePath = New-RoundedRectPath -X $vignetteRect.X -Y $vignetteRect.Y -Width $vignetteRect.Width -Height $vignetteRect.Height -Radius ([single]($Size * 0.1))
+    $vignetteBrush = New-Object System.Drawing.Drawing2D.PathGradientBrush($vignettePath)
+    $vignetteBrush.CenterColor = [System.Drawing.Color]::FromArgb(72, 28, 49, 72)
+    $vignetteBrush.SurroundColors = @([System.Drawing.Color]::FromArgb(0, 0, 0, 0))
+    $graphics.FillEllipse($vignetteBrush, $vignetteRect)
+    $vignetteBrush.Dispose()
+    $vignettePath.Dispose()
+
+    $foilBand = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
+        (New-Object System.Drawing.PointF([single](-$Size * 0.2), [single]($Size * 0.08))),
+        (New-Object System.Drawing.PointF([single]($Size * 1.2), [single]($Size * 0.34))),
+        [System.Drawing.Color]::FromArgb(0, 255, 255, 255),
+        [System.Drawing.Color]::FromArgb(0, 255, 255, 255)
+    )
+    $blend = New-Object System.Drawing.Drawing2D.ColorBlend
+    $blend.Colors = @(
+        [System.Drawing.Color]::FromArgb(0, 255, 255, 255),
+        [System.Drawing.Color]::FromArgb(68, 120, 215, 245),
+        [System.Drawing.Color]::FromArgb(0, 255, 255, 255)
+    )
+    $blend.Positions = @(0.0, 0.5, 1.0)
+    $foilBand.InterpolationColors = $blend
+    $graphics.FillRectangle($foilBand, 0, 0, $Size, [int]($Size * 0.36))
+    $foilBand.Dispose()
+
+    $frameInset = [single]($Size * 0.12)
+    $frameSize = [single]($Size - $frameInset * 2)
+    $frameRadius = [single]($Size * 0.1)
+    $framePath = New-RoundedRectPath -X $frameInset -Y $frameInset -Width $frameSize -Height $frameSize -Radius $frameRadius
+    $framePen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(176, 219, 178, 102), [single]($Size * 0.006))
+    $graphics.DrawPath($framePen, $framePath)
+
+    $innerPath = New-RoundedRectPath `
+        -X ([single]($frameInset + $Size * 0.016)) `
+        -Y ([single]($frameInset + $Size * 0.016)) `
+        -Width ([single]($frameSize - $Size * 0.032)) `
+        -Height ([single]($frameSize - $Size * 0.032)) `
+        -Radius ([single]($frameRadius * 0.74))
+    $innerPen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(122, 143, 223, 242), [single]($Size * 0.003))
+    $graphics.DrawPath($innerPen, $innerPath)
+
+    $framePen.Dispose()
+    $innerPen.Dispose()
+    $framePath.Dispose()
+    $innerPath.Dispose()
+    $graphics.Dispose()
+
+    $bitmap.Save($Path, [System.Drawing.Imaging.ImageFormat]::Png)
+    $bitmap.Dispose()
+}
+
 New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
 
 New-CardBackFromReference -Path (Join-Path $OutputDir "back.png") -ReferencePath $SourceBackPath
-New-CardFrontTemplateFromReference -Path (Join-Path $OutputDir "front-template.png") -ReferencePath $SourceBackPath
+New-CardFrontFaceImage -Path (Join-Path $OutputDir "front-face.png") -BackImagePath (Join-Path $OutputDir "back.png")
 New-CardTexture -Path (Join-Path $OutputDir "edge.png") -TopHex "#202a38" -BottomHex "#111722" -AccentHex "#9cc4e8" -RimHex "#b8cce2" -PatternHexA "#8cb3d5" -PatternHexB "#2e3f57"
 
 New-RoughnessTexture -Path (Join-Path $OutputDir "panel-roughness.png") -BaseValue 170 -Variance 34 -StreakStrength 0.2

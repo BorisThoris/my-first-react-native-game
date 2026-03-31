@@ -1,8 +1,8 @@
 import { CanvasTexture, LinearFilter, NoColorSpace, SRGBColorSpace } from 'three';
 import type { Tile } from '../../shared/contracts';
 import { RENDERER_THEME } from '../styles/theme';
-import frontTemplateTextureUrl from '../assets/textures/cards/front-template.png';
 import backTextureUrl from '../assets/textures/cards/back.png';
+import frontFaceTextureUrl from '../assets/textures/cards/front-face.png';
 import edgeTextureUrl from '../assets/textures/cards/edge.png';
 import panelRoughnessTextureUrl from '../assets/textures/cards/panel-roughness.png';
 import edgeRoughnessTextureUrl from '../assets/textures/cards/edge-roughness.png';
@@ -16,13 +16,13 @@ export type CubeFace = TileFace;
 export type CubeLayer = 'shell' | 'core';
 
 const TEXTURE_SIZE = 512;
-const TILE_TEXTURE_VERSION = 4;
+const TILE_TEXTURE_VERSION = 7;
 const textureCache = new Map<string, CanvasTexture>();
 const textureImageUpdateListeners = new Set<() => void>();
 
 const textureImageUrls = {
-    frontTemplate: frontTemplateTextureUrl,
     back: backTextureUrl,
+    frontFace: frontFaceTextureUrl,
     edge: edgeTextureUrl,
     panelRoughness: panelRoughnessTextureUrl,
     edgeRoughness: edgeRoughnessTextureUrl
@@ -469,6 +469,114 @@ const drawCardBackPattern = (context: CanvasRenderingContext2D, canvas: HTMLCanv
     drawNoise(context, width, height, 90, 'rgba(255, 255, 255, 0.06)', rng);
 };
 
+/** Extra depth on top of front-face.png; palette follows active/matched face (cyan/gold) so it still reads with the symbol layer. */
+const drawCardFrontPlate = (
+    context: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    palette: CardPalette,
+    rng: () => number,
+    matched: boolean,
+    inset: number,
+    cardWidth: number,
+    cardHeight: number,
+    radius: number,
+    plateStrength = 1
+): void => {
+    const { width, height } = canvas;
+    const s = plateStrength;
+    const cx = inset + cardWidth / 2;
+    const cy = inset + cardHeight / 2;
+    const rayTint = matched ? 'rgba(255, 214, 133, 0.42)' : 'rgba(120, 210, 255, 0.38)';
+    const brushTint = matched ? 'rgba(255, 214, 133, 0.22)' : 'rgba(87, 220, 255, 0.18)';
+    const phase = rng() * Math.PI * 2;
+    const rayCount = 32;
+
+    context.save();
+    context.beginPath();
+    context.roundRect(inset, inset, cardWidth, cardHeight, radius);
+    context.clip();
+
+    context.globalAlpha = (matched ? 0.085 : 0.1) * s;
+    context.strokeStyle = rayTint;
+    const reach = Math.hypot(cardWidth, cardHeight) * 0.72;
+
+    for (let index = 0; index < rayCount; index += 1) {
+        const angle = phase + (index / rayCount) * Math.PI * 2;
+        context.beginPath();
+        context.moveTo(cx, cy);
+        context.lineTo(cx + Math.cos(angle) * reach, cy + Math.sin(angle) * reach);
+        context.lineWidth = index % 4 === 0 ? 1.15 : 0.5;
+        context.stroke();
+    }
+
+    context.globalAlpha = (matched ? 0.11 : 0.13) * s;
+    const bandCount = 26;
+
+    for (let band = 0; band < bandCount; band += 1) {
+        const y = inset + (band / bandCount) * cardHeight * 0.96 + inset * 0.02 + rng() * 2.5;
+        const bandGrad = context.createLinearGradient(inset, y, inset + cardWidth, y + 1.5);
+        bandGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+        bandGrad.addColorStop(0.5, brushTint);
+        bandGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        context.fillStyle = bandGrad;
+        context.fillRect(inset, y, cardWidth, 1.1);
+    }
+
+    context.restore();
+
+    const bracket = Math.min(cardWidth, cardHeight) * 0.1;
+    const margin = inset + width * 0.028;
+    context.save();
+    context.globalAlpha = s;
+    context.strokeStyle = matched ? 'rgba(255, 214, 133, 0.55)' : 'rgba(87, 220, 255, 0.48)';
+    context.lineWidth = Math.max(1.4, width * 0.0038);
+    context.lineCap = 'round';
+
+    const corners: readonly [number, number, number, number][] = [
+        [margin, margin, 1, 1],
+        [inset + cardWidth - margin, margin, -1, 1],
+        [margin, inset + cardHeight - margin, 1, -1],
+        [inset + cardWidth - margin, inset + cardHeight - margin, -1, -1]
+    ];
+
+    for (const [bx, by, sx, sy] of corners) {
+        context.beginPath();
+        context.moveTo(bx, by + sy * bracket);
+        context.lineTo(bx, by);
+        context.lineTo(bx + sx * bracket, by);
+        context.stroke();
+    }
+
+    context.restore();
+
+    context.save();
+    context.beginPath();
+    context.roundRect(inset, inset, cardWidth, cardHeight, radius);
+    context.clip();
+    context.globalAlpha = (matched ? 0.06 : 0.07) * s;
+    const arcSteps = 5;
+    const ringInset = width * 0.07;
+
+    for (let ring = 0; ring < arcSteps; ring += 1) {
+        const shrink = ring * width * 0.022;
+        context.strokeStyle = matched ? 'rgba(255, 214, 133, 0.35)' : 'rgba(143, 223, 255, 0.32)';
+        context.lineWidth = 0.85;
+        context.beginPath();
+        context.roundRect(
+            inset + ringInset + shrink,
+            inset + ringInset + shrink,
+            cardWidth - (ringInset + shrink) * 2,
+            cardHeight - (ringInset + shrink) * 2,
+            radius * (0.92 - ring * 0.04)
+        );
+        context.stroke();
+    }
+
+    context.restore();
+
+    context.globalAlpha = 1;
+};
+
 const drawCardFront = (
     context: CanvasRenderingContext2D,
     canvas: HTMLCanvasElement,
@@ -500,15 +608,25 @@ const drawCardFront = (
     context.fill();
     context.clip();
 
-    const hasPanelTexture = drawTextureImage(context, canvas, 'frontTemplate', 0.98);
+    const hasFrontRaster = drawTextureImage(context, canvas, 'frontFace', 0.97);
+    drawCardFrontPlate(
+        context,
+        canvas,
+        palette,
+        rng,
+        matched,
+        inset,
+        cardWidth,
+        cardHeight,
+        radius,
+        hasFrontRaster ? 0.42 : 1
+    );
 
-    if (hasPanelTexture) {
-        const toneOverlay = context.createLinearGradient(inset, inset, inset + cardWidth, inset + cardHeight);
-        toneOverlay.addColorStop(0, matched ? 'rgba(58, 34, 11, 0.24)' : 'rgba(9, 32, 50, 0.2)');
-        toneOverlay.addColorStop(1, matched ? 'rgba(24, 15, 8, 0.4)' : 'rgba(5, 10, 17, 0.34)');
-        context.fillStyle = toneOverlay;
-        context.fillRect(0, 0, width, height);
-    }
+    const toneOverlay = context.createLinearGradient(inset, inset, inset + cardWidth, inset + cardHeight);
+    toneOverlay.addColorStop(0, matched ? 'rgba(58, 34, 11, 0.22)' : 'rgba(9, 32, 50, 0.18)');
+    toneOverlay.addColorStop(1, matched ? 'rgba(24, 15, 8, 0.36)' : 'rgba(5, 10, 17, 0.3)');
+    context.fillStyle = toneOverlay;
+    context.fillRect(0, 0, width, height);
 
     const foilBand = context.createLinearGradient(inset, inset + cardHeight * 0.05, inset + cardWidth, inset + cardHeight * 0.28);
     foilBand.addColorStop(0, 'rgba(255, 255, 255, 0)');
@@ -517,11 +635,11 @@ const drawCardFront = (
     context.fillStyle = foilBand;
     context.fillRect(inset - width * 0.16, inset, cardWidth + width * 0.32, cardHeight * 0.34);
 
-    const grainCount = hasPanelTexture ? (matched ? 40 : 32) : matched ? 120 : 96;
+    const grainCount = matched ? 44 : 36;
     drawNoise(context, width, height, grainCount, 'rgba(255, 255, 255, 0.04)', rng);
 
     const centerPlate = context.createRadialGradient(width / 2, height * 0.5, width * 0.06, width / 2, height * 0.5, width * 0.28);
-    centerPlate.addColorStop(0, hasPanelTexture ? 'rgba(0, 0, 0, 0.46)' : 'rgba(0, 0, 0, 0.38)');
+    centerPlate.addColorStop(0, 'rgba(0, 0, 0, 0.44)');
     centerPlate.addColorStop(1, 'rgba(0, 0, 0, 0)');
     context.fillStyle = centerPlate;
     context.fillRect(inset, inset, cardWidth, cardHeight);
