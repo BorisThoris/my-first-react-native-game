@@ -16,12 +16,15 @@ import {
     TILE_DEPTH,
     TILE_SPACING
 } from './tileShatter';
+import type { TiltVector } from '../platformTilt/platformTiltTypes';
 import { RENDERER_THEME } from '../styles/theme';
+import { getTileFieldAmplification } from './tileFieldTilt';
 
 interface TileBoardSceneProps {
     board: BoardState;
     compact: boolean;
     debugPeekActive: boolean;
+    fieldTiltRef: MutableRefObject<TiltVector>;
     hoverTiltRef: MutableRefObject<TileHoverTiltState>;
     previewActive: boolean;
     reduceMotion: boolean;
@@ -30,6 +33,8 @@ interface TileBoardSceneProps {
 interface TileBezelProps {
     compact: boolean;
     faceUp: boolean;
+    fieldAmp: number;
+    fieldTiltRef: MutableRefObject<TiltVector>;
     hoverTiltRef: MutableRefObject<TileHoverTiltState>;
     reduceMotion: boolean;
     textureRevision: number;
@@ -154,6 +159,8 @@ const getEdgeMaterialProfile = (surfaceVariant: FaceVariant): {
 const TileBezel = ({
     compact,
     faceUp,
+    fieldAmp,
+    fieldTiltRef,
     hoverTiltRef,
     reduceMotion,
     textureRevision,
@@ -173,6 +180,11 @@ const TileBezel = ({
         const time = state.clock.elapsedTime;
         const idleDrift = reduceMotion ? 0 : Math.sin(time * 0.09 + transform.seed * 0.017) * (isMatched ? 0.00038 : 0.00024);
         const settle = reduceMotion ? 0 : Math.sin(time * 0.08 + transform.seed * 0.013) * (isMatched ? 0.00048 : 0.0003);
+        const field = fieldTiltRef.current;
+        const fieldRotX = reduceMotion ? 0 : MathUtils.clamp(-field.y, -1, 1) * fieldAmp * (isMatched ? 0.042 : 0.074);
+        const fieldRotZ = reduceMotion ? 0 : MathUtils.clamp(field.x, -1, 1) * fieldAmp * (isMatched ? 0.038 : 0.068);
+        const fieldLift = reduceMotion ? 0 : MathUtils.clamp(Math.hypot(field.x, field.y), 0, 1) * fieldAmp * (isMatched ? 0.00035 : 0.00062);
+        const fieldDepth = reduceMotion ? 0 : MathUtils.clamp(Math.hypot(field.x, field.y), 0, 1) * fieldAmp * (isMatched ? 0.0005 : 0.00095);
         const hoverTilt = hoverTiltRef.current;
         const hovered = !reduceMotion && hoverTilt.tileId === tile.id;
         const hoverTiltX = hovered ? MathUtils.clamp(-hoverTilt.y, -1, 1) * (isMatched ? 0.046 : 0.1) : 0;
@@ -185,20 +197,20 @@ const TileBezel = ({
 
         group.rotation.x = MathUtils.damp(
             group.rotation.x,
-            transform.imperfectionRotationX + hoverTiltX,
+            transform.imperfectionRotationX + fieldRotX + hoverTiltX,
             reduceMotion ? 42 : 22,
             delta
         );
         group.rotation.z = MathUtils.damp(
             group.rotation.z,
-            transform.imperfectionRotationZ + hoverTiltZ,
+            transform.imperfectionRotationZ + fieldRotZ + hoverTiltZ,
             reduceMotion ? 42 : 22,
             delta
         );
         group.rotation.y = reduceMotion ? transform.targetRotation : MathUtils.damp(group.rotation.y, transform.targetRotation, rotationDamp, delta);
         group.position.x = transform.baseX + transform.imperfectionX;
-        group.position.y = transform.baseY + transform.imperfectionY + targetLift + hoverLift + idleDrift + settle;
-        group.position.z = targetDepth + hoverDepth;
+        group.position.y = transform.baseY + transform.imperfectionY + targetLift + hoverLift + fieldLift + idleDrift + settle;
+        group.position.z = targetDepth + hoverDepth + fieldDepth;
         group.scale.x = group.scale.y = group.scale.z = transform.baseScale;
     });
 
@@ -316,6 +328,7 @@ const TileBoardScene = ({
     board,
     compact,
     debugPeekActive,
+    fieldTiltRef,
     hoverTiltRef,
     previewActive,
     reduceMotion
@@ -358,6 +371,8 @@ const TileBoardScene = ({
                         <TileBezel
                             compact={compact}
                             faceUp={faceUp}
+                            fieldAmp={getTileFieldAmplification(index, totalColumns, totalRows)}
+                            fieldTiltRef={fieldTiltRef}
                             hoverTiltRef={hoverTiltRef}
                             key={tile.id}
                             reduceMotion={reduceMotion}

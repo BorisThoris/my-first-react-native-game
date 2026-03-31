@@ -7,7 +7,15 @@ vi.mock('./components/MainMenuBackground', () => ({
 
 import App from './App';
 import { createDefaultSaveData } from '../shared/save-data';
+import { PlatformTiltProvider } from './platformTilt/PlatformTiltProvider';
 import { useAppStore } from './store/useAppStore';
+
+const renderApp = (): ReturnType<typeof render> =>
+    render(
+        <PlatformTiltProvider>
+            <App />
+        </PlatformTiltProvider>
+    );
 
 const resetStore = (): void => {
     const saveData = createDefaultSaveData();
@@ -43,7 +51,7 @@ describe('desktop app flow', () => {
     it('gates menu interaction behind the startup intro and starts an arcade run after skip', async () => {
         const user = userEvent.setup();
 
-        render(<App />);
+        renderApp();
 
         expect(screen.queryByRole('button', { name: /play arcade/i })).not.toBeInTheDocument();
 
@@ -56,7 +64,7 @@ describe('desktop app flow', () => {
 
     it('turns off the app-level ambient grid while the menu background is active', async () => {
         const user = userEvent.setup();
-        const { container } = render(<App />);
+        const { container } = renderApp();
 
         await dismissStartupIntro(user);
         await screen.findByRole('button', { name: /play arcade/i });
@@ -68,7 +76,7 @@ describe('desktop app flow', () => {
     it('opens settings and persists changes through the desktop fallback bridge', async () => {
         const user = userEvent.setup();
 
-        render(<App />);
+        renderApp();
 
         await dismissStartupIntro(user);
         await user.click(await screen.findByRole('button', { name: /settings/i }));
@@ -94,7 +102,7 @@ describe('desktop app flow', () => {
     it('dismisses the how-to panel and persists the onboarding flag', async () => {
         const user = userEvent.setup();
 
-        render(<App />);
+        renderApp();
 
         await dismissStartupIntro(user);
         expect(await screen.findByRole('heading', { name: /memorize fast, play clean, protect the streak/i })).toBeInTheDocument();
@@ -115,7 +123,7 @@ describe('desktop app flow', () => {
     it('pauses and resumes the run with the on-screen controls', async () => {
         const user = userEvent.setup();
 
-        render(<App />);
+        renderApp();
 
         await dismissStartupIntro(user);
         await user.click(await screen.findByRole('button', { name: /play arcade/i }));

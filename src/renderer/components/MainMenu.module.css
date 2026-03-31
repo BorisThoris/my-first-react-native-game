@@ -52,10 +52,32 @@
         auto,
         auto,
         auto,
-        88px 88px,
-        88px 88px;
+        calc(88px + var(--tilt-x, 0) * 6px) calc(88px + var(--tilt-y, 0) * 6px),
+        calc(88px + var(--tilt-x, 0) * 6px) calc(88px + var(--tilt-y, 0) * 6px);
+    background-position:
+        0 0,
+        0 0,
+        0 0,
+        0 0,
+        0 0,
+        calc(var(--tilt-x, 0) * -10px) calc(var(--tilt-y, 0) * -10px),
+        calc(var(--tilt-x, 0) * -10px) calc(var(--tilt-y, 0) * -10px);
     mask-image: radial-gradient(circle at center, black 0, rgba(0, 0, 0, 0.96) 68%, transparent 90%);
     opacity: 0.62;
+    transform: translate3d(calc(var(--tilt-x, 0) * 14px), calc(var(--tilt-y, 0) * 12px), 0);
+}
+
+:global([data-reduce-motion='true']) .atmosphereFallback {
+    transform: none;
+    background-size:
+        auto,
+        auto,
+        auto,
+        auto,
+        auto,
+        88px 88px,
+        88px 88px;
+    background-position: 0 0;
 }
 
 .roomyShell {
@@ -165,6 +187,7 @@
     box-shadow: var(--theme-panel-shadow);
     position: relative;
     overflow: hidden;
+    transform: perspective(1200px) rotateX(calc(var(--tilt-y, 0) * -6deg)) rotateY(calc(var(--tilt-x, 0) * 6deg));
 }
 
 .guideCard::before {
@@ -255,6 +278,7 @@
     backdrop-filter: blur(22px) saturate(150%);
     position: relative;
     z-index: 1;
+    transform: perspective(1200px) rotateX(calc(var(--tilt-y, 0) * -6deg)) rotateY(calc(var(--tilt-x, 0) * 6deg));
 }
 
 .featuredCard {
@@ -408,6 +432,11 @@
 
 :global([data-reduce-motion='true']) .button:hover,
 :global([data-reduce-motion='true']) .dismissButton:hover {
+    transform: none;
+}
+
+:global([data-reduce-motion='true']) .guideCard,
+:global([data-reduce-motion='true']) .card {
     transform: none;
 }
 

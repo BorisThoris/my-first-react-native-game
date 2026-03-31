@@ -1,5 +1,7 @@
 import type { RunSummary } from '../../shared/contracts';
+import { useRef } from 'react';
 import { useViewportSize } from '../hooks/useViewportSize';
+import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
 import MainMenuBackground from './MainMenuBackground';
 import styles from './MainMenu.module.css';
 
@@ -22,6 +24,13 @@ const MainMenu = ({
     onPlay,
     onOpenSettings
 }: MainMenuProps) => {
+    const shellRef = useRef<HTMLElement | null>(null);
+    const { tiltRef: menuFieldTiltRef } = usePlatformTiltField({
+        enabled: true,
+        reduceMotion,
+        surfaceRef: shellRef,
+        strength: 1
+    });
     const { height, width } = useViewportSize();
     const isCompact = width <= 760 || height <= 760;
     const isTight = width <= 430 || height <= 620;
@@ -47,8 +56,16 @@ const MainMenu = ({
         : [];
 
     return (
-        <section className={`${styles.shell} ${isCompact ? styles.compactShell : styles.roomyShell}`}>
-            <MainMenuBackground height={height} reduceMotion={reduceMotion} width={width} />
+        <section
+            className={`${styles.shell} ${isCompact ? styles.compactShell : styles.roomyShell}`}
+            ref={shellRef}
+        >
+            <MainMenuBackground
+                fieldTiltRef={menuFieldTiltRef}
+                height={height}
+                reduceMotion={reduceMotion}
+                width={width}
+            />
 
             <div className={styles.hero}>
                 <p className={styles.eyebrow}>Steam Demo Build</p>

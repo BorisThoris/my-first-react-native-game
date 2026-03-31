@@ -52,6 +52,35 @@
     min-height: 0;
 }
 
+.motionChip {
+    position: absolute;
+    bottom: 0.35rem;
+    right: 0.35rem;
+    z-index: 5;
+    padding: 0.28rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 214, 133, 0.45);
+    background: rgba(12, 16, 24, 0.88);
+    color: var(--theme-text);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    pointer-events: auto;
+    touch-action: manipulation;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.motionChip:focus-visible {
+    outline: 2px solid rgba(87, 220, 255, 0.65);
+    outline-offset: 2px;
+}
+
+:global([data-reduce-motion='true']) .motionChip {
+    display: none;
+}
+
 .scene {
     position: absolute;
     inset: 0;
@@ -138,6 +167,7 @@
 .fallbackTile {
     --hover-x: 0;
     --hover-y: 0;
+    --field-amp: 1;
     position: relative;
     aspect-ratio: 1;
     border: 1px solid rgba(255, 214, 133, 0.22);
@@ -156,8 +186,8 @@
         opacity 160ms ease;
     transform:
         perspective(940px)
-        rotateX(calc(var(--hover-y) * -8deg))
-        rotateY(calc(var(--hover-x) * 8deg));
+        rotateX(calc((var(--tilt-y, 0) * var(--field-amp) + var(--hover-y)) * -8deg))
+        rotateY(calc((var(--tilt-x, 0) * var(--field-amp) + var(--hover-x)) * 8deg));
     transform-style: preserve-3d;
     will-change: transform;
     box-shadow:

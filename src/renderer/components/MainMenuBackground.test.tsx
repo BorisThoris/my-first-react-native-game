@@ -1,6 +1,24 @@
 import { render, waitFor } from '@testing-library/react';
+import { useRef } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { zeroTilt } from '../platformTilt/platformTiltMotion';
+import { PlatformTiltProvider } from '../platformTilt/PlatformTiltProvider';
 import MainMenuBackground from './MainMenuBackground';
+
+type MenuBgHarnessProps = { height: number; reduceMotion: boolean; width: number };
+
+const MenuBackgroundHarness = ({ height, reduceMotion, width }: MenuBgHarnessProps) => {
+    const fieldTiltRef = useRef(zeroTilt());
+
+    return <MainMenuBackground fieldTiltRef={fieldTiltRef} height={height} reduceMotion={reduceMotion} width={width} />;
+};
+
+const renderMenuBackground = (props: MenuBgHarnessProps): ReturnType<typeof render> =>
+    render(
+        <PlatformTiltProvider>
+            <MenuBackgroundHarness {...props} />
+        </PlatformTiltProvider>
+    );
 
 const initSpy = vi.fn(async () => {});
 const startSpy = vi.fn();
@@ -14,6 +32,8 @@ const textureDestroySpy = vi.fn();
 class MockContainer {
     children: Array<MockContainer | MockSprite> = [];
     destroy = vi.fn();
+    position = { set: vi.fn(), x: 0, y: 0 };
+    rotation = 0;
 
     addChild<T extends MockContainer | MockSprite>(child: T): T {
         this.children.push(child);
@@ -110,7 +130,7 @@ afterEach(() => {
 
 describe('MainMenuBackground', () => {
     it('initializes Pixi with a transparent auto-resizing canvas and destroys it on unmount', async () => {
-        const { unmount } = render(<MainMenuBackground height={720} reduceMotion={false} width={1280} />);
+        const { unmount } = renderMenuBackground({ height: 720, reduceMotion: false, width: 1280 });
 
         await waitFor(() => {
             expect(initSpy).toHaveBeenCalledTimes(1);
@@ -133,7 +153,7 @@ describe('MainMenuBackground', () => {
     });
 
     it('builds a static scene when reduced motion is enabled', async () => {
-        render(<MainMenuBackground height={720} reduceMotion width={1280} />);
+        renderMenuBackground({ height: 720, reduceMotion: true, width: 1280 });
 
         await waitFor(() => {
             expect(initSpy).toHaveBeenCalledTimes(1);
@@ -149,7 +169,7 @@ describe('MainMenuBackground', () => {
             throw new Error('renderer unavailable');
         });
 
-        const { container } = render(<MainMenuBackground height={720} reduceMotion={false} width={1280} />);
+        const { container } = renderMenuBackground({ height: 720, reduceMotion: false, width: 1280 });
 
         await waitFor(() => {
             expect(container.querySelector('[data-render-status="fallback"]')).not.toBeNull();

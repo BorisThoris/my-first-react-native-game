@@ -4,6 +4,7 @@ import {
     useEffect,
     useMemo,
     useRef,
+    useState,
     type CSSProperties,
     type MouseEvent,
     type PointerEvent,
@@ -11,7 +12,9 @@ import {
 } from 'react';
 import type { BoardState, Tile } from '../../shared/contracts';
 import { useViewportSize } from '../hooks/useViewportSize';
+import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
 import styles from './TileBoard.module.css';
+import { getTileFieldAmplification } from './tileFieldTilt';
 import TileBoardScene, { type TileHoverTiltState } from './TileBoardScene';
 
 interface TileBoardProps {
@@ -105,6 +108,8 @@ const TileBoardFallback = ({
                 const faceUp = tile.state !== 'hidden' || debugPeekActive || previewActive;
                 const { row, column } = getTilePosition(index, board.columns);
 
+                const fieldAmp = getTileFieldAmplification(index, board.columns, board.rows);
+
                 return (
                     <button
                         aria-label={getTileAriaLabel(tile, faceUp, row, column)}
@@ -115,6 +120,7 @@ const TileBoardFallback = ({
                         onPointerEnter={(event) => onHoverMove(tile.id, event)}
                         onPointerLeave={(event) => onHoverLeave(tile.id, event)}
                         onPointerMove={(event) => onHoverMove(tile.id, event)}
+                        style={{ ['--field-amp' as string]: String(fieldAmp) }}
                         type="button"
                     >
                         <span className={styles.tileFace}>
@@ -155,6 +161,14 @@ const TileBoard = ({ board, debugPeekActive, interactive, previewActive, reduceM
     const { height, width } = useViewportSize();
     const compact = width <= 760 || height <= 760;
     const threeEnabled = useMemo(() => canUseWebGL(), []);
+    const frameRef = useRef<HTMLDivElement>(null);
+    const { tiltRef: fieldTiltRef, permission, requestMotionPermission } = usePlatformTiltField({
+        enabled: true,
+        reduceMotion,
+        surfaceRef: frameRef,
+        strength: 1
+    });
+    const [touchPrimary, setTouchPrimary] = useState(false);
     const hoverTiltRef = useRef<TileHoverTiltState>({ tileId: null, x: 0, y: 0 });
     const mergedFrameStyle = useMemo(
         () => ({
@@ -190,6 +204,26 @@ const TileBoard = ({ board, debugPeekActive, interactive, previewActive, reduceM
         hoverTiltRef.current = { tileId: null, x: 0, y: 0 };
     }, [board.level, board.tiles.length, reduceMotion]);
 
+    useEffect(() => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+
+        const mq = window.matchMedia('(pointer: coarse)');
+        const sync = (): void => {
+            setTouchPrimary(mq.matches);
+        };
+
+        sync();
+        mq.addEventListener('change', sync);
+
+        return () => {
+            mq.removeEventListener('change', sync);
+        };
+    }, []);
+
+    const showMotionChip = touchPrimary && !reduceMotion && (permission === 'prompt' || permission === 'denied');
+
     const fallback = (
         <TileBoardFallback
             board={board}
@@ -204,7 +238,7 @@ const TileBoard = ({ board, debugPeekActive, interactive, previewActive, reduceM
     );
 
     return (
-        <div className={styles.frame} style={mergedFrameStyle}>
+        <div className={styles.frame} ref={frameRef} style={mergedFrameStyle}>
             <div className={styles.stage}>
                 {threeEnabled ? (
                     <TileBoardErrorBoundary fallback={fallback}>
@@ -225,6 +259,7 @@ const TileBoard = ({ board, debugPeekActive, interactive, previewActive, reduceM
                                         compact={compact}
                                         key={board.level}
                                         debugPeekActive={debugPeekActive}
+                                        fieldTiltRef={fieldTiltRef}
                                         hoverTiltRef={hoverTiltRef}
                                         previewActive={previewActive}
                                         reduceMotion={reduceMotion}
@@ -260,6 +295,21 @@ const TileBoard = ({ board, debugPeekActive, interactive, previewActive, reduceM
                 ) : (
                     fallback
                 )}
+                {showMotionChip ? (
+                    <button
+                        className={styles.motionChip}
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            void requestMotionPermission();
+                        }}
+                        onPointerDown={(event) => {
+                            event.stopPropagation();
+                        }}
+                        type="button"
+                    >
+                        Enable motion
+                    </button>
+                ) : null}
             </div>
         </div>
     );

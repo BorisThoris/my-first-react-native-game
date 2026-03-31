@@ -1,5 +1,15 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
+import {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    type CSSProperties,
+    type MutableRefObject,
+    type PointerEvent as ReactPointerEvent,
+    type RefObject
+} from 'react';
 import {
     AdditiveBlending,
     Color,
@@ -11,6 +21,8 @@ import {
     type PointLight
 } from 'three';
 import relicSvgUrl from '../../../VECFINAL.svg?url';
+import type { TiltVector } from '../platformTilt/platformTiltTypes';
+import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
 import { RENDERER_THEME } from '../styles/theme';
 import {
     createSeededRandom,
@@ -320,12 +332,14 @@ const ParticleField = ({
 };
 
 const RelicMedallion = ({
+    fieldTiltRef,
     textureSet,
     preset,
     reduceMotion,
     sessionSeed,
     targetFootprint
 }: {
+    fieldTiltRef: MutableRefObject<TiltVector>;
     textureSet: RelicTextureSet;
     preset: IntroPreset;
     reduceMotion: boolean;
@@ -355,26 +369,32 @@ const RelicMedallion = ({
         const motion = reduceMotion ? 0.24 : 1;
         const elapsed = state.clock.elapsedTime;
         const liquify = preset === 'molten-liquify' ? Math.sin(elapsed * 1.55 + sessionSeed * 0.0007) * 0.045 * motion : 0;
+        const ft = fieldTiltRef.current;
+        const fieldRotX = reduceMotion ? 0 : -ft.y * 0.052 * motion;
+        const fieldRotY = reduceMotion ? 0 : ft.x * 0.048 * motion;
+        const fieldPosY = reduceMotion ? 0 : ft.x * 0.016 * motion;
+        const fieldPosX = reduceMotion ? 0 : -ft.y * 0.014 * motion;
 
         if (motionRef.current) {
             motionRef.current.rotation.x = MathUtils.damp(
                 motionRef.current.rotation.x,
-                -0.18 + Math.sin(elapsed * 0.31 + sessionSeed * 0.0009) * 0.035 * motion,
+                -0.18 + Math.sin(elapsed * 0.31 + sessionSeed * 0.0009) * 0.035 * motion + fieldRotX,
                 3.4,
                 delta
             );
             motionRef.current.rotation.y = MathUtils.damp(
                 motionRef.current.rotation.y,
-                Math.sin(elapsed * 0.27 + sessionSeed * 0.0012) * 0.15 * motion,
+                Math.sin(elapsed * 0.27 + sessionSeed * 0.0012) * 0.15 * motion + fieldRotY,
                 3.2,
                 delta
             );
             motionRef.current.position.y = MathUtils.damp(
                 motionRef.current.position.y,
-                Math.sin(elapsed * 0.52 + sessionSeed * 0.0004) * 0.08 * motion,
+                Math.sin(elapsed * 0.52 + sessionSeed * 0.0004) * 0.08 * motion + fieldPosY,
                 2.9,
                 delta
             );
+            motionRef.current.position.x = MathUtils.damp(motionRef.current.position.x, fieldPosX, 3.2, delta);
 
             const baseScale = fitScale * (1 + Math.sin(elapsed * 0.22 + sessionSeed * 0.0006) * 0.014 * motion);
             const xScale = baseScale * (1 + liquify * 0.32);
@@ -515,12 +535,14 @@ const RelicMedallion = ({
 };
 
 const RelicIntroScene = ({
+    fieldTiltRef,
     textureSet,
     preset,
     reduceMotion,
     sessionSeed,
     targetFootprint
 }: {
+    fieldTiltRef: MutableRefObject<TiltVector>;
     textureSet: RelicTextureSet;
     preset: IntroPreset;
     reduceMotion: boolean;
@@ -547,6 +569,7 @@ const RelicIntroScene = ({
             <pointLight color={palette.glow} intensity={preset === 'ember-fire' ? 0.92 : 0.38} position={[0.24, -0.88, 4.3]} />
             <ParticleField preset={preset} reduceMotion={reduceMotion} sessionSeed={sessionSeed} />
             <RelicMedallion
+                fieldTiltRef={fieldTiltRef}
                 textureSet={textureSet}
                 preset={preset}
                 reduceMotion={reduceMotion}
@@ -564,6 +587,13 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
     const [variant] = useState(() => resolveIntroVariant({ reduceMotion }));
     const [sceneFrameRef, sceneFrameSize] = useElementSize<HTMLDivElement>();
     const overlayRef = useRef<HTMLElement | null>(null);
+    const { tiltRef: introFieldTiltRef, permission, requestMotionPermission } = usePlatformTiltField({
+        enabled: true,
+        reduceMotion,
+        surfaceRef: overlayRef,
+        strength: 1
+    });
+    const [touchPrimary, setTouchPrimary] = useState(false);
     const completedRef = useRef(false);
     const exitStartedRef = useRef(false);
     const autoExitTimeoutRef = useRef<number | null>(null);
@@ -627,6 +657,24 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
 
     useEffect(() => {
         overlayRef.current?.focus({ preventScroll: true });
+    }, []);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+
+        const mq = window.matchMedia('(pointer: coarse)');
+        const sync = (): void => {
+            setTouchPrimary(mq.matches);
+        };
+
+        sync();
+        mq.addEventListener('change', sync);
+
+        return () => {
+            mq.removeEventListener('change', sync);
+        };
     }, []);
 
     useEffect(() => {
@@ -722,6 +770,8 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
         beginExit();
     };
 
+    const showIntroMotionCta = touchPrimary && !reduceMotion && (permission === 'prompt' || permission === 'denied');
+
     return (
         <section
             aria-label="Startup relic intro"
@@ -744,6 +794,7 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
                     {renderMode === 'three' && textureSet ? (
                         <div className={styles.canvasViewport}>
                             <RelicIntroScene
+                                fieldTiltRef={introFieldTiltRef}
                                 textureSet={textureSet}
                                 preset={variant.preset}
                                 reduceMotion={reduceMotion}
@@ -759,6 +810,23 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
                     )}
                 </div>
             </div>
+            {showIntroMotionCta ? (
+                <button
+                    aria-label="Enable device motion for this intro"
+                    className={styles.motionCta}
+                    data-testid="intro-motion-cta"
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        void requestMotionPermission();
+                    }}
+                    onPointerDown={(event) => {
+                        event.stopPropagation();
+                    }}
+                    type="button"
+                >
+                    Enable motion
+                </button>
+            ) : null}
         </section>
     );
 };

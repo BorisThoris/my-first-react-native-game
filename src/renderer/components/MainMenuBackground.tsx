@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import type { Application, Container, Sprite, Texture } from 'pixi.js';
+import type { TiltVector } from '../platformTilt/platformTiltTypes';
 import type * as PixiNamespace from 'pixi.js';
 import { RENDERER_THEME } from '../styles/theme';
 import styles from './MainMenu.module.css';
 
 interface MainMenuBackgroundProps {
+    fieldTiltRef: MutableRefObject<TiltVector>;
     height: number;
     reduceMotion: boolean;
     width: number;
@@ -52,6 +54,8 @@ interface SceneController {
     destroy: () => void;
     resize: (width: number, height: number) => void;
     setReduceMotion: (reduceMotion: boolean) => void;
+    /** For tests / debugging: last applied field tilt after transforms. */
+    getLastFieldTilt: () => TiltVector;
 }
 
 const { colors } = RENDERER_THEME;
@@ -260,7 +264,8 @@ const createSceneController = (
     app: Application,
     initialWidth: number,
     initialHeight: number,
-    initialReduceMotion: boolean
+    initialReduceMotion: boolean,
+    fieldTiltRef: MutableRefObject<TiltVector>
 ): SceneController => {
     const root = new pixi.Container();
     const fogLayer = new pixi.Container();
@@ -286,6 +291,7 @@ const createSceneController = (
     let reduceMotion = initialReduceMotion;
     let surfaceWidth = Math.max(1, initialWidth);
     let surfaceHeight = Math.max(1, initialHeight);
+    let lastFieldTilt: TiltVector = { x: 0, y: 0 };
     let gridSpacing = surfaceWidth <= 720 || surfaceHeight <= 720 ? 72 : 88;
     let animationActive = false;
     let lastFrameTime = performance.now();
@@ -429,6 +435,22 @@ const createSceneController = (
     };
 
     const applyTransforms = (time: number): void => {
+        const tx = reduceMotion ? 0 : fieldTiltRef.current.x;
+        const ty = reduceMotion ? 0 : fieldTiltRef.current.y;
+
+        lastFieldTilt = { x: tx, y: ty };
+
+        const gridShiftX = tx * surfaceWidth * 0.024;
+        const gridShiftY = ty * surfaceHeight * 0.022;
+        const fogShiftX = tx * surfaceWidth * 0.008;
+        const fogShiftY = ty * surfaceHeight * 0.007;
+        const particleCounterX = tx * 11;
+        const particleCounterY = ty * 9;
+
+        gridLayer.position.set(gridShiftX, gridShiftY);
+        gridLayer.rotation = tx * 0.02 - ty * 0.016;
+        fogLayer.position.set(fogShiftX, fogShiftY);
+
         for (const glow of glows) {
             const movement = reduceMotion ? 0 : Math.sin(time * glow.speed + glow.phase);
             const altitude = reduceMotion ? 0 : Math.cos(time * glow.speed * 0.84 + glow.phase) * 0.9;
@@ -453,12 +475,12 @@ const createSceneController = (
             const lightLagY = reduceMotion ? 0 : Math.sin(time * particle.speed * 0.54 + particle.phase * 0.8) * (particle.kind === 'streak' ? 9 : 6);
             const lightScale = particle.kind === 'streak' ? 1.05 : 0.92;
 
-            particle.sprite.x = particleX;
-            particle.sprite.y = particleY;
+            particle.sprite.x = particleX - particleCounterX;
+            particle.sprite.y = particleY - particleCounterY;
             particle.sprite.rotation = particle.rotation + (reduceMotion ? 0 : Math.sin(time * particle.speed * 0.48 + particle.phase) * particle.rotationSpeed);
             particle.sprite.alpha = particle.alpha + (reduceMotion ? 0 : Math.sin(time * particle.shimmer + particle.phase) * particle.alphaShift);
-            particle.lightSprite.x = particleX + lightLagX;
-            particle.lightSprite.y = particleY + lightLagY;
+            particle.lightSprite.x = particleX + lightLagX - particleCounterX * 0.62;
+            particle.lightSprite.y = particleY + lightLagY - particleCounterY * 0.62;
             particle.lightSprite.scale.set(lightScale + lightPulse * 0.08);
             particle.lightSprite.alpha = insideView ? particle.lightAlpha + lightPulse * particle.lightShift : 0;
         }
@@ -521,11 +543,12 @@ const createSceneController = (
 
             renderStaticFrame();
             startAnimation();
-        }
+        },
+        getLastFieldTilt: () => lastFieldTilt
     };
 };
 
-const MainMenuBackground = ({ width, height, reduceMotion }: MainMenuBackgroundProps) => {
+const MainMenuBackground = ({ fieldTiltRef: menuFieldTiltRef, width, height, reduceMotion }: MainMenuBackgroundProps) => {
     const hostRef = useRef<HTMLDivElement | null>(null);
     const sceneRef = useRef<SceneController | null>(null);
     const latestPropsRef = useRef({ height, reduceMotion, width });
@@ -576,7 +599,14 @@ const MainMenuBackground = ({ width, height, reduceMotion }: MainMenuBackgroundP
 
                 const { height: currentHeight, reduceMotion: currentReduceMotion, width: currentWidth } = latestPropsRef.current;
 
-                sceneRef.current = createSceneController(pixi, app, currentWidth, currentHeight, currentReduceMotion);
+                sceneRef.current = createSceneController(
+                    pixi,
+                    app,
+                    currentWidth,
+                    currentHeight,
+                    currentReduceMotion,
+                    menuFieldTiltRef
+                );
                 sceneRef.current.resize(currentWidth, currentHeight);
                 sceneRef.current.setReduceMotion(currentReduceMotion);
                 setRenderStatus('ready');
