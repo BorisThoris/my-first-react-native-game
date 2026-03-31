@@ -239,10 +239,10 @@ const TileBoard = ({ board, debugPeekActive, interactive, previewActive, reduceM
 
     return (
         <div className={styles.frame} ref={frameRef} style={mergedFrameStyle}>
-            <div className={styles.stage}>
+            <div className={`${styles.stage} ${threeEnabled ? styles.stageWebglPicking : ''}`}>
                 {threeEnabled ? (
                     <TileBoardErrorBoundary fallback={fallback}>
-                        <div className={styles.scene}>
+                        <div className={styles.scene} data-testid="tile-board-stage">
                                 <Canvas
                                     className={styles.canvas}
                                     dpr={dpr}
@@ -261,6 +261,8 @@ const TileBoard = ({ board, debugPeekActive, interactive, previewActive, reduceM
                                         debugPeekActive={debugPeekActive}
                                         fieldTiltRef={fieldTiltRef}
                                         hoverTiltRef={hoverTiltRef}
+                                        interactive={interactive}
+                                        onTilePick={handleTileSelect}
                                         previewActive={previewActive}
                                         reduceMotion={reduceMotion}
                                     />
@@ -283,9 +285,6 @@ const TileBoard = ({ board, debugPeekActive, interactive, previewActive, reduceM
                                         disabled={disabled}
                                         key={tile.id}
                                         onClick={() => handleTileSelect(tile.id)}
-                                        onPointerEnter={(event) => updateHoverTilt(tile.id, event)}
-                                        onPointerLeave={(event) => clearHoverTilt(tile.id, event)}
-                                        onPointerMove={(event) => updateHoverTilt(tile.id, event)}
                                         type="button"
                                     />
                                 );

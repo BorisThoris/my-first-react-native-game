@@ -5,6 +5,9 @@ dist-electron/
 release/
 output/
 coverage/
+test-results/
+playwright-report/
+playwright/.cache/
 *.log
 *.orig.*
 .DS_Store

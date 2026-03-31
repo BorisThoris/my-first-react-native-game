@@ -1,4 +1,4 @@
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { FrontSide, MathUtils, type Group } from 'three';
 import type { BoardState, Tile } from '../../shared/contracts';
@@ -19,6 +19,7 @@ import {
 import type { TiltVector } from '../platformTilt/platformTiltTypes';
 import { RENDERER_THEME } from '../styles/theme';
 import { getTileFieldAmplification } from './tileFieldTilt';
+import { isTilePickable, noopMeshRaycast, pickableMeshRaycast } from './tileBoardPick';
 
 interface TileBoardSceneProps {
     board: BoardState;
@@ -26,6 +27,8 @@ interface TileBoardSceneProps {
     debugPeekActive: boolean;
     fieldTiltRef: MutableRefObject<TiltVector>;
     hoverTiltRef: MutableRefObject<TileHoverTiltState>;
+    interactive: boolean;
+    onTilePick: (tileId: string) => void;
     previewActive: boolean;
     reduceMotion: boolean;
 }
@@ -35,7 +38,10 @@ interface TileBezelProps {
     faceUp: boolean;
     fieldAmp: number;
     fieldTiltRef: MutableRefObject<TiltVector>;
+    flipLocked: boolean;
     hoverTiltRef: MutableRefObject<TileHoverTiltState>;
+    interactive: boolean;
+    onTilePick: (tileId: string) => void;
     reduceMotion: boolean;
     textureRevision: number;
     tile: Tile;
@@ -161,7 +167,10 @@ const TileBezel = ({
     faceUp,
     fieldAmp,
     fieldTiltRef,
+    flipLocked,
     hoverTiltRef,
+    interactive,
+    onTilePick,
     reduceMotion,
     textureRevision,
     tile,
@@ -169,6 +178,50 @@ const TileBezel = ({
 }: TileBezelProps) => {
     const groupRef = useRef<Group | null>(null);
     const isMatched = tile.state === 'matched';
+    const pickable = isTilePickable(tile, interactive, flipLocked);
+
+    const handleCardPointerUp = (event: ThreeEvent<PointerEvent>): void => {
+        event.stopPropagation();
+
+        if (event.pointerType === 'mouse' && event.button !== 0) {
+            return;
+        }
+
+        if (!pickable) {
+            return;
+        }
+
+        onTilePick(tile.id);
+    };
+
+    const handleCardPointerMove = (event: ThreeEvent<PointerEvent>): void => {
+        const pointerType = event.nativeEvent.pointerType;
+
+        if (reduceMotion || pointerType === 'touch' || pointerType === 'pen') {
+            if (hoverTiltRef.current.tileId === tile.id) {
+                hoverTiltRef.current = { tileId: null, x: 0, y: 0 };
+            }
+
+            return;
+        }
+
+        const { uv } = event;
+
+        if (!uv) {
+            return;
+        }
+
+        const x = MathUtils.clamp(uv.x * 2 - 1, -1, 1);
+        const y = MathUtils.clamp(-(uv.y * 2 - 1), -1, 1);
+
+        hoverTiltRef.current = { tileId: tile.id, x, y };
+    };
+
+    const handleCardPointerOut = (): void => {
+        if (hoverTiltRef.current.tileId === tile.id) {
+            hoverTiltRef.current = { tileId: null, x: 0, y: 0 };
+        }
+    };
 
     useFrame((state, delta) => {
         const group = groupRef.current;
@@ -229,8 +282,13 @@ const TileBezel = ({
             <mesh
                 castShadow={!compact && !reduceMotion}
                 key={`card-body-${tile.id}-${forceTextureRefreshKey}`}
+                onPointerMove={handleCardPointerMove}
+                onPointerUp={handleCardPointerUp}
+                onPointerOut={handleCardPointerOut}
                 receiveShadow={!compact && !reduceMotion}
+                raycast={pickable ? pickableMeshRaycast : noopMeshRaycast}
                 scale={[transform.bezelScale, transform.bezelScale, transform.bezelScale]}
+                userData={{ tileId: tile.id }}
             >
                 <boxGeometry args={[CARD_WIDTH, CARD_HEIGHT, TILE_DEPTH]} />
                 <meshPhysicalMaterial
@@ -308,7 +366,7 @@ const TileBezel = ({
             </mesh>
 
             {overlayTexture ? (
-                <mesh position={[0, 0, TILE_DEPTH * 0.56]} renderOrder={10}>
+                <mesh position={[0, 0, TILE_DEPTH * 0.56]} raycast={noopMeshRaycast} renderOrder={10}>
                     <planeGeometry args={[CARD_FACE_WIDTH, CARD_FACE_HEIGHT]} />
                     <meshBasicMaterial
                         alphaTest={0.08}
@@ -330,6 +388,8 @@ const TileBoardScene = ({
     debugPeekActive,
     fieldTiltRef,
     hoverTiltRef,
+    interactive,
+    onTilePick,
     previewActive,
     reduceMotion
 }: TileBoardSceneProps) => {
@@ -342,6 +402,7 @@ const TileBoardScene = ({
     const margin = compact ? 0.72 : 0.85;
     const fitScale = Math.min((viewport.width * margin) / boardWidth, (viewport.height * margin) / boardHeight);
     const [textureRevision, setTextureRevision] = useState(0);
+    const flipLocked = board.flippedTileIds.length === 2;
 
     useEffect(() => subscribeTextureImageUpdates(() => setTextureRevision((current) => current + 1)), []);
 
@@ -357,7 +418,7 @@ const TileBoardScene = ({
             <directionalLight color={colors.cyan} intensity={compact ? 0.14 : 0.18} position={[-5.8, 2.2, 6.8]} />
             <pointLight color={colors.gold} intensity={compact ? 0.14 : 0.2} position={[0, -2.2, 5.4]} />
 
-            <mesh position={[0, 0, -1.42]} receiveShadow={!compact && !reduceMotion}>
+            <mesh position={[0, 0, -1.42]} raycast={noopMeshRaycast} receiveShadow={!compact && !reduceMotion}>
                 <planeGeometry args={[boardWidth * 2, boardHeight * 2]} />
                 <meshStandardMaterial color={colors.voidAlt} metalness={0.12} roughness={0.96} />
             </mesh>
@@ -373,8 +434,11 @@ const TileBoardScene = ({
                             faceUp={faceUp}
                             fieldAmp={getTileFieldAmplification(index, totalColumns, totalRows)}
                             fieldTiltRef={fieldTiltRef}
+                            flipLocked={flipLocked}
                             hoverTiltRef={hoverTiltRef}
+                            interactive={interactive}
                             key={tile.id}
+                            onTilePick={onTilePick}
                             reduceMotion={reduceMotion}
                             textureRevision={textureRevision}
                             tile={tile}

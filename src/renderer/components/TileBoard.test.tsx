@@ -38,22 +38,27 @@ describe('TileBoard touch and click controls', () => {
         vi.restoreAllMocks();
     });
 
-    it('flips a tile when clicked', () => {
+    it('flips a tile when clicked on the DOM fallback board', () => {
         const onTileSelect = vi.fn();
+        const getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => null);
 
-        renderBoard({
-            board,
-            debugPeekActive: false,
-            interactive: true,
-            onTileSelect,
-            previewActive: false,
-            reduceMotion: false
-        });
+        try {
+            renderBoard({
+                board,
+                debugPeekActive: false,
+                interactive: true,
+                onTileSelect,
+                previewActive: false,
+                reduceMotion: false
+            });
 
-        const hiddenTiles = screen.getAllByRole('button', { name: /hidden tile/i });
-        fireEvent.click(hiddenTiles[1]);
+            const hiddenTiles = screen.getAllByRole('button', { name: /hidden tile/i });
+            fireEvent.click(hiddenTiles[1]);
 
-        expect(onTileSelect).toHaveBeenCalledWith('a2');
+            expect(onTileSelect).toHaveBeenCalledWith('a2');
+        } finally {
+            getContext.mockRestore();
+        }
     });
 
     it('reveals the board during the memorize preview', () => {
