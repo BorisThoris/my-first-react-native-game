@@ -48,7 +48,7 @@ const App = () => {
           : Math.min(settings.uiScale, 1.15);
     const themeStyle = buildRendererThemeStyle(safeUiScale);
     const activeView = hydrated ? view : 'boot';
-    const ambientGridState = hydrated && view === 'menu' ? 'off' : 'on';
+    const ambientGridState = hydrated && (view === 'menu' || view === 'playing') ? 'off' : 'on';
     const [introPlayback, setIntroPlayback] = useState<Exclude<IntroPlaybackState, 'playing'>>('pending');
     const introOverlayVisible =
         introPlayback === 'pending' && (!hydrated || (hydrated && view === 'menu'));

@@ -62,7 +62,7 @@ describe('desktop app flow', () => {
         expect(screen.getByRole('group', { name: /run stats/i })).toBeInTheDocument();
     });
 
-    it('turns off the app-level ambient grid while the menu background is active', async () => {
+    it('turns off the app-level ambient grid while the menu or game Pixi background is active', async () => {
         const user = userEvent.setup();
         const { container } = renderApp();
 
@@ -70,6 +70,11 @@ describe('desktop app flow', () => {
         await screen.findByRole('button', { name: /play arcade/i });
 
         expect(container.firstElementChild).toHaveAttribute('data-view', 'menu');
+        expect(container.firstElementChild).toHaveAttribute('data-ambient-grid', 'off');
+
+        await user.click(screen.getByRole('button', { name: /play arcade/i }));
+        await screen.findByRole('heading', { name: /level 1/i });
+        expect(container.firstElementChild).toHaveAttribute('data-view', 'playing');
         expect(container.firstElementChild).toHaveAttribute('data-ambient-grid', 'off');
     });
 

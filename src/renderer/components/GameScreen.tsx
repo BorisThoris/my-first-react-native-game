@@ -1,9 +1,12 @@
 import { ACHIEVEMENTS } from '../../shared/achievements';
 import type { AchievementId, RunState, SaveData } from '../../shared/contracts';
+import { useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useViewportSize } from '../hooks/useViewportSize';
+import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
 import { StatTile, UiButton } from '../ui';
 import { useAppStore } from '../store/useAppStore';
+import MainMenuBackground from './MainMenuBackground';
 import OverlayModal from './OverlayModal';
 import TileBoard from './TileBoard';
 import styles from './GameScreen.module.css';
@@ -50,6 +53,7 @@ const getPhaseLabel = (run: RunState): string => {
 };
 
 const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenProps) => {
+    const shellRef = useRef<HTMLElement | null>(null);
     const { height, width } = useViewportSize();
     const { continueToNextLevel, goToMenu, openSettings, pause, pressTile, resume, settings, triggerDebugReveal } =
         useAppStore(
@@ -64,6 +68,12 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
                 triggerDebugReveal: state.triggerDebugReveal
             }))
     );
+    const { tiltRef: gameFieldTiltRef } = usePlatformTiltField({
+        enabled: true,
+        reduceMotion: settings.reduceMotion,
+        surfaceRef: shellRef,
+        strength: 1
+    });
     const isCompact = width <= 760 || height <= 760;
     const isTight = width <= 430 || height <= 620;
 
@@ -120,7 +130,14 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
                     : 'play';
 
     return (
-        <section className={styles.shell}>
+        <section className={styles.shell} ref={shellRef}>
+            <MainMenuBackground
+                fieldTiltRef={gameFieldTiltRef}
+                height={height}
+                reduceMotion={settings.reduceMotion}
+                width={width}
+            />
+            <div className={styles.gameForeground}>
             <h1 className={styles.srOnly}>Level {run.board.level}</h1>
             <header className={styles.topDeck}>
                 <div className={styles.deckCluster}>
@@ -263,6 +280,7 @@ const GameScreen = ({ achievements, run, saveData, steamConnected }: GameScreenP
                     </div>
                 </OverlayModal>
             )}
+            </div>
         </section>
     );
 };

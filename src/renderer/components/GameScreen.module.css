@@ -16,12 +16,23 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    padding: 0.45rem clamp(0.35rem, 1vw, 0.65rem) 0.45rem;
+    gap: 0;
+    padding: 0;
     position: relative;
     min-width: 0;
     isolation: isolate;
     box-sizing: border-box;
+}
+
+.gameForeground {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    gap: 0.5rem;
+    padding: 0.45rem clamp(0.35rem, 1vw, 0.65rem) 0.45rem;
 }
 
 /* Single glass control deck — board owns the rest of the viewport */
