@@ -7,9 +7,15 @@ const FIELD_DAMP = 18;
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
 
-const normalizePointerInRect = (clientX: number, clientY: number, rect: DOMRect): TiltVector => {
-    const x = clamp(((clientX - rect.left) / rect.width) * 2 - 1, -1, 1);
-    const y = clamp(((clientY - rect.top) / rect.height) * 2 - 1, -1, 1);
+const normalizePointerInViewport = (clientX: number, clientY: number): TiltVector => {
+    if (typeof window === 'undefined') {
+        return zeroTilt();
+    }
+
+    const width = Math.max(1, window.innerWidth);
+    const height = Math.max(1, window.innerHeight);
+    const x = clamp((clientX / width) * 2 - 1, -1, 1);
+    const y = clamp((clientY / height) * 2 - 1, -1, 1);
 
     return applyDeadzoneTilt({ x, y });
 };
@@ -18,7 +24,7 @@ export interface UsePlatformTiltFieldOptions {
     enabled: boolean;
     reduceMotion: boolean;
     surfaceRef: RefObject<HTMLElement | null>;
-    /** Scales written CSS vars and tiltRef output. */
+    /** Scales written CSS vars and tiltRef output on the bound surface. */
     strength?: number;
 }
 
@@ -38,7 +44,7 @@ export const usePlatformTiltField = ({
     const { gyroTiltRef, permission, requestMotionPermission } = usePlatformTiltContext();
     const tiltRef = useRef<TiltVector>(zeroTilt());
     const sourceRef = useRef<TiltSource>('none');
-    const insiderRef = useRef(false);
+    const pointerActiveRef = useRef(false);
     const mouseDrivingRef = useRef(false);
     const pointerTargetRef = useRef<TiltVector>(zeroTilt());
     const lastFrameRef = useRef<number | null>(null);
@@ -60,77 +66,88 @@ export const usePlatformTiltField = ({
         }
 
         if (hybrid) {
-            return !insiderRef.current || !mouseDrivingRef.current;
+            return !mouseDrivingRef.current;
         }
 
-        return !insiderRef.current;
+        return false;
     };
 
     useEffect(() => {
-        const el = surfaceRef.current;
-
-        if (!el) {
+        if (typeof window === 'undefined') {
             return;
         }
 
-        const onEnter = (event: PointerEvent): void => {
-            insiderRef.current = true;
-
-            if (event.pointerType === 'mouse') {
-                mouseDrivingRef.current = true;
-            }
-        };
-
-        const onLeave = (): void => {
-            insiderRef.current = false;
-            mouseDrivingRef.current = false;
+        const resetPointer = (): void => {
+            pointerActiveRef.current = false;
             pointerTargetRef.current = zeroTilt();
         };
 
-        const onMove = (event: PointerEvent): void => {
-            if (!insiderRef.current) {
-                return;
-            }
-
+        const onPointerMove = (event: PointerEvent): void => {
             if (event.pointerType === 'mouse') {
                 mouseDrivingRef.current = true;
-            } else if (event.pointerType === 'touch' || event.pointerType === 'pen') {
-                mouseDrivingRef.current = false;
-            }
-
-            const rect = el.getBoundingClientRect();
-
-            if (rect.width <= 0 || rect.height <= 0) {
+                pointerActiveRef.current = true;
+                pointerTargetRef.current = normalizePointerInViewport(event.clientX, event.clientY);
                 return;
             }
 
-            pointerTargetRef.current = normalizePointerInRect(event.clientX, event.clientY, rect);
+            if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+                mouseDrivingRef.current = false;
+                resetPointer();
+            }
         };
 
-        el.addEventListener('pointerenter', onEnter);
-        el.addEventListener('pointerleave', onLeave);
-        el.addEventListener('pointermove', onMove);
+        const onPointerDown = (event: PointerEvent): void => {
+            if (event.pointerType === 'mouse') {
+                mouseDrivingRef.current = true;
+                pointerActiveRef.current = true;
+                pointerTargetRef.current = normalizePointerInViewport(event.clientX, event.clientY);
+                return;
+            }
+
+            if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+                mouseDrivingRef.current = false;
+                resetPointer();
+            }
+        };
+
+        const onMouseOut = (event: MouseEvent): void => {
+            if (event.relatedTarget === null) {
+                resetPointer();
+            }
+        };
+
+        const onBlur = (): void => {
+            mouseDrivingRef.current = false;
+            resetPointer();
+        };
+
+        window.addEventListener('pointerdown', onPointerDown);
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('mouseout', onMouseOut);
+        window.addEventListener('blur', onBlur);
 
         return () => {
-            el.removeEventListener('pointerenter', onEnter);
-            el.removeEventListener('pointerleave', onLeave);
-            el.removeEventListener('pointermove', onMove);
-            insiderRef.current = false;
+            window.removeEventListener('pointerdown', onPointerDown);
+            window.removeEventListener('pointermove', onPointerMove);
+            window.removeEventListener('mouseout', onMouseOut);
+            window.removeEventListener('blur', onBlur);
+            pointerActiveRef.current = false;
             mouseDrivingRef.current = false;
+            pointerTargetRef.current = zeroTilt();
         };
-    }, [surfaceRef]);
+    }, []);
 
     useEffect(() => {
+        const surfaceNode = surfaceRef.current;
+
         if (!enabled || reduceMotion) {
             tiltRef.current = zeroTilt();
             sourceRef.current = 'none';
             lastFrameRef.current = null;
 
-            const el = surfaceRef.current;
-
-            if (el) {
-                el.style.removeProperty('--tilt-x');
-                el.style.removeProperty('--tilt-y');
+            if (surfaceNode) {
+                surfaceNode.style.removeProperty('--tilt-x');
+                surfaceNode.style.removeProperty('--tilt-y');
             }
 
             return;
@@ -146,16 +163,17 @@ export const usePlatformTiltField = ({
 
             const useGyro = shouldUseGyro();
             const target = useGyro ? gyroTiltRef.current : pointerTargetRef.current;
+            const pointerActive = pointerActiveRef.current;
 
             if (useGyro) {
                 sourceRef.current = 'gyro';
-            } else if (insiderRef.current) {
+            } else if (pointerActive) {
                 sourceRef.current = 'pointer';
             } else {
                 sourceRef.current = 'none';
             }
 
-            const effectiveTarget = useGyro || insiderRef.current ? target : zeroTilt();
+            const effectiveTarget = useGyro || pointerActive ? target : zeroTilt();
 
             tiltRef.current = dampTilt(tiltRef.current, effectiveTarget, FIELD_DAMP, dt);
 
@@ -176,11 +194,10 @@ export const usePlatformTiltField = ({
         return () => {
             window.cancelAnimationFrame(frameId);
             lastFrameRef.current = null;
-            const el = surfaceRef.current;
 
-            if (el) {
-                el.style.removeProperty('--tilt-x');
-                el.style.removeProperty('--tilt-y');
+            if (surfaceNode) {
+                surfaceNode.style.removeProperty('--tilt-x');
+                surfaceNode.style.removeProperty('--tilt-y');
             }
         };
     }, [enabled, reduceMotion, strength, surfaceRef, gyroTiltRef]);

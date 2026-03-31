@@ -92,21 +92,8 @@ describe('TileBoard touch and click controls', () => {
         }
     });
 
-    it('writes nonzero field tilt CSS on the frame after pointer move', async () => {
+    it('writes nonzero field tilt CSS on the frame after viewport pointer move', async () => {
         const getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => null);
-        const rect = {
-            left: 0,
-            top: 0,
-            width: 200,
-            height: 200,
-            right: 200,
-            bottom: 200,
-            x: 0,
-            y: 0,
-            toJSON: () => ({})
-        };
-
-        vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(rect as DOMRect);
 
         try {
             const { container } = renderBoard({
@@ -120,8 +107,11 @@ describe('TileBoard touch and click controls', () => {
 
             const frame = container.firstElementChild as HTMLElement;
 
-            fireEvent.pointerEnter(frame, { pointerType: 'mouse', bubbles: true });
-            fireEvent.pointerMove(frame, { clientX: 170, clientY: 40, pointerType: 'mouse', bubbles: true });
+            fireEvent.pointerMove(window, {
+                clientX: Math.round(window.innerWidth * 0.84),
+                clientY: Math.round(window.innerHeight * 0.22),
+                pointerType: 'mouse'
+            });
 
             await waitFor(() => {
                 const tx = frame.style.getPropertyValue('--tilt-x').trim();
@@ -136,19 +126,6 @@ describe('TileBoard touch and click controls', () => {
 
     it('does not set field tilt CSS when reduced motion is enabled', async () => {
         const getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => null);
-        const rect = {
-            left: 0,
-            top: 0,
-            width: 200,
-            height: 200,
-            right: 200,
-            bottom: 200,
-            x: 0,
-            y: 0,
-            toJSON: () => ({})
-        };
-
-        vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(rect as DOMRect);
 
         try {
             const { container } = renderBoard({
@@ -162,8 +139,11 @@ describe('TileBoard touch and click controls', () => {
 
             const frame = container.firstElementChild as HTMLElement;
 
-            fireEvent.pointerEnter(frame, { pointerType: 'mouse', bubbles: true });
-            fireEvent.pointerMove(frame, { clientX: 170, clientY: 40, pointerType: 'mouse', bubbles: true });
+            fireEvent.pointerMove(window, {
+                clientX: Math.round(window.innerWidth * 0.84),
+                clientY: Math.round(window.innerHeight * 0.22),
+                pointerType: 'mouse'
+            });
 
             await new Promise((r) => {
                 setTimeout(r, 30);
