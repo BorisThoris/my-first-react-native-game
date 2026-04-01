@@ -82,3 +82,22 @@
 .valueFirst .label {
     margin-top: 0.2rem;
 }
+
+.minimal {
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    padding: 0.15rem 0;
+    border-radius: 0;
+}
+
+.minimal .label {
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    opacity: 0.85;
+}
+
+.minimal .value {
+    font-size: clamp(1.05rem, 2.4vw, 1.35rem);
+    margin-top: 0.12rem;
+}

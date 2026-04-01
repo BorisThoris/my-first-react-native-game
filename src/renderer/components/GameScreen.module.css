@@ -259,8 +259,8 @@
 
 .modalStats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: var(--ui-space-lg);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem 1.25rem;
 }
 
 @keyframes toastIn {

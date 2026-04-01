@@ -1,83 +1,155 @@
 .shell {
+    position: relative;
     min-height: 100dvh;
-    display: grid;
-    place-items: center;
-    padding: clamp(0.85rem, 1.8vw, 1.5rem);
+    min-width: 0;
+    isolation: isolate;
+    overflow: hidden;
 }
 
-.panel {
-    width: var(--ui-panel-max);
+.foreground {
+    position: relative;
+    z-index: 1;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
+    padding: clamp(0.65rem, 2vw, 1.1rem) clamp(0.65rem, 2.4vw, 1.35rem);
+    box-sizing: border-box;
+}
+
+.layout {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: clamp(1.25rem, 4vw, 2.5rem);
+    max-width: min(920px, 100%);
+    margin: 0 auto;
+    width: 100%;
+    min-height: 0;
+}
+
+.main {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+    padding-bottom: 0.25rem;
 }
 
 .lead {
     display: flex;
     flex-direction: column;
-    gap: 0.45rem;
+    gap: 0.4rem;
 }
 
 .copy {
-    margin: 0.9rem 0 0;
+    margin: 0.75rem 0 0;
     color: var(--theme-text-muted);
     font-size: var(--ui-font-body);
+    line-height: 1.5;
+    max-width: 36rem;
 }
 
 .summaryGrid {
-    margin-top: 1.25rem;
+    margin-top: 1.1rem;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: var(--ui-space-lg);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem 1.5rem;
+    max-width: 28rem;
 }
 
-.statusBanner {
-    margin-top: 1.1rem;
+.note {
+    margin: 1rem 0 0;
+    padding: 0;
+    color: var(--theme-text-subtle);
+    font-size: var(--ui-font-body-sm);
+    line-height: 1.45;
+    max-width: 36rem;
 }
 
 .achievementBlock {
-    margin-top: 1.25rem;
+    margin-top: 1.35rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .unlockedHeading {
-    margin: 0 0 0.9rem;
+    margin: 0 0 0.65rem;
 }
 
-.achievementGrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: var(--ui-space-lg);
-}
-
-.achievementCard {
-    border-radius: var(--ui-radius-lg);
-    padding: var(--ui-space-lg);
-    background: var(--theme-control-surface);
-    border: 1px solid rgba(87, 220, 255, 0.16);
-}
-
-.achievementCard strong {
-    display: block;
-    color: var(--theme-text);
-}
-
-.achievementCard p {
-    margin: 0.35rem 0 0;
-    color: var(--theme-text-muted);
-}
-
-.actions {
-    margin-top: 1.35rem;
+.achievementList {
+    margin: 0;
+    padding: 0;
+    list-style: none;
     display: flex;
-    gap: var(--ui-space-lg);
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-width: 36rem;
+}
+
+.achievementItem {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.achievementItem strong {
+    color: var(--theme-text);
+    font-size: 0.92rem;
+    font-weight: 650;
+}
+
+.achievementItem span {
+    color: var(--theme-text-muted);
+    font-size: var(--ui-font-body-sm);
+    line-height: 1.4;
+}
+
+.actionRail {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.55rem;
+    padding-top: 0.2rem;
+}
+
+.actionRail :global(button) {
+    min-width: min(100%, 10.5rem);
 }
 
 @media (max-width: 720px) {
-    .actions {
+    .layout {
         flex-direction: column;
+        align-items: stretch;
     }
 
-    .actions :global(button) {
+    .actionRail {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        padding-top: 0.5rem;
+        margin-top: auto;
+    }
+
+    .actionRail :global(button) {
+        flex: 1 1 auto;
+        min-width: 8rem;
+    }
+}
+
+@media (max-width: 420px) {
+    .summaryGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .actionRail {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .actionRail :global(button) {
         width: 100%;
+        min-width: 0;
     }
 }

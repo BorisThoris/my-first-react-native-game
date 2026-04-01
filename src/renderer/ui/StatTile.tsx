@@ -1,7 +1,7 @@
 import type { HTMLAttributes, ReactNode } from 'react';
 import styles from './StatTile.module.css';
 
-export type StatTileDensity = 'default' | 'compact' | 'dense' | 'modalChild';
+export type StatTileDensity = 'default' | 'compact' | 'dense' | 'modalChild' | 'minimal';
 
 interface StatTileProps extends HTMLAttributes<HTMLElement> {
     label: string;
@@ -24,7 +24,7 @@ const StatTile = ({
     ...rest
 }: StatTileProps) => (
     <article
-        className={`${styles.root} ${density === 'compact' ? styles.compact : ''} ${density === 'dense' ? styles.dense : ''} ${density === 'modalChild' ? styles.modalChild : ''} ${valueFirst ? styles.valueFirst : ''} ${className}`.trim()}
+        className={`${styles.root} ${density === 'compact' ? styles.compact : ''} ${density === 'dense' ? styles.dense : ''} ${density === 'modalChild' ? styles.modalChild : ''} ${density === 'minimal' ? styles.minimal : ''} ${valueFirst ? styles.valueFirst : ''} ${className}`.trim()}
         {...rest}
     >
         <span className={styles.label}>{label}</span>

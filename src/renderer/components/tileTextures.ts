@@ -15,7 +15,7 @@ export type CubeFace = TileFace;
 export type CubeLayer = 'shell' | 'core';
 
 const TEXTURE_SIZE = 512;
-const TILE_TEXTURE_VERSION = 9;
+const TILE_TEXTURE_VERSION = 13;
 const textureCache = new Map<string, CanvasTexture>();
 const textureImageUpdateListeners = new Set<() => void>();
 
@@ -486,103 +486,11 @@ const drawCardOuterFramesAndNoise = (
     drawNoise(context, width, height, 90, 'rgba(255, 255, 255, 0.06)', rng);
 };
 
-const drawCardBackPattern = (context: CanvasRenderingContext2D, canvas: HTMLCanvasElement, palette: CardPalette, rng: () => number): void => {
+/** Same card face for back and flipped front: hidden palette for panel, hatch, and rims (no active/matched cyan rim). */
+const drawCardBackPattern = (context: CanvasRenderingContext2D, canvas: HTMLCanvasElement, rng: () => number): void => {
     const hiddenPanel = getPalette('hidden', 'panel');
     const metrics = drawCardReferenceRoundPanel(context, canvas, hiddenPanel);
-    drawCardOuterFramesAndNoise(context, canvas, palette, rng, metrics);
-};
-
-const drawCardFront = (
-    context: CanvasRenderingContext2D,
-    canvas: HTMLCanvasElement,
-    tile: Tile,
-    variant: Exclude<FaceVariant, 'hidden'>,
-    palette: CardPalette,
-    rng: () => number
-): void => {
-    const { width, height } = canvas;
-    const hiddenPanel = getPalette('hidden', 'panel');
-    const { inset, cardWidth, cardHeight, radius } = drawCardReferenceRoundPanel(context, canvas, hiddenPanel);
-
-    const symbolBaseSize = tile.symbol.length > 2 ? 138 : tile.symbol.length > 1 ? 168 : 198;
-    const labelSize = Math.max(19, Math.round(width * 0.043));
-    const matched = variant === 'matched';
-    const labelText = tile.label.toUpperCase();
-    const symbolText = tile.symbol;
-    const hasDistinctLabel = labelText !== symbolText.toUpperCase();
-
-    context.save();
-    context.beginPath();
-    context.roundRect(inset, inset, cardWidth, cardHeight, radius);
-    context.clip();
-
-    const badgeWidth = cardWidth * 0.54;
-    const badgeHeight = Math.max(20, Math.round(cardHeight * 0.11));
-    const badgeX = width / 2 - badgeWidth / 2;
-    const badgeY = inset + cardHeight * 0.08;
-    const footerWidth = cardWidth * 0.66;
-    const footerHeight = Math.max(20, Math.round(cardHeight * 0.11));
-    const footerX = width / 2 - footerWidth / 2;
-    const footerY = inset + cardHeight * 0.73;
-
-    if (hasDistinctLabel) {
-        context.globalAlpha = 1;
-        context.fillStyle = 'rgba(0, 0, 0, 0.56)';
-        context.beginPath();
-        context.roundRect(badgeX, badgeY, badgeWidth, badgeHeight, badgeHeight / 2);
-        context.fill();
-        context.beginPath();
-        context.roundRect(footerX, footerY, footerWidth, footerHeight, footerHeight / 2);
-        context.fill();
-    }
-
-    context.textAlign = 'center';
-    context.textBaseline = 'middle';
-    context.lineJoin = 'round';
-    context.shadowColor = palette.glow;
-    context.shadowBlur = Math.round(width * 0.02);
-
-    if (hasDistinctLabel) {
-        const badgeFontSize = Math.max(15, Math.round(width * 0.037));
-        context.font = `800 ${badgeFontSize}px "Trebuchet MS", "Segoe UI", "Arial", sans-serif`;
-        context.strokeStyle = 'rgba(0, 0, 0, 0.88)';
-        context.lineWidth = Math.max(3, Math.round(width * 0.006));
-        context.strokeText(labelText, width / 2, badgeY + badgeHeight * 0.56);
-        context.fillStyle = 'rgba(250, 243, 228, 0.98)';
-        context.fillText(labelText, width / 2, badgeY + badgeHeight * 0.56);
-    }
-
-    let symbolSize = symbolBaseSize;
-    context.font = `900 ${symbolSize}px "Trebuchet MS", "Segoe UI", "Arial", sans-serif`;
-    const symbolMaxWidth = cardWidth * 0.68;
-    while (symbolSize > 110 && context.measureText(symbolText).width > symbolMaxWidth) {
-        symbolSize -= 6;
-        context.font = `900 ${symbolSize}px "Trebuchet MS", "Segoe UI", "Arial", sans-serif`;
-    }
-
-    const symbolY = height * 0.47;
-    context.strokeStyle = 'rgba(0, 0, 0, 0.84)';
-    context.lineWidth = Math.max(8, Math.round(width * 0.014));
-    context.strokeText(symbolText, width / 2, symbolY);
-    context.strokeStyle = matched ? 'rgba(255, 214, 133, 0.84)' : 'rgba(87, 220, 255, 0.84)';
-    context.lineWidth = Math.max(4, Math.round(width * 0.007));
-    context.strokeText(symbolText, width / 2, symbolY);
-    context.fillStyle = matched ? 'rgba(255, 247, 223, 1)' : 'rgba(240, 252, 255, 0.98)';
-    context.fillText(symbolText, width / 2, symbolY + 1);
-
-    context.shadowBlur = 0;
-    if (hasDistinctLabel) {
-        context.font = `800 ${labelSize}px "Trebuchet MS", "Segoe UI", "Arial", sans-serif`;
-        context.strokeStyle = 'rgba(0, 0, 0, 0.9)';
-        context.lineWidth = Math.max(3, Math.round(width * 0.006));
-        context.strokeText(labelText, width / 2, footerY + footerHeight * 0.56);
-        context.fillStyle = matched ? 'rgba(255, 242, 214, 0.98)' : 'rgba(231, 248, 255, 0.98)';
-        context.fillText(labelText, width / 2, footerY + footerHeight * 0.56);
-    }
-
-    context.restore();
-
-    drawCardOuterFramesAndNoise(context, canvas, palette, rng, { inset, cardWidth, cardHeight, radius });
+    drawCardOuterFramesAndNoise(context, canvas, hiddenPanel, rng, metrics);
 };
 
 const drawCardFrontOverlay = (
@@ -595,8 +503,12 @@ const drawCardFrontOverlay = (
     const matched = variant === 'matched';
     const symbolText = tile.symbol;
     const labelText = tile.label.toUpperCase();
-    const symbolBaseSize = tile.symbol.length > 2 ? 130 : tile.symbol.length > 1 ? 162 : 196;
+    const symbolBaseSize = tile.symbol.length > 2 ? 104 : tile.symbol.length > 1 ? 122 : 142;
     const hasDistinctLabel = labelText !== symbolText.toUpperCase();
+    const symbolFill = matched ? '#fff3c4' : '#fffef5';
+    const symbolStroke = matched ? 'rgba(22, 12, 0, 0.92)' : 'rgba(8, 8, 14, 0.92)';
+    const labelFill = matched ? '#fff8e1' : '#fffef8';
+    const labelStroke = matched ? 'rgba(18, 10, 0, 0.9)' : 'rgba(6, 6, 12, 0.9)';
 
     context.clearRect(0, 0, width, height);
     context.textAlign = 'center';
@@ -604,31 +516,29 @@ const drawCardFrontOverlay = (
     context.lineJoin = 'round';
 
     let symbolSize = symbolBaseSize;
-    context.font = `900 ${symbolSize}px "Trebuchet MS", "Segoe UI", "Arial", sans-serif`;
-    const symbolMaxWidth = width * 0.52;
-    while (symbolSize > 110 && context.measureText(symbolText).width > symbolMaxWidth) {
+    context.font = `800 ${symbolSize}px "Segoe UI", "Segoe UI Symbol", "Segoe UI Emoji", "Arial", sans-serif`;
+    const symbolMaxWidth = width * 0.38;
+    while (symbolSize > 88 && context.measureText(symbolText).width > symbolMaxWidth) {
         symbolSize -= 6;
-        context.font = `900 ${symbolSize}px "Trebuchet MS", "Segoe UI", "Arial", sans-serif`;
+        context.font = `800 ${symbolSize}px "Segoe UI", "Segoe UI Symbol", "Segoe UI Emoji", "Arial", sans-serif`;
     }
 
-    const symbolY = height * 0.47;
-    context.strokeStyle = 'rgba(0, 0, 0, 0.92)';
-    context.lineWidth = Math.max(8, Math.round(width * 0.014));
+    const symbolY = height * 0.49;
+    context.shadowBlur = 0;
+    context.lineWidth = Math.max(6, Math.round(width * 0.011));
+    context.strokeStyle = symbolStroke;
     context.strokeText(symbolText, width / 2, symbolY);
-    context.strokeStyle = matched ? 'rgba(255, 214, 133, 0.92)' : 'rgba(87, 220, 255, 0.92)';
-    context.lineWidth = Math.max(4, Math.round(width * 0.007));
-    context.strokeText(symbolText, width / 2, symbolY);
-    context.fillStyle = matched ? 'rgba(255, 246, 222, 1)' : 'rgba(240, 252, 255, 1)';
-    context.fillText(symbolText, width / 2, symbolY + 1);
+    context.fillStyle = symbolFill;
+    context.fillText(symbolText, width / 2, symbolY);
 
     if (hasDistinctLabel) {
-        const labelFontSize = Math.max(20, Math.round(width * 0.043));
-        const labelY = height * 0.8;
-        context.font = `800 ${labelFontSize}px "Trebuchet MS", "Segoe UI", "Arial", sans-serif`;
-        context.strokeStyle = 'rgba(0, 0, 0, 0.9)';
-        context.lineWidth = Math.max(3, Math.round(width * 0.006));
+        const labelFontSize = Math.max(16, Math.round(width * 0.032));
+        const labelY = height * 0.78;
+        context.font = `800 ${labelFontSize}px "Segoe UI", "Arial", sans-serif`;
+        context.lineWidth = Math.max(3, Math.round(width * 0.005));
+        context.strokeStyle = labelStroke;
         context.strokeText(labelText, width / 2, labelY);
-        context.fillStyle = matched ? 'rgba(255, 242, 214, 0.98)' : 'rgba(231, 248, 255, 0.98)';
+        context.fillStyle = labelFill;
         context.fillText(labelText, width / 2, labelY);
     }
 };
@@ -703,6 +613,7 @@ const drawCardBase = (
 const buildKey = (tile: Tile, face: TileFace, variant: FaceVariant, layer: TileLayer): string =>
     `${TILE_TEXTURE_VERSION}:${layer}:${variant}:${face}:${tile.id}:${tile.pairKey}:${tile.symbol}:${tile.label}`;
 
+/** Panel art is only authored for the back face; geometry uses the same pixels on both sides. */
 const drawFace = (
     context: CanvasRenderingContext2D,
     canvas: HTMLCanvasElement,
@@ -717,7 +628,7 @@ const drawFace = (
     const rng = createRng(seed);
 
     const basePalette =
-        normalizedLayer === 'panel' && (face === 'front' || face === 'back')
+        normalizedLayer === 'panel' && face === 'back'
             ? getPalette('hidden', normalizedLayer)
             : palette;
 
@@ -727,18 +638,8 @@ const drawFace = (
         return;
     }
 
-    if (face === 'front') {
-        if (variant === 'hidden') {
-            drawCardBackPattern(context, canvas, palette, rng);
-            return;
-        }
-
-        drawCardFront(context, canvas, tile, variant, palette, rng);
-        return;
-    }
-
     if (face === 'back') {
-        drawCardBackPattern(context, canvas, palette, rng);
+        drawCardBackPattern(context, canvas, rng);
     }
 };
 
@@ -827,7 +728,14 @@ export const getTileFaceTexture = (
     face: TileFace,
     variant: FaceVariant,
     layer: TileLayer = 'panel'
-): CanvasTexture | null => createTexture(buildKey(tile, face, variant, layer), (context, canvas) => drawFace(context, canvas, tile, face, variant, layer));
+): CanvasTexture | null => {
+    const normalized = normalizeLayer(layer);
+    const renderFace: TileFace = normalized === 'panel' && face === 'front' ? 'back' : face;
+
+    return createTexture(buildKey(tile, renderFace, variant, layer), (context, canvas) =>
+        drawFace(context, canvas, tile, renderFace, variant, layer)
+    );
+};
 
 export const getTileFaceRoughnessTexture = (
     tile: Tile,

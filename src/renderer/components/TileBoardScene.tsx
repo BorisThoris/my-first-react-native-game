@@ -1,11 +1,21 @@
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
-import { useEffect, useRef, useState, type MutableRefObject } from 'react';
-import { DoubleSide, MathUtils, type Group } from 'three';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
+import {
+    BufferAttribute,
+    CanvasTexture,
+    DoubleSide,
+    LinearFilter,
+    MathUtils,
+    MultiplyBlending,
+    PlaneGeometry,
+    SRGBColorSpace,
+    Vector3,
+    type Group
+} from 'three';
 import type { BoardState, Tile } from '../../shared/contracts';
 import {
     getCardBackStaticTexture,
     getTileFaceOverlayTexture,
-    getTileFaceTexture,
     subscribeTextureImageUpdates,
     type FaceVariant
 } from './tileTextures';
@@ -33,7 +43,6 @@ interface TileBoardSceneProps {
 }
 
 interface TileBezelProps {
-    compact: boolean;
     faceUp: boolean;
     fieldAmp: number;
     fieldTiltRef: MutableRefObject<TiltVector>;
@@ -72,6 +81,138 @@ const CARD_HEIGHT = 1.08;
 const CARD_FACE_INSET = 0.016;
 const CARD_FACE_WIDTH = CARD_WIDTH - CARD_FACE_INSET * 2;
 const CARD_FACE_HEIGHT = CARD_HEIGHT - CARD_FACE_INSET * 2;
+
+/** Segments per card face for soft bend deformation. */
+const CARD_BEND_SEGMENTS = 22;
+/** Base bulge depth (world units); tuned so a single click is clearly visible. */
+const CARD_BEND_MAX_DEPTH = 0.038;
+const CARD_BEND_RADIUS = 0.52 * Math.min(CARD_WIDTH, CARD_HEIGHT);
+/** Extra depth multiplier from repeated presses near the same UV (same face). */
+const BEND_BUILDUP_PER_PRESS = 0.5;
+const BEND_BUILDUP_MAX = 2.75;
+const BEND_UV_SAME_SPOT = 0.14;
+/** Wear mask resolution (canvas); drawn on each bend commit. */
+const WEAR_TEX_SIZE = 128;
+
+type CardBendFace = 'front' | 'back';
+
+type BendSourceEvent = ThreeEvent<PointerEvent | MouseEvent>;
+
+const scratchHitLocal = new Vector3();
+
+const cloneBasePositions = (geometry: PlaneGeometry): Float32Array =>
+    new Float32Array((geometry.attributes.position as BufferAttribute).array);
+
+/**
+ * Plane vertex (px, py) → same UV convention as Three.js PlaneGeometry / box face (v = 1 at +Y side of plane).
+ */
+const planeVertexToUv = (px: number, py: number, width: number, height: number): { u: number; v: number } => ({
+    u: px / width + 0.5,
+    v: py / height + 0.5
+});
+
+const bendFalloffAtUv = (u: number, v: number, bendU: number, bendV: number, width: number, height: number): number => {
+    const dx = (u - bendU) * width;
+    const dy = (v - bendV) * height;
+    const dist = Math.hypot(dx, dy);
+    const t = MathUtils.clamp(1 - dist / CARD_BEND_RADIUS, 0, 1);
+
+    return t * t * (3 - 2 * t);
+};
+
+/** Add permanent Z offsets (into persistent) for one bend stamp. */
+const addPersistentBendStamp = (
+    persistent: Float32Array,
+    base: Float32Array,
+    bendU: number,
+    bendV: number,
+    width: number,
+    height: number,
+    depthScale: number
+): void => {
+    const depth = CARD_BEND_MAX_DEPTH * depthScale;
+    const vertexCount = persistent.length;
+
+    for (let index = 0; index < vertexCount; index += 1) {
+        const offset = index * 3;
+        const px = base[offset];
+        const py = base[offset + 1];
+        const { u, v } = planeVertexToUv(px, py, width, height);
+        const wgt = bendFalloffAtUv(u, v, bendU, bendV, width, height);
+        persistent[index] += depth * wgt;
+    }
+};
+
+const composeCardPositions = (
+    positions: BufferAttribute,
+    base: Float32Array,
+    persistentZ: Float32Array,
+    bendU: number,
+    bendV: number,
+    width: number,
+    height: number,
+    liveDepthScale: number
+): void => {
+    const array = positions.array as Float32Array;
+    const vertexCount = array.length / 3;
+    const liveDepth = CARD_BEND_MAX_DEPTH * liveDepthScale;
+
+    for (let index = 0; index < vertexCount; index += 1) {
+        const offset = index * 3;
+        const px = base[offset];
+        const py = base[offset + 1];
+        const z0 = base[offset + 2];
+        const { u, v } = planeVertexToUv(px, py, width, height);
+        const wgt = bendFalloffAtUv(u, v, bendU, bendV, width, height);
+        array[offset] = px;
+        array[offset + 1] = py;
+        array[offset + 2] = z0 + persistentZ[index] + liveDepth * wgt;
+    }
+
+    positions.needsUpdate = true;
+};
+
+const createWearTextureAndContext = (): {
+    canvas: HTMLCanvasElement;
+    context: CanvasRenderingContext2D;
+    texture: CanvasTexture;
+} => {
+    const canvas = document.createElement('canvas');
+    canvas.width = WEAR_TEX_SIZE;
+    canvas.height = WEAR_TEX_SIZE;
+    const context = canvas.getContext('2d');
+
+    if (!context) {
+        throw new Error('2D canvas context required for card wear texture');
+    }
+
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, WEAR_TEX_SIZE, WEAR_TEX_SIZE);
+    const texture = new CanvasTexture(canvas);
+    texture.colorSpace = SRGBColorSpace;
+    texture.minFilter = LinearFilter;
+    texture.magFilter = LinearFilter;
+    texture.generateMipmaps = false;
+    texture.needsUpdate = true;
+
+    return { canvas, context, texture };
+};
+
+const drawWearStamp = (context: CanvasRenderingContext2D, bendU: number, bendV: number, intensity: number): void => {
+    const gx = bendU * WEAR_TEX_SIZE;
+    const gy = (1 - bendV) * WEAR_TEX_SIZE;
+    const radius = WEAR_TEX_SIZE * 0.14;
+    const gradient = context.createRadialGradient(gx, gy, 0, gx, gy, radius);
+    const a = MathUtils.clamp(0.05 + intensity * 0.07, 0.06, 0.22);
+    gradient.addColorStop(0, `rgba(45,35,28,${a})`);
+    gradient.addColorStop(0.55, `rgba(55,42,32,${a * 0.45})`);
+    gradient.addColorStop(1, 'rgba(255,255,255,0)');
+    context.save();
+    context.globalCompositeOperation = 'multiply';
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, WEAR_TEX_SIZE, WEAR_TEX_SIZE);
+    context.restore();
+};
 
 const hashString = (value: string): number => {
     let hash = 0;
@@ -116,7 +257,6 @@ const getTileTransform = (tile: Tile, index: number, totalColumns: number, total
 };
 
 const TileBezel = ({
-    compact,
     faceUp,
     fieldAmp,
     fieldTiltRef,
@@ -133,7 +273,201 @@ const TileBezel = ({
     const isMatched = tile.state === 'matched';
     const pickable = isTilePickable(tile, interactive, flipLocked);
 
+    const frontGeometry = useMemo(
+        () => new PlaneGeometry(CARD_WIDTH, CARD_HEIGHT, CARD_BEND_SEGMENTS, CARD_BEND_SEGMENTS),
+        []
+    );
+    const backGeometry = useMemo(
+        () => new PlaneGeometry(CARD_WIDTH, CARD_HEIGHT, CARD_BEND_SEGMENTS, CARD_BEND_SEGMENTS),
+        []
+    );
+    const overlayGeometry = useMemo(
+        () =>
+            new PlaneGeometry(
+                CARD_FACE_WIDTH,
+                CARD_FACE_HEIGHT,
+                CARD_BEND_SEGMENTS,
+                CARD_BEND_SEGMENTS
+            ),
+        []
+    );
+
+    const frontBaseRef = useRef<Float32Array | null>(null);
+    const backBaseRef = useRef<Float32Array | null>(null);
+    const overlayBaseRef = useRef<Float32Array | null>(null);
+
+    const vertexCount = (CARD_BEND_SEGMENTS + 1) * (CARD_BEND_SEGMENTS + 1);
+    const frontPersistentRef = useRef<Float32Array>(new Float32Array(vertexCount));
+    const backPersistentRef = useRef<Float32Array>(new Float32Array(vertexCount));
+    const overlayPersistentRef = useRef<Float32Array>(new Float32Array(vertexCount));
+
+    const bendURef = useRef(0.5);
+    const bendVRef = useRef(0.5);
+    const bendFaceRef = useRef<CardBendFace>('front');
+    const bendBuildupRef = useRef(0);
+    const lastBumpURef = useRef<number | null>(null);
+    const lastBumpVRef = useRef<number | null>(null);
+    const lastBumpFaceRef = useRef<CardBendFace | null>(null);
+    const pressingOnCardRef = useRef(false);
+
+    const [wearAssets] = useState(() => {
+        if (typeof document === 'undefined') {
+            return null;
+        }
+
+        return {
+            back: createWearTextureAndContext(),
+            front: createWearTextureAndContext()
+        };
+    });
+
+    useLayoutEffect(() => {
+        frontBaseRef.current = cloneBasePositions(frontGeometry);
+        backBaseRef.current = cloneBasePositions(backGeometry);
+        overlayBaseRef.current = cloneBasePositions(overlayGeometry);
+    }, [backGeometry, frontGeometry, overlayGeometry]);
+
+    const commitPersistentBend = (): void => {
+        if (reduceMotion) {
+            return;
+        }
+
+        const frontBase = frontBaseRef.current;
+        const backBase = backBaseRef.current;
+        const overlayBase = overlayBaseRef.current;
+
+        if (!frontBase || !backBase || !overlayBase) {
+            return;
+        }
+
+        const bu = bendURef.current;
+        const bv = bendVRef.current;
+        const face = bendFaceRef.current;
+        const depthScale = 1 + bendBuildupRef.current * 0.52;
+        const bendOverlay = getSurfaceVariant(tile, faceUp) !== 'hidden';
+
+        if (face === 'front') {
+            addPersistentBendStamp(frontPersistentRef.current, frontBase, bu, bv, CARD_WIDTH, CARD_HEIGHT, depthScale);
+
+            if (bendOverlay) {
+                addPersistentBendStamp(
+                    overlayPersistentRef.current,
+                    overlayBase,
+                    bu,
+                    bv,
+                    CARD_WIDTH,
+                    CARD_HEIGHT,
+                    depthScale
+                );
+            }
+
+            if (wearAssets) {
+                drawWearStamp(wearAssets.front.context, bu, bv, depthScale);
+                wearAssets.front.texture.needsUpdate = true;
+            }
+        } else {
+            addPersistentBendStamp(backPersistentRef.current, backBase, bu, bv, CARD_WIDTH, CARD_HEIGHT, depthScale);
+
+            if (wearAssets) {
+                drawWearStamp(wearAssets.back.context, bu, bv, depthScale);
+                wearAssets.back.texture.needsUpdate = true;
+            }
+        }
+    };
+
+    const resolveBendFaceFromHit = (event: BendSourceEvent): CardBendFace | null => {
+        const hitFace = event.face;
+
+        if (hitFace) {
+            const nz = hitFace.normal.z;
+
+            if (Math.abs(nz) > 0.65) {
+                return nz > 0 ? 'front' : 'back';
+            }
+        }
+
+        scratchHitLocal.copy(event.point);
+        event.object.worldToLocal(scratchHitLocal);
+        const halfDepth = TILE_DEPTH * 0.5;
+        const z = scratchHitLocal.z;
+
+        if (z > halfDepth * 0.1) {
+            return 'front';
+        }
+
+        if (z < -halfDepth * 0.1) {
+            return 'back';
+        }
+
+        return null;
+    };
+
+    const maybeBumpBuildup = (face: CardBendFace, u: number, v: number): void => {
+        const prevU = lastBumpURef.current;
+        const prevV = lastBumpVRef.current;
+        const prevFace = lastBumpFaceRef.current;
+
+        if (prevU === null || prevV === null || prevFace === null) {
+            bendBuildupRef.current = 0;
+        } else if (prevFace === face && Math.hypot(u - prevU, v - prevV) < BEND_UV_SAME_SPOT) {
+            bendBuildupRef.current = Math.min(
+                BEND_BUILDUP_MAX,
+                bendBuildupRef.current + BEND_BUILDUP_PER_PRESS
+            );
+        } else {
+            bendBuildupRef.current = 0;
+        }
+
+        lastBumpURef.current = u;
+        lastBumpVRef.current = v;
+        lastBumpFaceRef.current = face;
+    };
+
+    const syncBendFromPointerEvent = (event: BendSourceEvent, bumpRepeat: boolean): void => {
+        if (reduceMotion || !pickable) {
+            return;
+        }
+
+        if (event.type === 'pointermove') {
+            const native = event.nativeEvent;
+
+            if (
+                native instanceof PointerEvent &&
+                native.pointerType === 'mouse' &&
+                (native.buttons & 1) === 0
+            ) {
+                return;
+            }
+        }
+
+        const face = resolveBendFaceFromHit(event);
+        const { uv } = event;
+
+        if (!face || !uv) {
+            return;
+        }
+
+        if (bumpRepeat) {
+            maybeBumpBuildup(face, uv.x, uv.y);
+        }
+
+        bendFaceRef.current = face;
+        bendURef.current = uv.x;
+        bendVRef.current = uv.y;
+    };
+
     const handleCardPointerUp = (event: ThreeEvent<PointerEvent>): void => {
+        if (pickable && !reduceMotion) {
+            if (event.pointerType !== 'mouse' || event.button === 0) {
+                syncBendFromPointerEvent(event, false);
+            }
+        }
+
+        if (pressingOnCardRef.current && pickable && !reduceMotion) {
+            commitPersistentBend();
+        }
+
+        pressingOnCardRef.current = false;
         event.stopPropagation();
 
         if (event.pointerType === 'mouse' && event.button !== 0) {
@@ -147,7 +481,25 @@ const TileBezel = ({
         onTilePick(tile.id);
     };
 
+    const handleCardPointerDown = (event: ThreeEvent<PointerEvent>): void => {
+        event.stopPropagation();
+        pressingOnCardRef.current = true;
+        syncBendFromPointerEvent(event, true);
+    };
+
+    const handleCardClick = (event: ThreeEvent<MouseEvent>): void => {
+        event.stopPropagation();
+
+        if (!pickable || reduceMotion) {
+            return;
+        }
+
+        syncBendFromPointerEvent(event, false);
+    };
+
     const handleCardPointerMove = (event: ThreeEvent<PointerEvent>): void => {
+        syncBendFromPointerEvent(event, false);
+
         const pointerType = event.nativeEvent.pointerType;
 
         if (reduceMotion || pointerType === 'touch' || pointerType === 'pen') {
@@ -171,6 +523,12 @@ const TileBezel = ({
     };
 
     const handleCardPointerOut = (): void => {
+        if (pressingOnCardRef.current && pickable && !reduceMotion) {
+            commitPersistentBend();
+        }
+
+        pressingOnCardRef.current = false;
+
         if (hoverTiltRef.current.tileId === tile.id) {
             hoverTiltRef.current = { tileId: null, x: 0, y: 0 };
         }
@@ -181,6 +539,57 @@ const TileBezel = ({
 
         if (!group) {
             return;
+        }
+
+        const frontBase = frontBaseRef.current;
+        const backBase = backBaseRef.current;
+        const overlayBase = overlayBaseRef.current;
+
+        if (frontBase && backBase && overlayBase) {
+            const bu = bendURef.current;
+            const bv = bendVRef.current;
+            const face = bendFaceRef.current;
+            const bendOverlay = getSurfaceVariant(tile, faceUp) !== 'hidden';
+            const depthMultiplier = 1 + bendBuildupRef.current * 0.52;
+            const pressing = !reduceMotion && pickable && pressingOnCardRef.current;
+            const liveFront = pressing && face === 'front' ? depthMultiplier : 0;
+            const liveBack = pressing && face === 'back' ? depthMultiplier : 0;
+            const liveOverlay = pressing && face === 'front' && bendOverlay ? depthMultiplier : 0;
+
+            const frontPos = frontGeometry.attributes.position as BufferAttribute;
+            const backPos = backGeometry.attributes.position as BufferAttribute;
+            const overlayPos = overlayGeometry.attributes.position as BufferAttribute;
+
+            composeCardPositions(
+                frontPos,
+                frontBase,
+                frontPersistentRef.current,
+                bu,
+                bv,
+                CARD_WIDTH,
+                CARD_HEIGHT,
+                liveFront
+            );
+            composeCardPositions(
+                backPos,
+                backBase,
+                backPersistentRef.current,
+                bu,
+                bv,
+                CARD_WIDTH,
+                CARD_HEIGHT,
+                liveBack
+            );
+            composeCardPositions(
+                overlayPos,
+                overlayBase,
+                overlayPersistentRef.current,
+                bu,
+                bv,
+                CARD_WIDTH,
+                CARD_HEIGHT,
+                liveOverlay
+            );
         }
 
         const time = state.clock.elapsedTime;
@@ -221,9 +630,8 @@ const TileBezel = ({
     });
 
     const surfaceVariant = getSurfaceVariant(tile, faceUp);
-    const hiddenBackTexture = surfaceVariant === 'hidden' ? getCardBackStaticTexture() : null;
-    const frontDisplayTexture = hiddenBackTexture ?? getTileFaceTexture(tile, 'front', surfaceVariant, 'panel');
-    const backDisplayTexture = hiddenBackTexture ?? getTileFaceTexture(tile, 'back', surfaceVariant, 'panel');
+    /** Same bitmap as the face-down side: static reference PNG only. Face-up adds nothing here—only the overlay mesh draws the symbol. */
+    const cardArtTexture = getCardBackStaticTexture();
     const overlayTexture = surfaceVariant === 'hidden' ? null : getTileFaceOverlayTexture(tile, surfaceVariant === 'matched' ? 'matched' : 'active');
     const forceTextureRefreshKey = textureRevision;
 
@@ -240,6 +648,8 @@ const TileBezel = ({
             <group scale={[transform.bezelScale, transform.bezelScale, transform.bezelScale]}>
                 <mesh
                     key={`card-pick-${tile.id}-${forceTextureRefreshKey}`}
+                    onClick={handleCardClick}
+                    onPointerDown={handleCardPointerDown}
                     onPointerMove={handleCardPointerMove}
                     onPointerOut={handleCardPointerOut}
                     onPointerUp={handleCardPointerUp}
@@ -249,33 +659,69 @@ const TileBezel = ({
                     <boxGeometry args={[CARD_WIDTH, CARD_HEIGHT, TILE_DEPTH]} />
                     <meshBasicMaterial colorWrite={false} depthWrite={false} transparent />
                 </mesh>
-                <mesh position={[0, 0, faceZ]} raycast={noopMeshRaycast}>
-                    <planeGeometry args={[CARD_WIDTH, CARD_HEIGHT]} />
+                <mesh geometry={frontGeometry} position={[0, 0, faceZ]} raycast={noopMeshRaycast}>
                     <meshBasicMaterial
                         alphaTest={0.06}
                         color="#ffffff"
                         depthWrite
-                        map={frontDisplayTexture ?? undefined}
+                        map={cardArtTexture ?? undefined}
                         side={DoubleSide}
                         toneMapped={false}
                         transparent
                     />
                 </mesh>
-                <mesh position={[0, 0, -faceZ]} rotation={[0, Math.PI, 0]} raycast={noopMeshRaycast}>
-                    <planeGeometry args={[CARD_WIDTH, CARD_HEIGHT]} />
+                {wearAssets ? (
+                    <mesh
+                        geometry={frontGeometry}
+                        position={[0, 0, faceZ + 0.00045]}
+                        raycast={noopMeshRaycast}
+                        renderOrder={6}
+                    >
+                        <meshBasicMaterial
+                            blending={MultiplyBlending}
+                            depthWrite={false}
+                            map={wearAssets.front.texture}
+                            polygonOffset
+                            polygonOffsetFactor={-1}
+                            polygonOffsetUnits={-1}
+                            toneMapped={false}
+                            transparent
+                        />
+                    </mesh>
+                ) : null}
+                <mesh geometry={backGeometry} position={[0, 0, -faceZ]} rotation={[0, Math.PI, 0]} raycast={noopMeshRaycast}>
                     <meshBasicMaterial
                         alphaTest={0.06}
                         color="#ffffff"
                         depthWrite
-                        map={backDisplayTexture ?? undefined}
+                        map={cardArtTexture ?? undefined}
                         side={DoubleSide}
                         toneMapped={false}
                         transparent
                     />
                 </mesh>
+                {wearAssets ? (
+                    <mesh
+                        geometry={backGeometry}
+                        position={[0, 0, -faceZ - 0.00045]}
+                        raycast={noopMeshRaycast}
+                        renderOrder={6}
+                        rotation={[0, Math.PI, 0]}
+                    >
+                        <meshBasicMaterial
+                            blending={MultiplyBlending}
+                            depthWrite={false}
+                            map={wearAssets.back.texture}
+                            polygonOffset
+                            polygonOffsetFactor={-1}
+                            polygonOffsetUnits={-1}
+                            toneMapped={false}
+                            transparent
+                        />
+                    </mesh>
+                ) : null}
                 {overlayTexture ? (
-                    <mesh position={[0, 0, overlayZ]} raycast={noopMeshRaycast} renderOrder={10}>
-                        <planeGeometry args={[CARD_FACE_WIDTH, CARD_FACE_HEIGHT]} />
+                    <mesh geometry={overlayGeometry} position={[0, 0, overlayZ]} raycast={noopMeshRaycast} renderOrder={10}>
                         <meshBasicMaterial
                             alphaTest={0.08}
                             depthTest={false}
@@ -334,7 +780,6 @@ const TileBoardScene = ({
 
                     return (
                         <TileBezel
-                            compact={compact}
                             faceUp={faceUp}
                             fieldAmp={getTileFieldAmplification(index, totalColumns, totalRows)}
                             fieldTiltRef={fieldTiltRef}

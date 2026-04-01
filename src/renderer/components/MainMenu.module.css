@@ -48,6 +48,26 @@
         0 10px 28px rgba(0, 0, 0, 0.48);
 }
 
+/* Pointer / gyro tilt (inherits --tilt-x, --tilt-y from menu shell) */
+.heroSmallTitleTilt,
+.heroBigTitleTilt,
+.heroActionsTilt {
+    transform-origin: 50% 50%;
+    transform-style: preserve-3d;
+}
+
+.heroSmallTitleTilt {
+    transform: perspective(1100px) rotateX(calc(var(--tilt-y, 0) * -3.5deg)) rotateY(calc(var(--tilt-x, 0) * 3.5deg));
+}
+
+.heroBigTitleTilt {
+    transform: perspective(1100px) rotateX(calc(var(--tilt-y, 0) * -7deg)) rotateY(calc(var(--tilt-x, 0) * 7deg));
+}
+
+.heroActionsTilt {
+    transform: perspective(1100px) rotateX(calc(var(--tilt-y, 0) * -5deg)) rotateY(calc(var(--tilt-x, 0) * 5deg));
+}
+
 .guideTitleSpacing {
     margin-top: 0.45rem;
 }
@@ -239,7 +259,10 @@
 }
 
 :global([data-reduce-motion='true']) .guideCard,
-:global([data-reduce-motion='true']) .tiltSurface {
+:global([data-reduce-motion='true']) .tiltSurface,
+:global([data-reduce-motion='true']) .heroSmallTitleTilt,
+:global([data-reduce-motion='true']) .heroBigTitleTilt,
+:global([data-reduce-motion='true']) .heroActionsTilt {
     transform: none;
 }
 

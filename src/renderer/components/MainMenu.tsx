@@ -57,13 +57,24 @@ const MainMenu = ({
             />
 
             <div className={styles.hero}>
-                <Eyebrow tone="menu">Steam Demo Build</Eyebrow>
+                <div className={styles.heroSmallTitleTilt}>
+                    <Eyebrow
+                        tone="menu"
+                        style={{
+                            fontSize: 'clamp(0.62rem, 1.15vw, 0.74rem)',
+                            letterSpacing: '0.28em',
+                            marginBottom: '0.55rem'
+                        }}
+                    >
+                        Steam Demo Build
+                    </Eyebrow>
+                </div>
 
-                <ScreenTitle className={styles.heroTitle} role="display">
+                <ScreenTitle className={`${styles.heroTitle} ${styles.heroBigTitleTilt}`} role="display">
                     Memory Dungeon
                 </ScreenTitle>
 
-                <div className={styles.actions}>
+                <div className={`${styles.actions} ${styles.heroActionsTilt}`}>
                     <UiButton size="lg" variant="primary" onClick={onPlay}>
                         Play Arcade
                     </UiButton>

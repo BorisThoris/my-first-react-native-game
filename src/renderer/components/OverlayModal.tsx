@@ -112,19 +112,21 @@ const OverlayModal = ({ title, subtitle, children, actions }: OverlayModalProps)
                 role="dialog"
                 tabIndex={-1}
             >
-                <ScreenTitle className={styles.title} id={titleId} role="modal">
-                    {title}
-                </ScreenTitle>
-                {subtitle && (
-                    <p className={styles.subtitle} id={subtitleId}>
-                        {subtitle}
-                    </p>
-                )}
-                {children && (
-                    <div className={styles.body} id={bodyId}>
-                        {children}
-                    </div>
-                )}
+                <div className={styles.mainColumn}>
+                    <ScreenTitle className={styles.title} id={titleId} role="modal">
+                        {title}
+                    </ScreenTitle>
+                    {subtitle && (
+                        <p className={styles.subtitle} id={subtitleId}>
+                            {subtitle}
+                        </p>
+                    )}
+                    {children && (
+                        <div className={styles.body} id={bodyId}>
+                            {children}
+                        </div>
+                    )}
+                </div>
 
                 <div className={styles.actions}>
                     {actions.map((action) => (

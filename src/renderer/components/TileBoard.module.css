@@ -108,15 +108,15 @@
 
 .hitButton:focus-visible {
     border-color: rgba(255, 214, 133, 0.88);
-    background: linear-gradient(180deg, rgba(255, 214, 133, 0.08), rgba(87, 220, 255, 0.04));
+    background: linear-gradient(180deg, rgba(255, 214, 133, 0.1), rgba(255, 214, 133, 0.03));
     box-shadow:
         0 0 0 3px rgba(255, 214, 133, 0.18),
         inset 0 0 0 1px rgba(255, 214, 133, 0.14);
 }
 
 .hitButtonFaceUp:focus-visible {
-    border-color: rgba(87, 220, 255, 0.5);
-    background: linear-gradient(180deg, rgba(87, 220, 255, 0.08), rgba(255, 214, 133, 0.03));
+    border-color: rgba(255, 214, 133, 0.55);
+    background: linear-gradient(180deg, rgba(255, 214, 133, 0.09), rgba(255, 214, 133, 0.02));
 }
 
 .hitButtonMatched:focus-visible {
@@ -187,7 +187,7 @@
     inset: 14%;
     border-radius: 0.84rem;
     border: 1px solid rgba(255, 214, 133, 0.24);
-    box-shadow: inset 0 0 0 1px rgba(87, 220, 255, 0.08);
+    box-shadow: inset 0 0 0 1px rgba(255, 214, 133, 0.1);
     pointer-events: none;
 }
 
@@ -200,16 +200,16 @@
 
 .faceUp {
     background:
-        radial-gradient(circle at 20% 18%, rgba(87, 220, 255, 0.16), transparent 38%),
-        radial-gradient(circle at 84% 74%, rgba(255, 139, 57, 0.12), transparent 34%),
-        linear-gradient(160deg, rgba(30, 36, 50, 0.98), rgba(10, 13, 20, 0.98));
-    border-color: rgba(87, 220, 255, 0.36);
+        radial-gradient(circle at 18% 16%, rgba(255, 214, 133, 0.16), transparent 34%),
+        radial-gradient(circle at 82% 78%, rgba(255, 214, 133, 0.1), transparent 34%),
+        linear-gradient(160deg, rgba(20, 24, 34, 0.98), rgba(7, 9, 14, 0.98));
+    border-color: rgba(255, 214, 133, 0.34);
 }
 
 .matched {
     background:
-        radial-gradient(circle at 18% 16%, rgba(255, 214, 133, 0.24), transparent 38%),
-        radial-gradient(circle at 84% 78%, rgba(87, 220, 255, 0.14), transparent 36%),
+        radial-gradient(circle at 18% 16%, rgba(255, 214, 133, 0.22), transparent 38%),
+        radial-gradient(circle at 84% 78%, rgba(255, 214, 133, 0.12), transparent 36%),
         linear-gradient(160deg, rgba(19, 24, 33, 0.98), rgba(8, 10, 16, 0.98));
     border-color: rgba(255, 214, 133, 0.52);
 }
@@ -226,7 +226,6 @@
     height: 100%;
 }
 
-.cardFront,
 .cardBack {
     position: absolute;
     inset: 3% 17%;
@@ -242,68 +241,22 @@
         linear-gradient(170deg, rgba(21, 33, 50, 0.98), rgba(8, 12, 20, 0.98));
 }
 
-.cardFront {
-    display: grid;
-    place-items: center;
-}
-
-.cardFrontBadge,
-.cardFrontLabel {
+.cardFaceLabel {
     position: absolute;
     z-index: 2;
+    bottom: 12%;
     left: 50%;
     transform: translateX(-50%);
-    font-size: clamp(0.48rem, 1vw, 0.6rem);
-    letter-spacing: 0.12em;
+    font-size: clamp(0.46rem, 0.92vw, 0.58rem);
+    font-weight: 800;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    line-height: 1.15;
-    padding: 0.14rem 0.34rem;
-    border-radius: 999px;
-    border: 1px solid rgba(255, 214, 133, 0.3);
-    background: rgba(3, 6, 10, 0.64);
-    color: rgba(248, 241, 223, 0.96);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.78);
+    line-height: 1;
+    color: #fffef8;
+    -webkit-text-stroke: 0.045em rgba(10, 8, 6, 0.88);
+    paint-order: stroke fill;
+    text-shadow: none;
     white-space: nowrap;
-}
-
-.cardFrontBadge {
-    top: 11%;
-}
-
-.cardFrontLabel {
-    bottom: 11%;
-}
-
-.cardBackPattern {
-    position: absolute;
-    inset: 5%;
-    border-radius: 0.62rem;
-    border: 1px solid rgba(255, 214, 133, 0.24);
-    background:
-        repeating-linear-gradient(
-            45deg,
-            rgba(255, 214, 133, 0.08) 0 6px,
-            rgba(87, 220, 255, 0.04) 6px 12px
-        ),
-        repeating-linear-gradient(
-            -45deg,
-            rgba(255, 214, 133, 0.08) 0 6px,
-            rgba(87, 220, 255, 0.04) 6px 12px
-        );
-}
-
-.cardBackEmblem {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 28%;
-    aspect-ratio: 1;
-    transform: translate(-50%, -50%);
-    border-radius: 999px;
-    border: 1px solid rgba(255, 214, 133, 0.38);
-    box-shadow:
-        inset 0 0 0 1px rgba(87, 220, 255, 0.14),
-        0 0 12px rgba(255, 214, 133, 0.2);
 }
 
 .pulseGlow {
@@ -311,55 +264,37 @@
     inset: auto 18% 12%;
     height: 18px;
     border-radius: 999px;
-    background: radial-gradient(circle at center, rgba(255, 214, 133, 0.24), rgba(87, 220, 255, 0.14) 58%, transparent);
+    background: radial-gradient(circle at center, rgba(255, 214, 133, 0.32), rgba(255, 214, 133, 0.08) 58%, transparent);
     filter: blur(14px);
 }
 
 .tileSymbol {
-    position: relative;
-    z-index: 1;
-    font-size: clamp(1.38rem, 2.25vw, 2.1rem);
+    position: absolute;
+    z-index: 2;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    max-width: 54%;
+    font-family: 'Segoe UI', 'Segoe UI Symbol', 'Segoe UI Emoji', system-ui, sans-serif;
+    font-size: clamp(1.16rem, 1.85vw, 1.72rem);
     font-weight: 800;
-    letter-spacing: 0.03em;
-    color: rgba(250, 245, 232, 0.96);
-    -webkit-text-stroke: 1px rgba(5, 9, 14, 0.78);
-    text-shadow:
-        0 0 14px rgba(255, 214, 133, 0.26),
-        0 0 8px rgba(87, 220, 255, 0.2),
-        0 2px 2px rgba(0, 0, 0, 0.78);
+    letter-spacing: 0.05em;
+    line-height: 1;
+    color: #fffef5;
+    -webkit-text-stroke: 0.06em rgba(8, 6, 8, 0.9);
+    paint-order: stroke fill;
+    text-shadow: none;
+    text-align: center;
 }
 
-.faceUp .cardFront {
-    border-color: rgba(87, 220, 255, 0.42);
+.matched .tileSymbol {
+    color: #fff59d;
+    -webkit-text-stroke: 0.06em rgba(18, 10, 2, 0.9);
 }
 
-.faceUp .cardFront .cardBackPattern {
-    border-color: rgba(87, 220, 255, 0.32);
-}
-
-.faceUp .cardFront .cardBackEmblem {
-    border-color: rgba(87, 220, 255, 0.42);
-    box-shadow:
-        inset 0 0 0 1px rgba(87, 220, 255, 0.2),
-        0 0 12px rgba(87, 220, 255, 0.18);
-}
-
-.matched .cardFront {
-    border-color: rgba(255, 214, 133, 0.62);
-}
-
-.matched .cardFront .cardBackPattern {
-    border-color: rgba(255, 214, 133, 0.44);
-    box-shadow:
-        inset 0 0 0 1px rgba(255, 214, 133, 0.12),
-        0 0 16px rgba(255, 214, 133, 0.12);
-}
-
-.matched .cardFront .cardBackEmblem {
-    border-color: rgba(255, 214, 133, 0.55);
-    box-shadow:
-        inset 0 0 0 1px rgba(255, 214, 133, 0.22),
-        0 0 20px rgba(255, 214, 133, 0.16);
+.matched .cardFaceLabel {
+    color: #fffde7;
+    -webkit-text-stroke: 0.045em rgba(12, 8, 0, 0.88);
 }
 
 .faceUp .pulseGlow {
@@ -434,7 +369,7 @@
     }
 
     .tileSymbol {
-        font-size: clamp(1.2rem, 7vw, 1.9rem);
+        font-size: clamp(1.02rem, 6.1vw, 1.48rem);
     }
 
 }

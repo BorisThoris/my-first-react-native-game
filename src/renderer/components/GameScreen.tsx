@@ -204,25 +204,25 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                     >
                         <div className={styles.modalStats}>
                             <StatTile
-                                density="modalChild"
+                                density="minimal"
                                 label="Rating"
                                 value={run.lastLevelResult.rating}
                                 valueFirst
                             />
                             <StatTile
-                                density="modalChild"
+                                density="minimal"
                                 label="Mistakes"
                                 value={run.lastLevelResult.mistakes}
                                 valueFirst
                             />
                             <StatTile
-                                density="modalChild"
+                                density="minimal"
                                 label="Lives"
                                 value={run.lastLevelResult.livesRemaining}
                                 valueFirst
                             />
                             <StatTile
-                                density="modalChild"
+                                density="minimal"
                                 label="Total"
                                 value={run.stats.totalScore.toLocaleString()}
                                 valueFirst

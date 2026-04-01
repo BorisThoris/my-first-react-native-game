@@ -102,11 +102,13 @@ const TileBoardFallback = ({
     const locked = board.flippedTileIds.length === 2;
 
     return (
-        <div className={styles.fallbackBoard} style={tileGridStyle}>
+        <div className={styles.fallbackBoard} data-testid="tile-board-fallback" style={tileGridStyle}>
             {board.tiles.map((tile, index) => {
                 const disabled = tile.state === 'matched' || !interactive || (locked && tile.state === 'hidden');
                 const faceUp = tile.state !== 'hidden' || debugPeekActive || previewActive;
                 const { row, column } = getTilePosition(index, board.columns);
+                const labelText = tile.label.toUpperCase();
+                const showFrontLabel = labelText !== tile.symbol.toUpperCase();
 
                 const fieldAmp = getTileFieldAmplification(index, board.columns, board.rows);
 
@@ -126,18 +128,12 @@ const TileBoardFallback = ({
                         <span className={styles.tileFace}>
                             <span className={styles.pulseGlow} />
                             {faceUp ? (
-                                <span className={styles.cardFront}>
-                                    <span aria-hidden="true" className={styles.cardBackPattern} />
-                                    <span aria-hidden="true" className={styles.cardBackEmblem} />
-                                    <span className={styles.cardFrontBadge}>{tile.label.toUpperCase()}</span>
+                                <span className={styles.cardBack} data-testid="tile-card-face">
                                     <span className={styles.tileSymbol}>{tile.symbol}</span>
-                                    <span className={styles.cardFrontLabel}>{tile.label.toUpperCase()}</span>
+                                    {showFrontLabel ? <span className={styles.cardFaceLabel}>{labelText}</span> : null}
                                 </span>
                             ) : (
-                                <span aria-hidden="true" className={styles.cardBack}>
-                                    <span className={styles.cardBackPattern} />
-                                    <span className={styles.cardBackEmblem} />
-                                </span>
+                                <span aria-hidden="true" className={styles.cardBack} data-testid="tile-card-face" />
                             )}
                         </span>
                     </button>
