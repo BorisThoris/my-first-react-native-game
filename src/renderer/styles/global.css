@@ -47,6 +47,13 @@ select {
 
 button {
     cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(255, 213, 125, 0.12);
+}
+
+[role='button'] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(255, 213, 125, 0.12);
 }
 
 button:focus-visible,

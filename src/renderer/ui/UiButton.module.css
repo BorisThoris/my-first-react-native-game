@@ -96,7 +96,7 @@
     transform: none;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 760px) {
     .lg {
         width: 100%;
         min-width: 0;

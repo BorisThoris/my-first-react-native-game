@@ -186,6 +186,9 @@ const createTexture = (
         return null;
     }
 
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
+
     draw(context, canvas);
 
     const texture = new CanvasTexture(canvas);
@@ -197,6 +200,13 @@ const createTexture = (
     textureCache.set(key, texture);
 
     return texture;
+};
+
+/** Sharper sampling on tilted quads; call once per WebGL context with device cap. */
+export const applyAnisotropyToCachedTileTextures = (anisotropy: number): void => {
+    for (const texture of textureCache.values()) {
+        texture.anisotropy = anisotropy;
+    }
 };
 
 type LayerSlot = 'bezel' | 'panel';

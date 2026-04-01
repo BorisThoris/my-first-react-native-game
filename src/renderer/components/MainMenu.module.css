@@ -277,7 +277,7 @@
     }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 760px) {
     .shell,
     .roomyShell,
     .compactShell {
@@ -321,7 +321,7 @@
     }
 }
 
-@media (max-width: 720px) and (max-height: 760px) {
+@media (max-width: 760px) and (max-height: 760px) {
     .hero {
         max-width: none;
     }

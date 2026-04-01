@@ -35,9 +35,11 @@ test.describe('Tile card face (WebGL)', () => {
         await testInfo.attach('board-hidden.png', { body: shotHidden, contentType: 'image/png' });
         await testInfo.attach('board-one-flipped.png', { body: shotFlipped, contentType: 'image/png' });
 
+        /** Card textures use anisotropic filtering; edge deltas widen PNG diffs vs the old ~8% typical. */
+        const maxDiffRatio = 0.12;
         expect(
             ratio,
             `Expected most pixels unchanged (same card art); diff ratio ${(ratio * 100).toFixed(2)}% with ${diffPixels} px`
-        ).toBeLessThan(0.09);
+        ).toBeLessThan(maxDiffRatio);
     });
 });

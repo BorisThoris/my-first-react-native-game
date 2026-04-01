@@ -6,6 +6,7 @@ import MainMenu from './components/MainMenu';
 import SettingsScreen from './components/SettingsScreen';
 import StartupIntro from './components/StartupIntro';
 import type { IntroPlaybackState } from './components/startupIntroConfig';
+import { VIEWPORT_MOBILE_MAX, VIEWPORT_TABLET_MAX } from './breakpoints';
 import { useViewportSize } from './hooks/useViewportSize';
 import styles from './styles/App.module.css';
 import { buildRendererThemeStyle } from './styles/theme';
@@ -40,10 +41,10 @@ const App = () => {
             view: state.view
         }))
     );
-    const isCompactViewport = width <= 760 || height <= 760;
+    const isCompactViewport = width <= VIEWPORT_MOBILE_MAX || height <= VIEWPORT_MOBILE_MAX;
     const safeUiScale = isCompactViewport
         ? 1
-        : width <= 1220
+        : width <= VIEWPORT_TABLET_MAX
           ? Math.min(settings.uiScale, 1.08)
           : Math.min(settings.uiScale, 1.15);
     const themeStyle = buildRendererThemeStyle(safeUiScale);
@@ -70,7 +71,9 @@ const App = () => {
             data-reduce-motion={settings.reduceMotion ? 'true' : 'false'}
             data-density={isCompactViewport ? 'compact' : 'roomy'}
             data-view={visualView}
-            data-viewport={width <= 760 ? 'mobile' : width <= 1220 ? 'tablet' : 'desktop'}
+            data-viewport={
+                width <= VIEWPORT_MOBILE_MAX ? 'mobile' : width <= VIEWPORT_TABLET_MAX ? 'tablet' : 'desktop'
+            }
             style={themeStyle}
         >
             <div className={styles.ambientGlow} />

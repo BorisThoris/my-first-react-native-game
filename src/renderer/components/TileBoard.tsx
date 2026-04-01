@@ -15,6 +15,7 @@ import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
 import styles from './TileBoard.module.css';
 import { getTileFieldAmplification } from './tileFieldTilt';
+import TileBoardPostFx from './TileBoardPostFx';
 import TileBoardScene, { type TileHoverTiltState } from './TileBoardScene';
 
 interface TileBoardProps {
@@ -184,7 +185,11 @@ const TileBoard = ({
         [board.columns, board.rows, frameStyle]
     );
     const tileGridStyle = buildTileGridStyle(board);
-    const dpr = compact ? 1 : Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 1.75);
+    const deviceDpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+    /** Cap DPR for GPU cost; slightly higher caps = sharper cards on dense displays. */
+    const dpr = Math.min(deviceDpr, compact ? 2.35 : 2.1);
+    /** With SMAA post-pass, skip default framebuffer MSAA to avoid redundant cost. */
+    const glAntialias = reduceMotion;
     const handleTileSelect = (tileId: string): void => onTileSelect(tileId);
     const clearHoverTilt = (tileId: string, event: PointerEvent<HTMLButtonElement>): void => {
         if (hoverTiltRef.current.tileId === tileId) {
@@ -252,9 +257,10 @@ const TileBoard = ({
                                 <Canvas
                                     className={styles.canvas}
                                     dpr={dpr}
+                                    key={reduceMotion ? 'tile-board-reduced-motion' : 'tile-board-smaa'}
                                     gl={{
                                         alpha: true,
-                                        antialias: !compact,
+                                        antialias: glAntialias,
                                         powerPreference: 'high-performance',
                                         premultipliedAlpha: false
                                     }}
@@ -273,6 +279,7 @@ const TileBoard = ({
                                         previewActive={previewActive}
                                         reduceMotion={reduceMotion}
                                     />
+                                    <TileBoardPostFx reduceMotion={reduceMotion} />
                             </Canvas>
                         </div>
 

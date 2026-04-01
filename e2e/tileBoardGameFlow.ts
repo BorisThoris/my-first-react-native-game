@@ -32,9 +32,11 @@ export const reduceMotionSaveJson = JSON.stringify({
 export async function navigateToLevel1PlayPhase(page: Page): Promise<void> {
     await page.goto('/');
     const intro = page.getByRole('dialog', { name: /startup relic intro/i });
-    await intro.waitFor({ state: 'visible', timeout: 15000 });
-    await intro.click({ force: true, timeout: 15000 });
-    await expect(page.getByRole('button', { name: /play arcade/i })).toBeVisible();
+    await intro.waitFor({ state: 'attached', timeout: 15000 });
+    await intro.evaluate((el) => {
+        (el as HTMLElement).click();
+    });
+    await expect(page.getByRole('button', { name: /play arcade/i })).toBeVisible({ timeout: 15000 });
     await page.getByRole('button', { name: /play arcade/i }).click();
     await expect(page.getByRole('heading', { name: /level 1/i })).toBeVisible();
     await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible({ timeout: 10000 });

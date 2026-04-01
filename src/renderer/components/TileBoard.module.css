@@ -69,6 +69,7 @@
     height: 100% !important;
     pointer-events: auto;
     touch-action: none;
+    image-rendering: auto;
 }
 
 .interactionLayer {
@@ -146,6 +147,8 @@
     --field-amp: 1;
     position: relative;
     aspect-ratio: 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     border: 1px solid rgba(255, 214, 133, 0.22);
     border-radius: 1.12rem;
     background:
@@ -357,11 +360,15 @@
 
 @media (max-width: 760px) {
     .stage {
-        inset: 0.65rem;
+        inset: 0.3rem;
+    }
+
+    .interactionLayer {
+        gap: 0.5rem;
     }
 
     .fallbackBoard {
-        gap: 0.65rem;
+        gap: 0.5rem;
     }
 
     .fallbackTile {
@@ -371,5 +378,10 @@
     .tileSymbol {
         font-size: clamp(1.02rem, 6.1vw, 1.48rem);
     }
+}
 
+@media (max-width: 430px) {
+    .stage {
+        inset: 0.2rem;
+    }
 }

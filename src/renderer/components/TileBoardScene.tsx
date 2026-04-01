@@ -14,6 +14,7 @@ import {
 } from 'three';
 import type { BoardState, Tile } from '../../shared/contracts';
 import {
+    applyAnisotropyToCachedTileTextures,
     getCardBackStaticTexture,
     getTileFaceOverlayTexture,
     subscribeTextureImageUpdates,
@@ -190,6 +191,9 @@ const createWearTextureAndContext = (): {
         throw new Error('2D canvas context required for card wear texture');
     }
 
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
+
     context.fillStyle = '#ffffff';
     context.fillRect(0, 0, WEAR_TEX_SIZE, WEAR_TEX_SIZE);
     const texture = new CanvasTexture(canvas);
@@ -274,6 +278,7 @@ const TileBezel = ({
     tile,
     transform
 }: TileBezelProps) => {
+    const { gl } = useThree();
     const groupRef = useRef<Group | null>(null);
     const isMatched = tile.state === 'matched';
     const pickable = isTilePickable(tile, interactive, flipLocked);
@@ -329,6 +334,16 @@ const TileBezel = ({
         backBaseRef.current = cloneBasePositions(backGeometry);
         overlayBaseRef.current = cloneBasePositions(overlayGeometry);
     }, [backGeometry, frontGeometry, overlayGeometry]);
+
+    useLayoutEffect(() => {
+        if (!wearAssets) {
+            return;
+        }
+
+        const cap = Math.min(8, gl.capabilities.getMaxAnisotropy());
+        wearAssets.front.texture.anisotropy = cap;
+        wearAssets.back.texture.anisotropy = cap;
+    }, [gl, wearAssets]);
 
     const commitPersistentBend = (): void => {
         if (reduceMotion) {
@@ -743,7 +758,7 @@ const TileBoardScene = ({
     previewActive,
     reduceMotion
 }: TileBoardSceneProps) => {
-    const { viewport } = useThree();
+    const { gl, viewport } = useThree();
     const { colors } = RENDERER_THEME;
     const totalColumns = board.columns;
     const totalRows = board.rows;
@@ -755,6 +770,10 @@ const TileBoardScene = ({
     const flipLocked = board.flippedTileIds.length === 2;
 
     useEffect(() => subscribeTextureImageUpdates(() => setTextureRevision((current) => current + 1)), []);
+
+    useLayoutEffect(() => {
+        applyAnisotropyToCachedTileTextures(Math.min(8, gl.capabilities.getMaxAnisotropy()));
+    }, [gl, textureRevision]);
 
     return (
         <>

@@ -2,6 +2,7 @@ import { ACHIEVEMENTS } from '../../shared/achievements';
 import type { AchievementId, RunState } from '../../shared/contracts';
 import { useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
+import { VIEWPORT_MOBILE_MAX, VIEWPORT_TIGHT_MAX_H, VIEWPORT_TIGHT_MAX_W } from '../breakpoints';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
 import { StatTile, UiButton } from '../ui';
@@ -67,8 +68,8 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         surfaceRef: shellRef,
         strength: 1
     });
-    const isCompact = width <= 760 || height <= 760;
-    const isTight = width <= 430 || height <= 620;
+    const isCompact = width <= VIEWPORT_MOBILE_MAX || height <= VIEWPORT_MOBILE_MAX;
+    const isTight = width <= VIEWPORT_TIGHT_MAX_W || height <= VIEWPORT_TIGHT_MAX_H;
     const pauseActionLabel = run.status === 'paused' ? 'Resume' : 'Pause';
 
     if (!run.board) {
@@ -80,17 +81,16 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         .filter((achievement): achievement is (typeof ACHIEVEMENTS)[number] => Boolean(achievement));
     const cols = run.board.columns;
     const rows = run.board.rows;
-    /** Tight reserve → larger tiles; flex boardStage still absorbs leftover vertical space under the deck. */
-    const deckReserve = isCompact ? (isTight ? 100 : 118) : 82;
-    const boardHorizontalBudget = Math.max(160, width - (isTight ? 10 : 16));
-    const boardVerticalBudget = Math.max(200, height - deckReserve);
-    const tileSize = Math.max(
-        isCompact ? 48 : 56,
-        Math.min(
-            isCompact ? (isTight ? 96 : width <= 390 ? 112 : 120) : Number.POSITIVE_INFINITY,
-            Math.floor(Math.min(boardHorizontalBudget / cols, boardVerticalBudget / rows))
-        )
-    );
+    /** Space above the board: single-row HUD + shell / foreground padding (compact rules in GameScreen.module.css). */
+    const chromeReserveY = isTight ? 92 : 84;
+    /** Horizontal insets: shell + gameForeground padding (see compact rules in GameScreen.module.css). */
+    const chromeReserveX = isTight ? 20 : 32;
+    const boardHorizontalBudget = Math.max(160, width - chromeReserveX);
+    const boardVerticalBudget = Math.max(200, height - chromeReserveY);
+    const minTile = isCompact ? 48 : 56;
+    const tileFit = Math.floor(Math.min(boardHorizontalBudget / cols, boardVerticalBudget / rows));
+    /** No artificial max on small viewports — tiles scale up to fill the playable area. */
+    const tileSize = Math.max(minTile, tileFit);
     const boardStyle = {
         ['--board-width' as string]: `${tileSize * cols}px`,
         ['--board-height' as string]: `${tileSize * rows}px`
