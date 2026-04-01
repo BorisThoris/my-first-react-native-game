@@ -38,8 +38,9 @@ const resetStore = (): void => {
 const dismissStartupIntro = async (user: ReturnType<typeof userEvent.setup>): Promise<void> => {
     await user.click(await screen.findByRole('dialog', { name: /startup relic intro/i }));
     await waitFor(() => {
+        expect(screen.getByRole('button', { name: /play arcade/i })).toBeInTheDocument();
         expect(screen.queryByRole('dialog', { name: /startup relic intro/i })).not.toBeInTheDocument();
-    });
+    }, { timeout: 3000 });
 };
 
 describe('desktop app flow', () => {
@@ -85,7 +86,7 @@ describe('desktop app flow', () => {
 
         await dismissStartupIntro(user);
         await user.click(await screen.findByRole('button', { name: /settings/i }));
-        expect(await screen.findByRole('heading', { name: /desktop settings/i })).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: /^settings$/i })).toBeInTheDocument();
         expect(screen.queryByLabelText(/ui scale/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/debug tools/i)).not.toBeInTheDocument();
         expect(screen.queryByRole('checkbox', { name: /reduce motion/i })).not.toBeInTheDocument();
@@ -101,7 +102,7 @@ describe('desktop app flow', () => {
         await waitFor(() => {
             expect(window.localStorage.getItem('memory-dungeon-save-data')).not.toBeNull();
         });
-        expect(screen.getByRole('heading', { name: /desktop settings/i })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /^settings$/i })).toBeInTheDocument();
         expect(screen.queryByRole('dialog', { name: /startup relic intro/i })).not.toBeInTheDocument();
 
         const rawSave = window.localStorage.getItem('memory-dungeon-save-data');

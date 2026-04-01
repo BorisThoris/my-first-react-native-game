@@ -124,7 +124,7 @@
     gap: 0.8rem;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 760px), (max-height: 760px) {
     .shell {
         place-items: start;
     }
@@ -154,11 +154,13 @@
     .footer {
         margin-top: 0.85rem;
         align-items: stretch;
+        width: 100%;
     }
 
     .footerActions {
-        justify-content: stretch;
         flex-direction: column;
+        align-items: stretch;
+        width: 100%;
     }
 
     .footerActions :global(button) {
@@ -167,10 +169,6 @@
 }
 
 @media (max-width: 760px), (max-height: 760px) {
-    .shell {
-        place-items: start;
-    }
-
     .shellModal {
         align-items: start;
     }

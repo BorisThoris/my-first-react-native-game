@@ -2,14 +2,19 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, type Page } from '@playwright/test';
 import { STORAGE_KEY } from './tileBoardGameFlow';
+import { dismissStartupIntro } from './startupIntroHelpers';
 
 const MATCH_SETTLE_MS = 950;
 const MEMORIZE_LABEL_RE_SRC = '^Tile (.+), row (\\d+), column (\\d+)$';
 
 export type VisualViewport = { id: string; width: number; height: number };
 
-export const VISUAL_VIEWPORTS: VisualViewport[] = [
+export const MOBILE_VISUAL_VIEWPORTS: ReadonlyArray<VisualViewport> = [
     { id: 'mobile', width: 390, height: 844 },
+    { id: 'mobile-landscape', width: 844, height: 390 }
+];
+
+export const STANDARD_VISUAL_VIEWPORTS: ReadonlyArray<VisualViewport> = [
     { id: 'tablet', width: 820, height: 1180 },
     { id: 'desktop', width: 1440, height: 900 }
 ];
@@ -63,15 +68,6 @@ export async function expectNoHorizontalOverflow(page: Page): Promise<void> {
         scrollWidth,
         `document scrollWidth ${scrollWidth} should not exceed clientWidth ${clientWidth} by more than 1px`
     ).toBeLessThanOrEqual(clientWidth + 1);
-}
-
-export async function dismissStartupIntro(page: Page): Promise<void> {
-    const intro = page.getByRole('dialog', { name: /startup relic intro/i });
-    await intro.waitFor({ state: 'attached', timeout: 15000 });
-    await intro.evaluate((el) => {
-        (el as HTMLElement).click();
-    });
-    await expect(page.getByRole('button', { name: /play arcade/i })).toBeVisible({ timeout: 15000 });
 }
 
 export async function gotoWithSave(page: Page, saveJson: string): Promise<void> {
@@ -237,19 +233,66 @@ export async function completeLevel1Play(page: Page, pairs: PairPositions | null
     await completeLevel1ByTryingHiddenPairs(page);
 }
 
+async function restartLevel1FromMainMenu(page: Page): Promise<void> {
+    await expect(page.getByRole('button', { name: /play arcade/i })).toBeVisible({ timeout: 15000 });
+    await page.getByRole('button', { name: /play arcade/i }).click();
+    await expect(page.getByRole('heading', { name: /level 1/i })).toBeVisible();
+    await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible({ timeout: 10000 });
+    await waitForPlayPhaseHiddenTiles(page, 4);
+}
+
+async function restartLevel1AfterAccidentalMatch(page: Page): Promise<void> {
+    const floorCleared = page.getByRole('dialog', { name: /floor cleared/i });
+
+    if (!(await floorCleared.isVisible().catch(() => false))) {
+        const remaining = await getHiddenTilePositions(page);
+        if (remaining.length !== 2) {
+            throw new Error('expected the accidental match fallback to leave one hidden pair');
+        }
+        await clickHiddenTile(page, remaining[0].row, remaining[0].col);
+        await clickHiddenTile(page, remaining[1].row, remaining[1].col);
+        await expect(floorCleared).toBeVisible({ timeout: 15000 });
+    }
+
+    await floorCleared.getByRole('button', { name: /main menu/i }).click();
+    await restartLevel1FromMainMenu(page);
+}
+
+async function discoverMismatchPair(
+    page: Page,
+    pairs: PairPositions | null
+): Promise<{ a: { row: number; col: number }; b: { row: number; col: number } }> {
+    if (pairs && Object.keys(pairs).length >= 2) {
+        const keys = Object.keys(pairs);
+        return { a: pairs[keys[0]][0], b: pairs[keys[1]][0] };
+    }
+
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+        await waitForPlayPhaseHiddenTiles(page, 4);
+        const positions = await getHiddenTilePositions(page);
+        if (positions.length !== 4) {
+            throw new Error('expected four hidden tiles when probing for a mismatch pair');
+        }
+
+        const guess = { a: positions[0], b: positions[1] };
+        await clickHiddenTile(page, guess.a.row, guess.a.col);
+        await clickHiddenTile(page, guess.b.row, guess.b.col);
+        await page.waitForTimeout(MATCH_SETTLE_MS);
+
+        const hiddenAfter = await page.getByRole('button', { name: /hidden tile/i }).count();
+        if (hiddenAfter === 4) {
+            return guess;
+        }
+
+        await restartLevel1AfterAccidentalMatch(page);
+    }
+
+    throw new Error('failed to discover a deterministic mismatch pair for the level 1 game-over flow');
+}
+
 /** Burn lives with mismatches until game over (level 1). Refreshes tile positions each attempt. */
 export async function forceGameOverWithMismatches(page: Page, pairs: PairPositions | null): Promise<void> {
-    const pickMismatch = async (): Promise<{ a: { row: number; col: number }; b: { row: number; col: number } }> => {
-        if (pairs && Object.keys(pairs).length >= 2) {
-            const keys = Object.keys(pairs);
-            return { a: pairs[keys[0]][0], b: pairs[keys[1]][0] };
-        }
-        const pos = await getHiddenTilePositions(page);
-        if (pos.length < 2) {
-            throw new Error('expected hidden tiles for mismatch loop');
-        }
-        return { a: pos[0], b: pos[1] };
-    };
+    const mismatch = await discoverMismatchPair(page, pairs);
 
     await waitForPlayPhaseHiddenTiles(page, 4);
 
@@ -257,13 +300,9 @@ export async function forceGameOverWithMismatches(page: Page, pairs: PairPositio
         if (await page.getByText(/Expedition Over/i).isVisible().catch(() => false)) {
             return;
         }
-        const hidden = await page.getByRole('button', { name: /hidden tile/i }).count();
-        if (hidden < 2) {
-            break;
-        }
-        const { a, b } = await pickMismatch();
-        await clickHiddenTile(page, a.row, a.col);
-        await clickHiddenTile(page, b.row, b.col);
+        await waitForPlayPhaseHiddenTiles(page, 4);
+        await clickHiddenTile(page, mismatch.a.row, mismatch.a.col);
+        await clickHiddenTile(page, mismatch.b.row, mismatch.b.col);
         await page.waitForTimeout(MATCH_SETTLE_MS);
     }
     await expect(page.getByText(/Expedition Over/i)).toBeVisible({ timeout: 20000 });

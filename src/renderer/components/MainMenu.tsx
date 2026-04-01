@@ -36,9 +36,10 @@ const MainMenu = ({
     });
     const { height, width } = useViewportSize();
     const isCompact = width <= 760 || height <= 760;
-    const isTight = width <= 430 || height <= 620;
+    const showCompactGuide = width <= 430 || height <= 620;
+    const useFixedGuidePlacement = showCompactGuide && height <= 620;
     const lastRunLine = lastRunSummary
-        ? isTight
+        ? showCompactGuide
             ? `${lastRunSummary.totalScore.toLocaleString()} pts · Floor ${lastRunSummary.highestLevel}`
             : `${lastRunSummary.totalScore.toLocaleString()} pts · ${lastRunSummary.levelsCleared} floors · high ${lastRunSummary.highestLevel} · streak ${lastRunSummary.bestStreak} · ${lastRunSummary.perfectClears} perfect`
         : null;
@@ -84,8 +85,10 @@ const MainMenu = ({
                 </div>
 
                 {showHowToPlay && (
-                    <aside className={`${styles.guideCard} ${isTight ? styles.guideCardTight : ''}`}>
-                        {isTight ? (
+                    <aside
+                        className={`${styles.guideCard} ${showCompactGuide ? styles.guideCardCompact : ''} ${useFixedGuidePlacement ? styles.guideCardFixed : ''}`}
+                    >
+                        {showCompactGuide ? (
                             <>
                                 <div className={styles.guideCompactHeader}>
                                     <Eyebrow tone="tight">How To Play</Eyebrow>
@@ -98,6 +101,11 @@ const MainMenu = ({
                                         Dismiss
                                     </UiButton>
                                 </div>
+                                <p className={styles.guideSummary}>Memorize the board before the tiles flip.</p>
+                                <div className={styles.guideCompactRules}>
+                                    <p>Match pairs cleanly to build streak and score.</p>
+                                    <p>Every 4-match streak grants a guard; every 8 restores a life.</p>
+                                </div>
                             </>
                         ) : (
                             <div>
@@ -108,7 +116,7 @@ const MainMenu = ({
                             </div>
                         )}
 
-                        {!isTight && (
+                        {!showCompactGuide && (
                             <div className={styles.guideGrid}>
                                 <div>
                                     <strong>1. Read the board</strong>
@@ -125,7 +133,7 @@ const MainMenu = ({
                             </div>
                         )}
 
-                        {!isTight && (
+                        {!showCompactGuide && (
                             <div className={styles.dismissWrap}>
                                 <UiButton
                                     fullWidth
@@ -141,7 +149,7 @@ const MainMenu = ({
                 )}
             </div>
 
-            {!(isTight && showHowToPlay) && (
+            {!(useFixedGuidePlacement && showHowToPlay) && (
                 <div className={styles.grid}>
                     <Panel
                         className={`${styles.dossierUnified} ${styles.tiltSurface}`}

@@ -20,7 +20,7 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
     const [draft, setDraft] = useState<Settings>(settings);
     const isModal = presentation === 'modal';
     const titleId = useId();
-    const title = isModal ? 'Run Settings' : 'Desktop Settings';
+    const title = isModal ? 'Run Settings' : 'Settings';
     const eyebrow = isModal ? 'Paused' : 'Preferences';
     const isDirty = JSON.stringify(draft) !== JSON.stringify(settings);
 
