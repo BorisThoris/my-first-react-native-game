@@ -120,6 +120,10 @@ const bendFalloffAtUv = (u: number, v: number, bendU: number, bendV: number, wid
     return t * t * (3 - 2 * t);
 };
 
+/** Map raycast UV to shared card UV so front + back planes bulge at the same spot (back mesh is Y-flipped π). */
+const hitUvToCanonicalBendUv = (face: CardBendFace, u: number, v: number): { u: number; v: number } =>
+    face === 'front' ? { u, v } : { u: 1 - u, v };
+
 /** Add permanent Z offsets (into persistent) for one bend stamp. */
 const addPersistentBendStamp = (
     persistent: Float32Array,
@@ -193,6 +197,7 @@ const createWearTextureAndContext = (): {
     texture.minFilter = LinearFilter;
     texture.magFilter = LinearFilter;
     texture.generateMipmaps = false;
+    texture.premultiplyAlpha = true;
     texture.needsUpdate = true;
 
     return { canvas, context, texture };
@@ -303,11 +308,9 @@ const TileBezel = ({
 
     const bendURef = useRef(0.5);
     const bendVRef = useRef(0.5);
-    const bendFaceRef = useRef<CardBendFace>('front');
     const bendBuildupRef = useRef(0);
     const lastBumpURef = useRef<number | null>(null);
     const lastBumpVRef = useRef<number | null>(null);
-    const lastBumpFaceRef = useRef<CardBendFace | null>(null);
     const pressingOnCardRef = useRef(false);
 
     const [wearAssets] = useState(() => {
@@ -342,36 +345,29 @@ const TileBezel = ({
 
         const bu = bendURef.current;
         const bv = bendVRef.current;
-        const face = bendFaceRef.current;
         const depthScale = 1 + bendBuildupRef.current * 0.52;
         const bendOverlay = getSurfaceVariant(tile, faceUp) !== 'hidden';
 
-        if (face === 'front') {
-            addPersistentBendStamp(frontPersistentRef.current, frontBase, bu, bv, CARD_WIDTH, CARD_HEIGHT, depthScale);
+        addPersistentBendStamp(frontPersistentRef.current, frontBase, bu, bv, CARD_WIDTH, CARD_HEIGHT, depthScale);
+        addPersistentBendStamp(backPersistentRef.current, backBase, bu, bv, CARD_WIDTH, CARD_HEIGHT, depthScale);
 
-            if (bendOverlay) {
-                addPersistentBendStamp(
-                    overlayPersistentRef.current,
-                    overlayBase,
-                    bu,
-                    bv,
-                    CARD_WIDTH,
-                    CARD_HEIGHT,
-                    depthScale
-                );
-            }
+        if (bendOverlay) {
+            addPersistentBendStamp(
+                overlayPersistentRef.current,
+                overlayBase,
+                bu,
+                bv,
+                CARD_WIDTH,
+                CARD_HEIGHT,
+                depthScale
+            );
+        }
 
-            if (wearAssets) {
-                drawWearStamp(wearAssets.front.context, bu, bv, depthScale);
-                wearAssets.front.texture.needsUpdate = true;
-            }
-        } else {
-            addPersistentBendStamp(backPersistentRef.current, backBase, bu, bv, CARD_WIDTH, CARD_HEIGHT, depthScale);
-
-            if (wearAssets) {
-                drawWearStamp(wearAssets.back.context, bu, bv, depthScale);
-                wearAssets.back.texture.needsUpdate = true;
-            }
+        if (wearAssets) {
+            drawWearStamp(wearAssets.front.context, bu, bv, depthScale);
+            drawWearStamp(wearAssets.back.context, bu, bv, depthScale);
+            wearAssets.front.texture.needsUpdate = true;
+            wearAssets.back.texture.needsUpdate = true;
         }
     };
 
@@ -402,14 +398,13 @@ const TileBezel = ({
         return null;
     };
 
-    const maybeBumpBuildup = (face: CardBendFace, u: number, v: number): void => {
+    const maybeBumpBuildup = (canonicalU: number, canonicalV: number): void => {
         const prevU = lastBumpURef.current;
         const prevV = lastBumpVRef.current;
-        const prevFace = lastBumpFaceRef.current;
 
-        if (prevU === null || prevV === null || prevFace === null) {
+        if (prevU === null || prevV === null) {
             bendBuildupRef.current = 0;
-        } else if (prevFace === face && Math.hypot(u - prevU, v - prevV) < BEND_UV_SAME_SPOT) {
+        } else if (Math.hypot(canonicalU - prevU, canonicalV - prevV) < BEND_UV_SAME_SPOT) {
             bendBuildupRef.current = Math.min(
                 BEND_BUILDUP_MAX,
                 bendBuildupRef.current + BEND_BUILDUP_PER_PRESS
@@ -418,9 +413,8 @@ const TileBezel = ({
             bendBuildupRef.current = 0;
         }
 
-        lastBumpURef.current = u;
-        lastBumpVRef.current = v;
-        lastBumpFaceRef.current = face;
+        lastBumpURef.current = canonicalU;
+        lastBumpVRef.current = canonicalV;
     };
 
     const syncBendFromPointerEvent = (event: BendSourceEvent, bumpRepeat: boolean): void => {
@@ -447,13 +441,14 @@ const TileBezel = ({
             return;
         }
 
+        const { u: canonicalU, v: canonicalV } = hitUvToCanonicalBendUv(face, uv.x, uv.y);
+
         if (bumpRepeat) {
-            maybeBumpBuildup(face, uv.x, uv.y);
+            maybeBumpBuildup(canonicalU, canonicalV);
         }
 
-        bendFaceRef.current = face;
-        bendURef.current = uv.x;
-        bendVRef.current = uv.y;
+        bendURef.current = canonicalU;
+        bendVRef.current = canonicalV;
     };
 
     const handleCardPointerUp = (event: ThreeEvent<PointerEvent>): void => {
@@ -548,13 +543,11 @@ const TileBezel = ({
         if (frontBase && backBase && overlayBase) {
             const bu = bendURef.current;
             const bv = bendVRef.current;
-            const face = bendFaceRef.current;
             const bendOverlay = getSurfaceVariant(tile, faceUp) !== 'hidden';
             const depthMultiplier = 1 + bendBuildupRef.current * 0.52;
             const pressing = !reduceMotion && pickable && pressingOnCardRef.current;
-            const liveFront = pressing && face === 'front' ? depthMultiplier : 0;
-            const liveBack = pressing && face === 'back' ? depthMultiplier : 0;
-            const liveOverlay = pressing && face === 'front' && bendOverlay ? depthMultiplier : 0;
+            const live = pressing ? depthMultiplier : 0;
+            const liveOverlay = pressing && bendOverlay ? live : 0;
 
             const frontPos = frontGeometry.attributes.position as BufferAttribute;
             const backPos = backGeometry.attributes.position as BufferAttribute;
@@ -568,7 +561,7 @@ const TileBezel = ({
                 bv,
                 CARD_WIDTH,
                 CARD_HEIGHT,
-                liveFront
+                live
             );
             composeCardPositions(
                 backPos,
@@ -578,7 +571,7 @@ const TileBezel = ({
                 bv,
                 CARD_WIDTH,
                 CARD_HEIGHT,
-                liveBack
+                live
             );
             composeCardPositions(
                 overlayPos,
@@ -684,6 +677,7 @@ const TileBezel = ({
                             polygonOffset
                             polygonOffsetFactor={-1}
                             polygonOffsetUnits={-1}
+                            premultipliedAlpha
                             toneMapped={false}
                             transparent
                         />
@@ -715,6 +709,7 @@ const TileBezel = ({
                             polygonOffset
                             polygonOffsetFactor={-1}
                             polygonOffsetUnits={-1}
+                            premultipliedAlpha
                             toneMapped={false}
                             transparent
                         />
