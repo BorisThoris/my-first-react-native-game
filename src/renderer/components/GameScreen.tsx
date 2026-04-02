@@ -1,6 +1,6 @@
 import { ACHIEVEMENTS } from '../../shared/achievements';
 import type { AchievementId, RunState } from '../../shared/contracts';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { VIEWPORT_MOBILE_MAX, VIEWPORT_TIGHT_MAX_H, VIEWPORT_TIGHT_MAX_W } from '../breakpoints';
 import { useViewportSize } from '../hooks/useViewportSize';
@@ -46,9 +46,19 @@ const SettingsIcon = () => (
     </svg>
 );
 
+const FitBoardIcon = () => (
+    <svg aria-hidden="true" className={styles.actionIcon} viewBox="0 0 24 24">
+        <path d="M5 9V5h4" />
+        <path d="M15 5h4v4" />
+        <path d="M19 15v4h-4" />
+        <path d="M9 19H5v-4" />
+    </svg>
+);
+
 const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameScreenProps) => {
     const shellRef = useRef<HTMLElement | null>(null);
     const { height, width } = useViewportSize();
+    const [viewportResetToken, setViewportResetToken] = useState(0);
     const { continueToNextLevel, goToMenu, openSettings, pause, pressTile, resume, settings, triggerDebugReveal } =
         useAppStore(
             useShallow((state) => ({
@@ -70,6 +80,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     });
     const isCompact = width <= VIEWPORT_MOBILE_MAX || height <= VIEWPORT_MOBILE_MAX;
     const isTight = width <= VIEWPORT_TIGHT_MAX_W || height <= VIEWPORT_TIGHT_MAX_H;
+    const cameraViewportMode = true;
     const pauseActionLabel = run.status === 'paused' ? 'Resume' : 'Pause';
 
     if (!run.board) {
@@ -96,16 +107,24 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         ['--board-height' as string]: `${tileSize * rows}px`
     };
     return (
-        <section className={styles.shell} ref={shellRef}>
+        <section
+            className={`${styles.shell} ${cameraViewportMode ? styles.mobileCameraShell : ''}`}
+            data-mobile-camera-mode={cameraViewportMode ? 'true' : 'false'}
+            data-testid="game-shell"
+            ref={shellRef}
+        >
             <MainMenuBackground
                 fieldTiltRef={gameFieldTiltRef}
                 height={height}
                 reduceMotion={settings.reduceMotion}
                 width={width}
             />
-            <div className={styles.gameForeground}>
+            <div className={`${styles.gameForeground} ${cameraViewportMode ? styles.mobileCameraForeground : ''}`}>
                 <h1 className={styles.srOnly}>Level {run.board.level}</h1>
-                <header className={styles.hudRow}>
+                <header
+                    className={`${styles.hudRow} ${cameraViewportMode ? styles.mobileCameraHud : ''}`}
+                    data-testid="game-hud"
+                >
                     <div className={`${styles.floatingDeck} ${styles.statsDeck}`}>
                         <div className={styles.deckCluster}>
                             <div className={styles.floorBadge} title="Current floor">
@@ -129,6 +148,19 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         </div>
                     </div>
                     <div className={styles.actionControls} role="group" aria-label="Game controls">
+                        {cameraViewportMode ? (
+                            <button
+                                aria-label="Fit board"
+                                className={styles.iconAction}
+                                onClick={() => {
+                                    setViewportResetToken((current) => current + 1);
+                                }}
+                                title="Fit board"
+                                type="button"
+                            >
+                                <FitBoardIcon />
+                            </button>
+                        ) : null}
                         <button
                             aria-label={pauseActionLabel}
                             className={styles.iconAction}
@@ -155,13 +187,14 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                     </div>
                 </header>
 
-                <div className={styles.boardStage}>
+                <div className={`${styles.boardStage} ${cameraViewportMode ? styles.boardStageCamera : ''}`}>
                     <div className={styles.boardGlow} aria-hidden="true" />
                     <TileBoard
                         board={run.board}
                         debugPeekActive={run.debugPeekActive}
                         interactive={run.status === 'playing'}
-                        frameStyle={boardStyle}
+                        frameStyle={cameraViewportMode ? undefined : boardStyle}
+                        mobileCameraMode={cameraViewportMode}
                         onTileSelect={(tileId) => {
                             if (run.status === 'playing') {
                                 pressTile(tileId);
@@ -169,9 +202,10 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         }}
                         previewActive={run.status === 'memorize'}
                         reduceMotion={settings.reduceMotion}
+                        viewportResetToken={viewportResetToken}
                     />
                     {unlockedDefinitions.length > 0 ? (
-                        <div className={styles.toastRail} role="status">
+                        <div className={`${styles.toastRail} ${cameraViewportMode ? styles.mobileCameraToastRail : ''}`} role="status">
                             {unlockedDefinitions.map((a) => (
                                 <div className={styles.toast} key={a.id}>
                                     <span className={styles.toastTitle}>{a.title}</span>

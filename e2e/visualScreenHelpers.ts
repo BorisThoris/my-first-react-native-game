@@ -1,5 +1,5 @@
 import { mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { expect, type Page } from '@playwright/test';
 import { STORAGE_KEY } from './tileBoardGameFlow';
 import { dismissStartupIntro } from './startupIntroHelpers';
@@ -7,16 +7,33 @@ import { dismissStartupIntro } from './startupIntroHelpers';
 const MATCH_SETTLE_MS = 950;
 const MEMORIZE_LABEL_RE_SRC = '^Tile (.+), row (\\d+), column (\\d+)$';
 
-export type VisualViewport = { id: string; width: number; height: number };
+export type VisualOrientation = 'portrait' | 'landscape';
+
+/** `id` is used in test titles; captures go to `{root}/{deviceId}/{orientation}/`. */
+export type VisualViewport = {
+    deviceId: string;
+    height: number;
+    id: string;
+    orientation: VisualOrientation;
+    width: number;
+};
+
+export function getVisualCaptureRoot(): string {
+    const override = process.env.VISUAL_CAPTURE_ROOT?.trim();
+    if (override) {
+        return resolve(process.cwd(), override);
+    }
+    return join(process.cwd(), 'test-results', 'visual-screens');
+}
 
 export const MOBILE_VISUAL_VIEWPORTS: ReadonlyArray<VisualViewport> = [
-    { id: 'mobile', width: 390, height: 844 },
-    { id: 'mobile-landscape', width: 844, height: 390 }
+    { deviceId: 'mobile', height: 844, id: 'mobile-portrait', orientation: 'portrait', width: 390 },
+    { deviceId: 'mobile', height: 390, id: 'mobile-landscape', orientation: 'landscape', width: 844 }
 ];
 
 export const STANDARD_VISUAL_VIEWPORTS: ReadonlyArray<VisualViewport> = [
-    { id: 'tablet', width: 820, height: 1180 },
-    { id: 'desktop', width: 1440, height: 900 }
+    { deviceId: 'tablet', height: 1180, id: 'tablet-portrait', orientation: 'portrait', width: 820 },
+    { deviceId: 'desktop', height: 900, id: 'desktop-landscape', orientation: 'landscape', width: 1440 }
 ];
 
 export const buildVisualSaveJson = (onboardingDismissed: boolean): string =>
@@ -47,14 +64,19 @@ export const buildVisualSaveJson = (onboardingDismissed: boolean): string =>
         lastRunSummary: null
     });
 
-export function visualCaptureDir(viewportId: string): string {
-    const dir = join(process.cwd(), 'test-results', 'visual-screens', viewportId);
+export function visualCaptureDir(deviceId: string, orientation: VisualOrientation): string {
+    const dir = join(getVisualCaptureRoot(), deviceId, orientation);
     mkdirSync(dir, { recursive: true });
     return dir;
 }
 
-export async function captureVisualScreen(page: Page, viewportId: string, baseName: string): Promise<void> {
-    const dir = visualCaptureDir(viewportId);
+export async function captureVisualScreen(
+    page: Page,
+    deviceId: string,
+    orientation: VisualOrientation,
+    baseName: string
+): Promise<void> {
+    const dir = visualCaptureDir(deviceId, orientation);
     await page.screenshot({ path: join(dir, `${baseName}.png`), fullPage: true });
 }
 
@@ -189,7 +211,9 @@ async function waitForPlayPhaseHiddenTiles(page: Page, expected: number): Promis
 
 async function clickHiddenTile(page: Page, row: number, col: number): Promise<void> {
     const label = new RegExp(`hidden tile, row ${row}, column ${col}`, 'i');
-    await page.getByRole('button', { name: label }).click({ force: true });
+    await page.getByRole('button', { name: label }).evaluate((element) => {
+        (element as HTMLButtonElement).click();
+    });
 }
 
 /**

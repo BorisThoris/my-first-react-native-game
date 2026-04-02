@@ -208,6 +208,34 @@
     padding: 0.15rem 0 0.35rem;
 }
 
+.mobileCameraShell {
+    padding: 0;
+}
+
+.mobileCameraForeground {
+    padding: 0;
+    gap: 0;
+}
+
+.mobileCameraHud {
+    position: relative;
+    z-index: 3;
+    padding:
+        calc(env(safe-area-inset-top, 0px) + 0.35rem)
+        calc(env(safe-area-inset-right, 0px) + 0.55rem)
+        0
+        calc(env(safe-area-inset-left, 0px) + 0.55rem);
+}
+
+.boardStageCamera {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    padding: 0;
+    display: block;
+    z-index: 0;
+}
+
 .boardGlow {
     position: absolute;
     inset: 8% 12% 12%;
@@ -220,6 +248,16 @@
 .boardStage > :global(*) {
     position: relative;
     z-index: 1;
+}
+
+.mobileCameraToastRail {
+    position: absolute;
+    left: 50%;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 0.85rem);
+    transform: translateX(-50%);
+    width: min(calc(100% - 1rem), 960px);
+    justify-content: center;
+    pointer-events: none;
 }
 
 .toastRail {
@@ -296,6 +334,32 @@
     .boardStage {
         gap: 0.48rem;
         padding: 0.1rem 0 0.28rem;
+    }
+
+    .mobileCameraShell {
+        padding: 0;
+    }
+
+    .mobileCameraForeground {
+        padding: 0;
+    }
+
+    .mobileCameraHud {
+        padding:
+            calc(env(safe-area-inset-top, 0px) + 0.3rem)
+            calc(env(safe-area-inset-right, 0px) + 0.35rem)
+            0
+            calc(env(safe-area-inset-left, 0px) + 0.35rem);
+    }
+
+    .boardStageCamera {
+        gap: 0;
+        padding: 0;
+    }
+
+    .mobileCameraToastRail {
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 0.7rem);
+        width: min(calc(100% - 0.8rem), 960px);
     }
 
     .hudRow {

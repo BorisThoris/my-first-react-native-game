@@ -1,4 +1,5 @@
 import { expect, test, type Locator } from '@playwright/test';
+import { dispatchSingleTouchTap, dispatchTouchSequence, forceCoarsePointerMedia, type TouchDispatchPoint } from './mobileTouchHelpers';
 import { navigateToLevel1PlayPhase } from './tileBoardGameFlow';
 import { openMainMenuFromSave } from './visualScreenHelpers';
 
@@ -28,6 +29,34 @@ async function readSettingsLayout(container: Locator): Promise<{
         stacked: second!.y >= first!.y + first!.height - 1,
         footerWidth: footer!.width,
         buttonWidths: buttons
+    };
+}
+
+async function readBoardViewportState(frame: Locator): Promise<{
+    mobileCameraMode: boolean;
+    panX: number;
+    panY: number;
+    selectionSuppressed: boolean;
+    zoom: number;
+}> {
+    return frame.evaluate((element) => ({
+        mobileCameraMode: element.getAttribute('data-mobile-camera-mode') === 'true',
+        panX: Number.parseFloat(element.getAttribute('data-board-pan-x') ?? '0'),
+        panY: Number.parseFloat(element.getAttribute('data-board-pan-y') ?? '0'),
+        selectionSuppressed: element.getAttribute('data-selection-suppressed') === 'true',
+        zoom: Number.parseFloat(element.getAttribute('data-board-zoom') ?? '0')
+    }));
+}
+
+async function pointInLocator(locator: Locator, xFactor: number, yFactor: number, id: number): Promise<TouchDispatchPoint> {
+    const box = await locator.boundingBox();
+
+    expect(box).toBeTruthy();
+
+    return {
+        id,
+        x: box!.x + box!.width * xFactor,
+        y: box!.y + box!.height * yFactor
     };
 }
 
@@ -88,12 +117,13 @@ test.describe('Mobile layout (renderer)', () => {
         expect(flexDirection).toBe('row');
     });
 
-    test('game control icons meet minimum touch target on compact viewport', async ({ page }) => {
+    test('game control icons meet minimum touch target on compact touch viewport', async ({ page }) => {
+        await forceCoarsePointerMedia(page);
         await page.setViewportSize({ width: 390, height: 844 });
         await navigateToLevel1PlayPhase(page);
         const controls = page.getByRole('group', { name: /game controls/i });
         await expect(controls).toBeVisible();
-        for (const name of [/pause/i, /settings/i]) {
+        for (const name of [/fit board/i, /pause/i, /settings/i]) {
             const btn = controls.getByRole('button', { name });
             const box = await btn.boundingBox();
             expect(box, `bounding box for ${name}`).toBeTruthy();
@@ -198,30 +228,123 @@ test.describe('Mobile layout (renderer)', () => {
         expect(layout.buttonWidths[1]).toBeGreaterThanOrEqual(layout.footerWidth - 2);
     });
 
-    test('narrow phone reduces tile stage inset vs standard mobile', async ({ page }) => {
-        const readStageTopInset = async (): Promise<number | null> => {
-            const webglStage = page.getByTestId('tile-board-stage');
-            if (await webglStage.count()) {
-                return webglStage.evaluate((el) => {
-                    const stage = el.parentElement;
-                    return stage ? parseFloat(getComputedStyle(stage).top) : null;
-                });
-            }
-            return page.getByTestId('tile-board-fallback').evaluate((el) => {
-                const stage = el.parentElement;
-                return stage ? parseFloat(getComputedStyle(stage).top) : null;
-            });
-        };
-
-        await page.setViewportSize({ width: 400, height: 844 });
+    test('compact touch viewport uses a full-bleed board behind the HUD', async ({ page }) => {
+        await forceCoarsePointerMedia(page);
+        await page.setViewportSize({ width: 390, height: 844 });
         await navigateToLevel1PlayPhase(page);
-        const inset400 = await readStageTopInset();
-        expect(inset400).not.toBeNull();
 
-        await page.setViewportSize({ width: 500, height: 844 });
+        const shell = page.getByTestId('game-shell');
+        const hud = page.getByTestId('game-hud');
+        const frame = page.getByTestId('tile-board-frame');
+
+        await expect(page.getByRole('button', { name: /^fit board$/i })).toBeVisible();
+        await expect(frame).toHaveAttribute('data-mobile-camera-mode', 'true');
+
+        const shellBox = await shell.boundingBox();
+        const hudBox = await hud.boundingBox();
+        const frameBox = await frame.boundingBox();
+
+        expect(shellBox).toBeTruthy();
+        expect(hudBox).toBeTruthy();
+        expect(frameBox).toBeTruthy();
+
+        expect(Math.abs(frameBox!.width - shellBox!.width)).toBeLessThanOrEqual(2);
+        expect(Math.abs(frameBox!.height - shellBox!.height)).toBeLessThanOrEqual(2);
+        expect(frameBox!.y).toBeLessThanOrEqual(shellBox!.y + 1);
+        expect(frameBox!.x).toBeLessThanOrEqual(shellBox!.x + 1);
+        expect(hudBox!.y).toBeLessThan(frameBox!.y + frameBox!.height - 8);
+        expect(hudBox!.y + hudBox!.height).toBeGreaterThan(frameBox!.y + 8);
+    });
+
+    test('two-finger pinch zooms in and Fit board resets the viewport', async ({ page }) => {
+        await forceCoarsePointerMedia(page);
+        await page.setViewportSize({ width: 390, height: 844 });
         await navigateToLevel1PlayPhase(page);
-        const inset500 = await readStageTopInset();
-        expect(inset500).not.toBeNull();
-        expect(inset400).toBeLessThan(inset500!);
+
+        const frame = page.getByTestId('tile-board-frame');
+        const stage = page.getByTestId('tile-board-stage-shell');
+        const startA = await pointInLocator(stage, 0.42, 0.46, 1);
+        const startB = await pointInLocator(stage, 0.58, 0.54, 2);
+        const endA = await pointInLocator(stage, 0.24, 0.3, 1);
+        const endB = await pointInLocator(stage, 0.76, 0.7, 2);
+
+        const before = await readBoardViewportState(frame);
+        expect(before.zoom).toBeCloseTo(1, 3);
+
+        await dispatchTouchSequence(page, [
+            { points: [startA, startB], type: 'touchStart', waitMs: 40 },
+            { points: [endA, endB], type: 'touchMove', waitMs: 50 },
+            { points: [], type: 'touchEnd', waitMs: 80 }
+        ]);
+
+        await expect
+            .poll(async () => (await readBoardViewportState(frame)).zoom, { timeout: 4000 })
+            .toBeGreaterThan(1.1);
+
+        await page.getByRole('button', { name: /^fit board$/i }).click();
+
+        await expect
+            .poll(async () => readBoardViewportState(frame), { timeout: 4000 })
+            .toMatchObject({ panX: 0, panY: 0, zoom: 1 });
+    });
+
+    test('two-finger pan moves the viewport and one-finger tap still flips a tile', async ({ page }) => {
+        await forceCoarsePointerMedia(page);
+        await page.setViewportSize({ width: 390, height: 844 });
+        await navigateToLevel1PlayPhase(page);
+
+        const frame = page.getByTestId('tile-board-frame');
+        const stage = page.getByTestId('tile-board-stage-shell');
+
+        const pinchStartA = await pointInLocator(stage, 0.43, 0.45, 1);
+        const pinchStartB = await pointInLocator(stage, 0.57, 0.55, 2);
+        const pinchEndA = await pointInLocator(stage, 0.3, 0.34, 1);
+        const pinchEndB = await pointInLocator(stage, 0.7, 0.66, 2);
+
+        await dispatchTouchSequence(page, [
+            { points: [pinchStartA, pinchStartB], type: 'touchStart', waitMs: 34 },
+            { points: [pinchEndA, pinchEndB], type: 'touchMove', waitMs: 40 },
+            { points: [], type: 'touchEnd', waitMs: 70 }
+        ]);
+
+        await expect
+            .poll(async () => (await readBoardViewportState(frame)).zoom, { timeout: 4000 })
+            .toBeGreaterThan(1.08);
+
+        const panStartA = await pointInLocator(stage, 0.34, 0.48, 1);
+        const panStartB = await pointInLocator(stage, 0.58, 0.56, 2);
+        const panEndA = await pointInLocator(stage, 0.48, 0.54, 1);
+        const panEndB = await pointInLocator(stage, 0.72, 0.62, 2);
+
+        await dispatchTouchSequence(page, [
+            { points: [panStartA, panStartB], type: 'touchStart', waitMs: 34 },
+            { points: [panEndA, panEndB], type: 'touchMove', waitMs: 40 },
+            { points: [], type: 'touchEnd', waitMs: 80 }
+        ]);
+
+        await expect
+            .poll(async () => readBoardViewportState(frame), { timeout: 4000 })
+            .toEqual(
+                expect.objectContaining({
+                    selectionSuppressed: false
+                })
+            );
+
+        const afterPan = await readBoardViewportState(frame);
+        expect(Math.abs(afterPan.panX) + Math.abs(afterPan.panY)).toBeGreaterThan(0.1);
+
+        const hiddenBefore = await page.getByRole('button', { name: /hidden tile/i }).count();
+        const tileTarget = await pointInLocator(
+            page.getByRole('button', { name: /hidden tile, row 1, column 1/i }),
+            0.5,
+            0.5,
+            3
+        );
+
+        await dispatchSingleTouchTap(page, tileTarget);
+
+        await expect
+            .poll(async () => page.getByRole('button', { name: /hidden tile/i }).count(), { timeout: 4000 })
+            .toBeLessThan(hiddenBefore);
     });
 });

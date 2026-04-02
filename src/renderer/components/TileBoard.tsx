@@ -1,29 +1,45 @@
 import { Canvas } from '@react-three/fiber';
 import {
     Component,
+    useCallback,
     useEffect,
     useMemo,
     useRef,
     useState,
     type CSSProperties,
     type MouseEvent,
-    type PointerEvent,
+    type PointerEvent as ReactPointerEvent,
     type ReactNode
 } from 'react';
 import type { BoardState, Tile } from '../../shared/contracts';
+import { useCoarsePointer } from '../hooks/useCoarsePointer';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
 import styles from './TileBoard.module.css';
 import { getTileFieldAmplification } from './tileFieldTilt';
 import TileBoardPostFx from './TileBoardPostFx';
 import TileBoardScene, { type TileHoverTiltState } from './TileBoardScene';
+import {
+    COMPACT_BOARD_FIT_MARGIN,
+    MOBILE_CAMERA_FIT_MARGIN,
+    ROOMY_BOARD_FIT_MARGIN,
+    clampBoardZoom,
+    clampBoardViewport,
+    createFittedBoardViewport,
+    getBoardFitZoom,
+    screenPointToWorld,
+    type TileBoardViewportState
+} from './tileBoardViewport';
+import { TILE_SPACING } from './tileShatter';
 
 interface TileBoardProps {
     board: BoardState;
     debugPeekActive: boolean;
     interactive: boolean;
+    mobileCameraMode: boolean;
     previewActive: boolean;
     reduceMotion: boolean;
+    viewportResetToken: number;
     frameStyle?: CSSProperties;
     onTileSelect: (tileId: string, event?: MouseEvent<HTMLButtonElement>) => void;
 }
@@ -32,17 +48,43 @@ interface TileBoardFallbackProps {
     board: BoardState;
     debugPeekActive: boolean;
     interactive: boolean;
-    onHoverLeave: (tileId: string, event: PointerEvent<HTMLButtonElement>) => void;
-    onHoverMove: (tileId: string, event: PointerEvent<HTMLButtonElement>) => void;
+    onHoverLeave: (tileId: string, event: ReactPointerEvent<HTMLButtonElement>) => void;
+    onHoverMove: (tileId: string, event: ReactPointerEvent<HTMLButtonElement>) => void;
     previewActive: boolean;
     onTileSelect: (tileId: string, event?: MouseEvent<HTMLButtonElement>) => void;
     tileGridStyle: CSSProperties;
 }
 
+interface StageWorldViewport {
+    height: number;
+    width: number;
+}
+
+interface TouchPoint {
+    clientX: number;
+    clientY: number;
+}
+
+interface TouchGestureSnapshot {
+    anchorBoardX: number;
+    anchorBoardY: number;
+    pointerIds: [number, number];
+    startDistance: number;
+    startZoom: number;
+}
+
+interface MouseDragSnapshot {
+    pointerId: number;
+    startPanX: number;
+    startPanY: number;
+    startWorldX: number;
+    startWorldY: number;
+}
+
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
 
 const normalizeHoverPoint = (
-    event: PointerEvent<HTMLButtonElement>
+    event: ReactPointerEvent<HTMLButtonElement>
 ): {
     x: number;
     y: number;
@@ -89,6 +131,14 @@ const getTilePosition = (index: number, columns: number): { row: number; column:
 
 const getTileAriaLabel = (tile: Tile, faceUp: boolean, row: number, column: number): string =>
     faceUp ? `Tile ${tile.label}, row ${row}, column ${column}` : `Hidden tile, row ${row}, column ${column}`;
+
+const getTouchCentroid = (first: TouchPoint, second: TouchPoint): TouchPoint => ({
+    clientX: (first.clientX + second.clientX) / 2,
+    clientY: (first.clientY + second.clientY) / 2
+});
+
+const getTouchDistance = (first: TouchPoint, second: TouchPoint): number =>
+    Math.max(1, Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY));
 
 const TileBoardFallback = ({
     board,
@@ -160,23 +210,40 @@ const TileBoard = ({
     board,
     debugPeekActive,
     interactive,
+    mobileCameraMode,
     previewActive,
     reduceMotion,
+    viewportResetToken,
     frameStyle,
     onTileSelect
 }: TileBoardProps) => {
     const { height, width } = useViewportSize();
     const compact = width <= 760 || height <= 760;
+    const touchPrimary = useCoarsePointer();
     const threeEnabled = useMemo(() => canUseWebGL(), []);
+    const cameraViewportMode = mobileCameraMode && threeEnabled;
+    const touchGestureMode = cameraViewportMode && touchPrimary;
+    const desktopCameraMode = cameraViewportMode && !touchPrimary;
     const frameRef = useRef<HTMLDivElement>(null);
+    const stageRef = useRef<HTMLDivElement>(null);
+    const hoverTiltRef = useRef<TileHoverTiltState>({ tileId: null, x: 0, y: 0 });
+    const activeTouchPointsRef = useRef<Map<number, TouchPoint>>(new Map());
+    const gestureSnapshotRef = useRef<TouchGestureSnapshot | null>(null);
+    const mouseDragSnapshotRef = useRef<MouseDragSnapshot | null>(null);
+    const gestureActiveRef = useRef(false);
+    const selectionSuppressedRef = useRef(false);
+    const [gestureActive, setGestureActive] = useState(false);
+    const [selectionSuppressed, setSelectionSuppressed] = useState(false);
+    const [stageWorldViewport, setStageWorldViewport] = useState<StageWorldViewport>({ height: 0, width: 0 });
+    const [viewportState, setViewportState] = useState<TileBoardViewportState>(() => createFittedBoardViewport(1));
+    const viewportStateRef = useRef<TileBoardViewportState>(viewportState);
     const { tiltRef: fieldTiltRef, permission, requestMotionPermission } = usePlatformTiltField({
         enabled: true,
         reduceMotion,
         surfaceRef: frameRef,
-        strength: 1
+        strength: 1,
+        suspended: gestureActive
     });
-    const [touchPrimary, setTouchPrimary] = useState(false);
-    const hoverTiltRef = useRef<TileHoverTiltState>({ tileId: null, x: 0, y: 0 });
     const mergedFrameStyle = useMemo(
         () => ({
             ...frameStyle,
@@ -190,8 +257,75 @@ const TileBoard = ({
     const dpr = Math.min(deviceDpr, compact ? 2.35 : 2.1);
     /** With SMAA post-pass, skip default framebuffer MSAA to avoid redundant cost. */
     const glAntialias = reduceMotion;
-    const handleTileSelect = (tileId: string): void => onTileSelect(tileId);
-    const clearHoverTilt = (tileId: string, event: PointerEvent<HTMLButtonElement>): void => {
+    const boardWorldWidth = useMemo(() => (board.columns - 1) * TILE_SPACING + 1, [board.columns]);
+    const boardWorldHeight = useMemo(() => (board.rows - 1) * TILE_SPACING + 1, [board.rows]);
+    const fitMargin = cameraViewportMode ? MOBILE_CAMERA_FIT_MARGIN : compact ? COMPACT_BOARD_FIT_MARGIN : ROOMY_BOARD_FIT_MARGIN;
+    const fitZoom = useMemo(
+        () =>
+            getBoardFitZoom({
+                boardHeight: boardWorldHeight,
+                boardWidth: boardWorldWidth,
+                margin: fitMargin,
+                viewportHeight: stageWorldViewport.height,
+                viewportWidth: stageWorldViewport.width
+            }),
+        [boardWorldHeight, boardWorldWidth, fitMargin, stageWorldViewport.height, stageWorldViewport.width]
+    );
+    const renderedViewportState = useMemo(() => {
+        if (!cameraViewportMode) {
+            return createFittedBoardViewport(fitZoom);
+        }
+
+        return clampBoardViewport({
+            boardHeight: boardWorldHeight,
+            boardWidth: boardWorldWidth,
+            fitZoom,
+            panX: viewportState.panX,
+            panY: viewportState.panY,
+            viewportHeight: stageWorldViewport.height,
+            viewportWidth: stageWorldViewport.width,
+            zoom: viewportState.zoom
+        });
+    }, [
+        boardWorldHeight,
+        boardWorldWidth,
+        fitZoom,
+        cameraViewportMode,
+        stageWorldViewport.height,
+        stageWorldViewport.width,
+        viewportState.panX,
+        viewportState.panY,
+        viewportState.zoom
+    ]);
+
+    const syncGestureActive = (active: boolean): void => {
+        gestureActiveRef.current = active;
+        setGestureActive((current) => (current === active ? current : active));
+    };
+
+    const syncSelectionSuppressed = (suppressed: boolean): void => {
+        selectionSuppressedRef.current = suppressed;
+        setSelectionSuppressed((current) => (current === suppressed ? current : suppressed));
+    };
+
+    const clearTouchGestureState = (clearSuppression: boolean): void => {
+        activeTouchPointsRef.current.clear();
+        gestureSnapshotRef.current = null;
+        syncGestureActive(false);
+        if (clearSuppression) {
+            syncSelectionSuppressed(false);
+        }
+    };
+
+    const handleTileSelect = (tileId: string): void => {
+        if (selectionSuppressedRef.current) {
+            return;
+        }
+
+        onTileSelect(tileId);
+    };
+
+    const clearHoverTilt = (tileId: string, event: ReactPointerEvent<HTMLButtonElement>): void => {
         if (hoverTiltRef.current.tileId === tileId) {
             hoverTiltRef.current = { tileId: null, x: 0, y: 0 };
         }
@@ -199,7 +333,8 @@ const TileBoard = ({
         event.currentTarget.style.setProperty('--hover-x', '0');
         event.currentTarget.style.setProperty('--hover-y', '0');
     };
-    const updateHoverTilt = (tileId: string, event: PointerEvent<HTMLButtonElement>): void => {
+
+    const updateHoverTilt = (tileId: string, event: ReactPointerEvent<HTMLButtonElement>): void => {
         if (reduceMotion || event.pointerType === 'touch' || event.pointerType === 'pen') {
             clearHoverTilt(tileId, event);
             return;
@@ -211,27 +346,381 @@ const TileBoard = ({
         event.currentTarget.style.setProperty('--hover-y', y.toFixed(4));
     };
 
-    useEffect(() => {
-        hoverTiltRef.current = { tileId: null, x: 0, y: 0 };
-    }, [board.level, board.tiles.length, reduceMotion]);
+    const handleStageViewportChange = useCallback((nextViewport: StageWorldViewport): void => {
+        setStageWorldViewport((current) =>
+            Math.abs(current.width - nextViewport.width) < 0.0001 && Math.abs(current.height - nextViewport.height) < 0.0001
+                ? current
+                : nextViewport
+        );
+    }, []);
 
     useEffect(() => {
-        if (typeof window === 'undefined') {
+        viewportStateRef.current = renderedViewportState;
+    }, [renderedViewportState]);
+
+    useEffect(() => {
+        hoverTiltRef.current = { tileId: null, x: 0, y: 0 };
+    }, [board.level, board.tiles.length, reduceMotion, selectionSuppressed]);
+
+    useEffect(() => {
+        const nextViewport = createFittedBoardViewport(fitZoom);
+        viewportStateRef.current = nextViewport;
+        setViewportState(nextViewport);
+        clearTouchGestureState(true);
+    }, [board.columns, board.level, board.rows, fitZoom, cameraViewportMode, viewportResetToken]);
+
+    useEffect(() => {
+        if (!touchGestureMode) {
+            clearTouchGestureState(true);
             return;
         }
 
-        const mq = window.matchMedia('(pointer: coarse)');
-        const sync = (): void => {
-            setTouchPrimary(mq.matches);
+        const stageNode = stageRef.current;
+
+        if (!stageNode) {
+            return;
+        }
+
+        const stopGestureEvent = (event: globalThis.PointerEvent): void => {
+            event.preventDefault();
+            event.stopPropagation();
         };
 
-        sync();
-        mq.addEventListener('change', sync);
+        const getTrackedGestureTouches = (): [TouchPoint, TouchPoint] | null => {
+            const snapshot = gestureSnapshotRef.current;
+
+            if (snapshot) {
+                const first = activeTouchPointsRef.current.get(snapshot.pointerIds[0]);
+                const second = activeTouchPointsRef.current.get(snapshot.pointerIds[1]);
+
+                if (first && second) {
+                    return [first, second];
+                }
+            }
+
+            const touches = Array.from(activeTouchPointsRef.current.values()).slice(0, 2);
+
+            return touches.length === 2 ? [touches[0], touches[1]] : null;
+        };
+
+        const beginGestureSession = (): void => {
+            const touches = Array.from(activeTouchPointsRef.current.entries()).slice(0, 2);
+
+            if (touches.length < 2 || stageWorldViewport.width <= 0 || stageWorldViewport.height <= 0) {
+                return;
+            }
+
+            const [[firstPointerId, firstTouch], [secondPointerId, secondTouch]] = touches;
+            const stageRect = stageNode.getBoundingClientRect();
+            const centroid = getTouchCentroid(firstTouch, secondTouch);
+            const centroidWorld = screenPointToWorld(centroid, stageRect, stageWorldViewport.width, stageWorldViewport.height);
+            const activeViewport = viewportStateRef.current;
+            const activeScale = Math.max(activeViewport.fitZoom * activeViewport.zoom, 0.0001);
+
+            gestureSnapshotRef.current = {
+                anchorBoardX: (centroidWorld.panX - activeViewport.panX) / activeScale,
+                anchorBoardY: (centroidWorld.panY - activeViewport.panY) / activeScale,
+                pointerIds: [firstPointerId, secondPointerId],
+                startDistance: getTouchDistance(firstTouch, secondTouch),
+                startZoom: activeViewport.zoom
+            };
+
+            syncGestureActive(true);
+            syncSelectionSuppressed(true);
+        };
+
+        const updateGestureViewport = (): void => {
+            const snapshot = gestureSnapshotRef.current;
+            const trackedTouches = getTrackedGestureTouches();
+
+            if (!snapshot || !trackedTouches) {
+                return;
+            }
+
+            const [firstTouch, secondTouch] = trackedTouches;
+            const stageRect = stageNode.getBoundingClientRect();
+            const centroid = getTouchCentroid(firstTouch, secondTouch);
+            const centroidWorld = screenPointToWorld(centroid, stageRect, stageWorldViewport.width, stageWorldViewport.height);
+            const nextZoom = snapshot.startZoom * (getTouchDistance(firstTouch, secondTouch) / snapshot.startDistance);
+            const nextPanX = centroidWorld.panX - snapshot.anchorBoardX * fitZoom * nextZoom;
+            const nextPanY = centroidWorld.panY - snapshot.anchorBoardY * fitZoom * nextZoom;
+
+            setViewportState((current) => {
+                const nextViewport = clampBoardViewport({
+                    boardHeight: boardWorldHeight,
+                    boardWidth: boardWorldWidth,
+                    fitZoom,
+                    panX: nextPanX,
+                    panY: nextPanY,
+                    viewportHeight: stageWorldViewport.height,
+                    viewportWidth: stageWorldViewport.width,
+                    zoom: nextZoom
+                });
+
+                viewportStateRef.current = nextViewport;
+                return current.panX === nextViewport.panX &&
+                    current.panY === nextViewport.panY &&
+                    current.zoom === nextViewport.zoom &&
+                    current.fitZoom === nextViewport.fitZoom
+                    ? current
+                    : nextViewport;
+            });
+        };
+
+        const handlePointerDown = (event: globalThis.PointerEvent): void => {
+            if (event.pointerType !== 'touch') {
+                return;
+            }
+
+            activeTouchPointsRef.current.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
+
+            if (activeTouchPointsRef.current.size >= 2) {
+                beginGestureSession();
+                stopGestureEvent(event);
+            }
+        };
+
+        const handlePointerMove = (event: globalThis.PointerEvent): void => {
+            if (!activeTouchPointsRef.current.has(event.pointerId)) {
+                return;
+            }
+
+            activeTouchPointsRef.current.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
+
+            if (activeTouchPointsRef.current.size >= 2 && gestureSnapshotRef.current) {
+                updateGestureViewport();
+                stopGestureEvent(event);
+                return;
+            }
+
+            if (selectionSuppressedRef.current) {
+                stopGestureEvent(event);
+            }
+        };
+
+        const handlePointerEnd = (event: globalThis.PointerEvent): void => {
+            const wasTracked = activeTouchPointsRef.current.delete(event.pointerId);
+
+            if (!wasTracked && !selectionSuppressedRef.current) {
+                return;
+            }
+
+            if (selectionSuppressedRef.current) {
+                stopGestureEvent(event);
+            }
+
+            if (activeTouchPointsRef.current.size >= 2) {
+                beginGestureSession();
+                return;
+            }
+
+            gestureSnapshotRef.current = null;
+            syncGestureActive(false);
+
+            if (activeTouchPointsRef.current.size === 0) {
+                syncSelectionSuppressed(false);
+            }
+        };
+
+        stageNode.addEventListener('pointerdown', handlePointerDown, true);
+        stageNode.addEventListener('pointermove', handlePointerMove, true);
+        stageNode.addEventListener('pointerup', handlePointerEnd, true);
+        stageNode.addEventListener('pointercancel', handlePointerEnd, true);
 
         return () => {
-            mq.removeEventListener('change', sync);
+            stageNode.removeEventListener('pointerdown', handlePointerDown, true);
+            stageNode.removeEventListener('pointermove', handlePointerMove, true);
+            stageNode.removeEventListener('pointerup', handlePointerEnd, true);
+            stageNode.removeEventListener('pointercancel', handlePointerEnd, true);
+            clearTouchGestureState(true);
         };
-    }, []);
+    }, [
+        boardWorldHeight,
+        boardWorldWidth,
+        fitZoom,
+        touchGestureMode,
+        stageWorldViewport.height,
+        stageWorldViewport.width
+    ]);
+
+    useEffect(() => {
+        if (!desktopCameraMode) {
+            mouseDragSnapshotRef.current = null;
+            return;
+        }
+
+        const stageNode = stageRef.current;
+
+        if (!stageNode) {
+            return;
+        }
+
+        const stopMouseEvent = (event: globalThis.MouseEvent | globalThis.WheelEvent | globalThis.PointerEvent): void => {
+            event.preventDefault();
+            event.stopPropagation();
+        };
+
+        const handleWheel = (event: WheelEvent): void => {
+            if (stageWorldViewport.width <= 0 || stageWorldViewport.height <= 0) {
+                return;
+            }
+
+            stopMouseEvent(event);
+
+            const stageRect = stageNode.getBoundingClientRect();
+            const pointerWorld = screenPointToWorld(
+                { clientX: event.clientX, clientY: event.clientY },
+                stageRect,
+                stageWorldViewport.width,
+                stageWorldViewport.height
+            );
+            const currentViewport = viewportStateRef.current;
+            const currentScale = Math.max(currentViewport.fitZoom * currentViewport.zoom, 0.0001);
+            const nextZoom = clampBoardZoom(currentViewport.zoom * Math.exp(-event.deltaY * 0.0016));
+            const anchorBoardX = (pointerWorld.panX - currentViewport.panX) / currentScale;
+            const anchorBoardY = (pointerWorld.panY - currentViewport.panY) / currentScale;
+            const nextPanX = pointerWorld.panX - anchorBoardX * currentViewport.fitZoom * nextZoom;
+            const nextPanY = pointerWorld.panY - anchorBoardY * currentViewport.fitZoom * nextZoom;
+
+            setViewportState((current) => {
+                const nextViewport = clampBoardViewport({
+                    boardHeight: boardWorldHeight,
+                    boardWidth: boardWorldWidth,
+                    fitZoom,
+                    panX: nextPanX,
+                    panY: nextPanY,
+                    viewportHeight: stageWorldViewport.height,
+                    viewportWidth: stageWorldViewport.width,
+                    zoom: nextZoom
+                });
+
+                viewportStateRef.current = nextViewport;
+                return current.panX === nextViewport.panX &&
+                    current.panY === nextViewport.panY &&
+                    current.zoom === nextViewport.zoom &&
+                    current.fitZoom === nextViewport.fitZoom
+                    ? current
+                    : nextViewport;
+            });
+        };
+
+        const handlePointerDown = (event: globalThis.PointerEvent): void => {
+            const dragButton = event.button === 1 || event.button === 2 || (event.button === 0 && event.shiftKey);
+
+            if (event.pointerType !== 'mouse' || !dragButton || stageWorldViewport.width <= 0 || stageWorldViewport.height <= 0) {
+                return;
+            }
+
+            const stageRect = stageNode.getBoundingClientRect();
+            const startWorld = screenPointToWorld(
+                { clientX: event.clientX, clientY: event.clientY },
+                stageRect,
+                stageWorldViewport.width,
+                stageWorldViewport.height
+            );
+            const currentViewport = viewportStateRef.current;
+
+            mouseDragSnapshotRef.current = {
+                pointerId: event.pointerId,
+                startPanX: currentViewport.panX,
+                startPanY: currentViewport.panY,
+                startWorldX: startWorld.panX,
+                startWorldY: startWorld.panY
+            };
+
+            stageNode.setPointerCapture(event.pointerId);
+            syncGestureActive(true);
+            syncSelectionSuppressed(true);
+            stopMouseEvent(event);
+        };
+
+        const handlePointerMove = (event: globalThis.PointerEvent): void => {
+            const snapshot = mouseDragSnapshotRef.current;
+
+            if (!snapshot || event.pointerId !== snapshot.pointerId) {
+                return;
+            }
+
+            const stageRect = stageNode.getBoundingClientRect();
+            const currentWorld = screenPointToWorld(
+                { clientX: event.clientX, clientY: event.clientY },
+                stageRect,
+                stageWorldViewport.width,
+                stageWorldViewport.height
+            );
+            const nextPanX = snapshot.startPanX + (currentWorld.panX - snapshot.startWorldX);
+            const nextPanY = snapshot.startPanY + (currentWorld.panY - snapshot.startWorldY);
+
+            setViewportState((current) => {
+                const nextViewport = clampBoardViewport({
+                    boardHeight: boardWorldHeight,
+                    boardWidth: boardWorldWidth,
+                    fitZoom,
+                    panX: nextPanX,
+                    panY: nextPanY,
+                    viewportHeight: stageWorldViewport.height,
+                    viewportWidth: stageWorldViewport.width,
+                    zoom: current.zoom
+                });
+
+                viewportStateRef.current = nextViewport;
+                return current.panX === nextViewport.panX &&
+                    current.panY === nextViewport.panY &&
+                    current.zoom === nextViewport.zoom &&
+                    current.fitZoom === nextViewport.fitZoom
+                    ? current
+                    : nextViewport;
+            });
+
+            stopMouseEvent(event);
+        };
+
+        const handlePointerEnd = (event: globalThis.PointerEvent): void => {
+            const snapshot = mouseDragSnapshotRef.current;
+
+            if (!snapshot || event.pointerId !== snapshot.pointerId) {
+                return;
+            }
+
+            mouseDragSnapshotRef.current = null;
+            syncGestureActive(false);
+            syncSelectionSuppressed(false);
+            if (stageNode.hasPointerCapture(event.pointerId)) {
+                stageNode.releasePointerCapture(event.pointerId);
+            }
+            stopMouseEvent(event);
+        };
+
+        const handleContextMenu = (event: globalThis.MouseEvent): void => {
+            stopMouseEvent(event);
+        };
+
+        stageNode.addEventListener('wheel', handleWheel, { passive: false });
+        stageNode.addEventListener('pointerdown', handlePointerDown, true);
+        stageNode.addEventListener('pointermove', handlePointerMove, true);
+        stageNode.addEventListener('pointerup', handlePointerEnd, true);
+        stageNode.addEventListener('pointercancel', handlePointerEnd, true);
+        stageNode.addEventListener('contextmenu', handleContextMenu);
+
+        return () => {
+            stageNode.removeEventListener('wheel', handleWheel);
+            stageNode.removeEventListener('pointerdown', handlePointerDown, true);
+            stageNode.removeEventListener('pointermove', handlePointerMove, true);
+            stageNode.removeEventListener('pointerup', handlePointerEnd, true);
+            stageNode.removeEventListener('pointercancel', handlePointerEnd, true);
+            stageNode.removeEventListener('contextmenu', handleContextMenu);
+            mouseDragSnapshotRef.current = null;
+            syncGestureActive(false);
+            syncSelectionSuppressed(false);
+        };
+    }, [
+        boardWorldHeight,
+        boardWorldWidth,
+        desktopCameraMode,
+        fitZoom,
+        stageWorldViewport.height,
+        stageWorldViewport.width
+    ]);
 
     const showMotionChip = touchPrimary && !reduceMotion && (permission === 'prompt' || permission === 'denied');
 
@@ -249,37 +738,55 @@ const TileBoard = ({
     );
 
     return (
-        <div className={styles.frame} ref={frameRef} style={mergedFrameStyle}>
-            <div className={`${styles.stage} ${threeEnabled ? styles.stageWebglPicking : ''}`}>
+        <div
+            className={`${styles.frame} ${cameraViewportMode ? styles.frameMobileCamera : ''}`}
+            data-board-pan-x={renderedViewportState.panX.toFixed(4)}
+            data-board-pan-y={renderedViewportState.panY.toFixed(4)}
+            data-board-zoom={renderedViewportState.zoom.toFixed(4)}
+            data-gesture-active={gestureActive ? 'true' : 'false'}
+            data-mobile-camera-mode={cameraViewportMode ? 'true' : 'false'}
+            data-selection-suppressed={selectionSuppressed ? 'true' : 'false'}
+            data-testid="tile-board-frame"
+            ref={frameRef}
+            style={mergedFrameStyle}
+        >
+            <div
+                className={`${styles.stage} ${cameraViewportMode ? styles.stageMobileCamera : ''} ${threeEnabled ? styles.stageWebglPicking : ''}`}
+                data-testid="tile-board-stage-shell"
+                ref={stageRef}
+            >
                 {threeEnabled ? (
                     <TileBoardErrorBoundary fallback={fallback}>
                         <div className={styles.scene} data-testid="tile-board-stage">
-                                <Canvas
-                                    className={styles.canvas}
-                                    dpr={dpr}
-                                    key={reduceMotion ? 'tile-board-reduced-motion' : 'tile-board-smaa'}
-                                    gl={{
-                                        alpha: true,
-                                        antialias: glAntialias,
-                                        powerPreference: 'high-performance',
-                                        premultipliedAlpha: false
-                                    }}
-                                    shadows={false}
-                                    camera={{ fov: 42, near: 0.1, far: 100, position: [0, 0, 10.5] }}
-                                >
-                                    <TileBoardScene
-                                        board={board}
-                                        compact={compact}
-                                        key={board.level}
-                                        debugPeekActive={debugPeekActive}
-                                        fieldTiltRef={fieldTiltRef}
-                                        hoverTiltRef={hoverTiltRef}
-                                        interactive={interactive}
-                                        onTilePick={handleTileSelect}
-                                        previewActive={previewActive}
-                                        reduceMotion={reduceMotion}
-                                    />
-                                    <TileBoardPostFx reduceMotion={reduceMotion} />
+                            <Canvas
+                                className={styles.canvas}
+                                dpr={dpr}
+                                key={reduceMotion ? 'tile-board-reduced-motion' : 'tile-board-smaa'}
+                                gl={{
+                                    alpha: true,
+                                    antialias: glAntialias,
+                                    powerPreference: 'high-performance',
+                                    premultipliedAlpha: false
+                                }}
+                                shadows={false}
+                                camera={{ fov: 42, near: 0.1, far: 100, position: [0, 0, 10.5] }}
+                            >
+                                <TileBoardScene
+                                    board={board}
+                                    boardViewport={renderedViewportState}
+                                    compact={compact}
+                                    debugPeekActive={debugPeekActive}
+                                    fieldTiltRef={fieldTiltRef}
+                                    hoverTiltRef={hoverTiltRef}
+                                    interactionSuppressed={selectionSuppressed}
+                                    interactive={interactive}
+                                    key={board.level}
+                                    onTilePick={handleTileSelect}
+                                    onViewportMetricsChange={handleStageViewportChange}
+                                    previewActive={previewActive}
+                                    reduceMotion={reduceMotion}
+                                />
+                                <TileBoardPostFx reduceMotion={reduceMotion} />
                             </Canvas>
                         </div>
 

@@ -14,6 +14,15 @@
     min-height: 0;
 }
 
+.frameMobileCamera {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    aspect-ratio: auto;
+}
+
 .stage {
     position: absolute;
     inset: 0;
@@ -22,6 +31,10 @@
     overflow: hidden;
     min-width: 0;
     min-height: 0;
+}
+
+.stageMobileCamera {
+    inset: 0;
 }
 
 .motionChip {
@@ -363,6 +376,10 @@
         inset: 0.3rem;
     }
 
+    .stageMobileCamera {
+        inset: 0;
+    }
+
     .interactionLayer {
         gap: 0.5rem;
     }
@@ -383,5 +400,9 @@
 @media (max-width: 430px) {
     .stage {
         inset: 0.2rem;
+    }
+
+    .stageMobileCamera {
+        inset: 0;
     }
 }

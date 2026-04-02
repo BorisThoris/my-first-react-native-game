@@ -24,6 +24,7 @@ export interface UsePlatformTiltFieldOptions {
     enabled: boolean;
     reduceMotion: boolean;
     surfaceRef: RefObject<HTMLElement | null>;
+    suspended?: boolean;
     /** Scales written CSS vars and tiltRef output on the bound surface. */
     strength?: number;
 }
@@ -39,6 +40,7 @@ export const usePlatformTiltField = ({
     enabled,
     reduceMotion,
     surfaceRef,
+    suspended = false,
     strength: strengthProp = 1
 }: UsePlatformTiltFieldOptions): UsePlatformTiltFieldResult => {
     const { gyroTiltRef, permission, requestMotionPermission } = usePlatformTiltContext();
@@ -140,7 +142,7 @@ export const usePlatformTiltField = ({
     useEffect(() => {
         const surfaceNode = surfaceRef.current;
 
-        if (!enabled || reduceMotion) {
+        if (!enabled || reduceMotion || suspended) {
             tiltRef.current = zeroTilt();
             sourceRef.current = 'none';
             lastFrameRef.current = null;
@@ -200,7 +202,7 @@ export const usePlatformTiltField = ({
                 surfaceNode.style.removeProperty('--tilt-y');
             }
         };
-    }, [enabled, reduceMotion, strength, surfaceRef, gyroTiltRef]);
+    }, [enabled, reduceMotion, strength, surfaceRef, gyroTiltRef, suspended]);
 
     return useMemo(
         () => ({

@@ -30,15 +30,19 @@ import type { TiltVector } from '../platformTilt/platformTiltTypes';
 import { RENDERER_THEME } from '../styles/theme';
 import { getTileFieldAmplification } from './tileFieldTilt';
 import { isTilePickable, noopMeshRaycast, pickableMeshRaycast } from './tileBoardPick';
+import type { TileBoardViewportState } from './tileBoardViewport';
 
 interface TileBoardSceneProps {
     board: BoardState;
+    boardViewport: TileBoardViewportState;
     compact: boolean;
     debugPeekActive: boolean;
     fieldTiltRef: MutableRefObject<TiltVector>;
     hoverTiltRef: MutableRefObject<TileHoverTiltState>;
+    interactionSuppressed: boolean;
     interactive: boolean;
     onTilePick: (tileId: string) => void;
+    onViewportMetricsChange: (viewport: { width: number; height: number }) => void;
     previewActive: boolean;
     reduceMotion: boolean;
 }
@@ -49,6 +53,7 @@ interface TileBezelProps {
     fieldTiltRef: MutableRefObject<TiltVector>;
     flipLocked: boolean;
     hoverTiltRef: MutableRefObject<TileHoverTiltState>;
+    interactionSuppressed: boolean;
     interactive: boolean;
     onTilePick: (tileId: string) => void;
     reduceMotion: boolean;
@@ -271,6 +276,7 @@ const TileBezel = ({
     fieldTiltRef,
     flipLocked,
     hoverTiltRef,
+    interactionSuppressed,
     interactive,
     onTilePick,
     reduceMotion,
@@ -281,7 +287,7 @@ const TileBezel = ({
     const { gl } = useThree();
     const groupRef = useRef<Group | null>(null);
     const isMatched = tile.state === 'matched';
-    const pickable = isTilePickable(tile, interactive, flipLocked);
+    const pickable = !interactionSuppressed && isTilePickable(tile, interactive, flipLocked);
 
     const frontGeometry = useMemo(
         () => new PlaneGeometry(CARD_WIDTH, CARD_HEIGHT, CARD_BEND_SEGMENTS, CARD_BEND_SEGMENTS),
@@ -749,12 +755,15 @@ const TileBezel = ({
 
 const TileBoardScene = ({
     board,
+    boardViewport,
     compact,
     debugPeekActive,
     fieldTiltRef,
     hoverTiltRef,
+    interactionSuppressed,
     interactive,
     onTilePick,
+    onViewportMetricsChange,
     previewActive,
     reduceMotion
 }: TileBoardSceneProps) => {
@@ -762,14 +771,13 @@ const TileBoardScene = ({
     const { colors } = RENDERER_THEME;
     const totalColumns = board.columns;
     const totalRows = board.rows;
-    const boardWidth = (totalColumns - 1) * TILE_SPACING + 1;
-    const boardHeight = (totalRows - 1) * TILE_SPACING + 1;
-    const margin = compact ? 0.72 : 0.85;
-    const fitScale = Math.min((viewport.width * margin) / boardWidth, (viewport.height * margin) / boardHeight);
     const [textureRevision, setTextureRevision] = useState(0);
     const flipLocked = board.flippedTileIds.length === 2;
 
     useEffect(() => subscribeTextureImageUpdates(() => setTextureRevision((current) => current + 1)), []);
+    useEffect(() => {
+        onViewportMetricsChange({ height: viewport.height, width: viewport.width });
+    }, [onViewportMetricsChange, viewport.height, viewport.width]);
 
     useLayoutEffect(() => {
         applyAnisotropyToCachedTileTextures(Math.min(8, gl.capabilities.getMaxAnisotropy()));
@@ -787,7 +795,15 @@ const TileBoardScene = ({
             <directionalLight color={colors.cyan} intensity={compact ? 0.14 : 0.18} position={[-5.8, 2.2, 6.8]} />
             <pointLight color={colors.gold} intensity={compact ? 0.14 : 0.2} position={[0, -2.2, 5.4]} />
 
-            <group rotation={[-0.1, 0.08, 0]} scale={[fitScale, fitScale, fitScale]}>
+            <group
+                position={[boardViewport.panX, boardViewport.panY, 0]}
+                rotation={[-0.1, 0.08, 0]}
+                scale={[
+                    boardViewport.fitZoom * boardViewport.zoom,
+                    boardViewport.fitZoom * boardViewport.zoom,
+                    boardViewport.fitZoom * boardViewport.zoom
+                ]}
+            >
                 {board.tiles.map((tile, index) => {
                     const faceUp = tile.state !== 'hidden' || previewActive || debugPeekActive;
                     const transform = getTileTransform(tile, index, totalColumns, totalRows, compact, faceUp);
@@ -799,6 +815,7 @@ const TileBoardScene = ({
                             fieldTiltRef={fieldTiltRef}
                             flipLocked={flipLocked}
                             hoverTiltRef={hoverTiltRef}
+                            interactionSuppressed={interactionSuppressed}
                             interactive={interactive}
                             key={tile.id}
                             onTilePick={onTilePick}

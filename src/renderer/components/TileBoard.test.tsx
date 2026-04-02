@@ -8,13 +8,15 @@ const renderBoard = (props: {
     board: BoardState;
     debugPeekActive: boolean;
     interactive: boolean;
+    mobileCameraMode?: boolean;
     onTileSelect: (id: string) => void;
     previewActive: boolean;
     reduceMotion: boolean;
+    viewportResetToken?: number;
 }): ReturnType<typeof render> =>
     render(
         <PlatformTiltProvider>
-            <TileBoard {...props} />
+            <TileBoard mobileCameraMode={props.mobileCameraMode ?? false} viewportResetToken={props.viewportResetToken ?? 0} {...props} />
         </PlatformTiltProvider>
     );
 

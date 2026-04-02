@@ -10,6 +10,11 @@ import { createDefaultSaveData } from '../shared/save-data';
 import { PlatformTiltProvider } from './platformTilt/PlatformTiltProvider';
 import { useAppStore } from './store/useAppStore';
 
+const originalMatchMedia = window.matchMedia;
+const originalVisualViewport = window.visualViewport;
+const originalInnerWidth = window.innerWidth;
+const originalInnerHeight = window.innerHeight;
+
 const renderApp = (): ReturnType<typeof render> =>
     render(
         <PlatformTiltProvider>
@@ -46,6 +51,13 @@ const dismissStartupIntro = async (user: ReturnType<typeof userEvent.setup>): Pr
 describe('desktop app flow', () => {
     beforeEach(() => {
         window.localStorage.clear();
+        window.matchMedia = originalMatchMedia;
+        Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalInnerWidth, writable: true });
+        Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalInnerHeight, writable: true });
+        Object.defineProperty(window, 'visualViewport', {
+            configurable: true,
+            value: originalVisualViewport
+        });
         resetStore();
     });
 
@@ -200,5 +212,49 @@ describe('desktop app flow', () => {
             expect(screen.queryByRole('dialog', { name: /run settings/i })).not.toBeInTheDocument();
         });
         expect(screen.getByRole('heading', { name: /level 1/i })).toBeInTheDocument();
+    });
+
+    it('shows the Fit board control in the gameplay camera viewport', async () => {
+        const user = userEvent.setup();
+
+        Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390, writable: true });
+        Object.defineProperty(window, 'innerHeight', { configurable: true, value: 844, writable: true });
+        Object.defineProperty(window, 'visualViewport', {
+            configurable: true,
+            value: {
+                width: 390,
+                height: 844,
+                addEventListener: vi.fn(),
+                removeEventListener: vi.fn()
+            }
+        });
+        window.matchMedia = vi.fn((query: string) => ({
+            matches: query.includes('pointer: coarse'),
+            media: query,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+            dispatchEvent: vi.fn(),
+            onchange: null
+        })) as typeof window.matchMedia;
+
+        renderApp();
+
+        await dismissStartupIntro(user);
+        await user.click(await screen.findByRole('button', { name: /play arcade/i }));
+
+        expect(await screen.findByRole('button', { name: /fit board/i })).toBeInTheDocument();
+    });
+
+    it('shows the Fit board control on desktop gameplay too', async () => {
+        const user = userEvent.setup();
+
+        renderApp();
+
+        await dismissStartupIntro(user);
+        await user.click(await screen.findByRole('button', { name: /play arcade/i }));
+
+        expect(await screen.findByRole('button', { name: /fit board/i })).toBeInTheDocument();
     });
 });

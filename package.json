@@ -26,6 +26,8 @@
         "test:e2e:visual:shard1": "playwright test e2e/visual-screens.mobile.spec.ts e2e/visual-screens.standard.spec.ts --shard=1/3",
         "test:e2e:visual:shard2": "playwright test e2e/visual-screens.mobile.spec.ts e2e/visual-screens.standard.spec.ts --shard=2/3",
         "test:e2e:visual:shard3": "playwright test e2e/visual-screens.mobile.spec.ts e2e/visual-screens.standard.spec.ts --shard=3/3",
+        "capture:visual-inventory": "cross-env VISUAL_CAPTURE_ROOT=docs/visual-capture playwright test e2e/visual-inventory-capture.spec.ts",
+        "docs:visual-inventory": "node scripts/generate-visual-inventory-md.mjs",
         "test:e2e:ui": "playwright test --ui",
         "package:dir": "yarn build && electron-builder --dir",
         "package:win": "yarn build && electron-builder --win nsis",
