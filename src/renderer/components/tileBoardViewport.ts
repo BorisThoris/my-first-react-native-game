@@ -12,6 +12,10 @@ export interface TileBoardViewportState {
     zoom: number;
 }
 
+export interface TileBoardViewportMetrics extends TileBoardWorldMetrics {
+    fitZoom: number;
+}
+
 export interface TileBoardPanBounds {
     maxPanX: number;
     maxPanY: number;
@@ -22,7 +26,8 @@ export interface TileBoardScreenPoint {
     clientY: number;
 }
 
-export const MOBILE_CAMERA_MIN_ZOOM = 1;
+export const BOARD_CAMERA_FIT_ZOOM = 1;
+export const MOBILE_CAMERA_MIN_ZOOM = 0.01;
 export const MOBILE_CAMERA_MAX_ZOOM = 2.8;
 export const MOBILE_CAMERA_FIT_MARGIN = 0.92;
 export const COMPACT_BOARD_FIT_MARGIN = 0.72;
@@ -50,7 +55,7 @@ export const createFittedBoardViewport = (fitZoom: number): TileBoardViewportSta
     fitZoom,
     panX: 0,
     panY: 0,
-    zoom: MOBILE_CAMERA_MIN_ZOOM
+    zoom: BOARD_CAMERA_FIT_ZOOM
 });
 
 export const clampBoardZoom = (zoom: number): number => clamp(zoom, MOBILE_CAMERA_MIN_ZOOM, MOBILE_CAMERA_MAX_ZOOM);
@@ -68,6 +73,7 @@ export const getBoardPanBounds = ({
     const scaledBoardHeight = boardHeight * activeScale;
 
     return {
+        // Board span includes one full card footprint at the outer edges, so edge-lock bounds keep at least one card visible.
         maxPanX: Math.max(0, (scaledBoardWidth - viewportWidth) / 2),
         maxPanY: Math.max(0, (scaledBoardHeight - viewportHeight) / 2)
     };
@@ -127,6 +133,53 @@ export const clampBoardViewport = ({
         panY: clampedPan.panY,
         zoom: clampedZoom
     };
+};
+
+const normalizePanAxis = (pan: number, maxPan: number): number => {
+    if (maxPan <= 0) {
+        return 0;
+    }
+
+    return pan / maxPan;
+};
+
+export const carryBoardViewportForward = ({
+    nextMetrics,
+    previousMetrics,
+    previousViewport
+}: {
+    nextMetrics: TileBoardViewportMetrics;
+    previousMetrics: TileBoardViewportMetrics;
+    previousViewport: TileBoardViewportState;
+}): TileBoardViewportState => {
+    const previousZoom = clampBoardZoom(previousViewport.zoom);
+    const previousBounds = getBoardPanBounds({
+        boardHeight: previousMetrics.boardHeight,
+        boardWidth: previousMetrics.boardWidth,
+        fitZoom: previousViewport.fitZoom,
+        viewportHeight: previousMetrics.viewportHeight,
+        viewportWidth: previousMetrics.viewportWidth,
+        zoom: previousZoom
+    });
+    const nextBounds = getBoardPanBounds({
+        boardHeight: nextMetrics.boardHeight,
+        boardWidth: nextMetrics.boardWidth,
+        fitZoom: nextMetrics.fitZoom,
+        viewportHeight: nextMetrics.viewportHeight,
+        viewportWidth: nextMetrics.viewportWidth,
+        zoom: previousZoom
+    });
+
+    return clampBoardViewport({
+        boardHeight: nextMetrics.boardHeight,
+        boardWidth: nextMetrics.boardWidth,
+        fitZoom: nextMetrics.fitZoom,
+        panX: normalizePanAxis(previousViewport.panX, previousBounds.maxPanX) * nextBounds.maxPanX,
+        panY: normalizePanAxis(previousViewport.panY, previousBounds.maxPanY) * nextBounds.maxPanY,
+        viewportHeight: nextMetrics.viewportHeight,
+        viewportWidth: nextMetrics.viewportWidth,
+        zoom: previousZoom
+    });
 };
 
 export const screenPointToWorld = (

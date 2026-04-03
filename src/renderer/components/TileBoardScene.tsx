@@ -1,5 +1,5 @@
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import {
     BufferAttribute,
     CanvasTexture,
@@ -8,7 +8,9 @@ import {
     MathUtils,
     MultiplyBlending,
     PlaneGeometry,
+    Raycaster,
     SRGBColorSpace,
+    Vector2,
     Vector3,
     type Group
 } from 'three';
@@ -68,6 +70,10 @@ export interface TileHoverTiltState {
     y: number;
 }
 
+export interface TileBoardSceneHandle {
+    pickTileAtClientPoint: (clientX: number, clientY: number) => boolean;
+}
+
 interface TileTransform {
     baseX: number;
     baseY: number;
@@ -99,6 +105,10 @@ const BEND_BUILDUP_MAX = 2.75;
 const BEND_UV_SAME_SPOT = 0.14;
 /** Wear mask resolution (canvas); drawn on each bend commit. */
 const WEAR_TEX_SIZE = 128;
+const BOARD_VIEWPORT_IDLE_DAMPING = 5.2;
+const BOARD_VIEWPORT_ACTIVE_DAMPING = 7.4;
+const BOARD_VIEWPORT_IDLE_SCALE_DAMPING = 4.8;
+const BOARD_VIEWPORT_ACTIVE_SCALE_DAMPING = 6.8;
 
 type CardBendFace = 'front' | 'back';
 
@@ -753,7 +763,7 @@ const TileBezel = ({
     );
 };
 
-const TileBoardScene = ({
+const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
     board,
     boardViewport,
     compact,
@@ -766,13 +776,16 @@ const TileBoardScene = ({
     onViewportMetricsChange,
     previewActive,
     reduceMotion
-}: TileBoardSceneProps) => {
-    const { gl, viewport } = useThree();
+}: TileBoardSceneProps, ref) => {
+    const { camera, gl, viewport } = useThree();
     const { colors } = RENDERER_THEME;
     const totalColumns = board.columns;
     const totalRows = board.rows;
     const [textureRevision, setTextureRevision] = useState(0);
     const flipLocked = board.flippedTileIds.length === 2;
+    const boardGroupRef = useRef<Group | null>(null);
+    const pickRaycasterRef = useRef<Raycaster>(new Raycaster());
+    const pickPointerRef = useRef<Vector2>(new Vector2());
 
     useEffect(() => subscribeTextureImageUpdates(() => setTextureRevision((current) => current + 1)), []);
     useEffect(() => {
@@ -782,6 +795,81 @@ const TileBoardScene = ({
     useLayoutEffect(() => {
         applyAnisotropyToCachedTileTextures(Math.min(8, gl.capabilities.getMaxAnisotropy()));
     }, [gl, textureRevision]);
+
+    useImperativeHandle(
+        ref,
+        () => ({
+            pickTileAtClientPoint: (clientX: number, clientY: number): boolean => {
+                const boardGroup = boardGroupRef.current;
+
+                if (!boardGroup) {
+                    return false;
+                }
+
+                const rect = gl.domElement.getBoundingClientRect();
+
+                if (rect.width <= 0 || rect.height <= 0) {
+                    return false;
+                }
+
+                pickPointerRef.current.set(
+                    ((clientX - rect.left) / rect.width) * 2 - 1,
+                    -(((clientY - rect.top) / rect.height) * 2 - 1)
+                );
+                pickRaycasterRef.current.setFromCamera(pickPointerRef.current, camera);
+
+                const hit = pickRaycasterRef.current
+                    .intersectObjects(boardGroup.children, true)
+                    .find((intersection) => typeof intersection.object.userData?.tileId === 'string');
+
+                if (!hit) {
+                    return false;
+                }
+
+                onTilePick(String(hit.object.userData.tileId));
+                return true;
+            }
+        }),
+        [camera, gl, onTilePick]
+    );
+
+    useLayoutEffect(() => {
+        const boardGroup = boardGroupRef.current;
+
+        if (!boardGroup) {
+            return;
+        }
+
+        const initialScale = boardViewport.fitZoom * boardViewport.zoom;
+        boardGroup.position.set(boardViewport.panX, boardViewport.panY, 0);
+        boardGroup.scale.setScalar(initialScale);
+    }, []);
+
+    useFrame((_state, delta) => {
+        const boardGroup = boardGroupRef.current;
+
+        if (!boardGroup) {
+            return;
+        }
+
+        const targetScale = boardViewport.fitZoom * boardViewport.zoom;
+
+        if (reduceMotion) {
+            boardGroup.position.x = boardViewport.panX;
+            boardGroup.position.y = boardViewport.panY;
+            boardGroup.scale.setScalar(targetScale);
+            return;
+        }
+
+        const panDamping = interactionSuppressed ? BOARD_VIEWPORT_ACTIVE_DAMPING : BOARD_VIEWPORT_IDLE_DAMPING;
+        const scaleDamping = interactionSuppressed ? BOARD_VIEWPORT_ACTIVE_SCALE_DAMPING : BOARD_VIEWPORT_IDLE_SCALE_DAMPING;
+
+        boardGroup.position.x = MathUtils.damp(boardGroup.position.x, boardViewport.panX, panDamping, delta);
+        boardGroup.position.y = MathUtils.damp(boardGroup.position.y, boardViewport.panY, panDamping, delta);
+        boardGroup.scale.x = MathUtils.damp(boardGroup.scale.x, targetScale, scaleDamping, delta);
+        boardGroup.scale.y = MathUtils.damp(boardGroup.scale.y, targetScale, scaleDamping, delta);
+        boardGroup.scale.z = MathUtils.damp(boardGroup.scale.z, targetScale, scaleDamping, delta);
+    });
 
     return (
         <>
@@ -795,15 +883,7 @@ const TileBoardScene = ({
             <directionalLight color={colors.cyan} intensity={compact ? 0.14 : 0.18} position={[-5.8, 2.2, 6.8]} />
             <pointLight color={colors.gold} intensity={compact ? 0.14 : 0.2} position={[0, -2.2, 5.4]} />
 
-            <group
-                position={[boardViewport.panX, boardViewport.panY, 0]}
-                rotation={[-0.1, 0.08, 0]}
-                scale={[
-                    boardViewport.fitZoom * boardViewport.zoom,
-                    boardViewport.fitZoom * boardViewport.zoom,
-                    boardViewport.fitZoom * boardViewport.zoom
-                ]}
-            >
+            <group ref={boardGroupRef} rotation={[-0.1, 0.08, 0]}>
                 {board.tiles.map((tile, index) => {
                     const faceUp = tile.state !== 'hidden' || previewActive || debugPeekActive;
                     const transform = getTileTransform(tile, index, totalColumns, totalRows, compact, faceUp);
@@ -829,6 +909,8 @@ const TileBoardScene = ({
             </group>
         </>
     );
-};
+});
+
+TileBoardScene.displayName = 'TileBoardScene';
 
 export default TileBoardScene;

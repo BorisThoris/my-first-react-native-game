@@ -256,7 +256,7 @@ test.describe('Mobile layout (renderer)', () => {
         expect(hudBox!.y + hudBox!.height).toBeGreaterThan(frameBox!.y + 8);
     });
 
-    test('two-finger pinch zooms in and Fit board resets the viewport', async ({ page }) => {
+    test('two-finger pinch zooms in and out, and Fit board resets the viewport', async ({ page }) => {
         await forceCoarsePointerMedia(page);
         await page.setViewportSize({ width: 390, height: 844 });
         await navigateToLevel1PlayPhase(page);
@@ -280,6 +280,21 @@ test.describe('Mobile layout (renderer)', () => {
         await expect
             .poll(async () => (await readBoardViewportState(frame)).zoom, { timeout: 4000 })
             .toBeGreaterThan(1.1);
+
+        const zoomOutStartA = await pointInLocator(stage, 0.18, 0.24, 1);
+        const zoomOutStartB = await pointInLocator(stage, 0.82, 0.76, 2);
+        const zoomOutEndA = await pointInLocator(stage, 0.45, 0.48, 1);
+        const zoomOutEndB = await pointInLocator(stage, 0.55, 0.52, 2);
+
+        await dispatchTouchSequence(page, [
+            { points: [zoomOutStartA, zoomOutStartB], type: 'touchStart', waitMs: 40 },
+            { points: [zoomOutEndA, zoomOutEndB], type: 'touchMove', waitMs: 50 },
+            { points: [], type: 'touchEnd', waitMs: 80 }
+        ]);
+
+        await expect
+            .poll(async () => (await readBoardViewportState(frame)).zoom, { timeout: 4000 })
+            .toBeLessThan(0.95);
 
         await page.getByRole('button', { name: /^fit board$/i }).click();
 

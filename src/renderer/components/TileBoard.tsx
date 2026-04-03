@@ -18,16 +18,18 @@ import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
 import styles from './TileBoard.module.css';
 import { getTileFieldAmplification } from './tileFieldTilt';
 import TileBoardPostFx from './TileBoardPostFx';
-import TileBoardScene, { type TileHoverTiltState } from './TileBoardScene';
+import TileBoardScene, { type TileBoardSceneHandle, type TileHoverTiltState } from './TileBoardScene';
 import {
     COMPACT_BOARD_FIT_MARGIN,
     MOBILE_CAMERA_FIT_MARGIN,
     ROOMY_BOARD_FIT_MARGIN,
+    carryBoardViewportForward,
     clampBoardZoom,
     clampBoardViewport,
     createFittedBoardViewport,
     getBoardFitZoom,
     screenPointToWorld,
+    type TileBoardViewportMetrics,
     type TileBoardViewportState
 } from './tileBoardViewport';
 import { TILE_SPACING } from './tileShatter';
@@ -74,12 +76,18 @@ interface TouchGestureSnapshot {
 }
 
 interface MouseDragSnapshot {
+    dragActive: boolean;
+    pickOnRelease: boolean;
     pointerId: number;
+    startClientX: number;
+    startClientY: number;
     startPanX: number;
     startPanY: number;
     startWorldX: number;
     startWorldY: number;
 }
+
+const MOUSE_PAN_DRAG_THRESHOLD_PX = 8;
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
 
@@ -225,6 +233,7 @@ const TileBoard = ({
     const touchGestureMode = cameraViewportMode && touchPrimary;
     const desktopCameraMode = cameraViewportMode && !touchPrimary;
     const frameRef = useRef<HTMLDivElement>(null);
+    const sceneHandleRef = useRef<TileBoardSceneHandle | null>(null);
     const stageRef = useRef<HTMLDivElement>(null);
     const hoverTiltRef = useRef<TileHoverTiltState>({ tileId: null, x: 0, y: 0 });
     const activeTouchPointsRef = useRef<Map<number, TouchPoint>>(new Map());
@@ -237,6 +246,8 @@ const TileBoard = ({
     const [stageWorldViewport, setStageWorldViewport] = useState<StageWorldViewport>({ height: 0, width: 0 });
     const [viewportState, setViewportState] = useState<TileBoardViewportState>(() => createFittedBoardViewport(1));
     const viewportStateRef = useRef<TileBoardViewportState>(viewportState);
+    const viewportMetricsRef = useRef<TileBoardViewportMetrics | null>(null);
+    const viewportResetTokenRef = useRef(viewportResetToken);
     const { tiltRef: fieldTiltRef, permission, requestMotionPermission } = usePlatformTiltField({
         enabled: true,
         reduceMotion,
@@ -356,18 +367,74 @@ const TileBoard = ({
 
     useEffect(() => {
         viewportStateRef.current = renderedViewportState;
-    }, [renderedViewportState]);
+        viewportMetricsRef.current = {
+            boardHeight: boardWorldHeight,
+            boardWidth: boardWorldWidth,
+            fitZoom,
+            viewportHeight: stageWorldViewport.height,
+            viewportWidth: stageWorldViewport.width
+        };
+    }, [
+        renderedViewportState,
+        boardWorldHeight,
+        boardWorldWidth,
+        fitZoom,
+        stageWorldViewport.height,
+        stageWorldViewport.width
+    ]);
 
     useEffect(() => {
         hoverTiltRef.current = { tileId: null, x: 0, y: 0 };
     }, [board.level, board.tiles.length, reduceMotion, selectionSuppressed]);
 
     useEffect(() => {
-        const nextViewport = createFittedBoardViewport(fitZoom);
+        const resetRequested = viewportResetToken !== viewportResetTokenRef.current;
+        const previousViewport = viewportStateRef.current;
+        const previousMetrics = viewportMetricsRef.current;
+        const nextMetrics: TileBoardViewportMetrics = {
+            boardHeight: boardWorldHeight,
+            boardWidth: boardWorldWidth,
+            fitZoom,
+            viewportHeight: stageWorldViewport.height,
+            viewportWidth: stageWorldViewport.width
+        };
+
+        viewportResetTokenRef.current = viewportResetToken;
+
+        if (!cameraViewportMode || stageWorldViewport.width <= 0 || stageWorldViewport.height <= 0) {
+            const nextViewport = createFittedBoardViewport(fitZoom);
+            viewportStateRef.current = nextViewport;
+            viewportMetricsRef.current = nextMetrics;
+            setViewportState(nextViewport);
+            clearTouchGestureState(true);
+            return;
+        }
+
+        const nextViewport =
+            resetRequested || !previousMetrics
+                ? createFittedBoardViewport(fitZoom)
+                : carryBoardViewportForward({
+                      nextMetrics,
+                      previousMetrics,
+                      previousViewport
+                  });
+
         viewportStateRef.current = nextViewport;
+        viewportMetricsRef.current = nextMetrics;
         setViewportState(nextViewport);
         clearTouchGestureState(true);
-    }, [board.columns, board.level, board.rows, fitZoom, cameraViewportMode, viewportResetToken]);
+    }, [
+        board.columns,
+        board.level,
+        board.rows,
+        boardWorldHeight,
+        boardWorldWidth,
+        fitZoom,
+        cameraViewportMode,
+        stageWorldViewport.height,
+        stageWorldViewport.width,
+        viewportResetToken
+    ]);
 
     useEffect(() => {
         if (!touchGestureMode) {
@@ -605,7 +672,7 @@ const TileBoard = ({
         };
 
         const handlePointerDown = (event: globalThis.PointerEvent): void => {
-            const dragButton = event.button === 1 || event.button === 2 || (event.button === 0 && event.shiftKey);
+            const dragButton = event.button === 0 || event.button === 1 || event.button === 2;
 
             if (event.pointerType !== 'mouse' || !dragButton || stageWorldViewport.width <= 0 || stageWorldViewport.height <= 0) {
                 return;
@@ -621,7 +688,11 @@ const TileBoard = ({
             const currentViewport = viewportStateRef.current;
 
             mouseDragSnapshotRef.current = {
+                dragActive: event.button !== 0,
+                pickOnRelease: event.button === 0,
                 pointerId: event.pointerId,
+                startClientX: event.clientX,
+                startClientY: event.clientY,
                 startPanX: currentViewport.panX,
                 startPanY: currentViewport.panY,
                 startWorldX: startWorld.panX,
@@ -629,8 +700,12 @@ const TileBoard = ({
             };
 
             stageNode.setPointerCapture(event.pointerId);
-            syncGestureActive(true);
-            syncSelectionSuppressed(true);
+
+            if (event.button !== 0) {
+                syncGestureActive(true);
+                syncSelectionSuppressed(true);
+            }
+
             stopMouseEvent(event);
         };
 
@@ -639,6 +714,18 @@ const TileBoard = ({
 
             if (!snapshot || event.pointerId !== snapshot.pointerId) {
                 return;
+            }
+
+            if (!snapshot.dragActive) {
+                const dragDistance = Math.hypot(event.clientX - snapshot.startClientX, event.clientY - snapshot.startClientY);
+
+                if (dragDistance < MOUSE_PAN_DRAG_THRESHOLD_PX) {
+                    return;
+                }
+
+                snapshot.dragActive = true;
+                syncGestureActive(true);
+                syncSelectionSuppressed(true);
             }
 
             const stageRect = stageNode.getBoundingClientRect();
@@ -682,6 +769,7 @@ const TileBoard = ({
                 return;
             }
 
+            const shouldPick = event.type === 'pointerup' && snapshot.pickOnRelease && !snapshot.dragActive;
             mouseDragSnapshotRef.current = null;
             syncGestureActive(false);
             syncSelectionSuppressed(false);
@@ -689,6 +777,10 @@ const TileBoard = ({
                 stageNode.releasePointerCapture(event.pointerId);
             }
             stopMouseEvent(event);
+
+            if (shouldPick) {
+                sceneHandleRef.current?.pickTileAtClientPoint(event.clientX, event.clientY);
+            }
         };
 
         const handleContextMenu = (event: globalThis.MouseEvent): void => {
@@ -784,6 +876,7 @@ const TileBoard = ({
                                     onTilePick={handleTileSelect}
                                     onViewportMetricsChange={handleStageViewportChange}
                                     previewActive={previewActive}
+                                    ref={sceneHandleRef}
                                     reduceMotion={reduceMotion}
                                 />
                                 <TileBoardPostFx reduceMotion={reduceMotion} />
