@@ -149,6 +149,29 @@ Tradeoff:
 - Needs extra state and clear UX messaging.
 - Higher implementation/test complexity.
 
+### Lever F: Convert consecutive-pair skill into delayed sustain (higher value than raw life spam)
+Rule shape:
+- Do **not** grant a full life on every pair.
+- Do **not** grant a full life on every 2-pair streak directly.
+- Instead:
+  - `2 consecutive pairs => +1 guard`, or
+  - `2 consecutive pairs => +1 heart shard`
+  - `3 heart shards => +1 life`
+
+Recommended variant:
+- Prefer the heart-shard version over direct life gain.
+- Let shard progress persist across floors so strong play can build momentum into bigger boards.
+- Cap shard storage / guard storage to avoid infinite sustain.
+
+Effect:
+- Rewards smart reads early, before late-game thresholds.
+- Gives better players a real path into larger boards.
+- Avoids the runaway balance problem of "life per pair".
+
+Tradeoff:
+- Adds more state than simple rule tuning.
+- Needs strong HUD and clear-modal communication.
+
 ---
 
 ## Recommended Tuning Bundle (v1)
@@ -204,6 +227,11 @@ Risk:
 
 ### Phase 2 (if needed)
 - Add streak-to-survival mechanic (shield/guard token).
+- Prototype combo-based sustain:
+  - `2 consecutive pairs => heart shard`
+  - `3 heart shards => +1 life`
+  - Alternative fallback: `2 consecutive pairs => +1 guard`
+- Decide whether combo-derived progress persists across floors.
 - Add clearer HUD signaling for forgiveness mechanics.
 
 ### Phase 3 (optional personalization)
@@ -227,6 +255,11 @@ Risk:
 - `mistakes <= 1` on clear grants life (capped).
 - Perfect clear still grants life.
 - Level transition resets per-floor mismatch buffer.
+- If combo sustain ships:
+  - `2 consecutive pairs` grants the expected shard/guard reward.
+  - Broken streak resets combo progress correctly.
+  - Shard-to-life conversion respects max-life cap.
+  - Cross-floor persistence rules behave exactly as designed.
 
 ### UX checks
 - Player can understand life changes from overlay copy alone.
@@ -254,6 +287,9 @@ These reduce the “it feels impossible” perception by making safety systems v
   - `src/shared/game.ts`
 - Rule logic (mismatch/life + clear rewards):
   - `src/shared/game.ts`
+- If combo sustain is added:
+  - extend `RunState` / `SessionStats` in `src/shared/contracts.ts`
+  - implement reward accumulation + conversion in `src/shared/game.ts`
 - Regression tests:
   - `src/shared/game.test.ts`
   - `src/renderer/store/useAppStore.test.ts` (timer/flow safety)

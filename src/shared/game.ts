@@ -4,6 +4,7 @@ import {
     DEBUG_REVEAL_MS,
     INITIAL_LIVES,
     MATCH_DELAY_MS,
+    MAX_COMBO_SHARDS,
     MAX_GUARD_TOKENS,
     MAX_LIVES,
     MEMORIZE_BASE_MS,
@@ -11,6 +12,7 @@ import {
     MEMORIZE_STEP_MS,
     type AchievementId,
     type BoardState,
+    type ClearLifeReason,
     type LevelResult,
     type Rating,
     type ResumableRunStatus,
@@ -96,6 +98,8 @@ const CALLSIGN_SYMBOLS: SymbolEntry[] = [
 ].map(([symbol, label]) => ({ symbol, label }));
 
 const SYMBOL_SETS = [LETTER_SYMBOLS, NUMBER_SYMBOLS, CALLSIGN_SYMBOLS] as const;
+const COMBO_SHARD_STREAK_STEP = 2;
+const COMBO_SHARDS_PER_LIFE = 3;
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
 
@@ -141,6 +145,36 @@ export const calculateLevelClearBonus = (level: number): number => 50 * level;
 
 export const calculatePerfectClearBonus = (): number => 25;
 
+const getClearLifeReason = (tries: number): ClearLifeReason => {
+    if (tries === 0) return 'perfect';
+    if (tries === 1) return 'clean';
+    return 'none';
+};
+
+const resolveComboShardReward = (
+    comboShards: number,
+    lives: number,
+    currentStreak: number
+): { comboShards: number; lifeGain: number } => {
+    if (currentStreak % COMBO_SHARD_STREAK_STEP !== 0) {
+        return { comboShards, lifeGain: 0 };
+    }
+
+    const nextComboShards = comboShards + 1;
+
+    if (lives < MAX_LIVES && nextComboShards >= COMBO_SHARDS_PER_LIFE) {
+        return {
+            comboShards: nextComboShards - COMBO_SHARDS_PER_LIFE,
+            lifeGain: 1
+        };
+    }
+
+    return {
+        comboShards: Math.min(MAX_COMBO_SHARDS, nextComboShards),
+        lifeGain: 0
+    };
+};
+
 const createSessionStats = (bestScore: number): SessionStats => ({
     totalScore: 0,
     currentLevelScore: 0,
@@ -154,7 +188,8 @@ const createSessionStats = (bestScore: number): SessionStats => ({
     currentStreak: 0,
     bestStreak: 0,
     perfectClears: 0,
-    guardTokens: 0
+    guardTokens: 0,
+    comboShards: 0
 });
 
 const createTiles = (level: number, pairCount: number): Tile[] => {
@@ -251,20 +286,24 @@ export const flipTile = (run: RunState, tileId: string): RunState => {
 
 const finalizeLevel = (run: RunState, board: BoardState): RunState => {
     const perfect = run.stats.tries === 0;
+    const clearLifeReason = getClearLifeReason(run.stats.tries);
+    const clearLifeGained = clearLifeReason !== 'none' && run.lives < MAX_LIVES ? 1 : 0;
     const levelBonus = calculateLevelClearBonus(board.level);
     const perfectBonus = perfect ? calculatePerfectClearBonus() : 0;
     const scoreGained = run.stats.currentLevelScore + levelBonus + perfectBonus;
     const totalScore = run.stats.totalScore + levelBonus + perfectBonus;
     const bestScore = Math.max(run.stats.bestScore, totalScore);
     const rating = calculateRating(run.stats.tries);
-    const lives = perfect ? Math.min(MAX_LIVES, run.lives + 1) : run.lives;
+    const lives = Math.min(MAX_LIVES, run.lives + clearLifeGained);
     const lastLevelResult: LevelResult = {
         level: board.level,
         scoreGained,
         rating,
         livesRemaining: lives,
         perfect,
-        mistakes: run.stats.tries
+        mistakes: run.stats.tries,
+        clearLifeReason,
+        clearLifeGained
     };
 
     return {
@@ -324,8 +363,9 @@ export const resolveBoardTurn = (run: RunState): RunState => {
         const currentStreak = run.stats.currentStreak + 1;
         const guardTokenGain = currentStreak % COMBO_GUARD_STREAK_STEP === 0 ? 1 : 0;
         const guardTokens = Math.min(MAX_GUARD_TOKENS, run.stats.guardTokens + guardTokenGain);
+        const comboShardReward = resolveComboShardReward(run.stats.comboShards, run.lives, currentStreak);
         const chainHealLifeGain = currentStreak % CHAIN_HEAL_STREAK_STEP === 0 ? 1 : 0;
-        const lives = Math.min(MAX_LIVES, run.lives + chainHealLifeGain);
+        const lives = Math.min(MAX_LIVES, run.lives + chainHealLifeGain + comboShardReward.lifeGain);
         const matchScore = calculateMatchScore(board.level, currentStreak);
         const totalScore = run.stats.totalScore + matchScore;
         const currentLevelScore = run.stats.currentLevelScore + matchScore;
@@ -345,7 +385,8 @@ export const resolveBoardTurn = (run: RunState): RunState => {
                 currentStreak,
                 bestStreak: Math.max(run.stats.bestStreak, currentStreak),
                 highestLevel: Math.max(run.stats.highestLevel, board.level),
-                guardTokens
+                guardTokens,
+                comboShards: comboShardReward.comboShards
             },
             timerState: clearResolveState(run)
         };
@@ -354,8 +395,9 @@ export const resolveBoardTurn = (run: RunState): RunState => {
     }
 
     const tries = run.stats.tries + 1;
-    const hasGuardToken = run.stats.guardTokens > 0;
-    const lives = hasGuardToken ? run.lives : run.lives - 1;
+    const hasGraceMismatch = run.stats.tries === 0;
+    const consumesGuardToken = !hasGraceMismatch && run.stats.guardTokens > 0;
+    const lives = hasGraceMismatch || consumesGuardToken ? run.lives : run.lives - 1;
     const board: BoardState = {
         ...run.board,
         flippedTileIds: [],
@@ -364,7 +406,7 @@ export const resolveBoardTurn = (run: RunState): RunState => {
         )
     };
     const status = lives <= 0 ? 'gameOver' : 'playing';
-    const guardTokens = hasGuardToken ? run.stats.guardTokens - 1 : run.stats.guardTokens;
+    const guardTokens = consumesGuardToken ? run.stats.guardTokens - 1 : run.stats.guardTokens;
 
     return {
         ...run,

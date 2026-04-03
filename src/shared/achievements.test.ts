@@ -19,7 +19,9 @@ describe('achievement rules', () => {
                 rating: 'S++' as const,
                 livesRemaining: 1,
                 perfect: true,
-                mistakes: 0
+                mistakes: 0,
+                clearLifeReason: 'perfect' as const,
+                clearLifeGained: 1
             }
         };
         const unlocked = evaluateAchievementUnlocks(run, createDefaultSaveData());

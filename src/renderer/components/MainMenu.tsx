@@ -104,6 +104,7 @@ const MainMenu = ({
                                 <p className={styles.guideSummary}>Memorize the board before the tiles flip.</p>
                                 <div className={styles.guideCompactRules}>
                                     <p>Match pairs cleanly to build streak and score.</p>
+                                    <p>Every 2-match chain earns a shard; 3 shards restore a life.</p>
                                     <p>Every 4-match streak grants a guard; every 8 restores a life.</p>
                                 </div>
                             </>
@@ -128,7 +129,7 @@ const MainMenu = ({
                                 </div>
                                 <div>
                                     <strong>3. Build survival chains</strong>
-                                    <p>Each 4-match streak grants a guard. Each 8-match streak restores one life.</p>
+                                    <p>Each 2-match chain earns a shard. Three shards restore one life. Guards still land every 4 and a streak heal still lands every 8.</p>
                                 </div>
                             </div>
                         )}

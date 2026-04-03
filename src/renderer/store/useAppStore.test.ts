@@ -70,7 +70,7 @@ describe('useAppStore timers', () => {
 
         expect(useAppStore.getState().run?.status).toBe('playing');
         expect(useAppStore.getState().run?.stats.tries).toBe(1);
-        expect(useAppStore.getState().run?.lives).toBe(3);
+        expect(useAppStore.getState().run?.lives).toBe(4);
     });
 
     it('resolves matches immediately so the next pair can be started right away', async () => {

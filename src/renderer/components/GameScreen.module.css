@@ -147,6 +147,24 @@
     line-height: 1.1;
 }
 
+.ruleHint {
+    align-self: center;
+    margin: 0;
+    padding: 0.34rem 0.7rem 0.38rem;
+    max-width: min(calc(100% - 1rem), 34rem);
+    border-radius: var(--ui-radius-pill);
+    border: 1px solid rgba(87, 220, 255, 0.18);
+    background: linear-gradient(90deg, rgba(87, 220, 255, 0.08), rgba(8, 10, 15, 0.82));
+    color: var(--theme-text-muted);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    line-height: 1.3;
+    text-align: center;
+    position: relative;
+    z-index: 2;
+}
+
 .actionControls {
     display: flex;
     flex-wrap: wrap;
@@ -301,6 +319,14 @@
     gap: 0.65rem 1.25rem;
 }
 
+.modalNote {
+    margin: 0 0 0.7rem;
+    color: var(--theme-gold-bright);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}
+
 @keyframes toastIn {
     from {
         opacity: 0;
@@ -334,6 +360,12 @@
     .boardStage {
         gap: 0.48rem;
         padding: 0.1rem 0 0.28rem;
+    }
+
+    .ruleHint {
+        max-width: calc(100% - 0.7rem);
+        padding: 0.32rem 0.55rem 0.36rem;
+        font-size: 0.63rem;
     }
 
     .mobileCameraShell {

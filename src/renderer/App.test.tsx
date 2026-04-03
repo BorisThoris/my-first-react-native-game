@@ -6,6 +6,7 @@ vi.mock('./components/MainMenuBackground', () => ({
 }));
 
 import App from './App';
+import { createNewRun } from '../shared/game';
 import { createDefaultSaveData } from '../shared/save-data';
 import { PlatformTiltProvider } from './platformTilt/PlatformTiltProvider';
 import { useAppStore } from './store/useAppStore';
@@ -14,6 +15,7 @@ const originalMatchMedia = window.matchMedia;
 const originalVisualViewport = window.visualViewport;
 const originalInnerWidth = window.innerWidth;
 const originalInnerHeight = window.innerHeight;
+const originalHydrate = useAppStore.getState().hydrate;
 
 const renderApp = (): ReturnType<typeof render> =>
     render(
@@ -35,7 +37,8 @@ const resetStore = (): void => {
             saveData,
             settings: saveData.settings,
             run: null,
-            newlyUnlockedAchievements: []
+            newlyUnlockedAchievements: [],
+            hydrate: originalHydrate
         });
     });
 };
@@ -73,6 +76,8 @@ describe('desktop app flow', () => {
 
         expect(await screen.findByRole('heading', { name: /level 1/i })).toBeInTheDocument();
         expect(screen.getByRole('group', { name: /run stats/i })).toBeInTheDocument();
+        expect(screen.getByText(/^shards$/i)).toBeInTheDocument();
+        expect(screen.getByTestId('forgiveness-hint')).toHaveTextContent(/first miss each floor is free/i);
     });
 
     it('turns off the app-level ambient grid while the menu or game Pixi background is active', async () => {
@@ -138,6 +143,7 @@ describe('desktop app flow', () => {
 
         await dismissStartupIntro(user);
         expect(await screen.findByRole('heading', { name: /memorize fast, play clean, protect the streak/i })).toBeInTheDocument();
+        expect(screen.getByText(/three shards restore one life/i)).toBeInTheDocument();
 
         await user.click(screen.getByRole('button', { name: /dismiss/i }));
 
@@ -150,6 +156,114 @@ describe('desktop app flow', () => {
 
         const parsed = JSON.parse(rawSave ?? '{}') as ReturnType<typeof createDefaultSaveData>;
         expect(parsed.onboardingDismissed).toBe(true);
+    });
+
+    it('shows the life-bonus reason in the floor-cleared modal', async () => {
+        const saveData = createDefaultSaveData();
+        const baseRun = createNewRun(0);
+        const run = {
+            ...baseRun,
+            status: 'levelComplete' as const,
+            lives: 5,
+            stats: {
+                ...baseRun.stats,
+                totalScore: 120,
+                currentLevelScore: 120,
+                tries: 1,
+                rating: 'S' as const,
+                levelsCleared: 1,
+                matchesFound: 2,
+                highestLevel: 1,
+                currentStreak: 2,
+                bestStreak: 2,
+                comboShards: 1
+            },
+            timerState: {
+                memorizeRemainingMs: null,
+                resolveRemainingMs: null,
+                debugRevealRemainingMs: null,
+                pausedFromStatus: null
+            },
+            lastLevelResult: {
+                level: 1,
+                scoreGained: 120,
+                rating: 'S' as const,
+                livesRemaining: 5,
+                perfect: false,
+                mistakes: 1,
+                clearLifeReason: 'clean' as const,
+                clearLifeGained: 1
+            }
+        };
+
+        act(() => {
+            useAppStore.setState({
+                hydrated: true,
+                hydrating: false,
+                steamConnected: false,
+                view: 'playing',
+                settingsReturnView: 'menu',
+                saveData,
+                settings: saveData.settings,
+                run,
+                newlyUnlockedAchievements: [],
+                hydrate: async () => {}
+            });
+        });
+
+        renderApp();
+
+        expect(await screen.findByRole('dialog', { name: /floor cleared/i })).toBeInTheDocument();
+        expect(screen.getByText(/clean floor bonus: \+1 life/i)).toBeInTheDocument();
+    });
+
+    it('hides the forgiveness hint after the floor has started', async () => {
+        const saveData = createDefaultSaveData();
+        const baseRun = createNewRun(0);
+        const run = {
+            ...baseRun,
+            status: 'playing' as const,
+            board: baseRun.board
+                ? {
+                      ...baseRun.board,
+                      matchedPairs: 1
+                  }
+                : null,
+            stats: {
+                ...baseRun.stats,
+                totalScore: 30,
+                currentLevelScore: 30,
+                matchesFound: 1,
+                currentStreak: 1,
+                bestStreak: 1
+            },
+            timerState: {
+                memorizeRemainingMs: null,
+                resolveRemainingMs: null,
+                debugRevealRemainingMs: null,
+                pausedFromStatus: null
+            }
+        };
+
+        act(() => {
+            useAppStore.setState({
+                hydrated: true,
+                hydrating: false,
+                steamConnected: false,
+                view: 'playing',
+                settingsReturnView: 'menu',
+                saveData,
+                settings: saveData.settings,
+                run,
+                newlyUnlockedAchievements: [],
+                hydrate: async () => {}
+            });
+        });
+
+        renderApp();
+
+        expect(await screen.findByRole('heading', { name: /level 1/i })).toBeInTheDocument();
+        expect(screen.queryByTestId('forgiveness-hint')).not.toBeInTheDocument();
     });
 
     it('pauses and resumes the run with the on-screen controls', async () => {

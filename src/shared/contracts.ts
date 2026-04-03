@@ -3,16 +3,18 @@ export const INITIAL_LIVES = 4;
 export const MAX_LIVES = 5;
 export const MATCH_DELAY_MS = 850;
 export const DEBUG_REVEAL_MS = 1500;
-export const MEMORIZE_BASE_MS = 1200;
-export const MEMORIZE_STEP_MS = 60;
-export const MEMORIZE_MIN_MS = 450;
+export const MEMORIZE_BASE_MS = 1300;
+export const MEMORIZE_STEP_MS = 50;
+export const MEMORIZE_MIN_MS = 600;
 export const COMBO_GUARD_STREAK_STEP = 4;
 export const CHAIN_HEAL_STREAK_STEP = 8;
 export const MAX_GUARD_TOKENS = 2;
+export const MAX_COMBO_SHARDS = 2;
 
 export type DisplayMode = 'windowed' | 'fullscreen';
 export type TileState = 'hidden' | 'flipped' | 'matched';
 export type Rating = 'S++' | 'S' | 'A' | 'B' | 'C' | 'D' | 'F';
+export type ClearLifeReason = 'none' | 'clean' | 'perfect';
 export type ViewState = 'boot' | 'menu' | 'settings' | 'playing' | 'gameOver';
 export type ResumableRunStatus = 'memorize' | 'playing' | 'resolving';
 export type RunStatus = ResumableRunStatus | 'paused' | 'levelComplete' | 'gameOver';
@@ -72,6 +74,7 @@ export interface SessionStats {
     bestStreak: number;
     perfectClears: number;
     guardTokens: number;
+    comboShards: number;
 }
 
 export interface LevelResult {
@@ -81,6 +84,8 @@ export interface LevelResult {
     livesRemaining: number;
     perfect: boolean;
     mistakes: number;
+    clearLifeReason: ClearLifeReason;
+    clearLifeGained: number;
 }
 
 export interface RunSummary {

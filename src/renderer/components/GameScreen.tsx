@@ -18,6 +18,25 @@ interface GameScreenProps {
     suppressStatusOverlays?: boolean;
 }
 
+const FORGIVENESS_HINT =
+    'First miss each floor is free. Every 2-pair chain earns a shard. 3 shards heal 1 life.';
+
+const getClearLifeBonusLabel = (result: NonNullable<RunState['lastLevelResult']>): string | null => {
+    if (result.clearLifeGained !== 1) {
+        return null;
+    }
+
+    if (result.clearLifeReason === 'perfect') {
+        return 'Perfect floor bonus: +1 Life';
+    }
+
+    if (result.clearLifeReason === 'clean') {
+        return 'Clean floor bonus: +1 Life';
+    }
+
+    return null;
+};
+
 const PauseIcon = () => (
     <svg aria-hidden="true" className={styles.actionIcon} viewBox="0 0 24 24">
         <path d="M8 5.5v13" />
@@ -82,6 +101,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const isTight = width <= VIEWPORT_TIGHT_MAX_W || height <= VIEWPORT_TIGHT_MAX_H;
     const cameraViewportMode = true;
     const pauseActionLabel = run.status === 'paused' ? 'Resume' : 'Pause';
+    const clearLifeBonusLabel = run.lastLevelResult ? getClearLifeBonusLabel(run.lastLevelResult) : null;
 
     if (!run.board) {
         return null;
@@ -106,6 +126,11 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         ['--board-width' as string]: `${tileSize * cols}px`,
         ['--board-height' as string]: `${tileSize * rows}px`
     };
+    const showForgivenessHint =
+        run.board.level <= 3 &&
+        (run.status === 'memorize' || run.status === 'playing') &&
+        run.board.matchedPairs === 0 &&
+        run.stats.tries === 0;
     return (
         <section
             className={`${styles.shell} ${cameraViewportMode ? styles.mobileCameraShell : ''}`}
@@ -139,6 +164,10 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                 <div className={styles.statPill}>
                                     <span className={styles.statKey}>Guards</span>
                                     <span className={styles.statVal}>{run.stats.guardTokens}</span>
+                                </div>
+                                <div className={styles.statPill}>
+                                    <span className={styles.statKey}>Shards</span>
+                                    <span className={styles.statVal}>{run.stats.comboShards}</span>
                                 </div>
                                 <div className={styles.statPill}>
                                     <span className={styles.statKey}>Score</span>
@@ -186,6 +215,11 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         )}
                     </div>
                 </header>
+                {showForgivenessHint ? (
+                    <p className={styles.ruleHint} data-testid="forgiveness-hint" role="note">
+                        {FORGIVENESS_HINT}
+                    </p>
+                ) : null}
 
                 <div className={`${styles.boardStage} ${cameraViewportMode ? styles.boardStageCamera : ''}`}>
                     <div className={styles.boardGlow} aria-hidden="true" />
@@ -236,6 +270,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         subtitle={`Level ${run.lastLevelResult.level} cleared. Score +${run.lastLevelResult.scoreGained}.`}
                         title="Floor Cleared"
                     >
+                        {clearLifeBonusLabel ? <p className={styles.modalNote}>{clearLifeBonusLabel}</p> : null}
                         <div className={styles.modalStats}>
                             <StatTile
                                 density="minimal"
