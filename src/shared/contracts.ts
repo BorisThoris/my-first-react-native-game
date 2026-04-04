@@ -6,10 +6,18 @@ export const DEBUG_REVEAL_MS = 1500;
 export const MEMORIZE_BASE_MS = 1300;
 export const MEMORIZE_STEP_MS = 50;
 export const MEMORIZE_MIN_MS = 600;
+/** Memorize time drops by MEMORIZE_STEP_MS once per this many levels (so pairs and timer do not spike together every floor). */
+export const MEMORIZE_DECAY_EVERY_N_LEVELS = 2;
+/** After a life is lost to a mismatch, this many ms are banked for the next level's memorize phase (capped). */
+export const MEMORIZE_BONUS_PER_LIFE_LOST_MS = 220;
+export const MAX_PENDING_MEMORIZE_BONUS_MS = 500;
 export const COMBO_GUARD_STREAK_STEP = 4;
 export const CHAIN_HEAL_STREAK_STEP = 8;
 export const MAX_GUARD_TOKENS = 2;
 export const MAX_COMBO_SHARDS = 2;
+export const INITIAL_SHUFFLE_CHARGES = 1;
+export const MAX_DESTROY_PAIR_BANK = 2;
+export const MAX_PINNED_TILES = 3;
 
 export type DisplayMode = 'windowed' | 'fullscreen';
 export type TileState = 'hidden' | 'flipped' | 'matched';
@@ -75,6 +83,8 @@ export interface SessionStats {
     perfectClears: number;
     guardTokens: number;
     comboShards: number;
+    shufflesUsed: number;
+    pairsDestroyed: number;
 }
 
 export interface LevelResult {
@@ -114,6 +124,13 @@ export interface RunState {
     achievementsEnabled: boolean;
     debugUsed: boolean;
     debugPeekActive: boolean;
+    /** Banked extra memorize time (ms) applied on the next level's memorize phase, then cleared. */
+    pendingMemorizeBonusMs: number;
+    shuffleCharges: number;
+    destroyPairCharges: number;
+    pinnedTileIds: string[];
+    /** True after shuffle or destroy this run; gates ACH_PERFECT_CLEAR only. */
+    powersUsedThisRun: boolean;
     timerState: RunTimerState;
     lastLevelResult: LevelResult | null;
     lastRunSummary: RunSummary | null;

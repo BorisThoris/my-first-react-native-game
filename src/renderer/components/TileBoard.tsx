@@ -1,8 +1,10 @@
 import { Canvas } from '@react-three/fiber';
 import {
     Component,
+    forwardRef,
     useCallback,
     useEffect,
+    useImperativeHandle,
     useMemo,
     useRef,
     useState,
@@ -11,6 +13,7 @@ import {
     type PointerEvent as ReactPointerEvent,
     type ReactNode
 } from 'react';
+import { flushSync } from 'react-dom';
 import type { BoardState, Tile } from '../../shared/contracts';
 import { useCoarsePointer } from '../hooks/useCoarsePointer';
 import { useViewportSize } from '../hooks/useViewportSize';
@@ -33,12 +36,22 @@ import {
     type TileBoardViewportState
 } from './tileBoardViewport';
 import { TILE_SPACING } from './tileShatter';
+import {
+    captureTileRects,
+    computeShuffleMotionBudgetMs,
+    runShuffleFlipFromRects
+} from './shuffleFlipAnimation';
+
+export type TileBoardHandle = {
+    runShuffleAnimation: (applyShuffle: () => void) => void;
+};
 
 interface TileBoardProps {
     board: BoardState;
     debugPeekActive: boolean;
     interactive: boolean;
     mobileCameraMode: boolean;
+    pinnedTileIds?: string[];
     previewActive: boolean;
     reduceMotion: boolean;
     viewportResetToken: number;
@@ -52,6 +65,7 @@ interface TileBoardFallbackProps {
     interactive: boolean;
     onHoverLeave: (tileId: string, event: ReactPointerEvent<HTMLButtonElement>) => void;
     onHoverMove: (tileId: string, event: ReactPointerEvent<HTMLButtonElement>) => void;
+    pinnedTileIds: string[];
     previewActive: boolean;
     onTileSelect: (tileId: string, event?: MouseEvent<HTMLButtonElement>) => void;
     tileGridStyle: CSSProperties;
@@ -117,12 +131,13 @@ const canUseWebGL = (): boolean => {
     }
 };
 
-const getTileClassName = (tile: Tile, faceUp: boolean, locked: boolean): string =>
+const getTileClassName = (tile: Tile, faceUp: boolean, locked: boolean, isPinned: boolean): string =>
     [
         styles.fallbackTile,
         faceUp ? styles.faceUp : '',
         tile.state === 'matched' ? styles.matched : '',
-        locked && tile.state === 'hidden' ? styles.locked : ''
+        locked && tile.state === 'hidden' ? styles.locked : '',
+        isPinned && tile.state === 'hidden' ? styles.fallbackTilePinned : ''
     ]
         .filter(Boolean)
         .join(' ');
@@ -154,17 +169,20 @@ const TileBoardFallback = ({
     interactive,
     onHoverLeave,
     onHoverMove,
+    pinnedTileIds,
     previewActive,
     onTileSelect,
     tileGridStyle
 }: TileBoardFallbackProps) => {
     const locked = board.flippedTileIds.length === 2;
+    const pinnedSet = useMemo(() => new Set(pinnedTileIds), [pinnedTileIds]);
 
     return (
         <div className={styles.fallbackBoard} data-testid="tile-board-fallback" style={tileGridStyle}>
             {board.tiles.map((tile, index) => {
                 const disabled = tile.state === 'matched' || !interactive || (locked && tile.state === 'hidden');
                 const faceUp = tile.state !== 'hidden' || debugPeekActive || previewActive;
+                const isPinned = pinnedSet.has(tile.id);
                 const { row, column } = getTilePosition(index, board.columns);
                 const labelText = tile.label.toUpperCase();
                 const showFrontLabel = labelText !== tile.symbol.toUpperCase();
@@ -174,7 +192,8 @@ const TileBoardFallback = ({
                 return (
                     <button
                         aria-label={getTileAriaLabel(tile, faceUp, row, column)}
-                        className={getTileClassName(tile, faceUp, locked)}
+                        className={getTileClassName(tile, faceUp, locked, isPinned)}
+                        data-tile-id={tile.id}
                         disabled={disabled}
                         key={tile.id}
                         onClick={() => onTileSelect(tile.id)}
@@ -214,17 +233,21 @@ class TileBoardErrorBoundary extends Component<{ fallback: ReactNode; children: 
     }
 }
 
-const TileBoard = ({
-    board,
-    debugPeekActive,
-    interactive,
-    mobileCameraMode,
-    previewActive,
-    reduceMotion,
-    viewportResetToken,
-    frameStyle,
-    onTileSelect
-}: TileBoardProps) => {
+const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard(
+    {
+        board,
+        debugPeekActive,
+        interactive,
+        mobileCameraMode,
+        pinnedTileIds = [],
+        previewActive,
+        reduceMotion,
+        viewportResetToken,
+        frameStyle,
+        onTileSelect
+    },
+    ref
+) {
     const { height, width } = useViewportSize();
     const compact = width <= 760 || height <= 760;
     const touchPrimary = useCoarsePointer();
@@ -233,6 +256,9 @@ const TileBoard = ({
     const touchGestureMode = cameraViewportMode && touchPrimary;
     const desktopCameraMode = cameraViewportMode && !touchPrimary;
     const frameRef = useRef<HTMLDivElement>(null);
+    const shuffleClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [shuffleAnimating, setShuffleAnimating] = useState(false);
+    const [shuffleMotionDeadlineMs, setShuffleMotionDeadlineMs] = useState(0);
     const sceneHandleRef = useRef<TileBoardSceneHandle | null>(null);
     const stageRef = useRef<HTMLDivElement>(null);
     const hoverTiltRef = useRef<TileHoverTiltState>({ tileId: null, x: 0, y: 0 });
@@ -261,6 +287,59 @@ const TileBoard = ({
             ['--board-aspect' as string]: `${board.columns} / ${board.rows}`
         }),
         [board.columns, board.rows, frameStyle]
+    );
+
+    useImperativeHandle(ref, () => ({
+        runShuffleAnimation: (applyShuffle: () => void) => {
+            if (reduceMotion) {
+                if (shuffleClearTimeoutRef.current) {
+                    clearTimeout(shuffleClearTimeoutRef.current);
+                    shuffleClearTimeoutRef.current = null;
+                }
+                setShuffleMotionDeadlineMs(0);
+                applyShuffle();
+                return;
+            }
+
+            const root = frameRef.current;
+            const beforeMap = root ? captureTileRects(root) : new Map<string, DOMRect>();
+            const tileCountForBudget = beforeMap.size > 0 ? beforeMap.size : board.tiles.length;
+            const motionBudgetMs = computeShuffleMotionBudgetMs(tileCountForBudget);
+
+            if (shuffleClearTimeoutRef.current) {
+                clearTimeout(shuffleClearTimeoutRef.current);
+                shuffleClearTimeoutRef.current = null;
+            }
+
+            const deadline = performance.now() + motionBudgetMs;
+            setShuffleMotionDeadlineMs(deadline);
+            shuffleClearTimeoutRef.current = setTimeout(() => {
+                setShuffleMotionDeadlineMs(0);
+                shuffleClearTimeoutRef.current = null;
+            }, motionBudgetMs + 100);
+
+            flushSync(() => {
+                applyShuffle();
+            });
+
+            if (root && beforeMap.size > 0) {
+                setShuffleAnimating(true);
+                void runShuffleFlipFromRects(root, beforeMap).finally(() => {
+                    setShuffleAnimating(false);
+                });
+            } else {
+                setShuffleAnimating(false);
+            }
+        }
+    }), [board.tiles.length, reduceMotion]);
+
+    useEffect(
+        () => () => {
+            if (shuffleClearTimeoutRef.current) {
+                clearTimeout(shuffleClearTimeoutRef.current);
+            }
+        },
+        []
     );
     const tileGridStyle = buildTileGridStyle(board);
     const deviceDpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
@@ -823,6 +902,7 @@ const TileBoard = ({
             interactive={interactive}
             onHoverLeave={clearHoverTilt}
             onHoverMove={updateHoverTilt}
+            pinnedTileIds={pinnedTileIds}
             onTileSelect={handleTileSelect}
             previewActive={previewActive}
             tileGridStyle={tileGridStyle}
@@ -831,7 +911,9 @@ const TileBoard = ({
 
     return (
         <div
-            className={`${styles.frame} ${cameraViewportMode ? styles.frameMobileCamera : ''}`}
+            className={`${styles.frame} ${cameraViewportMode ? styles.frameMobileCamera : ''} ${
+                shuffleAnimating ? styles.frameShuffleAnimating : ''
+            }`}
             data-board-pan-x={renderedViewportState.panX.toFixed(4)}
             data-board-pan-y={renderedViewportState.panY.toFixed(4)}
             data-board-zoom={renderedViewportState.zoom.toFixed(4)}
@@ -875,9 +957,11 @@ const TileBoard = ({
                                     key={board.level}
                                     onTilePick={handleTileSelect}
                                     onViewportMetricsChange={handleStageViewportChange}
+                                    pinnedTileIds={pinnedTileIds}
                                     previewActive={previewActive}
                                     ref={sceneHandleRef}
                                     reduceMotion={reduceMotion}
+                                    shuffleMotionDeadlineMs={shuffleMotionDeadlineMs}
                                 />
                                 <TileBoardPostFx reduceMotion={reduceMotion} />
                             </Canvas>
@@ -888,6 +972,7 @@ const TileBoard = ({
                                 const locked = board.flippedTileIds.length === 2;
                                 const faceUp = tile.state !== 'hidden' || debugPeekActive || previewActive;
                                 const disabled = tile.state === 'matched' || !interactive || (locked && tile.state === 'hidden');
+                                const isPinned = pinnedTileIds.includes(tile.id);
                                 const { row, column } = getTilePosition(index, board.columns);
 
                                 return (
@@ -895,7 +980,8 @@ const TileBoard = ({
                                         aria-label={getTileAriaLabel(tile, faceUp, row, column)}
                                         className={`${styles.hitButton} ${faceUp ? styles.hitButtonFaceUp : ''} ${
                                             tile.state === 'matched' ? styles.hitButtonMatched : ''
-                                        }`}
+                                        } ${isPinned && tile.state === 'hidden' ? styles.hitButtonPinned : ''}`}
+                                        data-tile-id={tile.id}
                                         disabled={disabled}
                                         key={tile.id}
                                         onClick={() => handleTileSelect(tile.id)}
@@ -926,6 +1012,8 @@ const TileBoard = ({
             </div>
         </div>
     );
-};
+});
+
+TileBoard.displayName = 'TileBoard';
 
 export default TileBoard;

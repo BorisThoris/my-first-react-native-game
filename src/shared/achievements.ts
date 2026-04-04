@@ -53,7 +53,11 @@ export const evaluateAchievementUnlocks = (run: RunState, saveData: SaveData): A
         unlocked.push('ACH_SCORE_THOUSAND');
     }
 
-    if (run.lastLevelResult?.perfect && !saveData.achievements.ACH_PERFECT_CLEAR) {
+    if (
+        run.lastLevelResult?.perfect &&
+        !saveData.achievements.ACH_PERFECT_CLEAR &&
+        !run.powersUsedThisRun
+    ) {
         unlocked.push('ACH_PERFECT_CLEAR');
     }
 

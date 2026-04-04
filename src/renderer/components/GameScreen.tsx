@@ -1,5 +1,6 @@
 import { ACHIEVEMENTS } from '../../shared/achievements';
 import type { AchievementId, RunState } from '../../shared/contracts';
+import { canShuffleBoard } from '../../shared/game';
 import { useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { VIEWPORT_MOBILE_MAX, VIEWPORT_TIGHT_MAX_H, VIEWPORT_TIGHT_MAX_W } from '../breakpoints';
@@ -9,7 +10,7 @@ import { StatTile, UiButton } from '../ui';
 import { useAppStore } from '../store/useAppStore';
 import MainMenuBackground from './MainMenuBackground';
 import OverlayModal from './OverlayModal';
-import TileBoard from './TileBoard';
+import TileBoard, { type TileBoardHandle } from './TileBoard';
 import styles from './GameScreen.module.css';
 
 interface GameScreenProps {
@@ -19,7 +20,10 @@ interface GameScreenProps {
 }
 
 const FORGIVENESS_HINT =
-    'First miss each floor is free. Every 2-pair chain earns a shard. 3 shards heal 1 life.';
+    'First miss each floor is free. Wrong pairs halve your streak (not zero). Lose a life → extra memorize next floor. Every 2-pair chain earns a shard; 3 shards heal 1 life.';
+
+const BOARD_POWER_HINT =
+    'Powers: Shuffle once per run (needs 2+ hidden pairs). Pin up to 3 hidden tiles. Destroy removes a pair for no score — earn charges on clean floors (≤1 miss), then tap Destroy and a tile.';
 
 const getClearLifeBonusLabel = (result: NonNullable<RunState['lastLevelResult']>): string | null => {
     if (result.clearLifeGained !== 1) {
@@ -74,22 +78,65 @@ const FitBoardIcon = () => (
     </svg>
 );
 
+const ShuffleIcon = () => (
+    <svg aria-hidden="true" className={styles.actionIcon} viewBox="0 0 24 24">
+        <path d="M4 8h4l2-3h6" />
+        <path d="M4 16h4l2 3h6" />
+        <path d="M17 5l3 3-3 3" />
+        <path d="M17 19l3-3-3-3" />
+    </svg>
+);
+
+const PinIcon = () => (
+    <svg aria-hidden="true" className={styles.actionIcon} viewBox="0 0 24 24">
+        <path d="M12 3v8" />
+        <path d="M8 11h8l-2 10H10L8 11Z" />
+    </svg>
+);
+
+const DestroyIcon = () => (
+    <svg aria-hidden="true" className={styles.actionIcon} viewBox="0 0 24 24">
+        <path d="M6 6l12 12" />
+        <path d="M18 6L6 18" />
+        <rect height="14" rx="1.5" width="10" x="7" y="5" />
+    </svg>
+);
+
 const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameScreenProps) => {
     const shellRef = useRef<HTMLElement | null>(null);
+    const tileBoardRef = useRef<TileBoardHandle>(null);
     const { height, width } = useViewportSize();
     const [viewportResetToken, setViewportResetToken] = useState(0);
-    const { continueToNextLevel, goToMenu, openSettings, pause, pressTile, resume, settings, triggerDebugReveal } =
-        useAppStore(
-            useShallow((state) => ({
-                continueToNextLevel: state.continueToNextLevel,
-                goToMenu: state.goToMenu,
-                openSettings: state.openSettings,
-                pause: state.pause,
-                pressTile: state.pressTile,
-                resume: state.resume,
-                settings: state.settings,
-                triggerDebugReveal: state.triggerDebugReveal
-            }))
+    const {
+        boardPinMode,
+        continueToNextLevel,
+        destroyPairArmed,
+        goToMenu,
+        openSettings,
+        pause,
+        pressTile,
+        resume,
+        settings,
+        shuffleBoard,
+        toggleBoardPinMode,
+        toggleDestroyPairArmed,
+        triggerDebugReveal
+    } = useAppStore(
+        useShallow((state) => ({
+            boardPinMode: state.boardPinMode,
+            continueToNextLevel: state.continueToNextLevel,
+            destroyPairArmed: state.destroyPairArmed,
+            goToMenu: state.goToMenu,
+            openSettings: state.openSettings,
+            pause: state.pause,
+            pressTile: state.pressTile,
+            resume: state.resume,
+            settings: state.settings,
+            shuffleBoard: state.shuffleBoard,
+            toggleBoardPinMode: state.toggleBoardPinMode,
+            toggleDestroyPairArmed: state.toggleDestroyPairArmed,
+            triggerDebugReveal: state.triggerDebugReveal
+        }))
     );
     const { tiltRef: gameFieldTiltRef } = usePlatformTiltField({
         enabled: true,
@@ -131,6 +178,16 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         (run.status === 'memorize' || run.status === 'playing') &&
         run.board.matchedPairs === 0 &&
         run.stats.tries === 0;
+    const showBoardPowerBar = run.status === 'playing';
+    const shuffleDisabled = !canShuffleBoard(run);
+    const shuffleTitle = shuffleDisabled
+        ? run.shuffleCharges < 1
+            ? 'No shuffle charges'
+            : run.board.flippedTileIds.length > 0
+              ? 'Finish the current flip first'
+              : 'Need at least two hidden pairs to shuffle'
+        : 'Shuffle hidden tiles (1 charge this run)';
+    const destroyDisabled = run.destroyPairCharges < 1 && !destroyPairArmed;
     return (
         <section
             className={`${styles.shell} ${cameraViewportMode ? styles.mobileCameraShell : ''}`}
@@ -215,20 +272,81 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         )}
                     </div>
                 </header>
+                {showBoardPowerBar ? (
+                    <div className={styles.powerBar} role="group" aria-label="Board powers">
+                        <button
+                            aria-label={`Shuffle hidden tiles. Charges: ${run.shuffleCharges}`}
+                            aria-pressed={false}
+                            className={`${styles.iconAction} ${styles.iconActionWithBadge}`}
+                            disabled={shuffleDisabled}
+                            onClick={() => {
+                                if (shuffleDisabled) {
+                                    return;
+                                }
+                                const handle = tileBoardRef.current;
+                                if (handle) {
+                                    handle.runShuffleAnimation(() => shuffleBoard());
+                                } else {
+                                    shuffleBoard();
+                                }
+                            }}
+                            title={shuffleTitle}
+                            type="button"
+                        >
+                            <ShuffleIcon />
+                            <span className={styles.powerBadge}>{run.shuffleCharges}</span>
+                        </button>
+                        <button
+                            aria-label={boardPinMode ? 'Exit pin mode' : 'Pin mode — tap tiles to mark'}
+                            aria-pressed={boardPinMode}
+                            className={`${styles.iconAction} ${boardPinMode ? styles.iconActionActive : ''}`}
+                            onClick={() => toggleBoardPinMode()}
+                            title="Pin up to 3 hidden tiles for planning"
+                            type="button"
+                        >
+                            <PinIcon />
+                        </button>
+                        <button
+                            aria-label={`Destroy a hidden pair. Charges: ${run.destroyPairCharges}. ${destroyPairArmed ? 'Tap a tile' : 'Arm then tap a tile'}`}
+                            aria-pressed={destroyPairArmed}
+                            className={`${styles.iconAction} ${styles.iconActionWithBadge} ${destroyPairArmed ? styles.iconActionActive : ''}`}
+                            disabled={destroyDisabled}
+                            onClick={() => toggleDestroyPairArmed()}
+                            title={
+                                run.destroyPairCharges < 1
+                                    ? 'Earn destroy charges on clean floors (≤1 miss)'
+                                    : destroyPairArmed
+                                      ? 'Tap a hidden tile to destroy its pair (no score)'
+                                      : 'Arm destroy, then tap a hidden tile'
+                            }
+                            type="button"
+                        >
+                            <DestroyIcon />
+                            <span className={styles.powerBadge}>{run.destroyPairCharges}</span>
+                        </button>
+                    </div>
+                ) : null}
                 {showForgivenessHint ? (
-                    <p className={styles.ruleHint} data-testid="forgiveness-hint" role="note">
-                        {FORGIVENESS_HINT}
-                    </p>
+                    <div className={styles.ruleHintStack}>
+                        <p className={styles.ruleHint} data-testid="forgiveness-hint" role="note">
+                            {FORGIVENESS_HINT}
+                        </p>
+                        <p className={styles.ruleHint} data-testid="board-power-hint" role="note">
+                            {BOARD_POWER_HINT}
+                        </p>
+                    </div>
                 ) : null}
 
                 <div className={`${styles.boardStage} ${cameraViewportMode ? styles.boardStageCamera : ''}`}>
                     <div className={styles.boardGlow} aria-hidden="true" />
                     <TileBoard
+                        ref={tileBoardRef}
                         board={run.board}
                         debugPeekActive={run.debugPeekActive}
                         interactive={run.status === 'playing'}
                         frameStyle={cameraViewportMode ? undefined : boardStyle}
                         mobileCameraMode={cameraViewportMode}
+                        pinnedTileIds={run.pinnedTileIds}
                         onTileSelect={(tileId) => {
                             if (run.status === 'playing') {
                                 pressTile(tileId);

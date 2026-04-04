@@ -3,6 +3,8 @@ import { evaluateAchievementUnlocks } from '../../shared/achievements';
 import type { AchievementId, RunState, SaveData, Settings, ViewState } from '../../shared/contracts';
 import {
     advanceToNextLevel,
+    applyDestroyPair,
+    applyShuffle,
     createNewRun,
     createRunSummary,
     disableDebugPeek,
@@ -11,7 +13,8 @@ import {
     flipTile,
     pauseRun,
     resolveBoardTurn,
-    resumeRun
+    resumeRun,
+    togglePinnedTile
 } from '../../shared/game';
 import { createDefaultSaveData, normalizeSaveData } from '../../shared/save-data';
 import { desktopClient } from '../desktop-client';
@@ -31,6 +34,8 @@ interface AppState {
     settings: Settings;
     run: RunState | null;
     newlyUnlockedAchievements: AchievementId[];
+    boardPinMode: boolean;
+    destroyPairArmed: boolean;
     hydrate: () => Promise<void>;
     startRun: () => void;
     goToMenu: () => void;
@@ -39,6 +44,9 @@ interface AppState {
     updateSettings: (settings: Settings) => Promise<void>;
     dismissHowToPlay: () => Promise<void>;
     pressTile: (tileId: string) => void;
+    shuffleBoard: () => void;
+    toggleBoardPinMode: () => void;
+    toggleDestroyPairArmed: () => void;
     pause: () => void;
     resume: () => void;
     continueToNextLevel: () => void;
@@ -271,6 +279,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     settings: createDefaultSaveData().settings,
     run: null,
     newlyUnlockedAchievements: [],
+    boardPinMode: false,
+    destroyPairArmed: false,
 
     hydrate: async () => {
         if (get().hydrating || get().hydrated) {
@@ -301,6 +311,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         set({
             view: 'playing',
             newlyUnlockedAchievements: [],
+            boardPinMode: false,
+            destroyPairArmed: false,
             run
         });
 
@@ -314,7 +326,9 @@ export const useAppStore = create<AppState>((set, get) => ({
         set({
             view: 'menu',
             run: null,
-            newlyUnlockedAchievements: []
+            newlyUnlockedAchievements: [],
+            boardPinMode: false,
+            destroyPairArmed: false
         });
     },
 
@@ -386,9 +400,31 @@ export const useAppStore = create<AppState>((set, get) => ({
     },
 
     pressTile: (tileId) => {
-        const { run, view } = get();
+        const { run, view, boardPinMode, destroyPairArmed } = get();
 
         if (!run || view !== 'playing' || run.status !== 'playing') {
+            return;
+        }
+
+        if (boardPinMode) {
+            const nextRun = togglePinnedTile(run, tileId);
+            if (nextRun !== run) {
+                set({ run: nextRun });
+            }
+            return;
+        }
+
+        if (destroyPairArmed) {
+            const nextRun = applyDestroyPair(run, tileId);
+            if (nextRun === run) {
+                return;
+            }
+
+            set({ run: nextRun, destroyPairArmed: false });
+
+            if (nextRun.status === 'levelComplete' || nextRun.status === 'gameOver') {
+                applyResolvedRun(nextRun);
+            }
             return;
         }
 
@@ -403,6 +439,35 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (nextRun.status === 'resolving' && nextRun.timerState.resolveRemainingMs !== null) {
             scheduleResolveTimer(nextRun.timerState.resolveRemainingMs);
         }
+    },
+
+    shuffleBoard: () => {
+        const { run, view } = get();
+
+        if (!run || view !== 'playing' || run.status !== 'playing') {
+            return;
+        }
+
+        const nextRun = applyShuffle(run);
+        if (nextRun !== run) {
+            set({ run: nextRun });
+        }
+    },
+
+    toggleBoardPinMode: () => {
+        const { boardPinMode } = get();
+        set({
+            boardPinMode: !boardPinMode,
+            destroyPairArmed: false
+        });
+    },
+
+    toggleDestroyPairArmed: () => {
+        const { destroyPairArmed } = get();
+        set({
+            destroyPairArmed: !destroyPairArmed,
+            boardPinMode: false
+        });
     },
 
     pause: () => {
@@ -440,6 +505,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         set({
             newlyUnlockedAchievements: [],
             view: 'playing',
+            boardPinMode: false,
+            destroyPairArmed: false,
             run: nextRun
         });
 
@@ -455,6 +522,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         set({
             view: 'playing',
             newlyUnlockedAchievements: [],
+            boardPinMode: false,
+            destroyPairArmed: false,
             run
         });
 
@@ -468,7 +537,9 @@ export const useAppStore = create<AppState>((set, get) => ({
         set({
             view: 'menu',
             run: null,
-            newlyUnlockedAchievements: []
+            newlyUnlockedAchievements: [],
+            boardPinMode: false,
+            destroyPairArmed: false
         });
     },
 

@@ -45,8 +45,11 @@ interface TileBoardSceneProps {
     interactive: boolean;
     onTilePick: (tileId: string) => void;
     onViewportMetricsChange: (viewport: { width: number; height: number }) => void;
+    pinnedTileIds: string[];
     previewActive: boolean;
     reduceMotion: boolean;
+    /** Wall-clock ms; while `now < deadline`, tile groups ease XY toward layout targets (shuffle). */
+    shuffleMotionDeadlineMs: number;
 }
 
 interface TileBezelProps {
@@ -57,8 +60,10 @@ interface TileBezelProps {
     hoverTiltRef: MutableRefObject<TileHoverTiltState>;
     interactionSuppressed: boolean;
     interactive: boolean;
+    isPinned: boolean;
     onTilePick: (tileId: string) => void;
     reduceMotion: boolean;
+    shuffleMotionDeadlineMs: number;
     textureRevision: number;
     tile: Tile;
     transform: TileTransform;
@@ -288,8 +293,10 @@ const TileBezel = ({
     hoverTiltRef,
     interactionSuppressed,
     interactive,
+    isPinned,
     onTilePick,
     reduceMotion,
+    shuffleMotionDeadlineMs,
     textureRevision,
     tile,
     transform
@@ -647,13 +654,29 @@ const TileBezel = ({
             delta
         );
         group.rotation.y = reduceMotion ? transform.targetRotation : MathUtils.damp(group.rotation.y, transform.targetRotation, rotationDamp, delta);
-        group.position.x = transform.baseX + transform.imperfectionX;
-        group.position.y = transform.baseY + transform.imperfectionY + targetLift + hoverLift + fieldLift + idleDrift + settle;
-        group.position.z = targetDepth + hoverDepth + fieldDepth;
+        const targetX = transform.baseX + transform.imperfectionX;
+        const targetY = transform.baseY + transform.imperfectionY + targetLift + hoverLift + fieldLift + idleDrift + settle;
+        const targetZ = targetDepth + hoverDepth + fieldDepth;
+        const now = performance.now();
+        const shuffleLayoutActive =
+            !reduceMotion && shuffleMotionDeadlineMs > 0 && now < shuffleMotionDeadlineMs;
+        const posLambda = shuffleLayoutActive ? 9 : 200;
+
+        if (shuffleLayoutActive) {
+            group.position.x = MathUtils.damp(group.position.x, targetX, posLambda, delta);
+            group.position.y = MathUtils.damp(group.position.y, targetY, posLambda, delta);
+            group.position.z = MathUtils.damp(group.position.z, targetZ, posLambda, delta);
+        } else {
+            group.position.x = targetX;
+            group.position.y = targetY;
+            group.position.z = targetZ;
+        }
         group.scale.x = group.scale.y = group.scale.z = transform.baseScale;
     });
 
     const surfaceVariant = getSurfaceVariant(tile, faceUp);
+    const hiddenPinned = isPinned && tile.state === 'hidden';
+    const cardTint = hiddenPinned ? '#d4b870' : '#ffffff';
     /** Same bitmap as the face-down side: static reference PNG only. Face-up adds nothing here—only the overlay mesh draws the symbol. */
     const cardArtTexture = getCardBackStaticTexture();
     const overlayTexture = surfaceVariant === 'hidden' ? null : getTileFaceOverlayTexture(tile, surfaceVariant === 'matched' ? 'matched' : 'active');
@@ -686,7 +709,7 @@ const TileBezel = ({
                 <mesh geometry={frontGeometry} position={[0, 0, faceZ]} raycast={noopMeshRaycast}>
                     <meshBasicMaterial
                         alphaTest={0.06}
-                        color="#ffffff"
+                        color={cardTint}
                         depthWrite
                         map={cardArtTexture ?? undefined}
                         side={DoubleSide}
@@ -717,7 +740,7 @@ const TileBezel = ({
                 <mesh geometry={backGeometry} position={[0, 0, -faceZ]} rotation={[0, Math.PI, 0]} raycast={noopMeshRaycast}>
                     <meshBasicMaterial
                         alphaTest={0.06}
-                        color="#ffffff"
+                        color={cardTint}
                         depthWrite
                         map={cardArtTexture ?? undefined}
                         side={DoubleSide}
@@ -774,8 +797,10 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
     interactive,
     onTilePick,
     onViewportMetricsChange,
+    pinnedTileIds,
     previewActive,
-    reduceMotion
+    reduceMotion,
+    shuffleMotionDeadlineMs
 }: TileBoardSceneProps, ref) => {
     const { camera, gl, viewport } = useThree();
     const { colors } = RENDERER_THEME;
@@ -783,6 +808,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
     const totalRows = board.rows;
     const [textureRevision, setTextureRevision] = useState(0);
     const flipLocked = board.flippedTileIds.length === 2;
+    const pinnedSet = useMemo(() => new Set(pinnedTileIds), [pinnedTileIds]);
     const boardGroupRef = useRef<Group | null>(null);
     const pickRaycasterRef = useRef<Raycaster>(new Raycaster());
     const pickPointerRef = useRef<Vector2>(new Vector2());
@@ -897,9 +923,11 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                             hoverTiltRef={hoverTiltRef}
                             interactionSuppressed={interactionSuppressed}
                             interactive={interactive}
+                            isPinned={pinnedSet.has(tile.id)}
                             key={tile.id}
                             onTilePick={onTilePick}
                             reduceMotion={reduceMotion}
+                            shuffleMotionDeadlineMs={shuffleMotionDeadlineMs}
                             textureRevision={textureRevision}
                             tile={tile}
                             transform={transform}

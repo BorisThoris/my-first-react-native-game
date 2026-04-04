@@ -14,7 +14,9 @@ const resetStore = (): void => {
         saveData,
         settings: saveData.settings,
         run: null,
-        newlyUnlockedAchievements: []
+        newlyUnlockedAchievements: [],
+        boardPinMode: false,
+        destroyPairArmed: false
     });
 };
 

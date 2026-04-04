@@ -35,6 +35,33 @@ describe('achievement rules', () => {
         ]);
     });
 
+    it('does not unlock perfect clear when board powers were used this run', () => {
+        const run = {
+            ...createNewRun(0),
+            powersUsedThisRun: true,
+            stats: {
+                ...createNewRun(0).stats,
+                totalScore: 1100,
+                levelsCleared: 5,
+                highestLevel: 5
+            },
+            lastLevelResult: {
+                level: 5,
+                scoreGained: 100,
+                rating: 'S++' as const,
+                livesRemaining: 3,
+                perfect: true,
+                mistakes: 0,
+                clearLifeReason: 'perfect' as const,
+                clearLifeGained: 0
+            }
+        };
+        const unlocked = evaluateAchievementUnlocks(run, createDefaultSaveData());
+
+        expect(unlocked).toEqual(['ACH_FIRST_CLEAR', 'ACH_LEVEL_FIVE', 'ACH_SCORE_THOUSAND']);
+        expect(unlocked).not.toContain('ACH_PERFECT_CLEAR');
+    });
+
     it('returns no unlocks when achievements are disabled or already earned', () => {
         const run = {
             ...createNewRun(0),

@@ -3,11 +3,17 @@ import {
     COMBO_GUARD_STREAK_STEP,
     DEBUG_REVEAL_MS,
     INITIAL_LIVES,
+    INITIAL_SHUFFLE_CHARGES,
     MATCH_DELAY_MS,
     MAX_COMBO_SHARDS,
+    MAX_DESTROY_PAIR_BANK,
     MAX_GUARD_TOKENS,
     MAX_LIVES,
+    MAX_PENDING_MEMORIZE_BONUS_MS,
+    MAX_PINNED_TILES,
     MEMORIZE_BASE_MS,
+    MEMORIZE_BONUS_PER_LIFE_LOST_MS,
+    MEMORIZE_DECAY_EVERY_N_LEVELS,
     MEMORIZE_MIN_MS,
     MEMORIZE_STEP_MS,
     type AchievementId,
@@ -125,8 +131,10 @@ const createTimerState = (overrides?: Partial<RunState['timerState']>): RunState
 const getSymbolSetForLevel = (level: number): readonly SymbolEntry[] =>
     SYMBOL_SETS[Math.floor((level - 1) / 3) % SYMBOL_SETS.length];
 
-export const getMemorizeDuration = (level: number): number =>
-    Math.max(MEMORIZE_MIN_MS, MEMORIZE_BASE_MS - MEMORIZE_STEP_MS * Math.max(level - 1, 0));
+export const getMemorizeDuration = (level: number): number => {
+    const decaySteps = Math.floor(Math.max(level - 1, 0) / MEMORIZE_DECAY_EVERY_N_LEVELS);
+    return Math.max(MEMORIZE_MIN_MS, MEMORIZE_BASE_MS - MEMORIZE_STEP_MS * decaySteps);
+};
 
 export const calculateRating = (tries: number): Rating => {
     if (tries === 0) return 'S++';
@@ -189,7 +197,9 @@ const createSessionStats = (bestScore: number): SessionStats => ({
     bestStreak: 0,
     perfectClears: 0,
     guardTokens: 0,
-    comboShards: 0
+    comboShards: 0,
+    shufflesUsed: 0,
+    pairsDestroyed: 0
 });
 
 const createTiles = (level: number, pairCount: number): Tile[] => {
@@ -223,6 +233,109 @@ export const buildBoard = (level: number): BoardState => {
     };
 };
 
+/** Pairs where both tiles are still hidden (eligible for shuffle / destroy targeting). */
+export const countFullyHiddenPairs = (board: BoardState): number => {
+    const hiddenCountByKey = new Map<string, number>();
+
+    for (const tile of board.tiles) {
+        if (tile.state === 'hidden') {
+            hiddenCountByKey.set(tile.pairKey, (hiddenCountByKey.get(tile.pairKey) ?? 0) + 1);
+        }
+    }
+
+    let fullPairs = 0;
+    for (const count of hiddenCountByKey.values()) {
+        if (count >= 2) {
+            fullPairs += 1;
+        }
+    }
+
+    return fullPairs;
+};
+
+export const canShuffleBoard = (run: RunState): boolean =>
+    run.status === 'playing' &&
+    Boolean(run.board) &&
+    run.board!.flippedTileIds.length === 0 &&
+    run.shuffleCharges > 0 &&
+    countFullyHiddenPairs(run.board!) >= 2;
+
+export const canDestroyPair = (run: RunState, tileId: string): boolean => {
+    if (run.status !== 'playing' || !run.board || run.board.flippedTileIds.length !== 0 || run.destroyPairCharges <= 0) {
+        return false;
+    }
+
+    const tile = run.board.tiles.find((t) => t.id === tileId);
+    if (!tile || tile.state !== 'hidden') {
+        return false;
+    }
+
+    const pairTiles = run.board.tiles.filter((t) => t.pairKey === tile.pairKey);
+    return pairTiles.length === 2 && pairTiles.every((t) => t.state === 'hidden');
+};
+
+export const applyShuffle = (run: RunState): RunState => {
+    if (!canShuffleBoard(run) || !run.board) {
+        return run;
+    }
+
+    const hiddenIndices: number[] = [];
+    run.board.tiles.forEach((tile, index) => {
+        if (tile.state === 'hidden') {
+            hiddenIndices.push(index);
+        }
+    });
+
+    const hiddenTiles = hiddenIndices.map((index) => run.board!.tiles[index]);
+    const shuffled = shuffle(hiddenTiles);
+    const nextTiles = [...run.board.tiles];
+    hiddenIndices.forEach((index, slot) => {
+        nextTiles[index] = shuffled[slot]!;
+    });
+
+    return {
+        ...run,
+        powersUsedThisRun: true,
+        shuffleCharges: run.shuffleCharges - 1,
+        pinnedTileIds: [],
+        board: {
+            ...run.board,
+            tiles: nextTiles
+        },
+        stats: {
+            ...run.stats,
+            shufflesUsed: run.stats.shufflesUsed + 1
+        }
+    };
+};
+
+export const togglePinnedTile = (run: RunState, tileId: string): RunState => {
+    if (run.status !== 'playing' || !run.board) {
+        return run;
+    }
+
+    const tile = run.board.tiles.find((t) => t.id === tileId);
+    if (!tile || tile.state !== 'hidden') {
+        return run;
+    }
+
+    const isPinned = run.pinnedTileIds.includes(tileId);
+    let pinnedTileIds: string[];
+
+    if (isPinned) {
+        pinnedTileIds = run.pinnedTileIds.filter((id) => id !== tileId);
+    } else if (run.pinnedTileIds.length < MAX_PINNED_TILES) {
+        pinnedTileIds = [...run.pinnedTileIds, tileId];
+    } else {
+        return run;
+    }
+
+    return {
+        ...run,
+        pinnedTileIds
+    };
+};
+
 export const createNewRun = (bestScore: number): RunState => ({
     status: 'memorize',
     lives: INITIAL_LIVES,
@@ -231,6 +344,11 @@ export const createNewRun = (bestScore: number): RunState => ({
     achievementsEnabled: true,
     debugUsed: false,
     debugPeekActive: false,
+    pendingMemorizeBonusMs: 0,
+    shuffleCharges: INITIAL_SHUFFLE_CHARGES,
+    destroyPairCharges: 0,
+    pinnedTileIds: [],
+    powersUsedThisRun: false,
     timerState: createTimerState({ memorizeRemainingMs: getMemorizeDuration(1) }),
     lastLevelResult: null,
     lastRunSummary: null
@@ -330,6 +448,40 @@ const finalizeLevel = (run: RunState, board: BoardState): RunState => {
     };
 };
 
+export const applyDestroyPair = (run: RunState, tileId: string): RunState => {
+    if (!canDestroyPair(run, tileId) || !run.board) {
+        return run;
+    }
+
+    const tile = run.board.tiles.find((t) => t.id === tileId)!;
+    const pairTileIds = run.board.tiles.filter((t) => t.pairKey === tile.pairKey).map((t) => t.id);
+
+    const board: BoardState = {
+        ...run.board,
+        matchedPairs: run.board.matchedPairs + 1,
+        tiles: run.board.tiles.map((t) =>
+            pairTileIds.includes(t.id) ? { ...t, state: 'matched' as const } : t
+        )
+    };
+
+    const pinnedTileIds = run.pinnedTileIds.filter((id) => !pairTileIds.includes(id));
+
+    const nextRun: RunState = {
+        ...run,
+        powersUsedThisRun: true,
+        destroyPairCharges: run.destroyPairCharges - 1,
+        pinnedTileIds,
+        board,
+        stats: {
+            ...run.stats,
+            matchesFound: run.stats.matchesFound + 1,
+            pairsDestroyed: run.stats.pairsDestroyed + 1
+        }
+    };
+
+    return board.matchedPairs === board.pairCount ? finalizeLevel(nextRun, board) : nextRun;
+};
+
 const clearResolveState = (run: RunState): RunState['timerState'] => ({
     ...run.timerState,
     resolveRemainingMs: null,
@@ -371,11 +523,14 @@ export const resolveBoardTurn = (run: RunState): RunState => {
         const currentLevelScore = run.stats.currentLevelScore + matchScore;
         const bestScore = Math.max(run.stats.bestScore, totalScore);
 
+        const matchedPinsFiltered = run.pinnedTileIds.filter((id) => id !== firstId && id !== secondId);
+
         const nextRun: RunState = {
             ...run,
             status: 'playing',
             lives,
             board,
+            pinnedTileIds: matchedPinsFiltered,
             stats: {
                 ...run.stats,
                 totalScore,
@@ -397,7 +552,8 @@ export const resolveBoardTurn = (run: RunState): RunState => {
     const tries = run.stats.tries + 1;
     const hasGraceMismatch = run.stats.tries === 0;
     const consumesGuardToken = !hasGraceMismatch && run.stats.guardTokens > 0;
-    const lives = hasGraceMismatch || consumesGuardToken ? run.lives : run.lives - 1;
+    const lostLife = !hasGraceMismatch && !consumesGuardToken;
+    const lives = lostLife ? run.lives - 1 : run.lives;
     const board: BoardState = {
         ...run.board,
         flippedTileIds: [],
@@ -408,16 +564,24 @@ export const resolveBoardTurn = (run: RunState): RunState => {
     const status = lives <= 0 ? 'gameOver' : 'playing';
     const guardTokens = consumesGuardToken ? run.stats.guardTokens - 1 : run.stats.guardTokens;
 
+    const pendingMemorizeBonusMs = lostLife
+        ? Math.min(
+              MAX_PENDING_MEMORIZE_BONUS_MS,
+              run.pendingMemorizeBonusMs + MEMORIZE_BONUS_PER_LIFE_LOST_MS
+          )
+        : run.pendingMemorizeBonusMs;
+
     return {
         ...run,
         status,
         lives: Math.max(lives, 0),
         board,
+        pendingMemorizeBonusMs,
         stats: {
             ...run.stats,
             tries,
             mismatches: run.stats.mismatches + 1,
-            currentStreak: 0,
+            currentStreak: Math.floor(run.stats.currentStreak / 2),
             rating: calculateRating(tries),
             highestLevel: Math.max(run.stats.highestLevel, board.level),
             guardTokens
@@ -431,14 +595,26 @@ export const advanceToNextLevel = (run: RunState): RunState => {
         return run;
     }
 
+    const cleanClearDestroyBonus =
+        run.lastLevelResult !== null && run.lastLevelResult.mistakes <= 1 ? 1 : 0;
+    const nextDestroyPairCharges = Math.min(
+        MAX_DESTROY_PAIR_BANK,
+        run.destroyPairCharges + cleanClearDestroyBonus
+    );
+
     const nextBoard = buildBoard(run.board.level + 1);
+    const baseMemorizeMs = getMemorizeDuration(nextBoard.level);
+    const memorizeWithBonus = baseMemorizeMs + run.pendingMemorizeBonusMs;
 
     return {
         ...run,
         status: 'memorize',
         board: nextBoard,
         debugPeekActive: false,
-        timerState: createTimerState({ memorizeRemainingMs: getMemorizeDuration(nextBoard.level) }),
+        pendingMemorizeBonusMs: 0,
+        pinnedTileIds: [],
+        destroyPairCharges: nextDestroyPairCharges,
+        timerState: createTimerState({ memorizeRemainingMs: memorizeWithBonus }),
         lastLevelResult: null,
         stats: {
             ...run.stats,
