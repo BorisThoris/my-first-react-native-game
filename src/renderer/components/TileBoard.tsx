@@ -14,7 +14,7 @@ import {
     type ReactNode
 } from 'react';
 import { flushSync } from 'react-dom';
-import type { BoardState, Tile } from '../../shared/contracts';
+import type { BoardState, RunStatus, Tile } from '../../shared/contracts';
 import { useCoarsePointer } from '../hooks/useCoarsePointer';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
@@ -56,6 +56,15 @@ interface TileBoardProps {
     reduceMotion: boolean;
     viewportResetToken: number;
     frameStyle?: CSSProperties;
+    /** Hidden tiles to dim when focus-assist is on (fallback 2D board only). */
+    dimmedTileIds?: ReadonlySet<string>;
+    peekRevealedTileIds?: string[];
+    allowGambitThirdFlip?: boolean;
+    wideRecallInPlay?: boolean;
+    silhouetteDuringPlay?: boolean;
+    nBackAnchorPairKey?: string | null;
+    nBackMutatorActive?: boolean;
+    runStatus?: RunStatus;
     onTileSelect: (tileId: string, event?: MouseEvent<HTMLButtonElement>) => void;
 }
 
@@ -67,6 +76,14 @@ interface TileBoardFallbackProps {
     onHoverMove: (tileId: string, event: ReactPointerEvent<HTMLButtonElement>) => void;
     pinnedTileIds: string[];
     previewActive: boolean;
+    dimmedTileIds?: ReadonlySet<string>;
+    peekRevealedTileIds?: string[];
+    allowGambitThirdFlip?: boolean;
+    wideRecallInPlay?: boolean;
+    silhouetteDuringPlay?: boolean;
+    nBackAnchorPairKey?: string | null;
+    nBackMutatorActive?: boolean;
+    runStatus?: RunStatus;
     onTileSelect: (tileId: string, event?: MouseEvent<HTMLButtonElement>) => void;
     tileGridStyle: CSSProperties;
 }
@@ -131,13 +148,20 @@ const canUseWebGL = (): boolean => {
     }
 };
 
-const getTileClassName = (tile: Tile, faceUp: boolean, locked: boolean, isPinned: boolean): string =>
+const getTileClassName = (
+    tile: Tile,
+    faceUp: boolean,
+    locked: boolean,
+    isPinned: boolean,
+    isFocusDimmed: boolean
+): string =>
     [
         styles.fallbackTile,
         faceUp ? styles.faceUp : '',
         tile.state === 'matched' ? styles.matched : '',
         locked && tile.state === 'hidden' ? styles.locked : '',
-        isPinned && tile.state === 'hidden' ? styles.fallbackTilePinned : ''
+        isPinned && tile.state === 'hidden' ? styles.fallbackTilePinned : '',
+        isFocusDimmed ? styles.tileFocusDim : ''
     ]
         .filter(Boolean)
         .join(' ');
@@ -163,6 +187,8 @@ const getTouchCentroid = (first: TouchPoint, second: TouchPoint): TouchPoint => 
 const getTouchDistance = (first: TouchPoint, second: TouchPoint): number =>
     Math.max(1, Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY));
 
+const ATOMIC_PAIR_CLASSES = [styles.atomicPair0, styles.atomicPair1, styles.atomicPair2, styles.atomicPair3];
+
 const TileBoardFallback = ({
     board,
     debugPeekActive,
@@ -171,28 +197,55 @@ const TileBoardFallback = ({
     onHoverMove,
     pinnedTileIds,
     previewActive,
+    dimmedTileIds,
+    peekRevealedTileIds = [],
+    allowGambitThirdFlip = false,
+    wideRecallInPlay = false,
+    silhouetteDuringPlay = false,
+    nBackAnchorPairKey = null,
+    nBackMutatorActive = false,
+    runStatus = 'playing',
     onTileSelect,
     tileGridStyle
 }: TileBoardFallbackProps) => {
-    const locked = board.flippedTileIds.length === 2;
+    const flippedN = board.flippedTileIds.length;
+    const locked = flippedN >= 2 && !(allowGambitThirdFlip && flippedN === 2);
     const pinnedSet = useMemo(() => new Set(pinnedTileIds), [pinnedTileIds]);
+    const peekSet = useMemo(() => new Set(peekRevealedTileIds), [peekRevealedTileIds]);
 
     return (
         <div className={styles.fallbackBoard} data-testid="tile-board-fallback" style={tileGridStyle}>
             {board.tiles.map((tile, index) => {
+                if (tile.state === 'removed') {
+                    return <div aria-hidden className={styles.tileRemovedSlot} key={tile.id} />;
+                }
                 const disabled = tile.state === 'matched' || !interactive || (locked && tile.state === 'hidden');
-                const faceUp = tile.state !== 'hidden' || debugPeekActive || previewActive;
+                const peekFace = tile.state === 'hidden' && peekSet.has(tile.id);
+                const faceUp = tile.state !== 'hidden' || debugPeekActive || previewActive || peekFace;
                 const isPinned = pinnedSet.has(tile.id);
+                const isFocusDimmed = Boolean(dimmedTileIds?.has(tile.id));
                 const { row, column } = getTilePosition(index, board.columns);
                 const labelText = tile.label.toUpperCase();
                 const showFrontLabel = labelText !== tile.symbol.toUpperCase();
+                const showWideRecallStyle = wideRecallInPlay && runStatus === 'playing' && faceUp && tile.state === 'flipped';
+                const silhouetteClass = silhouetteDuringPlay && runStatus === 'playing' && faceUp ? styles.silhouetteFace : '';
+                const atomicClass =
+                    tile.atomicVariant != null ? ATOMIC_PAIR_CLASSES[tile.atomicVariant % ATOMIC_PAIR_CLASSES.length] ?? '' : '';
+                const nBackClass =
+                    nBackMutatorActive &&
+                    nBackAnchorPairKey &&
+                    tile.pairKey === nBackAnchorPairKey &&
+                    tile.state === 'hidden' &&
+                    !previewActive
+                        ? styles.nBackAnchorTile
+                        : '';
 
                 const fieldAmp = getTileFieldAmplification(index, board.columns, board.rows);
 
                 return (
                     <button
                         aria-label={getTileAriaLabel(tile, faceUp, row, column)}
-                        className={getTileClassName(tile, faceUp, locked, isPinned)}
+                        className={`${getTileClassName(tile, faceUp, locked, isPinned, isFocusDimmed)} ${atomicClass} ${nBackClass}`.trim()}
                         data-tile-id={tile.id}
                         disabled={disabled}
                         key={tile.id}
@@ -206,9 +259,15 @@ const TileBoardFallback = ({
                         <span className={styles.tileFace}>
                             <span className={styles.pulseGlow} />
                             {faceUp ? (
-                                <span className={styles.cardBack} data-testid="tile-card-face">
-                                    <span className={styles.tileSymbol}>{tile.symbol}</span>
-                                    {showFrontLabel ? <span className={styles.cardFaceLabel}>{labelText}</span> : null}
+                                <span className={`${styles.cardBack} ${silhouetteClass}`.trim()} data-testid="tile-card-face">
+                                    <span
+                                        className={`${styles.tileSymbol} ${showWideRecallStyle ? styles.wideRecallDeemphSymbol : ''}`.trim()}
+                                    >
+                                        {tile.symbol}
+                                    </span>
+                                    {showFrontLabel || showWideRecallStyle ? (
+                                        <span className={styles.cardFaceLabel}>{labelText}</span>
+                                    ) : null}
                                 </span>
                             ) : (
                                 <span aria-hidden="true" className={styles.cardBack} data-testid="tile-card-face" />
@@ -244,6 +303,14 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         reduceMotion,
         viewportResetToken,
         frameStyle,
+        dimmedTileIds,
+        peekRevealedTileIds = [],
+        allowGambitThirdFlip = false,
+        wideRecallInPlay = false,
+        silhouetteDuringPlay = false,
+        nBackAnchorPairKey = null,
+        nBackMutatorActive = false,
+        runStatus = 'playing',
         onTileSelect
     },
     ref
@@ -897,15 +964,23 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
 
     const fallback = (
         <TileBoardFallback
+            allowGambitThirdFlip={allowGambitThirdFlip}
             board={board}
             debugPeekActive={debugPeekActive}
+            dimmedTileIds={dimmedTileIds}
             interactive={interactive}
+            nBackAnchorPairKey={nBackAnchorPairKey}
+            nBackMutatorActive={nBackMutatorActive}
             onHoverLeave={clearHoverTilt}
             onHoverMove={updateHoverTilt}
-            pinnedTileIds={pinnedTileIds}
             onTileSelect={handleTileSelect}
+            peekRevealedTileIds={peekRevealedTileIds}
+            pinnedTileIds={pinnedTileIds}
             previewActive={previewActive}
+            runStatus={runStatus}
+            silhouetteDuringPlay={silhouetteDuringPlay}
             tileGridStyle={tileGridStyle}
+            wideRecallInPlay={wideRecallInPlay}
         />
     );
 

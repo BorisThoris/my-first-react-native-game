@@ -16,7 +16,8 @@ const resetStore = (): void => {
         run: null,
         newlyUnlockedAchievements: [],
         boardPinMode: false,
-        destroyPairArmed: false
+        destroyPairArmed: false,
+        peekModeArmed: false
     });
 };
 
@@ -68,7 +69,7 @@ describe('useAppStore timers', () => {
         expect(useAppStore.getState().view).toBe('playing');
         expect(useAppStore.getState().run?.status).toBe('resolving');
 
-        await vi.advanceTimersByTimeAsync(900);
+        await vi.advanceTimersByTimeAsync(1400);
 
         expect(useAppStore.getState().run?.status).toBe('playing');
         expect(useAppStore.getState().run?.stats.tries).toBe(1);

@@ -2,9 +2,12 @@ import {
     SAVE_SCHEMA_VERSION,
     type AchievementId,
     type AchievementState,
+    type PlayerStatsPersisted,
+    type RelicId,
     type SaveData,
     type Settings
 } from './contracts';
+import { utcDateKeyMinusOneDay } from './rng';
 
 export const DEFAULT_SETTINGS: Settings = {
     masterVolume: 0.8,
@@ -17,7 +20,14 @@ export const DEFAULT_SETTINGS: Settings = {
         showDebugTools: false,
         allowBoardReveal: false,
         disableAchievementsOnDebug: true
-    }
+    },
+    boardPresentation: 'standard',
+    tileFocusAssist: false,
+    resolveDelayMultiplier: 1,
+    weakerShuffleMode: 'full',
+    echoFeedbackEnabled: true,
+    distractionChannelEnabled: false,
+    shuffleScoreTaxEnabled: false
 };
 
 export const ACHIEVEMENT_IDS: AchievementId[] = [
@@ -37,13 +47,25 @@ export const createAchievementState = (): AchievementState =>
         {} as AchievementState
     );
 
+const defaultPlayerStats = (): PlayerStatsPersisted => ({
+    bestFloorNoPowers: 0,
+    dailiesCompleted: 0,
+    lastDailyDateKeyUtc: null,
+    dailyStreakCosmetic: 0,
+    relicPickCounts: {},
+    encorePairKeysLastRun: []
+});
+
 export const createDefaultSaveData = (): SaveData => ({
     schemaVersion: SAVE_SCHEMA_VERSION,
     bestScore: 0,
     achievements: createAchievementState(),
     settings: { ...DEFAULT_SETTINGS, debugFlags: { ...DEFAULT_SETTINGS.debugFlags } },
     onboardingDismissed: false,
-    lastRunSummary: null
+    lastRunSummary: null,
+    playerStats: defaultPlayerStats(),
+    unlocks: [],
+    powersFtueSeen: false
 });
 
 export const normalizeSaveData = (input?: Partial<SaveData> | null): SaveData => {
@@ -69,6 +91,67 @@ export const normalizeSaveData = (input?: Partial<SaveData> | null): SaveData =>
             }
         },
         onboardingDismissed: typeof input.onboardingDismissed === 'boolean' ? input.onboardingDismissed : defaults.onboardingDismissed,
-        lastRunSummary: input.lastRunSummary ?? defaults.lastRunSummary
+        lastRunSummary: input.lastRunSummary ?? defaults.lastRunSummary,
+        playerStats: {
+            ...defaultPlayerStats(),
+            ...(input.playerStats ?? {}),
+            encorePairKeysLastRun: Array.isArray(input.playerStats?.encorePairKeysLastRun)
+                ? input.playerStats.encorePairKeysLastRun
+                : defaultPlayerStats().encorePairKeysLastRun
+        },
+        unlocks: Array.isArray(input.unlocks) ? input.unlocks : defaults.unlocks ?? [],
+        powersFtueSeen: typeof input.powersFtueSeen === 'boolean' ? input.powersFtueSeen : defaults.powersFtueSeen ?? false
     };
+};
+
+export const mergeDailyComplete = (save: SaveData, completedDateKeyUtc: string): SaveData => {
+    const ps = save.playerStats ?? defaultPlayerStats();
+    if (ps.lastDailyDateKeyUtc === completedDateKeyUtc) {
+        return save;
+    }
+    const prev = ps.lastDailyDateKeyUtc;
+    const streak =
+        prev === utcDateKeyMinusOneDay(completedDateKeyUtc) ? ps.dailyStreakCosmetic + 1 : 1;
+
+    return normalizeSaveData({
+        ...save,
+        playerStats: {
+            ...ps,
+            dailiesCompleted: ps.dailiesCompleted + 1,
+            lastDailyDateKeyUtc: completedDateKeyUtc,
+            dailyStreakCosmetic: streak
+        }
+    });
+};
+
+export const mergeBestFloorNoPowers = (save: SaveData, floor: number): SaveData => {
+    const ps = save.playerStats ?? defaultPlayerStats();
+    if (floor <= ps.bestFloorNoPowers) {
+        return save;
+    }
+    return normalizeSaveData({
+        ...save,
+        playerStats: { ...ps, bestFloorNoPowers: floor }
+    });
+};
+
+export const mergeEncoreFromRun = (save: SaveData, pairKeys: string[]): SaveData => {
+    const ps = save.playerStats ?? defaultPlayerStats();
+    const unique = [...new Set(pairKeys)].slice(0, 80);
+    return normalizeSaveData({
+        ...save,
+        playerStats: { ...ps, encorePairKeysLastRun: unique }
+    });
+};
+
+export const mergeRelicPickStat = (save: SaveData, relicId: RelicId): SaveData => {
+    const ps = save.playerStats ?? defaultPlayerStats();
+    const relicPickCounts: PlayerStatsPersisted['relicPickCounts'] = {
+        ...ps.relicPickCounts,
+        [relicId]: (ps.relicPickCounts[relicId] ?? 0) + 1
+    };
+    return normalizeSaveData({
+        ...save,
+        playerStats: { ...ps, relicPickCounts }
+    });
 };

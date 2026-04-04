@@ -18,26 +18,42 @@ const App = () => {
         dismissHowToPlay,
         hydrated,
         hydrate,
+        importRunFromClipboard,
         newlyUnlockedAchievements,
         openSettings,
         run,
         saveData,
         settingsReturnView,
         settings,
+        startDailyRun,
+        startGauntletRun,
+        startMeditationRun,
+        startPracticeRun,
+        startPuzzleRun,
         startRun,
+        startScholarContractRun,
+        startWildRun,
         view
     } = useAppStore(
         useShallow((state) => ({
             dismissHowToPlay: state.dismissHowToPlay,
             hydrated: state.hydrated,
             hydrate: state.hydrate,
+            importRunFromClipboard: state.importRunFromClipboard,
             newlyUnlockedAchievements: state.newlyUnlockedAchievements,
             openSettings: state.openSettings,
             run: state.run,
             saveData: state.saveData,
             settingsReturnView: state.settingsReturnView,
             settings: state.settings,
+            startDailyRun: state.startDailyRun,
+            startGauntletRun: state.startGauntletRun,
+            startMeditationRun: state.startMeditationRun,
+            startPracticeRun: state.startPracticeRun,
+            startPuzzleRun: state.startPuzzleRun,
             startRun: state.startRun,
+            startScholarContractRun: state.startScholarContractRun,
+            startWildRun: state.startWildRun,
             view: state.view
         }))
     );
@@ -87,11 +103,36 @@ const App = () => {
                             <MainMenu
                                 bestScore={saveData.bestScore}
                                 lastRunSummary={saveData.lastRunSummary}
+                                saveData={saveData}
                                 reduceMotion={settings.reduceMotion}
                                 suppressMenuBackgroundFallback={introOverlayVisible}
                                 onDismissHowToPlay={dismissHowToPlay}
                                 onOpenSettings={() => openSettings('menu')}
                                 onPlay={startRun}
+                                onDailyRun={startDailyRun}
+                                onGauntletRun={startGauntletRun}
+                                onPuzzleStarter={() => startPuzzleRun('starter_pairs')}
+                                onMirrorPuzzleRun={() => startPuzzleRun('mirror_craft')}
+                                onPracticeRun={startPracticeRun}
+                                onScholarContractRun={startScholarContractRun}
+                                onMeditationRun={startMeditationRun}
+                                onWildRun={startWildRun}
+                                onImportRun={() => {
+                                    const raw = window.prompt(
+                                        'Paste a Memory Dungeon run JSON (from Copy run seed on game over).'
+                                    );
+                                    if (raw === null) {
+                                        return;
+                                    }
+                                    const trimmed = raw.trim();
+                                    if (!trimmed) {
+                                        return;
+                                    }
+                                    const ok = importRunFromClipboard(trimmed);
+                                    if (!ok) {
+                                        window.alert('Could not import that payload. Check the JSON and try again.');
+                                    }
+                                }}
                                 showHowToPlay={!saveData.onboardingDismissed}
                             />
                         ) : null}

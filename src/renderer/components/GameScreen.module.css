@@ -35,6 +35,36 @@
     padding: 0.45rem clamp(0.35rem, 1vw, 0.65rem) 0.45rem;
 }
 
+.ftueBanner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    padding: 0.45rem 0.65rem;
+    border-radius: var(--ui-radius-md, 10px);
+    background: rgba(12, 18, 28, 0.88);
+    border: 1px solid rgba(255, 214, 133, 0.28);
+    font-size: 0.72rem;
+    line-height: 1.35;
+    color: var(--theme-text, #e8ecf4);
+}
+
+.ftueDismiss {
+    margin-left: auto;
+    padding: 0.25rem 0.55rem;
+    border-radius: var(--ui-radius-pill, 999px);
+    border: 1px solid rgba(87, 220, 255, 0.45);
+    background: rgba(87, 220, 255, 0.12);
+    color: var(--theme-text, #e8ecf4);
+    font-size: 0.68rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ftueDismiss:hover {
+    background: rgba(87, 220, 255, 0.2);
+}
+
 /* Glass deck for run stats with lightweight icon actions on the opposite edge. */
 .hudRow {
     display: flex;
@@ -169,6 +199,50 @@
     z-index: 2;
 }
 
+.resolveBar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    width: 100%;
+    padding: 0.05rem 0 0.1rem;
+    position: relative;
+    z-index: 2;
+}
+
+.distractionHud {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 4;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding: 0.35rem 0.5rem;
+    font-size: 1.35rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: rgba(255, 214, 133, 0.22);
+    user-select: none;
+}
+
+.mutatorChip {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.12rem 0.38rem;
+    border-radius: var(--ui-radius-pill);
+    border: 1px solid rgba(186, 140, 255, 0.35);
+    background: rgba(24, 18, 40, 0.55);
+    color: rgba(232, 220, 255, 0.92);
+    max-width: 8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .ruleHint {
     align-self: center;
     margin: 0;
@@ -274,6 +348,32 @@
     width: 100%;
     position: relative;
     padding: 0.15rem 0 0.35rem;
+}
+
+.boardStageSpaghetti {
+    transform: perspective(880px) rotateX(5deg) skewX(-3.5deg);
+    transform-origin: center center;
+}
+
+@keyframes boardBreath {
+    0%,
+    100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.012);
+    }
+}
+
+.boardStageBreathing {
+    animation: boardBreath 5.5s ease-in-out infinite;
+    transform-origin: center center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .boardStageBreathing {
+        animation: none;
+    }
 }
 
 .mobileCameraShell {

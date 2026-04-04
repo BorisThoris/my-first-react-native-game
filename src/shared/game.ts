@@ -2,6 +2,7 @@ import {
     CHAIN_HEAL_STREAK_STEP,
     COMBO_GUARD_STREAK_STEP,
     DEBUG_REVEAL_MS,
+    GAME_RULES_VERSION,
     INITIAL_LIVES,
     INITIAL_SHUFFLE_CHARGES,
     MATCH_DELAY_MS,
@@ -19,13 +20,30 @@ import {
     type AchievementId,
     type BoardState,
     type ClearLifeReason,
+    type GameMode,
     type LevelResult,
+    type MutatorId,
     type Rating,
+    type RelicId,
     type ResumableRunStatus,
     type RunState,
+    type RunStatus,
     type SessionStats,
-    type Tile
+    type Tile,
+    type WeakerShuffleMode
 } from './contracts';
+import { DAILY_MUTATOR_TABLE, hasMutator } from './mutators';
+import { needsRelicPick, RELIC_MILESTONE_FLOORS, rollRelicOptions } from './relics';
+import type { RunExportPayload } from './run-export';
+import {
+    createMulberry32,
+    deriveDailyMutatorIndex,
+    deriveDailyRunSeed,
+    deriveLevelTileRngSeed,
+    deriveShuffleRngSeed,
+    formatDailyDateKeyUtc,
+    shuffleWithRng
+} from './rng';
 
 interface SymbolEntry {
     symbol: string;
@@ -106,19 +124,15 @@ const CALLSIGN_SYMBOLS: SymbolEntry[] = [
 const SYMBOL_SETS = [LETTER_SYMBOLS, NUMBER_SYMBOLS, CALLSIGN_SYMBOLS] as const;
 const COMBO_SHARD_STREAK_STEP = 2;
 const COMBO_SHARDS_PER_LIFE = 3;
+const DECOY_PAIR_KEY = '__decoy__';
+export const WILD_PAIR_KEY = '__wild__';
+const ECHO_EXTRA_RESOLVE_MS = 380;
+const SHUFFLE_SCORE_TAX_FACTOR = 0.94;
+const ENCORE_BONUS_SCORE = 18;
+const GAMBIT_FAIL_EXTRA_TRIES = 1;
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
 
-const shuffle = <T>(items: T[]): T[] => {
-    const next = [...items];
-
-    for (let index = next.length - 1; index > 0; index -= 1) {
-        const swapIndex = Math.floor(Math.random() * (index + 1));
-        [next[index], next[swapIndex]] = [next[swapIndex], next[index]];
-    }
-
-    return next;
-};
 
 const createTimerState = (overrides?: Partial<RunState['timerState']>): RunState['timerState'] => ({
     memorizeRemainingMs: null,
@@ -136,6 +150,20 @@ export const getMemorizeDuration = (level: number): number => {
     return Math.max(MEMORIZE_MIN_MS, MEMORIZE_BASE_MS - MEMORIZE_STEP_MS * decaySteps);
 };
 
+export const getMemorizeDurationForRun = (run: RunState, level: number): number => {
+    let ms = getMemorizeDuration(level);
+    if (hasMutator(run, 'short_memorize')) {
+        ms = Math.max(MEMORIZE_MIN_MS, ms - 350);
+    }
+    if (run.relicIds.includes('memorize_bonus_ms')) {
+        ms += 280;
+    }
+    if (run.gameMode === 'meditation') {
+        ms = Math.floor(ms * 1.55);
+    }
+    return ms;
+};
+
 export const calculateRating = (tries: number): Rating => {
     if (tries === 0) return 'S++';
     if (tries === 1) return 'S';
@@ -146,8 +174,63 @@ export const calculateRating = (tries: number): Rating => {
     return 'F';
 };
 
-export const calculateMatchScore = (level: number, currentStreak: number): number =>
-    20 + 5 * Math.max(level - 1, 0) + 10 * Math.max(currentStreak, 0);
+export const calculateMatchScore = (
+    level: number,
+    currentStreak: number,
+    multiplier: number = 1
+): number =>
+    Math.floor((20 + 5 * Math.max(level - 1, 0) + 10 * Math.max(currentStreak, 0)) * multiplier);
+
+const isWildPairKey = (pairKey: string): boolean => pairKey === WILD_PAIR_KEY;
+
+const tilesArePairMatch = (a: Tile, b: Tile): boolean => {
+    if (a.pairKey === b.pairKey && a.pairKey !== DECOY_PAIR_KEY) {
+        return true;
+    }
+    if (a.pairKey === DECOY_PAIR_KEY || b.pairKey === DECOY_PAIR_KEY) {
+        return false;
+    }
+    if (isWildPairKey(a.pairKey) && !isWildPairKey(b.pairKey)) {
+        return true;
+    }
+    if (isWildPairKey(b.pairKey) && !isWildPairKey(a.pairKey)) {
+        return true;
+    }
+    return false;
+};
+
+const atomicVariantForPairKey = (pairKey: string): number => {
+    let h = 0;
+    for (let i = 0; i < pairKey.length; i++) {
+        h = (h * 31 + pairKey.charCodeAt(i)) | 0;
+    }
+    return Math.abs(h) % 8;
+};
+
+/** Effective delay after two tiles are flipped (0 if immediate match). */
+export const computeFlipResolveDelayMs = (
+    run: RunState,
+    flippedTileIds: string[],
+    opts: { resolveDelayMultiplier: number; echoFeedbackEnabled: boolean }
+): number => {
+    if (flippedTileIds.length !== 2 || !run.board) {
+        return 0;
+    }
+    const [firstId, secondId] = flippedTileIds;
+    const firstTile = run.board.tiles.find((t) => t.id === firstId);
+    const secondTile = run.board.tiles.find((t) => t.id === secondId);
+    if (!firstTile || !secondTile) {
+        return 0;
+    }
+    if (tilesArePairMatch(firstTile, secondTile)) {
+        return 0;
+    }
+    let ms = MATCH_DELAY_MS * opts.resolveDelayMultiplier;
+    if (opts.echoFeedbackEnabled) {
+        ms += ECHO_EXTRA_RESOLVE_MS;
+    }
+    return ms;
+};
 
 export const calculateLevelClearBonus = (level: number): number => 50 * level;
 
@@ -202,22 +285,100 @@ const createSessionStats = (bestScore: number): SessionStats => ({
     pairsDestroyed: 0
 });
 
-const createTiles = (level: number, pairCount: number): Tile[] => {
-    const symbols = getSymbolSetForLevel(level).slice(0, pairCount);
-    const pairs = symbols.flatMap((entry, index) => {
+export interface BuildBoardOptions {
+    runSeed?: number;
+    runRulesVersion?: number;
+    activeMutators?: MutatorId[];
+    /** Puzzle mode: skip RNG; copy these tiles as-is. */
+    fixedTiles?: Tile[] | null;
+    /** H4: include one wild tile that pairs with any real symbol. */
+    includeWildTile?: boolean;
+}
+
+const createTiles = (
+    level: number,
+    pairCount: number,
+    runSeed: number,
+    rulesVersion: number,
+    mutators: MutatorId[],
+    includeWildTile?: boolean
+): Tile[] => {
+    const rng = createMulberry32(deriveLevelTileRngSeed(runSeed, level, rulesVersion));
+    const symbolSource = mutators.includes('category_letters') ? LETTER_SYMBOLS : getSymbolSetForLevel(level);
+    const symbols = symbolSource.slice(0, pairCount);
+    const pairs: Tile[] = symbols.flatMap((entry, index) => {
         const pairKey = `${level}-${index}`;
+        const atomicVariant = atomicVariantForPairKey(pairKey);
         return [
-            { id: `${pairKey}-A`, pairKey, state: 'hidden' as const, symbol: entry.symbol, label: entry.label },
-            { id: `${pairKey}-B`, pairKey, state: 'hidden' as const, symbol: entry.symbol, label: entry.label }
+            {
+                id: `${pairKey}-A`,
+                pairKey,
+                state: 'hidden' as const,
+                symbol: entry.symbol,
+                label: entry.label,
+                atomicVariant
+            },
+            {
+                id: `${pairKey}-B`,
+                pairKey,
+                state: 'hidden' as const,
+                symbol: entry.symbol,
+                label: entry.label,
+                atomicVariant
+            }
         ];
     });
 
-    return shuffle(pairs);
+    if (mutators.includes('glass_floor')) {
+        pairs.push({
+            id: `${level}-decoy`,
+            pairKey: DECOY_PAIR_KEY,
+            state: 'hidden' as const,
+            symbol: '؟',
+            label: '?',
+            atomicVariant: 0
+        });
+    }
+
+    if (includeWildTile) {
+        pairs.push({
+            id: `${level}-wild`,
+            pairKey: WILD_PAIR_KEY,
+            state: 'hidden' as const,
+            symbol: '★',
+            label: 'Wild',
+            atomicVariant: 0
+        });
+    }
+
+    return shuffleWithRng(() => rng(), pairs);
 };
 
-export const buildBoard = (level: number): BoardState => {
+export const buildBoard = (level: number, options: BuildBoardOptions = {}): BoardState => {
+    const runSeed = options.runSeed ?? 0;
+    const rulesVersion = options.runRulesVersion ?? GAME_RULES_VERSION;
+    const mutators = options.activeMutators ?? [];
+
+    if (options.fixedTiles && options.fixedTiles.length > 0) {
+        const tiles = options.fixedTiles.map((t) => ({ ...t }));
+        const tileCount = tiles.length;
+        const columns = clamp(Math.ceil(Math.sqrt(tileCount)), 2, 8);
+        const rows = Math.ceil(tileCount / columns);
+        const realPairKeys = new Set(tiles.map((t) => t.pairKey).filter((k) => k !== DECOY_PAIR_KEY));
+
+        return {
+            level,
+            pairCount: realPairKeys.size,
+            columns,
+            rows,
+            tiles,
+            flippedTileIds: [],
+            matchedPairs: 0
+        };
+    }
+
     const pairCount = Math.min(level + 1, LETTER_SYMBOLS.length);
-    const tiles = createTiles(level, pairCount);
+    const tiles = createTiles(level, pairCount, runSeed, rulesVersion, mutators, options.includeWildTile);
     const tileCount = tiles.length;
     const columns = clamp(Math.ceil(Math.sqrt(tileCount)), 2, 8);
     const rows = Math.ceil(tileCount / columns);
@@ -233,6 +394,9 @@ export const buildBoard = (level: number): BoardState => {
     };
 };
 
+export const isBoardComplete = (board: BoardState): boolean =>
+    board.tiles.every((t) => t.state === 'matched' || t.state === 'removed');
+
 /** Pairs where both tiles are still hidden (eligible for shuffle / destroy targeting). */
 export const countFullyHiddenPairs = (board: BoardState): number => {
     const hiddenCountByKey = new Map<string, number>();
@@ -242,6 +406,7 @@ export const countFullyHiddenPairs = (board: BoardState): number => {
             hiddenCountByKey.set(tile.pairKey, (hiddenCountByKey.get(tile.pairKey) ?? 0) + 1);
         }
     }
+    // removed tiles do not contribute
 
     let fullPairs = 0;
     for (const count of hiddenCountByKey.values()) {
@@ -257,7 +422,9 @@ export const canShuffleBoard = (run: RunState): boolean =>
     run.status === 'playing' &&
     Boolean(run.board) &&
     run.board!.flippedTileIds.length === 0 &&
-    run.shuffleCharges > 0 &&
+    !run.activeContract?.noShuffle &&
+    (run.shuffleCharges > 0 ||
+        (run.freeShuffleThisFloor && run.relicIds.includes('first_shuffle_free_per_floor'))) &&
     countFullyHiddenPairs(run.board!) >= 2;
 
 export const canDestroyPair = (run: RunState, tileId: string): boolean => {
@@ -266,7 +433,7 @@ export const canDestroyPair = (run: RunState, tileId: string): boolean => {
     }
 
     const tile = run.board.tiles.find((t) => t.id === tileId);
-    if (!tile || tile.state !== 'hidden') {
+    if (!tile || tile.state !== 'hidden' || tile.pairKey === DECOY_PAIR_KEY) {
         return false;
     }
 
@@ -286,17 +453,55 @@ export const applyShuffle = (run: RunState): RunState => {
         }
     });
 
-    const hiddenTiles = hiddenIndices.map((index) => run.board!.tiles[index]);
-    const shuffled = shuffle(hiddenTiles);
+    const shuffleRng = createMulberry32(
+        deriveShuffleRngSeed(run.runSeed, run.board.level, run.shuffleNonce, run.runRulesVersion)
+    );
+    const cols = run.board.columns;
     const nextTiles = [...run.board.tiles];
-    hiddenIndices.forEach((index, slot) => {
-        nextTiles[index] = shuffled[slot]!;
-    });
+
+    if (run.weakerShuffleMode === 'rows_only') {
+        const rowToIndices = new Map<number, number[]>();
+        for (const index of hiddenIndices) {
+            const row = Math.floor(index / cols);
+            const list = rowToIndices.get(row) ?? [];
+            list.push(index);
+            rowToIndices.set(row, list);
+        }
+        for (const indices of rowToIndices.values()) {
+            const chunk = indices.map((i) => nextTiles[i]!);
+            const shuffledChunk = shuffleWithRng(() => shuffleRng(), chunk);
+            indices.forEach((cellIdx, slot) => {
+                nextTiles[cellIdx] = shuffledChunk[slot]!;
+            });
+        }
+    } else {
+        const hiddenTiles = hiddenIndices.map((index) => run.board!.tiles[index]);
+        const shuffled = shuffleWithRng(() => shuffleRng(), hiddenTiles);
+        hiddenIndices.forEach((index, slot) => {
+            nextTiles[index] = shuffled[slot]!;
+        });
+    }
+
+    let nextCharges = run.shuffleCharges;
+    let nextFree = run.freeShuffleThisFloor;
+    if (nextFree && run.relicIds.includes('first_shuffle_free_per_floor')) {
+        nextFree = false;
+    } else if (nextCharges > 0) {
+        nextCharges -= 1;
+    }
+
+    let matchScoreMultiplier = run.matchScoreMultiplier;
+    if (run.shuffleScoreTaxActive) {
+        matchScoreMultiplier *= SHUFFLE_SCORE_TAX_FACTOR;
+    }
 
     return {
         ...run,
         powersUsedThisRun: true,
-        shuffleCharges: run.shuffleCharges - 1,
+        shuffleCharges: nextCharges,
+        shuffleNonce: run.shuffleNonce + 1,
+        freeShuffleThisFloor: nextFree,
+        matchScoreMultiplier,
         pinnedTileIds: [],
         board: {
             ...run.board,
@@ -336,23 +541,229 @@ export const togglePinnedTile = (run: RunState, tileId: string): RunState => {
     };
 };
 
-export const createNewRun = (bestScore: number): RunState => ({
-    status: 'memorize',
-    lives: INITIAL_LIVES,
-    board: buildBoard(1),
-    stats: createSessionStats(bestScore),
-    achievementsEnabled: true,
-    debugUsed: false,
-    debugPeekActive: false,
-    pendingMemorizeBonusMs: 0,
-    shuffleCharges: INITIAL_SHUFFLE_CHARGES,
-    destroyPairCharges: 0,
-    pinnedTileIds: [],
-    powersUsedThisRun: false,
-    timerState: createTimerState({ memorizeRemainingMs: getMemorizeDuration(1) }),
-    lastLevelResult: null,
-    lastRunSummary: null
-});
+export interface CreateRunOptions {
+    runSeed?: number;
+    gameMode?: GameMode;
+    activeMutators?: MutatorId[];
+    practiceMode?: boolean;
+    activeContract?: RunState['activeContract'];
+    dailyDateKeyUtc?: string | null;
+    puzzleId?: string | null;
+    gauntletDurationMs?: number | null;
+    fixedBoard?: BoardState | null;
+    initialRelicIds?: RelicId[];
+    /** Import / debug: use historical rules version for same tile order. */
+    runRulesVersionOverride?: number;
+    /** H4: add wild tile to generated boards. */
+    enableWildJoker?: boolean;
+    weakerShuffleMode?: WeakerShuffleMode;
+    shuffleScoreTaxActive?: boolean;
+    /** Hook powers: defaults on if undefined. */
+    enablePeek?: boolean;
+    initialStrayRemoveCharges?: number;
+    resolveDelayMultiplier?: number;
+    echoFeedbackEnabled?: boolean;
+    wildMenuRun?: boolean;
+}
+
+const randomRunSeed = (): number => Math.floor(Math.random() * 0x7fffffff);
+
+const applyRelicImmediate = (run: RunState, relicId: RelicId): RunState => {
+    switch (relicId) {
+        case 'extra_shuffle_charge':
+            return { ...run, shuffleCharges: run.shuffleCharges + 1 };
+        case 'destroy_bank_plus_one':
+            return {
+                ...run,
+                destroyPairCharges: Math.min(MAX_DESTROY_PAIR_BANK, run.destroyPairCharges + 1)
+            };
+        case 'first_shuffle_free_per_floor':
+            return { ...run, freeShuffleThisFloor: true };
+        case 'combo_shard_plus_step':
+            return {
+                ...run,
+                stats: { ...run.stats, comboShards: Math.min(MAX_COMBO_SHARDS, run.stats.comboShards + 1) }
+            };
+        default:
+            return run;
+    }
+};
+
+export const createNewRun = (bestScore: number, options: CreateRunOptions = {}): RunState => {
+    const runSeed = options.runSeed ?? randomRunSeed();
+    const gameMode = options.gameMode ?? 'endless';
+    const activeMutators = options.activeMutators ?? [];
+    const weakerShuffleMode: WeakerShuffleMode = options.weakerShuffleMode ?? 'full';
+    const shuffleScoreTaxActive = options.shuffleScoreTaxActive ?? false;
+    const enableWildJoker = options.enableWildJoker ?? false;
+    const peekCharges = options.enablePeek === false ? 0 : 1;
+    const board =
+        options.fixedBoard ??
+        buildBoard(1, {
+            runSeed,
+            runRulesVersion: options.runRulesVersionOverride ?? GAME_RULES_VERSION,
+            activeMutators,
+            includeWildTile: enableWildJoker
+        });
+
+    const run: RunState = {
+        status: 'memorize',
+        lives: INITIAL_LIVES,
+        board,
+        stats: createSessionStats(bestScore),
+        achievementsEnabled: !options.practiceMode,
+        debugUsed: false,
+        debugPeekActive: false,
+        pendingMemorizeBonusMs: 0,
+        shuffleCharges: INITIAL_SHUFFLE_CHARGES,
+        destroyPairCharges: 0,
+        pinnedTileIds: [],
+        powersUsedThisRun: false,
+        timerState: createTimerState({ memorizeRemainingMs: null }),
+        lastLevelResult: null,
+        lastRunSummary: null,
+        runSeed,
+        runRulesVersion: options.runRulesVersionOverride ?? GAME_RULES_VERSION,
+        gameMode,
+        shuffleNonce: 0,
+        activeMutators,
+        relicIds: [...(options.initialRelicIds ?? [])],
+        relicTiersClaimed: 0,
+        relicOffer: null,
+        activeContract: options.activeContract ?? null,
+        practiceMode: options.practiceMode ?? false,
+        dailyDateKeyUtc: options.dailyDateKeyUtc ?? null,
+        puzzleId: options.puzzleId ?? null,
+        stickyBlockIndex: null,
+        parasiteFloors: 0,
+        freeShuffleThisFloor: false,
+        gauntletDeadlineMs:
+            options.gauntletDurationMs != null ? Date.now() + options.gauntletDurationMs : null,
+        dailyStreakCount: 0,
+        flipHistory: [],
+        peekCharges,
+        peekRevealedTileIds: [],
+        undoUsesThisFloor: 1,
+        gambitAvailableThisFloor: true,
+        gambitThirdFlipUsed: false,
+        wildTileId: null,
+        wildMatchesRemaining: enableWildJoker ? 1 : 0,
+        strayRemoveCharges: options.initialStrayRemoveCharges ?? 0,
+        strayRemoveArmed: false,
+        matchScoreMultiplier: 1,
+        nBackMatchCounter: 0,
+        nBackAnchorPairKey: null,
+        matchedPairKeysThisRun: [],
+        distractionTick: 0,
+        weakerShuffleMode,
+        shuffleScoreTaxActive,
+        resolveDelayMultiplier: options.resolveDelayMultiplier ?? 1,
+        echoFeedbackEnabled: options.echoFeedbackEnabled ?? true,
+        wildMenuRun: options.wildMenuRun ?? false
+    };
+
+    let runWithRelics = run;
+    for (const relicId of runWithRelics.relicIds) {
+        runWithRelics = applyRelicImmediate(runWithRelics, relicId);
+    }
+
+    const memorizeMs = getMemorizeDurationForRun(runWithRelics, 1) + runWithRelics.pendingMemorizeBonusMs;
+
+    return {
+        ...runWithRelics,
+        freeShuffleThisFloor: runWithRelics.relicIds.includes('first_shuffle_free_per_floor'),
+        timerState: createTimerState({ memorizeRemainingMs: memorizeMs })
+    };
+};
+
+export const createMeditationRun = (bestScore: number): RunState => createNewRun(bestScore, { gameMode: 'meditation' });
+
+export const createWildRun = (bestScore: number): RunState =>
+    createNewRun(bestScore, {
+        enableWildJoker: true,
+        initialStrayRemoveCharges: 1,
+        wildMenuRun: true
+    });
+
+export const createDailyRun = (bestScore: number): RunState => {
+    const runSeed = deriveDailyRunSeed(GAME_RULES_VERSION);
+    const mutIndex = deriveDailyMutatorIndex(runSeed, DAILY_MUTATOR_TABLE.length);
+    const activeMutators = [DAILY_MUTATOR_TABLE[mutIndex]!];
+
+    return createNewRun(bestScore, {
+        runSeed,
+        gameMode: 'daily',
+        activeMutators,
+        dailyDateKeyUtc: formatDailyDateKeyUtc()
+    });
+};
+
+export const createGauntletRun = (bestScore: number): RunState =>
+    createNewRun(bestScore, {
+        gameMode: 'gauntlet',
+        gauntletDurationMs: 10 * 60 * 1000
+    });
+
+export const createRunFromExportPayload = (bestScore: number, payload: RunExportPayload): RunState =>
+    createNewRun(bestScore, {
+        runSeed: payload.seed,
+        gameMode: payload.mode,
+        activeMutators: payload.mutators,
+        initialRelicIds: payload.relics ?? [],
+        runRulesVersionOverride: payload.rules
+    });
+
+export const createPuzzleRun = (bestScore: number, puzzleId: string, tiles: Tile[], level = 1): RunState => {
+    const columns = clamp(Math.ceil(Math.sqrt(tiles.length)), 2, 8);
+    const rows = Math.ceil(tiles.length / columns);
+    const pairCount = new Set(tiles.map((t) => t.pairKey).filter((k) => k !== DECOY_PAIR_KEY)).size;
+
+    return createNewRun(bestScore, {
+        gameMode: 'puzzle',
+        puzzleId,
+        fixedBoard: {
+            level,
+            pairCount,
+            columns,
+            rows,
+            tiles: tiles.map((t) => ({ ...t })),
+            flippedTileIds: [],
+            matchedPairs: 0
+        }
+    });
+};
+
+export const isGauntletExpired = (run: RunState): boolean =>
+    run.gauntletDeadlineMs !== null && Date.now() > run.gauntletDeadlineMs;
+
+export const openRelicOffer = (run: RunState): RunState => {
+    if (!needsRelicPick(run) || run.relicOffer) {
+        return run;
+    }
+    const cleared = run.lastLevelResult!.level;
+    const tierIndex = RELIC_MILESTONE_FLOORS.indexOf(cleared as (typeof RELIC_MILESTONE_FLOORS)[number]);
+    const options = rollRelicOptions(run, tierIndex);
+
+    return {
+        ...run,
+        relicOffer: { tier: tierIndex + 1, options }
+    };
+};
+
+export const completeRelicPickAndAdvance = (run: RunState, relicId: RelicId): RunState => {
+    if (!run.relicOffer?.options.includes(relicId)) {
+        return run;
+    }
+
+    let next: RunState = {
+        ...run,
+        relicIds: [...run.relicIds, relicId],
+        relicTiersClaimed: run.relicTiersClaimed + 1,
+        relicOffer: null
+    };
+    next = applyRelicImmediate(next, relicId);
+    return advanceToNextLevel(next);
+};
 
 export const finishMemorizePhase = (run: RunState): RunState =>
     run.status !== 'memorize'
@@ -368,7 +779,16 @@ export const finishMemorizePhase = (run: RunState): RunState =>
           };
 
 export const flipTile = (run: RunState, tileId: string): RunState => {
-    if (run.status !== 'playing' || !run.board || run.board.flippedTileIds.length >= 2) {
+    if (run.status !== 'playing' || !run.board) {
+        return run;
+    }
+
+    const allowThird =
+        run.gambitAvailableThisFloor &&
+        !run.gambitThirdFlipUsed &&
+        run.board.flippedTileIds.length === 2;
+    const maxFlips = allowThird ? 3 : 2;
+    if (run.board.flippedTileIds.length >= maxFlips) {
         return run;
     }
 
@@ -378,15 +798,38 @@ export const flipTile = (run: RunState, tileId: string): RunState => {
         return run;
     }
 
+    const tileIndex = run.board.tiles.findIndex((candidate) => candidate.id === tileId);
+    if (run.board.flippedTileIds.length === 0 && run.stickyBlockIndex !== null && tileIndex === run.stickyBlockIndex) {
+        return run;
+    }
+
+    const peekRevealedTileIds =
+        run.peekRevealedTileIds.length > 0 ? ([] as string[]) : run.peekRevealedTileIds;
+
     const flippedTileIds = [...run.board.flippedTileIds, tileId];
     const firstFlippedId = run.board.flippedTileIds[0] ?? null;
     const firstFlippedTile = firstFlippedId ? run.board.tiles.find((candidate) => candidate.id === firstFlippedId) ?? null : null;
     const resolvesMatchImmediately =
-        flippedTileIds.length === 2 && firstFlippedTile !== null && firstFlippedTile.pairKey === tile.pairKey;
+        flippedTileIds.length === 2 &&
+        firstFlippedTile !== null &&
+        tilesArePairMatch(firstFlippedTile, tile);
+
+    let resolveRemainingMs = run.timerState.resolveRemainingMs;
+    if (flippedTileIds.length === 2) {
+        resolveRemainingMs = resolvesMatchImmediately
+            ? 0
+            : computeFlipResolveDelayMs(run, flippedTileIds, {
+                  resolveDelayMultiplier: run.resolveDelayMultiplier,
+                  echoFeedbackEnabled: run.echoFeedbackEnabled
+              });
+    } else if (flippedTileIds.length === 3) {
+        resolveRemainingMs = MATCH_DELAY_MS * run.resolveDelayMultiplier;
+    }
 
     return {
         ...run,
-        status: flippedTileIds.length === 2 ? 'resolving' : 'playing',
+        peekRevealedTileIds,
+        status: flippedTileIds.length >= 2 ? 'resolving' : 'playing',
         board: {
             ...run.board,
             tiles: run.board.tiles.map((candidate) =>
@@ -394,9 +837,10 @@ export const flipTile = (run: RunState, tileId: string): RunState => {
             ),
             flippedTileIds
         },
+        flipHistory: [...run.flipHistory, tileId],
         timerState: {
             ...run.timerState,
-            resolveRemainingMs: flippedTileIds.length === 2 ? (resolvesMatchImmediately ? 0 : MATCH_DELAY_MS) : run.timerState.resolveRemainingMs,
+            resolveRemainingMs,
             pausedFromStatus: null
         }
     };
@@ -449,7 +893,7 @@ const finalizeLevel = (run: RunState, board: BoardState): RunState => {
 };
 
 export const applyDestroyPair = (run: RunState, tileId: string): RunState => {
-    if (!canDestroyPair(run, tileId) || !run.board) {
+    if (run.activeContract?.noDestroy || !canDestroyPair(run, tileId) || !run.board) {
         return run;
     }
 
@@ -479,7 +923,80 @@ export const applyDestroyPair = (run: RunState, tileId: string): RunState => {
         }
     };
 
-    return board.matchedPairs === board.pairCount ? finalizeLevel(nextRun, board) : nextRun;
+    return isBoardComplete(board) ? finalizeLevel(nextRun, board) : nextRun;
+};
+
+export const applyPeek = (run: RunState, tileId: string): RunState => {
+    if (run.status !== 'playing' || !run.board || run.peekCharges < 1) {
+        return run;
+    }
+    if (run.board.flippedTileIds.length > 0) {
+        return run;
+    }
+    const tile = run.board.tiles.find((t) => t.id === tileId);
+    if (!tile || tile.state !== 'hidden') {
+        return run;
+    }
+    if (run.peekRevealedTileIds.includes(tileId)) {
+        return run;
+    }
+    return {
+        ...run,
+        peekCharges: run.peekCharges - 1,
+        powersUsedThisRun: true,
+        peekRevealedTileIds: [...run.peekRevealedTileIds, tileId]
+    };
+};
+
+export const cancelResolvingWithUndo = (run: RunState): RunState => {
+    if (run.status !== 'resolving' || !run.board || run.undoUsesThisFloor < 1) {
+        return run;
+    }
+    const ids = [...run.board.flippedTileIds];
+    const board: BoardState = {
+        ...run.board,
+        flippedTileIds: [],
+        tiles: run.board.tiles.map((t) =>
+            ids.includes(t.id) ? { ...t, state: 'hidden' as const } : t
+        )
+    };
+    return {
+        ...run,
+        status: 'playing',
+        board,
+        undoUsesThisFloor: run.undoUsesThisFloor - 1,
+        powersUsedThisRun: true,
+        timerState: clearResolveState(run)
+    };
+};
+
+export const toggleStrayRemoveArmed = (run: RunState): RunState =>
+    run.strayRemoveCharges > 0 && run.status === 'playing'
+        ? { ...run, strayRemoveArmed: !run.strayRemoveArmed }
+        : run;
+
+export const applyStrayRemove = (run: RunState, tileId: string): RunState => {
+    if (!run.strayRemoveArmed || run.status !== 'playing' || !run.board || run.strayRemoveCharges < 1) {
+        return run;
+    }
+    if (run.board.flippedTileIds.length > 0) {
+        return run;
+    }
+    const tile = run.board.tiles.find((t) => t.id === tileId);
+    if (!tile || tile.state !== 'hidden' || tile.pairKey === DECOY_PAIR_KEY) {
+        return run;
+    }
+    const board: BoardState = {
+        ...run.board,
+        tiles: run.board.tiles.map((t) => (t.id === tileId ? { ...t, state: 'removed' as const } : t))
+    };
+    return {
+        ...run,
+        powersUsedThisRun: true,
+        strayRemoveCharges: run.strayRemoveCharges - 1,
+        strayRemoveArmed: false,
+        board
+    };
 };
 
 const clearResolveState = (run: RunState): RunState['timerState'] => ({
@@ -488,7 +1005,153 @@ const clearResolveState = (run: RunState): RunState['timerState'] => ({
     pausedFromStatus: null
 });
 
-export const resolveBoardTurn = (run: RunState): RunState => {
+const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState => {
+    if (!run.board || run.board.flippedTileIds.length !== 3) {
+        return run;
+    }
+    const [aId, bId, cId] = run.board.flippedTileIds;
+    const ta = run.board.tiles.find((t) => t.id === aId)!;
+    const tb = run.board.tiles.find((t) => t.id === bId)!;
+    const tc = run.board.tiles.find((t) => t.id === cId)!;
+    let matchA = aId;
+    let matchB = bId;
+    let thirdId = cId;
+    let found = false;
+    if (tilesArePairMatch(ta, tb)) {
+        thirdId = cId;
+        found = true;
+    } else if (tilesArePairMatch(ta, tc)) {
+        matchB = cId;
+        thirdId = bId;
+        found = true;
+    } else if (tilesArePairMatch(tb, tc)) {
+        matchA = bId;
+        matchB = cId;
+        thirdId = aId;
+        found = true;
+    }
+
+    if (found) {
+        const board: BoardState = {
+            ...run.board,
+            flippedTileIds: [],
+            matchedPairs: run.board.matchedPairs + 1,
+            tiles: run.board.tiles.map((tile) => {
+                if (tile.id === matchA || tile.id === matchB) {
+                    return { ...tile, state: 'matched' as const };
+                }
+                if (tile.id === thirdId) {
+                    return { ...tile, state: 'hidden' as const };
+                }
+                return tile;
+            })
+        };
+        const currentStreak = run.stats.currentStreak + 1;
+        const meditation = run.gameMode === 'meditation';
+        const guardTokenGain =
+            meditation || currentStreak % COMBO_GUARD_STREAK_STEP !== 0 ? 0 : 1;
+        const guardTokens = Math.min(MAX_GUARD_TOKENS, run.stats.guardTokens + guardTokenGain);
+        const comboShardReward = meditation
+            ? { comboShards: run.stats.comboShards, lifeGain: 0 }
+            : resolveComboShardReward(run.stats.comboShards, run.lives, currentStreak);
+        const chainHealLifeGain =
+            meditation || currentStreak % CHAIN_HEAL_STREAK_STEP !== 0 ? 0 : 1;
+        const lives = Math.min(MAX_LIVES, run.lives + chainHealLifeGain + comboShardReward.lifeGain);
+        const tMatch = run.board.tiles.find((t) => t.id === matchA)!;
+        const encoreKey =
+            isWildPairKey(tMatch.pairKey) && matchB
+                ? run.board.tiles.find((t) => t.id === matchB)!.pairKey
+                : tMatch.pairKey;
+        const encoreBonus = encorePairKeys.includes(encoreKey) ? ENCORE_BONUS_SCORE : 0;
+        const matchScore =
+            calculateMatchScore(board.level, currentStreak, run.matchScoreMultiplier) + encoreBonus;
+        const totalScore = run.stats.totalScore + matchScore;
+        const currentLevelScore = run.stats.currentLevelScore + matchScore;
+        const bestScore = Math.max(run.stats.bestScore, totalScore);
+        const nBackMatchCounter = run.nBackMatchCounter + 1;
+        const nBackAnchorPairKey =
+            hasMutator(run, 'n_back_anchor') && nBackMatchCounter % 2 === 0 ? encoreKey : run.nBackAnchorPairKey;
+        const wildMatchesRemaining =
+            isWildPairKey(ta.pairKey) || isWildPairKey(tb.pairKey) || isWildPairKey(tc.pairKey)
+                ? 0
+                : run.wildMatchesRemaining;
+
+        const nextRun: RunState = {
+            ...run,
+            gambitThirdFlipUsed: true,
+            gambitAvailableThisFloor: false,
+            powersUsedThisRun: true,
+            status: 'playing',
+            lives,
+            board,
+            wildMatchesRemaining,
+            nBackMatchCounter,
+            nBackAnchorPairKey,
+            matchedPairKeysThisRun: [...run.matchedPairKeysThisRun, encoreKey],
+            pinnedTileIds: run.pinnedTileIds.filter((id) => id !== matchA && id !== matchB),
+            stickyBlockIndex: hasMutator(run, 'sticky_fingers')
+                ? run.board.tiles.findIndex((t) => t.id === matchA)
+                : null,
+            stats: {
+                ...run.stats,
+                totalScore,
+                currentLevelScore,
+                bestScore,
+                matchesFound: run.stats.matchesFound + 1,
+                currentStreak,
+                bestStreak: Math.max(run.stats.bestStreak, currentStreak),
+                highestLevel: Math.max(run.stats.highestLevel, board.level),
+                guardTokens,
+                comboShards: comboShardReward.comboShards
+            },
+            timerState: clearResolveState(run)
+        };
+        return isBoardComplete(board) ? finalizeLevel(nextRun, board) : nextRun;
+    }
+
+    const tries = run.stats.tries + GAMBIT_FAIL_EXTRA_TRIES;
+    const hasGraceMismatch = run.stats.tries === 0;
+    const consumesGuardToken = !hasGraceMismatch && run.stats.guardTokens > 0;
+    const lostLife = !hasGraceMismatch && !consumesGuardToken;
+    let lives = lostLife ? run.lives - 1 : run.lives;
+    const board: BoardState = {
+        ...run.board,
+        flippedTileIds: [],
+        tiles: run.board.tiles.map((tile) =>
+            tile.id === aId || tile.id === bId || tile.id === cId ? { ...tile, state: 'hidden' } : tile
+        )
+    };
+    const contractFail =
+        run.activeContract?.maxMismatches != null && tries > run.activeContract.maxMismatches;
+    let status: RunStatus = lives <= 0 || contractFail ? 'gameOver' : 'playing';
+    if (contractFail) {
+        lives = 0;
+    }
+    const guardTokens = consumesGuardToken ? run.stats.guardTokens - 1 : run.stats.guardTokens;
+
+    return {
+        ...run,
+        gambitThirdFlipUsed: true,
+        gambitAvailableThisFloor: false,
+        powersUsedThisRun: true,
+        status,
+        lives: Math.max(lives, 0),
+        board,
+        stickyBlockIndex: null,
+        stats: {
+            ...run.stats,
+            tries,
+            mismatches: run.stats.mismatches + 1,
+            currentStreak: Math.floor(run.stats.currentStreak / 2),
+            rating: calculateRating(tries),
+            highestLevel: Math.max(run.stats.highestLevel, board.level),
+            guardTokens
+        },
+        timerState: clearResolveState(run)
+    };
+};
+
+const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunState => {
     if (!run.board || run.board.flippedTileIds.length !== 2) {
         return run;
     }
@@ -501,7 +1164,7 @@ export const resolveBoardTurn = (run: RunState): RunState => {
         return run;
     }
 
-    const isMatch = firstTile.pairKey === secondTile.pairKey;
+    const isMatch = tilesArePairMatch(firstTile, secondTile);
 
     if (isMatch) {
         const board: BoardState = {
@@ -513,24 +1176,49 @@ export const resolveBoardTurn = (run: RunState): RunState => {
             )
         };
         const currentStreak = run.stats.currentStreak + 1;
-        const guardTokenGain = currentStreak % COMBO_GUARD_STREAK_STEP === 0 ? 1 : 0;
+        const meditation = run.gameMode === 'meditation';
+        const guardTokenGain =
+            meditation || currentStreak % COMBO_GUARD_STREAK_STEP !== 0 ? 0 : 1;
         const guardTokens = Math.min(MAX_GUARD_TOKENS, run.stats.guardTokens + guardTokenGain);
-        const comboShardReward = resolveComboShardReward(run.stats.comboShards, run.lives, currentStreak);
-        const chainHealLifeGain = currentStreak % CHAIN_HEAL_STREAK_STEP === 0 ? 1 : 0;
+        const comboShardReward = meditation
+            ? { comboShards: run.stats.comboShards, lifeGain: 0 }
+            : resolveComboShardReward(run.stats.comboShards, run.lives, currentStreak);
+        const chainHealLifeGain =
+            meditation || currentStreak % CHAIN_HEAL_STREAK_STEP !== 0 ? 0 : 1;
         const lives = Math.min(MAX_LIVES, run.lives + chainHealLifeGain + comboShardReward.lifeGain);
-        const matchScore = calculateMatchScore(board.level, currentStreak);
+        const encoreKey = isWildPairKey(firstTile.pairKey)
+            ? secondTile.pairKey
+            : isWildPairKey(secondTile.pairKey)
+              ? firstTile.pairKey
+              : firstTile.pairKey;
+        const encoreBonus = encorePairKeys.includes(encoreKey) ? ENCORE_BONUS_SCORE : 0;
+        const matchScore =
+            calculateMatchScore(board.level, currentStreak, run.matchScoreMultiplier) + encoreBonus;
         const totalScore = run.stats.totalScore + matchScore;
         const currentLevelScore = run.stats.currentLevelScore + matchScore;
         const bestScore = Math.max(run.stats.bestScore, totalScore);
 
         const matchedPinsFiltered = run.pinnedTileIds.filter((id) => id !== firstId && id !== secondId);
 
+        const firstFlippedIdx = run.board.tiles.findIndex((t) => t.id === firstId);
+        const nBackMatchCounter = run.nBackMatchCounter + 1;
+        const nBackAnchorPairKey =
+            hasMutator(run, 'n_back_anchor') && nBackMatchCounter % 2 === 0 ? encoreKey : run.nBackAnchorPairKey;
+        const usedWild = isWildPairKey(firstTile.pairKey) || isWildPairKey(secondTile.pairKey);
+        const wildMatchesRemaining = usedWild ? 0 : run.wildMatchesRemaining;
+
         const nextRun: RunState = {
             ...run,
             status: 'playing',
             lives,
             board,
+            powersUsedThisRun: usedWild ? true : run.powersUsedThisRun,
+            wildMatchesRemaining,
+            nBackMatchCounter,
+            nBackAnchorPairKey,
+            matchedPairKeysThisRun: [...run.matchedPairKeysThisRun, encoreKey],
             pinnedTileIds: matchedPinsFiltered,
+            stickyBlockIndex: hasMutator(run, 'sticky_fingers') ? firstFlippedIdx : null,
             stats: {
                 ...run.stats,
                 totalScore,
@@ -546,14 +1234,14 @@ export const resolveBoardTurn = (run: RunState): RunState => {
             timerState: clearResolveState(run)
         };
 
-        return board.matchedPairs === board.pairCount ? finalizeLevel(nextRun, board) : nextRun;
+        return isBoardComplete(board) ? finalizeLevel(nextRun, board) : nextRun;
     }
 
     const tries = run.stats.tries + 1;
     const hasGraceMismatch = run.stats.tries === 0;
     const consumesGuardToken = !hasGraceMismatch && run.stats.guardTokens > 0;
     const lostLife = !hasGraceMismatch && !consumesGuardToken;
-    const lives = lostLife ? run.lives - 1 : run.lives;
+    let lives = lostLife ? run.lives - 1 : run.lives;
     const board: BoardState = {
         ...run.board,
         flippedTileIds: [],
@@ -561,7 +1249,12 @@ export const resolveBoardTurn = (run: RunState): RunState => {
             tile.id === firstId || tile.id === secondId ? { ...tile, state: 'hidden' } : tile
         )
     };
-    const status = lives <= 0 ? 'gameOver' : 'playing';
+    const contractFail =
+        run.activeContract?.maxMismatches != null && tries > run.activeContract.maxMismatches;
+    let status: RunStatus = lives <= 0 || contractFail ? 'gameOver' : 'playing';
+    if (contractFail) {
+        lives = 0;
+    }
     const guardTokens = consumesGuardToken ? run.stats.guardTokens - 1 : run.stats.guardTokens;
 
     const pendingMemorizeBonusMs = lostLife
@@ -577,6 +1270,7 @@ export const resolveBoardTurn = (run: RunState): RunState => {
         lives: Math.max(lives, 0),
         board,
         pendingMemorizeBonusMs,
+        stickyBlockIndex: null,
         stats: {
             ...run.stats,
             tries,
@@ -588,6 +1282,19 @@ export const resolveBoardTurn = (run: RunState): RunState => {
         },
         timerState: clearResolveState(run)
     };
+};
+
+export const resolveBoardTurn = (run: RunState, encorePairKeys: string[] = []): RunState => {
+    if (!run.board) {
+        return run;
+    }
+    if (run.board.flippedTileIds.length === 3) {
+        return resolveGambitThree(run, encorePairKeys);
+    }
+    if (run.board.flippedTileIds.length !== 2) {
+        return run;
+    }
+    return resolveTwoFlippedTiles(run, encorePairKeys);
 };
 
 export const advanceToNextLevel = (run: RunState): RunState => {
@@ -602,19 +1309,41 @@ export const advanceToNextLevel = (run: RunState): RunState => {
         run.destroyPairCharges + cleanClearDestroyBonus
     );
 
-    const nextBoard = buildBoard(run.board.level + 1);
-    const baseMemorizeMs = getMemorizeDuration(nextBoard.level);
+    let parasiteFloors = run.parasiteFloors + 1;
+    let lives = run.lives;
+    if (hasMutator(run, 'score_parasite') && parasiteFloors >= 4) {
+        parasiteFloors = 0;
+        lives = Math.max(0, lives - 1);
+    }
+
+    const nextBoard = buildBoard(run.board.level + 1, {
+        runSeed: run.runSeed,
+        runRulesVersion: run.runRulesVersion,
+        activeMutators: run.activeMutators,
+        includeWildTile: run.wildMatchesRemaining > 0
+    });
+    const baseMemorizeMs = getMemorizeDurationForRun(run, nextBoard.level);
     const memorizeWithBonus = baseMemorizeMs + run.pendingMemorizeBonusMs;
+
+    const status = lives <= 0 ? 'gameOver' : 'memorize';
 
     return {
         ...run,
-        status: 'memorize',
+        status,
+        lives,
         board: nextBoard,
         debugPeekActive: false,
         pendingMemorizeBonusMs: 0,
         pinnedTileIds: [],
         destroyPairCharges: nextDestroyPairCharges,
-        timerState: createTimerState({ memorizeRemainingMs: memorizeWithBonus }),
+        parasiteFloors,
+        stickyBlockIndex: null,
+        freeShuffleThisFloor: run.relicIds.includes('first_shuffle_free_per_floor'),
+        undoUsesThisFloor: 1,
+        gambitAvailableThisFloor: true,
+        gambitThirdFlipUsed: false,
+        peekRevealedTileIds: [],
+        timerState: createTimerState({ memorizeRemainingMs: status === 'memorize' ? memorizeWithBonus : null }),
         lastLevelResult: null,
         stats: {
             ...run.stats,
@@ -693,6 +1422,12 @@ export const createRunSummary = (run: RunState, unlockedAchievements: Achievemen
         achievementsEnabled: run.achievementsEnabled,
         unlockedAchievements,
         bestStreak: run.stats.bestStreak,
-        perfectClears: run.stats.perfectClears
+        perfectClears: run.stats.perfectClears,
+        runSeed: run.runSeed,
+        runRulesVersion: run.runRulesVersion,
+        gameMode: run.gameMode,
+        dailyDateKeyUtc: run.dailyDateKeyUtc ?? undefined,
+        activeMutators: [...run.activeMutators],
+        relicIds: [...run.relicIds]
     }
 });

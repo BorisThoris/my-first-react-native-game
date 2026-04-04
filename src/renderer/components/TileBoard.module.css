@@ -244,6 +244,45 @@
     opacity: 0.76;
 }
 
+.tileRemovedSlot {
+    visibility: hidden;
+    pointer-events: none;
+    min-height: 0;
+    border: none;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+}
+
+.wideRecallDeemphSymbol {
+    opacity: 0.2;
+    filter: grayscale(0.3);
+}
+
+.silhouetteFace {
+    filter: grayscale(1) brightness(0.42) contrast(1.15);
+}
+
+.atomicPair0 {
+    box-shadow: inset 0 0 0 2px rgba(255, 118, 90, 0.55);
+}
+
+.atomicPair1 {
+    box-shadow: inset 0 0 0 2px rgba(120, 200, 255, 0.55);
+}
+
+.atomicPair2 {
+    box-shadow: inset 0 0 0 2px rgba(186, 140, 255, 0.55);
+}
+
+.atomicPair3 {
+    box-shadow: inset 0 0 0 2px rgba(120, 230, 160, 0.55);
+}
+
+.nBackAnchorTile {
+    box-shadow: inset 0 0 0 2px rgba(255, 214, 100, 0.65);
+}
+
 .fallbackTilePinned:not(.faceUp):not(.matched) {
     border-color: rgba(255, 214, 133, 0.55);
     box-shadow:
@@ -251,6 +290,14 @@
         inset 0 -1px 0 rgba(255, 214, 133, 0.14),
         0 0 0 2px rgba(87, 220, 255, 0.22),
         0 14px 28px rgba(8, 10, 18, 0.28);
+}
+
+.tileFocusDim:not(.faceUp):not(.matched) {
+    filter: brightness(0.52) saturate(0.85);
+    opacity: 0.88;
+    transition:
+        filter 160ms ease,
+        opacity 160ms ease;
 }
 
 .tileFace {

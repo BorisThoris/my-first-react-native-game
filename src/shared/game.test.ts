@@ -37,7 +37,7 @@ const createBoard = (tiles: Tile[]): BoardState => ({
 });
 
 const createRun = (tiles: Tile[]): RunState => ({
-    ...finishMemorizePhase(createNewRun(0)),
+    ...finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false })),
     board: createBoard(tiles)
 });
 

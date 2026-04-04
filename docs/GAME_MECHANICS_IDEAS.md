@@ -4,6 +4,10 @@
 
 **What successful similar games do (market / delegate research):** [MARKET_SIMILAR_GAMES_RESEARCH.md](./MARKET_SIMILAR_GAMES_RESEARCH.md)
 
+**Hookability & depth — phased task backlog:** [HOOK_AND_DEPTH_TASKS.md](./HOOK_AND_DEPTH_TASKS.md)
+
+**Checkbox tasks for every idea in this doc:** [GAME_MECHANICS_IDEAS_TASKS.md](./GAME_MECHANICS_IDEAS_TASKS.md)
+
 Design reference for adding interest and player agency on top of the core loop: **memorize phase → flip two → match pairs**, with lives and the existing forgiveness economy (grace, guards, combo shards, chain heal, soft streak, bonus memorize after life loss — see `src/shared/game.ts` and [GAME_FORGIVENESS_DEEP_DIVE.md](./GAME_FORGIVENESS_DEEP_DIVE.md)).
 
 ---

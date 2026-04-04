@@ -1,5 +1,5 @@
-import type { RunSummary } from '../../shared/contracts';
-import { useRef } from 'react';
+import type { RelicId, RunSummary, SaveData } from '../../shared/contracts';
+import { useRef, useState } from 'react';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
 import { Eyebrow, Panel, ScreenTitle, UiButton } from '../ui';
@@ -9,24 +9,53 @@ import styles from './MainMenu.module.css';
 interface MainMenuProps {
     bestScore: number;
     lastRunSummary: RunSummary | null;
+    saveData: SaveData;
     reduceMotion: boolean;
     showHowToPlay: boolean;
     suppressMenuBackgroundFallback?: boolean;
     onDismissHowToPlay: () => Promise<void>;
     onPlay: () => void;
     onOpenSettings: () => void;
+    onDailyRun: () => void;
+    onGauntletRun: () => void;
+    onPuzzleStarter: () => void;
+    onMirrorPuzzleRun: () => void;
+    onPracticeRun: () => void;
+    onScholarContractRun: () => void;
+    onImportRun: () => void;
+    onMeditationRun: () => void;
+    onWildRun: () => void;
 }
+
+const RELIC_MENU_LABELS: Record<RelicId, string> = {
+    extra_shuffle_charge: 'Extra shuffle charge',
+    first_shuffle_free_per_floor: 'First shuffle free / floor',
+    memorize_bonus_ms: 'Longer memorize',
+    destroy_bank_plus_one: 'Destroy bank +1',
+    combo_shard_plus_step: 'Combo shard head start'
+};
 
 const MainMenu = ({
     bestScore,
     lastRunSummary,
+    saveData,
     reduceMotion,
     showHowToPlay,
     suppressMenuBackgroundFallback = false,
     onDismissHowToPlay,
     onPlay,
-    onOpenSettings
+    onOpenSettings,
+    onDailyRun,
+    onGauntletRun,
+    onPuzzleStarter,
+    onMirrorPuzzleRun,
+    onPracticeRun,
+    onScholarContractRun,
+    onImportRun,
+    onMeditationRun,
+    onWildRun
 }: MainMenuProps) => {
+    const [statsDetailOpen, setStatsDetailOpen] = useState(false);
     const shellRef = useRef<HTMLElement | null>(null);
     const { tiltRef: menuFieldTiltRef } = usePlatformTiltField({
         enabled: true,
@@ -43,6 +72,9 @@ const MainMenu = ({
             ? `${lastRunSummary.totalScore.toLocaleString()} pts · Floor ${lastRunSummary.highestLevel}`
             : `${lastRunSummary.totalScore.toLocaleString()} pts · ${lastRunSummary.levelsCleared} floors · high ${lastRunSummary.highestLevel} · streak ${lastRunSummary.bestStreak} · ${lastRunSummary.perfectClears} perfect`
         : null;
+    const relicPickEntries = saveData.playerStats
+        ? (Object.entries(saveData.playerStats.relicPickCounts) as [RelicId, number][]).filter(([, n]) => n > 0)
+        : [];
 
     return (
         <section
@@ -83,6 +115,66 @@ const MainMenu = ({
                         Settings
                     </UiButton>
                 </div>
+
+                <div className={styles.modeRow} role="group" aria-label="More run types">
+                    <UiButton size="sm" variant="secondary" onClick={onDailyRun}>
+                        Daily
+                    </UiButton>
+                    <UiButton size="sm" variant="secondary" onClick={onGauntletRun}>
+                        Gauntlet 10m
+                    </UiButton>
+                    <UiButton size="sm" variant="secondary" onClick={onPuzzleStarter}>
+                        Puzzle
+                    </UiButton>
+                    <UiButton size="sm" variant="secondary" onClick={onMirrorPuzzleRun}>
+                        Mirror puzzle
+                    </UiButton>
+                    <UiButton size="sm" variant="secondary" onClick={onMeditationRun}>
+                        Meditation
+                    </UiButton>
+                    <UiButton size="sm" variant="secondary" onClick={onWildRun}>
+                        Wild run
+                    </UiButton>
+                    <UiButton size="sm" variant="secondary" onClick={onPracticeRun}>
+                        Practice
+                    </UiButton>
+                    <UiButton size="sm" variant="secondary" onClick={onScholarContractRun}>
+                        Scholar
+                    </UiButton>
+                    <UiButton size="sm" variant="secondary" onClick={onImportRun}>
+                        Import JSON
+                    </UiButton>
+                </div>
+                {saveData.playerStats ? (
+                    <div className={styles.statsWrap}>
+                        <p className={styles.metaStats}>
+                            Dailies cleared: {saveData.playerStats.dailiesCompleted} · Cosmetic streak:{' '}
+                            {saveData.playerStats.dailyStreakCosmetic} · Best floor (no powers):{' '}
+                            {saveData.playerStats.bestFloorNoPowers}
+                        </p>
+                        <UiButton
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => setStatsDetailOpen((open) => !open)}
+                        >
+                            {statsDetailOpen ? 'Hide relic picks' : 'Relic pick counts'}
+                        </UiButton>
+                        {statsDetailOpen ? (
+                            <ul className={styles.statsDetailList}>
+                                {relicPickEntries.length === 0 ? (
+                                    <li className={styles.statsDetailEmpty}>No relic picks recorded yet.</li>
+                                ) : (
+                                    relicPickEntries.map(([id, n]) => (
+                                        <li key={id}>
+                                            {RELIC_MENU_LABELS[id] ?? id}: {n}
+                                        </li>
+                                    ))
+                                )}
+                            </ul>
+                        ) : null}
+                    </div>
+                ) : null}
+                <p className={styles.weeklyHint}>Puzzles: Starter 2×2 or symmetric Mirror craft — Wild run ships joker + stray remover.</p>
 
                 {showHowToPlay && (
                     <aside

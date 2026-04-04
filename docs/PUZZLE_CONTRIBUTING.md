@@ -1,0 +1,28 @@
+# Contributing puzzles (F3)
+
+Puzzles are **fixed layouts** keyed by id in `src/shared/builtin-puzzles.ts` (or future JSON loader with the same shape).
+
+## Data shape
+
+```ts
+{
+  id: string;       // stable key, e.g. 'starter_pairs'
+  title: string;    // menu display
+  tiles: Tile[];    // full grid: id, pairKey, symbol, label, state: 'hidden'
+}
+```
+
+- `columns` × `rows` are derived from tile count (same rules as `buildBoard` pair count).  
+- Use **even** tile count; each `pairKey` appears on **exactly two** tiles.  
+- Symbols must stay readable at minimum tile size (see ideas doc: picture superiority).
+
+## PR checklist
+
+1. Add entry to `BUILTIN_PUZZLES`.  
+2. If new size: verify `createPuzzleRun` / board dimensions in `game.ts`.  
+3. Add a short **vitest** case: puzzle id loads, pair count matches, no orphan keys.  
+4. Screenshot or describe solve path in PR for review.
+
+## Weekly featured (A4)
+
+Menu copy can point at a featured id (e.g. `starter_pairs`). Rotating the id is a one-line / config change until remote config exists.

@@ -1,7 +1,7 @@
 import { ACHIEVEMENTS } from '../../shared/achievements';
-import type { AchievementId, RunState } from '../../shared/contracts';
+import type { AchievementId, MutatorId, RelicId, RunState } from '../../shared/contracts';
 import { canShuffleBoard } from '../../shared/game';
-import { useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { VIEWPORT_MOBILE_MAX, VIEWPORT_TIGHT_MAX_H, VIEWPORT_TIGHT_MAX_W } from '../breakpoints';
 import { useViewportSize } from '../hooks/useViewportSize';
@@ -24,6 +24,26 @@ const FORGIVENESS_HINT =
 
 const BOARD_POWER_HINT =
     'Powers: Shuffle once per run (needs 2+ hidden pairs). Pin up to 3 hidden tiles. Destroy removes a pair for no score — earn charges on clean floors (≤1 miss), then tap Destroy and a tile.';
+
+const MUTATOR_HUD_LABELS: Record<MutatorId, string> = {
+    glass_floor: 'Glass floor',
+    sticky_fingers: 'Sticky fingers',
+    score_parasite: 'Score parasite',
+    category_letters: 'Letters',
+    short_memorize: 'Short memorize',
+    wide_recall: 'Wide recall',
+    silhouette_twist: 'Silhouette',
+    n_back_anchor: 'N-back',
+    distraction_channel: 'Distraction'
+};
+
+const RELIC_LABELS: Record<RelicId, string> = {
+    extra_shuffle_charge: '+1 shuffle charge (now)',
+    first_shuffle_free_per_floor: 'First shuffle each floor is free',
+    memorize_bonus_ms: 'Longer memorize phases',
+    destroy_bank_plus_one: '+1 destroy charge (now)',
+    combo_shard_plus_step: '+1 combo shard (now)'
+};
 
 const getClearLifeBonusLabel = (result: NonNullable<RunState['lastLevelResult']>): string | null => {
     if (result.clearLifeGained !== 1) {
@@ -102,48 +122,146 @@ const DestroyIcon = () => (
     </svg>
 );
 
+const PeekIcon = () => (
+    <svg aria-hidden="true" className={styles.actionIcon} viewBox="0 0 24 24">
+        <ellipse cx="12" cy="12" rx="9" ry="5.5" />
+        <circle cx="12" cy="12" r="2.75" />
+    </svg>
+);
+
+const UndoIcon = () => (
+    <svg aria-hidden="true" className={styles.actionIcon} viewBox="0 0 24 24">
+        <path d="M9 14 4 9l5-5" fill="none" />
+        <path d="M5 9h11a4 4 0 0 1 4 4v0" fill="none" />
+    </svg>
+);
+
+const StrayIcon = () => (
+    <svg aria-hidden="true" className={styles.actionIcon} viewBox="0 0 24 24">
+        <path d="M7 7h10v10H7z" />
+        <path d="M10 10h4v4h-4z" fill="currentColor" opacity="0.35" />
+    </svg>
+);
+
 const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameScreenProps) => {
     const shellRef = useRef<HTMLElement | null>(null);
     const tileBoardRef = useRef<TileBoardHandle>(null);
     const { height, width } = useViewportSize();
     const [viewportResetToken, setViewportResetToken] = useState(0);
+    const [gauntletTick, setGauntletTick] = useState(0);
+    const [distractionTick, setDistractionTick] = useState(0);
+    useEffect(() => {
+        if (run.gauntletDeadlineMs === null) {
+            return;
+        }
+        const id = window.setInterval(() => setGauntletTick((n) => n + 1), 300);
+        return () => window.clearInterval(id);
+    }, [run.gauntletDeadlineMs]);
     const {
         boardPinMode,
         continueToNextLevel,
         destroyPairArmed,
+        dismissPowersFtue,
         goToMenu,
         openSettings,
         pause,
+        peekModeArmed,
+        pickRelic,
         pressTile,
         resume,
+        saveData,
         settings,
         shuffleBoard,
         toggleBoardPinMode,
         toggleDestroyPairArmed,
-        triggerDebugReveal
+        togglePeekMode,
+        toggleStrayArm,
+        triggerDebugReveal,
+        undoResolvingFlip
     } = useAppStore(
         useShallow((state) => ({
             boardPinMode: state.boardPinMode,
             continueToNextLevel: state.continueToNextLevel,
             destroyPairArmed: state.destroyPairArmed,
+            dismissPowersFtue: state.dismissPowersFtue,
             goToMenu: state.goToMenu,
             openSettings: state.openSettings,
             pause: state.pause,
+            peekModeArmed: state.peekModeArmed,
+            pickRelic: state.pickRelic,
             pressTile: state.pressTile,
             resume: state.resume,
+            saveData: state.saveData,
             settings: state.settings,
             shuffleBoard: state.shuffleBoard,
             toggleBoardPinMode: state.toggleBoardPinMode,
             toggleDestroyPairArmed: state.toggleDestroyPairArmed,
-            triggerDebugReveal: state.triggerDebugReveal
+            togglePeekMode: state.togglePeekMode,
+            toggleStrayArm: state.toggleStrayArm,
+            triggerDebugReveal: state.triggerDebugReveal,
+            undoResolvingFlip: state.undoResolvingFlip
         }))
     );
+    const distractionHudOn =
+        run.activeMutators.includes('distraction_channel') &&
+        settings.distractionChannelEnabled &&
+        !settings.reduceMotion &&
+        run.status === 'playing';
+    useEffect(() => {
+        if (!distractionHudOn) {
+            return;
+        }
+        const id = window.setInterval(() => setDistractionTick((n) => n + 1), 880);
+        return () => window.clearInterval(id);
+    }, [distractionHudOn]);
     const { tiltRef: gameFieldTiltRef } = usePlatformTiltField({
         enabled: true,
         reduceMotion: settings.reduceMotion,
         surfaceRef: shellRef,
         strength: 1
     });
+    const focusDimmedTileIds = useMemo(() => {
+        const b = run.board;
+        if (!b || !settings.tileFocusAssist || run.status !== 'playing') {
+            return undefined;
+        }
+        if (b.flippedTileIds.length !== 1) {
+            return undefined;
+        }
+        const openId = b.flippedTileIds[0];
+        const idx = b.tiles.findIndex((t) => t.id === openId);
+        if (idx < 0) {
+            return undefined;
+        }
+        const c = b.columns;
+        const row = Math.floor(idx / c);
+        const col = idx % c;
+        const neighborIdx: number[] = [];
+        if (col > 0) {
+            neighborIdx.push(idx - 1);
+        }
+        if (col < c - 1) {
+            neighborIdx.push(idx + 1);
+        }
+        if (row > 0) {
+            neighborIdx.push(idx - c);
+        }
+        if (row < b.rows - 1) {
+            neighborIdx.push(idx + c);
+        }
+        const keep = new Set<number>([idx, ...neighborIdx]);
+        const dim = new Set<string>();
+        b.tiles.forEach((t, i) => {
+            if (t.state === 'hidden' && !keep.has(i)) {
+                dim.add(t.id);
+            }
+        });
+        return dim;
+    }, [run.board, run.status, settings.tileFocusAssist, run.board?.flippedTileIds]);
+    const allowGambitThirdFlip = run.gambitAvailableThisFloor && !run.gambitThirdFlipUsed;
+    const wideRecallInPlay = run.activeMutators.includes('wide_recall');
+    const silhouetteDuringPlay = run.activeMutators.includes('silhouette_twist');
+    const nBackMutatorActive = run.activeMutators.includes('n_back_anchor');
     const isCompact = width <= VIEWPORT_MOBILE_MAX || height <= VIEWPORT_MOBILE_MAX;
     const isTight = width <= VIEWPORT_TIGHT_MAX_W || height <= VIEWPORT_TIGHT_MAX_H;
     const cameraViewportMode = true;
@@ -180,13 +298,30 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         run.stats.tries === 0;
     const showBoardPowerBar = run.status === 'playing';
     const shuffleDisabled = !canShuffleBoard(run);
-    const shuffleTitle = shuffleDisabled
-        ? run.shuffleCharges < 1
+    const shuffleTitle = run.activeContract?.noShuffle
+        ? 'Scholar contract: shuffle disabled'
+        : shuffleDisabled
+          ? run.shuffleCharges < 1 &&
+              !(run.freeShuffleThisFloor && run.relicIds.includes('first_shuffle_free_per_floor'))
             ? 'No shuffle charges'
             : run.board.flippedTileIds.length > 0
               ? 'Finish the current flip first'
               : 'Need at least two hidden pairs to shuffle'
-        : 'Shuffle hidden tiles (1 charge this run)';
+          : 'Shuffle hidden tiles (1 charge this run)';
+    const showPowersFtue =
+        (run.status === 'playing' || run.status === 'memorize') &&
+        run.board.level <= 2 &&
+        !saveData.powersFtueSeen;
+    void gauntletTick;
+    void distractionTick;
+    const gauntletRemainingMs =
+        run.gauntletDeadlineMs !== null ? Math.max(0, run.gauntletDeadlineMs - Date.now()) : null;
+    const boardPresentationClass =
+        settings.boardPresentation === 'spaghetti'
+            ? styles.boardStageSpaghetti
+            : settings.boardPresentation === 'breathing' && !settings.reduceMotion
+              ? styles.boardStageBreathing
+              : '';
     const destroyDisabled = run.destroyPairCharges < 1 && !destroyPairArmed;
     return (
         <section
@@ -203,6 +338,17 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
             />
             <div className={`${styles.gameForeground} ${cameraViewportMode ? styles.mobileCameraForeground : ''}`}>
                 <h1 className={styles.srOnly}>Level {run.board.level}</h1>
+                {showPowersFtue ? (
+                    <div className={styles.ftueBanner} role="status">
+                        <span>
+                            Board powers: shuffle (charges), pin mode, destroy (earn charges on clean floors). Try Daily /
+                            Scholar run from the main menu for more challenge types.
+                        </span>
+                        <button className={styles.ftueDismiss} onClick={() => void dismissPowersFtue()} type="button">
+                            Got it
+                        </button>
+                    </div>
+                ) : null}
                 <header
                     className={`${styles.hudRow} ${cameraViewportMode ? styles.mobileCameraHud : ''}`}
                     data-testid="game-hud"
@@ -230,6 +376,49 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                     <span className={styles.statKey}>Score</span>
                                     <span className={styles.statVal}>{run.stats.totalScore.toLocaleString()}</span>
                                 </div>
+                                {run.gameMode === 'daily' && run.dailyDateKeyUtc ? (
+                                    <div className={styles.statPill} title="UTC daily id">
+                                        <span className={styles.statKey}>Daily</span>
+                                        <span className={styles.statVal}>{run.dailyDateKeyUtc}</span>
+                                    </div>
+                                ) : null}
+                                {gauntletRemainingMs !== null ? (
+                                    <div className={styles.statPill} title="Gauntlet time left">
+                                        <span className={styles.statKey}>Time</span>
+                                        <span className={styles.statVal}>
+                                            {Math.ceil(gauntletRemainingMs / 1000)}s
+                                        </span>
+                                    </div>
+                                ) : null}
+                                {run.activeContract?.noShuffle ? (
+                                    <div className={styles.statPill}>
+                                        <span className={styles.statKey}>Contract</span>
+                                        <span className={styles.statVal}>Scholar</span>
+                                    </div>
+                                ) : null}
+                                {run.gameMode === 'meditation' ? (
+                                    <div className={styles.statPill} title="Meditation run">
+                                        <span className={styles.statKey}>Mode</span>
+                                        <span className={styles.statVal}>Meditation</span>
+                                    </div>
+                                ) : null}
+                                {run.wildMenuRun ? (
+                                    <div className={styles.statPill} title="Wild joker run">
+                                        <span className={styles.statKey}>Wild</span>
+                                        <span className={styles.statVal}>On</span>
+                                    </div>
+                                ) : null}
+                                {run.nBackAnchorPairKey && nBackMutatorActive ? (
+                                    <div className={styles.statPill} title="N-back anchor pair">
+                                        <span className={styles.statKey}>Anchor</span>
+                                        <span className={styles.statVal}>{run.nBackAnchorPairKey.slice(0, 6)}</span>
+                                    </div>
+                                ) : null}
+                                {run.activeMutators.map((m) => (
+                                    <div className={styles.mutatorChip} key={m} title={MUTATOR_HUD_LABELS[m] ?? m}>
+                                        {MUTATOR_HUD_LABELS[m] ?? m}
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>
@@ -324,6 +513,55 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                             <DestroyIcon />
                             <span className={styles.powerBadge}>{run.destroyPairCharges}</span>
                         </button>
+                        <button
+                            aria-label={`Peek one hidden tile. Charges: ${run.peekCharges}. ${peekModeArmed ? 'Tap a tile' : 'Arm peek then tap'}`}
+                            aria-pressed={peekModeArmed}
+                            className={`${styles.iconAction} ${styles.iconActionWithBadge} ${peekModeArmed ? styles.iconActionActive : ''}`}
+                            disabled={run.peekCharges < 1}
+                            onClick={() => togglePeekMode()}
+                            title={
+                                run.peekCharges < 1
+                                    ? 'No peek charges this floor'
+                                    : peekModeArmed
+                                      ? 'Tap a hidden tile to peek (uses 1 charge)'
+                                      : 'Arm peek, then tap a hidden tile'
+                            }
+                            type="button"
+                        >
+                            <PeekIcon />
+                            <span className={styles.powerBadge}>{run.peekCharges}</span>
+                        </button>
+                        <button
+                            aria-label={`Remove one stray tile. Charges: ${run.strayRemoveCharges}. ${run.strayRemoveArmed ? 'Tap a tile' : 'Arm then tap'}`}
+                            aria-pressed={run.strayRemoveArmed}
+                            className={`${styles.iconAction} ${styles.iconActionWithBadge} ${run.strayRemoveArmed ? styles.iconActionActive : ''}`}
+                            disabled={run.strayRemoveCharges < 1}
+                            onClick={() => toggleStrayArm()}
+                            title={
+                                run.strayRemoveCharges < 1
+                                    ? 'No stray-remove charges'
+                                    : run.strayRemoveArmed
+                                      ? 'Tap a hidden tile to remove it from play'
+                                      : 'Arm stray remove, then tap a hidden tile'
+                            }
+                            type="button"
+                        >
+                            <StrayIcon />
+                            <span className={styles.powerBadge}>{run.strayRemoveCharges}</span>
+                        </button>
+                    </div>
+                ) : null}
+                {run.status === 'resolving' && run.undoUsesThisFloor > 0 ? (
+                    <div className={styles.resolveBar} role="group" aria-label="Resolve options">
+                        <button
+                            aria-label="Undo last flip (uses your one undo this floor)"
+                            className={styles.iconAction}
+                            onClick={() => undoResolvingFlip()}
+                            title="Undo the current flip before it resolves"
+                            type="button"
+                        >
+                            <UndoIcon />
+                        </button>
                     </div>
                 ) : null}
                 {showForgivenessHint ? (
@@ -337,15 +575,22 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                     </div>
                 ) : null}
 
-                <div className={`${styles.boardStage} ${cameraViewportMode ? styles.boardStageCamera : ''}`}>
+                <div
+                    className={`${styles.boardStage} ${cameraViewportMode ? styles.boardStageCamera : ''} ${boardPresentationClass}`.trim()}
+                >
                     <div className={styles.boardGlow} aria-hidden="true" />
                     <TileBoard
                         ref={tileBoardRef}
+                        allowGambitThirdFlip={allowGambitThirdFlip}
                         board={run.board}
                         debugPeekActive={run.debugPeekActive}
+                        dimmedTileIds={focusDimmedTileIds}
                         interactive={run.status === 'playing'}
                         frameStyle={cameraViewportMode ? undefined : boardStyle}
                         mobileCameraMode={cameraViewportMode}
+                        nBackAnchorPairKey={run.nBackAnchorPairKey}
+                        nBackMutatorActive={nBackMutatorActive}
+                        peekRevealedTileIds={run.peekRevealedTileIds}
                         pinnedTileIds={run.pinnedTileIds}
                         onTileSelect={(tileId) => {
                             if (run.status === 'playing') {
@@ -354,8 +599,16 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         }}
                         previewActive={run.status === 'memorize'}
                         reduceMotion={settings.reduceMotion}
+                        runStatus={run.status}
+                        silhouetteDuringPlay={silhouetteDuringPlay}
                         viewportResetToken={viewportResetToken}
+                        wideRecallInPlay={wideRecallInPlay}
                     />
+                    {distractionHudOn ? (
+                        <div aria-hidden className={styles.distractionHud}>
+                            {(distractionTick % 7) + 3}
+                        </div>
+                    ) : null}
                     {unlockedDefinitions.length > 0 ? (
                         <div className={`${styles.toastRail} ${cameraViewportMode ? styles.mobileCameraToastRail : ''}`} role="status">
                             {unlockedDefinitions.map((a) => (
@@ -379,13 +632,25 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                     />
                 )}
 
-                {!suppressStatusOverlays && run.status === 'levelComplete' && run.lastLevelResult && (
+                {!suppressStatusOverlays && run.relicOffer ? (
+                    <OverlayModal
+                        actions={run.relicOffer.options.map((id) => ({
+                            label: RELIC_LABELS[id] ?? id,
+                            onClick: () => pickRelic(id),
+                            variant: 'primary' as const
+                        }))}
+                        subtitle="Choose one relic. It applies immediately and lasts the rest of the run."
+                        title={`Relic — tier ${run.relicOffer.tier}`}
+                    />
+                ) : null}
+
+                {!suppressStatusOverlays && run.status === 'levelComplete' && run.lastLevelResult && !run.relicOffer && (
                     <OverlayModal
                         actions={[
                             { label: 'Continue', onClick: continueToNextLevel, variant: 'primary' },
                             { label: 'Main Menu', onClick: goToMenu, variant: 'secondary' }
                         ]}
-                        subtitle={`Level ${run.lastLevelResult.level} cleared. Score +${run.lastLevelResult.scoreGained}.`}
+                        subtitle={`Level ${run.lastLevelResult.level} cleared. Score +${run.lastLevelResult.scoreGained}. Try Daily or Scholar contract from the menu for different goals.`}
                         title="Floor Cleared"
                     >
                         {clearLifeBonusLabel ? <p className={styles.modalNote}>{clearLifeBonusLabel}</p> : null}
