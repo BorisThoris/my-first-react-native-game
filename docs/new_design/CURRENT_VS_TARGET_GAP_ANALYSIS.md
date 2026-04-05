@@ -57,6 +57,10 @@ From `e2e/visualScenarioSteps.ts`, the visual workflow captures:
 ### Main Menu Summary
 - Menu IA and routing match the redesign program; remaining gap is mostly illustration/logo assets and premium chrome density.
 
+### Profile / social strips (TASK-016 / TASK-017 resolution)
+- **Profile / meta strip:** Not required for the current Steam demo scope; tracked as optional product work in `docs/new_design/TASKS/TASK-016-profile-and-meta-menu-strip.md`.
+- **Social / community strip:** Not in v1; defer or use external storefront links only if product approves—see `docs/new_design/TASKS/TASK-017-social-and-community-strip.md`.
+
 ---
 
 ## Gameplay Mapping

@@ -627,12 +627,10 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         >
                             <div className={`${styles.floatingDeck} ${styles.statsDeck} ${styles.hudDeck}`} role="group" aria-label="Run stats">
                                 <div className={styles.deckCluster}>
-                                    <div className={`${styles.hudSegment} ${styles.hudScoreSegment}`}>
-                                        <span className={styles.statKey}>Score</span>
-                                        <span className={`${styles.statVal} ${styles.statValScore}`}>
-                                            {run.stats.totalScore.toLocaleString()}
-                                        </span>
-                                    </div>
+                                    {/*
+                                      Segment order follows SCREEN_SPEC_GAMEPLAY (floor → lives → shards → score → context);
+                                      score segment stays visually dominant via hudScoreSegment styling.
+                                    */}
                                     <div className={`${styles.hudSegment} ${styles.floorBadge}`} title="Current floor">
                                         <span className={styles.floorLabel}>Floor</span>
                                         <span className={styles.floorValue}>{run.board.level}</span>
@@ -656,6 +654,12 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                         <span className={styles.statVal}>{run.stats.comboShards}</span>
                                         <span className={styles.statSubline}>Guards {run.stats.guardTokens}</span>
                                     </div>
+                                    <div className={`${styles.hudSegment} ${styles.hudScoreSegment}`}>
+                                        <span className={styles.statKey}>Score</span>
+                                        <span className={`${styles.statVal} ${styles.statValScore}`}>
+                                            {run.stats.totalScore.toLocaleString()}
+                                        </span>
+                                    </div>
                                     <div className={`${styles.hudSegment} ${styles.hudMetaSegment}`}>
                                         <span className={styles.statKey}>Mode</span>
                                         <span className={styles.statVal}>{hudModeLabel}</span>
@@ -676,6 +680,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                             <span className={styles.statSubline}>No active mutators</span>
                                         )}
                                     </div>
+
                                     <div className={styles.statRail}>
                                         {gauntletRemainingMs !== null ? (
                                             <div className={styles.statPillCompact} title="Gauntlet time left">
