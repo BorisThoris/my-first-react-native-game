@@ -11,35 +11,32 @@ This document maps the reference images against the current live renderer and cl
 ## Current Live App Boundaries
 
 ### Active Views Today
-From `src/shared/contracts.ts`, current live view coverage is:
+From `src/shared/contracts.ts`, current live `ViewState` coverage is:
 - `boot`
 - `menu`
 - `settings`
 - `playing`
 - `gameOver`
+- `modeSelect` (Choose Your Path)
+- `collection`
+- `inventory` (in-run overlay; also routed from store)
+- `codex` (in-run overlay; also routed from store)
 
 ### Key Current Screens and Systems
-- `MainMenu`
-- `GameScreen`
-- `SettingsScreen`
-- `GameOverScreen`
+- `MainMenu`, `ChooseYourPathScreen`, `CollectionScreen`, `InventoryScreen`, `CodexScreen` (meta surfaces)
+- `GameScreen`, `TileBoard`
+- `SettingsScreen`, `GameOverScreen`
 - `OverlayModal`
-- `TileBoard`
-- shared primitives under `src/renderer/ui/`
+- Shared primitives under `src/renderer/ui/`
 
 ### Current Visual Test Coverage
-From `e2e/visualScenarioSteps.ts`, the current visual workflow already captures:
-- startup intro
-- main menu
-- main menu with how-to
-- settings page
-- gameplay
-- pause modal
-- run settings modal
-- floor cleared modal
-- game over
-
-That coverage should anchor later redesign regression work.
+From `e2e/visualScenarioSteps.ts`, the visual workflow captures:
+- startup intro (`00`)
+- main menu (`01`), Choose Your Path (`01a`), collection (`01b`), menu inventory empty (`01c-inventory-empty`), in-run inventory (`01d-inventory-active`), in-run codex (`01e-codex`)
+- main menu with how-to (`02`)
+- settings (`03`)
+- gameplay (`04`)
+- pause, run settings, floor cleared, game over (`05`–`08`)
 
 ---
 
@@ -47,20 +44,18 @@ That coverage should anchor later redesign regression work.
 
 | Reference Element | Current App Status | Classification | Notes |
 |---|---|---|---|
-| Illustrated hero background | `MainMenuBackground` exists but is abstract and procedural | Structurally mismatched existing surface | Needs scene art direction, not just particle grid polish |
-| Large logo lockup with emblem | Current title is text-only | Asset-only dependency | Needs logo/emblem treatment |
-| Vertical CTA stack | Current menu uses horizontal hero actions plus multi-row mode buttons | Structurally mismatched existing surface | IA and layout both need change |
-| Curated primary menu | Current menu exposes many run types directly | Structurally mismatched existing surface | Extra modes need secondary treatment |
-| Collection destination | No live route | Missing screen | Must remain future scope unless new routing is added |
-| Daily challenge card | Daily exists as an action, not as a premium promo card | Restylable existing surface | Can map to current daily mode with new shell |
-| Current run card | Last-run and best-score info exists | Restylable existing surface | Needs different composition and wording |
+| Illustrated hero background | `MainMenuBackground` exists but is abstract and procedural | Structurally mismatched existing surface | Scene art direction still the main asset gap |
+| Large logo lockup with emblem | Title treatment improved; may still be text-forward | Asset-only dependency | Ornamental logo raster optional |
+| Vertical CTA stack | Centered primary stack + Play → mode select | Restylable existing surface | IA largely aligned |
+| Curated primary menu | Extra modes moved to secondary surface | Restylable existing surface | Matches redesign direction |
+| Collection destination | Live route from main menu | Restylable existing surface | Content depth is catalog/mock aware |
+| Daily challenge card | Daily reachable from Choose Your Path / secondary | Restylable existing surface | Promo card chrome vs reference |
+| Current run card | Last-run / best-score region exists | Restylable existing surface | Composition tuning |
 | Player profile/meta strip | No live profile/currency layer | Missing model support | Future product layer |
 | Social/community strip | No live equivalent | Missing screen or external-link feature | Not required for initial live parity |
 
 ### Main Menu Summary
-- The current main menu is live and functional, but its structure does not match the reference.
-- This is not a simple theme pass. It is a menu IA and composition rebuild.
-- Collection and meta-resource areas should be documented as future scope unless routes and product data are added.
+- Menu IA and routing match the redesign program; remaining gap is mostly illustration/logo assets and premium chrome density.
 
 ---
 
@@ -68,20 +63,18 @@ That coverage should anchor later redesign regression work.
 
 | Reference Element | Current App Status | Classification | Notes |
 |---|---|---|---|
-| Illustrated dungeon stage | Gameplay background exists but is abstract | Structurally mismatched existing surface | Needs stronger illustrated environment |
-| Ornate segmented top HUD | Current HUD is live but flatter and more utilitarian | Restylable existing surface | Data mostly exists already |
-| Score-centered hierarchy | Current score is present but not visually dominant enough | Restylable existing surface | Design issue, not model issue |
-| Left icon rail | Current toolbar exists | Restylable existing surface | Must become more art-directed |
-| Sidebar flyout with labels | No live expanded rail pattern | Structurally mismatched existing surface | Needs new interaction shell |
-| Collection/inventory/codex entries | No live routes | Missing screen | Future-only unless routing expands |
-| Premium card back/front treatment | Tile system exists | Structurally mismatched existing surface | Needs new assets and state language |
-| Hover, flip, matched, mismatch FX | Partial support exists | Restylable existing surface | Must be upgraded significantly |
-| Score popup and celebratory burst | Partial feedback exists | Structurally mismatched existing surface | Requires stronger FX layer |
+| Illustrated dungeon stage | Gameplay background exists but is abstract | Structurally mismatched existing surface | Stronger illustrated environment = asset pass |
+| Ornate segmented top HUD | HUD modules restyled toward reference | Restylable existing surface | Score dominance and segment ornament still tunable |
+| Score-centered hierarchy | Score emphasized in HUD | Restylable existing surface | Further typography/glow pass possible |
+| Left icon rail | Premium-styled rail + flyout | Restylable existing surface | Inventory/Codex in flyout |
+| Sidebar flyout with labels | Flyout with labeled actions | Restylable existing surface | Parity with reference sidebar |
+| Collection/inventory/codex entries | Live flyout + full-screen meta where routed | Restylable existing surface | Collection is menu-first per IA |
+| Premium card back/front treatment | `tileTextures` + board CSS / WebGL | Structurally mismatched existing surface | Asset + state FX still main lever |
+| Hover, flip, matched, mismatch FX | Implemented; iteratively stronger | Restylable existing surface | See TASK-005 |
+| Score popup and celebratory burst | Partial feedback | Structurally mismatched existing surface | FX layer can deepen |
 
 ### Gameplay Summary
-- Most gameplay data and basic interaction scaffolding already exist.
-- The gap is primarily presentational plus some UI structure.
-- Card-state visuals and feedback are the highest-impact mismatch.
+- Structure and routes are in place; highest-impact remaining work is card-state FX and illustrated environment assets.
 
 ---
 
@@ -89,36 +82,25 @@ That coverage should anchor later redesign regression work.
 
 | Reference Element | Current App Status | Classification | Notes |
 |---|---|---|---|
-| Framed settings shell | `SettingsScreen` exists | Restylable existing surface | Overall shell can be rebuilt |
-| Left category rail | Not present | Structurally mismatched existing surface | Requires new layout and nav model |
-| Gameplay section pane | Current settings are split into simple sections | Structurally mismatched existing surface | Needs shell conversion |
-| Difficulty selector | Not in current `Settings` model | Missing model support | Future schema decision |
-| Timer mode selector | Not in current `Settings` model | Missing model support | Future schema decision |
-| Max-lives selector | Not in current `Settings` model | Missing model support | Future schema decision |
-| Card theme selector | Not in current `Settings` model | Missing model support | Future schema decision |
-| Tutorial hints toggle | Current onboarding/hint behavior exists partially | Structurally mismatched existing surface | Needs explicit mapping decision |
-| Audio, Video, Controls, Accessibility, About tabs | Only some underlying settings exist | Structurally mismatched existing surface | Category structure can still be spec'd |
+| Framed settings shell | Category shell with left rail | Restylable existing surface | Premium pane layout landed |
+| Left category rail | Present | Restylable existing surface | — |
+| Gameplay section pane | Mapped | Restylable existing surface | — |
+| Difficulty selector | Not in live `Settings` model | Missing model support | Mock or future |
+| Timer mode selector | Not in live model | Missing model support | Mock or future |
+| Max-lives selector | Not in live model | Missing model support | Mock or future |
+| Card theme selector | Not in live model | Missing model support | Mock or future |
+| Tutorial hints toggle | Partial / onboarding | Structurally mismatched existing surface | Explicit mapping optional |
+| Audio, Video, Controls, Accessibility, About | Categories live; Controls/About UI-first where noted | Restylable existing surface | Schema expansion still future |
 
 ### Current Live Settings Model Notes
 Current `Settings` model supports:
-- `masterVolume`
-- `musicVolume`
-- `sfxVolume`
-- `displayMode`
-- `uiScale`
-- `reduceMotion`
-- `boardPresentation`
-- `tileFocusAssist`
-- `resolveDelayMultiplier`
-- `weakerShuffleMode`
-- `echoFeedbackEnabled`
-- `distractionChannelEnabled`
-- `shuffleScoreTaxEnabled`
+- `masterVolume`, `musicVolume`, `sfxVolume`
+- `displayMode`, `uiScale`, `reduceMotion`
+- `boardPresentation`, `tileFocusAssist`, `resolveDelayMultiplier`
+- `weakerShuffleMode`, `echoFeedbackEnabled`, `distractionChannelEnabled`, `shuffleScoreTaxEnabled`
 
 ### Settings Summary
-- The settings reference is broader than the current live product.
-- The shell and IA are redesign work.
-- Several visible controls require future contract expansion and must be documented as such.
+- Shell and IA are implemented; several reference-only controls still need an honest “future” label or schema work.
 
 ---
 
@@ -126,26 +108,15 @@ Current `Settings` model supports:
 
 | Reference Element | Current App Status | Classification | Notes |
 |---|---|---|---|
-| Dedicated `Choose Your Path` screen | No live view | Missing screen | Requires new route/view |
-| Classic Run card | Can map to current `startRun` | Missing screen | Behavior exists, surface does not |
-| Daily Challenge card | Can map to current `startDailyRun` | Missing screen | Behavior exists, surface does not |
-| Endless Mode card | No distinct live mode with separate identity from arcade | Missing screen and possible model gap | Needs product decision |
-| Featured mode-card state | No current equivalent | Missing screen | Requires new component system |
-| Timer badge on daily card | Daily date exists, countdown presentation does not | Structurally mismatched existing surface | Likely UI-only if countdown is acceptable |
+| Dedicated `Choose Your Path` screen | Live `modeSelect` view | Restylable existing surface | — |
+| Classic Run card | Maps to current start flow | Restylable existing surface | — |
+| Daily Challenge card | Maps to daily | Restylable existing surface | — |
+| Endless Mode card | Gated / locked per product | Missing model support or mock | Labeled in UI |
+| Featured mode-card state | Mode cards with lock states | Restylable existing surface | — |
+| Timer badge on daily card | Countdown presentation where implemented | Restylable existing surface | — |
 
 ### Extra Live Modes Not Present in the Reference
-Current app exposes additional live modes:
-- `gauntlet`
-- `puzzle`
-- `meditation`
-- `wild`
-- `practice`
-- `scholar`
-- run import
-
-These need a redesign IA decision. Recommended direction:
-- Keep the reference's clean hero flow.
-- Move extra live modes into a secondary surface instead of cluttering the main entry flow.
+Additional modes remain reachable from secondary surfaces (`more run types`, etc.) per IA decision.
 
 ---
 
@@ -153,9 +124,9 @@ These need a redesign IA decision. Recommended direction:
 
 | Reference Element | Current App Status | Classification | Notes |
 |---|---|---|---|
-| Premium summary shell | `GameOverScreen` exists | Restylable existing surface | Good candidate for shared panels/cards |
-| Premium overlay language | `OverlayModal` exists | Restylable existing surface | Needs frame system alignment |
-| Dense debug/export block demotion | Current game-over screen exposes export/debug details prominently | Structurally mismatched existing surface | Reprioritize presentation, keep functionality |
+| Premium summary shell | `GameOverScreen` restyled | Restylable existing surface | Phase 8 polish ongoing |
+| Premium overlay language | `OverlayModal` aligned with shell tokens | Restylable existing surface | — |
+| Dense debug/export block demotion | Export/debug collapsed or de-emphasized | Restylable existing surface | Functionality retained |
 
 ---
 
@@ -163,10 +134,10 @@ These need a redesign IA decision. Recommended direction:
 
 | Current Primitive | Reference Need | Classification |
 |---|---|---|
-| `UiButton` | Premium beveled CTA and menu button family | Structurally mismatched existing surface |
-| `Panel` | Ornamental premium panel family | Restylable existing surface |
-| `ScreenTitle` | Display and section title hierarchy | Restylable existing surface |
-| `StatTile` | Premium status card family | Structurally mismatched existing surface |
+| `UiButton` | Premium beveled CTA | Restylable existing surface |
+| `Panel` | Ornamental panel family | Restylable existing surface |
+| `ScreenTitle` | Display hierarchy | Restylable existing surface |
+| `StatTile` | Premium status cards | Restylable existing surface |
 
 ---
 
@@ -175,41 +146,37 @@ These need a redesign IA decision. Recommended direction:
 ### Required for Close Fidelity
 - Illustrated menu scene
 - Illustrated gameplay scene
-- Logo lockup or logo-support emblem
+- Logo lockup or emblem
 - Icon family
-- Card back art
-- Card face frame or face overlays
+- Card back / face final art
 - Optional mode-card art
-- Display font files
+- Display font files (if not already final)
 
 ### Conclusion
-The redesign cannot be treated as CSS-only work. Asset onboarding is a hard dependency.
+CSS and routing can only go so far; reference fidelity still depends on asset onboarding.
 
 ---
 
 ## Contract and Routing Gaps to Record
 
-### Future Routing Gaps
-- `Choose Your Path` surface
-- `Collection`
-- `Inventory`
-- `Codex`
+### Resolved routing (was future-only in early drafts)
+- `Choose Your Path` (`modeSelect`)
+- `Collection`, `Inventory`, `Codex` (see store and `App.tsx` for when each is full-screen vs overlay)
 
-### Future Model Gaps
+### Future model gaps (still valid)
 - Distinct settings for difficulty, timer mode, max lives, and card theme
 - Optional meta/profile data for top menu strip
 - Optional currencies if the menu should mirror the reference literally
 
-### Current Package Rule
-These gaps should be explicitly documented. They should not be silently treated as already supported.
+### Current package rule
+Mock or unsupported controls must stay labeled honestly in UI and tests.
 
 ---
 
 ## Final Gap Summary
-- Main menu: live, but structurally mismatched
-- Gameplay shell: live, mostly restylable but card system needs major upgrade
-- Settings: live, but structurally mismatched and partially model-limited
-- Game over/modals: live, restylable with some prioritization cleanup
-- Mode selection: missing screen
-- Collection/inventory/codex: missing screens
-- Asset pipeline: hard dependency
+- Main menu: IA and routes aligned; illustration and logo assets remain the main gap.
+- Gameplay shell: structure and flyout landed; card FX and stage art are the main gap.
+- Settings: shell done; several reference controls remain model-future.
+- Game over/modals: functional; presentation can still move closer to reference.
+- Mode selection and meta screens: live; content depth follows catalog/save data.
+- Asset pipeline: still the hard dependency for pixel-level reference match.

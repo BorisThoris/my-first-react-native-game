@@ -29,13 +29,19 @@ test.describe('Navigation shells', () => {
     test('Utility flyout opens Inventory and Codex then returns to playing', async ({ page }) => {
         await openLevel1Play(page);
         await page.getByRole('button', { name: /show utility menu/i }).click();
-        await page.getByRole('button', { name: /inventory/i }).click();
+        await page
+            .getByRole('group', { name: /in-game menu/i })
+            .getByRole('button', { name: /active run loadout/i })
+            .click();
         await expect(page.getByRole('region', { name: /inventory/i })).toBeVisible();
         await page.getByRole('region', { name: /inventory/i }).getByRole('button', { name: /^back$/i }).click();
         await expect(page.getByTestId('game-hud')).toBeVisible();
 
         await page.getByRole('button', { name: /show utility menu/i }).click();
-        await page.getByRole('button', { name: /codex/i }).click();
+        await page
+            .getByRole('group', { name: /in-game menu/i })
+            .getByRole('button', { name: /read-only rules/i })
+            .click();
         await expect(page.getByRole('region', { name: /codex/i })).toBeVisible();
         await page.getByRole('region', { name: /codex/i }).getByRole('button', { name: /^back$/i }).click();
         await expect(page.getByTestId('game-hud')).toBeVisible();

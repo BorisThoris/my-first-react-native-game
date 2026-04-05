@@ -405,6 +405,18 @@ describe('desktop app flow', () => {
         });
     });
 
+    it('opens Inventory from the main menu when no run is active and returns', async () => {
+        const user = userEvent.setup();
+        renderApp();
+        await dismissStartupIntro(user);
+        await user.click(await screen.findByRole('button', { name: /^inventory$/i }));
+        expect(await screen.findByText(/No active expedition/i)).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: /^back$/i }));
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /^play$/i })).toBeInTheDocument();
+        });
+    });
+
     it('opens Inventory and Codex from the utility flyout and returns to playing', async () => {
         const user = userEvent.setup();
         renderApp();
@@ -412,7 +424,8 @@ describe('desktop app flow', () => {
         await chooseClassicRun(user);
 
         await user.click(screen.getByRole('button', { name: /show utility menu/i }));
-        await user.click(screen.getByRole('button', { name: /inventory/i }));
+        const inGameMenu = screen.getByRole('group', { name: /in-game menu/i });
+        await user.click(within(inGameMenu).getByRole('button', { name: /active run loadout/i }));
         expect(await screen.findByRole('region', { name: /inventory/i })).toBeInTheDocument();
         await user.click(screen.getByRole('button', { name: /^back$/i }));
         expect(await screen.findByRole('heading', { name: /level 1/i })).toBeInTheDocument();

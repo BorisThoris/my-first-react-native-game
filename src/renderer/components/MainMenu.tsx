@@ -21,6 +21,7 @@ interface MainMenuProps {
     onDismissHowToPlay: () => Promise<void>;
     onPlay: () => void;
     onOpenCollection: () => void;
+    onOpenInventory: () => void;
     onOpenSettings: () => void;
     onGauntletRun: () => void;
     onPuzzleStarter: () => void;
@@ -43,6 +44,7 @@ const MainMenu = ({
     onDismissHowToPlay,
     onPlay,
     onOpenCollection,
+    onOpenInventory,
     onOpenSettings,
     onGauntletRun,
     onPuzzleStarter,
@@ -157,6 +159,19 @@ const MainMenu = ({
                                 <span className={styles.ctaContent}>
                                     <span className={styles.ctaTitle}>Collection</span>
                                     <span className={styles.ctaHint}>Achievements, relics, and run history</span>
+                                </span>
+                            </UiButton>
+                            <UiButton
+                                aria-label="Inventory"
+                                className={styles.ctaButton}
+                                fullWidth
+                                size="lg"
+                                variant="ghost"
+                                onClick={onOpenInventory}
+                            >
+                                <span className={styles.ctaContent}>
+                                    <span className={styles.ctaTitle}>Inventory</span>
+                                    <span className={styles.ctaHint}>Expedition loadout when you are in a run</span>
                                 </span>
                             </UiButton>
                             <UiButton

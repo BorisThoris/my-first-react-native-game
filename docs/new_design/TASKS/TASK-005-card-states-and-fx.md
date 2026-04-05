@@ -1,7 +1,11 @@
 # Task 005: Card States and FX
 
 ## Status
-Planned
+Partial (ongoing polish)
+
+## Implementation notes
+- Board uses shared card raster pipeline (`tileTextures.ts`, `TileBoard` / CSS). Hidden, flipped, matched, and mismatch/hover treatments are iterated for clearer state language in both 2D and 3D paths.
+- **Residual:** Maximum “premium” parity depends on final card-back/face art drops in `assets/textures/cards/` and motion tuning in `MOTION_AND_STATE_SPEC.md`.
 
 ## Priority
 High

@@ -1,7 +1,10 @@
 # Task 006: Settings Shell
 
 ## Status
-Planned
+Done (landed in renderer)
+
+## Implementation notes
+- Category-shell settings with Gameplay, Audio, Video, Accessibility, Controls (UI reference), and About (build + reset to defaults). Mock / future controls remain labeled as such.
 
 ## Priority
 Medium

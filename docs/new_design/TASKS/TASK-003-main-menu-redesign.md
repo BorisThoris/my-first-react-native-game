@@ -1,7 +1,11 @@
 # Task 003: Main Menu Redesign
 
 ## Status
-Planned
+Partial (landed in renderer)
+
+## Implementation notes
+- Main menu uses hero-first layout, vertical primary actions, secondary “more run types,” Collection entry, and Play → Choose Your Path. Exit uses desktop `quitApp` where available.
+- **Residual:** Text title versus ornamental logo lockup; abstract `MainMenuBackground` versus full illustrated scene (asset direction).
 
 ## Priority
 High

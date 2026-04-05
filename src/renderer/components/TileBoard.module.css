@@ -213,12 +213,18 @@
 }
 
 .fallbackTile:hover:not(.faceUp):not(.matched) {
-    border-color: rgba(244, 213, 142, 0.46);
+    border-color: rgba(244, 213, 142, 0.52);
     box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.08),
-        inset 0 -1px 0 rgba(255, 214, 133, 0.1),
-        0 0 0 1px rgba(244, 213, 142, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(255, 214, 133, 0.12),
+        0 0 0 2px rgba(244, 213, 142, 0.28),
+        0 0 40px rgba(195, 149, 79, 0.14),
         0 18px 36px rgba(8, 10, 18, 0.32);
+    transform:
+        perspective(940px)
+        rotateX(calc((var(--tilt-y, 0) * var(--field-amp) + var(--hover-y)) * -9deg))
+        rotateY(calc((var(--tilt-x, 0) * var(--field-amp) + var(--hover-x)) * 9deg))
+        translateZ(2px);
 }
 
 .fallbackTile::before {
@@ -288,11 +294,12 @@
     transition:
         border-color 160ms ease,
         box-shadow 160ms ease;
-    border-color: rgba(216, 106, 88, 0.56);
+    border-color: rgba(216, 106, 88, 0.62);
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.08),
-        inset 0 -1px 0 rgba(216, 106, 88, 0.16),
-        0 0 0 2px rgba(216, 106, 88, 0.12),
+        inset 0 -1px 0 rgba(216, 106, 88, 0.2),
+        0 0 0 2px rgba(216, 106, 88, 0.2),
+        0 0 36px rgba(216, 106, 88, 0.22),
         0 18px 36px rgba(8, 10, 18, 0.34);
 }
 
@@ -362,6 +369,14 @@
     place-items: center;
     width: 100%;
     height: 100%;
+}
+
+.fallbackTile:not(.faceUp):not(.matched) .cardBack {
+    filter: saturate(0.92) brightness(0.94);
+}
+
+.fallbackTile:hover:not(.faceUp):not(.matched) .cardBack {
+    filter: saturate(1.02) brightness(1.02);
 }
 
 .cardBack {

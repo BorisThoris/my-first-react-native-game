@@ -85,6 +85,7 @@ interface AppState {
     goToMenu: () => void;
     openModeSelect: () => void;
     openCollection: () => void;
+    openInventoryFromMenu: () => void;
     openInventoryFromPlaying: () => void;
     openCodexFromPlaying: () => void;
     closeSubscreen: () => void;
@@ -612,6 +613,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     openCollection: () => {
         set({ view: 'collection', subscreenReturnView: 'menu' });
+    },
+
+    openInventoryFromMenu: () => {
+        set({ view: 'inventory', subscreenReturnView: 'menu' });
     },
 
     openInventoryFromPlaying: () => {

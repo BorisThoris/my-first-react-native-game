@@ -1,7 +1,10 @@
 # Task 007: Mode Selection and Menu IA
 
 ## Status
-Planned
+Done (landed in renderer)
+
+## Implementation notes
+- `ViewState` includes `modeSelect`, `collection`, `inventory`, `codex`; `SubscreenReturnView` and store actions handle back navigation and freeze/resume behavior. Choose Your Path screen maps Classic/Daily; extra modes live in secondary surfaces; Endless remains product-gated where applicable.
 
 ## Priority
 Medium

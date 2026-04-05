@@ -27,12 +27,8 @@
     padding: clamp(1rem, 2vw, 1.2rem);
     overflow-y: auto;
     min-height: 0;
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent 18%),
-        radial-gradient(circle at top left, rgba(240, 210, 143, 0.12), transparent 34%),
-        radial-gradient(circle at bottom right, rgba(114, 207, 255, 0.08), transparent 32%),
-        linear-gradient(160deg, rgba(18, 22, 32, 0.97), rgba(7, 9, 14, 0.98));
-    border: 1px solid rgba(240, 210, 143, 0.22);
+    background: var(--theme-panel-surface-strong, var(--theme-panel-surface));
+    border: 1px solid var(--theme-border-strong, rgba(240, 210, 143, 0.22));
     border-radius: calc(var(--ui-radius-modal) + 0.18rem);
     box-shadow:
         0 26px 64px rgba(0, 0, 0, 0.46),

@@ -624,6 +624,12 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         >
                             <div className={`${styles.floatingDeck} ${styles.statsDeck} ${styles.hudDeck}`} role="group" aria-label="Run stats">
                                 <div className={styles.deckCluster}>
+                                    <div className={`${styles.hudSegment} ${styles.hudScoreSegment}`}>
+                                        <span className={styles.statKey}>Score</span>
+                                        <span className={`${styles.statVal} ${styles.statValScore}`}>
+                                            {run.stats.totalScore.toLocaleString()}
+                                        </span>
+                                    </div>
                                     <div className={`${styles.hudSegment} ${styles.floorBadge}`} title="Current floor">
                                         <span className={styles.floorLabel}>Floor</span>
                                         <span className={styles.floorValue}>{run.board.level}</span>
@@ -646,12 +652,6 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                         <span className={styles.statKey}>Shards</span>
                                         <span className={styles.statVal}>{run.stats.comboShards}</span>
                                         <span className={styles.statSubline}>Guards {run.stats.guardTokens}</span>
-                                    </div>
-                                    <div className={`${styles.hudSegment} ${styles.hudScoreSegment}`}>
-                                        <span className={styles.statKey}>Score</span>
-                                        <span className={`${styles.statVal} ${styles.statValScore}`}>
-                                            {run.stats.totalScore.toLocaleString()}
-                                        </span>
                                     </div>
                                     <div className={`${styles.hudSegment} ${styles.hudMetaSegment}`}>
                                         <span className={styles.statKey}>Mode</span>

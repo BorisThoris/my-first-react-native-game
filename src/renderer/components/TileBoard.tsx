@@ -15,7 +15,6 @@ import {
 } from 'react';
 import { flushSync } from 'react-dom';
 import type { BoardState, RunStatus, Tile } from '../../shared/contracts';
-import { WILD_PAIR_KEY } from '../../shared/game';
 import { useCoarsePointer } from '../hooks/useCoarsePointer';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
@@ -23,6 +22,7 @@ import styles from './TileBoard.module.css';
 import { getTileFieldAmplification } from './tileFieldTilt';
 import TileBoardPostFx from './TileBoardPostFx';
 import TileBoardScene, { type TileBoardSceneHandle, type TileHoverTiltState } from './TileBoardScene';
+import { getResolvingSelectionState, type ResolvingSelectionState } from './tileResolvingSelection';
 import {
     COMPACT_BOARD_FIT_MARGIN,
     MOBILE_CAMERA_FIT_MARGIN,
@@ -147,52 +147,6 @@ const canUseWebGL = (): boolean => {
     } catch {
         return false;
     }
-};
-
-type ResolvingSelectionState = 'match' | 'mismatch' | null;
-
-const areResolvingTilesMatch = (tiles: Tile[]): boolean => {
-    if (tiles.length < 2) {
-        return false;
-    }
-
-    if (tiles.length > 2) {
-        return false;
-    }
-
-    const [first, second] = tiles;
-
-    if (first.pairKey === second.pairKey && first.pairKey !== '__decoy__') {
-        return true;
-    }
-
-    if (first.pairKey === WILD_PAIR_KEY && second.pairKey !== WILD_PAIR_KEY) {
-        return true;
-    }
-
-    if (second.pairKey === WILD_PAIR_KEY && first.pairKey !== WILD_PAIR_KEY) {
-        return true;
-    }
-
-    return false;
-};
-
-const getResolvingSelectionState = (board: BoardState, runStatus: RunStatus, tileId: string): ResolvingSelectionState => {
-    if (runStatus !== 'resolving' || !board.flippedTileIds.includes(tileId)) {
-        return null;
-    }
-
-    const flippedTiles = board.tiles.filter((tile) => board.flippedTileIds.includes(tile.id));
-
-    if (flippedTiles.length === 2) {
-        return areResolvingTilesMatch(flippedTiles) ? 'match' : 'mismatch';
-    }
-
-    if (flippedTiles.length === 3) {
-        return 'mismatch';
-    }
-
-    return null;
 };
 
 const getTileClassName = (
@@ -1094,6 +1048,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                                     previewActive={previewActive}
                                     ref={sceneHandleRef}
                                     reduceMotion={reduceMotion}
+                                    runStatus={runStatus}
                                     shuffleMotionDeadlineMs={shuffleMotionDeadlineMs}
                                 />
                                 <TileBoardPostFx reduceMotion={reduceMotion} />

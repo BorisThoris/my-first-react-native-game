@@ -123,6 +123,8 @@ Define a dependency-safe rollout order for the later UI redesign work. This sequ
 - `useAppStore.ts`
 - future route/view additions if approved
 
+**Implementation note (2026):** `modeSelect`, `collection`, `inventory`, and `codex` are live `ViewState` values with Playwright coverage (`01a`–`01e` in `e2e/visualScenarioSteps.ts`). Dependency rules below were written pre-ship; treat “do not implement until approved” as satisfied where the app already ships these routes.
+
 ---
 
 ## Phase 8: Game Over and Remaining Polish
@@ -156,12 +158,14 @@ From `e2e/visualScenarioSteps.ts`:
 ### Possible New Scenario
 - `Choose Your Path` if it becomes a real live screen
 
+**Implementation note (2026):** Scenarios `01a`–`01e` cover Choose Your Path, collection, menu inventory (no run), in-run inventory, and in-run codex. Baselines are produced by local/CI Playwright runs (default under `test-results/`, gitignored); optional doc captures use `VISUAL_CAPTURE_ROOT` per `package.json`.
+
 ---
 
 ## Dependency Rules
 - Do not redesign individual screens before the shared primitive and theme layer is stable.
-- Do not implement a literal `Choose Your Path` route until its product mapping is approved.
-- Do not let future-scope collection/codex/inventory mockups silently become fake live features.
+- Choose Your Path and meta routes are implemented; keep mock-only settings and locked modes labeled honestly in copy and tests.
+- Do not let future-scope mock controls silently present as fully supported behavior.
 - Do not treat asset work as optional if close reference fidelity is still the goal.
 
 ---

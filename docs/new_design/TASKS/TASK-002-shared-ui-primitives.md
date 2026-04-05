@@ -1,7 +1,11 @@
 # Task 002: Shared UI Primitives
 
 ## Status
-Planned
+Partial (landed in renderer)
+
+## Implementation notes
+- `UiButton`, `Panel`, `ScreenTitle`, `StatTile`, `Eyebrow`, and related CSS modules were restyled for the fantasy shell. Screens compose these instead of one-off hacks where possible.
+- **Residual:** Tighter 1:1 match to `COMPONENT_CATALOG.md` / reference still possible on spacing and ornament density.
 
 ## Priority
 High

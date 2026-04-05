@@ -67,27 +67,39 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
         }
     },
     {
-        fileBase: '01c-inventory-active',
+        fileBase: '01c-inventory-empty',
+        name: 'inventory with no active run',
+        run: async (page, capture) => {
+            await openMainMenuFromSave(page, true);
+            await page.getByRole('button', { name: /^inventory$/i }).click();
+            await expect(page.getByText(/No active expedition/i)).toBeVisible();
+            await expect(page.getByRole('region', { name: /inventory/i })).toBeVisible();
+            await expectNoHorizontalOverflow(page);
+            await capture('01c-inventory-empty');
+        }
+    },
+    {
+        fileBase: '01d-inventory-active',
         name: 'inventory during a run',
         run: async (page, capture) => {
             await openLevel1Play(page);
             await page.getByRole('button', { name: /show utility menu/i }).click();
-            await page.getByRole('button', { name: /inventory/i }).click();
+            await page.getByRole('group', { name: /in-game menu/i }).getByRole('button', { name: /active run loadout/i }).click();
             await expect(page.getByRole('region', { name: /inventory/i })).toBeVisible();
             await expectNoHorizontalOverflow(page);
-            await capture('01c-inventory-active');
+            await capture('01d-inventory-active');
         }
     },
     {
-        fileBase: '01d-codex',
+        fileBase: '01e-codex',
         name: 'codex during a run',
         run: async (page, capture) => {
             await openLevel1Play(page);
             await page.getByRole('button', { name: /show utility menu/i }).click();
-            await page.getByRole('button', { name: /codex/i }).click();
+            await page.getByRole('group', { name: /in-game menu/i }).getByRole('button', { name: /read-only rules/i }).click();
             await expect(page.getByRole('region', { name: /codex/i })).toBeVisible();
             await expectNoHorizontalOverflow(page);
-            await capture('01d-codex');
+            await capture('01e-codex');
         }
     },
     {

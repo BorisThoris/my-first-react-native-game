@@ -82,10 +82,13 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
                     <Panel className={styles.heroPanel} padding="lg" variant="strong">
                         <Eyebrow>Run Complete</Eyebrow>
                         <ScreenTitle role="screenLg">Expedition Over</ScreenTitle>
+                        <div aria-label={`Total score ${summary.totalScore.toLocaleString()}`} className={styles.scoreHero}>
+                            <span className={styles.scoreHeroLabel}>Score</span>
+                            <span className={styles.scoreHeroValue}>{summary.totalScore.toLocaleString()}</span>
+                        </div>
                         <img alt="" className={styles.divider} src={UI_ART.dividerOrnament} />
                         <p className={styles.copy}>
-                            You reached floor {summary.highestLevel} and banked{' '}
-                            {summary.totalScore.toLocaleString()} points before the archive sealed.
+                            Floor {summary.highestLevel} reached before the archive sealed — details below.
                         </p>
 
                         {metaItems.length > 0 ? (
@@ -99,7 +102,6 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
                         ) : null}
 
                         <div className={styles.summaryGrid}>
-                            <StatTile density="minimal" label="Total Score" value={summary.totalScore.toLocaleString()} />
                             <StatTile density="minimal" label="Highest Floor" value={summary.highestLevel} />
                             <StatTile density="minimal" label="Best Streak" value={summary.bestStreak} />
                             <StatTile density="minimal" label="Perfect Floors" value={summary.perfectClears} />
@@ -109,8 +111,8 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
 
                         <p className={styles.note}>
                             {summary.achievementsEnabled
-                                ? 'Achievements remained enabled for this descent.'
-                                : 'Debug tools were used, so achievements were disabled for this run.'}
+                                ? 'Achievements counted for this run.'
+                                : 'Achievements were off (debug tools used).'}
                         </p>
                     </Panel>
 
@@ -148,8 +150,8 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
                             </strong>
                             <p className={styles.panelCopy}>
                                 {flipCount > 0
-                                    ? `${flipCount} committed flips were recorded in the local ghost log.`
-                                    : 'No local ghost log was captured for this run.'}
+                                    ? `${flipCount} flips recorded locally for this session.`
+                                    : 'No flip history stored for this run.'}
                             </p>
                         </Panel>
                     </aside>
@@ -172,9 +174,9 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
                     </Panel>
                 ) : null}
 
-                <Panel className={styles.detailsPanel} padding="lg" variant="muted">
+                <Panel className={styles.detailsPanel} padding="md" variant="muted">
                     <details className={styles.exportDetails}>
-                        <summary>Run export and local replay data</summary>
+                        <summary>Advanced — export and replay</summary>
                         <div className={styles.exportBody}>
                             <UiButton size="md" variant="secondary" onClick={() => void copyRunSeed()}>
                                 Copy run seed (JSON)

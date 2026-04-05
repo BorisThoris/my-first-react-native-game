@@ -21,5 +21,6 @@ This directory breaks the redesign into implementation-sized tasks. The tasks ar
 - Visual regression refresh closes the sequence.
 
 ## Notes
-- These tasks are implementation-oriented but remain docs-only inside this package.
-- Future-scope destinations like collection, inventory, and codex are intentionally separated from live-screen redesign work.
+- These tasks are implementation-oriented; status and notes in each `TASK-*.md` track what landed in the renderer versus what remains reference-level polish.
+- **Live routes:** `modeSelect` (Choose Your Path), `collection`, `inventory`, and `codex` are implemented in `src/shared/contracts.ts` and wired in `App.tsx` / `useAppStore.ts`. Inventory and codex open as in-run overlays from the gameplay flyout; collection is reachable from the main menu.
+- **Honest mock scope:** Settings categories that are UI-only (for example Controls reference copy, locked Endless on mode select) stay labeled in copy and tests per TASK-008.

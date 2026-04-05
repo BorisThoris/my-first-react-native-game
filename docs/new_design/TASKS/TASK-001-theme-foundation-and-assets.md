@@ -1,7 +1,11 @@
 # Task 001: Theme Foundation and Assets
 
 ## Status
-Planned
+Partial (landed in renderer)
+
+## Implementation notes
+- Shared tokens live in `src/renderer/styles/theme.ts` and `src/renderer/styles/global.css`; UI raster slots live under `src/renderer/assets/ui/` and card textures under `src/renderer/assets/textures/cards/`.
+- **Residual:** Full illustrated menu/gameplay scenes and final logo lockup remain asset-dependent versus `docs/ENDPRODUCTIMAGE*.png` (see `CURRENT_VS_TARGET_GAP_ANALYSIS.md`).
 
 ## Priority
 High

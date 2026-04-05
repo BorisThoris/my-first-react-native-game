@@ -26,6 +26,7 @@ const App = () => {
         importRunFromClipboard,
         newlyUnlockedAchievements,
         openCollection,
+        openInventoryFromMenu,
         openModeSelect,
         openSettings,
         run,
@@ -49,6 +50,7 @@ const App = () => {
             importRunFromClipboard: state.importRunFromClipboard,
             newlyUnlockedAchievements: state.newlyUnlockedAchievements,
             openCollection: state.openCollection,
+            openInventoryFromMenu: state.openInventoryFromMenu,
             openModeSelect: state.openModeSelect,
             openSettings: state.openSettings,
             run: state.run,
@@ -88,7 +90,8 @@ const App = () => {
         (visualView === 'menu' ||
             visualView === 'playing' ||
             view === 'modeSelect' ||
-            view === 'collection')
+            view === 'collection' ||
+            (view === 'inventory' && subscreenReturnView === 'menu'))
             ? 'off'
             : 'on';
     const introOverlayVisible =
@@ -131,6 +134,7 @@ const App = () => {
                                 onDismissHowToPlay={dismissHowToPlay}
                                 onOpenSettings={() => openSettings('menu')}
                                 onOpenCollection={openCollection}
+                                onOpenInventory={openInventoryFromMenu}
                                 onPlay={openModeSelect}
                                 onGauntletRun={startGauntletRun}
                                 onPuzzleStarter={() => startPuzzleRun('starter_pairs')}
@@ -171,6 +175,8 @@ const App = () => {
                 {hydrated && view === 'modeSelect' && <ChooseYourPathScreen />}
 
                 {hydrated && view === 'collection' && <CollectionScreen />}
+
+                {hydrated && view === 'inventory' && subscreenReturnView === 'menu' && <InventoryScreen />}
 
                 {hydrated && view === 'settings' && !inGameSettingsOverlay && <SettingsScreen />}
 

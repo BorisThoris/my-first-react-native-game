@@ -6,7 +6,7 @@ import edgeTextureUrl from '../assets/textures/cards/edge.png';
 import panelRoughnessTextureUrl from '../assets/textures/cards/panel-roughness.png';
 import edgeRoughnessTextureUrl from '../assets/textures/cards/edge-roughness.png';
 
-export type FaceVariant = 'hidden' | 'active' | 'matched';
+export type FaceVariant = 'hidden' | 'active' | 'matched' | 'mismatch';
 export type TileFace = 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom';
 export type TileLayer = 'bezel' | 'panel' | 'shell' | 'core';
 
@@ -311,6 +311,40 @@ const getPalette = (variant: FaceVariant, layer: LayerSlot): CardPalette => {
               };
     }
 
+    if (variant === 'mismatch') {
+        return bezel
+            ? {
+                  accent: 'rgba(216, 106, 88, 0.28)',
+                  backBase: '#231418',
+                  backPattern: 'rgba(216, 106, 88, 0.2)',
+                  edge: '#181014',
+                  faceBase: '#2a1518',
+                  faceEdge: '#140c0e',
+                  foil: colors.emberSoft,
+                  glow: colors.glowEmber,
+                  ink: '#ffe8e4',
+                  label: 'rgba(255, 232, 226, 0.92)',
+                  line: 'rgba(216, 106, 88, 0.52)',
+                  rim: 'rgba(216, 106, 88, 0.72)',
+                  rimSoft: 'rgba(255, 214, 133, 0.18)'
+              }
+            : {
+                  accent: 'rgba(216, 106, 88, 0.22)',
+                  backBase: '#2a1818',
+                  backPattern: 'rgba(216, 106, 88, 0.24)',
+                  edge: '#160f10',
+                  faceBase: '#321a1c',
+                  faceEdge: '#1c1012',
+                  foil: colors.emberSoft,
+                  glow: colors.glowEmber,
+                  ink: '#fff0ec',
+                  label: 'rgba(255, 236, 230, 0.92)',
+                  line: 'rgba(216, 106, 88, 0.5)',
+                  rim: 'rgba(216, 106, 88, 0.58)',
+                  rimSoft: 'rgba(87, 220, 255, 0.14)'
+              };
+    }
+
     return bezel
         ? {
               accent: 'rgba(255, 214, 133, 0.16)',
@@ -511,14 +545,15 @@ const drawCardFrontOverlay = (
 ): void => {
     const { width, height } = canvas;
     const matched = variant === 'matched';
+    const mismatch = variant === 'mismatch';
     const symbolText = tile.symbol;
     const labelText = tile.label.toUpperCase();
     const symbolBaseSize = tile.symbol.length > 2 ? 104 : tile.symbol.length > 1 ? 122 : 142;
     const hasDistinctLabel = labelText !== symbolText.toUpperCase();
-    const symbolFill = matched ? '#fff3c4' : '#fffef5';
-    const symbolStroke = matched ? 'rgba(22, 12, 0, 0.92)' : 'rgba(8, 8, 14, 0.92)';
-    const labelFill = matched ? '#fff8e1' : '#fffef8';
-    const labelStroke = matched ? 'rgba(18, 10, 0, 0.9)' : 'rgba(6, 6, 12, 0.9)';
+    const symbolFill = matched ? '#fff3c4' : mismatch ? '#ffd8cf' : '#fffef5';
+    const symbolStroke = matched ? 'rgba(22, 12, 0, 0.92)' : mismatch ? 'rgba(28, 8, 6, 0.92)' : 'rgba(8, 8, 14, 0.92)';
+    const labelFill = matched ? '#fff8e1' : mismatch ? '#ffeae6' : '#fffef8';
+    const labelStroke = matched ? 'rgba(18, 10, 0, 0.9)' : mismatch ? 'rgba(32, 10, 8, 0.9)' : 'rgba(6, 6, 12, 0.9)';
 
     context.clearRect(0, 0, width, height);
     context.textAlign = 'center';
@@ -677,14 +712,18 @@ const drawRoughnessFace = (
     const base = bezel
         ? variant === 'matched'
             ? 164
-            : variant === 'active'
-                ? 176
-                : 184
+            : variant === 'mismatch'
+                ? 168
+                : variant === 'active'
+                    ? 176
+                    : 184
         : variant === 'matched'
             ? 158
-            : variant === 'active'
-                ? 172
-                : 182;
+            : variant === 'mismatch'
+                ? 162
+                : variant === 'active'
+                    ? 172
+                    : 182;
     const faceShift = front ? 8 : back ? 2 : -10;
     const gradient = context.createLinearGradient(0, 0, width, height);
     gradient.addColorStop(0, shade(base + 20 + faceShift));

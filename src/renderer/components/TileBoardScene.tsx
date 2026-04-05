@@ -14,7 +14,7 @@ import {
     Vector3,
     type Group
 } from 'three';
-import type { BoardState, Tile } from '../../shared/contracts';
+import type { BoardState, RunStatus, Tile } from '../../shared/contracts';
 import {
     applyAnisotropyToCachedTileTextures,
     getCardBackStaticTexture,
@@ -32,6 +32,7 @@ import type { TiltVector } from '../platformTilt/platformTiltTypes';
 import { RENDERER_THEME } from '../styles/theme';
 import { getTileFieldAmplification } from './tileFieldTilt';
 import { isTilePickable, noopMeshRaycast, pickableMeshRaycast } from './tileBoardPick';
+import { getResolvingSelectionState, type ResolvingSelectionState } from './tileResolvingSelection';
 import type { TileBoardViewportState } from './tileBoardViewport';
 
 interface TileBoardSceneProps {
@@ -48,6 +49,7 @@ interface TileBoardSceneProps {
     pinnedTileIds: string[];
     previewActive: boolean;
     reduceMotion: boolean;
+    runStatus: RunStatus;
     /** Wall-clock ms; while `now < deadline`, tile groups ease XY toward layout targets (shuffle). */
     shuffleMotionDeadlineMs: number;
 }
@@ -63,6 +65,7 @@ interface TileBezelProps {
     isPinned: boolean;
     onTilePick: (tileId: string) => void;
     reduceMotion: boolean;
+    resolvingSelection: ResolvingSelectionState;
     shuffleMotionDeadlineMs: number;
     textureRevision: number;
     tile: Tile;
@@ -253,8 +256,17 @@ const hashString = (value: string): number => {
     return Math.abs(hash);
 };
 
-const getSurfaceVariant = (tile: Tile, faceUp: boolean): FaceVariant =>
-    tile.state === 'matched' ? 'matched' : faceUp ? 'active' : 'hidden';
+const getSurfaceVariant = (tile: Tile, faceUp: boolean, resolving: ResolvingSelectionState): FaceVariant => {
+    if (tile.state === 'matched') {
+        return 'matched';
+    }
+
+    if (faceUp && resolving === 'mismatch') {
+        return 'mismatch';
+    }
+
+    return faceUp ? 'active' : 'hidden';
+};
 
 const getTileTransform = (tile: Tile, index: number, totalColumns: number, totalRows: number, compact: boolean, faceUp: boolean): TileTransform => {
     const seed = hashString(tile.id);
@@ -296,6 +308,7 @@ const TileBezel = ({
     isPinned,
     onTilePick,
     reduceMotion,
+    resolvingSelection,
     shuffleMotionDeadlineMs,
     textureRevision,
     tile,
@@ -384,7 +397,7 @@ const TileBezel = ({
         const bu = bendURef.current;
         const bv = bendVRef.current;
         const depthScale = 1 + bendBuildupRef.current * 0.52;
-        const bendOverlay = getSurfaceVariant(tile, faceUp) !== 'hidden';
+        const bendOverlay = getSurfaceVariant(tile, faceUp, resolvingSelection) !== 'hidden';
 
         addPersistentBendStamp(frontPersistentRef.current, frontBase, bu, bv, CARD_WIDTH, CARD_HEIGHT, depthScale);
         addPersistentBendStamp(backPersistentRef.current, backBase, bu, bv, CARD_WIDTH, CARD_HEIGHT, depthScale);
@@ -581,7 +594,7 @@ const TileBezel = ({
         if (frontBase && backBase && overlayBase) {
             const bu = bendURef.current;
             const bv = bendVRef.current;
-            const bendOverlay = getSurfaceVariant(tile, faceUp) !== 'hidden';
+            const bendOverlay = getSurfaceVariant(tile, faceUp, resolvingSelection) !== 'hidden';
             const depthMultiplier = 1 + bendBuildupRef.current * 0.52;
             const pressing = !reduceMotion && pickable && pressingOnCardRef.current;
             const live = pressing ? depthMultiplier : 0;
@@ -674,12 +687,14 @@ const TileBezel = ({
         group.scale.x = group.scale.y = group.scale.z = transform.baseScale;
     });
 
-    const surfaceVariant = getSurfaceVariant(tile, faceUp);
+    const surfaceVariant = getSurfaceVariant(tile, faceUp, resolvingSelection);
     const hiddenPinned = isPinned && tile.state === 'hidden';
-    const cardTint = hiddenPinned ? '#d4b870' : '#ffffff';
+    const cardTint =
+        hiddenPinned ? '#d4b870' : resolvingSelection === 'mismatch' && faceUp ? '#ffc8bc' : '#ffffff';
     /** Same bitmap as the face-down side: static reference PNG only. Face-up adds nothing here—only the overlay mesh draws the symbol. */
     const cardArtTexture = getCardBackStaticTexture();
-    const overlayTexture = surfaceVariant === 'hidden' ? null : getTileFaceOverlayTexture(tile, surfaceVariant === 'matched' ? 'matched' : 'active');
+    const overlayTexture =
+        surfaceVariant === 'hidden' ? null : getTileFaceOverlayTexture(tile, surfaceVariant);
     const forceTextureRefreshKey = textureRevision;
 
     const halfDepth = TILE_DEPTH * 0.5;
@@ -800,6 +815,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
     pinnedTileIds,
     previewActive,
     reduceMotion,
+    runStatus,
     shuffleMotionDeadlineMs
 }: TileBoardSceneProps, ref) => {
     const { camera, gl, viewport } = useThree();
@@ -927,6 +943,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                             key={tile.id}
                             onTilePick={onTilePick}
                             reduceMotion={reduceMotion}
+                            resolvingSelection={getResolvingSelectionState(board, runStatus, tile.id)}
                             shuffleMotionDeadlineMs={shuffleMotionDeadlineMs}
                             textureRevision={textureRevision}
                             tile={tile}

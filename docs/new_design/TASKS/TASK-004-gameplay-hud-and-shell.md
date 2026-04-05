@@ -1,7 +1,10 @@
 # Task 004: Gameplay HUD and Shell
 
 ## Status
-Planned
+Partial (ongoing polish)
+
+## Implementation notes
+- Gameplay shell, ornate HUD segments, left rail, flyout (inventory/codex), and overlay framing were brought toward `SCREEN_SPEC_GAMEPLAY.md`. Further passes tune score dominance, stage framing, and modal chrome versus reference stills.
 
 ## Priority
 High
