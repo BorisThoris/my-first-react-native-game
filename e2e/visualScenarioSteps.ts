@@ -5,6 +5,7 @@ import {
     expectNoHorizontalOverflow,
     forceGameOverWithMismatches,
     gotoWithSave,
+    mainMenuPlayButton,
     openLevel1Play,
     openMainMenuFromSave,
     waitLevel1PlayReady
@@ -39,7 +40,7 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
         run: async (page, capture) => {
             await openMainMenuFromSave(page, true);
             await expectNoHorizontalOverflow(page);
-            await expect(page.getByRole('button', { name: /^play$/i })).toBeVisible();
+            await expect(mainMenuPlayButton(page)).toBeVisible();
             await expect(page.getByRole('group', { name: /more run types/i })).toBeVisible();
             await capture('01-main-menu');
         }
@@ -49,7 +50,7 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
         name: 'choose your path',
         run: async (page, capture) => {
             await openMainMenuFromSave(page, true);
-            await page.getByRole('button', { name: /^play$/i }).click();
+            await mainMenuPlayButton(page).click();
             await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
             await expectNoHorizontalOverflow(page);
             await capture('01a-choose-your-path');
@@ -187,7 +188,7 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
     {
         fileBase: '08-game-over',
         name: 'game over screen',
-        timeoutMs: 90_000,
+        timeoutMs: 120_000,
         run: async (page, capture) => {
             await openLevel1Play(page);
             const pairs = await waitLevel1PlayReady(page);

@@ -19,13 +19,20 @@ export default tseslint.config(
             'docs/**',
             'legacy/expo-roguelike/**',
             '.idea/**',
-            '.expo/**'
+            '.expo/**',
+            'scripts/**/*.mjs',
+            'scripts/**/*.cjs'
         ]
     },
     js.configs.recommended,
     ...tseslint.configs.recommended,
     {
-        files: ['**/*.{ts,tsx}'],
+        files: [
+            'src/**/*.{ts,tsx}',
+            'vite.config.mts',
+            'tsup.config.ts',
+            'vitest.setup.ts'
+        ],
         languageOptions: {
             ecmaVersion: 'latest',
             sourceType: 'module',
@@ -47,6 +54,32 @@ export default tseslint.config(
             'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
             '@typescript-eslint/consistent-type-imports': 'warn',
             '@typescript-eslint/no-misused-promises': ['error', { checksVoidReturn: { attributes: false } }]
+        }
+    },
+    {
+        files: ['e2e/**/*.ts', 'playwright.config.ts'],
+        extends: [tseslint.configs.disableTypeChecked],
+        languageOptions: {
+            ecmaVersion: 'latest',
+            sourceType: 'module',
+            globals: {
+                ...globals.browser,
+                ...globals.node
+            },
+            parserOptions: {
+                project: false,
+                tsconfigRootDir: __dirname
+            }
+        },
+        plugins: {
+            'react-hooks': reactHooks,
+            'react-refresh': reactRefresh
+        },
+        rules: {
+            ...reactHooks.configs.recommended.rules,
+            'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+            '@typescript-eslint/consistent-type-imports': 'off',
+            '@typescript-eslint/no-misused-promises': 'off'
         }
     }
 );

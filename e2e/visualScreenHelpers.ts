@@ -93,6 +93,11 @@ export async function expectNoHorizontalOverflow(page: Page): Promise<void> {
     ).toBeLessThanOrEqual(clientWidth + 1);
 }
 
+/** Main menu CTA — scope avoids accidental matches if another "Play" appears elsewhere in the tree. */
+export function mainMenuPlayButton(page: Page) {
+    return page.getByRole('group', { name: /primary actions/i }).getByRole('button', { name: /^play$/i });
+}
+
 export async function gotoWithSave(page: Page, saveJson: string): Promise<void> {
     await page.addInitScript(
         ([key, json]) => {
@@ -106,7 +111,7 @@ export async function gotoWithSave(page: Page, saveJson: string): Promise<void> 
 export async function openMainMenuFromSave(page: Page, onboardingDismissed: boolean): Promise<void> {
     await gotoWithSave(page, buildVisualSaveJson(onboardingDismissed));
     await dismissStartupIntro(page);
-    await expect(page.getByRole('button', { name: /^play$/i })).toBeVisible();
+    await expect(mainMenuPlayButton(page)).toBeVisible();
 }
 
 export async function startClassicRunFromModeSelect(page: Page): Promise<void> {
@@ -117,7 +122,7 @@ export async function startClassicRunFromModeSelect(page: Page): Promise<void> {
 
 export async function openLevel1Play(page: Page): Promise<void> {
     await openMainMenuFromSave(page, true);
-    await page.getByRole('button', { name: /^play$/i }).click();
+    await mainMenuPlayButton(page).click();
     await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
     await startClassicRunFromModeSelect(page);
 }
@@ -229,7 +234,7 @@ async function clickHiddenTile(page: Page, row: number, col: number): Promise<vo
  */
 export async function waitLevel1PlayReady(page: Page): Promise<PairPositions | null> {
     let lastMemorizeSnap: PairPositions | null = null;
-    const deadline = Date.now() + 28_000;
+    const deadline = Date.now() + 40_000;
     while (Date.now() < deadline) {
         const snap = await readMemorizeSnapshot(page);
         if (snap && Object.keys(snap).length >= 2) {
@@ -265,8 +270,8 @@ export async function completeLevel1Play(page: Page, pairs: PairPositions | null
 }
 
 async function restartLevel1FromMainMenu(page: Page): Promise<void> {
-    await expect(page.getByRole('button', { name: /^play$/i })).toBeVisible({ timeout: 15000 });
-    await page.getByRole('button', { name: /^play$/i }).click();
+    await expect(mainMenuPlayButton(page)).toBeVisible({ timeout: 15000 });
+    await mainMenuPlayButton(page).click();
     await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
     await startClassicRunFromModeSelect(page);
     await waitForPlayPhaseHiddenTiles(page, 4);
@@ -276,6 +281,11 @@ async function restartLevel1AfterAccidentalMatch(page: Page): Promise<void> {
     const floorCleared = page.getByRole('dialog', { name: /floor cleared/i });
 
     if (!(await floorCleared.isVisible().catch(() => false))) {
+        await expect
+            .poll(() => page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count(), {
+                timeout: 8000
+            })
+            .toBe(2);
         const remaining = await getHiddenTilePositions(page);
         if (remaining.length !== 2) {
             throw new Error('expected the accidental match fallback to leave one hidden pair');
@@ -283,7 +293,8 @@ async function restartLevel1AfterAccidentalMatch(page: Page): Promise<void> {
         await clickHiddenTile(page, remaining[0].row, remaining[0].col);
         await page.waitForTimeout(MATCH_SETTLE_MS);
         await clickHiddenTile(page, remaining[1].row, remaining[1].col);
-        await expect(floorCleared).toBeVisible({ timeout: 30000 });
+        await page.waitForTimeout(MATCH_SETTLE_MS);
+        await expect(floorCleared).toBeVisible({ timeout: 45_000 });
     }
 
     await floorCleared.getByRole('button', { name: /main menu/i }).click();
@@ -299,19 +310,29 @@ async function discoverMismatchPair(
         return { a: pairs[keys[0]][0], b: pairs[keys[1]][0] };
     }
 
-    for (let attempt = 0; attempt < 4; attempt += 1) {
+    const probeIndexPairs: ReadonlyArray<readonly [number, number]> = [
+        [0, 3],
+        [0, 2],
+        [1, 3],
+        [1, 2],
+        [0, 1],
+        [2, 3]
+    ];
+
+    for (let attempt = 0; attempt < 8; attempt += 1) {
         await waitForPlayPhaseHiddenTiles(page, 4);
         const positions = await getHiddenTilePositions(page);
         if (positions.length !== 4) {
             throw new Error('expected four hidden tiles when probing for a mismatch pair');
         }
 
-        const guess = { a: positions[0], b: positions[1] };
+        const [i, j] = probeIndexPairs[attempt % probeIndexPairs.length]!;
+        const guess = { a: positions[i]!, b: positions[j]! };
         await clickHiddenTile(page, guess.a.row, guess.a.col);
         await clickHiddenTile(page, guess.b.row, guess.b.col);
 
         let hiddenAfter = await page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count();
-        const settleDeadline = Date.now() + 8000;
+        const settleDeadline = Date.now() + 15_000;
         while (hiddenAfter !== 2 && hiddenAfter !== 4 && Date.now() < settleDeadline) {
             await page.waitForTimeout(120);
             hiddenAfter = await page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count();

@@ -1,7 +1,6 @@
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import {
-    BufferAttribute,
     CanvasTexture,
     DoubleSide,
     LinearFilter,
@@ -12,6 +11,7 @@ import {
     SRGBColorSpace,
     Vector2,
     Vector3,
+    type BufferAttribute,
     type Group
 } from 'three';
 import type { BoardState, RunStatus, Tile } from '../../shared/contracts';
@@ -377,8 +377,10 @@ const TileBezel = ({
         }
 
         const cap = Math.min(8, gl.capabilities.getMaxAnisotropy());
+        /* eslint-disable react-hooks/immutability -- Three.js CanvasTexture GPU fields are intentionally mutated */
         wearAssets.front.texture.anisotropy = cap;
         wearAssets.back.texture.anisotropy = cap;
+        /* eslint-enable react-hooks/immutability */
     }, [gl, wearAssets]);
 
     const commitPersistentBend = (): void => {
@@ -417,8 +419,10 @@ const TileBezel = ({
         if (wearAssets) {
             drawWearStamp(wearAssets.front.context, bu, bv, depthScale);
             drawWearStamp(wearAssets.back.context, bu, bv, depthScale);
+            /* eslint-disable react-hooks/immutability */
             wearAssets.front.texture.needsUpdate = true;
             wearAssets.back.texture.needsUpdate = true;
+            /* eslint-enable react-hooks/immutability */
         }
     };
 

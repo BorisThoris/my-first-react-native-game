@@ -28,7 +28,7 @@ Resolve how future-scope surfaces are represented in the redesign work and refre
 
 ## Implementation Outcomes
 - Collection, inventory, codex, and Choose Your Path are live routes with Playwright visual scenarios and flow tests.
-- Visual baselines cover menu, mode select, collection, inventory (in-run), codex (in-run), settings (including new categories), gameplay, overlays, and game-over across standard and mobile viewports.
+- Visual baselines cover main menu, mode select, collection, **menu-route inventory (empty `01c-inventory-empty`)**, in-run inventory (`01d-inventory-active`), in-run codex (`01e-codex`), settings (including new categories), gameplay, overlays, and game-over across standard and mobile viewports.
 
 ## Acceptance Criteria
 - Every redesigned live screen has updated visual coverage.

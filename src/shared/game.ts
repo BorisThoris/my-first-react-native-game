@@ -1047,7 +1047,7 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
     };
     const contractFail =
         run.activeContract?.maxMismatches != null && tries > run.activeContract.maxMismatches;
-    let status: RunStatus = lives <= 0 || contractFail ? 'gameOver' : 'playing';
+    const status: RunStatus = lives <= 0 || contractFail ? 'gameOver' : 'playing';
     if (contractFail) {
         lives = 0;
     }
@@ -1175,7 +1175,7 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
     };
     const contractFail =
         run.activeContract?.maxMismatches != null && tries > run.activeContract.maxMismatches;
-    let status: RunStatus = lives <= 0 || contractFail ? 'gameOver' : 'playing';
+    const status: RunStatus = lives <= 0 || contractFail ? 'gameOver' : 'playing';
     if (contractFail) {
         lives = 0;
     }

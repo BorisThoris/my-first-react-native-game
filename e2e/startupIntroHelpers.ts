@@ -2,7 +2,9 @@ import { expect, type Page } from '@playwright/test';
 
 export async function dismissStartupIntro(page: Page): Promise<void> {
     const intro = page.getByRole('dialog', { name: /startup relic intro/i });
-    const playButton = page.getByRole('button', { name: /^play$/i });
+    const playButton = page
+        .getByRole('group', { name: /primary actions/i })
+        .getByRole('button', { name: /^play$/i });
     const introVisible = await intro.isVisible().catch(() => false);
 
     if (introVisible) {
@@ -30,4 +32,8 @@ export async function dismissStartupIntro(page: Page): Promise<void> {
             introVisible: false,
             playVisible: true
         });
+
+    // Main menu keeps `pointer-events: none` while the intro blur layer is applied; the a11y poll
+    // above can pass before React removes that state, so Play clicks would be dropped (flaky under load).
+    await expect(page.locator('[data-e2e-menu-pointer="interactive"]')).toBeAttached({ timeout: 15000 });
 }

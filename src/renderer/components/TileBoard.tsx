@@ -545,6 +545,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         hoverTiltRef.current = { tileId: null, x: 0, y: 0 };
     }, [board.level, board.tiles.length, reduceMotion, selectionSuppressed]);
 
+    /* eslint-disable react-hooks/set-state-in-effect -- viewport React state must track fitted board geometry when the stage or board changes */
     useEffect(() => {
         const resetRequested = viewportResetToken !== viewportResetTokenRef.current;
         const previousViewport = viewportStateRef.current;
@@ -593,9 +594,11 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         stageWorldViewport.width,
         viewportResetToken
     ]);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     useEffect(() => {
         if (!touchGestureMode) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect -- reset gesture UI when leaving two-finger mode
             clearTouchGestureState(true);
             return;
         }

@@ -1,10 +1,11 @@
 # Task 004: Gameplay HUD and Shell
 
 ## Status
-Partial (ongoing polish)
+Done (shipped scope; residuals documented)
 
 ## Implementation notes
-- Gameplay shell, ornate HUD segments, left rail, flyout (inventory/codex), and overlay framing were brought toward `SCREEN_SPEC_GAMEPLAY.md`. Further passes tune score dominance, stage framing, and modal chrome versus reference stills.
+- Gameplay shell, ornate HUD segments, left rail, flyout (inventory/codex), and overlay framing were brought toward `SCREEN_SPEC_GAMEPLAY.md`.
+- **Residual:** pixel-tight parity with `docs/ENDPRODUCTIMAGE*.png` still depends on illustrated stage/HUD art and final polish passes noted in `CURRENT_VS_TARGET_GAP_ANALYSIS.md`—not a code-only gap.
 
 ## Priority
 High

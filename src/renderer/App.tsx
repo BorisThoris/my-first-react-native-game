@@ -122,6 +122,7 @@ const App = () => {
                     <div
                         aria-hidden={introOverlayVisible}
                         className={`${styles.menuLayer} ${menuShellBlurred ? styles.menuLayerIntro : ''}`}
+                        data-e2e-menu-pointer={menuShellBlurred ? 'blocked' : 'interactive'}
                     >
                         {showMainMenu ? (
                             <MainMenu

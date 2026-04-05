@@ -1,4 +1,4 @@
-import { expect, test as base } from '@playwright/test';
+import { test as base } from '@playwright/test';
 import { VISUAL_SCREEN_SCENARIOS } from './visualScenarioSteps';
 import type { VisualViewport } from './visualScreenHelpers';
 import { captureVisualScreen } from './visualScreenHelpers';

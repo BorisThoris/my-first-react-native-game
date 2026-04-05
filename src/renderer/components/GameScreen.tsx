@@ -157,7 +157,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const tileBoardRef = useRef<TileBoardHandle>(null);
     const { height, width } = useViewportSize();
     const [viewportResetToken, setViewportResetToken] = useState(0);
-    const [gauntletTick, setGauntletTick] = useState(0);
+    const [gauntletNowMs, setGauntletNowMs] = useState(() => Date.now());
     const [distractionTick, setDistractionTick] = useState(0);
     const [rulesHintsExpanded, setRulesHintsExpanded] = useState(true);
     const [utilityFlyoutOpen, setUtilityFlyoutOpen] = useState(false);
@@ -165,7 +165,11 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         if (run.gauntletDeadlineMs === null) {
             return;
         }
-        const id = window.setInterval(() => setGauntletTick((n) => n + 1), 300);
+        const tick = (): void => {
+            setGauntletNowMs(Date.now());
+        };
+        tick();
+        const id = window.setInterval(tick, 300);
         return () => window.clearInterval(id);
     }, [run.gauntletDeadlineMs]);
     const {
@@ -272,7 +276,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
             }
         });
         return dim;
-    }, [run.board, run.status, settings.tileFocusAssist, run.board?.flippedTileIds]);
+    }, [run.board, run.status, settings.tileFocusAssist]);
     const allowGambitThirdFlip = run.gambitAvailableThisFloor && !run.gambitThirdFlipUsed;
     const wideRecallInPlay = run.activeMutators.includes('wide_recall');
     const silhouetteDuringPlay = run.activeMutators.includes('silhouette_twist');
@@ -327,10 +331,9 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         (run.status === 'playing' || run.status === 'memorize') &&
         run.board.level <= 2 &&
         !saveData.powersFtueSeen;
-    void gauntletTick;
     void distractionTick;
     const gauntletRemainingMs =
-        run.gauntletDeadlineMs !== null ? Math.max(0, run.gauntletDeadlineMs - Date.now()) : null;
+        run.gauntletDeadlineMs !== null ? Math.max(0, run.gauntletDeadlineMs - gauntletNowMs) : null;
     const hudModeLabel =
         run.gameMode === 'daily' && run.dailyDateKeyUtc
             ? `Daily ${run.dailyDateKeyUtc}`

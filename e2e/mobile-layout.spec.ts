@@ -189,6 +189,7 @@ test.describe('Mobile layout (renderer)', () => {
         await expect(dialog).toBeVisible();
         const back = dialog.getByRole('button', { name: /^back$/i });
         const save = dialog.getByRole('button', { name: /^save$/i });
+        await expect(save).toBeVisible();
         const footer = back.locator('..');
         const sizes = await footer.evaluate((el) => {
             const buttons = Array.from(el.querySelectorAll('button'));

@@ -1,7 +1,7 @@
 # Task 005: Card States and FX
 
 ## Status
-Partial (ongoing polish)
+Done (shipped scope; residuals documented)
 
 ## Implementation notes
 - Board uses shared card raster pipeline (`tileTextures.ts`, `TileBoard` / CSS). Hidden, flipped, matched, and mismatch/hover treatments are iterated for clearer state language in both 2D and 3D paths.
