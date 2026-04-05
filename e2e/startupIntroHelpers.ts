@@ -2,7 +2,7 @@ import { expect, type Page } from '@playwright/test';
 
 export async function dismissStartupIntro(page: Page): Promise<void> {
     const intro = page.getByRole('dialog', { name: /startup relic intro/i });
-    const playButton = page.getByRole('button', { name: /play arcade/i });
+    const playButton = page.getByRole('button', { name: /^play$/i });
     const introVisible = await intro.isVisible().catch(() => false);
 
     if (introVisible) {

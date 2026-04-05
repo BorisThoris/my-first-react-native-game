@@ -1,11 +1,13 @@
 import { useRef, useState } from 'react';
 import { ACHIEVEMENTS } from '../../shared/achievements';
+import { MUTATOR_CATALOG, RELIC_CATALOG } from '../../shared/game-catalog';
 import type { MutatorId, RelicId, RunState } from '../../shared/contracts';
 import { serializeRunPayloadFromSummary } from '../../shared/run-export';
 import { useShallow } from 'zustand/react/shallow';
+import { UI_ART } from '../assets/ui';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
-import { Eyebrow, ScreenTitle, StatTile, UiButton } from '../ui';
+import { Eyebrow, Panel, ScreenTitle, StatTile, UiButton } from '../ui';
 import { useAppStore } from '../store/useAppStore';
 import MainMenuBackground from './MainMenuBackground';
 import styles from './GameOverScreen.module.css';
@@ -14,25 +16,9 @@ interface GameOverScreenProps {
     run: RunState;
 }
 
-const MUTATOR_LABELS: Record<MutatorId, string> = {
-    glass_floor: 'Glass floor',
-    sticky_fingers: 'Sticky fingers',
-    score_parasite: 'Score parasite',
-    category_letters: 'Category: letters',
-    short_memorize: 'Short memorize',
-    wide_recall: 'Wide recall',
-    silhouette_twist: 'Silhouette twist',
-    n_back_anchor: 'N-back anchor',
-    distraction_channel: 'Distraction channel'
-};
+const mutatorLabel = (id: MutatorId): string => MUTATOR_CATALOG[id].title;
 
-const RELIC_LABELS: Record<RelicId, string> = {
-    extra_shuffle_charge: 'Extra shuffle charge',
-    first_shuffle_free_per_floor: 'First shuffle free / floor',
-    memorize_bonus_ms: 'Longer memorize',
-    destroy_bank_plus_one: 'Destroy bank +1',
-    combo_shard_plus_step: 'Combo shard head start'
-};
+const relicLabel = (id: RelicId): string => RELIC_CATALOG[id].title;
 
 const GameOverScreen = ({ run }: GameOverScreenProps) => {
     const shellRef = useRef<HTMLElement | null>(null);
@@ -52,7 +38,6 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
         strength: 1
     });
     const summary = run.lastRunSummary;
-    const isCompact = width <= 760 || height <= 760;
 
     if (!summary) {
         return null;
@@ -64,35 +49,21 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
 
     const sharePayload = serializeRunPayloadFromSummary(summary);
     const flipCount = run.flipHistory?.length ?? 0;
-
-    const buildNextRunHint = (): string | null => {
-        const parts: string[] = [];
-        if (summary.gameMode === 'daily' && summary.dailyDateKeyUtc) {
-            parts.push(`Tomorrow’s daily will use a new seed (today was ${summary.dailyDateKeyUtc} UTC).`);
-        }
-        if (summary.activeMutators?.length) {
-            const names = summary.activeMutators.map((m) => MUTATOR_LABELS[m] ?? m);
-            parts.push(`Mutators this run: ${names.join(', ')}.`);
-        }
-        if (summary.relicIds?.length) {
-            const names = summary.relicIds.map((r) => RELIC_LABELS[r] ?? r);
-            parts.push(`Relics: ${names.join(', ')}.`);
-        }
-        return parts.length ? parts.join(' ') : null;
-    };
-
-    const nextRunHint = buildNextRunHint();
+    const metaItems = [
+        ...(summary.activeMutators?.map((id) => mutatorLabel(id)) ?? []),
+        ...(summary.relicIds?.map((id) => relicLabel(id)) ?? [])
+    ];
 
     const copyRunSeed = async (): Promise<void> => {
         if (!sharePayload) {
-            setCopyHint('No seed payload for this run summary.');
+            setCopyHint('No run export is available for this summary.');
             return;
         }
         try {
             await navigator.clipboard.writeText(sharePayload);
             setCopyHint('Copied run JSON to clipboard.');
         } catch {
-            setCopyHint('Clipboard unavailable — select the text below manually.');
+            setCopyHint('Clipboard access failed. Use the text block below.');
         }
     };
 
@@ -104,22 +75,108 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
                 reduceMotion={settings.reduceMotion}
                 width={width}
             />
+            <div className={styles.scrim} />
+
             <div className={styles.foreground}>
                 <div className={styles.layout}>
-                    <div className={styles.main}>
-                        <div className={styles.lead}>
-                            <Eyebrow>Run Complete</Eyebrow>
-                            <ScreenTitle role="screenLg">Expedition Over</ScreenTitle>
-                        </div>
+                    <Panel className={styles.heroPanel} padding="lg" variant="strong">
+                        <Eyebrow>Run Complete</Eyebrow>
+                        <ScreenTitle role="screenLg">Expedition Over</ScreenTitle>
+                        <img alt="" className={styles.divider} src={UI_ART.dividerOrnament} />
                         <p className={styles.copy}>
-                            You reached level {summary.highestLevel} and banked{' '}
-                            {summary.totalScore.toLocaleString()} points.
+                            You reached floor {summary.highestLevel} and banked{' '}
+                            {summary.totalScore.toLocaleString()} points before the archive sealed.
                         </p>
 
-                        {nextRunHint ? <p className={styles.hintLine}>{nextRunHint}</p> : null}
+                        {metaItems.length > 0 ? (
+                            <div className={styles.metaStrip}>
+                                {metaItems.map((item) => (
+                                    <span className={styles.metaChip} key={item}>
+                                        {item}
+                                    </span>
+                                ))}
+                            </div>
+                        ) : null}
 
-                        <div className={styles.shareBlock}>
-                            <UiButton variant="secondary" onClick={() => void copyRunSeed()}>
+                        <div className={styles.summaryGrid}>
+                            <StatTile density="minimal" label="Total Score" value={summary.totalScore.toLocaleString()} />
+                            <StatTile density="minimal" label="Highest Floor" value={summary.highestLevel} />
+                            <StatTile density="minimal" label="Best Streak" value={summary.bestStreak} />
+                            <StatTile density="minimal" label="Perfect Floors" value={summary.perfectClears} />
+                            <StatTile density="minimal" label="Floors Cleared" value={summary.levelsCleared} />
+                            <StatTile density="minimal" label="Best Score" value={summary.bestScore.toLocaleString()} />
+                        </div>
+
+                        <p className={styles.note}>
+                            {summary.achievementsEnabled
+                                ? 'Achievements remained enabled for this descent.'
+                                : 'Debug tools were used, so achievements were disabled for this run.'}
+                        </p>
+                    </Panel>
+
+                    <aside className={styles.sideRail}>
+                        <Panel className={styles.actionPanel} padding="lg" variant="default">
+                            <div className={styles.actionHeader}>
+                                <img alt="" className={styles.actionSeal} src={UI_ART.menuSeal} />
+                                <div>
+                                    <span className={styles.panelKicker}>Next Move</span>
+                                    <strong className={styles.panelHeading}>Continue the archive</strong>
+                                </div>
+                            </div>
+                            <div className={styles.actionButtons}>
+                                <UiButton fullWidth size="lg" variant="primary" onClick={restartRun}>
+                                    Play Again
+                                </UiButton>
+                                <UiButton fullWidth size="lg" variant="secondary" onClick={goToMenu}>
+                                    Main Menu
+                                </UiButton>
+                            </div>
+                        </Panel>
+
+                        <Panel className={styles.actionPanel} padding="lg" variant="muted">
+                            <span className={styles.panelKicker}>Run Snapshot</span>
+                            <strong className={styles.panelHeading}>
+                                {summary.gameMode === 'daily' && summary.dailyDateKeyUtc
+                                    ? `Daily ${summary.dailyDateKeyUtc}`
+                                    : summary.gameMode === 'gauntlet'
+                                      ? 'Gauntlet descent'
+                                      : summary.gameMode === 'meditation'
+                                        ? 'Meditation descent'
+                                        : summary.gameMode === 'puzzle'
+                                          ? 'Puzzle descent'
+                                          : 'Classic descent'}
+                            </strong>
+                            <p className={styles.panelCopy}>
+                                {flipCount > 0
+                                    ? `${flipCount} committed flips were recorded in the local ghost log.`
+                                    : 'No local ghost log was captured for this run.'}
+                            </p>
+                        </Panel>
+                    </aside>
+                </div>
+
+                {unlockedAchievements.length > 0 ? (
+                    <Panel className={styles.achievementPanel} padding="lg" variant="default">
+                        <Eyebrow>Unlocked</Eyebrow>
+                        <ScreenTitle as="h2" className={styles.achievementHeading} role="screen">
+                            New archive entries
+                        </ScreenTitle>
+                        <ul className={styles.achievementList}>
+                            {unlockedAchievements.map((achievement) => (
+                                <li className={styles.achievementItem} key={achievement.id}>
+                                    <strong>{achievement.title}</strong>
+                                    <span>{achievement.description}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </Panel>
+                ) : null}
+
+                <Panel className={styles.detailsPanel} padding="lg" variant="muted">
+                    <details className={styles.exportDetails}>
+                        <summary>Run export and local replay data</summary>
+                        <div className={styles.exportBody}>
+                            <UiButton size="md" variant="secondary" onClick={() => void copyRunSeed()}>
                                 Copy run seed (JSON)
                             </UiButton>
                             {copyHint ? <p className={styles.copyHint}>{copyHint}</p> : null}
@@ -130,16 +187,14 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
                             ) : (
                                 <p className={styles.copyHint}>Seed export is unavailable for this legacy summary.</p>
                             )}
-                            {flipCount > 0 ? (
-                                <p className={styles.ghostLine}>Flips this run (local ghost): {flipCount}</p>
-                            ) : null}
+
                             {run.flipHistory.length > 0 ? (
-                                <details className={styles.ghostTimeline}>
-                                    <summary>Flip timeline (newest last)</summary>
+                                <details className={styles.timelineDetails}>
+                                    <summary>Flip timeline</summary>
                                     <ol className={styles.ghostSteps}>
-                                        {run.flipHistory.map((id, i) => (
-                                            <li key={`${id}-${i}`}>
-                                                <span className={styles.ghostStepIndex}>{i + 1}</span>
+                                        {run.flipHistory.map((id, index) => (
+                                            <li key={`${id}-${index}`}>
+                                                <span className={styles.ghostStepIndex}>{index + 1}</span>
                                                 <code>{id}</code>
                                             </li>
                                         ))}
@@ -147,52 +202,8 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
                                 </details>
                             ) : null}
                         </div>
-
-                        <div className={styles.summaryGrid}>
-                            <StatTile density="minimal" label="Total Score" value={summary.totalScore.toLocaleString()} />
-                            <StatTile density="minimal" label="Highest Level" value={summary.highestLevel} />
-                            <StatTile density="minimal" label="Best Streak" value={summary.bestStreak} />
-                            <StatTile density="minimal" label="Perfect Floors" value={summary.perfectClears} />
-                            {!isCompact && (
-                                <>
-                                    <StatTile density="minimal" label="Best Score" value={summary.bestScore.toLocaleString()} />
-                                    <StatTile density="minimal" label="Floors Cleared" value={summary.levelsCleared} />
-                                </>
-                            )}
-                        </div>
-
-                        <p className={styles.note}>
-                            {summary.achievementsEnabled
-                                ? 'Achievements were enabled for this run.'
-                                : 'Debug tools were used, so achievements were disabled for this run.'}
-                        </p>
-
-                        {unlockedAchievements.length > 0 && (
-                            <div className={styles.achievementBlock}>
-                                <ScreenTitle as="h2" className={styles.unlockedHeading} role="section">
-                                    Unlocked
-                                </ScreenTitle>
-                                <ul className={styles.achievementList}>
-                                    {unlockedAchievements.map((achievement) => (
-                                        <li className={styles.achievementItem} key={achievement.id}>
-                                            <strong>{achievement.title}</strong>
-                                            <span>{achievement.description}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className={styles.actionRail} role="group" aria-label="Run summary actions">
-                        <UiButton variant="primary" onClick={restartRun}>
-                            Play Again
-                        </UiButton>
-                        <UiButton variant="secondary" onClick={goToMenu}>
-                            Main Menu
-                        </UiButton>
-                    </div>
-                </div>
+                    </details>
+                </Panel>
             </div>
         </section>
     );

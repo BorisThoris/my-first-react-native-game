@@ -1,0 +1,159 @@
+import { useShallow } from 'zustand/react/shallow';
+import { ACHIEVEMENT_BY_ID } from '../../shared/achievements';
+import type { RelicId } from '../../shared/contracts';
+import { RELIC_CATALOG } from '../../shared/game-catalog';
+import { ACHIEVEMENT_IDS } from '../../shared/save-data';
+import { CALLSIGN_SYMBOLS, LETTER_SYMBOLS as LETTER_TILES, NUMBER_SYMBOLS } from '../../shared/tile-symbol-catalog';
+import { Eyebrow, Panel, ScreenTitle, UiButton } from '../ui';
+import { useAppStore } from '../store/useAppStore';
+import metaStyles from './MetaScreen.module.css';
+import styles from './CollectionScreen.module.css';
+
+const CollectionScreen = () => {
+    const { closeSubscreen, saveData } = useAppStore(
+        useShallow((state) => ({
+            closeSubscreen: state.closeSubscreen,
+            saveData: state.saveData
+        }))
+    );
+    const ps = saveData.playerStats;
+    const summary = saveData.lastRunSummary;
+
+    return (
+        <section aria-label="Collection" className={metaStyles.shell} role="region">
+            <header className={metaStyles.header}>
+                <div className={metaStyles.headerText}>
+                    <Eyebrow tone="menu">Archive</Eyebrow>
+                    <ScreenTitle as="h1" role="display">
+                        Collection
+                    </ScreenTitle>
+                    <p className={metaStyles.subtitle}>
+                        Read-only progress from your save: achievements, relic picks, bests, dailies, and the symbol sets
+                        used on the board.
+                    </p>
+                </div>
+                <UiButton size="md" variant="secondary" onClick={closeSubscreen} type="button">
+                    Back
+                </UiButton>
+            </header>
+
+            <div className={metaStyles.body}>
+                <Panel padding="lg" variant="strong">
+                    <div className={styles.section}>
+                        <h2 className={styles.sectionTitle}>Achievements</h2>
+                        <div className={styles.grid}>
+                            {ACHIEVEMENT_IDS.map((id) => {
+                                const def = ACHIEVEMENT_BY_ID[id];
+                                const unlocked = saveData.achievements[id];
+                                return (
+                                    <div
+                                        className={`${styles.achievementCard} ${unlocked ? '' : styles.achievementLocked}`}
+                                        key={id}
+                                    >
+                                        <strong>{def.title}</strong>
+                                        <p className={metaStyles.subtitle}>{def.description}</p>
+                                        <span className={styles.symbolMeta}>{unlocked ? 'Unlocked' : 'Locked'}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </Panel>
+
+                <Panel padding="lg" variant="default">
+                    <div className={styles.section}>
+                        <h2 className={styles.sectionTitle}>Relic catalog</h2>
+                        <div className={styles.grid}>
+                            {(Object.keys(RELIC_CATALOG) as RelicId[]).map((id) => {
+                                const def = RELIC_CATALOG[id];
+                                const picks = ps?.relicPickCounts[id] ?? 0;
+                                return (
+                                    <div className={styles.achievementCard} key={id}>
+                                        <strong>{def.title}</strong>
+                                        <p className={metaStyles.subtitle}>{def.description}</p>
+                                        <span className={styles.symbolMeta}>Times picked: {picks}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </Panel>
+
+                <Panel padding="lg" variant="default">
+                    <div className={styles.section}>
+                        <h2 className={styles.sectionTitle}>Bests and last run</h2>
+                        <div className={styles.statRow}>
+                            <span>
+                                Best score<strong>{saveData.bestScore > 0 ? saveData.bestScore.toLocaleString() : '—'}</strong>
+                            </span>
+                            <span>
+                                Best no-powers floor<strong>{ps?.bestFloorNoPowers ?? 0}</strong>
+                            </span>
+                        </div>
+                        {summary ? (
+                            <p className={metaStyles.subtitle}>
+                                Last run: {summary.totalScore.toLocaleString()} pts · Floor {summary.highestLevel} ·{' '}
+                                {summary.levelsCleared} clears · Streak {summary.bestStreak}
+                            </p>
+                        ) : (
+                            <p className={metaStyles.subtitle}>No completed run summary stored yet.</p>
+                        )}
+                    </div>
+                </Panel>
+
+                <Panel padding="lg" variant="default">
+                    <div className={styles.section}>
+                        <h2 className={styles.sectionTitle}>Daily stats</h2>
+                        <div className={styles.statRow}>
+                            <span>
+                                Dailies cleared<strong>{ps?.dailiesCompleted ?? 0}</strong>
+                            </span>
+                            <span>
+                                Streak (cosmetic)<strong>{ps?.dailyStreakCosmetic ?? 0}</strong>
+                            </span>
+                        </div>
+                    </div>
+                </Panel>
+
+                <Panel padding="lg" variant="default">
+                    <div className={styles.section}>
+                        <h2 className={styles.sectionTitle}>Symbol gallery</h2>
+                        <p className={metaStyles.subtitle}>
+                            Tiles rotate through these sets by floor band. Letter-only mutator uses the hybrid letter band.
+                        </p>
+                        <p className={styles.setLabel}>Band A — letters + digits</p>
+                        <div className={styles.symbolGrid}>
+                            {LETTER_TILES.map((entry) => (
+                                <div className={styles.symbolChip} key={entry.symbol}>
+                                    {entry.symbol}
+                                    <span className={styles.symbolMeta}>{entry.label}</span>
+                                </div>
+                            ))}
+                        </div>
+                        <p className={styles.setLabel}>Band B — two-digit numbers</p>
+                        <div className={styles.symbolGrid}>
+                            {NUMBER_SYMBOLS.slice(0, 18).map((entry) => (
+                                <div className={styles.symbolChip} key={entry.symbol}>
+                                    {entry.symbol}
+                                </div>
+                            ))}
+                            <span className={styles.symbolMeta}>…and {NUMBER_SYMBOLS.length - 18} more</span>
+                        </div>
+                        <p className={styles.setLabel}>Band C — callsigns</p>
+                        <div className={styles.symbolGrid}>
+                            {CALLSIGN_SYMBOLS.slice(0, 16).map((entry) => (
+                                <div className={styles.symbolChip} key={entry.symbol}>
+                                    {entry.symbol}
+                                    <span className={styles.symbolMeta}>{entry.label}</span>
+                                </div>
+                            ))}
+                            <span className={styles.symbolMeta}>…and {CALLSIGN_SYMBOLS.length - 16} more</span>
+                        </div>
+                    </div>
+                </Panel>
+            </div>
+        </section>
+    );
+};
+
+export default CollectionScreen;

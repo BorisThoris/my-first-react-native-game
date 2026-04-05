@@ -1,0 +1,55 @@
+<svg width="1600" height="1100" viewBox="0 0 1600 1100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="menuSky" x1="800" y1="0" x2="800" y2="1100" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0C0F18"/>
+      <stop offset="0.5" stop-color="#111927"/>
+      <stop offset="1" stop-color="#05070C"/>
+    </linearGradient>
+    <radialGradient id="menuMoon" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1160 170) rotate(90) scale(220 220)">
+      <stop offset="0" stop-color="#FFF4C4"/>
+      <stop offset="0.45" stop-color="#E1C874"/>
+      <stop offset="1" stop-color="#E1C874" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="menuGold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F7E0A2"/>
+      <stop offset="1" stop-color="#A86C27"/>
+    </linearGradient>
+    <linearGradient id="menuStone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#18202D"/>
+      <stop offset="1" stop-color="#070A10"/>
+    </linearGradient>
+    <radialGradient id="menuTorch" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(796 598) rotate(90) scale(220 260)">
+      <stop offset="0" stop-color="#FFB45D" stop-opacity="0.9"/>
+      <stop offset="0.35" stop-color="#EF7F35" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#EF7F35" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1600" height="1100" fill="url(#menuSky)"/>
+  <circle cx="1160" cy="170" r="220" fill="url(#menuMoon)"/>
+  <path d="M0 524C184 456 310 478 476 534C608 579 786 619 942 548C1074 489 1223 432 1600 523V1100H0V524Z" fill="#0A0F16" fill-opacity="0.82"/>
+  <path d="M0 680C211 620 399 618 602 692C745 744 864 758 1024 706C1189 653 1334 620 1600 681V1100H0V680Z" fill="#090D13"/>
+  <path d="M320 382L388 270L440 382V764H320V382Z" fill="#121A25"/>
+  <path d="M344 332H416L388 282L344 332Z" fill="url(#menuGold)"/>
+  <path d="M1170 402L1236 296L1288 402V764H1170V402Z" fill="#121A25"/>
+  <path d="M1192 356H1260L1236 310L1192 356Z" fill="url(#menuGold)"/>
+  <path d="M625 446C625 373.651 683.651 315 756 315H844C916.349 315 975 373.651 975 446V803H625V446Z" fill="url(#menuStone)"/>
+  <path d="M708 315V258H894V315" stroke="url(#menuGold)" stroke-width="18" stroke-linecap="round"/>
+  <rect x="706" y="458" width="188" height="345" rx="94" fill="#080C12" stroke="url(#menuGold)" stroke-width="10"/>
+  <path d="M748 640C783 596 821 566 854 544C833 602 814 673 804 741C791 704 771 671 748 640Z" fill="#1C2736"/>
+  <rect x="188" y="820" width="1224" height="38" rx="18" fill="#0D121B" stroke="url(#menuGold)" stroke-opacity="0.5" stroke-width="4"/>
+  <path d="M260 858L492 688H1108L1340 858H260Z" fill="#111823"/>
+  <path d="M530 688H1070L1034 618H566L530 688Z" fill="#1B2430"/>
+  <path d="M612 618H988L930 530H670L612 618Z" fill="#222E3E"/>
+  <rect x="688" y="478" width="224" height="26" rx="13" fill="url(#menuGold)" fill-opacity="0.7"/>
+  <ellipse cx="800" cy="598" rx="260" ry="180" fill="url(#menuTorch)"/>
+  <path d="M528 858H1072" stroke="url(#menuGold)" stroke-opacity="0.45" stroke-width="4" stroke-linecap="round"/>
+  <path d="M640 908C718 876 885 876 962 908" stroke="url(#menuGold)" stroke-opacity="0.25" stroke-width="3" stroke-linecap="round"/>
+  <g opacity="0.55" fill="#F8F2D2">
+    <circle cx="138" cy="122" r="2.5"/>
+    <circle cx="214" cy="202" r="1.8"/>
+    <circle cx="306" cy="84" r="1.6"/>
+    <circle cx="1340" cy="110" r="2.1"/>
+    <circle cx="1452" cy="182" r="1.9"/>
+    <circle cx="1284" cy="230" r="1.7"/>
+  </g>
+</svg>

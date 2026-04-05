@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import {
+    BOARD_HIDDEN_TILE_BUTTON_RE,
     navigateToLevel1PlayPhase,
     reduceMotionSaveJson,
     STORAGE_KEY,
@@ -39,7 +40,7 @@ test.describe('Tile card face (DOM fallback)', () => {
             });
 
         const before = await fingerprint(cardFace);
-        const hiddenCount = await page.getByRole('button', { name: /hidden tile/i }).count();
+        const hiddenCount = await page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count();
         await clickHiddenTileRowCol(page, 1, 1, hiddenCount);
 
         const tileShown11 = page.getByRole('button', { name: /tile .*, row 1, column 1/i });

@@ -1,0 +1,28 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="emblemRing" x1="38" y1="34" x2="202" y2="206" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F7E2A8"/>
+      <stop offset="1" stop-color="#A36926"/>
+    </linearGradient>
+    <linearGradient id="emblemCore" x1="120" y1="48" x2="120" y2="192" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1A2431"/>
+      <stop offset="1" stop-color="#0A0E14"/>
+    </linearGradient>
+    <radialGradient id="emblemGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(120 126) rotate(90) scale(72 72)">
+      <stop offset="0" stop-color="#F4AE63" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#F4AE63" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <circle cx="120" cy="120" r="102" fill="#0B1017" stroke="url(#emblemRing)" stroke-width="10"/>
+  <circle cx="120" cy="120" r="82" fill="url(#emblemCore)" stroke="url(#emblemRing)" stroke-opacity="0.45" stroke-width="3"/>
+  <circle cx="120" cy="120" r="72" fill="url(#emblemGlow)"/>
+  <path d="M92 91C92 75.536 104.536 63 120 63C135.464 63 148 75.536 148 91V98H160V170H80V98H92V91Z" fill="#0A0D13" stroke="url(#emblemRing)" stroke-width="6" stroke-linejoin="round"/>
+  <rect x="96" y="114" width="48" height="40" rx="10" fill="#15212F" stroke="url(#emblemRing)" stroke-width="4"/>
+  <path d="M110 125H130" stroke="#F7E2A8" stroke-width="4" stroke-linecap="round"/>
+  <path d="M110 136H130" stroke="#F7E2A8" stroke-width="4" stroke-linecap="round" opacity="0.75"/>
+  <path d="M110 147H124" stroke="#F7E2A8" stroke-width="4" stroke-linecap="round" opacity="0.55"/>
+  <path d="M70 120H52" stroke="url(#emblemRing)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M188 120H170" stroke="url(#emblemRing)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M120 52V34" stroke="url(#emblemRing)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M120 206V188" stroke="url(#emblemRing)" stroke-width="4" stroke-linecap="round"/>
+</svg>

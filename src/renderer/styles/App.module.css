@@ -10,10 +10,11 @@
         env(safe-area-inset-bottom)
         env(safe-area-inset-left);
     background:
-        radial-gradient(circle at 14% 14%, var(--theme-glow-gold-soft), transparent 24%),
-        radial-gradient(circle at 84% 18%, var(--theme-glow-cyan-soft), transparent 26%),
-        radial-gradient(circle at 50% 84%, rgba(255, 139, 57, 0.14), transparent 28%),
-        linear-gradient(145deg, var(--theme-void) 0%, var(--theme-void-soft) 42%, var(--theme-smoke-deep) 100%);
+        radial-gradient(circle at 12% 12%, var(--theme-glow-gold-soft), transparent 22%),
+        radial-gradient(circle at 86% 12%, var(--theme-glow-cyan-soft), transparent 20%),
+        radial-gradient(circle at 52% 84%, rgba(243, 155, 78, 0.12), transparent 28%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 18%),
+        linear-gradient(148deg, var(--theme-void) 0%, var(--theme-void-soft) 42%, var(--theme-smoke-deep) 100%);
 }
 
 .ambientGlow {
@@ -23,11 +24,11 @@
     background:
         linear-gradient(var(--theme-glow-stone) 1px, transparent 1px),
         linear-gradient(90deg, var(--theme-glow-stone) 1px, transparent 1px),
-        radial-gradient(circle at center, rgba(255, 255, 255, 0.02), transparent 70%);
-    background-size: 96px 96px, 96px 96px, 100% 100%;
-    mask-image: radial-gradient(circle at center, black, transparent 78%);
+        linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 22%);
+    background-size: 128px 128px, 128px 128px, 100% 100%;
+    mask-image: radial-gradient(circle at center, black, rgba(0, 0, 0, 0.92) 66%, transparent 88%);
     pointer-events: none;
-    opacity: 0.58;
+    opacity: 0.42;
     transition: opacity 160ms ease;
 }
 
@@ -61,7 +62,7 @@
 }
 
 .app[data-reduce-motion='true'] .ambientGlow {
-    opacity: 0.45;
+    opacity: 0.34;
 }
 
 .app[data-ambient-grid='off'] .ambientGlow {

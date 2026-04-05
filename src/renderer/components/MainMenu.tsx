@@ -1,5 +1,9 @@
 import type { RelicId, RunSummary, SaveData } from '../../shared/contracts';
-import { useRef, useState } from 'react';
+import { RELIC_CATALOG } from '../../shared/game-catalog';
+import { formatNextUtcReset } from '../../shared/utc-countdown';
+import { useEffect, useRef, useState } from 'react';
+import { UI_ART } from '../assets/ui';
+import { desktopClient } from '../desktop-client';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
 import { Eyebrow, Panel, ScreenTitle, UiButton } from '../ui';
@@ -12,11 +16,12 @@ interface MainMenuProps {
     saveData: SaveData;
     reduceMotion: boolean;
     showHowToPlay: boolean;
+    steamConnected: boolean;
     suppressMenuBackgroundFallback?: boolean;
     onDismissHowToPlay: () => Promise<void>;
     onPlay: () => void;
+    onOpenCollection: () => void;
     onOpenSettings: () => void;
-    onDailyRun: () => void;
     onGauntletRun: () => void;
     onPuzzleStarter: () => void;
     onMirrorPuzzleRun: () => void;
@@ -27,25 +32,18 @@ interface MainMenuProps {
     onWildRun: () => void;
 }
 
-const RELIC_MENU_LABELS: Record<RelicId, string> = {
-    extra_shuffle_charge: 'Extra shuffle charge',
-    first_shuffle_free_per_floor: 'First shuffle free / floor',
-    memorize_bonus_ms: 'Longer memorize',
-    destroy_bank_plus_one: 'Destroy bank +1',
-    combo_shard_plus_step: 'Combo shard head start'
-};
-
 const MainMenu = ({
     bestScore,
     lastRunSummary,
     saveData,
     reduceMotion,
     showHowToPlay,
+    steamConnected,
     suppressMenuBackgroundFallback = false,
     onDismissHowToPlay,
     onPlay,
+    onOpenCollection,
     onOpenSettings,
-    onDailyRun,
     onGauntletRun,
     onPuzzleStarter,
     onMirrorPuzzleRun,
@@ -55,8 +53,8 @@ const MainMenu = ({
     onMeditationRun,
     onWildRun
 }: MainMenuProps) => {
-    const [statsDetailOpen, setStatsDetailOpen] = useState(false);
     const shellRef = useRef<HTMLElement | null>(null);
+    const [nowMs, setNowMs] = useState(() => Date.now());
     const { tiltRef: menuFieldTiltRef } = usePlatformTiltField({
         enabled: true,
         reduceMotion,
@@ -64,23 +62,24 @@ const MainMenu = ({
         strength: 1
     });
     const { height, width } = useViewportSize();
-    const isCompact = width <= 760 || height <= 760;
-    const showCompactGuide = width <= 430 || height <= 620;
-    const useFixedGuidePlacement = showCompactGuide && height <= 620;
-    const lastRunLine = lastRunSummary
-        ? showCompactGuide
-            ? `${lastRunSummary.totalScore.toLocaleString()} pts · Floor ${lastRunSummary.highestLevel}`
-            : `${lastRunSummary.totalScore.toLocaleString()} pts · ${lastRunSummary.levelsCleared} floors · high ${lastRunSummary.highestLevel} · streak ${lastRunSummary.bestStreak} · ${lastRunSummary.perfectClears} perfect`
-        : null;
+    const isCompact = width <= 960 || height <= 760;
     const relicPickEntries = saveData.playerStats
-        ? (Object.entries(saveData.playerStats.relicPickCounts) as [RelicId, number][]).filter(([, n]) => n > 0)
+        ? (Object.entries(saveData.playerStats.relicPickCounts) as [RelicId, number][])
+              .filter(([, count]) => count > 0)
+              .sort((left, right) => right[1] - left[1])
         : [];
+    const lastRunLabel = lastRunSummary
+        ? `${lastRunSummary.totalScore.toLocaleString()} score / Floor ${lastRunSummary.highestLevel} / ${lastRunSummary.bestStreak} streak`
+        : 'No descent recorded yet.';
+    const dailyCountdown = formatNextUtcReset(nowMs);
+
+    useEffect(() => {
+        const id = window.setInterval(() => setNowMs(Date.now()), 1000);
+        return () => window.clearInterval(id);
+    }, []);
 
     return (
-        <section
-            className={`${styles.shell} ${isCompact ? styles.compactShell : styles.roomyShell}`}
-            ref={shellRef}
-        >
+        <section className={`${styles.shell} ${isCompact ? styles.compactShell : ''}`} ref={shellRef}>
             <MainMenuBackground
                 fieldTiltRef={menuFieldTiltRef}
                 height={height}
@@ -88,199 +87,231 @@ const MainMenu = ({
                 suppressLoadingFallback={suppressMenuBackgroundFallback}
                 width={width}
             />
+            <div
+                aria-hidden="true"
+                className={styles.sceneLayer}
+                style={{ backgroundImage: `url(${UI_ART.menuScene})` }}
+            />
+            <div className={styles.scrim} />
 
-            <div className={styles.hero}>
-                <div className={styles.heroSmallTitleTilt}>
-                    <Eyebrow
-                        tone="menu"
-                        style={{
-                            fontSize: 'clamp(0.62rem, 1.15vw, 0.74rem)',
-                            letterSpacing: '0.28em',
-                            marginBottom: '0.55rem'
-                        }}
-                    >
-                        Steam Demo Build
-                    </Eyebrow>
-                </div>
-
-                <ScreenTitle className={`${styles.heroTitle} ${styles.heroBigTitleTilt}`} role="display">
-                    Memory Dungeon
-                </ScreenTitle>
-
-                <div className={`${styles.actions} ${styles.heroActionsTilt}`}>
-                    <UiButton size="lg" variant="primary" onClick={onPlay}>
-                        Play Arcade
-                    </UiButton>
-                    <UiButton size="lg" variant="secondary" onClick={onOpenSettings}>
-                        Settings
-                    </UiButton>
-                </div>
-
-                <div className={styles.modeRow} role="group" aria-label="More run types">
-                    <UiButton size="sm" variant="secondary" onClick={onDailyRun}>
-                        Daily
-                    </UiButton>
-                    <UiButton size="sm" variant="secondary" onClick={onGauntletRun}>
-                        Gauntlet 10m
-                    </UiButton>
-                    <UiButton size="sm" variant="secondary" onClick={onPuzzleStarter}>
-                        Puzzle
-                    </UiButton>
-                    <UiButton size="sm" variant="secondary" onClick={onMirrorPuzzleRun}>
-                        Mirror puzzle
-                    </UiButton>
-                    <UiButton size="sm" variant="secondary" onClick={onMeditationRun}>
-                        Meditation
-                    </UiButton>
-                    <UiButton size="sm" variant="secondary" onClick={onWildRun}>
-                        Wild run
-                    </UiButton>
-                    <UiButton size="sm" variant="secondary" onClick={onPracticeRun}>
-                        Practice
-                    </UiButton>
-                    <UiButton size="sm" variant="secondary" onClick={onScholarContractRun}>
-                        Scholar
-                    </UiButton>
-                    <UiButton size="sm" variant="secondary" onClick={onImportRun}>
-                        Import JSON
-                    </UiButton>
-                </div>
-                {saveData.playerStats ? (
-                    <div className={styles.statsWrap}>
-                        <p className={styles.metaStats}>
-                            Dailies cleared: {saveData.playerStats.dailiesCompleted} · Cosmetic streak:{' '}
-                            {saveData.playerStats.dailyStreakCosmetic} · Best floor (no powers):{' '}
-                            {saveData.playerStats.bestFloorNoPowers}
-                        </p>
-                        <UiButton
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => setStatsDetailOpen((open) => !open)}
-                        >
-                            {statsDetailOpen ? 'Hide relic picks' : 'Relic pick counts'}
-                        </UiButton>
-                        {statsDetailOpen ? (
-                            <ul className={styles.statsDetailList}>
-                                {relicPickEntries.length === 0 ? (
-                                    <li className={styles.statsDetailEmpty}>No relic picks recorded yet.</li>
-                                ) : (
-                                    relicPickEntries.map(([id, n]) => (
-                                        <li key={id}>
-                                            {RELIC_MENU_LABELS[id] ?? id}: {n}
-                                        </li>
-                                    ))
-                                )}
-                            </ul>
-                        ) : null}
+            <div className={styles.content}>
+                <header className={styles.metaRow}>
+                    <div className={styles.metaCard}>
+                        <span className={styles.metaLabel}>Build</span>
+                        <strong className={styles.metaValue}>Steam Demo</strong>
                     </div>
-                ) : null}
-                <p className={styles.weeklyHint}>Puzzles: Starter 2×2 or symmetric Mirror craft — Wild run ships joker + stray remover.</p>
+                    <div className={styles.metaCard}>
+                        <span className={styles.metaLabel}>Best Score</span>
+                        <strong className={styles.metaValue}>
+                            {bestScore > 0 ? bestScore.toLocaleString() : 'Unranked'}
+                        </strong>
+                    </div>
+                    <div className={styles.metaCard}>
+                        <span className={styles.metaLabel}>Daily Streak</span>
+                        <strong className={styles.metaValue}>
+                            {saveData.playerStats?.dailyStreakCosmetic ?? 0}
+                        </strong>
+                    </div>
+                    <div className={styles.metaCard}>
+                        <span className={styles.metaLabel}>Steam</span>
+                        <strong className={styles.metaValue}>{steamConnected ? 'Connected' : 'Offline'}</strong>
+                    </div>
+                </header>
 
-                {showHowToPlay && (
-                    <aside
-                        className={`${styles.guideCard} ${showCompactGuide ? styles.guideCardCompact : ''} ${useFixedGuidePlacement ? styles.guideCardFixed : ''}`}
-                    >
-                        {showCompactGuide ? (
-                            <>
-                                <div className={styles.guideCompactHeader}>
-                                    <Eyebrow tone="tight">How To Play</Eyebrow>
-                                    <UiButton
-                                        className={styles.dismissButtonTight}
-                                        onClick={() => void onDismissHowToPlay()}
-                                        size="sm"
-                                        variant="secondary"
-                                    >
-                                        Dismiss
-                                    </UiButton>
-                                </div>
-                                <p className={styles.guideSummary}>Memorize the board before the tiles flip.</p>
-                                <div className={styles.guideCompactRules}>
-                                    <p>Match pairs cleanly to build streak and score.</p>
-                                    <p>Every 2-match chain earns a shard; 3 shards restore a life.</p>
-                                    <p>Every 4-match streak grants a guard; every 8 restores a life.</p>
-                                </div>
-                            </>
-                        ) : (
-                            <div>
-                                <Eyebrow tone="tight">How To Play</Eyebrow>
-                                <ScreenTitle as="h2" className={styles.guideTitleSpacing} role="screenMd">
-                                    Memorize fast, play clean, protect the streak.
-                                </ScreenTitle>
-                            </div>
-                        )}
+                <div className={styles.layout}>
+                    <main className={styles.heroColumn}>
+                        <div className={styles.brandLockup}>
+                            <img alt="" className={styles.brandCrest} src={UI_ART.brandCrest} />
+                            <Eyebrow className={styles.heroEyebrow} tone="menu">
+                                Seeker of Shards
+                            </Eyebrow>
+                            <ScreenTitle className={styles.heroTitle} role="display">
+                                Memory Dungeon
+                            </ScreenTitle>
+                            <img alt="" className={styles.divider} src={UI_ART.dividerOrnament} />
+                            <p className={styles.tagline}>Test your mind. Conquer the depths.</p>
+                        </div>
 
-                        {!showCompactGuide && (
-                            <div className={styles.guideGrid}>
-                                <div>
-                                    <strong>1. Read the board</strong>
-                                    <p>Each level opens with a short memorize window before the tiles hide again.</p>
-                                </div>
-                                <div>
-                                    <strong>2. Keep the chain</strong>
-                                    <p>Matches award immediate score and streak bonus. Mistakes break the chain.</p>
-                                </div>
-                                <div>
-                                    <strong>3. Build survival chains</strong>
-                                    <p>Each 2-match chain earns a shard. Three shards restore one life. Guards still land every 4 and a streak heal still lands every 8.</p>
-                                </div>
-                            </div>
-                        )}
+                        <div className={styles.actionStack} role="group" aria-label="Primary actions">
+                            <UiButton
+                                aria-label="Play"
+                                className={styles.ctaButton}
+                                fullWidth
+                                size="lg"
+                                variant="primary"
+                                onClick={onPlay}
+                            >
+                                <span className={styles.ctaContent}>
+                                    <span className={styles.ctaTitle}>Play</span>
+                                    <span className={styles.ctaHint}>Choose Classic, Daily, or future modes</span>
+                                </span>
+                            </UiButton>
+                            <UiButton
+                                aria-label="Collection"
+                                className={styles.ctaButton}
+                                fullWidth
+                                size="lg"
+                                variant="secondary"
+                                onClick={onOpenCollection}
+                            >
+                                <span className={styles.ctaContent}>
+                                    <span className={styles.ctaTitle}>Collection</span>
+                                    <span className={styles.ctaHint}>Achievements, relics, and run history</span>
+                                </span>
+                            </UiButton>
+                            <UiButton
+                                aria-label="Settings"
+                                className={styles.ctaButton}
+                                fullWidth
+                                size="lg"
+                                variant="secondary"
+                                onClick={onOpenSettings}
+                            >
+                                <span className={styles.ctaContent}>
+                                    <span className={styles.ctaTitle}>Settings</span>
+                                    <span className={styles.ctaHint}>Video, audio, controls, accessibility</span>
+                                </span>
+                            </UiButton>
+                            <UiButton
+                                aria-label="Exit Game"
+                                className={styles.ctaButton}
+                                fullWidth
+                                size="lg"
+                                variant="ghost"
+                                onClick={() => void desktopClient.quitApp()}
+                            >
+                                <span className={styles.ctaContent}>
+                                    <span className={styles.ctaTitle}>Exit Game</span>
+                                    <span className={styles.ctaHint}>Close the desktop app</span>
+                                </span>
+                            </UiButton>
+                        </div>
 
-                        {!showCompactGuide && (
-                            <div className={styles.dismissWrap}>
+                        <div className={styles.bottomCards}>
+                            <Panel className={styles.bottomPanel} padding="md" variant="strong">
+                                <div className={styles.bottomPanelHeader}>
+                                    <img alt="" className={styles.panelSeal} src={UI_ART.menuSeal} />
+                                    <div>
+                                        <span className={styles.panelKicker}>Daily Challenge</span>
+                                        <strong className={styles.panelHeading}>New challenge in {dailyCountdown}</strong>
+                                    </div>
+                                </div>
+                                <p className={styles.panelBodyCopy}>
+                                    UTC seed rotation. Mutators, relic pacing, and floor pressure shift with each day.
+                                </p>
+                            </Panel>
+
+                            <Panel className={styles.bottomPanel} padding="md" variant="default">
+                                <div className={styles.bottomPanelHeader}>
+                                    <img alt="" className={styles.panelSeal} src={UI_ART.menuSeal} />
+                                    <div>
+                                        <span className={styles.panelKicker}>Recent Descent</span>
+                                        <strong className={styles.panelHeading}>
+                                            {lastRunSummary ? `Floor ${lastRunSummary.highestLevel}` : 'No active record'}
+                                        </strong>
+                                    </div>
+                                </div>
+                                <p className={styles.panelBodyCopy}>{lastRunLabel}</p>
+                            </Panel>
+                        </div>
+                    </main>
+
+                    <aside className={styles.supportColumn}>
+                        <Panel className={styles.supportPanel} padding="lg" variant="strong">
+                            <Eyebrow>More Modes</Eyebrow>
+                            <ScreenTitle as="h2" className={styles.supportHeading} role="screen">
+                                Alternate descents
+                            </ScreenTitle>
+                            <div className={styles.modeGrid} role="group" aria-label="More run types">
+                                <UiButton className={styles.modeButton} size="md" variant="secondary" onClick={onGauntletRun}>
+                                    Gauntlet 10m
+                                </UiButton>
+                                <UiButton className={styles.modeButton} size="md" variant="secondary" onClick={onPuzzleStarter}>
+                                    Puzzle
+                                </UiButton>
+                                <UiButton className={styles.modeButton} size="md" variant="secondary" onClick={onMirrorPuzzleRun}>
+                                    Mirror Puzzle
+                                </UiButton>
+                                <UiButton className={styles.modeButton} size="md" variant="secondary" onClick={onMeditationRun}>
+                                    Meditation
+                                </UiButton>
+                                <UiButton className={styles.modeButton} size="md" variant="secondary" onClick={onWildRun}>
+                                    Wild Run
+                                </UiButton>
+                                <UiButton className={styles.modeButton} size="md" variant="secondary" onClick={onPracticeRun}>
+                                    Practice
+                                </UiButton>
                                 <UiButton
-                                    fullWidth
-                                    onClick={() => void onDismissHowToPlay()}
+                                    className={styles.modeButton}
                                     size="md"
                                     variant="secondary"
+                                    onClick={onScholarContractRun}
                                 >
-                                    Dismiss
+                                    Scholar
+                                </UiButton>
+                                <UiButton className={styles.modeButton} size="md" variant="ghost" onClick={onImportRun}>
+                                    Import JSON
                                 </UiButton>
                             </div>
-                        )}
-                    </aside>
-                )}
-            </div>
+                        </Panel>
 
-            {!(useFixedGuidePlacement && showHowToPlay) && (
-                <div className={styles.grid}>
-                    <Panel
-                        className={`${styles.dossierUnified} ${styles.tiltSurface}`}
-                        padding="md"
-                        variant="strong"
-                    >
-                        <span className={styles.label}>Record & last run</span>
-
-                        <div className={styles.dossierColumns}>
-                            <div className={styles.dossierCol}>
-                                <span className={styles.colEyebrow}>Personal best</span>
-                                <strong className={styles.colFigure}>
-                                    {bestScore > 0 ? bestScore.toLocaleString() : '—'}
-                                </strong>
+                        <Panel className={styles.supportPanel} padding="lg" variant="default">
+                            <Eyebrow>Run Archive</Eyebrow>
+                            <ScreenTitle as="h2" className={styles.supportHeading} role="screen">
+                                Profile and progress
+                            </ScreenTitle>
+                            <div className={styles.archiveStats}>
+                                <div className={styles.archiveStat}>
+                                    <span className={styles.archiveLabel}>Dailies Cleared</span>
+                                    <strong className={styles.archiveValue}>
+                                        {saveData.playerStats?.dailiesCompleted ?? 0}
+                                    </strong>
+                                </div>
+                                <div className={styles.archiveStat}>
+                                    <span className={styles.archiveLabel}>Best No-Powers Floor</span>
+                                    <strong className={styles.archiveValue}>
+                                        {saveData.playerStats?.bestFloorNoPowers ?? 0}
+                                    </strong>
+                                </div>
                             </div>
-                            <div className={`${styles.dossierCol} ${lastRunSummary ? '' : styles.dossierColMuted}`}>
-                                <span className={styles.colEyebrow}>Last run</span>
-                                {lastRunSummary && lastRunLine ? (
-                                    <>
-                                        <p className={styles.lastRunLine}>{lastRunLine}</p>
-                                        <p className={styles.colNote}>
-                                            {lastRunSummary.achievementsEnabled
-                                                ? 'Achievements counted for that run.'
-                                                : 'Achievements off (debug tools).'}
-                                        </p>
-                                    </>
+                            <details className={styles.relicDetails}>
+                                <summary>Most-picked relics</summary>
+                                {relicPickEntries.length > 0 ? (
+                                    <ul className={styles.relicList}>
+                                        {relicPickEntries.slice(0, 5).map(([id, count]) => (
+                                            <li key={id}>
+                                                <span>{RELIC_CATALOG[id]?.title ?? id}</span>
+                                                <strong>{count}</strong>
+                                            </li>
+                                        ))}
+                                    </ul>
                                 ) : (
-                                    <p className={styles.colPlaceholder}>
-                                        {bestScore > 0
-                                            ? 'Finish a run to see score, floors, and streaks here.'
-                                            : 'Your last run summary appears after your first expedition.'}
-                                    </p>
+                                    <p className={styles.emptyState}>No relic history yet.</p>
                                 )}
-                            </div>
-                        </div>
-                    </Panel>
+                            </details>
+                        </Panel>
+
+                        {showHowToPlay ? (
+                            <Panel className={styles.supportPanel} padding="lg" variant="accent">
+                                <Eyebrow tone="tight">How To Play</Eyebrow>
+                                <ScreenTitle as="h2" className={styles.supportHeading} role="screen">
+                                    Read, match, and protect the streak
+                                </ScreenTitle>
+                                <div className={styles.howToGrid}>
+                                    <p>
+                                        The board opens face-up for a short memorize window before the tiles hide again.
+                                    </p>
+                                    <p>Every clean pair grows score and streak. Wrong pairs cut the chain instead of wiping it.</p>
+                                    <p>Every 2-pair chain earns a shard. Three shards restore one life.</p>
+                                </div>
+                                <UiButton fullWidth size="md" variant="secondary" onClick={() => void onDismissHowToPlay()}>
+                                    Dismiss
+                                </UiButton>
+                            </Panel>
+                        ) : null}
+                    </aside>
                 </div>
-            )}
+            </div>
         </section>
     );
 };

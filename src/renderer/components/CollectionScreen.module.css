@@ -1,0 +1,73 @@
+.section {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.sectionTitle {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 650;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.65rem;
+}
+
+.achievementCard {
+    padding: 0.85rem 1rem;
+    border-radius: var(--ui-radius-md);
+    border: 1px solid rgba(242, 211, 157, 0.1);
+    background: rgba(12, 14, 22, 0.55);
+}
+
+.achievementLocked {
+    opacity: 0.55;
+}
+
+.symbolGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.symbolChip {
+    min-width: 2.5rem;
+    padding: 0.35rem 0.5rem;
+    text-align: center;
+    border-radius: var(--ui-radius-sm);
+    border: 1px solid rgba(242, 211, 157, 0.12);
+    background: rgba(8, 10, 16, 0.65);
+    font-size: 0.95rem;
+}
+
+.symbolMeta {
+    display: block;
+    font-size: 0.68rem;
+    color: var(--theme-text-muted);
+    margin-top: 0.15rem;
+}
+
+.setLabel {
+    font-size: 0.78rem;
+    color: var(--theme-text-muted);
+    margin: 0 0 0.35rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.statRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.statRow span {
+    color: var(--theme-text-muted);
+    font-size: 0.88rem;
+}
+
+.statRow strong {
+    margin-left: 0.35rem;
+}

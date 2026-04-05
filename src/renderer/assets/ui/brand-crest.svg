@@ -1,0 +1,31 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="crestGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(128 110) rotate(90) scale(124)">
+      <stop offset="0" stop-color="#C9A163" stop-opacity="0.95"/>
+      <stop offset="0.45" stop-color="#7A5A2C" stop-opacity="0.64"/>
+      <stop offset="1" stop-color="#09080C" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="frameGold" x1="60" y1="42" x2="194" y2="214" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F5D39A"/>
+      <stop offset="0.42" stop-color="#B98943"/>
+      <stop offset="1" stop-color="#6D481D"/>
+    </linearGradient>
+    <linearGradient id="coreCrystal" x1="128" y1="58" x2="128" y2="192" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E6D0FF"/>
+      <stop offset="0.34" stop-color="#9C69F2"/>
+      <stop offset="0.72" stop-color="#4D2C86"/>
+      <stop offset="1" stop-color="#241339"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="40" fill="url(#crestGlow)"/>
+  <path d="M128 22L194 56V132C194 178 166.5 214.75 128 234C89.5 214.75 62 178 62 132V56L128 22Z" fill="rgba(8,8,12,0.24)" stroke="url(#frameGold)" stroke-width="4"/>
+  <path d="M128 42L177 66V128C177 162.75 157.75 190.25 128 206C98.25 190.25 79 162.75 79 128V66L128 42Z" fill="rgba(10,11,18,0.42)" stroke="url(#frameGold)" stroke-width="2.5"/>
+  <path d="M128 58L152 102L128 194L104 102L128 58Z" fill="url(#coreCrystal)" stroke="#F5E5FF" stroke-opacity="0.72" stroke-width="2"/>
+  <path d="M104 102L128 120L152 102" stroke="#F8E4FF" stroke-opacity="0.64" stroke-width="2"/>
+  <path d="M112 130L128 142L144 130" stroke="#2E163D" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="128" cy="102" r="60" stroke="url(#frameGold)" stroke-opacity="0.45" stroke-width="3"/>
+  <path d="M68 94H94" stroke="url(#frameGold)" stroke-width="3" stroke-linecap="round"/>
+  <path d="M162 94H188" stroke="url(#frameGold)" stroke-width="3" stroke-linecap="round"/>
+  <path d="M68 160H94" stroke="url(#frameGold)" stroke-width="3" stroke-linecap="round"/>
+  <path d="M162 160H188" stroke="url(#frameGold)" stroke-width="3" stroke-linecap="round"/>
+</svg>

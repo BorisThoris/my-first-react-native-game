@@ -1,0 +1,36 @@
+{
+    "sources": [
+        {
+            "file": "ENDPRODUCTIMAGE.png",
+            "slug": "board-a",
+            "layout": {
+                "type": "grid",
+                "cols": 4,
+                "rows": 2,
+                "labels": [
+                    "main-gameplay",
+                    "card-states",
+                    "interactions",
+                    "top-bar-details",
+                    "sidebar-in-game",
+                    "visual-theme",
+                    "color-palette",
+                    "typography"
+                ]
+            }
+        },
+        {
+            "file": "ENDPRODUCTIMAGE2.png",
+            "slug": "board-b",
+            "layout": {
+                "type": "rects",
+                "rects": [
+                    { "id": "main-menu", "x": 0, "y": 0, "w": 768, "h": 1024 },
+                    { "id": "settings", "x": 768, "y": 0, "w": 768, "h": 512 },
+                    { "id": "mode-selection", "x": 768, "y": 512, "w": 768, "h": 512 }
+                ]
+            }
+        }
+    ],
+    "notes": "Grid cell order is row-major (left-to-right, top-to-bottom). Adjust crops.json if reference art layout changes."
+}

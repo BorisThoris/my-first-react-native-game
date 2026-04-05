@@ -8,6 +8,7 @@ vi.mock('./components/MainMenuBackground', () => ({
 import App from './App';
 import { createNewRun } from '../shared/game';
 import { createDefaultSaveData } from '../shared/save-data';
+import { desktopClient } from './desktop-client';
 import { PlatformTiltProvider } from './platformTilt/PlatformTiltProvider';
 import { useAppStore } from './store/useAppStore';
 
@@ -34,6 +35,7 @@ const resetStore = (): void => {
             steamConnected: false,
             view: 'boot',
             settingsReturnView: 'menu',
+            subscreenReturnView: 'menu',
             saveData,
             settings: saveData.settings,
             run: null,
@@ -46,9 +48,14 @@ const resetStore = (): void => {
 const dismissStartupIntro = async (user: ReturnType<typeof userEvent.setup>): Promise<void> => {
     await user.click(await screen.findByRole('dialog', { name: /startup relic intro/i }));
     await waitFor(() => {
-        expect(screen.getByRole('button', { name: /play arcade/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^play$/i })).toBeInTheDocument();
         expect(screen.queryByRole('dialog', { name: /startup relic intro/i })).not.toBeInTheDocument();
     }, { timeout: 3000 });
+};
+
+const chooseClassicRun = async (user: ReturnType<typeof userEvent.setup>): Promise<void> => {
+    await user.click(await screen.findByRole('button', { name: /^play$/i }));
+    await user.click(await screen.findByRole('button', { name: /classic run/i }));
 };
 
 describe('desktop app flow', () => {
@@ -69,10 +76,10 @@ describe('desktop app flow', () => {
 
         renderApp();
 
-        expect(screen.queryByRole('button', { name: /play arcade/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /^play$/i })).not.toBeInTheDocument();
 
         await dismissStartupIntro(user);
-        await user.click(await screen.findByRole('button', { name: /play arcade/i }));
+        await chooseClassicRun(user);
 
         expect(await screen.findByRole('heading', { name: /level 1/i })).toBeInTheDocument();
         expect(screen.getByRole('group', { name: /run stats/i })).toBeInTheDocument();
@@ -85,12 +92,12 @@ describe('desktop app flow', () => {
         const { container } = renderApp();
 
         await dismissStartupIntro(user);
-        await screen.findByRole('button', { name: /play arcade/i });
+        await screen.findByRole('button', { name: /^play$/i });
 
         expect(container.firstElementChild).toHaveAttribute('data-view', 'menu');
         expect(container.firstElementChild).toHaveAttribute('data-ambient-grid', 'off');
 
-        await user.click(screen.getByRole('button', { name: /play arcade/i }));
+        await chooseClassicRun(user);
         await screen.findByRole('heading', { name: /level 1/i });
         expect(container.firstElementChild).toHaveAttribute('data-view', 'playing');
         expect(container.firstElementChild).toHaveAttribute('data-ambient-grid', 'off');
@@ -107,12 +114,13 @@ describe('desktop app flow', () => {
         expect(screen.queryByLabelText(/ui scale/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/debug tools/i)).not.toBeInTheDocument();
         expect(screen.queryByRole('checkbox', { name: /reduce motion/i })).not.toBeInTheDocument();
-        expect(screen.getByLabelText(/volume/i)).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: /audio/i }));
+        expect(screen.getByLabelText(/master volume/i)).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /^close$/i })).not.toBeInTheDocument();
         expect(screen.getByRole('button', { name: /^back$/i })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /^save$/i })).toBeDisabled();
 
-        fireEvent.change(screen.getByLabelText(/volume/i), { target: { value: '0.45' } });
+        fireEvent.change(screen.getByLabelText(/master volume/i), { target: { value: '0.45' } });
         expect(screen.getByRole('button', { name: /^save$/i })).toBeEnabled();
         await user.click(screen.getByRole('button', { name: /^save$/i }));
 
@@ -132,7 +140,7 @@ describe('desktop app flow', () => {
         await user.click(screen.getByRole('button', { name: /^back$/i }));
 
         await waitFor(() => {
-            expect(screen.getByRole('button', { name: /play arcade/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /^play$/i })).toBeInTheDocument();
         });
     });
 
@@ -142,13 +150,13 @@ describe('desktop app flow', () => {
         renderApp();
 
         await dismissStartupIntro(user);
-        expect(await screen.findByRole('heading', { name: /memorize fast, play clean, protect the streak/i })).toBeInTheDocument();
-        expect(screen.getByText(/three shards restore one life/i)).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: /read, match, and protect the streak/i })).toBeInTheDocument();
+        expect(screen.getByText(/every 2-pair chain earns a shard/i)).toBeInTheDocument();
 
         await user.click(screen.getByRole('button', { name: /dismiss/i }));
 
         await waitFor(() => {
-            expect(screen.queryByRole('heading', { name: /memorize fast, play clean, protect the streak/i })).not.toBeInTheDocument();
+            expect(screen.queryByRole('heading', { name: /read, match, and protect the streak/i })).not.toBeInTheDocument();
         });
 
         const rawSave = window.localStorage.getItem('memory-dungeon-save-data');
@@ -203,6 +211,7 @@ describe('desktop app flow', () => {
                 steamConnected: false,
                 view: 'playing',
                 settingsReturnView: 'menu',
+                subscreenReturnView: 'menu',
                 saveData,
                 settings: saveData.settings,
                 run,
@@ -252,6 +261,7 @@ describe('desktop app flow', () => {
                 steamConnected: false,
                 view: 'playing',
                 settingsReturnView: 'menu',
+                subscreenReturnView: 'menu',
                 saveData,
                 settings: saveData.settings,
                 run,
@@ -272,7 +282,7 @@ describe('desktop app flow', () => {
         renderApp();
 
         await dismissStartupIntro(user);
-        await user.click(await screen.findByRole('button', { name: /play arcade/i }));
+        await chooseClassicRun(user);
         expect(await screen.findByRole('heading', { name: /level 1/i })).toBeInTheDocument();
 
         await user.click(screen.getByRole('button', { name: /pause/i }));
@@ -295,7 +305,7 @@ describe('desktop app flow', () => {
         renderApp();
 
         await dismissStartupIntro(user);
-        await user.click(await screen.findByRole('button', { name: /play arcade/i }));
+        await chooseClassicRun(user);
         expect(await screen.findByRole('heading', { name: /level 1/i })).toBeInTheDocument();
 
         await user.click(screen.getByRole('button', { name: /settings/i }));
@@ -307,12 +317,13 @@ describe('desktop app flow', () => {
         expect(within(dialog).queryByLabelText(/ui scale/i)).not.toBeInTheDocument();
         expect(within(dialog).queryByText(/debug tools/i)).not.toBeInTheDocument();
         expect(within(dialog).queryByRole('checkbox', { name: /reduce motion/i })).not.toBeInTheDocument();
-        expect(within(dialog).getByLabelText(/volume/i)).toBeInTheDocument();
+        await user.click(within(dialog).getByRole('button', { name: /audio/i }));
+        expect(within(dialog).getByLabelText(/master volume/i)).toBeInTheDocument();
         expect(within(dialog).queryByRole('button', { name: /^close$/i })).not.toBeInTheDocument();
         expect(within(dialog).getByRole('button', { name: /^back$/i })).toBeInTheDocument();
         expect(within(dialog).getByRole('button', { name: /^save$/i })).toBeDisabled();
 
-        fireEvent.change(within(dialog).getByLabelText(/volume/i), { target: { value: '0.35' } });
+        fireEvent.change(within(dialog).getByLabelText(/master volume/i), { target: { value: '0.35' } });
         expect(within(dialog).getByRole('button', { name: /^save$/i })).toBeEnabled();
         await user.click(within(dialog).getByRole('button', { name: /^save$/i }));
 
@@ -356,7 +367,7 @@ describe('desktop app flow', () => {
         renderApp();
 
         await dismissStartupIntro(user);
-        await user.click(await screen.findByRole('button', { name: /play arcade/i }));
+        await chooseClassicRun(user);
 
         expect(await screen.findByRole('button', { name: /fit board/i })).toBeInTheDocument();
     });
@@ -367,8 +378,83 @@ describe('desktop app flow', () => {
         renderApp();
 
         await dismissStartupIntro(user);
-        await user.click(await screen.findByRole('button', { name: /play arcade/i }));
+        await chooseClassicRun(user);
 
         expect(await screen.findByRole('button', { name: /fit board/i })).toBeInTheDocument();
+    });
+
+    it('opens Choose Your Path from Play and keeps Endless Mode locked', async () => {
+        const user = userEvent.setup();
+        renderApp();
+        await dismissStartupIntro(user);
+        await user.click(await screen.findByRole('button', { name: /^play$/i }));
+        expect(await screen.findByRole('region', { name: /choose your path/i })).toBeInTheDocument();
+        const endless = screen.getByRole('button', { name: /endless mode/i });
+        expect(endless).toBeDisabled();
+    });
+
+    it('opens Collection from the main menu and returns', async () => {
+        const user = userEvent.setup();
+        renderApp();
+        await dismissStartupIntro(user);
+        await user.click(await screen.findByRole('button', { name: /^collection$/i }));
+        expect(await screen.findByRole('region', { name: /collection/i })).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: /^back$/i }));
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /^play$/i })).toBeInTheDocument();
+        });
+    });
+
+    it('opens Inventory and Codex from the utility flyout and returns to playing', async () => {
+        const user = userEvent.setup();
+        renderApp();
+        await dismissStartupIntro(user);
+        await chooseClassicRun(user);
+
+        await user.click(screen.getByRole('button', { name: /show utility menu/i }));
+        await user.click(screen.getByRole('button', { name: /inventory/i }));
+        expect(await screen.findByRole('region', { name: /inventory/i })).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: /^back$/i }));
+        expect(await screen.findByRole('heading', { name: /level 1/i })).toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: /show utility menu/i }));
+        await user.click(screen.getByRole('button', { name: /codex/i }));
+        expect(await screen.findByRole('region', { name: /codex/i })).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: /^back$/i }));
+        expect(await screen.findByRole('heading', { name: /level 1/i })).toBeInTheDocument();
+    });
+
+    it('resets settings to defaults from the About tab', async () => {
+        const user = userEvent.setup();
+        renderApp();
+        await dismissStartupIntro(user);
+        await user.click(await screen.findByRole('button', { name: /settings/i }));
+        await user.click(await screen.findByRole('button', { name: /^audio/i }));
+        fireEvent.change(screen.getByLabelText(/master volume/i), { target: { value: '0.2' } });
+        await user.click(screen.getByRole('button', { name: /^save$/i }));
+        await waitFor(() => {
+            const raw = window.localStorage.getItem('memory-dungeon-save-data');
+            expect(raw).not.toBeNull();
+            expect(JSON.parse(raw!).settings.masterVolume).toBeCloseTo(0.2);
+        });
+
+        await user.click(screen.getByRole('button', { name: /^about/i }));
+        await user.click(screen.getByRole('button', { name: /reset to defaults/i }));
+
+        await waitFor(() => {
+            const raw = window.localStorage.getItem('memory-dungeon-save-data');
+            expect(raw).not.toBeNull();
+            expect(JSON.parse(raw!).settings.masterVolume).toBe(createDefaultSaveData().settings.masterVolume);
+        });
+    });
+
+    it('invokes quitApp when Exit Game is clicked', async () => {
+        const quitSpy = vi.spyOn(desktopClient, 'quitApp').mockResolvedValue(undefined);
+        const user = userEvent.setup();
+        renderApp();
+        await dismissStartupIntro(user);
+        await user.click(await screen.findByRole('button', { name: /exit game/i }));
+        expect(quitSpy).toHaveBeenCalled();
+        quitSpy.mockRestore();
     });
 });

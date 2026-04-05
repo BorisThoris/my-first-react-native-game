@@ -15,6 +15,7 @@ import {
 } from 'react';
 import { flushSync } from 'react-dom';
 import type { BoardState, RunStatus, Tile } from '../../shared/contracts';
+import { WILD_PAIR_KEY } from '../../shared/game';
 import { useCoarsePointer } from '../hooks/useCoarsePointer';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
@@ -148,12 +149,59 @@ const canUseWebGL = (): boolean => {
     }
 };
 
+type ResolvingSelectionState = 'match' | 'mismatch' | null;
+
+const areResolvingTilesMatch = (tiles: Tile[]): boolean => {
+    if (tiles.length < 2) {
+        return false;
+    }
+
+    if (tiles.length > 2) {
+        return false;
+    }
+
+    const [first, second] = tiles;
+
+    if (first.pairKey === second.pairKey && first.pairKey !== '__decoy__') {
+        return true;
+    }
+
+    if (first.pairKey === WILD_PAIR_KEY && second.pairKey !== WILD_PAIR_KEY) {
+        return true;
+    }
+
+    if (second.pairKey === WILD_PAIR_KEY && first.pairKey !== WILD_PAIR_KEY) {
+        return true;
+    }
+
+    return false;
+};
+
+const getResolvingSelectionState = (board: BoardState, runStatus: RunStatus, tileId: string): ResolvingSelectionState => {
+    if (runStatus !== 'resolving' || !board.flippedTileIds.includes(tileId)) {
+        return null;
+    }
+
+    const flippedTiles = board.tiles.filter((tile) => board.flippedTileIds.includes(tile.id));
+
+    if (flippedTiles.length === 2) {
+        return areResolvingTilesMatch(flippedTiles) ? 'match' : 'mismatch';
+    }
+
+    if (flippedTiles.length === 3) {
+        return 'mismatch';
+    }
+
+    return null;
+};
+
 const getTileClassName = (
     tile: Tile,
     faceUp: boolean,
     locked: boolean,
     isPinned: boolean,
-    isFocusDimmed: boolean
+    isFocusDimmed: boolean,
+    resolvingSelectionState: ResolvingSelectionState
 ): string =>
     [
         styles.fallbackTile,
@@ -161,7 +209,9 @@ const getTileClassName = (
         tile.state === 'matched' ? styles.matched : '',
         locked && tile.state === 'hidden' ? styles.locked : '',
         isPinned && tile.state === 'hidden' ? styles.fallbackTilePinned : '',
-        isFocusDimmed ? styles.tileFocusDim : ''
+        isFocusDimmed ? styles.tileFocusDim : '',
+        resolvingSelectionState === 'match' ? styles.resolvingMatch : '',
+        resolvingSelectionState === 'mismatch' ? styles.resolvingMismatch : ''
     ]
         .filter(Boolean)
         .join(' ');
@@ -224,6 +274,7 @@ const TileBoardFallback = ({
                 const faceUp = tile.state !== 'hidden' || debugPeekActive || previewActive || peekFace;
                 const isPinned = pinnedSet.has(tile.id);
                 const isFocusDimmed = Boolean(dimmedTileIds?.has(tile.id));
+                const resolvingSelectionState = getResolvingSelectionState(board, runStatus, tile.id);
                 const { row, column } = getTilePosition(index, board.columns);
                 const labelText = tile.label.toUpperCase();
                 const showFrontLabel = labelText !== tile.symbol.toUpperCase();
@@ -245,7 +296,7 @@ const TileBoardFallback = ({
                 return (
                     <button
                         aria-label={getTileAriaLabel(tile, faceUp, row, column)}
-                        className={`${getTileClassName(tile, faceUp, locked, isPinned, isFocusDimmed)} ${atomicClass} ${nBackClass}`.trim()}
+                        className={`${getTileClassName(tile, faceUp, locked, isPinned, isFocusDimmed, resolvingSelectionState)} ${atomicClass} ${nBackClass}`.trim()}
                         data-tile-id={tile.id}
                         disabled={disabled}
                         key={tile.id}
@@ -259,7 +310,10 @@ const TileBoardFallback = ({
                         <span className={styles.tileFace}>
                             <span className={styles.pulseGlow} />
                             {faceUp ? (
-                                <span className={`${styles.cardBack} ${silhouetteClass}`.trim()} data-testid="tile-card-face">
+                                <span
+                                    className={`${styles.cardBack} ${styles.cardFaceFront} ${silhouetteClass}`.trim()}
+                                    data-testid="tile-card-face"
+                                >
                                     <span
                                         className={`${styles.tileSymbol} ${showWideRecallStyle ? styles.wideRecallDeemphSymbol : ''}`.trim()}
                                     >
@@ -270,7 +324,11 @@ const TileBoardFallback = ({
                                     ) : null}
                                 </span>
                             ) : (
-                                <span aria-hidden="true" className={styles.cardBack} data-testid="tile-card-face" />
+                                <span
+                                    aria-hidden="true"
+                                    className={`${styles.cardBack} ${styles.cardFaceBack}`}
+                                    data-testid="tile-card-face"
+                                />
                             )}
                         </span>
                     </button>
@@ -1048,6 +1106,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                                 const faceUp = tile.state !== 'hidden' || debugPeekActive || previewActive;
                                 const disabled = tile.state === 'matched' || !interactive || (locked && tile.state === 'hidden');
                                 const isPinned = pinnedTileIds.includes(tile.id);
+                                const resolvingSelectionState = getResolvingSelectionState(board, runStatus, tile.id);
                                 const { row, column } = getTilePosition(index, board.columns);
 
                                 return (
@@ -1055,7 +1114,9 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                                         aria-label={getTileAriaLabel(tile, faceUp, row, column)}
                                         className={`${styles.hitButton} ${faceUp ? styles.hitButtonFaceUp : ''} ${
                                             tile.state === 'matched' ? styles.hitButtonMatched : ''
-                                        } ${isPinned && tile.state === 'hidden' ? styles.hitButtonPinned : ''}`}
+                                        } ${isPinned && tile.state === 'hidden' ? styles.hitButtonPinned : ''} ${
+                                            resolvingSelectionState === 'match' ? styles.hitButtonResolvingMatch : ''
+                                        } ${resolvingSelectionState === 'mismatch' ? styles.hitButtonResolvingMismatch : ''}`.trim()}
                                         data-tile-id={tile.id}
                                         disabled={disabled}
                                         key={tile.id}

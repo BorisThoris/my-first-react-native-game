@@ -60,6 +60,9 @@ const fallbackClient: DesktopApi = {
                 displayMode: mode
             }
         });
+    },
+    async quitApp(): Promise<void> {
+        /* Electron uses preload IPC; web/Vitest uses this no-op unless window.desktop is mocked. */
     }
 };
 

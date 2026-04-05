@@ -1,8 +1,9 @@
 import { ACHIEVEMENTS } from '../../shared/achievements';
-import type { AchievementId, MutatorId, RelicId, RunState } from '../../shared/contracts';
+import { MAX_LIVES, type AchievementId, type MutatorId, type RelicId, type RunState } from '../../shared/contracts';
 import { canShuffleBoard } from '../../shared/game';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
+import { UI_ART } from '../assets/ui';
 import { VIEWPORT_MOBILE_MAX, VIEWPORT_TIGHT_MAX_H, VIEWPORT_TIGHT_MAX_W } from '../breakpoints';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
@@ -89,6 +90,14 @@ const SettingsIcon = () => (
     </svg>
 );
 
+const MenuIcon = () => (
+    <svg aria-hidden="true" className={styles.actionIcon} viewBox="0 0 24 24">
+        <path d="M5 7.5h14" />
+        <path d="M5 12h14" />
+        <path d="M5 16.5h14" />
+    </svg>
+);
+
 const FitBoardIcon = () => (
     <svg aria-hidden="true" className={styles.actionIcon} viewBox="0 0 24 24">
         <path d="M5 9V5h4" />
@@ -150,6 +159,8 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const [viewportResetToken, setViewportResetToken] = useState(0);
     const [gauntletTick, setGauntletTick] = useState(0);
     const [distractionTick, setDistractionTick] = useState(0);
+    const [rulesHintsExpanded, setRulesHintsExpanded] = useState(true);
+    const [utilityFlyoutOpen, setUtilityFlyoutOpen] = useState(false);
     useEffect(() => {
         if (run.gauntletDeadlineMs === null) {
             return;
@@ -163,6 +174,8 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         destroyPairArmed,
         dismissPowersFtue,
         goToMenu,
+        openCodexFromPlaying,
+        openInventoryFromPlaying,
         openSettings,
         pause,
         peekModeArmed,
@@ -185,6 +198,8 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
             destroyPairArmed: state.destroyPairArmed,
             dismissPowersFtue: state.dismissPowersFtue,
             goToMenu: state.goToMenu,
+            openCodexFromPlaying: state.openCodexFromPlaying,
+            openInventoryFromPlaying: state.openInventoryFromPlaying,
             openSettings: state.openSettings,
             pause: state.pause,
             peekModeArmed: state.peekModeArmed,
@@ -279,8 +294,8 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const rows = run.board.rows;
     /** Space above the board: single-row HUD + shell / foreground padding (compact rules in GameScreen.module.css). */
     const chromeReserveY = isTight ? 92 : 84;
-    /** Horizontal insets: shell + gameForeground padding (see compact rules in GameScreen.module.css). */
-    const chromeReserveX = isTight ? 20 : 32;
+    /** Horizontal insets: shell + gameForeground padding + left action toolbar. */
+    const chromeReserveX = (isTight ? 20 : 32) + 56;
     const boardHorizontalBudget = Math.max(160, width - chromeReserveX);
     const boardVerticalBudget = Math.max(200, height - chromeReserveY);
     const minTile = isCompact ? 48 : 56;
@@ -316,6 +331,20 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     void distractionTick;
     const gauntletRemainingMs =
         run.gauntletDeadlineMs !== null ? Math.max(0, run.gauntletDeadlineMs - Date.now()) : null;
+    const hudModeLabel =
+        run.gameMode === 'daily' && run.dailyDateKeyUtc
+            ? `Daily ${run.dailyDateKeyUtc}`
+            : gauntletRemainingMs !== null
+              ? `Gauntlet ${Math.ceil(gauntletRemainingMs / 1000)}s`
+              : run.activeContract?.noShuffle
+                ? 'Scholar Contract'
+                : run.gameMode === 'meditation'
+                  ? 'Meditation Run'
+                  : run.wildMenuRun
+                    ? 'Wild Run'
+                    : 'Arcade Run';
+    const nBackLabel =
+        run.nBackAnchorPairKey && nBackMutatorActive ? `Anchor ${run.nBackAnchorPairKey.slice(0, 6)}` : null;
     const boardPresentationClass =
         settings.boardPresentation === 'spaghetti'
             ? styles.boardStageSpaghetti
@@ -336,289 +365,411 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                 reduceMotion={settings.reduceMotion}
                 width={width}
             />
+            <div
+                aria-hidden="true"
+                className={styles.stageBackdrop}
+                style={{ backgroundImage: `url(${UI_ART.gameplayScene})` }}
+            />
             <div className={`${styles.gameForeground} ${cameraViewportMode ? styles.mobileCameraForeground : ''}`}>
                 <h1 className={styles.srOnly}>Level {run.board.level}</h1>
-                {showPowersFtue ? (
-                    <div className={styles.ftueBanner} role="status">
-                        <span>
-                            Board powers: shuffle (charges), pin mode, destroy (earn charges on clean floors). Try Daily /
-                            Scholar run from the main menu for more challenge types.
-                        </span>
-                        <button className={styles.ftueDismiss} onClick={() => void dismissPowersFtue()} type="button">
-                            Got it
-                        </button>
-                    </div>
-                ) : null}
-                <header
-                    className={`${styles.hudRow} ${cameraViewportMode ? styles.mobileCameraHud : ''}`}
-                    data-testid="game-hud"
+                <div
+                    className={`${styles.gamePlayLayout} ${cameraViewportMode ? styles.mobileCameraGamePlayLayout : ''}`.trim()}
                 >
-                    <div className={`${styles.floatingDeck} ${styles.statsDeck}`}>
-                        <div className={styles.deckCluster}>
-                            <div className={styles.floorBadge} title="Current floor">
-                                <span className={styles.floorLabel}>Floor</span>
-                                <span className={styles.floorValue}>{run.board.level}</span>
-                            </div>
-                            <div className={styles.statRail} role="group" aria-label="Run stats">
-                                <div className={styles.statPill}>
-                                    <span className={styles.statKey}>Lives</span>
-                                    <span className={styles.statVal}>{run.lives}</span>
-                                </div>
-                                <div className={styles.statPill}>
-                                    <span className={styles.statKey}>Guards</span>
-                                    <span className={styles.statVal}>{run.stats.guardTokens}</span>
-                                </div>
-                                <div className={styles.statPill}>
-                                    <span className={styles.statKey}>Shards</span>
-                                    <span className={styles.statVal}>{run.stats.comboShards}</span>
-                                </div>
-                                <div className={styles.statPill}>
-                                    <span className={styles.statKey}>Score</span>
-                                    <span className={styles.statVal}>{run.stats.totalScore.toLocaleString()}</span>
-                                </div>
-                                {run.gameMode === 'daily' && run.dailyDateKeyUtc ? (
-                                    <div className={styles.statPill} title="UTC daily id">
-                                        <span className={styles.statKey}>Daily</span>
-                                        <span className={styles.statVal}>{run.dailyDateKeyUtc}</span>
-                                    </div>
-                                ) : null}
-                                {gauntletRemainingMs !== null ? (
-                                    <div className={styles.statPill} title="Gauntlet time left">
-                                        <span className={styles.statKey}>Time</span>
-                                        <span className={styles.statVal}>
-                                            {Math.ceil(gauntletRemainingMs / 1000)}s
-                                        </span>
-                                    </div>
-                                ) : null}
-                                {run.activeContract?.noShuffle ? (
-                                    <div className={styles.statPill}>
-                                        <span className={styles.statKey}>Contract</span>
-                                        <span className={styles.statVal}>Scholar</span>
-                                    </div>
-                                ) : null}
-                                {run.gameMode === 'meditation' ? (
-                                    <div className={styles.statPill} title="Meditation run">
-                                        <span className={styles.statKey}>Mode</span>
-                                        <span className={styles.statVal}>Meditation</span>
-                                    </div>
-                                ) : null}
-                                {run.wildMenuRun ? (
-                                    <div className={styles.statPill} title="Wild joker run">
-                                        <span className={styles.statKey}>Wild</span>
-                                        <span className={styles.statVal}>On</span>
-                                    </div>
-                                ) : null}
-                                {run.nBackAnchorPairKey && nBackMutatorActive ? (
-                                    <div className={styles.statPill} title="N-back anchor pair">
-                                        <span className={styles.statKey}>Anchor</span>
-                                        <span className={styles.statVal}>{run.nBackAnchorPairKey.slice(0, 6)}</span>
-                                    </div>
-                                ) : null}
-                                {run.activeMutators.map((m) => (
-                                    <div className={styles.mutatorChip} key={m} title={MUTATOR_HUD_LABELS[m] ?? m}>
-                                        {MUTATOR_HUD_LABELS[m] ?? m}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                    <div className={styles.actionControls} role="group" aria-label="Game controls">
-                        {cameraViewportMode ? (
+                    <aside
+                        aria-label="Game actions"
+                        className={`${styles.leftToolbar} ${cameraViewportMode ? styles.mobileCameraLeftToolbar : ''}`.trim()}
+                    >
+                        <div
+                            aria-label="Game controls"
+                            aria-orientation="vertical"
+                            className={styles.toolbarSection}
+                            role="toolbar"
+                        >
                             <button
-                                aria-label="Fit board"
-                                className={styles.iconAction}
-                                onClick={() => {
-                                    setViewportResetToken((current) => current + 1);
-                                }}
-                                title="Fit board"
+                                aria-expanded={utilityFlyoutOpen}
+                                aria-label={utilityFlyoutOpen ? 'Hide utility menu' : 'Show utility menu'}
+                                className={`${styles.iconAction} ${utilityFlyoutOpen ? styles.iconActionActive : ''}`}
+                                onClick={() => setUtilityFlyoutOpen((open) => !open)}
+                                title="Open utility menu"
                                 type="button"
                             >
-                                <FitBoardIcon />
+                                <MenuIcon />
                             </button>
+                            {cameraViewportMode ? (
+                                <button
+                                    aria-label="Fit board"
+                                    className={styles.iconAction}
+                                    onClick={() => {
+                                        setViewportResetToken((current) => current + 1);
+                                    }}
+                                    title="Fit board"
+                                    type="button"
+                                >
+                                    <FitBoardIcon />
+                                </button>
+                            ) : null}
+                            <button
+                                aria-label={pauseActionLabel}
+                                className={styles.iconAction}
+                                onClick={run.status === 'paused' ? resume : pause}
+                                title={pauseActionLabel}
+                                type="button"
+                            >
+                                {run.status === 'paused' ? <PlayIcon /> : <PauseIcon />}
+                            </button>
+                            <button
+                                aria-label="Settings"
+                                className={styles.iconAction}
+                                onClick={() => openSettings('playing')}
+                                title="Settings"
+                                type="button"
+                            >
+                                <SettingsIcon />
+                            </button>
+                            {import.meta.env.DEV &&
+                            settings.debugFlags.showDebugTools &&
+                            settings.debugFlags.allowBoardReveal ? (
+                                <UiButton
+                                    className={styles.toolbarDebugBtn}
+                                    size="sm"
+                                    variant="debug"
+                                    onClick={triggerDebugReveal}
+                                >
+                                    Reveal
+                                </UiButton>
+                            ) : null}
+                        </div>
+                        {utilityFlyoutOpen ? (
+                            <div className={styles.utilityFlyout} role="group" aria-label="In-game menu">
+                                <button
+                                    className={styles.flyoutAction}
+                                    onClick={run.status === 'paused' ? resume : pause}
+                                    type="button"
+                                >
+                                    <strong>{pauseActionLabel}</strong>
+                                    <span>{run.status === 'paused' ? 'Return to the board' : 'Freeze the run immediately'}</span>
+                                </button>
+                                <button className={styles.flyoutAction} onClick={() => openSettings('playing')} type="button">
+                                    <strong>Settings</strong>
+                                    <span>Open the live run-settings shell</span>
+                                </button>
+                                <button
+                                    className={styles.flyoutAction}
+                                    onClick={() => {
+                                        setUtilityFlyoutOpen(false);
+                                        openInventoryFromPlaying();
+                                    }}
+                                    type="button"
+                                >
+                                    <strong>Inventory</strong>
+                                    <span>Active run loadout and charges</span>
+                                </button>
+                                <button
+                                    className={styles.flyoutAction}
+                                    onClick={() => {
+                                        setUtilityFlyoutOpen(false);
+                                        openCodexFromPlaying();
+                                    }}
+                                    type="button"
+                                >
+                                    <strong>Codex</strong>
+                                    <span>Read-only rules and reference</span>
+                                </button>
+                            </div>
                         ) : null}
-                        <button
-                            aria-label={pauseActionLabel}
-                            className={styles.iconAction}
-                            onClick={run.status === 'paused' ? resume : pause}
-                            title={pauseActionLabel}
-                            type="button"
+                        {showForgivenessHint ? (
+                            <div className={styles.toolbarSection}>
+                                <button
+                                    aria-expanded={rulesHintsExpanded}
+                                    aria-label={rulesHintsExpanded ? 'Hide rule tips' : 'Show rule tips'}
+                                    className={styles.rulesToggle}
+                                    onClick={() => setRulesHintsExpanded((v) => !v)}
+                                    type="button"
+                                >
+                                    {rulesHintsExpanded ? 'Hide' : 'Rules'}
+                                </button>
+                            </div>
+                        ) : null}
+                        {showBoardPowerBar ? (
+                            <div
+                                aria-label="Board powers"
+                                aria-orientation="vertical"
+                                className={styles.toolbarSection}
+                                role="toolbar"
+                            >
+                                <button
+                                    aria-label={`Shuffle hidden tiles. Charges: ${run.shuffleCharges}`}
+                                    aria-pressed={false}
+                                    className={`${styles.iconAction} ${styles.iconActionWithBadge}`}
+                                    disabled={shuffleDisabled}
+                                    onClick={() => {
+                                        if (shuffleDisabled) {
+                                            return;
+                                        }
+                                        const handle = tileBoardRef.current;
+                                        if (handle) {
+                                            handle.runShuffleAnimation(() => shuffleBoard());
+                                        } else {
+                                            shuffleBoard();
+                                        }
+                                    }}
+                                    title={shuffleTitle}
+                                    type="button"
+                                >
+                                    <ShuffleIcon />
+                                    <span className={styles.powerBadge}>{run.shuffleCharges}</span>
+                                </button>
+                                <button
+                                    aria-label={boardPinMode ? 'Exit pin mode' : 'Pin mode — tap tiles to mark'}
+                                    aria-pressed={boardPinMode}
+                                    className={`${styles.iconAction} ${boardPinMode ? styles.iconActionActive : ''}`}
+                                    onClick={() => toggleBoardPinMode()}
+                                    title="Pin up to 3 hidden tiles for planning"
+                                    type="button"
+                                >
+                                    <PinIcon />
+                                </button>
+                                <button
+                                    aria-label={`Destroy a hidden pair. Charges: ${run.destroyPairCharges}. ${destroyPairArmed ? 'Tap a tile' : 'Arm then tap a tile'}`}
+                                    aria-pressed={destroyPairArmed}
+                                    className={`${styles.iconAction} ${styles.iconActionWithBadge} ${destroyPairArmed ? styles.iconActionActive : ''}`}
+                                    disabled={destroyDisabled}
+                                    onClick={() => toggleDestroyPairArmed()}
+                                    title={
+                                        run.destroyPairCharges < 1
+                                            ? 'Earn destroy charges on clean floors (≤1 miss)'
+                                            : destroyPairArmed
+                                              ? 'Tap a hidden tile to destroy its pair (no score)'
+                                              : 'Arm destroy, then tap a hidden tile'
+                                    }
+                                    type="button"
+                                >
+                                    <DestroyIcon />
+                                    <span className={styles.powerBadge}>{run.destroyPairCharges}</span>
+                                </button>
+                                <button
+                                    aria-label={`Peek one hidden tile. Charges: ${run.peekCharges}. ${peekModeArmed ? 'Tap a tile' : 'Arm peek then tap'}`}
+                                    aria-pressed={peekModeArmed}
+                                    className={`${styles.iconAction} ${styles.iconActionWithBadge} ${peekModeArmed ? styles.iconActionActive : ''}`}
+                                    disabled={run.peekCharges < 1}
+                                    onClick={() => togglePeekMode()}
+                                    title={
+                                        run.peekCharges < 1
+                                            ? 'No peek charges this floor'
+                                            : peekModeArmed
+                                              ? 'Tap a hidden tile to peek (uses 1 charge)'
+                                              : 'Arm peek, then tap a hidden tile'
+                                    }
+                                    type="button"
+                                >
+                                    <PeekIcon />
+                                    <span className={styles.powerBadge}>{run.peekCharges}</span>
+                                </button>
+                                <button
+                                    aria-label={`Remove one stray tile. Charges: ${run.strayRemoveCharges}. ${run.strayRemoveArmed ? 'Tap a tile' : 'Arm then tap'}`}
+                                    aria-pressed={run.strayRemoveArmed}
+                                    className={`${styles.iconAction} ${styles.iconActionWithBadge} ${run.strayRemoveArmed ? styles.iconActionActive : ''}`}
+                                    disabled={run.strayRemoveCharges < 1}
+                                    onClick={() => toggleStrayArm()}
+                                    title={
+                                        run.strayRemoveCharges < 1
+                                            ? 'No stray-remove charges'
+                                            : run.strayRemoveArmed
+                                              ? 'Tap a hidden tile to remove it from play'
+                                              : 'Arm stray remove, then tap a hidden tile'
+                                    }
+                                    type="button"
+                                >
+                                    <StrayIcon />
+                                    <span className={styles.powerBadge}>{run.strayRemoveCharges}</span>
+                                </button>
+                            </div>
+                        ) : null}
+                        {run.status === 'resolving' && run.undoUsesThisFloor > 0 ? (
+                            <div
+                                aria-label="Resolve options"
+                                aria-orientation="vertical"
+                                className={styles.toolbarSection}
+                                role="toolbar"
+                            >
+                                <button
+                                    aria-label="Undo last flip (uses your one undo this floor)"
+                                    className={styles.iconAction}
+                                    onClick={() => undoResolvingFlip()}
+                                    title="Undo the current flip before it resolves"
+                                    type="button"
+                                >
+                                    <UndoIcon />
+                                </button>
+                            </div>
+                        ) : null}
+                    </aside>
+                    <div
+                        className={`${styles.mainGameColumn} ${cameraViewportMode ? styles.mobileCameraMainColumn : ''}`.trim()}
+                    >
+                        {showPowersFtue ? (
+                            <div className={styles.ftueBanner} role="status">
+                                <span>
+                                    Board powers: shuffle (charges), pin mode, destroy (earn charges on clean floors). Try
+                                    Daily / Scholar run from the main menu for more challenge types.
+                                </span>
+                                <button className={styles.ftueDismiss} onClick={() => void dismissPowersFtue()} type="button">
+                                    Got it
+                                </button>
+                            </div>
+                        ) : null}
+                        <header
+                            className={`${styles.hudRow} ${cameraViewportMode ? styles.mobileCameraHud : ''}`}
+                            data-testid="game-hud"
                         >
-                            {run.status === 'paused' ? <PlayIcon /> : <PauseIcon />}
-                        </button>
-                        <button
-                            aria-label="Settings"
-                            className={styles.iconAction}
-                            onClick={() => openSettings('playing')}
-                            title="Settings"
-                            type="button"
-                        >
-                            <SettingsIcon />
-                        </button>
-                        {import.meta.env.DEV && settings.debugFlags.showDebugTools && settings.debugFlags.allowBoardReveal && (
-                            <UiButton size="sm" variant="debug" onClick={triggerDebugReveal}>
-                                Reveal
-                            </UiButton>
-                        )}
-                    </div>
-                </header>
-                {showBoardPowerBar ? (
-                    <div className={styles.powerBar} role="group" aria-label="Board powers">
-                        <button
-                            aria-label={`Shuffle hidden tiles. Charges: ${run.shuffleCharges}`}
-                            aria-pressed={false}
-                            className={`${styles.iconAction} ${styles.iconActionWithBadge}`}
-                            disabled={shuffleDisabled}
-                            onClick={() => {
-                                if (shuffleDisabled) {
-                                    return;
-                                }
-                                const handle = tileBoardRef.current;
-                                if (handle) {
-                                    handle.runShuffleAnimation(() => shuffleBoard());
-                                } else {
-                                    shuffleBoard();
-                                }
-                            }}
-                            title={shuffleTitle}
-                            type="button"
-                        >
-                            <ShuffleIcon />
-                            <span className={styles.powerBadge}>{run.shuffleCharges}</span>
-                        </button>
-                        <button
-                            aria-label={boardPinMode ? 'Exit pin mode' : 'Pin mode — tap tiles to mark'}
-                            aria-pressed={boardPinMode}
-                            className={`${styles.iconAction} ${boardPinMode ? styles.iconActionActive : ''}`}
-                            onClick={() => toggleBoardPinMode()}
-                            title="Pin up to 3 hidden tiles for planning"
-                            type="button"
-                        >
-                            <PinIcon />
-                        </button>
-                        <button
-                            aria-label={`Destroy a hidden pair. Charges: ${run.destroyPairCharges}. ${destroyPairArmed ? 'Tap a tile' : 'Arm then tap a tile'}`}
-                            aria-pressed={destroyPairArmed}
-                            className={`${styles.iconAction} ${styles.iconActionWithBadge} ${destroyPairArmed ? styles.iconActionActive : ''}`}
-                            disabled={destroyDisabled}
-                            onClick={() => toggleDestroyPairArmed()}
-                            title={
-                                run.destroyPairCharges < 1
-                                    ? 'Earn destroy charges on clean floors (≤1 miss)'
-                                    : destroyPairArmed
-                                      ? 'Tap a hidden tile to destroy its pair (no score)'
-                                      : 'Arm destroy, then tap a hidden tile'
-                            }
-                            type="button"
-                        >
-                            <DestroyIcon />
-                            <span className={styles.powerBadge}>{run.destroyPairCharges}</span>
-                        </button>
-                        <button
-                            aria-label={`Peek one hidden tile. Charges: ${run.peekCharges}. ${peekModeArmed ? 'Tap a tile' : 'Arm peek then tap'}`}
-                            aria-pressed={peekModeArmed}
-                            className={`${styles.iconAction} ${styles.iconActionWithBadge} ${peekModeArmed ? styles.iconActionActive : ''}`}
-                            disabled={run.peekCharges < 1}
-                            onClick={() => togglePeekMode()}
-                            title={
-                                run.peekCharges < 1
-                                    ? 'No peek charges this floor'
-                                    : peekModeArmed
-                                      ? 'Tap a hidden tile to peek (uses 1 charge)'
-                                      : 'Arm peek, then tap a hidden tile'
-                            }
-                            type="button"
-                        >
-                            <PeekIcon />
-                            <span className={styles.powerBadge}>{run.peekCharges}</span>
-                        </button>
-                        <button
-                            aria-label={`Remove one stray tile. Charges: ${run.strayRemoveCharges}. ${run.strayRemoveArmed ? 'Tap a tile' : 'Arm then tap'}`}
-                            aria-pressed={run.strayRemoveArmed}
-                            className={`${styles.iconAction} ${styles.iconActionWithBadge} ${run.strayRemoveArmed ? styles.iconActionActive : ''}`}
-                            disabled={run.strayRemoveCharges < 1}
-                            onClick={() => toggleStrayArm()}
-                            title={
-                                run.strayRemoveCharges < 1
-                                    ? 'No stray-remove charges'
-                                    : run.strayRemoveArmed
-                                      ? 'Tap a hidden tile to remove it from play'
-                                      : 'Arm stray remove, then tap a hidden tile'
-                            }
-                            type="button"
-                        >
-                            <StrayIcon />
-                            <span className={styles.powerBadge}>{run.strayRemoveCharges}</span>
-                        </button>
-                    </div>
-                ) : null}
-                {run.status === 'resolving' && run.undoUsesThisFloor > 0 ? (
-                    <div className={styles.resolveBar} role="group" aria-label="Resolve options">
-                        <button
-                            aria-label="Undo last flip (uses your one undo this floor)"
-                            className={styles.iconAction}
-                            onClick={() => undoResolvingFlip()}
-                            title="Undo the current flip before it resolves"
-                            type="button"
-                        >
-                            <UndoIcon />
-                        </button>
-                    </div>
-                ) : null}
-                {showForgivenessHint ? (
-                    <div className={styles.ruleHintStack}>
-                        <p className={styles.ruleHint} data-testid="forgiveness-hint" role="note">
-                            {FORGIVENESS_HINT}
-                        </p>
-                        <p className={styles.ruleHint} data-testid="board-power-hint" role="note">
-                            {BOARD_POWER_HINT}
-                        </p>
-                    </div>
-                ) : null}
-
-                <div
-                    className={`${styles.boardStage} ${cameraViewportMode ? styles.boardStageCamera : ''} ${boardPresentationClass}`.trim()}
-                >
-                    <div className={styles.boardGlow} aria-hidden="true" />
-                    <TileBoard
-                        ref={tileBoardRef}
-                        allowGambitThirdFlip={allowGambitThirdFlip}
-                        board={run.board}
-                        debugPeekActive={run.debugPeekActive}
-                        dimmedTileIds={focusDimmedTileIds}
-                        interactive={run.status === 'playing'}
-                        frameStyle={cameraViewportMode ? undefined : boardStyle}
-                        mobileCameraMode={cameraViewportMode}
-                        nBackAnchorPairKey={run.nBackAnchorPairKey}
-                        nBackMutatorActive={nBackMutatorActive}
-                        peekRevealedTileIds={run.peekRevealedTileIds}
-                        pinnedTileIds={run.pinnedTileIds}
-                        onTileSelect={(tileId) => {
-                            if (run.status === 'playing') {
-                                pressTile(tileId);
-                            }
-                        }}
-                        previewActive={run.status === 'memorize'}
-                        reduceMotion={settings.reduceMotion}
-                        runStatus={run.status}
-                        silhouetteDuringPlay={silhouetteDuringPlay}
-                        viewportResetToken={viewportResetToken}
-                        wideRecallInPlay={wideRecallInPlay}
-                    />
-                    {distractionHudOn ? (
-                        <div aria-hidden className={styles.distractionHud}>
-                            {(distractionTick % 7) + 3}
-                        </div>
-                    ) : null}
-                    {unlockedDefinitions.length > 0 ? (
-                        <div className={`${styles.toastRail} ${cameraViewportMode ? styles.mobileCameraToastRail : ''}`} role="status">
-                            {unlockedDefinitions.map((a) => (
-                                <div className={styles.toast} key={a.id}>
-                                    <span className={styles.toastTitle}>{a.title}</span>
-                                    <span className={styles.toastDesc}>{a.description}</span>
+                            <div className={`${styles.floatingDeck} ${styles.statsDeck} ${styles.hudDeck}`} role="group" aria-label="Run stats">
+                                <div className={styles.deckCluster}>
+                                    <div className={`${styles.hudSegment} ${styles.floorBadge}`} title="Current floor">
+                                        <span className={styles.floorLabel}>Floor</span>
+                                        <span className={styles.floorValue}>{run.board.level}</span>
+                                    </div>
+                                    <div className={`${styles.hudSegment} ${styles.hudLivesSegment}`}>
+                                        <span className={styles.statKey}>Lives</span>
+                                        <div className={styles.lifeTrack} aria-label={`${run.lives} lives remaining`}>
+                                            {Array.from({ length: MAX_LIVES }).map((_, index) => (
+                                                <span
+                                                    aria-hidden="true"
+                                                    className={index < run.lives ? styles.lifeHeartActive : styles.lifeHeartInactive}
+                                                    key={`life-${index}`}
+                                                >
+                                                    ♥
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className={`${styles.hudSegment} ${styles.statPill}`}>
+                                        <span className={styles.statKey}>Shards</span>
+                                        <span className={styles.statVal}>{run.stats.comboShards}</span>
+                                        <span className={styles.statSubline}>Guards {run.stats.guardTokens}</span>
+                                    </div>
+                                    <div className={`${styles.hudSegment} ${styles.hudScoreSegment}`}>
+                                        <span className={styles.statKey}>Score</span>
+                                        <span className={`${styles.statVal} ${styles.statValScore}`}>
+                                            {run.stats.totalScore.toLocaleString()}
+                                        </span>
+                                    </div>
+                                    <div className={`${styles.hudSegment} ${styles.hudMetaSegment}`}>
+                                        <span className={styles.statKey}>Mode</span>
+                                        <span className={styles.statVal}>{hudModeLabel}</span>
+                                        {nBackLabel ? <span className={styles.statSubline}>{nBackLabel}</span> : null}
+                                        {run.activeMutators.length > 0 ? (
+                                            <div className={styles.mutatorRow}>
+                                                {run.activeMutators.map((mutator) => (
+                                                    <div
+                                                        className={styles.mutatorChip}
+                                                        key={mutator}
+                                                        title={MUTATOR_HUD_LABELS[mutator] ?? mutator}
+                                                    >
+                                                        {MUTATOR_HUD_LABELS[mutator] ?? mutator}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <span className={styles.statSubline}>No active mutators</span>
+                                        )}
+                                    </div>
+                                    <div className={styles.statRail}>
+                                        {gauntletRemainingMs !== null ? (
+                                            <div className={styles.statPillCompact} title="Gauntlet time left">
+                                                <span className={styles.statKey}>Time</span>
+                                                <span className={styles.statVal}>
+                                                    {Math.ceil(gauntletRemainingMs / 1000)}s
+                                                </span>
+                                            </div>
+                                        ) : null}
+                                        {run.activeContract?.noShuffle ? (
+                                            <div className={styles.statPillCompact}>
+                                                <span className={styles.statKey}>Contract</span>
+                                                <span className={styles.statVal}>Scholar</span>
+                                            </div>
+                                        ) : null}
+                                        {run.gameMode === 'meditation' ? (
+                                            <div className={styles.statPillCompact} title="Meditation run">
+                                                <span className={styles.statKey}>Mode</span>
+                                                <span className={styles.statVal}>Meditation</span>
+                                            </div>
+                                        ) : null}
+                                        {run.wildMenuRun ? (
+                                            <div className={styles.statPillCompact} title="Wild joker run">
+                                                <span className={styles.statKey}>Wild</span>
+                                                <span className={styles.statVal}>On</span>
+                                            </div>
+                                        ) : null}
+                                        {run.gameMode === 'daily' && run.dailyDateKeyUtc ? (
+                                            <div className={styles.statPillCompact} title="UTC daily id">
+                                                <span className={styles.statKey}>Daily</span>
+                                                <span className={styles.statVal}>{run.dailyDateKeyUtc}</span>
+                                            </div>
+                                        ) : null}
+                                    </div>
                                 </div>
-                            ))}
+                            </div>
+                        </header>
+                        {showForgivenessHint && rulesHintsExpanded ? (
+                            <div className={styles.ruleHintStack}>
+                                <p className={styles.ruleHint} data-testid="forgiveness-hint" role="note">
+                                    {FORGIVENESS_HINT}
+                                </p>
+                                <p className={styles.ruleHint} data-testid="board-power-hint" role="note">
+                                    {BOARD_POWER_HINT}
+                                </p>
+                            </div>
+                        ) : null}
+
+                        <div
+                            className={`${styles.boardStage} ${cameraViewportMode ? styles.boardStageCamera : ''} ${boardPresentationClass}`.trim()}
+                        >
+                            <div className={styles.boardGlow} aria-hidden="true" />
+                            <TileBoard
+                                ref={tileBoardRef}
+                                allowGambitThirdFlip={allowGambitThirdFlip}
+                                board={run.board}
+                                debugPeekActive={run.debugPeekActive}
+                                dimmedTileIds={focusDimmedTileIds}
+                                interactive={run.status === 'playing'}
+                                frameStyle={cameraViewportMode ? undefined : boardStyle}
+                                mobileCameraMode={cameraViewportMode}
+                                nBackAnchorPairKey={run.nBackAnchorPairKey}
+                                nBackMutatorActive={nBackMutatorActive}
+                                peekRevealedTileIds={run.peekRevealedTileIds}
+                                pinnedTileIds={run.pinnedTileIds}
+                                onTileSelect={(tileId) => {
+                                    if (run.status === 'playing') {
+                                        pressTile(tileId);
+                                    }
+                                }}
+                                previewActive={run.status === 'memorize'}
+                                reduceMotion={settings.reduceMotion}
+                                runStatus={run.status}
+                                silhouetteDuringPlay={silhouetteDuringPlay}
+                                viewportResetToken={viewportResetToken}
+                                wideRecallInPlay={wideRecallInPlay}
+                            />
+                            {distractionHudOn ? (
+                                <div aria-hidden className={styles.distractionHud}>
+                                    {(distractionTick % 7) + 3}
+                                </div>
+                            ) : null}
+                            {unlockedDefinitions.length > 0 ? (
+                                <div
+                                    className={`${styles.toastRail} ${cameraViewportMode ? styles.mobileCameraToastRail : ''}`}
+                                    role="status"
+                                >
+                                    {unlockedDefinitions.map((a) => (
+                                        <div className={styles.toast} key={a.id}>
+                                            <span className={styles.toastTitle}>{a.title}</span>
+                                            <span className={styles.toastDesc}>{a.description}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : null}
                         </div>
-                    ) : null}
+                    </div>
                 </div>
 
                 {!suppressStatusOverlays && run.status === 'paused' && (

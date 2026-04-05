@@ -106,9 +106,9 @@
 .hitButton {
     appearance: none;
     position: relative;
-    border: 1px solid transparent;
+    border: 1px solid rgba(242, 211, 157, 0.04);
     border-radius: 1.2rem;
-    background: transparent;
+    background: radial-gradient(circle at center, rgba(242, 211, 157, 0.02), transparent 70%);
     color: transparent;
     cursor: pointer;
     margin: 0;
@@ -145,6 +145,20 @@
 
 .hitButtonMatched:focus-visible {
     border-color: rgba(255, 214, 133, 0.42);
+}
+
+.hitButtonResolvingMatch {
+    border-color: rgba(180, 235, 141, 0.46);
+    box-shadow:
+        0 0 0 2px rgba(180, 235, 141, 0.12),
+        0 0 24px rgba(125, 194, 106, 0.26);
+}
+
+.hitButtonResolvingMismatch {
+    border-color: rgba(216, 106, 88, 0.5);
+    box-shadow:
+        0 0 0 2px rgba(216, 106, 88, 0.12),
+        0 0 24px rgba(216, 106, 88, 0.24);
 }
 
 .stageWebglPicking .interactionLayer {
@@ -198,6 +212,15 @@
         0 14px 28px rgba(8, 10, 18, 0.28);
 }
 
+.fallbackTile:hover:not(.faceUp):not(.matched) {
+    border-color: rgba(244, 213, 142, 0.46);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        inset 0 -1px 0 rgba(255, 214, 133, 0.1),
+        0 0 0 1px rgba(244, 213, 142, 0.22),
+        0 18px 36px rgba(8, 10, 18, 0.32);
+}
+
 .fallbackTile::before {
     content: '';
     position: absolute;
@@ -226,18 +249,51 @@
 
 .faceUp {
     background:
-        radial-gradient(circle at 18% 16%, rgba(255, 214, 133, 0.16), transparent 34%),
-        radial-gradient(circle at 82% 78%, rgba(255, 214, 133, 0.1), transparent 34%),
+        radial-gradient(circle at 18% 16%, rgba(187, 147, 255, 0.22), transparent 34%),
+        radial-gradient(circle at 82% 78%, rgba(244, 213, 142, 0.12), transparent 34%),
         linear-gradient(160deg, rgba(20, 24, 34, 0.98), rgba(7, 9, 14, 0.98));
-    border-color: rgba(255, 214, 133, 0.34);
+    border-color: rgba(187, 147, 255, 0.34);
 }
 
 .matched {
+    transition:
+        border-color 180ms ease,
+        box-shadow 180ms ease,
+        background 180ms ease;
     background:
-        radial-gradient(circle at 18% 16%, rgba(255, 214, 133, 0.22), transparent 38%),
-        radial-gradient(circle at 84% 78%, rgba(255, 214, 133, 0.12), transparent 36%),
+        radial-gradient(circle at 18% 16%, rgba(166, 211, 134, 0.22), transparent 38%),
+        radial-gradient(circle at 84% 78%, rgba(166, 211, 134, 0.12), transparent 36%),
         linear-gradient(160deg, rgba(19, 24, 33, 0.98), rgba(8, 10, 16, 0.98));
-    border-color: rgba(255, 214, 133, 0.52);
+    border-color: rgba(166, 211, 134, 0.52);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        inset 0 -1px 0 rgba(255, 214, 133, 0.08),
+        0 0 0 1px rgba(166, 211, 134, 0.18),
+        0 18px 36px rgba(8, 10, 18, 0.34);
+}
+
+.resolvingMatch {
+    transition:
+        border-color 160ms ease,
+        box-shadow 160ms ease;
+    border-color: rgba(180, 235, 141, 0.52);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        inset 0 -1px 0 rgba(180, 235, 141, 0.16),
+        0 0 0 2px rgba(180, 235, 141, 0.12),
+        0 18px 36px rgba(8, 10, 18, 0.34);
+}
+
+.resolvingMismatch {
+    transition:
+        border-color 160ms ease,
+        box-shadow 160ms ease;
+    border-color: rgba(216, 106, 88, 0.56);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        inset 0 -1px 0 rgba(216, 106, 88, 0.16),
+        0 0 0 2px rgba(216, 106, 88, 0.12),
+        0 18px 36px rgba(8, 10, 18, 0.34);
 }
 
 .locked {
@@ -323,6 +379,34 @@
         linear-gradient(170deg, rgba(21, 33, 50, 0.98), rgba(8, 12, 20, 0.98));
 }
 
+.cardFaceBack {
+    background:
+        url('../assets/textures/cards/reference-back.png') center / cover no-repeat,
+        linear-gradient(170deg, rgba(21, 33, 50, 0.98), rgba(8, 12, 20, 0.98));
+}
+
+.cardFaceFront,
+.faceUp .cardBack {
+    background:
+        url('../assets/textures/cards/front-face.png') center / cover no-repeat,
+        linear-gradient(170deg, rgba(50, 32, 14, 0.96), rgba(12, 10, 8, 0.96));
+    border-color: rgba(245, 224, 182, 0.4);
+}
+
+.matched .cardBack {
+    background:
+        url('../assets/textures/cards/front-face.png') center / cover no-repeat,
+        linear-gradient(170deg, rgba(36, 56, 22, 0.96), rgba(8, 12, 8, 0.96));
+    border-color: rgba(196, 235, 165, 0.44);
+}
+
+.resolvingMismatch .cardBack {
+    background:
+        url('../assets/textures/cards/front-face.png') center / cover no-repeat,
+        linear-gradient(170deg, rgba(68, 24, 20, 0.96), rgba(14, 8, 8, 0.96));
+    border-color: rgba(216, 106, 88, 0.44);
+}
+
 .cardFaceLabel {
     position: absolute;
     z-index: 2;
@@ -370,13 +454,13 @@
 }
 
 .matched .tileSymbol {
-    color: #fff59d;
-    -webkit-text-stroke: 0.06em rgba(18, 10, 2, 0.9);
+    color: #efffd1;
+    -webkit-text-stroke: 0.06em rgba(10, 18, 4, 0.9);
 }
 
 .matched .cardFaceLabel {
-    color: #fffde7;
-    -webkit-text-stroke: 0.045em rgba(12, 8, 0, 0.88);
+    color: #f7ffe9;
+    -webkit-text-stroke: 0.045em rgba(6, 12, 0, 0.88);
 }
 
 .faceUp .pulseGlow {
@@ -385,10 +469,17 @@
 
 .matched .pulseGlow {
     animation: pulseMatched 1.15s ease-in-out infinite;
+    background: radial-gradient(circle at center, rgba(180, 235, 141, 0.42), rgba(180, 235, 141, 0.08) 58%, transparent);
+}
+
+.resolvingMismatch .pulseGlow {
+    animation: pulseMismatch 0.95s ease-in-out infinite;
+    background: radial-gradient(circle at center, rgba(216, 106, 88, 0.42), rgba(216, 106, 88, 0.08) 58%, transparent);
 }
 
 :global([data-reduce-motion='true']) .faceUp .pulseGlow,
-:global([data-reduce-motion='true']) .matched .pulseGlow {
+:global([data-reduce-motion='true']) .matched .pulseGlow,
+:global([data-reduce-motion='true']) .resolvingMismatch .pulseGlow {
     animation: none;
 }
 
@@ -434,6 +525,19 @@
     68% {
         transform: scale(0.95);
         opacity: 0.72;
+    }
+}
+
+@keyframes pulseMismatch {
+    0%,
+    100% {
+        transform: scale(0.92);
+        opacity: 0.58;
+    }
+
+    50% {
+        transform: scale(1.08);
+        opacity: 0.96;
     }
 }
 

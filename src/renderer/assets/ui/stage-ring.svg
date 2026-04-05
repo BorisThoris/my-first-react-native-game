@@ -1,0 +1,29 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="ringGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(256 256) rotate(90) scale(256)">
+      <stop offset="0" stop-color="#9A6AEF" stop-opacity="0.22"/>
+      <stop offset="0.46" stop-color="#C79C53" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#0A0910" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ringGold" x1="84" y1="84" x2="428" y2="428" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F0D9A7"/>
+      <stop offset="0.45" stop-color="#B4813A"/>
+      <stop offset="1" stop-color="#5C3B16"/>
+    </linearGradient>
+  </defs>
+  <circle cx="256" cy="256" r="220" fill="url(#ringGlow)"/>
+  <circle cx="256" cy="256" r="188" stroke="url(#ringGold)" stroke-opacity="0.36" stroke-width="4"/>
+  <circle cx="256" cy="256" r="156" stroke="url(#ringGold)" stroke-opacity="0.18" stroke-width="2"/>
+  <path d="M256 68V100" stroke="url(#ringGold)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M256 412V444" stroke="url(#ringGold)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M68 256H100" stroke="url(#ringGold)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M412 256H444" stroke="url(#ringGold)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M142 142L164 164" stroke="url(#ringGold)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M348 348L370 370" stroke="url(#ringGold)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M142 370L164 348" stroke="url(#ringGold)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M348 164L370 142" stroke="url(#ringGold)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M256 126L272 150L256 174L240 150L256 126Z" fill="#8F63DA" fill-opacity="0.36" stroke="#E8D6FF" stroke-opacity="0.42"/>
+  <path d="M126 256L150 240L174 256L150 272L126 256Z" fill="#8F63DA" fill-opacity="0.26" stroke="#E8D6FF" stroke-opacity="0.3"/>
+  <path d="M338 256L362 240L386 256L362 272L338 256Z" fill="#8F63DA" fill-opacity="0.26" stroke="#E8D6FF" stroke-opacity="0.3"/>
+  <path d="M256 338L272 362L256 386L240 362L256 338Z" fill="#8F63DA" fill-opacity="0.36" stroke="#E8D6FF" stroke-opacity="0.42"/>
+</svg>

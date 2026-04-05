@@ -1,6 +1,14 @@
 import { create } from 'zustand';
 import { evaluateAchievementUnlocks } from '../../shared/achievements';
-import type { AchievementId, RelicId, RunState, SaveData, Settings, ViewState } from '../../shared/contracts';
+import type {
+    AchievementId,
+    RelicId,
+    RunState,
+    SaveData,
+    Settings,
+    SubscreenReturnView,
+    ViewState
+} from '../../shared/contracts';
 import { BUILTIN_PUZZLES } from '../../shared/builtin-puzzles';
 import {
     advanceToNextLevel,
@@ -53,7 +61,8 @@ interface AppState {
     hydrating: boolean;
     steamConnected: boolean;
     view: ViewState;
-    settingsReturnView: Exclude<ViewState, 'boot' | 'settings'>;
+    settingsReturnView: SubscreenReturnView;
+    subscreenReturnView: SubscreenReturnView;
     saveData: SaveData;
     settings: Settings;
     run: RunState | null;
@@ -74,7 +83,12 @@ interface AppState {
     pickRelic: (relicId: RelicId) => void;
     dismissPowersFtue: () => Promise<void>;
     goToMenu: () => void;
-    openSettings: (returnView?: Exclude<ViewState, 'boot' | 'settings'>) => void;
+    openModeSelect: () => void;
+    openCollection: () => void;
+    openInventoryFromPlaying: () => void;
+    openCodexFromPlaying: () => void;
+    closeSubscreen: () => void;
+    openSettings: (returnView?: SubscreenReturnView) => void;
     closeSettings: () => void;
     updateSettings: (settings: Settings) => Promise<void>;
     dismissHowToPlay: () => Promise<void>;
@@ -342,6 +356,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     steamConnected: false,
     view: 'boot',
     settingsReturnView: 'menu',
+    subscreenReturnView: 'menu',
     saveData: createDefaultSaveData(),
     settings: createDefaultSaveData().settings,
     run: null,
@@ -589,6 +604,63 @@ export const useAppStore = create<AppState>((set, get) => ({
             destroyPairArmed: false,
             peekModeArmed: false
         });
+    },
+
+    openModeSelect: () => {
+        set({ view: 'modeSelect', subscreenReturnView: 'menu' });
+    },
+
+    openCollection: () => {
+        set({ view: 'collection', subscreenReturnView: 'menu' });
+    },
+
+    openInventoryFromPlaying: () => {
+        const { run, view } = get();
+        if (!run || view !== 'playing') {
+            return;
+        }
+        const nextRun =
+            run.status === 'paused' || run.status === 'levelComplete' || run.status === 'gameOver'
+                ? run
+                : freezeRun(run);
+        clearAllTimers();
+        set({
+            view: 'inventory',
+            subscreenReturnView: 'playing',
+            run: nextRun
+        });
+    },
+
+    openCodexFromPlaying: () => {
+        const { run, view } = get();
+        if (!run || view !== 'playing') {
+            return;
+        }
+        const nextRun =
+            run.status === 'paused' || run.status === 'levelComplete' || run.status === 'gameOver'
+                ? run
+                : freezeRun(run);
+        clearAllTimers();
+        set({
+            view: 'codex',
+            subscreenReturnView: 'playing',
+            run: nextRun
+        });
+    },
+
+    closeSubscreen: () => {
+        const { subscreenReturnView, run, view } = get();
+
+        if (subscreenReturnView === 'playing' && run && (view === 'inventory' || view === 'codex')) {
+            const nextRun = run.status === 'paused' ? resumeRunWithTimers(run) : run;
+            set({
+                view: 'playing',
+                run: nextRun
+            });
+            return;
+        }
+
+        set({ view: subscreenReturnView });
     },
 
     openSettings: (returnView = 'menu') => {

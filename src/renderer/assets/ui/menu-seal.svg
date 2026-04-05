@@ -1,0 +1,19 @@
+<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sealGold" x1="20" y1="12" x2="76" y2="84" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F0D6A3"/>
+      <stop offset="0.48" stop-color="#B98943"/>
+      <stop offset="1" stop-color="#6D481D"/>
+    </linearGradient>
+    <linearGradient id="sealCore" x1="48" y1="28" x2="48" y2="68" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EBD8FF"/>
+      <stop offset="0.54" stop-color="#8E61DB"/>
+      <stop offset="1" stop-color="#2C1946"/>
+    </linearGradient>
+  </defs>
+  <path d="M48 10L80 28V68L48 86L16 68V28L48 10Z" fill="rgba(8,8,12,0.58)" stroke="url(#sealGold)" stroke-width="3"/>
+  <path d="M48 26L60 46L48 70L36 46L48 26Z" fill="url(#sealCore)" stroke="#F2E9FF" stroke-opacity="0.7" stroke-width="1.5"/>
+  <circle cx="48" cy="48" r="22" stroke="url(#sealGold)" stroke-opacity="0.5" stroke-width="2"/>
+  <path d="M24 48H32" stroke="url(#sealGold)" stroke-width="2" stroke-linecap="round"/>
+  <path d="M64 48H72" stroke="url(#sealGold)" stroke-width="2" stroke-linecap="round"/>
+</svg>

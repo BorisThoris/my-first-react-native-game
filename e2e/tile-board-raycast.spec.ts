@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { dismissStartupIntro } from './startupIntroHelpers';
+import { BOARD_HIDDEN_TILE_BUTTON_RE, defaultE2eGameSaveJson, STORAGE_KEY } from './tileBoardGameFlow';
 import { completeLevel1Play, waitLevel1PlayReady } from './visualScreenHelpers';
 
 /**
@@ -13,7 +14,7 @@ async function clickThroughProxyTile(page: Page, row: number, column: number, hi
     });
 
     await expect
-        .poll(async () => page.getByRole('button', { name: /hidden tile/i }).count(), { timeout: 3000 })
+        .poll(async () => page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count(), { timeout: 3000 })
         .toBeLessThan(hiddenBefore);
 }
 
@@ -29,11 +30,19 @@ test.describe.configure({ mode: 'serial' });
 
 test.describe('Tile board interaction', () => {
     test('tile selection flips a tile after memorize phase', async ({ page }) => {
+        await page.addInitScript(
+            ([key, json]) => {
+                localStorage.setItem(key, json);
+            },
+            [STORAGE_KEY, defaultE2eGameSaveJson]
+        );
         await page.goto('/');
 
         await dismissStartupIntro(page);
 
-        await page.getByRole('button', { name: /play arcade/i }).click();
+        await page.getByRole('button', { name: /^play$/i }).click();
+        await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
+        await page.getByRole('button', { name: /classic run/i }).click();
         await expect(page.getByRole('heading', { name: /level 1/i })).toBeVisible();
 
         await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible({ timeout: 8000 });
@@ -43,22 +52,30 @@ test.describe('Tile board interaction', () => {
 
         // Run stats show during memorize; wait until play phase hides tiles again.
         await expect
-            .poll(async () => page.getByRole('button', { name: /hidden tile/i }).count(), { timeout: 12000 })
+            .poll(async () => page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count(), { timeout: 12000 })
             .toBeGreaterThan(0);
 
-        const hiddenBefore = await page.getByRole('button', { name: /hidden tile/i }).count();
+        const hiddenBefore = await page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count();
 
         await clickThroughProxyTile(page, 1, 1, hiddenBefore);
     });
 
     test('desktop wheel zooms in and out, plain drag pans, and Fit board resets the viewport', async ({ page }) => {
         test.setTimeout(60_000);
+        await page.addInitScript(
+            ([key, json]) => {
+                localStorage.setItem(key, json);
+            },
+            [STORAGE_KEY, defaultE2eGameSaveJson]
+        );
         await page.goto('/');
 
         await dismissStartupIntro(page);
 
         await page.setViewportSize({ width: 1440, height: 900 });
-        await page.getByRole('button', { name: /play arcade/i }).click();
+        await page.getByRole('button', { name: /^play$/i }).click();
+        await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
+        await page.getByRole('button', { name: /classic run/i }).click();
         await expect(page.getByRole('heading', { name: /level 1/i })).toBeVisible();
         await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible({ timeout: 8000 });
 
@@ -123,12 +140,20 @@ test.describe('Tile board interaction', () => {
 
     test('continuing to the next level preserves the chosen zoom framing', async ({ page }) => {
         test.setTimeout(120_000);
+        await page.addInitScript(
+            ([key, json]) => {
+                localStorage.setItem(key, json);
+            },
+            [STORAGE_KEY, defaultE2eGameSaveJson]
+        );
         await page.goto('/');
 
         await dismissStartupIntro(page);
 
         await page.setViewportSize({ width: 1440, height: 900 });
-        await page.getByRole('button', { name: /play arcade/i }).click();
+        await page.getByRole('button', { name: /^play$/i }).click();
+        await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
+        await page.getByRole('button', { name: /classic run/i }).click();
         await expect(page.getByRole('heading', { name: /level 1/i })).toBeVisible();
         await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible({ timeout: 8000 });
 

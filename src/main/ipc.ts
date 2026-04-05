@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron';
+import { app, ipcMain } from 'electron';
 import type { BrowserWindow } from 'electron';
 import type { AchievementId, DisplayMode, SaveData, Settings } from '../shared/contracts';
 import type { PersistenceService } from './persistence';
@@ -28,5 +28,8 @@ export const registerIpcHandlers = (
     ipcMain.handle('desktop:unlock-achievement', (_event, achievementId: AchievementId) => {
         persistence.unlockAchievement(achievementId);
         return steamAdapter.unlockAchievement(achievementId);
+    });
+    ipcMain.handle('desktop:quit-app', () => {
+        app.quit();
     });
 };

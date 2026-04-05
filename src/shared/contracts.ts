@@ -25,7 +25,19 @@ export type DisplayMode = 'windowed' | 'fullscreen';
 export type TileState = 'hidden' | 'flipped' | 'matched' | 'removed';
 export type Rating = 'S++' | 'S' | 'A' | 'B' | 'C' | 'D' | 'F';
 export type ClearLifeReason = 'none' | 'clean' | 'perfect';
-export type ViewState = 'boot' | 'menu' | 'settings' | 'playing' | 'gameOver';
+export type ViewState =
+    | 'boot'
+    | 'menu'
+    | 'settings'
+    | 'playing'
+    | 'gameOver'
+    | 'modeSelect'
+    | 'collection'
+    | 'inventory'
+    | 'codex';
+
+/** Where sub-screens (mode select, collection, inventory, codex) return on Back. */
+export type SubscreenReturnView = Exclude<ViewState, 'boot' | 'settings'>;
 
 export type GameMode = 'endless' | 'daily' | 'puzzle' | 'gauntlet' | 'meditation';
 
@@ -284,4 +296,5 @@ export interface DesktopApi {
     unlockAchievement: (id: AchievementId) => Promise<boolean>;
     isSteamConnected: () => Promise<boolean>;
     setDisplayMode: (mode: DisplayMode) => Promise<void>;
+    quitApp: () => Promise<void>;
 }

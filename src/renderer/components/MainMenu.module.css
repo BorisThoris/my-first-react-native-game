@@ -1,441 +1,393 @@
 .shell {
-    min-height: 100dvh;
     position: relative;
+    min-height: 100dvh;
     isolation: isolate;
     overflow: hidden;
-    display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
-    gap: clamp(1rem, 1.8vw, 1.75rem);
-    padding: clamp(0.9rem, 1.8vw, 2.6rem) clamp(0.9rem, 2.2vw, 3rem);
-    align-items: start;
-    min-width: 0;
-    min-height: 0;
 }
 
-.roomyShell {
-    align-items: center;
-    grid-template-columns: minmax(0, 1.06fr) minmax(340px, 0.94fr);
-    gap: clamp(1.5rem, 3vw, 2.75rem);
-    width: min(100%, 1380px);
-    margin-inline: auto;
-    padding-block: clamp(1.75rem, 4.5vh, 4rem);
-    align-content: center;
-}
-
-.compactShell {
-    align-items: start;
-}
-
-.hero {
-    max-width: 720px;
-    min-width: 0;
-    position: relative;
-    z-index: 1;
-}
-
-.roomyShell .hero {
-    align-self: center;
-}
-
-.roomyShell .grid {
-    align-content: start;
-    z-index: 1;
-}
-
-.heroTitle {
-    text-shadow:
-        0 0 26px var(--theme-glow-gold),
-        0 10px 28px rgba(0, 0, 0, 0.48);
-}
-
-/* Pointer / gyro tilt (inherits --tilt-x, --tilt-y from menu shell) */
-.heroSmallTitleTilt,
-.heroBigTitleTilt,
-.heroActionsTilt {
-    transform-origin: 50% 50%;
-    transform-style: preserve-3d;
-}
-
-.heroSmallTitleTilt {
-    transform: perspective(1100px) rotateX(calc(var(--tilt-y, 0) * -3.5deg)) rotateY(calc(var(--tilt-x, 0) * 3.5deg));
-}
-
-.heroBigTitleTilt {
-    transform: perspective(1100px) rotateX(calc(var(--tilt-y, 0) * -7deg)) rotateY(calc(var(--tilt-x, 0) * 7deg));
-}
-
-.heroActionsTilt {
-    transform: perspective(1100px) rotateX(calc(var(--tilt-y, 0) * -5deg)) rotateY(calc(var(--tilt-x, 0) * 5deg));
-}
-
-.guideTitleSpacing {
-    margin-top: 0.45rem;
-}
-
-.dismissWrap {
-    margin-top: 1rem;
-}
-
-.actions {
-    margin-top: 1.5rem;
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-}
-
-.modeRow {
-    margin-top: 0.85rem;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.45rem;
-}
-
-.statsWrap {
-    margin-top: 0.55rem;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.45rem;
-    max-width: 42rem;
-}
-
-.metaStats,
-.weeklyHint {
-    margin: 0.55rem 0 0;
-    font-size: 0.72rem;
-    line-height: 1.4;
-    color: var(--theme-text-muted, rgba(232, 236, 244, 0.72));
-    max-width: 42rem;
-}
-
-.statsWrap .metaStats {
-    margin-top: 0;
-}
-
-.statsDetailList {
-    margin: 0;
-    padding: 0.5rem 0 0 1rem;
-    font-size: 0.72rem;
-    line-height: 1.45;
-    color: var(--theme-text-muted, rgba(232, 236, 244, 0.72));
-}
-
-.statsDetailEmpty {
-    list-style: none;
-    margin-left: -1rem;
-    font-style: italic;
-}
-
-.tiltSurface {
-    transform: perspective(1200px) rotateX(calc(var(--tilt-y, 0) * -6deg)) rotateY(calc(var(--tilt-x, 0) * 6deg));
-}
-
-.guideCard {
-    margin-top: 1.8rem;
-    padding: 1.4rem;
-    border-radius: var(--ui-radius-modal);
-    background: var(--theme-panel-surface);
-    border: 1px solid var(--theme-border);
-    box-shadow: var(--theme-panel-shadow);
-    position: relative;
-    overflow: hidden;
-    transform: perspective(1200px) rotateX(calc(var(--tilt-y, 0) * -6deg)) rotateY(calc(var(--tilt-x, 0) * 6deg));
-}
-
-.guideCard::before {
-    content: '';
+.sceneLayer {
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 18%);
-    opacity: 0.6;
+    z-index: 0;
+    opacity: 0.24;
+    background-position: center bottom;
+    background-repeat: no-repeat;
+    background-size: cover;
+    mix-blend-mode: screen;
 }
 
-.guideCardCompact {
-    padding: 1rem 1.05rem;
+.scrim {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+        radial-gradient(circle at center, rgba(255, 255, 255, 0), rgba(5, 5, 10, 0.18) 48%, rgba(5, 5, 10, 0.58) 100%),
+        linear-gradient(180deg, rgba(255, 244, 218, 0.02), transparent 14% 84%, rgba(255, 244, 218, 0.03));
 }
 
-.guideCompactHeader {
+.content {
+    position: relative;
+    z-index: 1;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
+    gap: 1.15rem;
+    min-height: 100dvh;
+    width: min(1420px, 100%);
+    margin: 0 auto;
+    padding: 1rem 1.05rem 1.2rem;
+}
+
+.metaRow {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0.75rem;
 }
 
-.guideEyebrow {
-    margin: 0;
-    color: var(--theme-gold-bright);
+.metaCard {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.18rem;
+    padding: 0.8rem 0.95rem;
+    border-radius: var(--ui-radius-lg);
+    background:
+        radial-gradient(circle at top left, rgba(195, 149, 79, 0.12), transparent 42%),
+        linear-gradient(160deg, rgba(15, 14, 21, 0.86), rgba(8, 8, 12, 0.84));
+    border: 1px solid rgba(242, 211, 157, 0.16);
+    box-shadow:
+        0 14px 34px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.metaLabel {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    letter-spacing: 0.16em;
-    font-size: 0.72rem;
+    color: var(--theme-text-subtle);
 }
 
-.guideTitle {
-    margin: 0.45rem 0 0;
-    color: var(--theme-text);
-    font-size: clamp(1.4rem, 4vw, 2rem);
-}
-
-.guideGrid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.85rem;
-    margin-top: 1rem;
-}
-
-.guideGrid strong {
-    display: block;
+.metaValue {
+    font-family: var(--ui-font-display-family);
+    font-size: 1.05rem;
     color: var(--theme-rune);
 }
 
-.guideGrid p {
-    margin: 0.35rem 0 0;
-    color: var(--theme-text-muted);
-    line-height: 1.5;
-}
-
-.guideSummary {
-    margin: 0.7rem 0 0;
-    color: var(--theme-text-muted);
-    line-height: 1.45;
-}
-
-.guideCompactRules {
+.layout {
     display: grid;
-    gap: 0.5rem;
-    margin-top: 0.7rem;
-}
-
-.guideCompactRules p {
-    margin: 0;
-    color: var(--theme-text-muted);
-    font-size: 0.88rem;
-    line-height: 1.4;
-}
-
-.grid {
-    display: grid;
-    gap: 1rem;
-    min-width: 0;
-    align-self: center;
-    position: relative;
-    z-index: 1;
-}
-
-.roomyShell .actions {
-    justify-content: flex-start;
-}
-
-.roomyShell .guideCard {
-    width: min(100%, 720px);
-}
-
-.dossierUnified {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    overflow: hidden;
+    grid-template-columns: minmax(0, 1.18fr) minmax(360px, 0.82fr);
+    gap: 1.25rem;
+    flex: 1;
     min-height: 0;
 }
 
-.dossierUnified::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    border-radius: inherit;
-    background:
-        linear-gradient(180deg, rgba(255, 235, 171, 0.1), transparent 28%),
-        linear-gradient(180deg, rgba(87, 220, 255, 0.04), transparent 42%);
-}
-
-.label {
-    display: block;
-    color: var(--theme-text-subtle);
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    font-size: 0.76rem;
-}
-
-.dossierColumns {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
-    gap: 1rem 1.35rem;
-    margin-top: 0.35rem;
-    align-items: start;
-}
-
-.dossierCol {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
+.heroColumn,
+.supportColumn {
     min-width: 0;
 }
 
-.dossierColMuted .colPlaceholder {
-    color: var(--theme-text-muted);
+.heroColumn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.1rem;
+    padding: 1.4rem 1rem 0.6rem;
 }
 
-.colEyebrow {
-    color: var(--theme-text-subtle);
+.brandLockup {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.5rem;
+    width: min(100%, 780px);
+    padding: 1.4rem 1rem 0.6rem;
+}
+
+.brandCrest {
+    width: clamp(4.25rem, 10vw, 5.8rem);
+    height: auto;
+    filter: drop-shadow(0 0 24px rgba(140, 98, 223, 0.36));
+}
+
+.heroEyebrow {
+    margin-bottom: 0;
+}
+
+.heroTitle {
+    max-width: 8ch;
+}
+
+.divider {
+    width: min(100%, 20rem);
+    height: auto;
+    opacity: 0.95;
+}
+
+.tagline {
+    margin: 0;
+    max-width: 28rem;
+    color: var(--theme-text-muted);
+    font-size: 1rem;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    letter-spacing: 0.14em;
-    font-size: 0.7rem;
 }
 
-.colFigure {
-    margin: 0;
-    font-size: clamp(1.65rem, 3.8vw, 2.45rem);
-    line-height: 1;
-    letter-spacing: -0.03em;
-    color: var(--theme-gold-bright);
-    text-shadow: 0 6px 18px var(--theme-glow-gold);
+.actionStack {
+    width: min(100%, 32rem);
+    display: grid;
+    gap: 0.8rem;
 }
 
-.lastRunLine {
-    margin: 0;
+.ctaButton {
+    width: 100%;
+    justify-content: flex-start;
+    text-align: left;
+}
+
+.ctaContent {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.16rem;
+    width: 100%;
+}
+
+.ctaTitle {
+    font-size: 1rem;
+}
+
+.ctaHint {
+    font-family: var(--ui-font-body-family);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: none;
+    color: var(--theme-text-muted);
+}
+
+.bottomCards {
+    width: min(100%, 44rem);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.9rem;
+    margin-top: 0.2rem;
+}
+
+.bottomPanel,
+.supportPanel {
+    transform:
+        perspective(1200px)
+        rotateX(calc(var(--tilt-y, 0) * -4deg))
+        rotateY(calc(var(--tilt-x, 0) * 4deg));
+    transform-style: preserve-3d;
+}
+
+.bottomPanelHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.panelSeal {
+    width: 2.6rem;
+    height: 2.6rem;
+    opacity: 0.92;
+}
+
+.panelKicker {
+    display: block;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--theme-text-subtle);
+}
+
+.panelHeading {
+    display: block;
+    margin-top: 0.15rem;
+    font-family: var(--ui-font-display-family);
+    font-size: 1.1rem;
     color: var(--theme-rune);
-    font-size: clamp(0.88rem, 1.9vw, 1.02rem);
-    line-height: 1.45;
-    letter-spacing: 0.01em;
 }
 
-.colNote {
-    margin: 0;
+.panelBodyCopy {
+    margin: 0.85rem 0 0;
     color: var(--theme-text-muted);
+    line-height: 1.45;
+}
+
+.supportColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 0.95rem;
+    padding: 0.55rem 0 0.5rem;
+}
+
+.supportHeading {
+    margin-top: 0.18rem;
+}
+
+.modeGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.7rem;
+    margin-top: 1rem;
+}
+
+.modeButton {
+    justify-content: center;
+}
+
+.archiveStats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.archiveStat {
+    padding: 0.85rem 0.9rem;
+    border-radius: var(--ui-radius-lg);
+    border: 1px solid rgba(242, 211, 157, 0.12);
+    background: rgba(9, 9, 13, 0.36);
+}
+
+.archiveLabel {
+    display: block;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--theme-text-subtle);
+}
+
+.archiveValue {
+    display: block;
+    margin-top: 0.22rem;
+    font-family: var(--ui-font-display-family);
+    font-size: 1.28rem;
+    color: var(--theme-gold-bright);
+}
+
+.relicDetails {
+    margin-top: 1rem;
+}
+
+.relicDetails summary {
+    cursor: pointer;
     font-size: 0.78rem;
-    line-height: 1.4;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--theme-rune);
 }
 
-.colPlaceholder {
-    margin: 0;
-    font-size: 0.88rem;
-    line-height: 1.45;
+.relicList {
+    list-style: none;
+    margin: 0.75rem 0 0;
+    padding: 0;
+    display: grid;
+    gap: 0.45rem;
+}
+
+.relicList li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.85rem;
     color: var(--theme-text-muted);
 }
 
-:global([data-reduce-motion='true']) .guideCard,
-:global([data-reduce-motion='true']) .tiltSurface,
-:global([data-reduce-motion='true']) .heroSmallTitleTilt,
-:global([data-reduce-motion='true']) .heroBigTitleTilt,
-:global([data-reduce-motion='true']) .heroActionsTilt {
+.relicList strong {
+    font-family: var(--ui-font-display-family);
+    color: var(--theme-gold-bright);
+}
+
+.emptyState {
+    margin: 0.8rem 0 0;
+    color: var(--theme-text-muted);
+}
+
+.howToGrid {
+    display: grid;
+    gap: 0.65rem;
+    margin: 0.95rem 0 1rem;
+}
+
+.howToGrid p {
+    margin: 0;
+    color: var(--theme-text-muted);
+    line-height: 1.45;
+}
+
+.compactShell .content {
+    padding-bottom: 1rem;
+}
+
+:global([data-reduce-motion='true']) .bottomPanel,
+:global([data-reduce-motion='true']) .supportPanel {
     transform: none;
 }
 
-@media (max-width: 960px) {
-    .shell {
+@media (max-width: 1180px) {
+    .layout {
         grid-template-columns: 1fr;
-        padding: clamp(0.9rem, 2vw, 1.5rem);
     }
 
-    .guideGrid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    .supportColumn {
+        padding-top: 0;
     }
 }
 
 @media (max-width: 760px) {
-    .shell,
-    .roomyShell,
-    .compactShell {
-        gap: 0.8rem;
-        align-items: start;
-        grid-template-columns: 1fr;
-        padding-block: clamp(0.9rem, 1.8vw, 1.5rem);
-    }
-
-    .actions {
-        margin-top: 1.1rem;
-        flex-direction: column;
-        gap: 0.7rem;
-    }
-
-    .guideCard {
-        padding: 0.95rem;
-        border-radius: 1.2rem;
-    }
-
-    .guideCardCompact {
-        padding: 0.95rem;
-    }
-
-    .guideGrid {
-        grid-template-columns: 1fr;
-    }
-
-    .guideGrid p {
-        display: none;
-    }
-
-    .guideSummary {
-        margin-top: 0.55rem;
-        font-size: 0.94rem;
-    }
-
-    .guideCompactRules {
-        gap: 0.45rem;
-        margin-top: 0.6rem;
-    }
-
-    .guideCompactRules p {
-        font-size: 0.84rem;
-    }
-
-    .dossierColumns {
-        grid-template-columns: 1fr;
+    .content {
         gap: 0.85rem;
+        padding: 0.85rem 0.75rem 1rem;
     }
 
-    .colFigure {
-        font-size: clamp(1.5rem, 8vw, 2.1rem);
+    .metaRow {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .heroColumn {
+        padding: 0.9rem 0 0.25rem;
+    }
+
+    .tagline {
+        font-size: 0.88rem;
+    }
+
+    .bottomCards,
+    .modeGrid,
+    .archiveStats {
+        grid-template-columns: 1fr;
     }
 }
 
-@media (max-height: 620px) {
-    .hero {
-        max-width: none;
+@media (max-width: 430px), (max-height: 620px) {
+    .metaRow {
+        grid-template-columns: 1fr;
     }
 
-    .guideCard {
-        padding: 0.85rem;
-    }
-
-    .guideCardFixed {
-        position: fixed;
-        left: 0.85rem;
-        right: 0.85rem;
-        bottom: 0.85rem;
-        z-index: 10;
-        margin-top: 0;
-        padding: 0.8rem 0.9rem 0.9rem;
-        max-height: min(40vh, 11.5rem);
-        overflow-x: hidden;
-        overflow-y: auto;
-        overscroll-behavior: contain;
-        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.3);
-    }
-
-    .guideCompactHeader {
-        gap: 0.5rem;
-    }
-
-    .guideCardFixed .guideSummary {
-        margin-top: 0.45rem;
-        font-size: 0.76rem;
-        line-height: 1.22;
-    }
-
-    .guideCardFixed .guideCompactRules {
+    .brandLockup {
         gap: 0.35rem;
-        margin-top: 0.45rem;
+        padding-top: 0.65rem;
     }
 
-    .guideCardFixed .guideCompactRules p {
-        font-size: 0.72rem;
-        line-height: 1.22;
+    .actionStack {
+        gap: 0.65rem;
     }
 
-    .dismissButtonTight {
-        margin-top: 0;
-        min-width: 0;
+    .ctaTitle {
+        font-size: 0.9rem;
+    }
+
+    .ctaHint {
+        font-size: 0.74rem;
     }
 }

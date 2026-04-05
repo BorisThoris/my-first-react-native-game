@@ -1,12 +1,32 @@
 .root {
-    border: 1px solid var(--theme-border);
-    border-radius: var(--ui-radius-panel);
-    backdrop-filter: blur(22px) saturate(150%);
     position: relative;
     z-index: 1;
     display: flex;
     flex-direction: column;
     min-height: 0;
+    overflow: hidden;
+    border: 1px solid var(--theme-border);
+    border-radius: var(--ui-radius-panel);
+    backdrop-filter: blur(22px) saturate(145%);
+}
+
+.root::before,
+.root::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.root::before {
+    background: var(--theme-panel-frame);
+    opacity: 0.7;
+}
+
+.root::after {
+    inset: 1px;
+    border-radius: calc(var(--ui-radius-panel) - 2px);
+    border: 1px solid rgba(255, 244, 218, 0.05);
 }
 
 .default {
@@ -22,23 +42,26 @@
 
 .muted {
     background: var(--theme-panel-surface-muted);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    box-shadow:
+        0 18px 42px rgba(0, 0, 0, 0.24),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .accent {
     background: var(--theme-panel-surface-accent);
+    box-shadow: var(--theme-panel-shadow);
 }
 
 .paddingMd {
-    padding: clamp(1.15rem, 2.2vw, 1.45rem);
+    padding: clamp(1.1rem, 2.2vw, 1.4rem);
 }
 
 .paddingLg {
-    padding: clamp(1.25rem, 2vw, 2rem);
+    padding: clamp(1.2rem, 2.3vw, 1.9rem);
 }
 
 .paddingSection {
-    padding: var(--ui-space-xl) 1.25rem;
+    padding: 1rem 1.2rem 1.1rem;
 }
 
 .overflowAuto {
@@ -48,4 +71,8 @@
 
 .maxHeightViewport {
     max-height: calc(100dvh - 1.5rem);
+}
+
+:global([data-reduce-motion='true']) .root {
+    backdrop-filter: none;
 }

@@ -1,0 +1,117 @@
+{
+  "generatedAt": "2026-04-05T00:17:28.797Z",
+  "png": [
+    {
+      "file": "png/board-a-main-gameplay.png",
+      "source": "ENDPRODUCTIMAGE.png",
+      "id": "main-gameplay"
+    },
+    {
+      "file": "png/board-a-card-states.png",
+      "source": "ENDPRODUCTIMAGE.png",
+      "id": "card-states"
+    },
+    {
+      "file": "png/board-a-interactions.png",
+      "source": "ENDPRODUCTIMAGE.png",
+      "id": "interactions"
+    },
+    {
+      "file": "png/board-a-top-bar-details.png",
+      "source": "ENDPRODUCTIMAGE.png",
+      "id": "top-bar-details"
+    },
+    {
+      "file": "png/board-a-sidebar-in-game.png",
+      "source": "ENDPRODUCTIMAGE.png",
+      "id": "sidebar-in-game"
+    },
+    {
+      "file": "png/board-a-visual-theme.png",
+      "source": "ENDPRODUCTIMAGE.png",
+      "id": "visual-theme"
+    },
+    {
+      "file": "png/board-a-color-palette.png",
+      "source": "ENDPRODUCTIMAGE.png",
+      "id": "color-palette"
+    },
+    {
+      "file": "png/board-a-typography.png",
+      "source": "ENDPRODUCTIMAGE.png",
+      "id": "typography"
+    },
+    {
+      "file": "png/board-b-main-menu.png",
+      "source": "ENDPRODUCTIMAGE2.png",
+      "id": "main-menu"
+    },
+    {
+      "file": "png/board-b-settings.png",
+      "source": "ENDPRODUCTIMAGE2.png",
+      "id": "settings"
+    },
+    {
+      "file": "png/board-b-mode-selection.png",
+      "source": "ENDPRODUCTIMAGE2.png",
+      "id": "mode-selection"
+    }
+  ],
+  "svg": [
+    {
+      "file": "svg/board-a-main-gameplay.svg",
+      "png": "png/board-a-main-gameplay.png",
+      "id": "main-gameplay"
+    },
+    {
+      "file": "svg/board-a-card-states.svg",
+      "png": "png/board-a-card-states.png",
+      "id": "card-states"
+    },
+    {
+      "file": "svg/board-a-interactions.svg",
+      "png": "png/board-a-interactions.png",
+      "id": "interactions"
+    },
+    {
+      "file": "svg/board-a-top-bar-details.svg",
+      "png": "png/board-a-top-bar-details.png",
+      "id": "top-bar-details"
+    },
+    {
+      "file": "svg/board-a-sidebar-in-game.svg",
+      "png": "png/board-a-sidebar-in-game.png",
+      "id": "sidebar-in-game"
+    },
+    {
+      "file": "svg/board-a-visual-theme.svg",
+      "png": "png/board-a-visual-theme.png",
+      "id": "visual-theme"
+    },
+    {
+      "file": "svg/board-a-color-palette.svg",
+      "png": "png/board-a-color-palette.png",
+      "id": "color-palette"
+    },
+    {
+      "file": "svg/board-a-typography.svg",
+      "png": "png/board-a-typography.png",
+      "id": "typography"
+    },
+    {
+      "file": "svg/board-b-main-menu.svg",
+      "png": "png/board-b-main-menu.png",
+      "id": "main-menu"
+    },
+    {
+      "file": "svg/board-b-settings.svg",
+      "png": "png/board-b-settings.png",
+      "id": "settings"
+    },
+    {
+      "file": "svg/board-b-mode-selection.svg",
+      "png": "png/board-b-mode-selection.png",
+      "id": "mode-selection"
+    }
+  ]
+}

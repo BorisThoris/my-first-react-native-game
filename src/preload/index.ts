@@ -8,7 +8,8 @@ const desktopApi: DesktopApi = {
     saveGame: (data) => ipcRenderer.invoke('desktop:save-game', data),
     unlockAchievement: (achievementId) => ipcRenderer.invoke('desktop:unlock-achievement', achievementId),
     isSteamConnected: () => ipcRenderer.invoke('desktop:is-steam-connected'),
-    setDisplayMode: (mode) => ipcRenderer.invoke('desktop:set-display-mode', mode)
+    setDisplayMode: (mode) => ipcRenderer.invoke('desktop:set-display-mode', mode),
+    quitApp: () => ipcRenderer.invoke('desktop:quit-app')
 };
 
 contextBridge.exposeInMainWorld('desktop', desktopApi);

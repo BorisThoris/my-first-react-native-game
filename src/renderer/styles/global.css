@@ -1,7 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap');
+
 :root {
-    color: var(--theme-text, #f8f4ea);
-    background: var(--theme-void, #050608);
-    font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+    color: var(--theme-text, #f4ecdc);
+    background: var(--theme-void, #05050a);
+    font-family: var(--theme-body-font, 'Trebuchet MS', 'Segoe UI', sans-serif);
     line-height: 1.4;
     font-weight: 400;
     color-scheme: dark;
@@ -28,37 +30,72 @@ body {
     overflow: hidden;
     overscroll-behavior-y: none;
     background:
-        radial-gradient(circle at 18% 12%, var(--theme-glow-gold-soft, rgba(255, 220, 140, 0.14)), transparent 30%),
-        radial-gradient(circle at 84% 18%, var(--theme-glow-cyan-soft, rgba(194, 245, 255, 0.14)), transparent 28%),
-        radial-gradient(circle at 50% 86%, rgba(255, 139, 57, 0.12), transparent 26%),
-        linear-gradient(160deg, var(--theme-void, #050608) 0%, var(--theme-void-soft, #090d15) 54%, var(--theme-smoke-deep, #10141c) 100%);
+        radial-gradient(circle at 18% 15%, rgba(242, 211, 157, 0.12), transparent 24%),
+        radial-gradient(circle at 78% 12%, rgba(140, 98, 223, 0.13), transparent 24%),
+        radial-gradient(circle at 52% 84%, rgba(223, 132, 71, 0.12), transparent 22%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 16%, transparent 84%, rgba(255, 255, 255, 0.02)),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+        linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+        linear-gradient(160deg, var(--theme-void, #05050a) 0%, var(--theme-void-soft, #090914) 54%, var(--theme-smoke-deep, #0d1018) 100%);
+    background-size:
+        auto,
+        auto,
+        auto,
+        auto,
+        88px 88px,
+        88px 88px,
+        auto;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at center, rgba(255, 255, 255, 0), rgba(5, 5, 10, 0.24) 62%, rgba(5, 5, 10, 0.66) 100%),
+        linear-gradient(180deg, rgba(255, 244, 218, 0.03), transparent 12% 88%, rgba(255, 244, 218, 0.03));
+    z-index: 0;
 }
 
 ::selection {
-    background: var(--theme-glow-gold, rgba(215, 162, 77, 0.22));
-    color: var(--theme-text, #f8f4ea);
+    background: var(--theme-glow-gold, rgba(195, 149, 79, 0.24));
+    color: var(--theme-text, #f4ecdc);
 }
 
 button,
 input,
-select {
+select,
+textarea {
     font: inherit;
 }
 
 button {
     cursor: pointer;
     touch-action: manipulation;
-    -webkit-tap-highlight-color: rgba(255, 213, 125, 0.12);
+    -webkit-tap-highlight-color: rgba(241, 212, 160, 0.12);
 }
 
 [role='button'] {
     touch-action: manipulation;
-    -webkit-tap-highlight-color: rgba(255, 213, 125, 0.12);
+    -webkit-tap-highlight-color: rgba(241, 212, 160, 0.12);
 }
 
 button:focus-visible,
 select:focus-visible,
-input:focus-visible {
-    outline: 2px solid var(--theme-focus, #ffd57d);
+input:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--theme-focus, #f1d4a0);
     outline-offset: 2px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--theme-display-font, 'Palatino Linotype', Georgia, serif);
+    font-weight: 700;
+    letter-spacing: 0.02em;
 }

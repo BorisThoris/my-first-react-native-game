@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
+import ChooseYourPathScreen from './components/ChooseYourPathScreen';
+import CodexScreen from './components/CodexScreen';
+import CollectionScreen from './components/CollectionScreen';
 import GameOverScreen from './components/GameOverScreen';
 import GameScreen from './components/GameScreen';
+import InventoryScreen from './components/InventoryScreen';
 import MainMenu from './components/MainMenu';
 import SettingsScreen from './components/SettingsScreen';
+import metaScreenStyles from './components/MetaScreen.module.css';
 import StartupIntro from './components/StartupIntro';
 import type { IntroPlaybackState } from './components/startupIntroConfig';
 import { VIEWPORT_MOBILE_MAX, VIEWPORT_TABLET_MAX } from './breakpoints';
@@ -20,17 +25,19 @@ const App = () => {
         hydrate,
         importRunFromClipboard,
         newlyUnlockedAchievements,
+        openCollection,
+        openModeSelect,
         openSettings,
         run,
         saveData,
         settingsReturnView,
+        subscreenReturnView,
         settings,
-        startDailyRun,
+        steamConnected,
         startGauntletRun,
         startMeditationRun,
         startPracticeRun,
         startPuzzleRun,
-        startRun,
         startScholarContractRun,
         startWildRun,
         view
@@ -41,17 +48,19 @@ const App = () => {
             hydrate: state.hydrate,
             importRunFromClipboard: state.importRunFromClipboard,
             newlyUnlockedAchievements: state.newlyUnlockedAchievements,
+            openCollection: state.openCollection,
+            openModeSelect: state.openModeSelect,
             openSettings: state.openSettings,
             run: state.run,
             saveData: state.saveData,
             settingsReturnView: state.settingsReturnView,
+            subscreenReturnView: state.subscreenReturnView,
             settings: state.settings,
-            startDailyRun: state.startDailyRun,
+            steamConnected: state.steamConnected,
             startGauntletRun: state.startGauntletRun,
             startMeditationRun: state.startMeditationRun,
             startPracticeRun: state.startPracticeRun,
             startPuzzleRun: state.startPuzzleRun,
-            startRun: state.startRun,
             startScholarContractRun: state.startScholarContractRun,
             startWildRun: state.startWildRun,
             view: state.view
@@ -68,8 +77,20 @@ const App = () => {
     const [introPlayback, setIntroPlayback] = useState<Exclude<IntroPlaybackState, 'playing'>>('pending');
     const inGameSettingsOverlay =
         hydrated && view === 'settings' && settingsReturnView === 'playing' && Boolean(run);
-    const visualView = inGameSettingsOverlay ? 'playing' : activeView;
-    const ambientGridState = hydrated && (visualView === 'menu' || visualView === 'playing') ? 'off' : 'on';
+    const inGameShellOverlay =
+        hydrated &&
+        (view === 'inventory' || view === 'codex') &&
+        subscreenReturnView === 'playing' &&
+        run !== null;
+    const visualView = inGameSettingsOverlay || inGameShellOverlay ? 'playing' : activeView;
+    const ambientGridState =
+        hydrated &&
+        (visualView === 'menu' ||
+            visualView === 'playing' ||
+            view === 'modeSelect' ||
+            view === 'collection')
+            ? 'off'
+            : 'on';
     const introOverlayVisible =
         introPlayback === 'pending' && (!hydrated || (hydrated && view === 'menu'));
     const showMainMenu = hydrated && view === 'menu';
@@ -106,10 +127,11 @@ const App = () => {
                                 saveData={saveData}
                                 reduceMotion={settings.reduceMotion}
                                 suppressMenuBackgroundFallback={introOverlayVisible}
+                                steamConnected={steamConnected}
                                 onDismissHowToPlay={dismissHowToPlay}
                                 onOpenSettings={() => openSettings('menu')}
-                                onPlay={startRun}
-                                onDailyRun={startDailyRun}
+                                onOpenCollection={openCollection}
+                                onPlay={openModeSelect}
                                 onGauntletRun={startGauntletRun}
                                 onPuzzleStarter={() => startPuzzleRun('starter_pairs')}
                                 onMirrorPuzzleRun={() => startPuzzleRun('mirror_craft')}
@@ -146,17 +168,29 @@ const App = () => {
                     />
                 )}
 
+                {hydrated && view === 'modeSelect' && <ChooseYourPathScreen />}
+
+                {hydrated && view === 'collection' && <CollectionScreen />}
+
                 {hydrated && view === 'settings' && !inGameSettingsOverlay && <SettingsScreen />}
 
-                {hydrated && (view === 'playing' || inGameSettingsOverlay) && run && (
+                {hydrated && (view === 'playing' || inGameSettingsOverlay || inGameShellOverlay) && run && (
                     <GameScreen
                         achievements={newlyUnlockedAchievements}
                         run={run}
-                        suppressStatusOverlays={inGameSettingsOverlay}
+                        suppressStatusOverlays={inGameSettingsOverlay || inGameShellOverlay}
                     />
                 )}
 
                 {inGameSettingsOverlay && <SettingsScreen presentation="modal" />}
+
+                {inGameShellOverlay ? (
+                    <div className={metaScreenStyles.modalOverlay}>
+                        <div className={metaScreenStyles.modalInner}>
+                            {view === 'inventory' ? <InventoryScreen /> : <CodexScreen />}
+                        </div>
+                    </div>
+                ) : null}
 
                 {hydrated && view === 'gameOver' && run?.lastRunSummary && <GameOverScreen run={run} />}
             </div>

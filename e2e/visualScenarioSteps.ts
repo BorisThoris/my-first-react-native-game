@@ -39,8 +39,55 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
         run: async (page, capture) => {
             await openMainMenuFromSave(page, true);
             await expectNoHorizontalOverflow(page);
-            await expect(page.getByRole('button', { name: /play arcade/i })).toBeVisible();
+            await expect(page.getByRole('button', { name: /^play$/i })).toBeVisible();
+            await expect(page.getByRole('group', { name: /more run types/i })).toBeVisible();
             await capture('01-main-menu');
+        }
+    },
+    {
+        fileBase: '01a-choose-your-path',
+        name: 'choose your path',
+        run: async (page, capture) => {
+            await openMainMenuFromSave(page, true);
+            await page.getByRole('button', { name: /^play$/i }).click();
+            await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
+            await expectNoHorizontalOverflow(page);
+            await capture('01a-choose-your-path');
+        }
+    },
+    {
+        fileBase: '01b-collection',
+        name: 'collection screen',
+        run: async (page, capture) => {
+            await openMainMenuFromSave(page, true);
+            await page.getByRole('button', { name: /^collection$/i }).click();
+            await expect(page.getByRole('region', { name: /collection/i })).toBeVisible();
+            await expectNoHorizontalOverflow(page);
+            await capture('01b-collection');
+        }
+    },
+    {
+        fileBase: '01c-inventory-active',
+        name: 'inventory during a run',
+        run: async (page, capture) => {
+            await openLevel1Play(page);
+            await page.getByRole('button', { name: /show utility menu/i }).click();
+            await page.getByRole('button', { name: /inventory/i }).click();
+            await expect(page.getByRole('region', { name: /inventory/i })).toBeVisible();
+            await expectNoHorizontalOverflow(page);
+            await capture('01c-inventory-active');
+        }
+    },
+    {
+        fileBase: '01d-codex',
+        name: 'codex during a run',
+        run: async (page, capture) => {
+            await openLevel1Play(page);
+            await page.getByRole('button', { name: /show utility menu/i }).click();
+            await page.getByRole('button', { name: /codex/i }).click();
+            await expect(page.getByRole('region', { name: /codex/i })).toBeVisible();
+            await expectNoHorizontalOverflow(page);
+            await capture('01d-codex');
         }
     },
     {
@@ -58,8 +105,11 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
         name: 'settings page',
         run: async (page, capture) => {
             await openMainMenuFromSave(page, true);
-            await page.getByRole('button', { name: /^settings$/i }).click();
+            await page.getByRole('button', { name: /^settings$/i }).evaluate((element) => {
+                (element as HTMLButtonElement).click();
+            });
             await expect(page.getByRole('heading', { name: /^settings$/i })).toBeVisible();
+            await expect(page.getByRole('button', { name: /gameplay/i }).first()).toBeVisible();
             await expectNoHorizontalOverflow(page);
             await capture('03-settings-page');
         }
@@ -69,7 +119,8 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
         name: 'game playing (level 1)',
         run: async (page, capture) => {
             await openLevel1Play(page);
-            await expect(page.getByRole('group', { name: /game controls/i })).toBeVisible();
+            await expect(page.getByRole('toolbar', { name: /game controls/i })).toBeVisible();
+            await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible();
             await expectNoHorizontalOverflow(page);
             await capture('04-game-playing');
         }
@@ -95,12 +146,17 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
         name: 'run settings modal (in-game)',
         run: async (page, capture) => {
             await openLevel1Play(page);
-            await page.getByRole('button', { name: /^settings$/i }).click();
-            await expect(page.getByRole('dialog', { name: /run settings/i })).toBeVisible();
+            await page.getByRole('button', { name: /^settings$/i }).evaluate((element) => {
+                (element as HTMLButtonElement).click();
+            });
+            const runSettings = page.getByRole('dialog', { name: /run settings/i });
+            await expect(runSettings).toBeVisible();
             await expectNoHorizontalOverflow(page);
             await capture('06-run-settings-modal');
-            await page.getByRole('button', { name: /^back$/i }).click();
-            await expect(page.getByRole('dialog', { name: /run settings/i })).toBeHidden();
+            await runSettings.getByRole('button', { name: /^back$/i }).evaluate((element) => {
+                (element as HTMLButtonElement).click();
+            });
+            await expect(runSettings).toBeHidden();
         }
     },
     {

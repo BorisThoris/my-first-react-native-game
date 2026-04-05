@@ -1,7 +1,7 @@
 import { mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { expect, type Page } from '@playwright/test';
-import { STORAGE_KEY } from './tileBoardGameFlow';
+import { BOARD_HIDDEN_TILE_BUTTON_RE, STORAGE_KEY } from './tileBoardGameFlow';
 import { dismissStartupIntro } from './startupIntroHelpers';
 
 const MATCH_SETTLE_MS = 950;
@@ -61,7 +61,8 @@ export const buildVisualSaveJson = (onboardingDismissed: boolean): string =>
             }
         },
         onboardingDismissed,
-        lastRunSummary: null
+        lastRunSummary: null,
+        powersFtueSeen: true
     });
 
 export function visualCaptureDir(deviceId: string, orientation: VisualOrientation): string {
@@ -105,14 +106,20 @@ export async function gotoWithSave(page: Page, saveJson: string): Promise<void> 
 export async function openMainMenuFromSave(page: Page, onboardingDismissed: boolean): Promise<void> {
     await gotoWithSave(page, buildVisualSaveJson(onboardingDismissed));
     await dismissStartupIntro(page);
-    await expect(page.getByRole('button', { name: /play arcade/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^play$/i })).toBeVisible();
+}
+
+export async function startClassicRunFromModeSelect(page: Page): Promise<void> {
+    await page.getByRole('button', { name: /classic run/i }).click();
+    await expect(page.getByRole('heading', { name: /level 1/i })).toBeVisible();
+    await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible({ timeout: 10000 });
 }
 
 export async function openLevel1Play(page: Page): Promise<void> {
     await openMainMenuFromSave(page, true);
-    await page.getByRole('button', { name: /play arcade/i }).click();
-    await expect(page.getByRole('heading', { name: /level 1/i })).toBeVisible();
-    await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible({ timeout: 10000 });
+    await page.getByRole('button', { name: /^play$/i }).click();
+    await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
+    await startClassicRunFromModeSelect(page);
 }
 
 type PairPositions = Record<string, { row: number; col: number }[]>;
@@ -147,7 +154,7 @@ async function readMemorizeSnapshot(page: Page): Promise<PairPositions | null> {
 }
 
 async function getHiddenTilePositions(page: Page): Promise<{ row: number; col: number }[]> {
-    const buttons = page.getByRole('button', { name: /hidden tile, row \d+, column \d+/i });
+    const buttons = page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE });
     const n = await buttons.count();
     const out: { row: number; col: number }[] = [];
     for (let i = 0; i < n; i += 1) {
@@ -205,7 +212,7 @@ async function completeLevel1ByTryingHiddenPairs(page: Page): Promise<void> {
 
 async function waitForPlayPhaseHiddenTiles(page: Page, expected: number): Promise<void> {
     await expect
-        .poll(async () => page.getByRole('button', { name: /hidden tile/i }).count(), { timeout: 15000 })
+        .poll(async () => page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count(), { timeout: 15000 })
         .toBe(expected);
 }
 
@@ -221,21 +228,21 @@ async function clickHiddenTile(page: Page, row: number, col: number): Promise<vo
  * and callers should use `completeLevel1Play`.
  */
 export async function waitLevel1PlayReady(page: Page): Promise<PairPositions | null> {
+    let lastMemorizeSnap: PairPositions | null = null;
     const deadline = Date.now() + 28_000;
     while (Date.now() < deadline) {
         const snap = await readMemorizeSnapshot(page);
-        const hidden = await page.getByRole('button', { name: /hidden tile/i }).count();
-        if (hidden === 4) {
-            return snap;
+        if (snap && Object.keys(snap).length >= 2) {
+            lastMemorizeSnap = snap;
         }
-        if (snap) {
-            await page.waitForTimeout(40);
-            continue;
+        const hidden = await page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count();
+        if (hidden === 4) {
+            return lastMemorizeSnap;
         }
         await page.waitForTimeout(40);
     }
     await waitForPlayPhaseHiddenTiles(page, 4);
-    return await readMemorizeSnapshot(page);
+    return lastMemorizeSnap;
 }
 
 export async function completeLevel1AllMatches(page: Page, pairs: PairPositions): Promise<void> {
@@ -258,10 +265,10 @@ export async function completeLevel1Play(page: Page, pairs: PairPositions | null
 }
 
 async function restartLevel1FromMainMenu(page: Page): Promise<void> {
-    await expect(page.getByRole('button', { name: /play arcade/i })).toBeVisible({ timeout: 15000 });
-    await page.getByRole('button', { name: /play arcade/i }).click();
-    await expect(page.getByRole('heading', { name: /level 1/i })).toBeVisible();
-    await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('button', { name: /^play$/i })).toBeVisible({ timeout: 15000 });
+    await page.getByRole('button', { name: /^play$/i }).click();
+    await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
+    await startClassicRunFromModeSelect(page);
     await waitForPlayPhaseHiddenTiles(page, 4);
 }
 
@@ -274,8 +281,9 @@ async function restartLevel1AfterAccidentalMatch(page: Page): Promise<void> {
             throw new Error('expected the accidental match fallback to leave one hidden pair');
         }
         await clickHiddenTile(page, remaining[0].row, remaining[0].col);
+        await page.waitForTimeout(MATCH_SETTLE_MS);
         await clickHiddenTile(page, remaining[1].row, remaining[1].col);
-        await expect(floorCleared).toBeVisible({ timeout: 15000 });
+        await expect(floorCleared).toBeVisible({ timeout: 30000 });
     }
 
     await floorCleared.getByRole('button', { name: /main menu/i }).click();
@@ -301,13 +309,23 @@ async function discoverMismatchPair(
         const guess = { a: positions[0], b: positions[1] };
         await clickHiddenTile(page, guess.a.row, guess.a.col);
         await clickHiddenTile(page, guess.b.row, guess.b.col);
-        await page.waitForTimeout(MATCH_SETTLE_MS);
 
-        const hiddenAfter = await page.getByRole('button', { name: /hidden tile/i }).count();
+        let hiddenAfter = await page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count();
+        const settleDeadline = Date.now() + 8000;
+        while (hiddenAfter !== 2 && hiddenAfter !== 4 && Date.now() < settleDeadline) {
+            await page.waitForTimeout(120);
+            hiddenAfter = await page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count();
+        }
+
         if (hiddenAfter === 4) {
             return guess;
         }
 
+        if (hiddenAfter !== 2) {
+            throw new Error(`expected 2 or 4 hidden tiles after probe flip; got ${hiddenAfter}`);
+        }
+
+        await page.waitForTimeout(MATCH_SETTLE_MS);
         await restartLevel1AfterAccidentalMatch(page);
     }
 
@@ -318,13 +336,44 @@ async function discoverMismatchPair(
 export async function forceGameOverWithMismatches(page: Page, pairs: PairPositions | null): Promise<void> {
     const mismatch = await discoverMismatchPair(page, pairs);
 
-    await waitForPlayPhaseHiddenTiles(page, 4);
+    const expedition = () => page.getByText(/Expedition Over/i).isVisible().catch(() => false);
+
+    await expect
+        .poll(
+            async () => {
+                if (await expedition()) {
+                    return 'over';
+                }
+                const hidden = await page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count();
+                return hidden === 4 ? 'play' : `bad:${hidden}`;
+            },
+            { timeout: 20_000 }
+        )
+        .toMatch(/^(over|play)$/);
+
+    if (await expedition()) {
+        return;
+    }
 
     for (let i = 0; i < 12; i += 1) {
-        if (await page.getByText(/Expedition Over/i).isVisible().catch(() => false)) {
+        if (await expedition()) {
             return;
         }
-        await waitForPlayPhaseHiddenTiles(page, 4);
+        await expect
+            .poll(
+                async () => {
+                    if (await expedition()) {
+                        return 'over';
+                    }
+                    const hidden = await page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count();
+                    return hidden === 4 ? 'play' : `bad:${hidden}`;
+                },
+                { timeout: 15_000 }
+            )
+            .toMatch(/^(over|play)$/);
+        if (await expedition()) {
+            return;
+        }
         await clickHiddenTile(page, mismatch.a.row, mismatch.a.col);
         await clickHiddenTile(page, mismatch.b.row, mismatch.b.col);
         await page.waitForTimeout(MATCH_SETTLE_MS);

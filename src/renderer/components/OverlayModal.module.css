@@ -5,30 +5,38 @@
     align-items: center;
     justify-content: center;
     padding:
-        max(clamp(1rem, 3vw, 1.75rem), env(safe-area-inset-top, 0px))
-        max(clamp(1rem, 3vw, 1.75rem), env(safe-area-inset-right, 0px))
-        max(clamp(1rem, 3vw, 1.75rem), env(safe-area-inset-bottom, 0px))
-        max(clamp(1rem, 3vw, 1.75rem), env(safe-area-inset-left, 0px));
-    background: rgba(2, 5, 10, 0.48);
-    backdrop-filter: blur(10px) saturate(120%);
-    z-index: 20;
+        max(clamp(1rem, 3vw, 1.6rem), env(safe-area-inset-top, 0px))
+        max(clamp(1rem, 3vw, 1.6rem), env(safe-area-inset-right, 0px))
+        max(clamp(1rem, 3vw, 1.6rem), env(safe-area-inset-bottom, 0px))
+        max(clamp(1rem, 3vw, 1.6rem), env(safe-area-inset-left, 0px));
+    background:
+        radial-gradient(circle at center, rgba(4, 6, 10, 0.18), rgba(4, 6, 10, 0.8)),
+        rgba(2, 5, 10, 0.56);
+    backdrop-filter: blur(14px) saturate(130%);
+    z-index: 21;
     overflow-y: auto;
 }
 
 .modal {
-    width: min(640px, 100%);
+    width: min(820px, 100%);
     max-height: calc(100dvh - 2rem);
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: clamp(1.25rem, 4vw, 2.25rem);
-    padding: clamp(0.35rem, 1.2vw, 0.5rem) 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(180px, 0.28fr);
+    align-items: start;
+    gap: clamp(1rem, 3vw, 1.5rem);
+    padding: clamp(1rem, 2vw, 1.2rem);
     overflow-y: auto;
     min-height: 0;
-    background: transparent;
-    border: none;
-    box-shadow: none;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent 18%),
+        radial-gradient(circle at top left, rgba(240, 210, 143, 0.12), transparent 34%),
+        radial-gradient(circle at bottom right, rgba(114, 207, 255, 0.08), transparent 32%),
+        linear-gradient(160deg, rgba(18, 22, 32, 0.97), rgba(7, 9, 14, 0.98));
+    border: 1px solid rgba(240, 210, 143, 0.22);
+    border-radius: calc(var(--ui-radius-modal) + 0.18rem);
+    box-shadow:
+        0 26px 64px rgba(0, 0, 0, 0.46),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .mainColumn {
@@ -47,11 +55,11 @@
     margin: 0.5rem 0 0;
     color: var(--theme-text-muted);
     font-size: var(--ui-font-body-sm);
-    line-height: 1.45;
+    line-height: 1.55;
 }
 
 .body {
-    margin-top: 0.85rem;
+    margin-top: 0.9rem;
     flex: 1;
     overflow-y: auto;
     min-height: 0;
@@ -63,68 +71,41 @@
     flex-direction: column;
     align-items: stretch;
     gap: 0.55rem;
-    margin-top: 0.15rem;
-    padding-top: 0.1rem;
+    margin-top: 0.1rem;
 }
 
 .modalAction {
     flex: 0 0 auto;
-    min-width: min(100%, 9.5rem);
+    min-width: min(100%, 10rem);
 }
 
 @media (max-width: 760px) {
     .backdrop {
         align-items: flex-start;
         padding:
-            max(1rem, env(safe-area-inset-top, 0px))
-            max(1rem, env(safe-area-inset-right, 0px))
-            max(1rem, env(safe-area-inset-bottom, 0px))
-            max(1rem, env(safe-area-inset-left, 0px));
+            max(0.9rem, env(safe-area-inset-top, 0px))
+            max(0.9rem, env(safe-area-inset-right, 0px))
+            max(0.9rem, env(safe-area-inset-bottom, 0px))
+            max(0.9rem, env(safe-area-inset-left, 0px));
     }
 
     .modal {
-        flex-direction: column;
+        grid-template-columns: 1fr;
         align-items: stretch;
-        max-height: calc(100dvh - 1.5rem);
-        gap: 1rem;
-        padding-top: 0.25rem;
+        max-height: calc(100dvh - 1.2rem);
+        gap: 0.9rem;
+        padding: 0.95rem;
     }
 
     .actions {
         flex-direction: row;
         flex-wrap: wrap;
         justify-content: flex-end;
-        margin-top: 0.25rem;
-        padding-top: 0;
     }
 
     .modalAction {
         min-width: 0;
         flex: 1 1 auto;
-    }
-}
-
-@media (max-width: 760px), (max-height: 760px) {
-    .modal {
-        background:
-            radial-gradient(circle at top left, rgba(255, 214, 133, 0.12), transparent 34%),
-            radial-gradient(circle at bottom right, rgba(87, 220, 255, 0.08), transparent 32%),
-            linear-gradient(160deg, rgba(18, 22, 32, 0.94), rgba(7, 9, 14, 0.94));
-        border: 1px solid rgba(255, 214, 133, 0.22);
-        border-radius: calc(var(--ui-radius-modal) + 0.15rem);
-        box-shadow:
-            0 24px 64px rgba(0, 0, 0, 0.42),
-            inset 0 1px 0 rgba(255, 255, 255, 0.06);
-        padding: clamp(0.85rem, 2.2vw, 1.05rem);
-        backdrop-filter: blur(18px) saturate(145%);
-    }
-
-    .subtitle {
-        font-size: 0.9rem;
-    }
-
-    .body {
-        padding-right: 0.1rem;
     }
 }
 
@@ -139,10 +120,7 @@
     }
 }
 
-:global([data-reduce-motion='true']) .backdrop {
-    backdrop-filter: none;
-}
-
+:global([data-reduce-motion='true']) .backdrop,
 :global([data-reduce-motion='true']) .modal {
     backdrop-filter: none;
 }

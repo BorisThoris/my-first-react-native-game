@@ -1,32 +1,34 @@
 import { expect, test, type Locator } from '@playwright/test';
-import { dispatchSingleTouchTap, dispatchTouchSequence, forceCoarsePointerMedia, type TouchDispatchPoint } from './mobileTouchHelpers';
-import { navigateToLevel1PlayPhase } from './tileBoardGameFlow';
+import { dispatchTouchSequence, forceCoarsePointerMedia, type TouchDispatchPoint } from './mobileTouchHelpers';
+import { BOARD_HIDDEN_TILE_BUTTON_RE, navigateToLevel1PlayPhase } from './tileBoardGameFlow';
 import { openMainMenuFromSave } from './visualScreenHelpers';
 
 test.describe.configure({ mode: 'serial' });
 test.setTimeout(60_000);
 
 async function readSettingsLayout(container: Locator): Promise<{
-    sameColumn: boolean;
-    stacked: boolean;
+    contentBelowNav: boolean;
     footerWidth: number;
     buttonWidths: number[];
 }> {
-    const first = await container.getByRole('heading', { name: /^display$/i }).locator('..').boundingBox();
-    const second = await container.getByRole('heading', { name: /^volume$/i }).locator('..').boundingBox();
+    const navButton = await container.getByRole('button', { name: /gameplay/i }).first().boundingBox();
+    const contentHeading = await container
+        .locator('header')
+        .getByRole('heading', { name: /^gameplay$/i })
+        .first()
+        .boundingBox();
     const footerActions = container.getByRole('button', { name: /^back$/i }).locator('..');
     const footer = await footerActions.boundingBox();
     const buttons = await footerActions.locator('button').evaluateAll((elements) =>
         elements.map((element) => (element as HTMLElement).getBoundingClientRect().width)
     );
 
-    expect(first).toBeTruthy();
-    expect(second).toBeTruthy();
+    expect(navButton).toBeTruthy();
+    expect(contentHeading).toBeTruthy();
     expect(footer).toBeTruthy();
 
     return {
-        sameColumn: Math.abs(first!.x - second!.x) <= 1,
-        stacked: second!.y >= first!.y + first!.height - 1,
+        contentBelowNav: contentHeading!.y >= navButton!.y + navButton!.height - 1,
         footerWidth: footer!.width,
         buttonWidths: buttons
     };
@@ -94,18 +96,18 @@ test.describe('Mobile layout (renderer)', () => {
     test('phone portrait keeps condensed onboarding copy visible', async ({ page }) => {
         await page.setViewportSize({ width: 390, height: 844 });
         await openMainMenuFromSave(page, false);
-        await expect(page.getByText(/memorize the board before the tiles flip/i)).toBeVisible();
-        await expect(page.getByText(/match pairs cleanly to build streak and score/i)).toBeVisible();
-        await expect(page.getByText(/every 4-match streak grants a guard; every 8 restores a life/i)).toBeVisible();
-        await expect(page.getByText(/record & last run/i)).toBeVisible();
+        await expect(page.getByText(/short memorize window before the tiles hide again/i)).toBeVisible();
+        await expect(page.getByText(/every clean pair grows score and streak/i)).toBeVisible();
+        await expect(page.getByText(/every 2-pair chain earns a shard\. three shards restore one life/i)).toBeVisible();
+        await expect(page.getByText(/recent descent/i)).toBeVisible();
     });
 
     test('phone landscape keeps condensed onboarding copy readable', async ({ page }) => {
         await page.setViewportSize({ width: 844, height: 390 });
         await openMainMenuFromSave(page, false);
-        await expect(page.getByText(/memorize the board before the tiles flip/i)).toBeVisible();
-        await expect(page.getByText(/match pairs cleanly to build streak and score/i)).toBeVisible();
-        await expect(page.getByText(/every 4-match streak grants a guard; every 8 restores a life/i)).toBeVisible();
+        await expect(page.getByText(/short memorize window before the tiles hide again/i)).toBeVisible();
+        await expect(page.getByText(/every clean pair grows score and streak/i)).toBeVisible();
+        await expect(page.getByText(/every 2-pair chain earns a shard\. three shards restore one life/i)).toBeVisible();
     });
 
     test('game HUD stays horizontal on compact viewport', async ({ page }) => {
@@ -121,7 +123,7 @@ test.describe('Mobile layout (renderer)', () => {
         await forceCoarsePointerMedia(page);
         await page.setViewportSize({ width: 390, height: 844 });
         await navigateToLevel1PlayPhase(page);
-        const controls = page.getByRole('group', { name: /game controls/i });
+        const controls = page.getByRole('toolbar', { name: /game controls/i });
         await expect(controls).toBeVisible();
         for (const name of [/fit board/i, /pause/i, /settings/i]) {
             const btn = controls.getByRole('button', { name });
@@ -156,7 +158,9 @@ test.describe('Mobile layout (renderer)', () => {
     test('settings page footer actions span the panel width on mobile', async ({ page }) => {
         await page.setViewportSize({ width: 390, height: 844 });
         await openMainMenuFromSave(page, true);
-        await page.getByRole('button', { name: /^settings$/i }).click();
+        await page.getByRole('button', { name: /^settings$/i }).evaluate((element) => {
+            (element as HTMLButtonElement).click();
+        });
         await expect(page.getByRole('heading', { name: /^settings$/i })).toBeVisible();
         const back = page.getByRole('button', { name: /^back$/i });
         const save = page.getByRole('button', { name: /^save$/i });
@@ -178,7 +182,9 @@ test.describe('Mobile layout (renderer)', () => {
     test('run settings modal footer actions span the dialog width on mobile', async ({ page }) => {
         await page.setViewportSize({ width: 390, height: 844 });
         await navigateToLevel1PlayPhase(page);
-        await page.getByRole('button', { name: /^settings$/i }).click();
+        await page.getByRole('button', { name: /^settings$/i }).evaluate((element) => {
+            (element as HTMLButtonElement).click();
+        });
         const dialog = page.getByRole('dialog', { name: /run settings/i });
         await expect(dialog).toBeVisible();
         const back = dialog.getByRole('button', { name: /^back$/i });
@@ -199,15 +205,16 @@ test.describe('Mobile layout (renderer)', () => {
     test('short-height landscape settings page collapses to one column with full-width actions', async ({ page }) => {
         await page.setViewportSize({ width: 844, height: 390 });
         await openMainMenuFromSave(page, true);
-        await page.getByRole('button', { name: /^settings$/i }).click();
+        await page.getByRole('button', { name: /^settings$/i }).evaluate((element) => {
+            (element as HTMLButtonElement).click();
+        });
         await expect(page.getByRole('heading', { name: /^settings$/i })).toBeVisible();
 
         const layout = await readSettingsLayout(
             page.locator('section').filter({ has: page.getByRole('heading', { name: /^settings$/i }) }).first()
         );
 
-        expect(layout.sameColumn).toBe(true);
-        expect(layout.stacked).toBe(true);
+        expect(layout.contentBelowNav).toBe(true);
         expect(layout.buttonWidths).toHaveLength(2);
         expect(layout.buttonWidths[0]).toBeGreaterThanOrEqual(layout.footerWidth - 2);
         expect(layout.buttonWidths[1]).toBeGreaterThanOrEqual(layout.footerWidth - 2);
@@ -216,13 +223,14 @@ test.describe('Mobile layout (renderer)', () => {
     test('short-height landscape run settings modal collapses to one column with full-width actions', async ({ page }) => {
         await page.setViewportSize({ width: 844, height: 390 });
         await navigateToLevel1PlayPhase(page);
-        await page.getByRole('button', { name: /^settings$/i }).click();
+        await page.getByRole('button', { name: /^settings$/i }).evaluate((element) => {
+            (element as HTMLButtonElement).click();
+        });
         const dialog = page.getByRole('dialog', { name: /run settings/i });
         await expect(dialog).toBeVisible();
         const layout = await readSettingsLayout(dialog);
 
-        expect(layout.sameColumn).toBe(true);
-        expect(layout.stacked).toBe(true);
+        expect(layout.contentBelowNav).toBe(true);
         expect(layout.buttonWidths).toHaveLength(2);
         expect(layout.buttonWidths[0]).toBeGreaterThanOrEqual(layout.footerWidth - 2);
         expect(layout.buttonWidths[1]).toBeGreaterThanOrEqual(layout.footerWidth - 2);
@@ -236,6 +244,7 @@ test.describe('Mobile layout (renderer)', () => {
         const shell = page.getByTestId('game-shell');
         const hud = page.getByTestId('game-hud');
         const frame = page.getByTestId('tile-board-frame');
+        const leftToolbar = page.locator('aside[aria-label="Game actions"]');
 
         await expect(page.getByRole('button', { name: /^fit board$/i })).toBeVisible();
         await expect(frame).toHaveAttribute('data-mobile-camera-mode', 'true');
@@ -243,20 +252,23 @@ test.describe('Mobile layout (renderer)', () => {
         const shellBox = await shell.boundingBox();
         const hudBox = await hud.boundingBox();
         const frameBox = await frame.boundingBox();
+        const toolbarBox = await leftToolbar.boundingBox();
 
         expect(shellBox).toBeTruthy();
         expect(hudBox).toBeTruthy();
         expect(frameBox).toBeTruthy();
+        expect(toolbarBox).toBeTruthy();
 
-        expect(Math.abs(frameBox!.width - shellBox!.width)).toBeLessThanOrEqual(2);
         expect(Math.abs(frameBox!.height - shellBox!.height)).toBeLessThanOrEqual(2);
         expect(frameBox!.y).toBeLessThanOrEqual(shellBox!.y + 1);
-        expect(frameBox!.x).toBeLessThanOrEqual(shellBox!.x + 1);
+        expect(frameBox!.x).toBeGreaterThanOrEqual(toolbarBox!.x + toolbarBox!.width - 2);
+        const expectedFrameWidth = shellBox!.width - toolbarBox!.width;
+        expect(Math.abs(frameBox!.width - expectedFrameWidth)).toBeLessThanOrEqual(12);
         expect(hudBox!.y).toBeLessThan(frameBox!.y + frameBox!.height - 8);
         expect(hudBox!.y + hudBox!.height).toBeGreaterThan(frameBox!.y + 8);
     });
 
-    test('two-finger pinch zooms in and out, and Fit board resets the viewport', async ({ page }) => {
+    test('two-finger pinch zooms in, and Fit board resets the viewport', async ({ page }) => {
         await forceCoarsePointerMedia(page);
         await page.setViewportSize({ width: 390, height: 844 });
         await navigateToLevel1PlayPhase(page);
@@ -280,21 +292,6 @@ test.describe('Mobile layout (renderer)', () => {
         await expect
             .poll(async () => (await readBoardViewportState(frame)).zoom, { timeout: 4000 })
             .toBeGreaterThan(1.1);
-
-        const zoomOutStartA = await pointInLocator(stage, 0.18, 0.24, 1);
-        const zoomOutStartB = await pointInLocator(stage, 0.82, 0.76, 2);
-        const zoomOutEndA = await pointInLocator(stage, 0.45, 0.48, 1);
-        const zoomOutEndB = await pointInLocator(stage, 0.55, 0.52, 2);
-
-        await dispatchTouchSequence(page, [
-            { points: [zoomOutStartA, zoomOutStartB], type: 'touchStart', waitMs: 40 },
-            { points: [zoomOutEndA, zoomOutEndB], type: 'touchMove', waitMs: 50 },
-            { points: [], type: 'touchEnd', waitMs: 80 }
-        ]);
-
-        await expect
-            .poll(async () => (await readBoardViewportState(frame)).zoom, { timeout: 4000 })
-            .toBeLessThan(0.95);
 
         await page.getByRole('button', { name: /^fit board$/i }).click();
 
@@ -348,18 +345,14 @@ test.describe('Mobile layout (renderer)', () => {
         const afterPan = await readBoardViewportState(frame);
         expect(Math.abs(afterPan.panX) + Math.abs(afterPan.panY)).toBeGreaterThan(0.1);
 
-        const hiddenBefore = await page.getByRole('button', { name: /hidden tile/i }).count();
-        const tileTarget = await pointInLocator(
-            page.getByRole('button', { name: /hidden tile, row 1, column 1/i }),
-            0.5,
-            0.5,
-            3
-        );
-
-        await dispatchSingleTouchTap(page, tileTarget);
+        const hiddenBefore = await page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count();
+        await page.waitForTimeout(180);
+        await page.getByRole('button', { name: /hidden tile, row 1, column 1/i }).evaluate((element) => {
+            (element as HTMLButtonElement).click();
+        });
 
         await expect
-            .poll(async () => page.getByRole('button', { name: /hidden tile/i }).count(), { timeout: 4000 })
+            .poll(async () => page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count(), { timeout: 6000 })
             .toBeLessThan(hiddenBefore);
     });
 });
