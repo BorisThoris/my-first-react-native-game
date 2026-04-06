@@ -133,8 +133,8 @@ Recent parity work (toolbar illustrated icons, optional board bloom, Game Over s
 | **HUD segmentation** | Distinct **gold-trimmed modules**, hex-like floor badge, **score parasite** (purple bar + crystal) | **Single bar** with segments; **no** score-parasite mechanic strip |
 | **Daily / seed** | Explicit **daily ID** in HUD row | Mode line shows **Arcade Run** / daily when applicable — not the same layout as mock |
 | **Board framing** | Cards on **circular stone dais** / strong floor graphic | Cards sit on **grid** over environment; less staged “arena” read |
-| **Card backs** | **Leather/walnut**, **symmetric gold filigree**, **glowing diamond** center | Pipeline uses **`reference-back.png` + procedural hatches** in [`tileTextures.ts`](../../src/renderer/components/tileTextures.ts); **does not match** illustrated filigree/gem hero from mock |
-| **Card faces** | **3D crystal relic**, **gold serif name**, **effect line** (e.g. +10% score) | **Symbol-centric** tiles (letters/emoji) + optional short label; **not** item portrait cards |
+| **Card backs** | **Leather/walnut**, **symmetric gold filigree**, **glowing diamond** center | **Illustrated `reference-back.png`** (AI, end-product–aligned) on DOM/WebGL static planes; procedural hatch in [`tileTextures.ts`](../../src/renderer/components/tileTextures.ts) still layers on non-static paths. Fine-tune vs mock as needed. |
+| **Card faces** | **3D crystal relic**, **gold serif name**, **effect line** (e.g. +10% score) | **Illustrated `front-face.png`** panel + **symbol-centric** overlay (letters/emoji) + optional label; **not** full item portrait cards |
 | **Hover** | **Intense gold bloom** aura | Subtler **border / shadow** lift (CSS fallback) or **3D lift** (WebGL) — weaker bloom |
 | **Matched** | **Green glow + large checkmark** overlay | Green-tinted state / pulse; **no** dominant checkmark glyph in the reference style |
 | **Mismatch** | **Red pulse** + stress cues | Red-tinted resolving state; less aggressive than mock |

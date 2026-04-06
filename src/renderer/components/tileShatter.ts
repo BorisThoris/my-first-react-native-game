@@ -3,6 +3,12 @@ import type { Tile } from '../../shared/contracts';
 import { RENDERER_THEME } from '../styles/theme';
 
 export const TILE_SPACING = 1.18;
+/**
+ * Card art planes in `TileBoardScene` — keep textures’ canvas aspect in sync to avoid stretching square PNGs.
+ * Pipeline: `scripts/cardTextureConstants.mjs`, `yarn imagegen --resolution card-plane`, `normalize-card-texture.ps1`.
+ */
+export const CARD_PLANE_WIDTH = 0.74;
+export const CARD_PLANE_HEIGHT = 1.08;
 export const TILE_DEPTH = 0.006;
 export const SHELL_SCALE = 1.04;
 export const CORE_SCALE = 0.88;

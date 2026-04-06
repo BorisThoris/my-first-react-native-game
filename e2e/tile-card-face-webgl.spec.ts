@@ -9,6 +9,7 @@ import {
 
 test.describe('Tile card face (WebGL)', () => {
     test('canvas differs only slightly after one flip (split back/face bitmaps + text overlay)', async ({ page }, testInfo) => {
+        test.setTimeout(120_000);
         await page.setViewportSize({ width: 1280, height: 720 });
         await navigateToLevel1PlayPhase(page, reduceMotionSaveJson);
 

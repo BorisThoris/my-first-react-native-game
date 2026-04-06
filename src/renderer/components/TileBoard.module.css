@@ -343,6 +343,8 @@
     -moz-osx-font-smoothing: grayscale;
     border: 1px solid rgba(255, 214, 133, 0.22);
     border-radius: 1.12rem;
+    /* Reinforce clip when children use preserve-3d + translateZ (overflow:hidden alone can leak). */
+    clip-path: inset(0 round 1.12rem);
     background:
         radial-gradient(circle at 18% 16%, rgba(255, 214, 133, 0.16), transparent 34%),
         radial-gradient(circle at 82% 78%, rgba(87, 220, 255, 0.08), transparent 34%),
@@ -610,6 +612,8 @@
     position: absolute;
     inset: 3% 17%;
     border-radius: 0.72rem;
+    /* Clip background layers to rounded rect (avoids subpixel bleed past border on some GPUs). */
+    background-clip: padding-box;
     border: 1px solid rgba(255, 214, 133, 0.3);
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.1),
@@ -617,35 +621,35 @@
         0 8px 18px rgba(8, 10, 18, 0.22);
     overflow: hidden;
     background:
-        url('../assets/textures/cards/reference-back.png') center / cover no-repeat,
+        url('../assets/textures/cards/back.svg') center / 100% 100% no-repeat,
         linear-gradient(170deg, rgba(21, 33, 50, 0.98), rgba(8, 12, 20, 0.98));
 }
 
 .cardFaceBack {
     background:
-        url('../assets/textures/cards/reference-back.png') center / cover no-repeat,
+        url('../assets/textures/cards/back.svg') center / 100% 100% no-repeat,
         linear-gradient(170deg, rgba(21, 33, 50, 0.98), rgba(8, 12, 20, 0.98));
 }
 
-/* DOM fallback: hidden uses reference-back; face-up uses front-face (e2e/tile-card-face-dom). */
+/* DOM fallback: hidden uses back.svg; face-up uses front.svg (fills frame — matches WebGL plane mapping). */
 .cardFaceFront,
 .faceUp .cardBack {
     background:
-        url('../assets/textures/cards/front-face.png') center / cover no-repeat,
+        url('../assets/textures/cards/front.svg') center / 100% 100% no-repeat,
         linear-gradient(170deg, rgba(21, 33, 50, 0.98), rgba(8, 12, 20, 0.98));
     border-color: rgba(245, 224, 182, 0.4);
 }
 
 .matched .cardBack {
     background:
-        url('../assets/textures/cards/front-face.png') center / cover no-repeat,
+        url('../assets/textures/cards/front.svg') center / 100% 100% no-repeat,
         linear-gradient(170deg, rgba(21, 33, 50, 0.98), rgba(8, 12, 20, 0.98));
     border-color: rgba(196, 235, 165, 0.44);
 }
 
 .resolvingMismatch .cardBack {
     background:
-        url('../assets/textures/cards/front-face.png') center / cover no-repeat,
+        url('../assets/textures/cards/front.svg') center / 100% 100% no-repeat,
         linear-gradient(170deg, rgba(21, 33, 50, 0.98), rgba(8, 12, 20, 0.98));
     border-color: rgba(216, 106, 88, 0.44);
 }
@@ -804,6 +808,7 @@
 
     .fallbackTile {
         border-radius: 1rem;
+        clip-path: inset(0 round 1rem);
     }
 
     .tileSymbol {

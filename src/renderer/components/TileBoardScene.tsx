@@ -13,6 +13,7 @@ import {
     Vector2,
     Vector3,
     type BufferAttribute,
+    type BufferGeometry,
     type Group,
     type MeshBasicMaterial
 } from 'three';
@@ -26,6 +27,8 @@ import {
     type FaceVariant
 } from './tileTextures';
 import {
+    CARD_PLANE_HEIGHT,
+    CARD_PLANE_WIDTH,
     CORE_SCALE,
     SHELL_SCALE,
     TILE_DEPTH,
@@ -36,6 +39,9 @@ import { RENDERER_THEME } from '../styles/theme';
 import { getTileFieldAmplification } from './tileFieldTilt';
 import { isTilePickable, noopMeshRaycast, pickableMeshRaycast } from './tileBoardPick';
 import { getResolvingSelectionState, type ResolvingSelectionState } from './tileResolvingSelection';
+import cardBackSvgUrl from '../assets/textures/cards/back.svg?url';
+import cardFrontSvgUrl from '../assets/textures/cards/front.svg?url';
+import { loadSharedCardSvgPlaneGeometry } from './cardSvgPlaneGeometry';
 
 const HOVER_RIM_TINT = new Color('#fff0d4');
 const scratchCardTint = new Color();
@@ -76,6 +82,10 @@ interface TileBezelProps {
     textureRevision: number;
     tile: Tile;
     transform: TileTransform;
+    /** Merged SVG mesh at card plane size; when set, replaces front texture and front-plane bend/wear. */
+    sharedCardFrontGeometry: BufferGeometry | null;
+    /** Merged SVG mesh for hidden side; when set, replaces back texture and back-plane bend/wear. */
+    sharedCardBackGeometry: BufferGeometry | null;
 }
 
 export interface TileHoverTiltState {
@@ -102,8 +112,8 @@ interface TileTransform {
     seed: number;
 }
 
-const CARD_WIDTH = 0.74;
-const CARD_HEIGHT = 1.08;
+const CARD_WIDTH = CARD_PLANE_WIDTH;
+const CARD_HEIGHT = CARD_PLANE_HEIGHT;
 const CARD_FACE_INSET = 0.016;
 const CARD_FACE_WIDTH = CARD_WIDTH - CARD_FACE_INSET * 2;
 const CARD_FACE_HEIGHT = CARD_HEIGHT - CARD_FACE_INSET * 2;
@@ -322,7 +332,9 @@ const TileBezel = ({
     shuffleMotionDeadlineMs,
     textureRevision,
     tile,
-    transform
+    transform,
+    sharedCardFrontGeometry,
+    sharedCardBackGeometry
 }: TileBezelProps) => {
     const { gl } = useThree();
     const groupRef = useRef<Group | null>(null);
@@ -384,6 +396,9 @@ const TileBezel = ({
         };
     });
 
+    const useSvgMeshFront = sharedCardFrontGeometry != null;
+    const useSvgMeshBack = sharedCardBackGeometry != null;
+
     useLayoutEffect(() => {
         frontBaseRef.current = cloneBasePositions(frontGeometry);
         backBaseRef.current = cloneBasePositions(backGeometry);
@@ -420,8 +435,12 @@ const TileBezel = ({
         const depthScale = 1 + bendBuildupRef.current * 0.52;
         const bendOverlay = getSurfaceVariant(tile, faceUp, resolvingSelection) !== 'hidden';
 
-        addPersistentBendStamp(frontPersistentRef.current, frontBase, bu, bv, CARD_WIDTH, CARD_HEIGHT, depthScale);
-        addPersistentBendStamp(backPersistentRef.current, backBase, bu, bv, CARD_WIDTH, CARD_HEIGHT, depthScale);
+        if (!useSvgMeshFront) {
+            addPersistentBendStamp(frontPersistentRef.current, frontBase, bu, bv, CARD_WIDTH, CARD_HEIGHT, depthScale);
+        }
+        if (!useSvgMeshBack) {
+            addPersistentBendStamp(backPersistentRef.current, backBase, bu, bv, CARD_WIDTH, CARD_HEIGHT, depthScale);
+        }
 
         if (bendOverlay) {
             addPersistentBendStamp(
@@ -436,11 +455,19 @@ const TileBezel = ({
         }
 
         if (wearAssets) {
-            drawWearStamp(wearAssets.front.context, bu, bv, depthScale);
-            drawWearStamp(wearAssets.back.context, bu, bv, depthScale);
+            if (!useSvgMeshFront) {
+                drawWearStamp(wearAssets.front.context, bu, bv, depthScale);
+            }
+            if (!useSvgMeshBack) {
+                drawWearStamp(wearAssets.back.context, bu, bv, depthScale);
+            }
             /* eslint-disable react-hooks/immutability */
-            wearAssets.front.texture.needsUpdate = true;
-            wearAssets.back.texture.needsUpdate = true;
+            if (!useSvgMeshFront) {
+                wearAssets.front.texture.needsUpdate = true;
+            }
+            if (!useSvgMeshBack) {
+                wearAssets.back.texture.needsUpdate = true;
+            }
             /* eslint-enable react-hooks/immutability */
         }
     };
@@ -653,26 +680,30 @@ const TileBezel = ({
             const backPos = backGeometry.attributes.position as BufferAttribute;
             const overlayPos = overlayGeometry.attributes.position as BufferAttribute;
 
-            composeCardPositions(
-                frontPos,
-                frontBase,
-                frontPersistentRef.current,
-                bu,
-                bv,
-                CARD_WIDTH,
-                CARD_HEIGHT,
-                live
-            );
-            composeCardPositions(
-                backPos,
-                backBase,
-                backPersistentRef.current,
-                bu,
-                bv,
-                CARD_WIDTH,
-                CARD_HEIGHT,
-                live
-            );
+            if (!useSvgMeshFront) {
+                composeCardPositions(
+                    frontPos,
+                    frontBase,
+                    frontPersistentRef.current,
+                    bu,
+                    bv,
+                    CARD_WIDTH,
+                    CARD_HEIGHT,
+                    live
+                );
+            }
+            if (!useSvgMeshBack) {
+                composeCardPositions(
+                    backPos,
+                    backBase,
+                    backPersistentRef.current,
+                    bu,
+                    bv,
+                    CARD_WIDTH,
+                    CARD_HEIGHT,
+                    live
+                );
+            }
             composeCardPositions(
                 overlayPos,
                 overlayBase,
@@ -775,9 +806,9 @@ const TileBezel = ({
               : resolvingSelection === 'gambitNeutral' && faceUp
                 ? '#cfe8f2'
                 : '#ffffff';
-    /** Hidden side: reference back art. Face-up side: calmer face panel; symbol draws on overlay mesh only. */
-    const cardBackArtTexture = getCardBackStaticTexture();
-    const cardFrontArtTexture = getCardFaceStaticTexture();
+    /** Hidden side: shared SVG mesh when loaded, else raster fallback. Face-up: same for front. */
+    const cardBackArtTexture = useSvgMeshBack ? null : getCardBackStaticTexture();
+    const cardFrontArtTexture = useSvgMeshFront ? null : getCardFaceStaticTexture();
     const overlayTexture =
         surfaceVariant === 'hidden' ? null : getTileFaceOverlayTexture(tile, surfaceVariant);
     const forceTextureRefreshKey = textureRevision;
@@ -806,19 +837,34 @@ const TileBezel = ({
                     <boxGeometry args={[CARD_WIDTH, CARD_HEIGHT, TILE_DEPTH]} />
                     <meshBasicMaterial colorWrite={false} depthWrite={false} transparent />
                 </mesh>
-                <mesh geometry={frontGeometry} position={[0, 0, faceZ]} raycast={noopMeshRaycast}>
-                    <meshBasicMaterial
-                        ref={frontCardMatRef}
-                        alphaTest={0.06}
-                        color={cardTint}
-                        depthWrite
-                        map={cardFrontArtTexture ?? undefined}
-                        side={DoubleSide}
-                        toneMapped={false}
-                        transparent
-                    />
-                </mesh>
-                {wearAssets ? (
+                {useSvgMeshFront && sharedCardFrontGeometry ? (
+                    <mesh geometry={sharedCardFrontGeometry} position={[0, 0, faceZ]} raycast={noopMeshRaycast}>
+                        <meshBasicMaterial
+                            ref={frontCardMatRef}
+                            alphaTest={0.06}
+                            color={cardTint}
+                            depthWrite
+                            side={DoubleSide}
+                            toneMapped={false}
+                            transparent
+                            vertexColors
+                        />
+                    </mesh>
+                ) : (
+                    <mesh geometry={frontGeometry} position={[0, 0, faceZ]} raycast={noopMeshRaycast}>
+                        <meshBasicMaterial
+                            ref={frontCardMatRef}
+                            alphaTest={0.06}
+                            color={cardTint}
+                            depthWrite
+                            map={cardFrontArtTexture ?? undefined}
+                            side={DoubleSide}
+                            toneMapped={false}
+                            transparent
+                        />
+                    </mesh>
+                )}
+                {wearAssets && !useSvgMeshFront ? (
                     <mesh
                         geometry={frontGeometry}
                         position={[0, 0, faceZ + 0.00045]}
@@ -838,19 +884,39 @@ const TileBezel = ({
                         />
                     </mesh>
                 ) : null}
-                <mesh geometry={backGeometry} position={[0, 0, -faceZ]} rotation={[0, Math.PI, 0]} raycast={noopMeshRaycast}>
-                    <meshBasicMaterial
-                        ref={backCardMatRef}
-                        alphaTest={0.06}
-                        color={cardTint}
-                        depthWrite
-                        map={cardBackArtTexture ?? undefined}
-                        side={DoubleSide}
-                        toneMapped={false}
-                        transparent
-                    />
-                </mesh>
-                {wearAssets ? (
+                {useSvgMeshBack && sharedCardBackGeometry ? (
+                    <mesh
+                        geometry={sharedCardBackGeometry}
+                        position={[0, 0, -faceZ]}
+                        rotation={[0, Math.PI, 0]}
+                        raycast={noopMeshRaycast}
+                    >
+                        <meshBasicMaterial
+                            ref={backCardMatRef}
+                            alphaTest={0.06}
+                            color={cardTint}
+                            depthWrite
+                            side={DoubleSide}
+                            toneMapped={false}
+                            transparent
+                            vertexColors
+                        />
+                    </mesh>
+                ) : (
+                    <mesh geometry={backGeometry} position={[0, 0, -faceZ]} rotation={[0, Math.PI, 0]} raycast={noopMeshRaycast}>
+                        <meshBasicMaterial
+                            ref={backCardMatRef}
+                            alphaTest={0.06}
+                            color={cardTint}
+                            depthWrite
+                            map={cardBackArtTexture ?? undefined}
+                            side={DoubleSide}
+                            toneMapped={false}
+                            transparent
+                        />
+                    </mesh>
+                )}
+                {wearAssets && !useSvgMeshBack ? (
                     <mesh
                         geometry={backGeometry}
                         position={[0, 0, -faceZ - 0.00045]}
@@ -910,6 +976,8 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
     const totalColumns = board.columns;
     const totalRows = board.rows;
     const [textureRevision, setTextureRevision] = useState(0);
+    const [sharedCardFrontGeometry, setSharedCardFrontGeometry] = useState<BufferGeometry | null>(null);
+    const [sharedCardBackGeometry, setSharedCardBackGeometry] = useState<BufferGeometry | null>(null);
     const flipLocked = board.flippedTileIds.length === 2;
     const pinnedSet = useMemo(() => new Set(pinnedTileIds), [pinnedTileIds]);
     const boardGroupRef = useRef<Group | null>(null);
@@ -917,6 +985,25 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
     const pickPointerRef = useRef<Vector2>(new Vector2());
 
     useEffect(() => subscribeTextureImageUpdates(() => setTextureRevision((current) => current + 1)), []);
+    /** Chain front → back so two huge SVGLoader.parse passes never run in parallel (main-thread + memory). */
+    useEffect(() => {
+        let cancelled = false;
+        void (async () => {
+            const frontG = await loadSharedCardSvgPlaneGeometry(cardFrontSvgUrl);
+            if (cancelled) {
+                return;
+            }
+            setSharedCardFrontGeometry(frontG);
+            const backG = await loadSharedCardSvgPlaneGeometry(cardBackSvgUrl);
+            if (cancelled) {
+                return;
+            }
+            setSharedCardBackGeometry(backG);
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, []);
     useEffect(() => {
         onViewportMetricsChange({ height: viewport.height, width: viewport.width });
     }, [onViewportMetricsChange, viewport.height, viewport.width]);
@@ -1032,6 +1119,8 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                             reduceMotion={reduceMotion}
                             resolvingSelection={getResolvingSelectionState(board, runStatus, tile.id)}
                             shuffleMotionDeadlineMs={shuffleMotionDeadlineMs}
+                            sharedCardBackGeometry={sharedCardBackGeometry}
+                            sharedCardFrontGeometry={sharedCardFrontGeometry}
                             textureRevision={textureRevision}
                             tile={tile}
                             transform={transform}

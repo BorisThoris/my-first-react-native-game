@@ -20,8 +20,8 @@ Use this when final art is ready. Swap files **or** update imports in `src/rende
 ## Card raster (TASK-011)
 | Role | File / import |
 |------|----------------|
-| Hidden-side card art | `reference-back.png` — `tileTextures.ts` (`cardReference`), DOM `.cardFaceBack` |
-| Face-up panel art | `front-face.png` — `tileTextures.ts` (`cardFace`), `UI_ART.cardFaceUrl`, DOM `.cardFaceFront` / `.faceUp .cardBack` |
+| Hidden-side card art | `back.svg` — `tileTextures.ts` (`cardReference`), `cardSvgPlaneGeometry.ts`, DOM `.cardFaceBack` |
+| Face-up panel art | `front.svg` — `tileTextures.ts` (`cardFace`), `slots.ts` / `cardFaceUrl`, DOM `.cardFaceFront` / `.faceUp .cardBack` |
 | Edge / roughness | `edge.png`, `panel-roughness.png`, `edge-roughness.png` |
 
 ## Mode cards (TASK-018)

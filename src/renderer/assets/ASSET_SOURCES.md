@@ -26,8 +26,8 @@ Per [docs/new_design/ASSET_AND_ART_PIPELINE.md](../../docs/new_design/ASSET_AND_
 | `ui/icons/icon-stray-v1.svg` | Board power: stray remove | Authored SVG | Same |
 | `ui/icons/icon-undo-v1.svg` | Resolving-phase undo | Authored SVG | Same |
 | `ui/frames/hud-segment-ornament.svg` | HUD score segment flourish | Authored SVG | Hex motif; used in `GameScreen.module.css` |
-| `textures/cards/reference-back.png` | Tile **hidden** side raster (DOM + WebGL back plane) | `scripts/generate-card-textures.ps1` (source for `back.png`); replace with `yarn imagegen` for illustrated dungeon-style art | Run script from repo root; pairs with gameplay/menu palette |
-| `textures/cards/front-face.png` | Tile **face-up** panel (DOM + WebGL front plane) | Same script (`New-CardFrontFaceImage` after `back.png`) | Calmer center than back for symbol legibility; regenerate after `reference-back.png` changes |
+| `textures/cards/back.svg` | Tile **hidden** side (DOM + WebGL back plane) | Authored SVG (`back.svg?url` in `tileTextures.ts`, `slots.ts`); WebGL uses merged mesh via [`cardSvgPlaneGeometry.ts`](../components/cardSvgPlaneGeometry.ts) | Raster fallback if mesh exceeds vertex cap. Optional PNG pipeline: [`CARD_TEXTURE_AI_BRIEF.md`](../../docs/new_design/CARD_TEXTURE_AI_BRIEF.md). |
+| `textures/cards/front.svg` | Tile **face-up** panel (DOM + WebGL front plane) | Same as back (`front.svg?url`, shared `loadSharedCardSvgPlaneGeometry`) | Vector face; raster fallback if SVG mesh fails. |
 | `textures/cards/edge.png` | Card edge map | `scripts/generate-card-textures.ps1` | Pairs with `tileTextures.ts` |
 | `textures/cards/panel-roughness.png` | Panel roughness | `scripts/generate-card-textures.ps1` | |
 | `textures/cards/edge-roughness.png` | Edge roughness | `scripts/generate-card-textures.ps1` | |
@@ -52,7 +52,25 @@ Latin subsets only to limit bundle size.
 With `OPENAI_API_KEY` set:
 
 ```bash
-yarn imagegen -- --prompt "YOUR PROMPT" --out src/renderer/assets/ui/backgrounds/name.png --size 1536x1024
+# Print exact card PNG dimensions for a given long edge (default 2048)
+yarn card-texture:ideal
+yarn card-texture:ideal 3072
+
+# Menu / wide hero (default if you omit resolution)
+yarn imagegen -- --prompt "YOUR PROMPT" --out src/renderer/assets/ui/backgrounds/name.png
+
+# Optional raster back (if not using `back.svg`): API 1024×1536 → trim → normalize to exact 0.74:1.08
+# yarn imagegen … --out tmp/card-back-raw.png
+# yarn png:trim-bbox tmp/card-back-raw.png tmp/card-back-trimmed.png --pad 2
+# powershell … normalize-card-texture.ps1 … -OutputPath src/renderer/assets/textures/cards/some-back.png
+
+# Vector sides: edit `back.svg` / `front.svg` (also `?url` imports in `tileTextures.ts` / `slots.ts`). WebGL builds merged meshes in `cardSvgPlaneGeometry.ts`.
 ```
+
+In-game mapping is **contain** (not cover): full illustration stays visible; stretch is avoided so filigree/gems stay round.
+
+Square **1024×1024** (icons / non-card): `--resolution card` or `square`. Explicit size: `--size 1536x1024` (overrides `--resolution`).
+
+Presets: `yarn imagegen -- --list-resolutions`. Optional `--quality low|medium|high|auto` for `gpt-image-*`.
 
 Add or update a row in this table when you replace a file.

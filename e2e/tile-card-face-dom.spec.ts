@@ -35,8 +35,8 @@ test.describe('Tile card face (DOM fallback)', () => {
             });
 
         const hiddenStyle = await readBg(cardFace);
-        expect(hiddenStyle.backgroundImage, 'Hidden tile should use reference-back.png').toMatch(/reference-back\.png/i);
-        expect(hiddenStyle.backgroundSize, 'Image layer uses cover (second value is gradient)').toMatch(/^cover/);
+        expect(hiddenStyle.backgroundImage, 'Hidden tile should use back.svg').toMatch(/back\.svg/i);
+        expect(hiddenStyle.backgroundSize, 'Back SVG fills card frame').toMatch(/^100%\s+100%/);
         expect(hiddenStyle.backgroundRepeat).toMatch(/^no-repeat/);
         expect(hiddenStyle.backgroundPosition).toMatch(/50%/);
 
@@ -46,9 +46,9 @@ test.describe('Tile card face (DOM fallback)', () => {
         const tileShown11 = page.getByRole('button', { name: /tile .*, row 1, column 1/i });
         const shownStyle = await readBg(tileShown11.getByTestId('tile-card-face'));
 
-        expect(shownStyle.backgroundImage, 'Face-up tile should use front-face.png').toMatch(/front-face\.png/i);
+        expect(shownStyle.backgroundImage, 'Face-up tile should use front.svg').toMatch(/front\.svg/i);
         expect(shownStyle.backgroundImage).not.toBe(hiddenStyle.backgroundImage);
-        expect(shownStyle.backgroundSize).toBe(hiddenStyle.backgroundSize);
+        expect(shownStyle.backgroundSize, 'Face SVG stretches to card frame').toMatch(/^100%\s+100%/);
         expect(shownStyle.backgroundPosition).toBe(hiddenStyle.backgroundPosition);
         expect(shownStyle.backgroundRepeat).toBe(hiddenStyle.backgroundRepeat);
 

@@ -1,8 +1,9 @@
 import { CanvasTexture, LinearFilter, NoColorSpace, SRGBColorSpace } from 'three';
 import type { Tile } from '../../shared/contracts';
 import { RENDERER_THEME } from '../styles/theme';
-import referenceBackTextureUrl from '../assets/textures/cards/reference-back.png';
-import cardFaceTextureUrl from '../assets/textures/cards/front-face.png';
+import { CARD_PLANE_HEIGHT, CARD_PLANE_WIDTH } from './tileShatter';
+import referenceBackTextureUrl from '../assets/textures/cards/back.svg?url';
+import cardFaceTextureUrl from '../assets/textures/cards/front.svg?url';
 import edgeTextureUrl from '../assets/textures/cards/edge.png';
 import panelRoughnessTextureUrl from '../assets/textures/cards/panel-roughness.png';
 import edgeRoughnessTextureUrl from '../assets/textures/cards/edge-roughness.png';
@@ -16,7 +17,10 @@ export type CubeFace = TileFace;
 export type CubeLayer = 'shell' | 'core';
 
 const TEXTURE_SIZE = 512;
-const TILE_TEXTURE_VERSION = 14;
+/** Taller canvas for WebGL static card PNGs so 1403×2048 sources aren’t over-downscaled (was 512 — felt cropped/soft). */
+const STATIC_CARD_TEXTURE_HEIGHT = 1024;
+const STATIC_CARD_TEXTURE_WIDTH = Math.max(2, Math.round(STATIC_CARD_TEXTURE_HEIGHT * (CARD_PLANE_WIDTH / CARD_PLANE_HEIGHT)));
+const TILE_TEXTURE_VERSION = 28;
 const textureCache = new Map<string, CanvasTexture>();
 const textureImageUpdateListeners = new Set<() => void>();
 
@@ -164,10 +168,43 @@ const drawTextureImage = (
     return true;
 };
 
+/** Letterbox fill under card art when source aspect ≠ canvas (matches DOM gradient tone). */
+const STATIC_CARD_LETTERBOX = '#0a0e18';
+
+/** Raster card art (SVG/PNG): stretch to full static card canvas (matches card plane; no letterbox). */
+const drawCardRasterFullBleed = (
+    context: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    imageId: TextureImageId,
+    opacity = 1
+): boolean => {
+    const image = getTextureImage(imageId);
+
+    if (!image || !image.naturalWidth) {
+        return false;
+    }
+
+    const iw = image.naturalWidth;
+    const ih = image.naturalHeight;
+    const cw = canvas.width;
+    const ch = canvas.height;
+
+    context.save();
+    context.fillStyle = STATIC_CARD_LETTERBOX;
+    context.fillRect(0, 0, cw, ch);
+    context.globalAlpha = opacity;
+    context.drawImage(image, 0, 0, iw, ih, 0, 0, cw, ch);
+    context.restore();
+
+    return true;
+};
+
 const createTexture = (
     key: string,
     draw: (context: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => void,
-    colorSpace: typeof NoColorSpace | typeof SRGBColorSpace = SRGBColorSpace
+    colorSpace: typeof NoColorSpace | typeof SRGBColorSpace = SRGBColorSpace,
+    width: number = TEXTURE_SIZE,
+    height: number = TEXTURE_SIZE
 ): CanvasTexture | null => {
     const cached = textureCache.get(key);
 
@@ -180,8 +217,8 @@ const createTexture = (
     }
 
     const canvas = document.createElement('canvas');
-    canvas.width = TEXTURE_SIZE;
-    canvas.height = TEXTURE_SIZE;
+    canvas.width = width;
+    canvas.height = height;
 
     const context = canvas.getContext('2d');
 
@@ -423,7 +460,7 @@ const drawNoise = (context: CanvasRenderingContext2D, width: number, height: num
     context.restore();
 };
 
-/** Rounded panel: reference-back raster plus the same hatch / emblem treatment used on the physical back. */
+/** Rounded panel: card back raster (`back.svg` / `cardReference`) plus hatch / emblem used on the physical back. */
 const drawCardReferenceRoundPanel = (
     context: CanvasRenderingContext2D,
     canvas: HTMLCanvasElement,
@@ -807,34 +844,49 @@ export const getTileFaceOverlayTexture = (
 ): CanvasTexture | null =>
     createTexture(
         `${buildKey(tile, 'front', variant, 'panel')}:overlay`,
-        (context, canvas) => drawCardFrontOverlay(context, canvas, tile, variant)
+        (context, canvas) => drawCardFrontOverlay(context, canvas, tile, variant),
+        SRGBColorSpace,
+        STATIC_CARD_TEXTURE_WIDTH,
+        STATIC_CARD_TEXTURE_HEIGHT
     );
 
 export const getCardBackStaticTexture = (): CanvasTexture | null =>
-    createTexture('static-card-back', (context, canvas) => {
-        const rendered = drawTextureImage(context, canvas, 'cardReference', 1);
+    createTexture(
+        `static-card-back:${TILE_TEXTURE_VERSION}`,
+        (context, canvas) => {
+            const rendered = drawCardRasterFullBleed(context, canvas, 'cardReference', 1);
 
-        if (!rendered) {
-            const fallback = context.createLinearGradient(0, 0, canvas.width, canvas.height);
-            fallback.addColorStop(0, '#2b394f');
-            fallback.addColorStop(1, '#182233');
-            context.fillStyle = fallback;
-            context.fillRect(0, 0, canvas.width, canvas.height);
-        }
-    });
+            if (!rendered) {
+                const fallback = context.createLinearGradient(0, 0, canvas.width, canvas.height);
+                fallback.addColorStop(0, '#2b394f');
+                fallback.addColorStop(1, '#182233');
+                context.fillStyle = fallback;
+                context.fillRect(0, 0, canvas.width, canvas.height);
+            }
+        },
+        SRGBColorSpace,
+        STATIC_CARD_TEXTURE_WIDTH,
+        STATIC_CARD_TEXTURE_HEIGHT
+    );
 
 export const getCardFaceStaticTexture = (): CanvasTexture | null =>
-    createTexture('static-card-face', (context, canvas) => {
-        const rendered = drawTextureImage(context, canvas, 'cardFace', 1);
+    createTexture(
+        `static-card-face:${TILE_TEXTURE_VERSION}`,
+        (context, canvas) => {
+            const rendered = drawCardRasterFullBleed(context, canvas, 'cardFace', 1);
 
-        if (!rendered) {
-            const fallback = context.createLinearGradient(0, 0, canvas.width, canvas.height);
-            fallback.addColorStop(0, '#243448');
-            fallback.addColorStop(1, '#121a28');
-            context.fillStyle = fallback;
-            context.fillRect(0, 0, canvas.width, canvas.height);
-        }
-    });
+            if (!rendered) {
+                const fallback = context.createLinearGradient(0, 0, canvas.width, canvas.height);
+                fallback.addColorStop(0, '#243448');
+                fallback.addColorStop(1, '#121a28');
+                context.fillStyle = fallback;
+                context.fillRect(0, 0, canvas.width, canvas.height);
+            }
+        },
+        SRGBColorSpace,
+        STATIC_CARD_TEXTURE_WIDTH,
+        STATIC_CARD_TEXTURE_HEIGHT
+    );
 
 export const subscribeTextureImageUpdates = (listener: () => void): (() => void) => {
     textureImageUpdateListeners.add(listener);
