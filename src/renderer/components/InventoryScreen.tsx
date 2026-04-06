@@ -18,7 +18,7 @@ const InventoryScreen = () => {
 
     if (!run) {
         return (
-            <section aria-label="Inventory" className={metaStyles.shell} role="region">
+            <section aria-label="Inventory" className={`${metaStyles.shell} ${metaStyles.shellMetaStage}`} role="region">
                 <header className={metaStyles.header}>
                     <div className={metaStyles.headerText}>
                         <Eyebrow tone="menu">Expedition</Eyebrow>
@@ -38,7 +38,7 @@ const InventoryScreen = () => {
     const contract = run.activeContract;
 
     return (
-        <section aria-label="Inventory" className={metaStyles.shell} role="region">
+        <section aria-label="Inventory" className={`${metaStyles.shell} ${metaStyles.shellMetaStage}`} role="region">
             <header className={metaStyles.header}>
                 <div className={metaStyles.headerText}>
                     <Eyebrow tone="menu">Active run</Eyebrow>
@@ -53,8 +53,15 @@ const InventoryScreen = () => {
             </header>
 
             <div className={metaStyles.body}>
+                <nav aria-label="Inventory sections" className={metaStyles.inPageToc}>
+                    <a href="#inventory-run">Run</a>
+                    <a href="#inventory-relics">Relics</a>
+                    <a href="#inventory-mutators">Mutators</a>
+                    <a href="#inventory-charges">Charges</a>
+                    <a href="#inventory-contract">Contract</a>
+                </nav>
                 <Panel padding="lg" variant="strong">
-                    <div className={styles.kv}>
+                    <div className={`${styles.kv} ${metaStyles.sectionAnchor}`} id="inventory-run">
                         <div className={styles.kvRow}>
                             <span>
                                 Mode<strong>{modeTitle(run.gameMode)}</strong>
@@ -88,6 +95,7 @@ const InventoryScreen = () => {
                 </Panel>
 
                 <Panel padding="lg" variant="default">
+                    <div className={metaStyles.sectionAnchor} id="inventory-relics">
                     <h2 className={metaStyles.subtitle} style={{ margin: '0 0 0.5rem', fontWeight: 650 }}>
                         Relics
                     </h2>
@@ -100,9 +108,11 @@ const InventoryScreen = () => {
                     ) : (
                         <p className={styles.empty}>No relics claimed yet this run.</p>
                     )}
+                    </div>
                 </Panel>
 
                 <Panel padding="lg" variant="default">
+                    <div className={metaStyles.sectionAnchor} id="inventory-mutators">
                     <h2 className={metaStyles.subtitle} style={{ margin: '0 0 0.5rem', fontWeight: 650 }}>
                         Mutators
                     </h2>
@@ -115,9 +125,11 @@ const InventoryScreen = () => {
                     ) : (
                         <p className={styles.empty}>No mutators on this run.</p>
                     )}
+                    </div>
                 </Panel>
 
                 <Panel padding="lg" variant="default">
+                    <div className={metaStyles.sectionAnchor} id="inventory-charges">
                     <h2 className={metaStyles.subtitle} style={{ margin: '0 0 0.5rem', fontWeight: 650 }}>
                         Charges and tokens
                     </h2>
@@ -156,9 +168,11 @@ const InventoryScreen = () => {
                             </span>
                         </div>
                     </div>
+                    </div>
                 </Panel>
 
                 <Panel padding="lg" variant="default">
+                    <div className={metaStyles.sectionAnchor} id="inventory-contract">
                     <h2 className={metaStyles.subtitle} style={{ margin: '0 0 0.5rem', fontWeight: 650 }}>
                         Contract flags
                     </h2>
@@ -171,6 +185,7 @@ const InventoryScreen = () => {
                     ) : (
                         <p className={styles.empty}>No scholar contract on this run.</p>
                     )}
+                    </div>
                 </Panel>
             </div>
         </section>

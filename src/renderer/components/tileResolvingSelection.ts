@@ -1,28 +1,33 @@
 import type { BoardState, RunStatus, Tile } from '../../shared/contracts';
-import { WILD_PAIR_KEY } from '../../shared/game';
+import { tilesArePairMatch } from '../../shared/game';
 
-export type ResolvingSelectionState = 'match' | 'mismatch' | null;
+export type ResolvingSelectionState = 'match' | 'mismatch' | 'gambitNeutral' | null;
 
-const areResolvingTilesMatch = (tiles: Tile[]): boolean => {
-    if (tiles.length < 2 || tiles.length > 2) {
-        return false;
+const classifyTwo = (tiles: Tile[]): ResolvingSelectionState => {
+    if (tiles.length !== 2) {
+        return null;
     }
 
-    const [first, second] = tiles;
+    return tilesArePairMatch(tiles[0], tiles[1]) ? 'match' : 'mismatch';
+};
 
-    if (first.pairKey === second.pairKey && first.pairKey !== '__decoy__') {
-        return true;
+/** Which two tiles (if any) form the gambit match while three are flipped — mirrors `resolveGambitThree`. */
+const gambitMatchPairIds = (tiles: [Tile, Tile, Tile]): { matchA: string; matchB: string; thirdId: string } | null => {
+    const [ta, tb, tc] = tiles;
+
+    if (tilesArePairMatch(ta, tb)) {
+        return { matchA: ta.id, matchB: tb.id, thirdId: tc.id };
     }
 
-    if (first.pairKey === WILD_PAIR_KEY && second.pairKey !== WILD_PAIR_KEY) {
-        return true;
+    if (tilesArePairMatch(ta, tc)) {
+        return { matchA: ta.id, matchB: tc.id, thirdId: tb.id };
     }
 
-    if (second.pairKey === WILD_PAIR_KEY && first.pairKey !== WILD_PAIR_KEY) {
-        return true;
+    if (tilesArePairMatch(tb, tc)) {
+        return { matchA: tb.id, matchB: tc.id, thirdId: ta.id };
     }
 
-    return false;
+    return null;
 };
 
 export const getResolvingSelectionState = (
@@ -37,10 +42,25 @@ export const getResolvingSelectionState = (
     const flippedTiles = board.tiles.filter((tile) => board.flippedTileIds.includes(tile.id));
 
     if (flippedTiles.length === 2) {
-        return areResolvingTilesMatch(flippedTiles) ? 'match' : 'mismatch';
+        return classifyTwo(flippedTiles);
     }
 
     if (flippedTiles.length === 3) {
+        const triplet = flippedTiles as [Tile, Tile, Tile];
+        const pair = gambitMatchPairIds(triplet);
+
+        if (!pair) {
+            return 'mismatch';
+        }
+
+        if (tileId === pair.thirdId) {
+            return 'gambitNeutral';
+        }
+
+        if (tileId === pair.matchA || tileId === pair.matchB) {
+            return 'match';
+        }
+
         return 'mismatch';
     }
 

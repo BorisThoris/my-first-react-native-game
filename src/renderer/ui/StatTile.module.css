@@ -5,7 +5,7 @@
     background:
         radial-gradient(circle at top left, rgba(195, 149, 79, 0.12), transparent 38%),
         linear-gradient(160deg, rgba(16, 14, 21, 0.92), rgba(9, 9, 13, 0.9));
-    border: 1px solid rgba(242, 211, 157, 0.14);
+    border: 1px solid var(--theme-border);
     box-shadow:
         0 16px 32px rgba(0, 0, 0, 0.2),
         inset 0 1px 0 rgba(255, 255, 255, 0.04);

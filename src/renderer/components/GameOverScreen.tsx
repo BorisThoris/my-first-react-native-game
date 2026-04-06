@@ -71,9 +71,15 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
         <section className={styles.shell} ref={shellRef}>
             <MainMenuBackground
                 fieldTiltRef={fieldTiltRef}
+                graphicsQuality={settings.graphicsQuality}
                 height={height}
                 reduceMotion={settings.reduceMotion}
                 width={width}
+            />
+            <div
+                aria-hidden="true"
+                className={styles.scenePlate}
+                style={{ backgroundImage: `url(${UI_ART.menuScene})` }}
             />
             <div className={styles.scrim} />
 

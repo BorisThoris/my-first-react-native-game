@@ -14,7 +14,8 @@ import {
     type ReactNode
 } from 'react';
 import { flushSync } from 'react-dom';
-import type { BoardState, RunStatus, Tile } from '../../shared/contracts';
+import type { BoardScreenSpaceAA, BoardState, GraphicsQualityPreset, RunStatus, Tile } from '../../shared/contracts';
+import { getBoardDprCap } from '../../shared/graphicsQuality';
 import { useCoarsePointer } from '../hooks/useCoarsePointer';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
@@ -55,6 +56,10 @@ interface TileBoardProps {
     pinnedTileIds?: string[];
     previewActive: boolean;
     reduceMotion: boolean;
+    /** When `auto`, matches legacy: SMAA when motion is on, MSAA when Reduce Motion is on. */
+    boardScreenSpaceAA?: BoardScreenSpaceAA;
+    graphicsQuality?: GraphicsQualityPreset;
+    boardBloomEnabled?: boolean;
     viewportResetToken: number;
     frameStyle?: CSSProperties;
     /** Hidden tiles to dim when focus-assist is on (fallback 2D board only). */
@@ -165,7 +170,8 @@ const getTileClassName = (
         isPinned && tile.state === 'hidden' ? styles.fallbackTilePinned : '',
         isFocusDimmed ? styles.tileFocusDim : '',
         resolvingSelectionState === 'match' ? styles.resolvingMatch : '',
-        resolvingSelectionState === 'mismatch' ? styles.resolvingMismatch : ''
+        resolvingSelectionState === 'mismatch' ? styles.resolvingMismatch : '',
+        resolvingSelectionState === 'gambitNeutral' ? styles.resolvingGambitSpare : ''
     ]
         .filter(Boolean)
         .join(' ');
@@ -263,6 +269,11 @@ const TileBoardFallback = ({
                     >
                         <span className={styles.tileFace}>
                             <span className={styles.pulseGlow} />
+                            {tile.state === 'matched' ? (
+                                <span aria-hidden className={styles.fallbackMatchedCheck}>
+                                    ✓
+                                </span>
+                            ) : null}
                             {faceUp ? (
                                 <span
                                     className={`${styles.cardBack} ${styles.cardFaceFront} ${silhouetteClass}`.trim()}
@@ -304,6 +315,7 @@ class TileBoardErrorBoundary extends Component<{ fallback: ReactNode; children: 
     }
 }
 
+// FX-016 matrix: docs/new_design/FX_REDUCE_MOTION_MATRIX.md
 const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard(
     {
         board,
@@ -313,6 +325,9 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         pinnedTileIds = [],
         previewActive,
         reduceMotion,
+        boardScreenSpaceAA = 'auto',
+        graphicsQuality = 'medium',
+        boardBloomEnabled = false,
         viewportResetToken,
         frameStyle,
         dimmedTileIds,
@@ -330,7 +345,9 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
     const { height, width } = useViewportSize();
     const compact = width <= 760 || height <= 760;
     const touchPrimary = useCoarsePointer();
-    const threeEnabled = useMemo(() => canUseWebGL(), []);
+    const baselineWebGl = useMemo(() => canUseWebGL(), []);
+    const [gpuSurfaceLost, setGpuSurfaceLost] = useState(false);
+    const threeEnabled = baselineWebGl && !gpuSurfaceLost;
     const cameraViewportMode = mobileCameraMode && threeEnabled;
     const touchGestureMode = cameraViewportMode && touchPrimary;
     const desktopCameraMode = cameraViewportMode && !touchPrimary;
@@ -422,10 +439,17 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
     );
     const tileGridStyle = buildTileGridStyle(board);
     const deviceDpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
-    /** Cap DPR for GPU cost; slightly higher caps = sharper cards on dense displays. */
-    const dpr = Math.min(deviceDpr, compact ? 2.35 : 2.1);
-    /** With SMAA post-pass, skip default framebuffer MSAA to avoid redundant cost. */
-    const glAntialias = reduceMotion;
+    /** Cap DPR for GPU cost (PERF-001 `graphicsQuality` + compact layout). */
+    const dpr = Math.min(deviceDpr, getBoardDprCap(graphicsQuality, compact));
+    const bloomEffective = boardBloomEnabled && graphicsQuality !== 'low';
+    const resolvedBoardAa = useMemo((): 'smaa' | 'msaa' | 'off' => {
+        if (boardScreenSpaceAA === 'auto') {
+            return reduceMotion ? 'msaa' : 'smaa';
+        }
+        return boardScreenSpaceAA;
+    }, [boardScreenSpaceAA, reduceMotion]);
+    /** MSAA on the default framebuffer; off when using SMAA post-pass or AA off. */
+    const glAntialias = resolvedBoardAa === 'msaa';
     const boardWorldWidth = useMemo(() => (board.columns - 1) * TILE_SPACING + 1, [board.columns]);
     const boardWorldHeight = useMemo(() => (board.rows - 1) * TILE_SPACING + 1, [board.rows]);
     const fitMargin = cameraViewportMode ? MOBILE_CAMERA_FIT_MARGIN : compact ? COMPACT_BOARD_FIT_MARGIN : ROOMY_BOARD_FIT_MARGIN;
@@ -1016,6 +1040,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         >
             <div
                 className={`${styles.stage} ${cameraViewportMode ? styles.stageMobileCamera : ''} ${threeEnabled ? styles.stageWebglPicking : ''}`}
+                data-dom-tile-picks={threeEnabled && reduceMotion ? 'true' : undefined}
                 data-testid="tile-board-stage-shell"
                 ref={stageRef}
             >
@@ -1025,12 +1050,24 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                             <Canvas
                                 className={styles.canvas}
                                 dpr={dpr}
-                                key={reduceMotion ? 'tile-board-reduced-motion' : 'tile-board-smaa'}
+                                key={`tile-board-aa-${resolvedBoardAa}`}
                                 gl={{
                                     alpha: true,
                                     antialias: glAntialias,
                                     powerPreference: 'high-performance',
                                     premultipliedAlpha: false
+                                }}
+                                onCreated={({ gl }) => {
+                                    const canvas = gl.domElement as HTMLCanvasElement;
+                                    const onLost = (event: Event): void => {
+                                        event.preventDefault();
+                                        setGpuSurfaceLost(true);
+                                    };
+                                    const onRestored = (): void => {
+                                        setGpuSurfaceLost(false);
+                                    };
+                                    canvas.addEventListener('webglcontextlost', onLost);
+                                    canvas.addEventListener('webglcontextrestored', onRestored);
                                 }}
                                 shadows={false}
                                 camera={{ fov: 42, near: 0.1, far: 100, position: [0, 0, 10.5] }}
@@ -1054,7 +1091,10 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                                     runStatus={runStatus}
                                     shuffleMotionDeadlineMs={shuffleMotionDeadlineMs}
                                 />
-                                <TileBoardPostFx reduceMotion={reduceMotion} />
+                                <TileBoardPostFx
+                                    bloomEnabled={bloomEffective}
+                                    smaaEnabled={resolvedBoardAa === 'smaa'}
+                                />
                             </Canvas>
                         </div>
 
@@ -1074,7 +1114,9 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                                             tile.state === 'matched' ? styles.hitButtonMatched : ''
                                         } ${isPinned && tile.state === 'hidden' ? styles.hitButtonPinned : ''} ${
                                             resolvingSelectionState === 'match' ? styles.hitButtonResolvingMatch : ''
-                                        } ${resolvingSelectionState === 'mismatch' ? styles.hitButtonResolvingMismatch : ''}`.trim()}
+                                        } ${resolvingSelectionState === 'mismatch' ? styles.hitButtonResolvingMismatch : ''} ${
+                                            resolvingSelectionState === 'gambitNeutral' ? styles.hitButtonResolvingGambitSpare : ''
+                                        }`.trim()}
                                         data-tile-id={tile.id}
                                         disabled={disabled}
                                         key={tile.id}

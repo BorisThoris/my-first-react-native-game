@@ -6,7 +6,11 @@ Partial (top-light card chrome landed; per-mode raster panels still optional)
 ## Implementation notes
 - **Audit finding:** `ChooseYourPathScreen` structure matches reference; mode cards can gain illustration panels, stronger frames, and timer/badge polish vs stills.
 - **Relationship:** Visual layer on `TASK-007-mode-selection-and-menu-ia.md`.
-- **Landed:** `ChooseYourPathScreen.module.css` — subtle top highlight + inset sheen on `.card`. Mode-card asset row in `docs/new_design/DROP_IN_ASSET_CHECKLIST.md`.
+- **Landed:** `ChooseYourPathScreen.module.css` — subtle top highlight + inset sheen on `.card`; **Daily** card (`.cardDaily`) stronger purple border + outer glow toward reference “featured” chrome. Mode-card asset row in `docs/new_design/DROP_IN_ASSET_CHECKLIST.md`. Per-mode **poster rasters** still optional.
+
+### Reference audit ([`CURRENT_VS_ENDPRODUCT.md`](../../reference-comparison/CURRENT_VS_ENDPRODUCT.md))
+- **Poster illustrations** per mode (blue gate, purple crystal, fire gate) inside **ornate gold frames** vs flat gradient cards in `01a-choose-your-path.png`.
+- **Stronger featured selection glow** (purple rim) vs current modest treatment—CSS and/or assets.
 
 ## Priority
 Medium

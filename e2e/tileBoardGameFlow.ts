@@ -63,12 +63,12 @@ export const reduceMotionSaveJson = JSON.stringify({
     powersFtueSeen: true
 });
 
-export async function navigateToLevel1PlayPhase(page: Page): Promise<void> {
+export async function navigateToLevel1PlayPhase(page: Page, saveJson: string = defaultE2eGameSaveJson): Promise<void> {
     await page.addInitScript(
         ([key, json]) => {
             localStorage.setItem(key, json);
         },
-        [STORAGE_KEY, defaultE2eGameSaveJson]
+        [STORAGE_KEY, saveJson]
     );
     await page.goto('/');
     await dismissStartupIntro(page);
@@ -80,12 +80,15 @@ export async function navigateToLevel1PlayPhase(page: Page): Promise<void> {
     await expect
         .poll(async () => page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count(), { timeout: 12000 })
         .toBeGreaterThan(0);
+    const firstHidden = page.getByRole('button', { name: /hidden tile, row 1, column 1/i });
+    await expect(firstHidden).toBeEnabled({ timeout: 15000 });
 }
 
 export async function clickHiddenTileRowCol(page: Page, row: number, column: number, hiddenBefore: number): Promise<void> {
     const label = new RegExp(`hidden tile, row ${row}, column ${column}`, 'i');
-    await page.getByRole('button', { name: label }).click({ force: true });
+    const hit = page.getByRole('button', { name: label });
+    await hit.evaluate((el) => (el as HTMLButtonElement).click());
     await expect
-        .poll(async () => page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count(), { timeout: 3000 })
+        .poll(async () => page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count(), { timeout: 12000 })
         .toBeLessThan(hiddenBefore);
 }

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import type { Application, Container, Sprite, Texture } from 'pixi.js';
+import type { GraphicsQualityPreset } from '../../shared/contracts';
+import { getMenuPixiResolutionCap } from '../../shared/graphicsQuality';
 import type { TiltVector } from '../platformTilt/platformTiltTypes';
 import type * as PixiNamespace from 'pixi.js';
 import { RENDERER_THEME } from '../styles/theme';
@@ -7,6 +9,7 @@ import styles from './MainMenuBackground.module.css';
 
 interface MainMenuBackgroundProps {
     fieldTiltRef: MutableRefObject<TiltVector>;
+    graphicsQuality?: GraphicsQualityPreset;
     height: number;
     reduceMotion: boolean;
     /** When true, hide the patterned fallback so nothing reads as “loading” behind the startup intro. */
@@ -55,6 +58,7 @@ interface ParticleState {
 interface SceneController {
     destroy: () => void;
     resize: (width: number, height: number) => void;
+    setGraphicsQuality: (quality: GraphicsQualityPreset) => void;
     setReduceMotion: (reduceMotion: boolean) => void;
     /** For tests / debugging: last applied field tilt after transforms. */
     getLastFieldTilt: () => TiltVector;
@@ -267,6 +271,7 @@ const createSceneController = (
     initialWidth: number,
     initialHeight: number,
     initialReduceMotion: boolean,
+    initialGraphicsQuality: GraphicsQualityPreset,
     fieldTiltRef: MutableRefObject<TiltVector>
 ): SceneController => {
     const root = new pixi.Container();
@@ -291,6 +296,7 @@ const createSceneController = (
     const particles: ParticleState[] = [];
 
     let reduceMotion = initialReduceMotion;
+    let graphicsQuality = initialGraphicsQuality;
     let surfaceWidth = Math.max(1, initialWidth);
     let surfaceHeight = Math.max(1, initialHeight);
     let lastFieldTilt: TiltVector = { x: 0, y: 0 };
@@ -332,6 +338,12 @@ const createSceneController = (
     const renderStaticFrame = (): void => {
         applyTransforms(performance.now());
         app.render();
+    };
+
+    const applyRendererResolution = (): void => {
+        const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+        const cap = getMenuPixiResolutionCap(graphicsQuality);
+        app.renderer.resolution = Math.min(dpr, cap);
     };
 
     const rebuildScene = (): void => {
@@ -513,6 +525,8 @@ const createSceneController = (
         animationActive = true;
     };
 
+    applyRendererResolution();
+
     return {
         destroy: () => {
             stopAnimation();
@@ -528,11 +542,17 @@ const createSceneController = (
         resize: (width, height) => {
             surfaceWidth = Math.max(1, Math.round(width));
             surfaceHeight = Math.max(1, Math.round(height));
+            applyRendererResolution();
             rebuildScene();
 
             if (!reduceMotion) {
                 startAnimation();
             }
+        },
+        setGraphicsQuality: (nextQuality) => {
+            graphicsQuality = nextQuality;
+            applyRendererResolution();
+            renderStaticFrame();
         },
         setReduceMotion: (nextReduceMotion) => {
             reduceMotion = nextReduceMotion;
@@ -552,6 +572,7 @@ const createSceneController = (
 
 const MainMenuBackground = ({
     fieldTiltRef: menuFieldTiltRef,
+    graphicsQuality = 'medium',
     height,
     reduceMotion,
     suppressLoadingFallback = false,
@@ -559,12 +580,16 @@ const MainMenuBackground = ({
 }: MainMenuBackgroundProps) => {
     const hostRef = useRef<HTMLDivElement | null>(null);
     const sceneRef = useRef<SceneController | null>(null);
-    const latestPropsRef = useRef({ height, reduceMotion, width });
+    const latestPropsRef = useRef({ graphicsQuality, height, reduceMotion, width });
     const [renderStatus, setRenderStatus] = useState<'loading' | 'ready' | 'fallback'>('loading');
 
     useEffect(() => {
-        latestPropsRef.current = { height, reduceMotion, width };
-    }, [height, reduceMotion, width]);
+        latestPropsRef.current = { graphicsQuality, height, reduceMotion, width };
+    }, [graphicsQuality, height, reduceMotion, width]);
+
+    useEffect(() => {
+        sceneRef.current?.setGraphicsQuality(graphicsQuality);
+    }, [graphicsQuality]);
 
     useEffect(() => {
         let disposed = false;
@@ -605,7 +630,12 @@ const MainMenuBackground = ({
                 app.canvas.setAttribute('aria-hidden', 'true');
                 host.appendChild(app.canvas);
 
-                const { height: currentHeight, reduceMotion: currentReduceMotion, width: currentWidth } = latestPropsRef.current;
+                const {
+                    graphicsQuality: currentGq,
+                    height: currentHeight,
+                    reduceMotion: currentReduceMotion,
+                    width: currentWidth
+                } = latestPropsRef.current;
 
                 sceneRef.current = createSceneController(
                     pixi,
@@ -613,6 +643,7 @@ const MainMenuBackground = ({
                     currentWidth,
                     currentHeight,
                     currentReduceMotion,
+                    currentGq,
                     menuFieldTiltRef
                 );
                 sceneRef.current.resize(currentWidth, currentHeight);

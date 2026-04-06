@@ -1,3 +1,16 @@
+/* META-001 — shared dim stage behind meta shells (collection, codex, inventory, path picker). */
+.shellMetaStage::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        radial-gradient(ellipse 85% 58% at 50% 36%, rgba(99, 165, 187, 0.07), transparent 56%),
+        radial-gradient(circle at 14% 16%, rgba(195, 149, 79, 0.1), transparent 44%),
+        linear-gradient(168deg, rgba(5, 7, 12, 0.96), rgba(3, 4, 9, 0.99));
+}
+
 .shell {
     min-height: 100dvh;
     padding:
@@ -39,6 +52,32 @@
     gap: 1.25rem;
     width: min(1200px, 100%);
     margin: 0 auto;
+}
+
+/* META-005–007: in-page TOC for long meta screens (keyboard: tab to links, Enter to jump). */
+.inPageToc {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.85rem;
+    padding: 0.35rem 0 0.5rem;
+    border-bottom: 1px solid rgba(242, 211, 157, 0.1);
+}
+
+.inPageToc a {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--theme-text-subtle);
+    text-decoration: none;
+}
+
+.inPageToc a:hover {
+    color: var(--theme-gold-bright);
+}
+
+.sectionAnchor {
+    scroll-margin-top: 5.5rem;
 }
 
 .modalOverlay {

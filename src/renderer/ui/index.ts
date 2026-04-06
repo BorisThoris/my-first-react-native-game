@@ -7,3 +7,17 @@ export type { ScreenTitleRole, ScreenTitleTag } from './ScreenTitle';
 export { default as StatTile } from './StatTile';
 export { default as UiButton } from './UiButton';
 export type { UiButtonProps, UiButtonSize, UiButtonVariant } from './UiButton';
+export {
+    GameplayDestroyIcon,
+    GameplayFitBoardIcon,
+    GameplayMenuIcon,
+    GameplayPeekIcon,
+    GameplayPinIcon,
+    GameplayPlayIcon,
+    GameplayPauseIcon,
+    GameplaySettingsIcon,
+    GameplayShuffleIcon,
+    GameplayStrayIcon,
+    GameplayUndoIcon
+} from './gameplayIcons';
+export type { GameplayIconProps } from './gameplayIcons';

@@ -7,6 +7,9 @@ Done (process + coverage; see notes)
 - Playwright visual scenarios in `e2e/visualScenarioSteps.ts` include main flow, Choose Your Path (`01a`), collection (`01b`), menu inventory empty state (`01c-inventory-empty`), in-run inventory (`01d-inventory-active`), in-run codex (`01e-codex`), settings, gameplay, overlays, and game over. Navigation flow tests cover the new routes.
 - **Snapshot policy:** Default Playwright output is under `test-results/` (gitignored). CI and local runs compare snapshots from that tree. Optional committed reference captures can be produced with `VISUAL_CAPTURE_ROOT` (see `package.json` scripts `capture:visual-inventory` / `docs:visual-inventory`) for documentation review; the canonical regression gate remains `yarn test:e2e:visual` with the project’s snapshot path configuration.
 
+### Reference audit ([`CURRENT_VS_ENDPRODUCT.md`](../../reference-comparison/CURRENT_VS_ENDPRODUCT.md))
+- Scenarios **00**, **01b–01e**, **02**, **05–08** have **no panel** on `ENDPRODUCTIMAGE` / `ENDPRODUCTIMAGE2`; parity is internal spec + captures, not the two marketing stills. Track regressions via `yarn test:e2e:visual` and [`TASK-020`](TASK-020-endproduct-screenshot-audit-and-captures.md) when using `docs/reference-comparison/captures/`.
+
 ## Priority
 Medium
 

@@ -182,7 +182,7 @@ test.describe('Mobile layout (renderer)', () => {
     test('run settings modal footer actions span the dialog width on mobile', async ({ page }) => {
         await page.setViewportSize({ width: 390, height: 844 });
         await navigateToLevel1PlayPhase(page);
-        await page.getByRole('button', { name: /^settings$/i }).evaluate((element) => {
+        await page.getByRole('button', { name: /run settings \(toolbar\)/i }).evaluate((element) => {
             (element as HTMLButtonElement).click();
         });
         const dialog = page.getByRole('dialog', { name: /run settings/i });
@@ -224,7 +224,7 @@ test.describe('Mobile layout (renderer)', () => {
     test('short-height landscape run settings modal collapses to one column with full-width actions', async ({ page }) => {
         await page.setViewportSize({ width: 844, height: 390 });
         await navigateToLevel1PlayPhase(page);
-        await page.getByRole('button', { name: /^settings$/i }).evaluate((element) => {
+        await page.getByRole('button', { name: /run settings \(toolbar\)/i }).evaluate((element) => {
             (element as HTMLButtonElement).click();
         });
         const dialog = page.getByRole('dialog', { name: /run settings/i });

@@ -8,6 +8,9 @@ This document maps the reference images against the current live renderer and cl
 - `Missing model support`
 - `Asset-only dependency`
 
+## Related
+- **Screenshot delta tables** (Playwright captures vs `ENDPRODUCTIMAGE*.png`): [`docs/reference-comparison/CURRENT_VS_ENDPRODUCT.md`](../reference-comparison/CURRENT_VS_ENDPRODUCT.md). Maintenance: [`docs/new_design/TASKS/TASK-020-endproduct-screenshot-audit-and-captures.md`](TASKS/TASK-020-endproduct-screenshot-audit-and-captures.md).
+
 ## Current Live App Boundaries
 
 ### Active Views Today

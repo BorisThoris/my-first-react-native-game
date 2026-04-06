@@ -1,4 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap');
+@import '@fontsource/cinzel/latin-500.css';
+@import '@fontsource/cinzel/latin-600.css';
+@import '@fontsource/cinzel/latin-700.css';
+@import '@fontsource/cinzel/latin-800.css';
+@import '@fontsource/source-sans-3/latin-400.css';
+@import '@fontsource/source-sans-3/latin-500.css';
+@import '@fontsource/source-sans-3/latin-600.css';
+@import '@fontsource/source-sans-3/latin-700.css';
 
 :root {
     color: var(--theme-text, #f4ecdc);
@@ -30,13 +37,40 @@ body {
     overflow: hidden;
     overscroll-behavior-y: none;
     background:
-        radial-gradient(circle at 18% 15%, rgba(242, 211, 157, 0.12), transparent 24%),
-        radial-gradient(circle at 78% 12%, rgba(140, 98, 223, 0.13), transparent 24%),
-        radial-gradient(circle at 52% 84%, rgba(223, 132, 71, 0.12), transparent 22%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 16%, transparent 84%, rgba(255, 255, 255, 0.02)),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
-        linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
-        linear-gradient(160deg, var(--theme-void, #05050a) 0%, var(--theme-void-soft, #090914) 54%, var(--theme-smoke-deep, #0d1018) 100%);
+        radial-gradient(
+            circle at 18% 15%,
+            var(--theme-backdrop-doc-bloom-a, rgba(242, 211, 157, 0.12)),
+            transparent 24%
+        ),
+        radial-gradient(
+            circle at 78% 12%,
+            var(--theme-backdrop-doc-bloom-b, rgba(140, 98, 223, 0.13)),
+            transparent 24%
+        ),
+        radial-gradient(
+            circle at 52% 84%,
+            var(--theme-backdrop-doc-bloom-c, rgba(223, 132, 71, 0.12)),
+            transparent 22%
+        ),
+        linear-gradient(
+            180deg,
+            var(--theme-backdrop-doc-veil, rgba(255, 255, 255, 0.02)),
+            transparent 16%,
+            transparent 84%,
+            var(--theme-backdrop-doc-veil, rgba(255, 255, 255, 0.02))
+        ),
+        linear-gradient(
+            90deg,
+            var(--theme-backdrop-grid-line, rgba(255, 255, 255, 0.018)) 1px,
+            transparent 1px
+        ),
+        linear-gradient(var(--theme-backdrop-grid-line, rgba(255, 255, 255, 0.018)) 1px, transparent 1px),
+        linear-gradient(
+            160deg,
+            var(--theme-void, #05050a) 0%,
+            var(--theme-void-soft, #090914) 54%,
+            var(--theme-smoke-deep, #0d1018) 100%
+        );
     background-size:
         auto,
         auto,
@@ -53,8 +87,18 @@ body::before {
     inset: 0;
     pointer-events: none;
     background:
-        radial-gradient(circle at center, rgba(255, 255, 255, 0), rgba(5, 5, 10, 0.24) 62%, rgba(5, 5, 10, 0.66) 100%),
-        linear-gradient(180deg, rgba(255, 244, 218, 0.03), transparent 12% 88%, rgba(255, 244, 218, 0.03));
+        radial-gradient(
+            circle at center,
+            rgba(255, 255, 255, 0),
+            var(--theme-backdrop-body-shade-mid, rgba(5, 5, 10, 0.24)) 62%,
+            var(--theme-backdrop-body-shade-deep, rgba(5, 5, 10, 0.66)) 100%
+        ),
+        linear-gradient(
+            180deg,
+            var(--theme-backdrop-body-rim, rgba(255, 244, 218, 0.03)),
+            transparent 12% 88%,
+            var(--theme-backdrop-body-rim, rgba(255, 244, 218, 0.03))
+        );
     z-index: 0;
 }
 

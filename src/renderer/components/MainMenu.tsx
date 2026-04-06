@@ -21,6 +21,7 @@ interface MainMenuProps {
     onDismissHowToPlay: () => Promise<void>;
     onPlay: () => void;
     onOpenCollection: () => void;
+    onOpenCodex: () => void;
     onOpenInventory: () => void;
     onOpenSettings: () => void;
     onGauntletRun: () => void;
@@ -44,6 +45,7 @@ const MainMenu = ({
     onDismissHowToPlay,
     onPlay,
     onOpenCollection,
+    onOpenCodex,
     onOpenInventory,
     onOpenSettings,
     onGauntletRun,
@@ -84,6 +86,7 @@ const MainMenu = ({
         <section className={`${styles.shell} ${isCompact ? styles.compactShell : ''}`} ref={shellRef}>
             <MainMenuBackground
                 fieldTiltRef={menuFieldTiltRef}
+                graphicsQuality={saveData.settings.graphicsQuality}
                 height={height}
                 reduceMotion={reduceMotion}
                 suppressLoadingFallback={suppressMenuBackgroundFallback}
@@ -172,6 +175,19 @@ const MainMenu = ({
                                 <span className={styles.ctaContent}>
                                     <span className={styles.ctaTitle}>Inventory</span>
                                     <span className={styles.ctaHint}>Expedition loadout when you are in a run</span>
+                                </span>
+                            </UiButton>
+                            <UiButton
+                                aria-label="Codex"
+                                className={styles.ctaButton}
+                                fullWidth
+                                size="lg"
+                                variant="ghost"
+                                onClick={onOpenCodex}
+                            >
+                                <span className={styles.ctaContent}>
+                                    <span className={styles.ctaTitle}>Codex</span>
+                                    <span className={styles.ctaHint}>Rules, relics, mutators, and mode reference</span>
                                 </span>
                             </UiButton>
                             <UiButton

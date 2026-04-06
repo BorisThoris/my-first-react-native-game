@@ -8,8 +8,12 @@
       <stop offset="1" stop-color="#5A3C17" stop-opacity="0"/>
     </linearGradient>
   </defs>
-  <path d="M12 20H132" stroke="url(#dividerGold)" stroke-width="2.5" stroke-linecap="round"/>
-  <path d="M228 20H348" stroke="url(#dividerGold)" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M12 20H36" stroke="url(#dividerGold)" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M40 20c6-6 10-6 16 0" stroke="url(#dividerGold)" stroke-width="1.75" stroke-linecap="round" fill="none"/>
+  <path d="M56 20H132" stroke="url(#dividerGold)" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M228 20H304" stroke="url(#dividerGold)" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M308 20c6 6 10 6 16 0" stroke="url(#dividerGold)" stroke-width="1.75" stroke-linecap="round" fill="none"/>
+  <path d="M324 20H348" stroke="url(#dividerGold)" stroke-width="2.5" stroke-linecap="round"/>
   <path d="M144 20L180 4L216 20L180 36L144 20Z" fill="rgba(14,13,18,0.65)" stroke="url(#dividerGold)" stroke-width="2.5"/>
   <path d="M162 20L180 12L198 20L180 28L162 20Z" fill="#9A6AEF" fill-opacity="0.5" stroke="#E9D7FF" stroke-opacity="0.52"/>
 </svg>

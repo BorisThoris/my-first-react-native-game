@@ -67,6 +67,7 @@ class MockApplication {
     destroy = destroySpy;
     init = initSpy;
     render = renderSpy;
+    renderer = { resolution: 1 };
     stage = new MockContainer();
     start = startSpy;
     stop = stopSpy;

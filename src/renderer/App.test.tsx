@@ -431,7 +431,9 @@ describe('desktop app flow', () => {
         expect(await screen.findByRole('heading', { name: /level 1/i })).toBeInTheDocument();
 
         await user.click(screen.getByRole('button', { name: /show utility menu/i }));
-        await user.click(screen.getByRole('button', { name: /codex/i }));
+        await user.click(
+            within(screen.getByTestId('game-toolbar-flyout')).getByRole('button', { name: /read-only rules/i })
+        );
         expect(await screen.findByRole('region', { name: /codex/i })).toBeInTheDocument();
         await user.click(screen.getByRole('button', { name: /^back$/i }));
         expect(await screen.findByRole('heading', { name: /level 1/i })).toBeInTheDocument();

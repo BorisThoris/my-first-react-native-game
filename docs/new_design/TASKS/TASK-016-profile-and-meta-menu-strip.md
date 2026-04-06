@@ -8,6 +8,9 @@ Done (deferred for Steam demo; documented in gap analysis)
 - **Relationship:** New **model + UI** work; not covered by closed TASK-001–008.
 - **Resolution:** Out of scope for current demo; see **Profile / social strips** in `docs/new_design/CURRENT_VS_TARGET_GAP_ANALYSIS.md`. Re-open as Partial when product adds profile fields.
 
+### Reference audit ([`CURRENT_VS_ENDPRODUCT.md`](../../reference-comparison/CURRENT_VS_ENDPRODUCT.md))
+- Reference **main menu** top strip: circular **level** badge, **player name**, **dual currency** counts, utility icons (journal/mail/quick-settings)—maps to this task when v1 adds model support; see capture § 1 vs `01-main-menu.png`.
+
 ## Priority
 Low (unless product elevates to v1)
 

@@ -28,11 +28,9 @@
     overflow-y: auto;
     min-height: 0;
     background: var(--theme-panel-surface-strong, var(--theme-panel-surface));
-    border: 1px solid var(--theme-border-strong, rgba(240, 210, 143, 0.22));
-    border-radius: calc(var(--ui-radius-modal) + 0.18rem);
-    box-shadow:
-        0 26px 64px rgba(0, 0, 0, 0.46),
-        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    border: var(--theme-overlay-plate-border, 1px solid var(--theme-border-strong));
+    border-radius: var(--theme-overlay-plate-radius, calc(var(--ui-radius-modal) + 0.18rem));
+    box-shadow: var(--theme-overlay-plate-shadow);
 }
 
 .mainColumn {

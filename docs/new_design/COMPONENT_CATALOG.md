@@ -8,6 +8,28 @@ This catalog normalizes the reusable UI and presentation components implied by t
 - `Composite`: larger reusable assembly built from primitives
 - `Surface`: full screen or major page shell
 
+## Gameplay left toolbar IA (SIDE-002)
+
+**Component:** [`GameLeftToolbar`](../../src/renderer/components/GameLeftToolbar.tsx) (in-game left rail).
+
+| Surface | Purpose | Examples |
+|--------|---------|----------|
+| **Always-visible rail** | One-tap gameplay and shell actions | Utility toggle, Fit board (mobile), main menu (abandon confirm), pause/resume, inventory, codex, settings, power row (shuffle, pin, destroy, peek, stray), undo while resolving |
+| **Utility flyout** | Duplicate quick paths + overflow-friendly labels | Pause/resume, inventory, codex; **Close** control (SIDE-009); dismissed by outside click, scrim, Escape |
+| **Modals only** | Run-scoped settings, inventory/codex overlays, pause/floor modals | `SettingsScreen` (playing), `OverlayModal`, meta `modalOverlay` for in-run codex/inventory |
+
+Settings are **rail-only** (flyout no longer duplicates Settings). Inventory and codex appear on both rail and flyout so players can use either pattern.
+
+## Meta surfaces IA (META-004 – META-007)
+
+| Screen | Primary job | Navigation | Notes |
+|--------|-------------|------------|-------|
+| **MainMenu** | Mode entry, collection, codex, inventory, settings | Poster cards + meta row | Hub screen; no long-form TOC. |
+| **CodexScreen** | Read-only rules reference | Header **Back** + in-page TOC → anchors | [`MetaScreen.module.css`](../../src/renderer/components/MetaScreen.module.css) `.inPageToc`, `.sectionAnchor`. |
+| **CollectionScreen** | Save progress / unlocks | Header **Back** + in-page TOC | Jumps to achievements, relics, bests, daily, symbols. |
+| **InventoryScreen** | Active run loadout | Header **Back** + in-page TOC | Run summary, relics, mutators, charges, contract. |
+| **GameOverScreen** | Run summary + export | Hero + side rail + details | **META-002:** cathedral **scene plate** (same asset as main menu) behind scrim for depth parity. |
+
 ---
 
 ## Shared Primitives
@@ -352,6 +374,20 @@ This catalog normalizes the reusable UI and presentation components implied by t
 | Card Feedback FX | hover glow, flip motion, success burst, failure recoil |
 | Settings Category Rail | inactive, hovered, selected |
 | Mode Card | neutral, focused, selected, timer-badge |
+
+---
+
+## Gameplay left toolbar IA (SIDE-002)
+
+**Component:** [`GameLeftToolbar`](../../src/renderer/components/GameLeftToolbar.tsx) (in-game left rail).
+
+| Surface | Purpose | Examples |
+|--------|---------|----------|
+| **Always-visible rail** | One-tap gameplay and shell actions | Utility toggle, Fit board (mobile), main menu (abandon confirm), pause/resume, inventory, codex, settings, power row (shuffle, pin, destroy, peek, stray), undo while resolving |
+| **Utility flyout** | Duplicate quick paths + overflow-friendly labels | Pause/resume, inventory, codex; **Close** control (SIDE-009); dismissed by outside click, scrim, Escape |
+| **Modals only** | Run-scoped settings, inventory/codex overlays, pause/floor modals | `SettingsScreen` (playing), `OverlayModal`, meta `modalOverlay` for in-run codex/inventory |
+
+Settings are **rail-only** (flyout no longer duplicates Settings). Inventory and codex appear on both rail and flyout so players can use either pattern.
 
 ---
 

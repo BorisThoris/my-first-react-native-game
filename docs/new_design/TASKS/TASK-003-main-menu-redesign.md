@@ -7,6 +7,12 @@ Partial (landed in renderer)
 - Main menu uses hero-first layout, vertical primary actions, secondary “more run types,” Collection entry, and Play → Choose Your Path. Exit uses desktop `quitApp` where available.
 - **Residual:** Text title versus ornamental logo lockup; abstract `MainMenuBackground` versus full illustrated scene (asset direction).
 
+### Reference audit ([`CURRENT_VS_ENDPRODUCT.md`](../../reference-comparison/CURRENT_VS_ENDPRODUCT.md))
+- Top strip: reference shows level badge, dual currency, journal/mail/quick-settings; live uses Build / best score / daily streak / Steam meta cards—align with [`TASK-016`](TASK-016-profile-and-meta-menu-strip.md) when profile/currency is in scope.
+- Title / PLAY CTA: reference embossed gold wordmark and icon-forward primary button vs current cream display title and text CTA—tie to [`TASK-010`](TASK-010-final-logo-and-emblem-lockup.md) and button polish.
+- Bottom region: reference daily + current-run widgets + socials vs live alternate-descents + run archive—[`TASK-017`](TASK-017-social-and-community-strip.md) for socials; bottom card layout remains a composition gap vs stills.
+- Procedural **grid overlay** on the menu scene (visible in captures) is absent from reference; tune `MainMenuBackground` / scene layers to reduce or remove for still parity.
+
 ## Priority
 High
 

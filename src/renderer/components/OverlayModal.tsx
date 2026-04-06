@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from 'react';
+import { getFocusableElements } from '../a11y/focusables';
 import { ScreenTitle, UiButton, type UiButtonVariant } from '../ui';
 import styles from './OverlayModal.module.css';
 
@@ -14,25 +15,6 @@ interface OverlayModalProps {
     children?: ReactNode;
     actions: ModalAction[];
 }
-
-const FOCUSABLE_SELECTOR = [
-    'button:not([disabled])',
-    '[href]',
-    'input:not([disabled])',
-    'select:not([disabled])',
-    'textarea:not([disabled])',
-    '[tabindex]:not([tabindex="-1"])'
-].join(', ');
-
-const getFocusableElements = (container: HTMLElement | null): HTMLElement[] => {
-    if (!container) {
-        return [];
-    }
-
-    return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
-        (element) => !element.hasAttribute('disabled') && element.getAttribute('aria-hidden') !== 'true'
-    );
-};
 
 const toUiVariant = (variant: ModalAction['variant']): UiButtonVariant => {
     if (variant === 'danger') {

@@ -107,7 +107,8 @@ export const calculateMatchScore = (
 
 const isWildPairKey = (pairKey: string): boolean => pairKey === WILD_PAIR_KEY;
 
-const tilesArePairMatch = (a: Tile, b: Tile): boolean => {
+/** Exported for UI resolving highlights (gambit 3-flip) — keep in sync with `resolveGambitThree`. */
+export const tilesArePairMatch = (a: Tile, b: Tile): boolean => {
     if (a.pairKey === b.pairKey && a.pairKey !== DECOY_PAIR_KEY) {
         return true;
     }

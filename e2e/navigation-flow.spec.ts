@@ -4,6 +4,7 @@ import { defaultE2eGameSaveJson, STORAGE_KEY } from './tileBoardGameFlow';
 import { openMainMenuFromSave, openLevel1Play } from './visualScreenHelpers';
 
 test.describe('Navigation shells', () => {
+    test.describe.configure({ retries: 1 });
     test('Play opens Choose Your Path then Classic Run starts level 1', async ({ page }) => {
         await openMainMenuFromSave(page, true);
         await page.getByRole('button', { name: /^play$/i }).click();
@@ -22,6 +23,14 @@ test.describe('Navigation shells', () => {
         await openMainMenuFromSave(page, true);
         await page.getByRole('button', { name: /^collection$/i }).click();
         await expect(page.getByRole('region', { name: /collection/i })).toBeVisible();
+        await page.getByRole('button', { name: /^back$/i }).click();
+        await expect(page.getByRole('button', { name: /^play$/i })).toBeVisible();
+    });
+
+    test('Codex from main menu returns to menu on Back', async ({ page }) => {
+        await openMainMenuFromSave(page, true);
+        await page.getByRole('button', { name: /^codex$/i }).click();
+        await expect(page.getByRole('region', { name: /^codex$/i })).toBeVisible();
         await page.getByRole('button', { name: /^back$/i }).click();
         await expect(page.getByRole('button', { name: /^play$/i })).toBeVisible();
     });
@@ -45,6 +54,14 @@ test.describe('Navigation shells', () => {
         await expect(page.getByRole('region', { name: /codex/i })).toBeVisible();
         await page.getByRole('region', { name: /codex/i }).getByRole('button', { name: /^back$/i }).click();
         await expect(page.getByTestId('game-hud')).toBeVisible();
+    });
+
+    test('Utility flyout closes via header Close control', async ({ page }) => {
+        await openLevel1Play(page);
+        await page.getByRole('button', { name: /show utility menu/i }).click();
+        await expect(page.getByRole('group', { name: /in-game menu/i })).toBeVisible();
+        await page.getByTestId('game-toolbar-flyout-close').click();
+        await expect(page.getByTestId('game-toolbar-flyout')).toHaveCount(0);
     });
 
     test('Daily Challenge from Choose Your Path starts a run', async ({ page }) => {

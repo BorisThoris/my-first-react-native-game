@@ -7,6 +7,7 @@ Done (scenario matrix landed; commit reference PNGs when available)
 - **Audit finding:** UI-vs-reference audits are weaker when `ENDPRODUCTIMAGE*.png` are not in-repo; mapping reference panels to Playwright scenario IDs is manual.
 - **Relationship:** Supports all reference-driven tasks and `TASK-014-visual-reference-captures-and-diff-process.md`.
 - **Landed:** `docs/new_design/REFERENCE_VS_SCENARIOS.md`
+- **Detailed diff companion:** [`docs/reference-comparison/CURRENT_VS_ENDPRODUCT.md`](../../reference-comparison/CURRENT_VS_ENDPRODUCT.md) — scenario basenames vs `ENDPRODUCTIMAGE` / `ENDPRODUCTIMAGE2` panels and row-level UI deltas. Ongoing refresh: [`TASK-020`](TASK-020-endproduct-screenshot-audit-and-captures.md).
 
 ## Priority
 Low (enablement)

@@ -26,6 +26,7 @@ const App = () => {
         importRunFromClipboard,
         newlyUnlockedAchievements,
         openCollection,
+        openCodexFromMenu,
         openInventoryFromMenu,
         openModeSelect,
         openSettings,
@@ -50,6 +51,7 @@ const App = () => {
             importRunFromClipboard: state.importRunFromClipboard,
             newlyUnlockedAchievements: state.newlyUnlockedAchievements,
             openCollection: state.openCollection,
+            openCodexFromMenu: state.openCodexFromMenu,
             openInventoryFromMenu: state.openInventoryFromMenu,
             openModeSelect: state.openModeSelect,
             openSettings: state.openSettings,
@@ -91,7 +93,8 @@ const App = () => {
             visualView === 'playing' ||
             view === 'modeSelect' ||
             view === 'collection' ||
-            (view === 'inventory' && subscreenReturnView === 'menu'))
+            (view === 'inventory' && subscreenReturnView === 'menu') ||
+            (view === 'codex' && subscreenReturnView === 'menu'))
             ? 'off'
             : 'on';
     const introOverlayVisible =
@@ -104,6 +107,15 @@ const App = () => {
         void hydrate();
     }, [hydrate]);
 
+    /*
+     * OVR-008 — overlay z-index ladder (low → high within .content):
+     * 0–1: menu / game shells (App.module.css .menuLayer, .content).
+     * 6–8: StartupIntro layers (StartupIntro.module.css).
+     * 21: OverlayModal backdrop (pause, floor clear, abandon).
+     * 22: Meta in-run modal (inventory/codex over play) — MetaScreen.module.css .modalOverlay.
+     * 24: Settings shell modal — SettingsScreen.module.css.
+     * Game HUD/toolbar can sit at 3–8 under mobile camera (GameScreen.module.css).
+     */
     return (
         <div
             className={styles.app}
@@ -135,6 +147,7 @@ const App = () => {
                                 onDismissHowToPlay={dismissHowToPlay}
                                 onOpenSettings={() => openSettings('menu')}
                                 onOpenCollection={openCollection}
+                                onOpenCodex={openCodexFromMenu}
                                 onOpenInventory={openInventoryFromMenu}
                                 onPlay={openModeSelect}
                                 onGauntletRun={startGauntletRun}
@@ -178,6 +191,8 @@ const App = () => {
                 {hydrated && view === 'collection' && <CollectionScreen />}
 
                 {hydrated && view === 'inventory' && subscreenReturnView === 'menu' && <InventoryScreen />}
+
+                {hydrated && view === 'codex' && subscreenReturnView === 'menu' && <CodexScreen />}
 
                 {hydrated && view === 'settings' && !inGameSettingsOverlay && <SettingsScreen />}
 

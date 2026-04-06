@@ -3,7 +3,6 @@ import {
     BOARD_HIDDEN_TILE_BUTTON_RE,
     navigateToLevel1PlayPhase,
     reduceMotionSaveJson,
-    STORAGE_KEY,
     clickHiddenTileRowCol
 } from './tileBoardGameFlow';
 
@@ -14,39 +13,45 @@ test.use({
 });
 
 test.describe('Tile card face (DOM fallback)', () => {
-    test('hidden and revealed use the same .cardBack background; only symbol text is added', async ({ page }) => {
-        await page.addInitScript(() => {
-            localStorage.setItem(STORAGE_KEY, reduceMotionSaveJson);
-        });
-
+    test('hidden uses back art; revealed uses face art; layout stack unchanged', async ({ page }) => {
         await page.setViewportSize({ width: 1280, height: 720 });
-        await navigateToLevel1PlayPhase(page);
+        await navigateToLevel1PlayPhase(page, reduceMotionSaveJson);
 
         await expect(page.getByTestId('tile-board-fallback')).toBeVisible({ timeout: 8000 });
 
         const tileHidden11 = page.getByRole('button', { name: /hidden tile, row 1, column 1/i });
         const cardFace = tileHidden11.getByTestId('tile-card-face');
 
-        const fingerprint = async (locator: typeof cardFace): Promise<string> =>
+        const readBg = async (locator: typeof cardFace) =>
             locator.evaluate((el) => {
                 const s = window.getComputedStyle(el);
-                return [
-                    s.backgroundImage,
-                    s.backgroundSize,
-                    s.backgroundPosition,
-                    s.backgroundRepeat,
-                    s.backgroundColor
-                ].join('|');
+                return {
+                    backgroundImage: s.backgroundImage,
+                    backgroundSize: s.backgroundSize,
+                    backgroundPosition: s.backgroundPosition,
+                    backgroundRepeat: s.backgroundRepeat,
+                    backgroundColor: s.backgroundColor
+                };
             });
 
-        const before = await fingerprint(cardFace);
+        const hiddenStyle = await readBg(cardFace);
+        expect(hiddenStyle.backgroundImage, 'Hidden tile should use reference-back.png').toMatch(/reference-back\.png/i);
+        expect(hiddenStyle.backgroundSize, 'Image layer uses cover (second value is gradient)').toMatch(/^cover/);
+        expect(hiddenStyle.backgroundRepeat).toMatch(/^no-repeat/);
+        expect(hiddenStyle.backgroundPosition).toMatch(/50%/);
+
         const hiddenCount = await page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count();
         await clickHiddenTileRowCol(page, 1, 1, hiddenCount);
 
         const tileShown11 = page.getByRole('button', { name: /tile .*, row 1, column 1/i });
-        const after = await fingerprint(tileShown11.getByTestId('tile-card-face'));
+        const shownStyle = await readBg(tileShown11.getByTestId('tile-card-face'));
 
-        expect(after, 'Face-up card face should reuse the same CSS background stack as when hidden').toBe(before);
+        expect(shownStyle.backgroundImage, 'Face-up tile should use front-face.png').toMatch(/front-face\.png/i);
+        expect(shownStyle.backgroundImage).not.toBe(hiddenStyle.backgroundImage);
+        expect(shownStyle.backgroundSize).toBe(hiddenStyle.backgroundSize);
+        expect(shownStyle.backgroundPosition).toBe(hiddenStyle.backgroundPosition);
+        expect(shownStyle.backgroundRepeat).toBe(hiddenStyle.backgroundRepeat);
+
         await expect(tileShown11).toHaveAttribute('aria-label', /row 1, column 1/i);
     });
 });

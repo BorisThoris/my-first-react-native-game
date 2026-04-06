@@ -1,27 +1,47 @@
-import { EffectComposer, SMAA } from '@react-three/postprocessing';
-import { Suspense } from 'react';
+import { Bloom, EffectComposer, SMAA } from '@react-three/postprocessing';
+import { Suspense, type ReactElement } from 'react';
 
 interface TileBoardPostFxProps {
-    reduceMotion: boolean;
+    smaaEnabled: boolean;
+    /** FX-015: gated by settings + non-low graphics quality (PERF-001). */
+    bloomEnabled: boolean;
 }
 
-const ComposerSmaa = () => (
+const ComposerBloomOnly = () => (
+    <EffectComposer multisampling={0}>
+        <Bloom intensity={0.35} luminanceSmoothing={0.35} luminanceThreshold={0.82} mipmapBlur />
+    </EffectComposer>
+);
+
+const ComposerSmaaOnly = () => (
     <EffectComposer multisampling={0}>
         <SMAA />
     </EffectComposer>
 );
 
-/** Screen-space AA for alpha-tested card art; skipped when reduceMotion for lower GPU cost. */
-const TileBoardPostFx = ({ reduceMotion }: TileBoardPostFxProps) => {
-    if (reduceMotion) {
+const ComposerBloomSmaa = () => (
+    <EffectComposer multisampling={0}>
+        <Bloom intensity={0.35} luminanceSmoothing={0.35} luminanceThreshold={0.82} mipmapBlur />
+        <SMAA />
+    </EffectComposer>
+);
+
+/** Screen-space AA and optional bloom for the tile board (PERF-001 / FX-015). */
+const TileBoardPostFx = ({ bloomEnabled, smaaEnabled }: TileBoardPostFxProps) => {
+    if (!smaaEnabled && !bloomEnabled) {
         return null;
     }
 
-    return (
-        <Suspense fallback={null}>
-            <ComposerSmaa />
-        </Suspense>
-    );
+    let composer: ReactElement;
+    if (bloomEnabled && smaaEnabled) {
+        composer = <ComposerBloomSmaa />;
+    } else if (bloomEnabled) {
+        composer = <ComposerBloomOnly />;
+    } else {
+        composer = <ComposerSmaaOnly />;
+    }
+
+    return <Suspense fallback={null}>{composer}</Suspense>;
 };
 
 export default TileBoardPostFx;

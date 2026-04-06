@@ -8,6 +8,10 @@ Partial (segment order + score/meta contrast landed; further ornament = asset fr
 - **Relationship:** Focused pass under `TASK-004-gameplay-hud-and-shell.md` (which is Done for shipped scope—this task captures **reference polish**).
 - **Landed:** `GameScreen.tsx` run-stat order **Floor → Lives → Shards → Score → Mode/mutators** per `SCREEN_SPEC_GAMEPLAY.md`. `GameScreen.module.css` — stronger `.hudScoreSegment` treatment, quieter `.hudMetaSegment` for context hierarchy.
 
+### Reference audit ([`CURRENT_VS_ENDPRODUCT.md`](../../reference-comparison/CURRENT_VS_ENDPRODUCT.md))
+- **Segment ornament density** and **hex-like floor** treatment vs flat bar modules in capture.
+- **Score parasite** mechanic strip: reference-only unless gameplay spec adopts it—coordinate with [`TASK-004`](TASK-004-gameplay-hud-and-shell.md).
+
 ## Priority
 Medium
 

@@ -6,6 +6,7 @@ import {
     useRef,
     useState,
     type CSSProperties,
+    type KeyboardEvent as ReactKeyboardEvent,
     type MutableRefObject,
     type PointerEvent as ReactPointerEvent,
     type RefObject
@@ -31,6 +32,7 @@ import {
     resolveIntroVariant,
     type IntroPreset
 } from './startupIntroConfig';
+import { getFocusableElements } from '../a11y/focusables';
 import { preloadTileTextureImages } from './tileTextures';
 import { hasWebGLSupport, loadRelicTextures, type RelicTextureSet } from './startupIntroTextures';
 import styles from './StartupIntro.module.css';
@@ -590,6 +592,7 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
     const [variant] = useState(() => resolveIntroVariant({ reduceMotion }));
     const [sceneFrameRef, sceneFrameSize] = useElementSize<HTMLDivElement>();
     const overlayRef = useRef<HTMLElement | null>(null);
+    const previousFocusRef = useRef<HTMLElement | null>(null);
     const { tiltRef: introFieldTiltRef, permission, requestMotionPermission } = usePlatformTiltField({
         enabled: true,
         reduceMotion,
@@ -659,7 +662,47 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
     }, []);
 
     useEffect(() => {
-        overlayRef.current?.focus({ preventScroll: true });
+        previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        const frame = window.requestAnimationFrame(() => {
+            overlayRef.current?.focus({ preventScroll: true });
+        });
+
+        return () => {
+            window.cancelAnimationFrame(frame);
+            previousFocusRef.current?.focus();
+        };
+    }, []);
+
+    const handleOverlayKeyDown = useCallback((event: ReactKeyboardEvent<HTMLElement>): void => {
+        if (event.key !== 'Tab') {
+            return;
+        }
+
+        const shell = overlayRef.current;
+        const focusable = getFocusableElements(shell);
+
+        if (focusable.length === 0) {
+            event.preventDefault();
+            shell?.focus();
+            return;
+        }
+
+        const currentIndex = focusable.indexOf(document.activeElement as HTMLElement);
+        const lastIndex = focusable.length - 1;
+
+        if (event.shiftKey) {
+            if (currentIndex <= 0) {
+                event.preventDefault();
+                focusable[lastIndex]?.focus();
+            }
+
+            return;
+        }
+
+        if (currentIndex === -1 || currentIndex === lastIndex) {
+            event.preventDefault();
+            focusable[0]?.focus();
+        }
     }, []);
 
     useEffect(() => {
@@ -784,6 +827,7 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
             data-phase={phase}
             data-preset={variant.preset}
             data-render-mode={renderMode}
+            onKeyDown={handleOverlayKeyDown}
             onPointerDown={handlePointerDown}
             ref={overlayRef}
             role="dialog"

@@ -7,6 +7,7 @@ Done (review process documented)
 - **Audit finding:** Canonical Playwright output lives under `test-results/` (gitignored); optional committed captures use `VISUAL_CAPTURE_ROOT` / `capture:visual-inventory`. Product policy for “compare to reference PNGs” is not fully documented as a single workflow.
 - **Relationship:** Complements `TASK-008-gap-surfaces-and-regression.md`.
 - **Landed:** `docs/new_design/VISUAL_REVIEW.md`
+- **Comparison artifact:** Row-level deltas vs `ENDPRODUCTIMAGE*.png` live in [`docs/reference-comparison/CURRENT_VS_ENDPRODUCT.md`](../../reference-comparison/CURRENT_VS_ENDPRODUCT.md). Regenerate committed baselines with e.g. `VISUAL_CAPTURE_ROOT=docs/reference-comparison/captures` and `yarn playwright test e2e/visual-screens.standard.spec.ts --workers=1` (see that doc).
 
 ## Priority
 Low (process)

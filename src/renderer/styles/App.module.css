@@ -12,8 +12,8 @@
     background:
         radial-gradient(circle at 12% 12%, var(--theme-glow-gold-soft), transparent 22%),
         radial-gradient(circle at 86% 12%, var(--theme-glow-cyan-soft), transparent 20%),
-        radial-gradient(circle at 52% 84%, rgba(243, 155, 78, 0.12), transparent 28%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 18%),
+        radial-gradient(circle at 52% 84%, var(--theme-app-ember-bloom), transparent 28%),
+        linear-gradient(180deg, var(--theme-app-mist-top), transparent 18%),
         linear-gradient(148deg, var(--theme-void) 0%, var(--theme-void-soft) 42%, var(--theme-smoke-deep) 100%);
 }
 

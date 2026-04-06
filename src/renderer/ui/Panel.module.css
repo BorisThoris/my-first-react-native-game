@@ -26,7 +26,7 @@
 .root::after {
     inset: 1px;
     border-radius: calc(var(--ui-radius-panel) - 2px);
-    border: 1px solid rgba(255, 244, 218, 0.05);
+    border: 1px solid var(--theme-overlay-plate-inner-glow, rgba(255, 244, 218, 0.05));
 }
 
 .default {

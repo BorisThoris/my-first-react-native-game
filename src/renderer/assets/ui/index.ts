@@ -1,8 +1,8 @@
 import brandCrestUrl from './brand-crest.svg';
-import gameplaySceneUrl from './gameplay-scene.svg';
+import gameplaySceneUrl from './backgrounds/bg-gameplay-dungeon-ring-v1.png';
 import dividerOrnamentUrl from './divider-ornament.svg';
 import menuEmblemUrl from './menu-emblem.svg';
-import menuSceneUrl from './menu-scene.svg';
+import menuSceneUrl from './backgrounds/bg-main-menu-cathedral-v1.png';
 import menuSealUrl from './menu-seal.svg';
 import stageRingUrl from './stage-ring.svg';
 
@@ -17,3 +17,5 @@ export const UI_ART = {
 } as const;
 
 export type UiArtKey = keyof typeof UI_ART;
+
+export { MODE_CARD_ART } from './modeArt';

@@ -8,6 +8,10 @@ Partial (pipeline pointers documented; blocked on final card raster)
 - **Relationship:** Deepens `TASK-005-card-states-and-fx.md` on the **asset** side.
 - **Done for this pass:** Card texture drop-in table in `docs/new_design/DROP_IN_ASSET_CHECKLIST.md`.
 
+### Reference audit ([`CURRENT_VS_ENDPRODUCT.md`](../../reference-comparison/CURRENT_VS_ENDPRODUCT.md))
+- **Backs:** reference filigree + centered glowing gem on leather/walnut vs `reference-back.png` + procedural hatch in [`tileTextures.ts`](../../../src/renderer/components/tileTextures.ts)—final authored backs and optional **card theme** sets (see [`TASK-015`](TASK-015-settings-schema-for-reference-controls.md) phase 2).
+- **Faces:** reference 3D relic + gold title + effect line vs symbol/emoji-centric tiles—product decision whether to adopt item-card faces or keep memory glyphs.
+
 ## Priority
 High
 

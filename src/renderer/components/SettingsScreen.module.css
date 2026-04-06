@@ -241,6 +241,14 @@
     background: rgba(7, 7, 11, 0.28);
 }
 
+.toggleRowDisabled {
+    opacity: 0.58;
+}
+
+.toggleRowDisabled .toggleShell {
+    pointer-events: none;
+}
+
 .toggleShell {
     position: relative;
     flex: 0 0 auto;

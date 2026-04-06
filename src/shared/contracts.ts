@@ -86,6 +86,15 @@ export interface DebugFlags {
 /** Experimental board framing (Wave G presentation). */
 export type BoardPresentationMode = 'standard' | 'spaghetti' | 'breathing';
 
+/**
+ * WebGL board edge smoothing (PERF-002). `auto` preserves legacy: SMAA when motion is on, MSAA when Reduce Motion is on.
+ * Override lets users decouple AA from the motion setting.
+ */
+export type BoardScreenSpaceAA = 'auto' | 'smaa' | 'msaa' | 'off';
+
+/** PERF-001: bundled caps for board DPR, menu Pixi resolution, and optional bloom tier. */
+export type GraphicsQualityPreset = 'low' | 'medium' | 'high';
+
 export interface Settings {
     masterVolume: number;
     musicVolume: number;
@@ -93,6 +102,11 @@ export interface Settings {
     displayMode: DisplayMode;
     uiScale: number;
     reduceMotion: boolean;
+    /** PERF-001: drives board DPR cap and menu Pixi resolution cap. */
+    graphicsQuality: GraphicsQualityPreset;
+    boardScreenSpaceAA: BoardScreenSpaceAA;
+    /** FX-015: subtle board bloom; ignored on `low` quality (PERF-001). */
+    boardBloomEnabled: boolean;
     debugFlags: DebugFlags;
     boardPresentation: BoardPresentationMode;
     /** Dim hidden tiles that are not orthogonally adjacent to the lone flipped tile (fallback board / a11y experiment). */

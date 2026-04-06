@@ -6,6 +6,10 @@ Done (landed in renderer)
 ## Implementation notes
 - `ViewState` includes `modeSelect`, `collection`, `inventory`, `codex`; `SubscreenReturnView` and store actions handle back navigation and freeze/resume behavior. Choose Your Path screen maps Classic/Daily; extra modes live in secondary surfaces; Endless remains product-gated where applicable.
 
+### Reference audit ([`CURRENT_VS_ENDPRODUCT.md`](../../reference-comparison/CURRENT_VS_ENDPRODUCT.md))
+- Subtitle / hero copy: reference “Every run is a new challenge…” tone vs live explanatory paragraph—copy pass if design locks still wording.
+- **Selection chrome:** stronger outer glow on featured mode (e.g. Daily) vs current modest purple rim—visual polish with [`TASK-018`](TASK-018-mode-select-card-illustrations.md).
+
 ## Priority
 Medium
 

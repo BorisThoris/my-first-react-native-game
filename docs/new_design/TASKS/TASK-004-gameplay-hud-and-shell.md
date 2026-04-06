@@ -7,6 +7,14 @@ Done (shipped scope; residuals documented)
 - Gameplay shell, ornate HUD segments, left rail, flyout (inventory/codex), and overlay framing were brought toward `SCREEN_SPEC_GAMEPLAY.md`.
 - **Residual:** pixel-tight parity with `docs/ENDPRODUCTIMAGE*.png` still depends on illustrated stage/HUD art and final polish passes noted in `CURRENT_VS_TARGET_GAP_ANALYSIS.md`—not a code-only gap.
 
+- **Mobile camera:** Left toolbar uses **`z-index: 8`** (`.mobileCameraLeftToolbar`) so the in-game utility flyout receives clicks above the HUD (`GameScreen.module.css`) — fixes Playwright `01d` / `01e` and real taps on small viewports.
+
+### Reference audit ([`CURRENT_VS_ENDPRODUCT.md`](../../reference-comparison/CURRENT_VS_ENDPRODUCT.md))
+- **Score parasite** strip (purple bar + crystal) and hex-like floor module density in HUD vs live single bar—product/mechanic decision plus [`TASK-013`](TASK-013-gameplay-hud-segment-ornament-pass.md).
+- Daily seed / ID presentation in HUD row vs mode line layout in capture.
+- **Board framing:** reference circular stone dais vs cards on grid over environment; stage composition and `GameScreen` / board chrome.
+- **In-run tutorial** copy overlay and **pair markers** on early floors (visible in captures) vs marketing stills—product/UX whether to relocate or soften for parity.
+
 ## Priority
 High
 

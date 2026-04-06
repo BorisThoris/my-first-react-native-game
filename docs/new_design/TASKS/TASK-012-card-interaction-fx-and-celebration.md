@@ -6,7 +6,12 @@ Partial (resolving-state pulse on DOM hit layer; score-pop / burst still future)
 ## Implementation notes
 - **Audit finding:** Hidden / hover / flip / matched / mismatch exist; reference implies richer celebration (score pop, burst, clearer mismatch read).
 - **Relationship:** Code and motion layer on top of `TASK-005` and `shuffleFlipAnimation.ts`.
-- **Landed:** `TileBoard.module.css` — `@keyframes` pulses for `.hitButtonResolvingMatch` / `.hitButtonResolvingMismatch`, gated with `:global([data-reduce-motion='false'])` (animations off when `reduceMotion` is enabled on the app root).
+- **Landed:** `TileBoard.module.css` — `@keyframes` pulses for `.hitButtonResolvingMatch` / `.hitButtonResolvingMismatch`, gated with `:global([data-reduce-motion='false'])` (animations off when `reduceMotion` is enabled on the app root). **Matched checkmark:** `.hitButtonMatched::after` green ✓ over DOM hit layer for clearer reference-style success read (WebGL path).
+- **Score pop:** `GameScreen.tsx` + `GameScreen.module.css` — on each scoring match during `playing`, gold **`+N`** pill on the board toast rail (`.scorePop`, `scorePopBurst`); gated by `matchesFound` / `totalScore` delta; respects `reduceMotion` (no entrance animation, shorter dismiss).
+
+### Reference audit ([`CURRENT_VS_ENDPRODUCT.md`](../../reference-comparison/CURRENT_VS_ENDPRODUCT.md))
+- **Score pop / burst** and stronger **match celebration** (reference shows +score and particle read) still open vs capture baseline.
+- Cross-link **hover bloom** and **matched checkmark** expectations with [`TASK-005`](TASK-005-card-states-and-fx.md).
 
 ## Priority
 Medium

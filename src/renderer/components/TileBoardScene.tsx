@@ -2,6 +2,7 @@ import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import {
     CanvasTexture,
+    Color,
     DoubleSide,
     LinearFilter,
     MathUtils,
@@ -12,12 +13,14 @@ import {
     Vector2,
     Vector3,
     type BufferAttribute,
-    type Group
+    type Group,
+    type MeshBasicMaterial
 } from 'three';
 import type { BoardState, RunStatus, Tile } from '../../shared/contracts';
 import {
     applyAnisotropyToCachedTileTextures,
     getCardBackStaticTexture,
+    getCardFaceStaticTexture,
     getTileFaceOverlayTexture,
     subscribeTextureImageUpdates,
     type FaceVariant
@@ -33,6 +36,9 @@ import { RENDERER_THEME } from '../styles/theme';
 import { getTileFieldAmplification } from './tileFieldTilt';
 import { isTilePickable, noopMeshRaycast, pickableMeshRaycast } from './tileBoardPick';
 import { getResolvingSelectionState, type ResolvingSelectionState } from './tileResolvingSelection';
+
+const HOVER_RIM_TINT = new Color('#fff0d4');
+const scratchCardTint = new Color();
 import type { TileBoardViewportState } from './tileBoardViewport';
 
 interface TileBoardSceneProps {
@@ -265,6 +271,10 @@ const getSurfaceVariant = (tile: Tile, faceUp: boolean, resolving: ResolvingSele
         return 'mismatch';
     }
 
+    if (faceUp && resolving === 'gambitNeutral') {
+        return 'active';
+    }
+
     return faceUp ? 'active' : 'hidden';
 };
 
@@ -346,6 +356,15 @@ const TileBezel = ({
     const frontPersistentRef = useRef<Float32Array>(new Float32Array(vertexCount));
     const backPersistentRef = useRef<Float32Array>(new Float32Array(vertexCount));
     const overlayPersistentRef = useRef<Float32Array>(new Float32Array(vertexCount));
+
+    const prevFaceUpRef = useRef(faceUp);
+    const flipPopT0Ref = useRef<number | null>(null);
+    const prevResolvingRef = useRef<ResolvingSelectionState | null>(null);
+    /** FX-005 WebGL match burst scale; decays in ~0.35s (cap-style budget, ~PERF-009). */
+    const matchPulseRef = useRef(0);
+    const liftSmoothRef = useRef(0);
+    const frontCardMatRef = useRef<MeshBasicMaterial | null>(null);
+    const backCardMatRef = useRef<MeshBasicMaterial | null>(null);
 
     const bendURef = useRef(0.5);
     const bendVRef = useRef(0.5);
@@ -591,6 +610,32 @@ const TileBezel = ({
             return;
         }
 
+        const clock = state.clock;
+        const prevFace = prevFaceUpRef.current;
+        if (faceUp && !prevFace && !reduceMotion) {
+            flipPopT0Ref.current = clock.elapsedTime;
+        }
+        prevFaceUpRef.current = faceUp;
+
+        const prevR = prevResolvingRef.current;
+        if (resolvingSelection === 'match' && prevR !== 'match' && !reduceMotion) {
+            matchPulseRef.current = 1;
+        }
+        prevResolvingRef.current = resolvingSelection;
+        matchPulseRef.current = Math.max(0, matchPulseRef.current - delta * 2.8);
+        const matchPulse = matchPulseRef.current;
+
+        let flipPopMul = 1;
+        const fp0 = flipPopT0Ref.current;
+        if (fp0 != null && !reduceMotion) {
+            const td = clock.elapsedTime - fp0;
+            if (td < 0.22) {
+                flipPopMul = 1 + Math.sin((td / 0.22) * Math.PI) * 0.065;
+            } else {
+                flipPopT0Ref.current = null;
+            }
+        }
+
         const frontBase = frontBaseRef.current;
         const backBase = backBaseRef.current;
         const overlayBase = overlayBaseRef.current;
@@ -656,6 +701,9 @@ const TileBezel = ({
         const hoverDepth = hovered ? (isMatched ? 0.0014 : 0.0032) : 0;
         const targetLift = isMatched ? 0.0024 : faceUp ? 0.0012 : 0;
         const targetDepth = isMatched ? 0.0036 : faceUp ? 0.0018 : 0;
+        const liftGoal = targetLift + hoverLift;
+        const liftLambda = reduceMotion ? 400 : faceUp && !isMatched ? 15 : 200;
+        liftSmoothRef.current = MathUtils.damp(liftSmoothRef.current, liftGoal, liftLambda, delta);
         const rotationDamp = reduceMotion ? 42 : faceUp ? 18 : 16;
 
         group.rotation.x = MathUtils.damp(
@@ -672,31 +720,64 @@ const TileBezel = ({
         );
         group.rotation.y = reduceMotion ? transform.targetRotation : MathUtils.damp(group.rotation.y, transform.targetRotation, rotationDamp, delta);
         const targetX = transform.baseX + transform.imperfectionX;
-        const targetY = transform.baseY + transform.imperfectionY + targetLift + hoverLift + fieldLift + idleDrift + settle;
-        const targetZ = targetDepth + hoverDepth + fieldDepth;
+        const targetY =
+            transform.baseY + transform.imperfectionY + liftSmoothRef.current + fieldLift + idleDrift + settle;
         const now = performance.now();
         const shuffleLayoutActive =
             !reduceMotion && shuffleMotionDeadlineMs > 0 && now < shuffleMotionDeadlineMs;
+        const shuffleZJitter = shuffleLayoutActive ? ((transform.seed % 11) - 5) * 0.0002 : 0;
+        const targetZ = targetDepth + hoverDepth + fieldDepth + shuffleZJitter;
+        const wobbleT = clock.elapsedTime;
+        const mismatchShakeX =
+            !reduceMotion && resolvingSelection === 'mismatch' ? Math.sin(wobbleT * 36) * 0.014 : 0;
+        const mismatchShakeY =
+            !reduceMotion && resolvingSelection === 'mismatch' ? Math.cos(wobbleT * 29) * 0.011 : 0;
+        const posX = targetX + mismatchShakeX;
+        const posY = targetY + mismatchShakeY;
         const posLambda = shuffleLayoutActive ? 9 : 200;
 
         if (shuffleLayoutActive) {
-            group.position.x = MathUtils.damp(group.position.x, targetX, posLambda, delta);
-            group.position.y = MathUtils.damp(group.position.y, targetY, posLambda, delta);
+            group.position.x = MathUtils.damp(group.position.x, posX, posLambda, delta);
+            group.position.y = MathUtils.damp(group.position.y, posY, posLambda, delta);
             group.position.z = MathUtils.damp(group.position.z, targetZ, posLambda, delta);
         } else {
-            group.position.x = targetX;
-            group.position.y = targetY;
+            group.position.x = posX;
+            group.position.y = posY;
             group.position.z = targetZ;
         }
-        group.scale.x = group.scale.y = group.scale.z = transform.baseScale;
+        const matchPulseMul = resolvingSelection === 'match' ? 0.11 : 0.08;
+        const scaleMul = transform.baseScale * flipPopMul * (1 + matchPulse * matchPulseMul);
+        group.scale.x = group.scale.y = group.scale.z = scaleMul;
+
+        const hiddenPinned = isPinned && tile.state === 'hidden';
+        scratchCardTint.set('#ffffff');
+        if (hiddenPinned) {
+            scratchCardTint.set('#d4b870');
+        } else if (resolvingSelection === 'mismatch' && faceUp) {
+            scratchCardTint.set('#ffc8bc');
+        } else if (resolvingSelection === 'gambitNeutral' && faceUp) {
+            scratchCardTint.set('#cfe8f2');
+        }
+        if (hovered && !reduceMotion) {
+            scratchCardTint.lerp(HOVER_RIM_TINT, 0.2);
+        }
+        frontCardMatRef.current?.color.copy(scratchCardTint);
+        backCardMatRef.current?.color.copy(scratchCardTint);
     });
 
     const surfaceVariant = getSurfaceVariant(tile, faceUp, resolvingSelection);
     const hiddenPinned = isPinned && tile.state === 'hidden';
     const cardTint =
-        hiddenPinned ? '#d4b870' : resolvingSelection === 'mismatch' && faceUp ? '#ffc8bc' : '#ffffff';
-    /** Same bitmap as the face-down side: static reference PNG only. Face-up adds nothing here—only the overlay mesh draws the symbol. */
-    const cardArtTexture = getCardBackStaticTexture();
+        hiddenPinned
+            ? '#d4b870'
+            : resolvingSelection === 'mismatch' && faceUp
+              ? '#ffc8bc'
+              : resolvingSelection === 'gambitNeutral' && faceUp
+                ? '#cfe8f2'
+                : '#ffffff';
+    /** Hidden side: reference back art. Face-up side: calmer face panel; symbol draws on overlay mesh only. */
+    const cardBackArtTexture = getCardBackStaticTexture();
+    const cardFrontArtTexture = getCardFaceStaticTexture();
     const overlayTexture =
         surfaceVariant === 'hidden' ? null : getTileFaceOverlayTexture(tile, surfaceVariant);
     const forceTextureRefreshKey = textureRevision;
@@ -727,10 +808,11 @@ const TileBezel = ({
                 </mesh>
                 <mesh geometry={frontGeometry} position={[0, 0, faceZ]} raycast={noopMeshRaycast}>
                     <meshBasicMaterial
+                        ref={frontCardMatRef}
                         alphaTest={0.06}
                         color={cardTint}
                         depthWrite
-                        map={cardArtTexture ?? undefined}
+                        map={cardFrontArtTexture ?? undefined}
                         side={DoubleSide}
                         toneMapped={false}
                         transparent
@@ -758,10 +840,11 @@ const TileBezel = ({
                 ) : null}
                 <mesh geometry={backGeometry} position={[0, 0, -faceZ]} rotation={[0, Math.PI, 0]} raycast={noopMeshRaycast}>
                     <meshBasicMaterial
+                        ref={backCardMatRef}
                         alphaTest={0.06}
                         color={cardTint}
                         depthWrite
-                        map={cardArtTexture ?? undefined}
+                        map={cardBackArtTexture ?? undefined}
                         side={DoubleSide}
                         toneMapped={false}
                         transparent

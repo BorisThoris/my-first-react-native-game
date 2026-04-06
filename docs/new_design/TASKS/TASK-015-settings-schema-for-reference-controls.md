@@ -8,6 +8,17 @@ Done (matrix + honest Controls placeholders verified)
 - **Relationship:** Builds on `TASK-006-settings-shell.md` (shell done—this is **model + UI truth**).
 - **Landed:** `docs/new_design/SETTINGS_REFERENCE_CONTROLS_MATRIX.md`; live UI uses **Future tuning (not wired)** with disabled segments and explicit hints in `SettingsScreen.tsx`.
 
+### Phase 2 — implementation (when product approves)
+Tracked here to avoid a duplicate task number; phase 1 remains **Done** (honest labeling).
+
+- **Difficulty**, **timer mode**, **max lives**: persist in `Settings` / `save-data` and apply to run rules, or keep deferred with copy only.
+- **Card theme:** five-back preview row wired to `tileTextures` / assets (see [`DROP_IN_ASSET_CHECKLIST.md`](../DROP_IN_ASSET_CHECKLIST.md), [`TASK-011`](TASK-011-final-card-art-and-texture-pipeline.md)).
+- **Tutorial hints** toggle in Gameplay pane if distinct from existing onboarding.
+- **Reset to defaults** footer pattern vs Back/Save—align copy with reference if product wants both.
+
+### Reference audit ([`CURRENT_VS_ENDPRODUCT.md`](../../reference-comparison/CURRENT_VS_ENDPRODUCT.md))
+- See § Settings vs ENDPRODUCTIMAGE2 (top right) for the checklist of reference-only rows vs capture `03-settings-page.png`.
+
 ## Priority
 Medium
 

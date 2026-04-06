@@ -1,9 +1,17 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import type { BoardPresentationMode, DisplayMode, Settings, WeakerShuffleMode } from '../../shared/contracts';
+import type {
+    BoardPresentationMode,
+    BoardScreenSpaceAA,
+    DisplayMode,
+    GraphicsQualityPreset,
+    Settings,
+    WeakerShuffleMode
+} from '../../shared/contracts';
 import { DEFAULT_SETTINGS } from '../../shared/save-data';
 import { Eyebrow, Panel, ScreenTitle, UiButton } from '../ui';
 import packageJson from '../../../package.json';
+import { getFocusableElements } from '../a11y/focusables';
 import { useAppStore } from '../store/useAppStore';
 import styles from './SettingsScreen.module.css';
 
@@ -26,17 +34,23 @@ interface ToggleRowProps {
     label: string;
     hint: string;
     checked: boolean;
+    disabled?: boolean;
     onChange: (next: boolean) => void;
 }
 
-const ToggleRow = ({ label, hint, checked, onChange }: ToggleRowProps) => (
-    <label className={styles.toggleRow}>
+const ToggleRow = ({ label, hint, checked, disabled = false, onChange }: ToggleRowProps) => (
+    <label className={`${styles.toggleRow} ${disabled ? styles.toggleRowDisabled : ''}`.trim()}>
         <div className={styles.fieldText}>
             <strong>{label}</strong>
             <span>{hint}</span>
         </div>
         <span className={styles.toggleShell}>
-            <input checked={checked} onChange={(event) => onChange(event.currentTarget.checked)} type="checkbox" />
+            <input
+                checked={checked}
+                disabled={disabled}
+                onChange={(event) => onChange(event.currentTarget.checked)}
+                type="checkbox"
+            />
             <span className={styles.toggleTrack} />
         </span>
     </label>
@@ -149,6 +163,8 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
     const [draft, setDraft] = useState<Settings>(settings);
     const [activeCategory, setActiveCategory] = useState<SettingsCategory>('gameplay');
     const isModal = presentation === 'modal';
+    const modalShellRef = useRef<HTMLElement | null>(null);
+    const previousFocusRef = useRef<HTMLElement | null>(null);
     const titleId = useId();
     const title = isModal ? 'Run Settings' : 'Settings';
     const eyebrow = isModal ? 'Paused' : 'Preferences';
@@ -157,6 +173,54 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
     useEffect(() => {
         setDraft(settings);
     }, [settings]);
+
+    useEffect(() => {
+        if (!isModal) {
+            return;
+        }
+
+        previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        const frame = window.requestAnimationFrame(() => {
+            const list = getFocusableElements(modalShellRef.current);
+            (list[0] ?? modalShellRef.current)?.focus();
+        });
+
+        return () => {
+            window.cancelAnimationFrame(frame);
+            previousFocusRef.current?.focus();
+        };
+    }, [isModal]);
+
+    const handleModalKeyDown = (event: KeyboardEvent<HTMLElement>): void => {
+        if (!isModal || event.key !== 'Tab') {
+            return;
+        }
+
+        const focusableElements = getFocusableElements(modalShellRef.current);
+
+        if (focusableElements.length === 0) {
+            event.preventDefault();
+            modalShellRef.current?.focus();
+            return;
+        }
+
+        const currentIndex = focusableElements.indexOf(document.activeElement as HTMLElement);
+        const lastIndex = focusableElements.length - 1;
+
+        if (event.shiftKey) {
+            if (currentIndex <= 0) {
+                event.preventDefault();
+                focusableElements[lastIndex]?.focus();
+            }
+
+            return;
+        }
+
+        if (currentIndex === -1 || currentIndex === lastIndex) {
+            event.preventDefault();
+            focusableElements[0]?.focus();
+        }
+    };
 
     const patchSettings = <Key extends keyof Settings>(key: Key, value: Settings[Key]): void => {
         setDraft((current) => ({
@@ -185,7 +249,10 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
             aria-labelledby={isModal ? titleId : undefined}
             aria-modal={isModal ? 'true' : undefined}
             className={`${styles.shell} ${isModal ? styles.shellModal : ''}`}
+            onKeyDown={isModal ? handleModalKeyDown : undefined}
+            ref={modalShellRef}
             role={isModal ? 'dialog' : undefined}
+            tabIndex={isModal ? -1 : undefined}
         >
             <Panel
                 className={`${styles.panel} ${isModal ? styles.panelModal : ''}`}
@@ -444,6 +511,38 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                                             step={0.05}
                                             value={draft.uiScale}
                                             valueLabel={`${draft.uiScale.toFixed(2)}x`}
+                                        />
+                                        <SegmentedControl<GraphicsQualityPreset>
+                                            hint="Low caps board pixel ratio and menu atmosphere resolution; high allows sharper WebGL. Bloom stays off unless you enable it below (not applied on Low)."
+                                            label="Graphics quality"
+                                            onChange={(next) => patchSettings('graphicsQuality', next)}
+                                            options={[
+                                                { label: 'Low', value: 'low' },
+                                                { label: 'Medium', value: 'medium' },
+                                                { label: 'High', value: 'high' }
+                                            ]}
+                                            value={draft.graphicsQuality}
+                                        />
+                                        <div className={styles.toggleStack}>
+                                            <ToggleRow
+                                                checked={draft.boardBloomEnabled}
+                                                disabled={draft.graphicsQuality === 'low'}
+                                                hint="Soft bloom on the tile board (post-processing). Off by default; disabled on Low quality for performance."
+                                                label="Board bloom"
+                                                onChange={(next) => patchSettings('boardBloomEnabled', next)}
+                                            />
+                                        </div>
+                                        <SegmentedControl<BoardScreenSpaceAA>
+                                            hint="Board WebGL edge smoothing. Auto matches Reduce Motion (MSAA when reduced, SMAA otherwise). Override decouples AA from motion (PERF-002)."
+                                            label="Board anti-aliasing"
+                                            onChange={(next) => patchSettings('boardScreenSpaceAA', next)}
+                                            options={[
+                                                { label: 'Auto', value: 'auto' },
+                                                { label: 'SMAA', value: 'smaa' },
+                                                { label: 'MSAA', value: 'msaa' },
+                                                { label: 'Off', value: 'off' }
+                                            ]}
+                                            value={draft.boardScreenSpaceAA}
                                         />
                                     </Panel>
                                 </>

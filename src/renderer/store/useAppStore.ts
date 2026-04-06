@@ -86,6 +86,7 @@ interface AppState {
     openModeSelect: () => void;
     openCollection: () => void;
     openInventoryFromMenu: () => void;
+    openCodexFromMenu: () => void;
     openInventoryFromPlaying: () => void;
     openCodexFromPlaying: () => void;
     closeSubscreen: () => void;
@@ -603,7 +604,9 @@ export const useAppStore = create<AppState>((set, get) => ({
             newlyUnlockedAchievements: [],
             boardPinMode: false,
             destroyPairArmed: false,
-            peekModeArmed: false
+            peekModeArmed: false,
+            subscreenReturnView: 'menu',
+            settingsReturnView: 'menu'
         });
     },
 
@@ -617,6 +620,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     openInventoryFromMenu: () => {
         set({ view: 'inventory', subscreenReturnView: 'menu' });
+    },
+
+    openCodexFromMenu: () => {
+        set({ view: 'codex', subscreenReturnView: 'menu' });
     },
 
     openInventoryFromPlaying: () => {
@@ -990,7 +997,9 @@ export const useAppStore = create<AppState>((set, get) => ({
             newlyUnlockedAchievements: [],
             boardPinMode: false,
             destroyPairArmed: false,
-            peekModeArmed: false
+            peekModeArmed: false,
+            subscreenReturnView: 'menu',
+            settingsReturnView: 'menu'
         });
     },
 

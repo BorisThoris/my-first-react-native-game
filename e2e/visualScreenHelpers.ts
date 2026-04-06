@@ -107,6 +107,22 @@ export async function gotoWithSave(page: Page, saveJson: string): Promise<void> 
     );
     await page.goto('/');
 }
+/**
+ * Seeds localStorage then navigates home while waiting for the startup intro dialog.
+ * Reduced-motion intros auto-dismiss in ~1.8s; `page.goto` default `load` can resolve after that on a
+ * cold dev server, so awaiting visibility only after navigation races the timer and flakes.
+ */
+export async function gotoWithSaveExpectStartupIntroVisible(page: Page, saveJson: string): Promise<void> {
+    await page.addInitScript(
+        ([key, json]) => {
+            localStorage.setItem(key, json);
+        },
+        [STORAGE_KEY, saveJson]
+    );
+    const intro = page.getByRole('dialog', { name: /startup relic intro/i });
+    const introVisible = intro.waitFor({ state: 'visible', timeout: 25_000 });
+    await Promise.all([introVisible, page.goto('/')]);
+}
 
 export async function openMainMenuFromSave(page: Page, onboardingDismissed: boolean): Promise<void> {
     await gotoWithSave(page, buildVisualSaveJson(onboardingDismissed));
@@ -116,8 +132,9 @@ export async function openMainMenuFromSave(page: Page, onboardingDismissed: bool
 
 export async function startClassicRunFromModeSelect(page: Page): Promise<void> {
     await page.getByRole('button', { name: /classic run/i }).click();
-    await expect(page.getByRole('heading', { name: /level 1/i })).toBeVisible();
-    await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible({ timeout: 10000 });
+    // GameScreen level title is `srOnly` (screen-reader-only); visible checks time out on narrow viewports.
+    await expect(page.getByRole('heading', { name: /level 1/i })).toBeAttached({ timeout: 15000 });
+    await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible({ timeout: 15000 });
 }
 
 export async function openLevel1Play(page: Page): Promise<void> {

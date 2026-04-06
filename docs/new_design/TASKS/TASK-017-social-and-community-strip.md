@@ -4,6 +4,10 @@
 Done (explicit deferral; no in-app strip)
 
 ## Implementation notes
+
+### Reference audit ([`CURRENT_VS_ENDPRODUCT.md`](../../reference-comparison/CURRENT_VS_ENDPRODUCT.md))
+- Reference **main menu** bottom **social** icons (e.g. Discord, Twitter, mail) vs live layout—implement only with honest links and product approval; see capture § 1.
+
 - **Audit finding:** Reference may include community/social affordances; live app has no equivalent. Gap analysis classifies as missing screen or external-link feature.
 - **Relationship:** Optional v1+; default outcome may be **document as out of product scope**.
 - **Resolution:** Documented under **Profile / social strips** in `docs/new_design/CURRENT_VS_TARGET_GAP_ANALYSIS.md`. Add links only if product approves storefront/community URLs.

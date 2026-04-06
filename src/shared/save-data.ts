@@ -2,6 +2,8 @@ import {
     SAVE_SCHEMA_VERSION,
     type AchievementId,
     type AchievementState,
+    type BoardScreenSpaceAA,
+    type GraphicsQualityPreset,
     type PlayerStatsPersisted,
     type RelicId,
     type SaveData,
@@ -16,6 +18,9 @@ export const DEFAULT_SETTINGS: Settings = {
     displayMode: 'windowed',
     uiScale: 1,
     reduceMotion: false,
+    graphicsQuality: 'medium',
+    boardScreenSpaceAA: 'auto',
+    boardBloomEnabled: false,
     debugFlags: {
         showDebugTools: false,
         allowBoardReveal: false,
@@ -75,6 +80,25 @@ export const normalizeSaveData = (input?: Partial<SaveData> | null): SaveData =>
         return defaults;
     }
 
+    const mergedSettingsBase: Settings = {
+        ...defaults.settings,
+        ...(input.settings ?? {}),
+        debugFlags: {
+            ...defaults.settings.debugFlags,
+            ...(input.settings?.debugFlags ?? {})
+        }
+    };
+    const aaRaw = mergedSettingsBase.boardScreenSpaceAA as BoardScreenSpaceAA | undefined;
+    const boardScreenSpaceAA: BoardScreenSpaceAA =
+        aaRaw === 'auto' || aaRaw === 'smaa' || aaRaw === 'msaa' || aaRaw === 'off' ? aaRaw : defaults.settings.boardScreenSpaceAA;
+    const gqRaw = mergedSettingsBase.graphicsQuality as GraphicsQualityPreset | undefined;
+    const graphicsQuality: GraphicsQualityPreset =
+        gqRaw === 'low' || gqRaw === 'medium' || gqRaw === 'high' ? gqRaw : defaults.settings.graphicsQuality;
+    const boardBloomEnabled =
+        typeof mergedSettingsBase.boardBloomEnabled === 'boolean'
+            ? mergedSettingsBase.boardBloomEnabled
+            : defaults.settings.boardBloomEnabled;
+
     return {
         schemaVersion: SAVE_SCHEMA_VERSION,
         bestScore: typeof input.bestScore === 'number' ? input.bestScore : defaults.bestScore,
@@ -83,12 +107,10 @@ export const normalizeSaveData = (input?: Partial<SaveData> | null): SaveData =>
             ...(input.achievements ?? {})
         },
         settings: {
-            ...defaults.settings,
-            ...(input.settings ?? {}),
-            debugFlags: {
-                ...defaults.settings.debugFlags,
-                ...(input.settings?.debugFlags ?? {})
-            }
+            ...mergedSettingsBase,
+            boardScreenSpaceAA,
+            boardBloomEnabled,
+            graphicsQuality
         },
         onboardingDismissed: typeof input.onboardingDismissed === 'boolean' ? input.onboardingDismissed : defaults.onboardingDismissed,
         lastRunSummary: input.lastRunSummary ?? defaults.lastRunSummary,

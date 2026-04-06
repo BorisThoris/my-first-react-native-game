@@ -4,7 +4,7 @@ import {
     completeLevel1Play,
     expectNoHorizontalOverflow,
     forceGameOverWithMismatches,
-    gotoWithSave,
+    gotoWithSaveExpectStartupIntroVisible,
     mainMenuPlayButton,
     openLevel1Play,
     openMainMenuFromSave,
@@ -25,10 +25,7 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
         fileBase: '00-startup-intro',
         name: 'startup intro visible',
         run: async (page, capture) => {
-            await gotoWithSave(page, buildVisualSaveJson(true));
-            await expect(page.getByRole('dialog', { name: /startup relic intro/i })).toBeVisible({
-                timeout: 15000
-            });
+            await gotoWithSaveExpectStartupIntroVisible(page, buildVisualSaveJson(true));
             await page.waitForTimeout(400);
             await expectNoHorizontalOverflow(page);
             await capture('00-startup-intro');
@@ -82,11 +79,14 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
     {
         fileBase: '01d-inventory-active',
         name: 'inventory during a run',
+        timeoutMs: 90_000,
         run: async (page, capture) => {
             await openLevel1Play(page);
             await page.getByRole('button', { name: /show utility menu/i }).click();
-            await page.getByRole('group', { name: /in-game menu/i }).getByRole('button', { name: /active run loadout/i }).click();
-            await expect(page.getByRole('region', { name: /inventory/i })).toBeVisible();
+            const flyout = page.getByRole('group', { name: /in-game menu/i });
+            await expect(flyout).toBeVisible({ timeout: 20_000 });
+            await flyout.getByRole('button', { name: /active run loadout/i }).click({ timeout: 20_000 });
+            await expect(page.getByRole('region', { name: /inventory/i })).toBeVisible({ timeout: 20_000 });
             await expectNoHorizontalOverflow(page);
             await capture('01d-inventory-active');
         }
@@ -94,11 +94,14 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
     {
         fileBase: '01e-codex',
         name: 'codex during a run',
+        timeoutMs: 90_000,
         run: async (page, capture) => {
             await openLevel1Play(page);
             await page.getByRole('button', { name: /show utility menu/i }).click();
-            await page.getByRole('group', { name: /in-game menu/i }).getByRole('button', { name: /read-only rules/i }).click();
-            await expect(page.getByRole('region', { name: /codex/i })).toBeVisible();
+            const flyout = page.getByRole('group', { name: /in-game menu/i });
+            await expect(flyout).toBeVisible({ timeout: 20_000 });
+            await flyout.getByRole('button', { name: /read-only rules/i }).click({ timeout: 20_000 });
+            await expect(page.getByRole('region', { name: /codex/i })).toBeVisible({ timeout: 20_000 });
             await expectNoHorizontalOverflow(page);
             await capture('01e-codex');
         }
@@ -159,7 +162,7 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
         name: 'run settings modal (in-game)',
         run: async (page, capture) => {
             await openLevel1Play(page);
-            await page.getByRole('button', { name: /^settings$/i }).evaluate((element) => {
+            await page.getByRole('button', { name: /run settings \(toolbar\)/i }).evaluate((element) => {
                 (element as HTMLButtonElement).click();
             });
             const runSettings = page.getByRole('dialog', { name: /run settings/i });

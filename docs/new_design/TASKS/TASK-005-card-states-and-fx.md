@@ -7,6 +7,12 @@ Done (shipped scope; residuals documented)
 - Board uses shared card raster pipeline (`tileTextures.ts`, `TileBoard` / CSS). Hidden, flipped, matched, and mismatch/hover treatments are iterated for clearer state language in both 2D and 3D paths.
 - **Residual:** Maximum “premium” parity depends on final card-back/face art drops in `assets/textures/cards/` and motion tuning in `MOTION_AND_STATE_SPEC.md`.
 
+### Reference audit ([`CURRENT_VS_ENDPRODUCT.md`](../../reference-comparison/CURRENT_VS_ENDPRODUCT.md))
+- **Hover:** reference heavy gold bloom vs subtler border/shadow/3D lift—strengthen FX while respecting `reduceMotion`.
+- **Matched:** reference large green checkmark overlay vs green tint/pulse only—add glyph or equivalent clear success read.
+- **Mismatch:** reference aggressive red pulse/stress vs current resolving treatment—optional intensify.
+- Coordinate with [`TASK-011`](TASK-011-final-card-art-and-texture-pipeline.md) / [`TASK-012`](TASK-012-card-interaction-fx-and-celebration.md) for art-dependent states.
+
 ## Priority
 High
 

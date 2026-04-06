@@ -20,7 +20,7 @@ const CollectionScreen = () => {
     const summary = saveData.lastRunSummary;
 
     return (
-        <section aria-label="Collection" className={metaStyles.shell} role="region">
+        <section aria-label="Collection" className={`${metaStyles.shell} ${metaStyles.shellMetaStage}`} role="region">
             <header className={metaStyles.header}>
                 <div className={metaStyles.headerText}>
                     <Eyebrow tone="menu">Archive</Eyebrow>
@@ -38,8 +38,15 @@ const CollectionScreen = () => {
             </header>
 
             <div className={metaStyles.body}>
+                <nav aria-label="Collection sections" className={metaStyles.inPageToc}>
+                    <a href="#collection-achievements">Achievements</a>
+                    <a href="#collection-relics">Relics</a>
+                    <a href="#collection-bests">Bests</a>
+                    <a href="#collection-daily">Daily</a>
+                    <a href="#collection-symbols">Symbols</a>
+                </nav>
                 <Panel padding="lg" variant="strong">
-                    <div className={styles.section}>
+                    <div className={`${styles.section} ${metaStyles.sectionAnchor}`} id="collection-achievements">
                         <h2 className={styles.sectionTitle}>Achievements</h2>
                         <div className={styles.grid}>
                             {ACHIEVEMENT_IDS.map((id) => {
@@ -61,7 +68,7 @@ const CollectionScreen = () => {
                 </Panel>
 
                 <Panel padding="lg" variant="default">
-                    <div className={styles.section}>
+                    <div className={`${styles.section} ${metaStyles.sectionAnchor}`} id="collection-relics">
                         <h2 className={styles.sectionTitle}>Relic catalog</h2>
                         <div className={styles.grid}>
                             {(Object.keys(RELIC_CATALOG) as RelicId[]).map((id) => {
@@ -80,7 +87,7 @@ const CollectionScreen = () => {
                 </Panel>
 
                 <Panel padding="lg" variant="default">
-                    <div className={styles.section}>
+                    <div className={`${styles.section} ${metaStyles.sectionAnchor}`} id="collection-bests">
                         <h2 className={styles.sectionTitle}>Bests and last run</h2>
                         <div className={styles.statRow}>
                             <span>
@@ -102,7 +109,7 @@ const CollectionScreen = () => {
                 </Panel>
 
                 <Panel padding="lg" variant="default">
-                    <div className={styles.section}>
+                    <div className={`${styles.section} ${metaStyles.sectionAnchor}`} id="collection-daily">
                         <h2 className={styles.sectionTitle}>Daily stats</h2>
                         <div className={styles.statRow}>
                             <span>
@@ -116,7 +123,7 @@ const CollectionScreen = () => {
                 </Panel>
 
                 <Panel padding="lg" variant="default">
-                    <div className={styles.section}>
+                    <div className={`${styles.section} ${metaStyles.sectionAnchor}`} id="collection-symbols">
                         <h2 className={styles.sectionTitle}>Symbol gallery</h2>
                         <p className={metaStyles.subtitle}>
                             Tiles rotate through these sets by floor band. Letter-only mutator uses the hybrid letter band.

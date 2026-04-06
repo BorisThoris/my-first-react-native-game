@@ -22,7 +22,15 @@ Describe how to compare the live renderer to `ENDPRODUCTIMAGE.png` / `ENDPRODUCT
 - **CI-only artifacts:** rely on `test-results/` from pipeline; do not commit large binaries.
 - **Committed baselines:** check in a curated subset under `docs/visual-capture` for design review; document the policy here and in TASK-008 notes.
 
+### Recorded default (this repo)
+- **Regression / CI:** Treat **`test-results/visual-screens/`** (or the default `VISUAL_CAPTURE_ROOT`) as the normal output—**gitignored**, no binary commit required for green builds.
+- **Human audit vs `ENDPRODUCTIMAGE*.png`:** When you need stable paths in docs or PR discussion, regenerate into **`docs/reference-comparison/captures/`** with  
+  `cross-env VISUAL_CAPTURE_ROOT=docs/reference-comparison/captures yarn playwright test e2e/visual-screens.standard.spec.ts --workers=1`  
+  (see [CURRENT_VS_ENDPRODUCT.md](../reference-comparison/CURRENT_VS_ENDPRODUCT.md)). **Commit those PNGs only** when a change intentionally updates marketing or design-review baselines; otherwise keep them local or attach to the PR as artifacts.
+- **Mobile + tablet + desktop:** Full `yarn test:e2e:visual` after mobile flyout/HUD fixes should pass; if a viewport flakes, prefer bumping scenario timeouts in `e2e/visualScenarioSteps.ts` over disabling the scenario.
+
 ## Related tasks
 - [TASK-014](TASKS/TASK-014-visual-reference-captures-and-diff-process.md)
 - [TASK-019](TASKS/TASK-019-reference-stills-and-scenario-audit-matrix.md)
 - [TASK-008](TASKS/TASK-008-gap-surfaces-and-regression.md)
+- [TASK-020](TASKS/TASK-020-endproduct-screenshot-audit-and-captures.md)

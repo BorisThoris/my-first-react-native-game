@@ -123,6 +123,29 @@ export const RENDERER_THEME = {
         '--theme-danger': '#d86a58',
         '--theme-success': '#9fda81',
 
+        /*
+         * DS-001: Keep Source Sans 3 as the primary UI/body face (OFL via @fontsource). Inter was evaluated but not
+         * adopted to avoid a second full Latin bundle and to preserve current metrics across screens.
+         */
+        /* DS-009: document / shell backdrop stops (global.css body + App.module.css .app). */
+        '--theme-backdrop-doc-bloom-a': 'rgba(242, 211, 157, 0.12)',
+        '--theme-backdrop-doc-bloom-b': 'rgba(140, 98, 223, 0.13)',
+        '--theme-backdrop-doc-bloom-c': 'rgba(223, 132, 71, 0.12)',
+        '--theme-backdrop-doc-veil': 'rgba(255, 255, 255, 0.02)',
+        '--theme-backdrop-grid-line': 'rgba(255, 255, 255, 0.018)',
+        '--theme-backdrop-body-shade-mid': 'rgba(5, 5, 10, 0.24)',
+        '--theme-backdrop-body-shade-deep': 'rgba(5, 5, 10, 0.66)',
+        '--theme-backdrop-body-rim': 'rgba(255, 244, 218, 0.03)',
+        '--theme-app-ember-bloom': 'rgba(243, 155, 78, 0.12)',
+        '--theme-app-mist-top': 'rgba(255, 255, 255, 0.02)',
+
+        /* OVR-001/002 — shared shell chrome for pause / floor-clear modals (OverlayModal, Panel inner ring) */
+        '--theme-overlay-plate-radius': 'calc(var(--ui-radius-modal) + 0.18rem)',
+        '--theme-overlay-plate-border': '1px solid var(--theme-border-strong)',
+        '--theme-overlay-plate-shadow':
+            '0 26px 64px rgba(0, 0, 0, 0.46), inset 0 1px 0 rgba(255, 255, 255, 0.06)',
+        '--theme-overlay-plate-inner-glow': 'rgba(255, 244, 218, 0.05)',
+
         /* UI system: radius */
         '--ui-radius-sm': '0.45rem',
         '--ui-radius-md': '0.7rem',

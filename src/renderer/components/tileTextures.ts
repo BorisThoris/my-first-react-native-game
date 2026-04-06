@@ -2,6 +2,7 @@ import { CanvasTexture, LinearFilter, NoColorSpace, SRGBColorSpace } from 'three
 import type { Tile } from '../../shared/contracts';
 import { RENDERER_THEME } from '../styles/theme';
 import referenceBackTextureUrl from '../assets/textures/cards/reference-back.png';
+import cardFaceTextureUrl from '../assets/textures/cards/front-face.png';
 import edgeTextureUrl from '../assets/textures/cards/edge.png';
 import panelRoughnessTextureUrl from '../assets/textures/cards/panel-roughness.png';
 import edgeRoughnessTextureUrl from '../assets/textures/cards/edge-roughness.png';
@@ -15,13 +16,15 @@ export type CubeFace = TileFace;
 export type CubeLayer = 'shell' | 'core';
 
 const TEXTURE_SIZE = 512;
-const TILE_TEXTURE_VERSION = 13;
+const TILE_TEXTURE_VERSION = 14;
 const textureCache = new Map<string, CanvasTexture>();
 const textureImageUpdateListeners = new Set<() => void>();
 
 const textureImageUrls = {
-    /** Single card raster for both faces (reference-back.png). */
+    /** Hidden-side card raster (WebGL back plane, DOM .cardFaceBack). */
     cardReference: referenceBackTextureUrl,
+    /** Face-up panel raster (WebGL front plane, DOM .cardFaceFront); calmer center vs back. */
+    cardFace: cardFaceTextureUrl,
     edge: edgeTextureUrl,
     panelRoughness: panelRoughnessTextureUrl,
     edgeRoughness: edgeRoughnessTextureUrl
@@ -815,6 +818,19 @@ export const getCardBackStaticTexture = (): CanvasTexture | null =>
             const fallback = context.createLinearGradient(0, 0, canvas.width, canvas.height);
             fallback.addColorStop(0, '#2b394f');
             fallback.addColorStop(1, '#182233');
+            context.fillStyle = fallback;
+            context.fillRect(0, 0, canvas.width, canvas.height);
+        }
+    });
+
+export const getCardFaceStaticTexture = (): CanvasTexture | null =>
+    createTexture('static-card-face', (context, canvas) => {
+        const rendered = drawTextureImage(context, canvas, 'cardFace', 1);
+
+        if (!rendered) {
+            const fallback = context.createLinearGradient(0, 0, canvas.width, canvas.height);
+            fallback.addColorStop(0, '#243448');
+            fallback.addColorStop(1, '#121a28');
             context.fillStyle = fallback;
             context.fillRect(0, 0, canvas.width, canvas.height);
         }

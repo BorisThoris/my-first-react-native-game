@@ -6,6 +6,19 @@
     overflow: hidden;
 }
 
+/* META-002: cathedral plate parity with main menu (same asset, calmer blend for run summary). */
+.scenePlate {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.2;
+    background-position: center bottom;
+    background-repeat: no-repeat;
+    background-size: cover;
+    mix-blend-mode: screen;
+}
+
 .scrim {
     position: absolute;
     inset: 0;
