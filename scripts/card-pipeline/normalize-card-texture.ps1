@@ -16,7 +16,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-# Keep in sync with src/renderer/components/tileShatter.ts and scripts/cardTextureConstants.mjs
+# Keep in sync with src/renderer/components/tileShatter.ts and scripts/card-pipeline/cardTextureConstants.mjs
 $CardW = 0.74
 $CardH = 1.08
 $aspect = $CardW / $CardH

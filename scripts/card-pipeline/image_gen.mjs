@@ -4,11 +4,11 @@
  * Requires OPENAI_API_KEY. Writes PNG (base64 response) or downloads URL response.
  *
  * Usage:
- *   node scripts/image_gen.mjs --prompt "..." --out src/renderer/assets/ui/backgrounds/foo.png
- *   node scripts/image_gen.mjs --prompt "..." --out ./out.png --resolution card
- *   node scripts/image_gen.mjs --prompt "..." --out ./out.png --resolution 1024x1024
- *   node scripts/image_gen.mjs --model gpt-image-1 --size 1536x1024 --prompt "..." --out ./out.png
- *   node scripts/image_gen.mjs --list-resolutions
+ *   node scripts/card-pipeline/image_gen.mjs --prompt "..." --out src/renderer/assets/ui/backgrounds/foo.png
+ *   node scripts/card-pipeline/image_gen.mjs --prompt "..." --out ./out.png --resolution card
+ *   node scripts/card-pipeline/image_gen.mjs --prompt "..." --out ./out.png --resolution 1024x1024
+ *   node scripts/card-pipeline/image_gen.mjs --model gpt-image-1 --size 1536x1024 --prompt "..." --out ./out.png
+ *   node scripts/card-pipeline/image_gen.mjs --list-resolutions
  *
  * `--size` is passed through to the API. If you pass both `--size` and `--resolution`, `--size` wins.
  * Presets are common OpenAI image sizes; confirm current model docs if a request fails.
@@ -27,7 +27,7 @@ import {
 } from './cardTextureConstants.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const root = resolve(__dirname, '..');
+const root = resolve(__dirname, '..', '..');
 
 const CARD_PLANE_PRESET_KEYS = new Set(['card-plane', 'card-plane-hq']);
 
@@ -40,7 +40,7 @@ const RESOLUTION_PRESETS = {
     'square-1k': '1024x1024',
     /**
      * Portrait tile art — matches WebGL card plane (~0.685) as closely as GPT Image allows (1024×1536 ≈ 0.667).
-     * Default `--quality high`. Normalize to exact pixels: `scripts/normalize-card-texture.ps1`.
+     * Default `--quality high`. Normalize to exact pixels: `scripts/card-pipeline/normalize-card-texture.ps1`.
      */
     'card-plane': OPENAI_GPT_IMAGE_CARD_PLANE_SIZE,
     'card-plane-hq': OPENAI_GPT_IMAGE_CARD_PLANE_SIZE,
@@ -146,7 +146,7 @@ async function main() {
     const size = sizeArg ?? fromPreset ?? '1536x1024';
 
     if (!prompt || !out) {
-        console.error(`Usage: node scripts/image_gen.mjs --prompt "..." --out <path-relative-to-repo> [--model gpt-image-1] [--resolution <preset|WxH>] [--size WxH] [--quality low|medium|high|auto]
+        console.error(`Usage: node scripts/card-pipeline/image_gen.mjs --prompt "..." --out <path-relative-to-repo> [--model gpt-image-1] [--resolution <preset|WxH>] [--size WxH] [--quality low|medium|high|auto]
 
   --resolution   Preset name (e.g. card-plane, menu-wide) or explicit WxH for the API.
   --size         Same as API size; overrides --resolution when both are set.
@@ -210,7 +210,7 @@ Environment: OPENAI_API_KEY required.`);
         if (resolutionArg && CARD_PLANE_PRESET_KEYS.has(resolutionArg.trim().toLowerCase())) {
             const ideal = idealCardTexturePixels(2048);
             console.log(
-                `Tip: exact card-plane pixels ${ideal.label}: .\\scripts\\normalize-card-texture.ps1 -InputPath <api.png> -OutputPath <out.png> -LongEdge 2048`
+                `Tip: exact card-plane pixels ${ideal.label}: .\\scripts\\card-pipeline\\normalize-card-texture.ps1 -InputPath <api.png> -OutputPath <out.png> -LongEdge 2048`
             );
         }
         return;

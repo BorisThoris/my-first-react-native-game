@@ -12,7 +12,7 @@ Use this when regenerating **`reference-back.png`** (hidden side) and **`front-f
 | **Aspect as decimal** | width ÷ height | **≈ 0.685185** |
 | **Shipped PNG (default)** | Final files in repo | **`1403 × 2048`** pixels (height 2048, width rounded from aspect) |
 | **Other long edges** | Optional sharper assets | Run `yarn card-texture:ideal <height>` — e.g. 3072 → width scales with same aspect |
-| **OpenAI GPT Image (`gpt-image-1`)** | Closest allowed portrait size | **`1024 × 1536`** only (API does not support 1403×2048). Always run `scripts/normalize-card-texture.ps1` after. |
+| **OpenAI GPT Image (`gpt-image-1`)** | Closest allowed portrait size | **`1024 × 1536`** only (API does not support 1403×2048). Always run `scripts/card-pipeline/normalize-card-texture.ps1` after. |
 
 **Copy-paste line for prompts:**
 
@@ -60,10 +60,10 @@ yarn card-texture:ideal --ai-brief
 
 # GPT Image → tmp, then exact card-plane pixels (contain, no crop)
 yarn imagegen -- --resolution card-plane --prompt "…" --out tmp/card-back-raw.png
-powershell -ExecutionPolicy Bypass -File scripts/normalize-card-texture.ps1 -InputPath tmp/card-back-raw.png -OutputPath src/renderer/assets/textures/cards/reference-back.png -LongEdge 2048
+powershell -ExecutionPolicy Bypass -File scripts/card-pipeline/normalize-card-texture.ps1 -InputPath tmp/card-back-raw.png -OutputPath src/renderer/assets/textures/cards/reference-back.png -LongEdge 2048
 
 yarn imagegen -- --resolution card-plane --prompt "…" --out tmp/card-face-raw.png
-powershell -ExecutionPolicy Bypass -File scripts/normalize-card-texture.ps1 -InputPath tmp/card-face-raw.png -OutputPath src/renderer/assets/textures/cards/front-face.png -LongEdge 2048
+powershell -ExecutionPolicy Bypass -File scripts/card-pipeline/normalize-card-texture.ps1 -InputPath tmp/card-face-raw.png -OutputPath src/renderer/assets/textures/cards/front-face.png -LongEdge 2048
 ```
 
 Requires `OPENAI_API_KEY` for `imagegen`. See also `src/renderer/assets/ASSET_SOURCES.md`.

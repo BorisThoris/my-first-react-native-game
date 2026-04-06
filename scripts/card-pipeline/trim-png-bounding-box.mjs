@@ -4,8 +4,8 @@
  * Background = nearly transparent OR near-white opaque (common AI export margins).
  *
  * Usage:
- *   node scripts/trim-png-bounding-box.mjs <input.png> <output.png>
- *   node scripts/trim-png-bounding-box.mjs a.png b.png --pad 2 --white 250 --alpha 12
+ *   node scripts/card-pipeline/trim-png-bounding-box.mjs <input.png> <output.png>
+ *   node scripts/card-pipeline/trim-png-bounding-box.mjs a.png b.png --pad 2 --white 250 --alpha 12
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { PNG } from 'pngjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const root = resolve(__dirname, '..');
+const root = resolve(__dirname, '..', '..');
 
 function parseArgs(argv) {
     const positional = [];
@@ -112,7 +112,7 @@ function trimPng(inputPath, outputPath, { pad, whiteMin, alphaMax }) {
 const { positional, pad, whiteMin, alphaMax } = parseArgs(process.argv);
 
 if (positional.length < 2) {
-    console.error(`Usage: node scripts/trim-png-bounding-box.mjs <input.png> <output.png> [--pad N] [--white 248] [--alpha 14]
+    console.error(`Usage: node scripts/card-pipeline/trim-png-bounding-box.mjs <input.png> <output.png> [--pad N] [--white 248] [--alpha 14]
 
   Treats pixels as empty if alpha ≤ --alpha OR RGB all ≥ --white (opaque canvas margins).
   --pad adds N pixels margin around the detected content box.`);

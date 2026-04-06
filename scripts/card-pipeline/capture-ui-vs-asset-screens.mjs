@@ -3,7 +3,7 @@
  * Saves comparison screenshots: in-game board vs full decoded card PNGs.
  * Requires dev server: http://127.0.0.1:5173
  *
- *   node scripts/capture-ui-vs-asset-screens.mjs
+ *   node scripts/card-pipeline/capture-ui-vs-asset-screens.mjs
  */
 import { mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -11,8 +11,8 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const root = path.resolve(__dirname, '..');
-const outDir = path.join(root, 'docs', 'wip-validation');
+const root = path.resolve(__dirname, '..', '..');
+const outDir = path.join(root, 'docs', 'wip-assets', 'validation');
 
 async function main() {
     mkdirSync(outDir, { recursive: true });

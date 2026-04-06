@@ -22,7 +22,7 @@ if (wantAiBrief) {
         `Target final asset: ${ideal.label} pixels (width × height), aspect width/height = ${CARD_PLANE_ASPECT.toFixed(6)} (0.74 : 1.08).`
     );
     console.log(
-        `If the API only allows OpenAI GPT Image portrait: generate at ${OPENAI_GPT_IMAGE_CARD_PLANE_SIZE}, then normalize with scripts/normalize-card-texture.ps1 -LongEdge ${le}.`
+        `If the API only allows OpenAI GPT Image portrait: generate at ${OPENAI_GPT_IMAGE_CARD_PLANE_SIZE}, then normalize with scripts/card-pipeline/normalize-card-texture.ps1 -LongEdge ${le}.`
     );
     console.log(
         'Composition: keep important ornament at least 8–10% inset from every edge; outer band soft vignette only. No text, logos, or faces.'

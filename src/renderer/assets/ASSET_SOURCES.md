@@ -28,9 +28,9 @@ Per [docs/new_design/ASSET_AND_ART_PIPELINE.md](../../docs/new_design/ASSET_AND_
 | `ui/frames/hud-segment-ornament.svg` | HUD score segment flourish | Authored SVG | Hex motif; used in `GameScreen.module.css` |
 | `textures/cards/back.svg` | Tile **hidden** side (DOM + WebGL back plane) | Authored SVG (`back.svg?url` in `tileTextures.ts`, `slots.ts`); WebGL uses merged mesh via [`cardSvgPlaneGeometry.ts`](../components/cardSvgPlaneGeometry.ts) | Raster fallback if mesh exceeds vertex cap. Optional PNG pipeline: [`CARD_TEXTURE_AI_BRIEF.md`](../../docs/new_design/CARD_TEXTURE_AI_BRIEF.md). |
 | `textures/cards/front.svg` | Tile **face-up** panel (DOM + WebGL front plane) | Same as back (`front.svg?url`, shared `loadSharedCardSvgPlaneGeometry`) | Vector face; raster fallback if SVG mesh fails. |
-| `textures/cards/edge.png` | Card edge map | `scripts/generate-card-textures.ps1` | Pairs with `tileTextures.ts` |
-| `textures/cards/panel-roughness.png` | Panel roughness | `scripts/generate-card-textures.ps1` | |
-| `textures/cards/edge-roughness.png` | Edge roughness | `scripts/generate-card-textures.ps1` | |
+| `textures/cards/edge.png` | Card edge map | `scripts/card-pipeline/generate-card-textures.ps1` | Pairs with `tileTextures.ts` |
+| `textures/cards/panel-roughness.png` | Panel roughness | `scripts/card-pipeline/generate-card-textures.ps1` | |
+| `textures/cards/edge-roughness.png` | Edge roughness | `scripts/card-pipeline/generate-card-textures.ps1` | |
 
 ## Typography (self-hosted)
 

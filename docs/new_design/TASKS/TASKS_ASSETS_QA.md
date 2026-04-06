@@ -14,7 +14,7 @@
 | AST-002 | P1 | Backgrounds on disk | All imports in `index.ts` / `modeArt.ts` resolve in CI. | Fresh clone + `yarn build` OK. | — |
 | AST-003 | P2 | Document `slots.ts` vs `index.ts` | Explain when to import which barrel (cards vs shell UI). | Short table in `ASSET_SOURCES.md` or `assets/ui/README`. | — |
 | AST-004 | P1 | HUD ornament sync | If HUD segments move, update `hud-segment-ornament.svg` placement in `GameScreen.module.css`. | Visual review. | HUD-001 |
-| AST-005 | P2 | Card texture regen | When palette shifts, rerun `scripts/generate-card-textures.ps1` (if used) and update sources doc. | Tile e2e green. | Art pass |
+| AST-005 | P2 | Card texture regen | When palette shifts, rerun `scripts/card-pipeline/generate-card-textures.ps1` (if used) and update sources doc. | Tile e2e green. | Art pass |
 | AST-006 | P2 | Future menu icons | If MainMenu/Settings gain icon buttons, add `menuIcons.tsx` or extend pipeline; don’t fork stroke style accidentally. | Design review. | — |
 
 ---
