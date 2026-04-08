@@ -29,18 +29,29 @@ const dispatchTouchStep = async (client: CDPSession, step: TouchDispatchStep): P
 };
 
 export async function dispatchTouchSequence(page: Page, steps: readonly TouchDispatchStep[]): Promise<void> {
-    const client = await page.context().newCDPSession(page);
+    const maxAttempts = 3;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        try {
+            const client = await page.context().newCDPSession(page);
 
-    try {
-        for (const step of steps) {
-            await dispatchTouchStep(client, step);
+            try {
+                for (const step of steps) {
+                    await dispatchTouchStep(client, step);
 
-            if (step.waitMs) {
-                await page.waitForTimeout(step.waitMs);
+                    if (step.waitMs) {
+                        await page.waitForTimeout(step.waitMs);
+                    }
+                }
+            } finally {
+                await client.detach().catch(() => undefined);
             }
+            return;
+        } catch (error) {
+            if (attempt === maxAttempts - 1) {
+                throw error;
+            }
+            await page.waitForTimeout(200);
         }
-    } finally {
-        await client.detach().catch(() => undefined);
     }
 }
 

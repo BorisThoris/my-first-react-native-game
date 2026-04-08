@@ -391,3 +391,35 @@
         font-size: 0.74rem;
     }
 }
+
+.meditationMutatorList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    max-height: min(46vh, 300px);
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.meditationMutatorRow {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    color: var(--theme-text-subtle, rgba(232, 236, 244, 0.88));
+}
+
+.meditationMutatorLabel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+    cursor: pointer;
+}
+
+.meditationMutatorLabel strong {
+    color: var(--theme-text, #e8ecf4);
+    font-size: 0.8rem;
+}

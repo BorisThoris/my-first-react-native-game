@@ -8,6 +8,10 @@
 
 **Checkbox tasks for every idea in this doc:** [GAME_MECHANICS_IDEAS_TASKS.md](./GAME_MECHANICS_IDEAS_TASKS.md)
 
+**Repeatable research loop (question → sources → promote/kill):** [research/RESEARCH_LOG.md](./research/RESEARCH_LOG.md)
+
+**Findables (bonus pickups on pairs, mutator-gated):** [FINDABLES.md](./FINDABLES.md) — tasks [`gameplay-tasks/GP-FINDABLES.md`](./gameplay-tasks/GP-FINDABLES.md).
+
 Design reference for adding interest and player agency on top of the core loop: **memorize phase → flip two → match pairs**, with lives and the existing forgiveness economy (grace, guards, combo shards, chain heal, soft streak, bonus memorize after life loss — see `src/shared/game.ts` and [GAME_FORGIVENESS_DEEP_DIVE.md](./GAME_FORGIVENESS_DEEP_DIVE.md)).
 
 ---

@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import type { BoardState, RunState, Tile } from './contracts';
-import { MATCH_DELAY_MS } from './contracts';
-import { MAX_DESTROY_PAIR_BANK } from './contracts';
+import type { BoardState, MutatorId, RunState, Tile } from './contracts';
+import { FINDABLE_MATCH_SCORE, GAME_RULES_VERSION, MATCH_DELAY_MS, MAX_DESTROY_PAIR_BANK } from './contracts';
 import {
     advanceToNextLevel,
     applyDestroyPair,
     applyShuffle,
     buildBoard,
+    calculateMatchScore,
     canShuffleBoard,
     countFullyHiddenPairs,
     createNewRun,
@@ -37,7 +37,7 @@ const createBoard = (tiles: Tile[]): BoardState => ({
 });
 
 const createRun = (tiles: Tile[]): RunState => ({
-    ...finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false })),
+    ...finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false, gameMode: 'puzzle' })),
     board: createBoard(tiles)
 });
 
@@ -197,8 +197,8 @@ describe('game rules', () => {
 
         expect(resolved.status).toBe('levelComplete');
         expect(resolved.lives).toBe(5);
-        expect(resolved.stats.totalScore).toBe(105);
-        expect(resolved.stats.currentLevelScore).toBe(105);
+        expect(resolved.stats.totalScore).toBe(145);
+        expect(resolved.stats.currentLevelScore).toBe(145);
         expect(resolved.stats.bestStreak).toBe(1);
         expect(resolved.stats.perfectClears).toBe(1);
         expect(resolved.lastLevelResult?.perfect).toBe(true);
@@ -221,7 +221,7 @@ describe('game rules', () => {
         expect(firstMatch.stats.totalScore).toBe(30);
         expect(firstMatch.stats.currentStreak).toBe(1);
         expect(secondMatch.status).toBe('levelComplete');
-        expect(secondMatch.stats.totalScore).toBe(145);
+        expect(secondMatch.stats.totalScore).toBe(215);
         expect(secondMatch.stats.bestStreak).toBe(2);
     });
 
@@ -238,7 +238,7 @@ describe('game rules', () => {
 
         expect(resolved.status).toBe('levelComplete');
         expect(resolved.lives).toBe(5);
-        expect(resolved.stats.totalScore).toBe(120);
+        expect(resolved.stats.totalScore).toBe(190);
         expect(resolved.lastLevelResult?.perfect).toBe(false);
         expect(resolved.lastLevelResult?.mistakes).toBe(1);
         expect(resolved.lastLevelResult?.clearLifeReason).toBe('clean');
@@ -382,10 +382,10 @@ describe('game rules', () => {
 
     it('advances to the next level in memorize phase, resets floor state, and preserves banked sustain', () => {
         const finishedLevel = {
-            ...createNewRun(250),
+            ...createNewRun(250, { gameMode: 'puzzle' }),
             status: 'levelComplete' as const,
             stats: {
-                ...createNewRun(250).stats,
+                ...createNewRun(250, { gameMode: 'puzzle' }).stats,
                 tries: 4,
                 totalScore: 300,
                 currentLevelScore: 145,
@@ -574,5 +574,96 @@ describe('board powers', () => {
         const cleared = applyDestroyPair(lastPairRun, 'b1');
         expect(cleared.status).toBe('levelComplete');
         expect(cleared.lastLevelResult?.level).toBe(1);
+    });
+
+    describe('findables_floor', () => {
+        it('assigns findables only to real pairs with even tile count and at most two pairs', () => {
+            const board = buildBoard(2, {
+                activeMutators: ['findables_floor'],
+                runSeed: 90210,
+                runRulesVersion: GAME_RULES_VERSION
+            });
+            const tagged = board.tiles.filter((t) => t.findableKind != null);
+            expect(tagged.length % 2).toBe(0);
+            expect(tagged.length).toBeLessThanOrEqual(4);
+            const keys = new Set(tagged.map((t) => t.pairKey));
+            expect(keys.size * 2).toBe(tagged.length);
+            expect(tagged.every((t) => t.pairKey !== '__decoy__' && t.pairKey !== '__wild__')).toBe(true);
+        });
+
+        it('produces identical findable placement for the same seed and rules', () => {
+            const opts = {
+                activeMutators: ['findables_floor'] as MutatorId[],
+                runSeed: 4242,
+                runRulesVersion: GAME_RULES_VERSION
+            };
+            const a = buildBoard(3, opts);
+            const b = buildBoard(3, opts);
+            expect(a.tiles.map((t) => [t.id, t.findableKind])).toEqual(b.tiles.map((t) => [t.id, t.findableKind]));
+        });
+
+        it('claims findable score and counter on match and clears carrier flags', () => {
+            const tiles: Tile[] = [
+                { ...createTile('a1', 'A', 'A'), findableKind: 'shard_spark' },
+                { ...createTile('a2', 'A', 'A'), findableKind: 'shard_spark' },
+                createTile('b1', 'B', 'B'),
+                createTile('b2', 'B', 'B')
+            ];
+            const started = { ...createRun(tiles), findablesClaimedThisFloor: 0 };
+            const resolved = resolveBoardTurn(flipTile(flipTile(started, 'a1'), 'a2'));
+            const base = calculateMatchScore(1, 1, 1);
+            expect(resolved.stats.totalScore).toBe(base + FINDABLE_MATCH_SCORE.shard_spark);
+            expect(resolved.findablesClaimedThisFloor).toBe(1);
+            expect(
+                resolved.board?.tiles.filter((t) => t.pairKey === 'A').every((t) => t.findableKind === undefined)
+            ).toBe(true);
+        });
+
+        it('forfeits findable on destroy without score or claim counter', () => {
+            const tiles: Tile[] = [
+                { ...createTile('a1', 'A', 'A'), findableKind: 'shard_spark' },
+                { ...createTile('a2', 'A', 'A'), findableKind: 'shard_spark' },
+                createTile('b1', 'B', 'B'),
+                createTile('b2', 'B', 'B')
+            ];
+            const run = { ...createRun(tiles), destroyPairCharges: 1, findablesClaimedThisFloor: 0 };
+            const after = applyDestroyPair(run, 'a1');
+            expect(after.findablesClaimedThisFloor).toBe(0);
+            expect(after.stats.totalScore).toBe(0);
+            expect(after.board?.tiles.filter((t) => t.pairKey === 'A').every((t) => t.findableKind === undefined)).toBe(
+                true
+            );
+        });
+
+        it('preserves findableKind on tile ids through shuffle', () => {
+            const tiles: Tile[] = [
+                { ...createTile('a1', 'A', 'A'), findableKind: 'score_glint' },
+                { ...createTile('a2', 'A', 'A'), findableKind: 'score_glint' },
+                createTile('b1', 'B', 'B'),
+                createTile('b2', 'B', 'B')
+            ];
+            const run = { ...createRun(tiles), shuffleCharges: 1, shuffleNonce: 0 };
+            const carrierId = run.board!.tiles.find((t) => t.findableKind != null)!.id;
+            const before = run.board!.tiles.find((t) => t.id === carrierId)!.findableKind;
+            const shuffled = applyShuffle(run);
+            expect(shuffled.board!.tiles.find((t) => t.id === carrierId)!.findableKind).toBe(before);
+        });
+
+        it('resets findablesClaimedThisFloor on advanceToNextLevel', () => {
+            const tiles: Tile[] = [createTile('a1', 'A', 'A'), createTile('a2', 'A', 'A')];
+            const finishedLevel = {
+                ...createRun(tiles),
+                findablesClaimedThisFloor: 2,
+                status: 'levelComplete' as const,
+                board: {
+                    ...createRun(tiles).board!,
+                    matchedPairs: 1,
+                    flippedTileIds: [],
+                    tiles: tiles.map((t) => ({ ...t, state: 'matched' as const }))
+                }
+            };
+            const next = advanceToNextLevel(finishedLevel);
+            expect(next.findablesClaimedThisFloor).toBe(0);
+        });
     });
 });

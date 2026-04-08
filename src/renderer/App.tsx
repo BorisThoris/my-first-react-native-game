@@ -38,6 +38,8 @@ const App = () => {
         steamConnected,
         startGauntletRun,
         startMeditationRun,
+        startMeditationRunWithMutators,
+        startPinVowRun,
         startPracticeRun,
         startPuzzleRun,
         startScholarContractRun,
@@ -63,6 +65,8 @@ const App = () => {
             steamConnected: state.steamConnected,
             startGauntletRun: state.startGauntletRun,
             startMeditationRun: state.startMeditationRun,
+            startMeditationRunWithMutators: state.startMeditationRunWithMutators,
+            startPinVowRun: state.startPinVowRun,
             startPracticeRun: state.startPracticeRun,
             startPuzzleRun: state.startPuzzleRun,
             startScholarContractRun: state.startScholarContractRun,
@@ -156,6 +160,8 @@ const App = () => {
                                 onPracticeRun={startPracticeRun}
                                 onScholarContractRun={startScholarContractRun}
                                 onMeditationRun={startMeditationRun}
+                                onMeditationRunWithMutators={startMeditationRunWithMutators}
+                                onPinVowRun={startPinVowRun}
                                 onWildRun={startWildRun}
                                 onImportRun={() => {
                                     const raw = window.prompt(

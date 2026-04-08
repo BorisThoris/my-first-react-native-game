@@ -21,7 +21,7 @@ import {
     type Group,
     type PointLight
 } from 'three';
-import relicSvgUrl from '../../../VECFINAL.svg?url';
+import relicSvgUrl from '../../../docs/wip-assets/card-sources/VECFINAL.svg?url';
 import type { TiltVector } from '../platformTilt/platformTiltTypes';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
 import { RENDERER_THEME } from '../styles/theme';

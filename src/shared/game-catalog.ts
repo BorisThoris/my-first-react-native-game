@@ -40,6 +40,21 @@ export const RELIC_CATALOG: Record<RelicId, RelicDefinition> = {
         id: 'combo_shard_plus_step',
         title: 'Combo shard head start',
         description: 'Combo shard streak thresholds start slightly closer.'
+    },
+    memorize_under_short_memorize: {
+        id: 'memorize_under_short_memorize',
+        title: 'Study cushion',
+        description: 'Adds memorize time while Short memorize is active.'
+    },
+    parasite_ward_once: {
+        id: 'parasite_ward_once',
+        title: 'Parasite ward',
+        description: 'Ignore the next score-parasite life loss once.'
+    },
+    region_shuffle_free_first: {
+        id: 'region_shuffle_free_first',
+        title: 'Free row shuffle',
+        description: 'The first row shuffle each floor costs no charge.'
     }
 };
 

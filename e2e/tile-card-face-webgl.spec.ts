@@ -1,31 +1,67 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { countPngPixelDiffs } from './pngDiff';
 import {
     BOARD_HIDDEN_TILE_BUTTON_RE,
+    defaultE2eGameSaveJson,
     navigateToLevel1PlayPhase,
-    reduceMotionSaveJson,
     clickHiddenTileRowCol
 } from './tileBoardGameFlow';
+
+/** Locator screenshots wait for layout stability; GL + camera layout can stay “unstable” — clip from the live box instead. */
+async function screenshotStageShellPng(page: Page, stageLocator: ReturnType<Page['getByTestId']>): Promise<Buffer> {
+    const clip = await stageLocator.evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        return { x: r.x, y: r.y, width: r.width, height: r.height };
+    });
+    expect(clip.width, 'stage shell has layout width').toBeGreaterThan(2);
+    expect(clip.height, 'stage shell has layout height').toBeGreaterThan(2);
+    const vs = page.viewportSize()!;
+    const x = Math.max(0, Math.floor(clip.x));
+    const y = Math.max(0, Math.floor(clip.y));
+    const width = Math.min(Math.ceil(clip.width), vs.width - x);
+    const height = Math.min(Math.ceil(clip.height), vs.height - y);
+    return await page.screenshot({
+        type: 'png',
+        clip: { x, y, width, height },
+        animations: 'disabled',
+        timeout: 35_000
+    });
+}
 
 test.describe('Tile card face (WebGL)', () => {
     test('canvas differs only slightly after one flip (split back/face bitmaps + text overlay)', async ({ page }, testInfo) => {
         test.setTimeout(120_000);
         await page.setViewportSize({ width: 1280, height: 720 });
-        await navigateToLevel1PlayPhase(page, reduceMotionSaveJson);
+        await navigateToLevel1PlayPhase(page, defaultE2eGameSaveJson);
 
         const stageLocator = page.getByTestId('tile-board-stage-shell');
         const canvasLocator = page.getByTestId('tile-board-stage').locator('canvas');
         await expect(canvasLocator).toBeVisible();
         await expect(stageLocator).toHaveAttribute('data-dom-tile-picks', 'true');
+        /**
+         * Stage shell can report a zero Playwright bounding box while absolutely positioned under the mobile camera
+         * layout; wait on the GL canvas backing dimensions instead (R3F resize).
+         */
+        await expect
+            .poll(
+                async () =>
+                    canvasLocator.evaluate((c) => {
+                        const el = c as HTMLCanvasElement;
+                        return el.width > 2 && el.height > 2;
+                    }),
+                { timeout: 25_000 }
+            )
+            .toBeTruthy();
 
-        const shotHidden = await stageLocator.screenshot({ type: 'png' });
+        await page.waitForTimeout(400);
+        const shotHidden = await screenshotStageShellPng(page, stageLocator);
         const hiddenCount = await page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count();
         await clickHiddenTileRowCol(page, 1, 1, hiddenCount);
 
         await expect(page.getByRole('button', { name: /tile .*, row 1, column 1/i })).toBeVisible({ timeout: 3000 });
         await page.waitForTimeout(2200);
 
-        const shotFlipped = await stageLocator.screenshot({ type: 'png' });
+        const shotFlipped = await screenshotStageShellPng(page, stageLocator);
 
         const { diffPixels, width, height } = countPngPixelDiffs(shotHidden, shotFlipped);
         const total = width * height;
@@ -34,7 +70,10 @@ test.describe('Tile card face (WebGL)', () => {
         await testInfo.attach('board-hidden.png', { body: shotHidden, contentType: 'image/png' });
         await testInfo.attach('board-one-flipped.png', { body: shotFlipped, contentType: 'image/png' });
 
-        /** One tile flip changes back vs face art plus overlay; anisotropic filtering widens edge deltas. */
+        /**
+         * QA-005 — Bounded pixel diff for whole stage screenshots (particles/bloom would require raising this or masking).
+         * One flip swaps back vs face art + text overlay; GL filtering widens edge deltas vs DOM.
+         */
         const maxDiffRatio = 0.16;
         expect(
             ratio,

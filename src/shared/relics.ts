@@ -6,7 +6,10 @@ export const RELIC_POOL: RelicId[] = [
     'first_shuffle_free_per_floor',
     'memorize_bonus_ms',
     'destroy_bank_plus_one',
-    'combo_shard_plus_step'
+    'combo_shard_plus_step',
+    'memorize_under_short_memorize',
+    'parasite_ward_once',
+    'region_shuffle_free_first'
 ];
 
 export const RELIC_MILESTONE_FLOORS = [3, 6, 9] as const;

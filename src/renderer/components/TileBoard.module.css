@@ -410,6 +410,39 @@
         0 18px 34px rgba(8, 14, 25, 0.32);
 }
 
+/* Findables: pattern + border (not hue-only); shown when face is visible (memorize / flipped / peek). */
+.findableMarker {
+    position: absolute;
+    top: 0.32rem;
+    right: 0.32rem;
+    z-index: 4;
+    width: 1.1rem;
+    height: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.42);
+    border-radius: 2px;
+    background: rgba(10, 12, 20, 0.82);
+    box-shadow:
+        inset 0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 1px 3px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+    color: var(--theme-text);
+    font-size: 0.62rem;
+    line-height: 1;
+}
+
+.findableMarker[data-findable-kind='shard_spark']::after {
+    content: '✦';
+    font-size: 0.72rem;
+}
+
+.findableMarker[data-findable-kind='score_glint']::after {
+    content: '◇';
+    font-size: 0.58rem;
+}
+
 .faceUp {
     background:
         radial-gradient(circle at 18% 16%, rgba(187, 147, 255, 0.22), transparent 34%),
@@ -528,6 +561,12 @@
     box-shadow: inset 0 0 0 2px rgba(255, 214, 100, 0.65);
 }
 
+.cursedMemorizeTile {
+    box-shadow:
+        inset 0 0 0 2px rgba(186, 120, 255, 0.75),
+        inset 0 0 0 5px rgba(186, 120, 255, 0.12);
+}
+
 .fallbackTilePinned:not(.faceUp):not(.matched) {
     border-color: rgba(255, 214, 133, 0.55);
     box-shadow:
@@ -606,6 +645,14 @@
 
 .fallbackTile:hover:not(.faceUp):not(.matched) .cardBack {
     filter: saturate(1.02) brightness(1.02);
+}
+
+/* Authored motif layer (DOM only); `back.svg` stays the CSS background on `.cardBack`. */
+.cardBackFxOverlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
 }
 
 .cardBack {

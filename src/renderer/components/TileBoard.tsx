@@ -43,6 +43,7 @@ import {
     computeShuffleMotionBudgetMs,
     runShuffleFlipFromRects
 } from './shuffleFlipAnimation';
+import { CardBackMotifOverlay } from './cards/cardArt';
 
 export type TileBoardHandle = {
     runShuffleAnimation: (applyShuffle: () => void) => void;
@@ -70,6 +71,8 @@ interface TileBoardProps {
     silhouetteDuringPlay?: boolean;
     nBackAnchorPairKey?: string | null;
     nBackMutatorActive?: boolean;
+    /** Memorize-phase marker for the cursed pair objective (non-color-only ring). */
+    cursedPairKey?: string | null;
     runStatus?: RunStatus;
     onTileSelect: (tileId: string, event?: MouseEvent<HTMLButtonElement>) => void;
 }
@@ -82,6 +85,7 @@ interface TileBoardFallbackProps {
     onHoverMove: (tileId: string, event: ReactPointerEvent<HTMLButtonElement>) => void;
     pinnedTileIds: string[];
     previewActive: boolean;
+    reduceMotion: boolean;
     dimmedTileIds?: ReadonlySet<string>;
     peekRevealedTileIds?: string[];
     allowGambitThirdFlip?: boolean;
@@ -89,6 +93,7 @@ interface TileBoardFallbackProps {
     silhouetteDuringPlay?: boolean;
     nBackAnchorPairKey?: string | null;
     nBackMutatorActive?: boolean;
+    cursedPairKey?: string | null;
     runStatus?: RunStatus;
     onTileSelect: (tileId: string, event?: MouseEvent<HTMLButtonElement>) => void;
     tileGridStyle: CSSProperties;
@@ -186,8 +191,12 @@ const getTilePosition = (index: number, columns: number): { row: number; column:
     column: (index % columns) + 1
 });
 
-const getTileAriaLabel = (tile: Tile, faceUp: boolean, row: number, column: number): string =>
-    faceUp ? `Tile ${tile.label}, row ${row}, column ${column}` : `Hidden tile, row ${row}, column ${column}`;
+const getTileAriaLabel = (tile: Tile, faceUp: boolean, row: number, column: number): string => {
+    const base = faceUp ? `Tile ${tile.label}, row ${row}, column ${column}` : `Hidden tile, row ${row}, column ${column}`;
+    const findableNote =
+        tile.findableKind && faceUp && tile.state !== 'matched' ? ' Bonus pickup on this pair.' : '';
+    return `${base}${findableNote}`;
+};
 
 const getTouchCentroid = (first: TouchPoint, second: TouchPoint): TouchPoint => ({
     clientX: (first.clientX + second.clientX) / 2,
@@ -207,6 +216,7 @@ const TileBoardFallback = ({
     onHoverMove,
     pinnedTileIds,
     previewActive,
+    reduceMotion,
     dimmedTileIds,
     peekRevealedTileIds = [],
     allowGambitThirdFlip = false,
@@ -214,6 +224,7 @@ const TileBoardFallback = ({
     silhouetteDuringPlay = false,
     nBackAnchorPairKey = null,
     nBackMutatorActive = false,
+    cursedPairKey = null,
     runStatus = 'playing',
     onTileSelect,
     tileGridStyle
@@ -250,13 +261,22 @@ const TileBoardFallback = ({
                     !previewActive
                         ? styles.nBackAnchorTile
                         : '';
+                const cursedClass =
+                    previewActive &&
+                    cursedPairKey &&
+                    tile.pairKey === cursedPairKey &&
+                    tile.state === 'hidden'
+                        ? styles.cursedMemorizeTile
+                        : '';
 
                 const fieldAmp = getTileFieldAmplification(index, board.columns, board.rows);
+                const showFindableMarker = Boolean(tile.findableKind) && faceUp && tile.state !== 'matched';
 
                 return (
                     <button
                         aria-label={getTileAriaLabel(tile, faceUp, row, column)}
-                        className={`${getTileClassName(tile, faceUp, locked, isPinned, isFocusDimmed, resolvingSelectionState)} ${atomicClass} ${nBackClass}`.trim()}
+                        className={`${getTileClassName(tile, faceUp, locked, isPinned, isFocusDimmed, resolvingSelectionState)} ${atomicClass} ${nBackClass} ${cursedClass}`.trim()}
+                        data-findable-kind={showFindableMarker ? tile.findableKind : undefined}
                         data-tile-id={tile.id}
                         disabled={disabled}
                         key={tile.id}
@@ -269,6 +289,14 @@ const TileBoardFallback = ({
                     >
                         <span className={styles.tileFace}>
                             <span className={styles.pulseGlow} />
+                            {showFindableMarker ? (
+                                <span
+                                    aria-hidden
+                                    className={styles.findableMarker}
+                                    data-findable-kind={tile.findableKind}
+                                    data-testid="tile-findable-marker"
+                                />
+                            ) : null}
                             {tile.state === 'matched' ? (
                                 <span aria-hidden className={styles.fallbackMatchedCheck}>
                                     ✓
@@ -293,7 +321,11 @@ const TileBoardFallback = ({
                                     aria-hidden="true"
                                     className={`${styles.cardBack} ${styles.cardFaceBack}`}
                                     data-testid="tile-card-face"
-                                />
+                                >
+                                    <span className={styles.cardBackFxOverlay}>
+                                        <CardBackMotifOverlay reduceMotion={reduceMotion} />
+                                    </span>
+                                </span>
                             )}
                         </span>
                     </button>
@@ -337,12 +369,14 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         silhouetteDuringPlay = false,
         nBackAnchorPairKey = null,
         nBackMutatorActive = false,
+        cursedPairKey = null,
         runStatus = 'playing',
         onTileSelect
     },
     ref
 ) {
     const { height, width } = useViewportSize();
+    const peekSet = useMemo(() => new Set(peekRevealedTileIds), [peekRevealedTileIds]);
     const compact = width <= 760 || height <= 760;
     const touchPrimary = useCoarsePointer();
     const baselineWebGl = useMemo(() => canUseWebGL(), []);
@@ -1010,12 +1044,14 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
             interactive={interactive}
             nBackAnchorPairKey={nBackAnchorPairKey}
             nBackMutatorActive={nBackMutatorActive}
+            cursedPairKey={cursedPairKey}
             onHoverLeave={clearHoverTilt}
             onHoverMove={updateHoverTilt}
             onTileSelect={handleTileSelect}
             peekRevealedTileIds={peekRevealedTileIds}
             pinnedTileIds={pinnedTileIds}
             previewActive={previewActive}
+            reduceMotion={reduceMotion}
             runStatus={runStatus}
             silhouetteDuringPlay={silhouetteDuringPlay}
             tileGridStyle={tileGridStyle}
@@ -1076,14 +1112,15 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                                     board={board}
                                     boardViewport={renderedViewportState}
                                     compact={compact}
+                                    cursedPairKey={cursedPairKey}
                                     debugPeekActive={debugPeekActive}
                                     fieldTiltRef={fieldTiltRef}
                                     hoverTiltRef={hoverTiltRef}
                                     interactionSuppressed={selectionSuppressed}
                                     interactive={interactive}
-                                    key={board.level}
                                     onTilePick={handleTileSelect}
                                     onViewportMetricsChange={handleStageViewportChange}
+                                    peekRevealedTileIds={peekRevealedTileIds}
                                     pinnedTileIds={pinnedTileIds}
                                     previewActive={previewActive}
                                     ref={sceneHandleRef}
@@ -1101,7 +1138,11 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                         <div className={styles.interactionLayer} style={tileGridStyle}>
                             {board.tiles.map((tile, index) => {
                                 const locked = board.flippedTileIds.length === 2;
-                                const faceUp = tile.state !== 'hidden' || debugPeekActive || previewActive;
+                                const faceUp =
+                                    tile.state !== 'hidden' ||
+                                    debugPeekActive ||
+                                    previewActive ||
+                                    peekSet.has(tile.id);
                                 const disabled = tile.state === 'matched' || !interactive || (locked && tile.state === 'hidden');
                                 const isPinned = pinnedTileIds.includes(tile.id);
                                 const resolvingSelectionState = getResolvingSelectionState(board, runStatus, tile.id);

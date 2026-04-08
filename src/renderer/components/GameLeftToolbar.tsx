@@ -22,6 +22,15 @@ export interface GameLeftToolbarProps {
     showBoardPowerBar: boolean;
     shuffleDisabled: boolean;
     shuffleTitle: string;
+    regionShuffleDisabled: boolean;
+    regionShuffleTitle: string;
+    canRegionShuffleRow: (rowIndex: number) => boolean;
+    shuffleRegionRow: (rowIndex: number) => void;
+    showFlashPairPower: boolean;
+    flashPairDisabled: boolean;
+    flashPairTitle: string;
+    applyFlashPairPower: () => void;
+    maxPinnedTiles: number;
     destroyDisabled: boolean;
     tileBoardRef: RefObject<TileBoardHandle | null>;
     onViewportReset: () => void;
@@ -56,6 +65,15 @@ const GameLeftToolbar = ({
     showBoardPowerBar,
     shuffleDisabled,
     shuffleTitle,
+    regionShuffleDisabled,
+    regionShuffleTitle,
+    canRegionShuffleRow,
+    shuffleRegionRow,
+    showFlashPairPower,
+    flashPairDisabled,
+    flashPairTitle,
+    applyFlashPairPower,
+    maxPinnedTiles,
     destroyDisabled,
     tileBoardRef,
     onViewportReset,
@@ -104,14 +122,20 @@ const GameLeftToolbar = ({
         boardPinMode,
         destroyDisabled,
         destroyPairArmed,
+        flashPairDisabled,
         peekModeArmed,
+        regionShuffleDisabled,
+        run.board?.rows,
         run.destroyPairCharges,
+        run.flashPairCharges,
         run.peekCharges,
+        run.regionShuffleCharges,
         run.shuffleCharges,
         run.strayRemoveArmed,
         run.strayRemoveCharges,
         shuffleDisabled,
-        showBoardPowerBar
+        showBoardPowerBar,
+        showFlashPairPower
     ]);
 
     useLayoutEffect(() => {
@@ -182,6 +206,12 @@ const GameLeftToolbar = ({
         setUtilityFlyoutOpen(false);
         openCodexFromPlaying();
     };
+
+    const pinVowCap = run.activeContract?.maxPinsTotalRun;
+    const pinTitle =
+        pinVowCap != null
+            ? `Pin hidden tiles (max ${maxPinnedTiles} on board). Pin vow: ${run.pinsPlacedCountThisRun} of ${pinVowCap} placements used.`
+            : `Pin up to ${maxPinnedTiles} hidden tiles for planning`;
 
     return (
         <aside
@@ -385,12 +415,50 @@ const GameLeftToolbar = ({
                         <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.shuffle} />
                         <span className={styles.powerBadge}>{run.shuffleCharges}</span>
                     </button>
+                    <div
+                        className={styles.regionShuffleCluster}
+                        role="group"
+                        aria-label={`Row shuffle. Charges ${run.regionShuffleCharges}.${
+                            run.regionShuffleFreeThisFloor && run.relicIds.includes('region_shuffle_free_first')
+                                ? ' First row shuffle this floor is free.'
+                                : ''
+                        }`}
+                    >
+                        <span className={styles.regionShuffleLabel}>Rows</span>
+                        <div className={styles.regionShuffleRows}>
+                            {run.board
+                                ? Array.from({ length: run.board.rows }, (_, row) => (
+                                      <button
+                                          key={row}
+                                          aria-label={`Shuffle row ${row + 1}`}
+                                          className={styles.regionRowBtn}
+                                          disabled={regionShuffleDisabled || !canRegionShuffleRow(row)}
+                                          onClick={() => {
+                                              if (regionShuffleDisabled || !canRegionShuffleRow(row)) {
+                                                  return;
+                                              }
+                                              const handle = tileBoardRef.current;
+                                              if (handle) {
+                                                  handle.runShuffleAnimation(() => shuffleRegionRow(row));
+                                              } else {
+                                                  shuffleRegionRow(row);
+                                              }
+                                          }}
+                                          title={regionShuffleTitle}
+                                          type="button"
+                                      >
+                                          {row + 1}
+                                      </button>
+                                  ))
+                                : null}
+                        </div>
+                    </div>
                     <button
                         aria-label={boardPinMode ? 'Exit pin mode' : 'Pin mode — tap tiles to mark'}
                         aria-pressed={boardPinMode}
                         className={`${styles.iconAction} ${boardPinMode ? styles.iconActionActive : ''}`}
                         onClick={() => toggleBoardPinMode()}
-                        title="Pin up to 3 hidden tiles for planning"
+                        title={pinTitle}
                         type="button"
                     >
                         <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.pin} />
@@ -431,6 +499,26 @@ const GameLeftToolbar = ({
                         <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.peek} />
                         <span className={styles.powerBadge}>{run.peekCharges}</span>
                     </button>
+                    {showFlashPairPower ? (
+                        <button
+                            aria-label={`Flash reveal pair. Charges: ${run.flashPairCharges}`}
+                            className={`${styles.iconAction} ${styles.iconActionWithBadge}`}
+                            disabled={flashPairDisabled}
+                            onClick={() => {
+                                if (flashPairDisabled) {
+                                    return;
+                                }
+                                applyFlashPairPower();
+                            }}
+                            title={flashPairTitle}
+                            type="button"
+                        >
+                            <span className={styles.toolbarFlashGlyph} aria-hidden="true">
+                                ⚡
+                            </span>
+                            <span className={styles.powerBadge}>{run.flashPairCharges}</span>
+                        </button>
+                    ) : null}
                     <button
                         aria-label={`Remove one stray tile. Charges: ${run.strayRemoveCharges}. ${run.strayRemoveArmed ? 'Tap a tile' : 'Arm then tap'}`}
                         aria-pressed={run.strayRemoveArmed}

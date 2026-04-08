@@ -6,10 +6,10 @@ Hooks in `src/shared/game.ts` consult `activeMutators` via `hasMutator` / `src/s
 
 | Phase | Mutators may affect |
 |--------|---------------------|
-| **Memorize** | `short_memorize`, `category_letters` (symbol set), `glass_floor` (extra decoy in pair list) |
+| **Memorize** | `short_memorize`, `category_letters` (symbol set), `glass_floor` (extra decoy in pair list), `findables_floor` (spawn 0–2 bonus pair markers on generation) |
 | **Playing / flip** | `sticky_fingers` (block index after match), `glass_floor` (decoy mismatch handling) |
 | **Powers** | Contracts (`activeContract`) gate shuffle/destroy; relics adjust charges — combine with mutators in tests |
-| **Scoring / floor advance** | `score_parasite` (life drain on cadence), `category_letters`, `n_back_anchor` (anchor cadence) |
+| **Scoring / floor advance** | `score_parasite` (life drain on cadence), `category_letters`, `n_back_anchor` (anchor cadence), `findables_floor` (flat score on match claim; destroy forfeits pickup) |
 | **Presentation** | `wide_recall` (label-first play), `silhouette_twist` (silhouette styling), `distraction_channel` (renderer pulse; **off** in settings by default) |
 
 ## Shipped IDs (`MutatorId`)
@@ -23,6 +23,7 @@ Hooks in `src/shared/game.ts` consult `activeMutators` via `hasMutator` / `src/s
 - `silhouette_twist` — silhouette / reduced-face styling during play (CSS / materials).
 - `n_back_anchor` — every 2 successful matches, surface an “anchor” pair key for recall pressure (`nBackAnchorPairKey` on `RunState`).
 - `distraction_channel` — paired with Settings `distractionChannelEnabled` for optional UI pulse (no mandatory audio).
+- `findables_floor` — seeded 0–2 pairs per floor carry `findableKind` on tiles; matching claims `FINDABLE_MATCH_SCORE`; `applyDestroyPair` clears the marker without reward (`findablesClaimedThisFloor` on `RunState`).
 
 ## Daily integration (A2 / D4)
 

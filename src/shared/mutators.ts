@@ -1,7 +1,16 @@
 import type { MutatorId, RunState } from './contracts';
 
 /** Rotated for daily challenge (index from daily mutator hash). */
-export const DAILY_MUTATOR_TABLE: MutatorId[] = ['short_memorize', 'sticky_fingers', 'score_parasite'];
+export const DAILY_MUTATOR_TABLE: MutatorId[] = [
+    'short_memorize',
+    'sticky_fingers',
+    'score_parasite',
+    'wide_recall',
+    'silhouette_twist',
+    'n_back_anchor',
+    'category_letters',
+    'glass_floor'
+];
 
 export interface MutatorDefinition {
     id: MutatorId;
@@ -54,6 +63,12 @@ export const MUTATOR_CATALOG: Record<MutatorId, MutatorDefinition> = {
         id: 'distraction_channel',
         title: 'Distraction channel',
         description: 'Optional transient numeric channel—respects reduced motion when enabled.'
+    },
+    findables_floor: {
+        id: 'findables_floor',
+        title: 'Findables floor',
+        description:
+            'Some pairs carry a bonus pickup (0–2 per floor). Match the pair to claim score; Destroy removes the pickup with no reward.'
     }
 };
 

@@ -1,3 +1,8 @@
+/**
+ * Loads each card SVG (`back.svg` / `front.svg`) as a **single merged** `BufferGeometry` per URL.
+ * Traced SVGs are not decomposed into separate meshes per motif; DOM-only FX overlays live in
+ * `components/cards/cardArt/` instead.
+ */
 import {
     BufferAttribute,
     BufferGeometry,
@@ -134,6 +139,13 @@ export function loadSharedCardSvgPlaneGeometry(assetUrl: string): Promise<Buffer
             const bh = Math.max(b2.max.y - b2.min.y, 1e-6);
             merged.scale(CARD_PLANE_WIDTH / bw, CARD_PLANE_HEIGHT / bh, 1);
             merged.computeVertexNormals();
+            if (merged.index) {
+                try {
+                    merged.computeTangents();
+                } catch {
+                    /* non-fatal: normal mapping may be skipped for this mesh */
+                }
+            }
 
             resolvedByUrl.set(assetUrl, merged);
             return merged;

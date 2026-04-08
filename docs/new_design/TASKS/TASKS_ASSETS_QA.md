@@ -1,6 +1,6 @@
 # Tasks: Assets consolidation & QA (`AST-*`, `QA-*`)
 
-**Research summary:** `src/renderer/assets/ui/index.ts` is the main `UI_ART` barrel (PNG backgrounds, SVG crest/divider/emblem/seal/stage-ring). `modeArt.ts` drives mode posters. **`slots.ts`** defines a **second** `UI_ART`-like object for card/slot URLs — risk of drift. `frames/hud-segment-ornament.svg` ties to `hudScoreSegment`. **No** `assets/ui/icons/` directory yet. MainMenu/Settings use `<img>` assets, not `gameplayIcons`.
+**Research summary:** `src/renderer/assets/ui/index.ts` is the shell `UI_ART` barrel (PNG menu/gameplay backgrounds, SVG crest/divider/emblem/seal/stage-ring). `modeArt.ts` drives mode posters. **`slots.ts`** exports another object also named `UI_ART` (slot chrome + card texture URLs) — import with an alias when both are needed; see `ASSET_SOURCES.md`. `frames/hud-segment-ornament.svg` ties to `hudScoreSegment` in `GameScreen.module.css`. **`assets/ui/icons/`** holds gameplay rail / power SVGs (barrel `icons/index.ts`). Main menu / settings use `<img>` and shell assets, not necessarily that icons folder.
 
 **Tests at risk:** `mobile-layout` (HUD vs board geometry), `navigation-flow` (`game-hud`), `tile-card-face-dom` (`.cardBack` stack), `tile-card-face-webgl` (stage screenshot diff), `visual-screens.*`, `tile-board-raycast`.
 

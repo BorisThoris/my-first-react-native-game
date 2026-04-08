@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { evaluateAchievementUnlocks } from '../../shared/achievements';
 import type {
     AchievementId,
+    MutatorId,
     RelicId,
     RunState,
     SaveData,
@@ -13,9 +14,12 @@ import { BUILTIN_PUZZLES } from '../../shared/builtin-puzzles';
 import {
     advanceToNextLevel,
     applyDestroyPair,
+    applyFlashPair,
     applyPeek,
+    applyRegionShuffle,
     applyShuffle,
     applyStrayRemove,
+    armRegionShuffleRow,
     cancelResolvingWithUndo,
     completeRelicPickAndAdvance,
     createDailyRun,
@@ -78,6 +82,8 @@ interface AppState {
     startPracticeRun: () => void;
     startScholarContractRun: () => void;
     startMeditationRun: () => void;
+    startMeditationRunWithMutators: (mutators: MutatorId[]) => void;
+    startPinVowRun: () => void;
     startWildRun: () => void;
     importRunFromClipboard: (raw: string) => boolean;
     pickRelic: (relicId: RelicId) => void;
@@ -99,6 +105,9 @@ interface AppState {
     undoResolvingFlip: () => void;
     toggleStrayArm: () => void;
     shuffleBoard: () => void;
+    armRegionShuffleRowPick: (row: number | null) => void;
+    shuffleRegionRow: (row: number) => void;
+    applyFlashPairPower: () => void;
     toggleBoardPinMode: () => void;
     toggleDestroyPairArmed: () => void;
     pause: () => void;
@@ -525,6 +534,53 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
     },
 
+    startMeditationRunWithMutators: (mutators) => {
+        clearAllTimers();
+        const run = patchRunFromUserSettings(
+            createMeditationRun(get().saveData.bestScore, mutators),
+            get().settings
+        );
+        trackEvent('run_start', {
+            mode: run.gameMode,
+            practice: run.practiceMode,
+            meditation_focus_count: mutators.length,
+            meditation_focus: mutators.length > 0 ? mutators.join(',') : undefined
+        });
+        set({
+            view: 'playing',
+            newlyUnlockedAchievements: [],
+            boardPinMode: false,
+            destroyPairArmed: false,
+            peekModeArmed: false,
+            run
+        });
+        if (run.timerState.memorizeRemainingMs) {
+            scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
+        }
+    },
+
+    startPinVowRun: () => {
+        clearAllTimers();
+        const run = patchRunFromUserSettings(
+            createNewRun(get().saveData.bestScore, {
+                activeContract: { noShuffle: false, noDestroy: false, maxMismatches: null, maxPinsTotalRun: 10 }
+            }),
+            get().settings
+        );
+        trackEvent('run_start', { mode: run.gameMode, practice: run.practiceMode, pinVow: true });
+        set({
+            view: 'playing',
+            newlyUnlockedAchievements: [],
+            boardPinMode: false,
+            destroyPairArmed: false,
+            peekModeArmed: false,
+            run
+        });
+        if (run.timerState.memorizeRemainingMs) {
+            scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
+        }
+    },
+
     startWildRun: () => {
         clearAllTimers();
         const run = patchRunFromUserSettings(createWildRun(get().saveData.bestScore), get().settings);
@@ -861,6 +917,39 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
     },
 
+    armRegionShuffleRowPick: (row) => {
+        const { run, view } = get();
+        if (!run || view !== 'playing' || run.status !== 'playing') {
+            return;
+        }
+        const nextRun = armRegionShuffleRow(run, row);
+        if (nextRun !== run) {
+            set({ run: nextRun, boardPinMode: false, destroyPairArmed: false, peekModeArmed: false });
+        }
+    },
+
+    shuffleRegionRow: (row) => {
+        const { run, view } = get();
+        if (!run || view !== 'playing' || run.status !== 'playing') {
+            return;
+        }
+        const nextRun = applyRegionShuffle(run, row);
+        if (nextRun !== run) {
+            set({ run: nextRun, boardPinMode: false, destroyPairArmed: false, peekModeArmed: false });
+        }
+    },
+
+    applyFlashPairPower: () => {
+        const { run, view } = get();
+        if (!run || view !== 'playing' || run.status !== 'playing') {
+            return;
+        }
+        const nextRun = applyFlashPair(run);
+        if (nextRun !== run) {
+            set({ run: nextRun });
+        }
+    },
+
     toggleBoardPinMode: () => {
         const { boardPinMode } = get();
         set({
@@ -959,7 +1048,9 @@ export const useAppStore = create<AppState>((set, get) => ({
             const puzzle = BUILTIN_PUZZLES[prev.puzzleId];
             run = puzzle ? createPuzzleRun(best, puzzle.id, puzzle.tiles) : createNewRun(best);
         } else if (prev?.gameMode === 'meditation') {
-            run = createMeditationRun(best);
+            run = createMeditationRun(best, prev.activeMutators.length > 0 ? prev.activeMutators : undefined);
+        } else if (prev?.activeContract?.maxPinsTotalRun != null) {
+            run = createNewRun(best, { activeContract: prev.activeContract });
         } else if (prev?.wildMenuRun) {
             run = createWildRun(best);
         } else if (prev?.practiceMode) {

@@ -1,9 +1,20 @@
-import { CanvasTexture, LinearFilter, NoColorSpace, SRGBColorSpace } from 'three';
+import {
+    CanvasTexture,
+    ClampToEdgeWrapping,
+    LinearFilter,
+    LinearMipmapLinearFilter,
+    NoColorSpace,
+    RepeatWrapping,
+    SRGBColorSpace,
+    Texture
+} from 'three';
 import type { Tile } from '../../shared/contracts';
 import { RENDERER_THEME } from '../styles/theme';
 import { CARD_PLANE_HEIGHT, CARD_PLANE_WIDTH } from './tileShatter';
 import referenceBackTextureUrl from '../assets/textures/cards/back.svg?url';
+import cardBackNormalTextureUrl from '../assets/textures/cards/back-normal.png';
 import cardFaceTextureUrl from '../assets/textures/cards/front.svg?url';
+import cardFaceNormalTextureUrl from '../assets/textures/cards/front-normal.png';
 import edgeTextureUrl from '../assets/textures/cards/edge.png';
 import panelRoughnessTextureUrl from '../assets/textures/cards/panel-roughness.png';
 import edgeRoughnessTextureUrl from '../assets/textures/cards/edge-roughness.png';
@@ -21,20 +32,86 @@ const TEXTURE_SIZE = 512;
 const STATIC_CARD_TEXTURE_HEIGHT = 1024;
 const STATIC_CARD_TEXTURE_WIDTH = Math.max(2, Math.round(STATIC_CARD_TEXTURE_HEIGHT * (CARD_PLANE_WIDTH / CARD_PLANE_HEIGHT)));
 const TILE_TEXTURE_VERSION = 28;
+/** Bump when procedural card-surface maps change (independent of tile face caches). */
+const CARD_SURFACE_MAP_VERSION = 2;
 const textureCache = new Map<string, CanvasTexture>();
 const textureImageUpdateListeners = new Set<() => void>();
 
+let cachedRasterFaceNormalTexture: Texture | null = null;
+let cachedRasterFaceNormalSource: HTMLImageElement | null = null;
+let cachedRasterBackNormalTexture: Texture | null = null;
+let cachedRasterBackNormalSource: HTMLImageElement | null = null;
+
+const disposeRasterFaceNormalTexture = (): void => {
+    cachedRasterFaceNormalTexture?.dispose();
+    cachedRasterFaceNormalTexture = null;
+    cachedRasterFaceNormalSource = null;
+};
+
+const disposeRasterBackNormalTexture = (): void => {
+    cachedRasterBackNormalTexture?.dispose();
+    cachedRasterBackNormalTexture = null;
+    cachedRasterBackNormalSource = null;
+};
+
+const disposeCachedTexture = (key: string): void => {
+    const texture = textureCache.get(key);
+
+    if (texture) {
+        texture.dispose();
+        textureCache.delete(key);
+    }
+};
+
+const invalidateStaticCardBackTexture = (): void => {
+    disposeCachedTexture(`static-card-back:${TILE_TEXTURE_VERSION}`);
+};
+
+const invalidateStaticCardFaceTexture = (): void => {
+    disposeCachedTexture(`static-card-face:${TILE_TEXTURE_VERSION}`);
+};
+
+/** Keys from {@link buildKey} and overlay suffixes — safe to drop when edge/roughness maps arrive. */
+const invalidateVersionedProceduralTextures = (): void => {
+    const prefix = `${TILE_TEXTURE_VERSION}:`;
+
+    for (const key of [...textureCache.keys()]) {
+        if (key.startsWith(prefix)) {
+            disposeCachedTexture(key);
+        }
+    }
+};
+
+/** One URL per card side — keep atomic with `cardSvgPlaneGeometry` (merged mesh), not per-motif splits. */
 const textureImageUrls = {
     /** Hidden-side card raster (WebGL back plane, DOM .cardFaceBack). */
     cardReference: referenceBackTextureUrl,
     /** Face-up panel raster (WebGL front plane, DOM .cardFaceFront); calmer center vs back. */
     cardFace: cardFaceTextureUrl,
+    /** Tangent-space normal for WebGL face-up raster plane (`front-normal.png`). */
+    cardFaceNormal: cardFaceNormalTextureUrl,
+    /** Tangent-space normal for WebGL hidden-side raster plane (`back-normal.png`). */
+    cardBackNormal: cardBackNormalTextureUrl,
     edge: edgeTextureUrl,
     panelRoughness: panelRoughnessTextureUrl,
     edgeRoughness: edgeRoughnessTextureUrl
 } as const;
 
 type TextureImageId = keyof typeof textureImageUrls;
+
+const invalidateCachesAfterImageLoad = (id: TextureImageId): void => {
+    if (id === 'cardReference') {
+        invalidateStaticCardBackTexture();
+    } else if (id === 'cardFace') {
+        invalidateStaticCardFaceTexture();
+    } else if (id === 'cardFaceNormal') {
+        disposeRasterFaceNormalTexture();
+    } else if (id === 'cardBackNormal') {
+        disposeRasterBackNormalTexture();
+    } else {
+        invalidateVersionedProceduralTextures();
+    }
+};
 
 interface TextureImageState {
     image: HTMLImageElement | null;
@@ -76,7 +153,7 @@ export const preloadTileTextureImages = (): Promise<void> => {
 
                     image.onload = () => {
                         textureImages.set(id, { image, status: 'loaded' });
-                        textureCache.clear();
+                        invalidateCachesAfterImageLoad(id);
                         emitTextureImageUpdate();
                         resolve();
                     };
@@ -136,7 +213,7 @@ const getTextureImage = (imageId: TextureImageId): HTMLImageElement | null => {
         textureImages.set(imageId, { image: null, status: 'loading' });
         image.onload = () => {
             textureImages.set(imageId, { image, status: 'loaded' });
-            textureCache.clear();
+            invalidateCachesAfterImageLoad(imageId);
             emitTextureImageUpdate();
         };
         image.onerror = () => {
@@ -247,6 +324,157 @@ export const applyAnisotropyToCachedTileTextures = (anisotropy: number): void =>
     for (const texture of textureCache.values()) {
         texture.anisotropy = anisotropy;
     }
+    if (cachedRasterFaceNormalTexture) {
+        cachedRasterFaceNormalTexture.anisotropy = anisotropy;
+    }
+    if (cachedRasterBackNormalTexture) {
+        cachedRasterBackNormalTexture.anisotropy = anisotropy;
+    }
+};
+
+const createRasterNormalMapTexture = (image: HTMLImageElement): Texture => {
+    const texture = new Texture(image);
+    texture.colorSpace = NoColorSpace;
+    texture.wrapS = ClampToEdgeWrapping;
+    texture.wrapT = ClampToEdgeWrapping;
+    texture.minFilter = LinearMipmapLinearFilter;
+    texture.magFilter = LinearFilter;
+    texture.generateMipmaps = true;
+    texture.needsUpdate = true;
+    return texture;
+};
+
+/** Authoring normal map for the face-up card raster; null until image load or on error — use procedural fallback. */
+export const getCardFaceRasterNormalMapTexture = (): Texture | null => {
+    const image = getTextureImage('cardFaceNormal');
+    if (!image?.naturalWidth) {
+        return null;
+    }
+    if (cachedRasterFaceNormalTexture && cachedRasterFaceNormalSource === image) {
+        return cachedRasterFaceNormalTexture;
+    }
+    disposeRasterFaceNormalTexture();
+    cachedRasterFaceNormalTexture = createRasterNormalMapTexture(image);
+    cachedRasterFaceNormalSource = image;
+    return cachedRasterFaceNormalTexture;
+};
+
+/** Authoring normal map for the hidden-side card raster; null until image load or on error. */
+export const getCardBackRasterNormalMapTexture = (): Texture | null => {
+    const image = getTextureImage('cardBackNormal');
+    if (!image?.naturalWidth) {
+        return null;
+    }
+    if (cachedRasterBackNormalTexture && cachedRasterBackNormalSource === image) {
+        return cachedRasterBackNormalTexture;
+    }
+    disposeRasterBackNormalTexture();
+    cachedRasterBackNormalTexture = createRasterNormalMapTexture(image);
+    cachedRasterBackNormalSource = image;
+    return cachedRasterBackNormalTexture;
+};
+
+/**
+ * Procedural tangent-space normal map (paper-like micro grain + very soft undulation).
+ * Pair with `MeshStandardMaterial.normalMap` (linear / non-color sampling).
+ */
+const drawCardPanelNormalMap = (context: CanvasRenderingContext2D, canvas: HTMLCanvasElement): void => {
+    const w = canvas.width;
+    const h = canvas.height;
+    const imageData = context.createImageData(w, h);
+    const { data } = imageData;
+    const rng = createRng(0x5f1e7a3c);
+
+    for (let y = 0; y < h; y += 1) {
+        for (let x = 0; x < w; x += 1) {
+            const i = (y * w + x) * 4;
+            const fineX = (rng() - 0.5) * 14;
+            const fineY = (rng() - 0.5) * 14;
+            const lowX = Math.sin(x * 0.045 + y * 0.012) * 5 + Math.sin(y * 0.028) * 3;
+            const lowY = Math.cos(y * 0.038 + x * 0.015) * 5 + Math.cos(x * 0.022) * 3;
+            const r = Math.max(0, Math.min(255, Math.round(128 + fineX + lowX)));
+            const g = Math.max(0, Math.min(255, Math.round(128 + fineY + lowY)));
+            data[i] = r;
+            data[i + 1] = g;
+            data[i + 2] = 255;
+            data[i + 3] = 255;
+        }
+    }
+
+    context.putImageData(imageData, 0, 0);
+};
+
+/** Shared normal map for WebGL card faces (tile board); safe to call every frame — cached. */
+export const getCardPanelNormalTexture = (): CanvasTexture | null => {
+    const texture = createTexture(
+        `card-panel-normal:${CARD_SURFACE_MAP_VERSION}`,
+        drawCardPanelNormalMap,
+        NoColorSpace,
+        256,
+        256
+    );
+
+    if (texture) {
+        texture.wrapS = RepeatWrapping;
+        texture.wrapT = RepeatWrapping;
+        texture.repeat.set(2.35, 2.35);
+        texture.needsUpdate = true;
+    }
+
+    return texture;
+};
+
+/**
+ * Grayscale height for `MeshStandardMaterial.displacementMap` (actual vertex offset along normals).
+ * Mid-tone ≈ no displacement; brighter ridges / darker valleys when paired with negative bias.
+ */
+const drawCardPanelDisplacementMap = (context: CanvasRenderingContext2D, canvas: HTMLCanvasElement): void => {
+    const w = canvas.width;
+    const h = canvas.height;
+    const imageData = context.createImageData(w, h);
+    const { data } = imageData;
+    const rng = createRng(0x2b8e4c91);
+
+    for (let y = 0; y < h; y += 1) {
+        for (let x = 0; x < w; x += 1) {
+            const i = (y * w + x) * 4;
+            const nx = x / w;
+            const ny = y / h;
+            const ridgeA = Math.sin(nx * Math.PI * 5 + ny * Math.PI * 2.1) * 0.5 + 0.5;
+            const ridgeB = Math.sin(nx * Math.PI * 2.2 - ny * Math.PI * 4.5) * 0.5 + 0.5;
+            const ridgeC = Math.cos((nx + ny) * Math.PI * 3.8) * 0.5 + 0.5;
+            const micro = rng() * 0.12;
+            let v = ridgeA * 0.28 + ridgeB * 0.28 + ridgeC * 0.22 + 0.11 + micro;
+            v = Math.max(0.18, Math.min(0.82, (v - 0.5) * 1.65 + 0.5));
+            const b = Math.round(v * 255);
+            data[i] = b;
+            data[i + 1] = b;
+            data[i + 2] = b;
+            data[i + 3] = 255;
+        }
+    }
+
+    context.putImageData(imageData, 0, 0);
+};
+
+/** Shared height map for mesh displacement (real silhouette change — needs subdivided card planes). */
+export const getCardPanelDisplacementTexture = (): CanvasTexture | null => {
+    const texture = createTexture(
+        `card-panel-displacement:${CARD_SURFACE_MAP_VERSION}`,
+        drawCardPanelDisplacementMap,
+        NoColorSpace,
+        256,
+        256
+    );
+
+    if (texture) {
+        texture.wrapS = RepeatWrapping;
+        texture.wrapT = RepeatWrapping;
+        texture.repeat.set(2.35, 2.35);
+        texture.needsUpdate = true;
+    }
+
+    return texture;
 };
 
 type LayerSlot = 'bezel' | 'panel';

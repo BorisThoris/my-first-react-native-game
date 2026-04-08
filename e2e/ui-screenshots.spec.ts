@@ -1,6 +1,7 @@
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
+import { dismissStartupIntro } from './startupIntroHelpers';
 
 const outDir = join(process.cwd(), 'tmp', 'ui-capture');
 
@@ -11,7 +12,7 @@ test.describe('UI capture (local artifacts)', () => {
         const capture = async (name: string, w: number, h: number): Promise<void> => {
             await page.setViewportSize({ width: w, height: h });
             await page.goto('/');
-            await page.getByRole('dialog', { name: /startup relic intro/i }).click();
+            await dismissStartupIntro(page);
             await expect(page.getByRole('button', { name: /^play$/i })).toBeVisible();
             const dismiss = page.getByRole('button', { name: /^dismiss$/i });
             if (await dismiss.isVisible().catch(() => false)) {

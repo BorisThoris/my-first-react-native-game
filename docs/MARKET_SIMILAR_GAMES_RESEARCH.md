@@ -173,3 +173,22 @@
 | **E** | AARP older-player themes, WCAG/Apple/Google targets, color/motion/timer, COGA. |
 
 *Re-run delegates or add Sensor Tower / data.ai snapshots when you want dated commercial benchmarks.*
+
+---
+
+## 10. Steam tag refresh (April 2026 — research loop)
+
+**Why re-check:** Store taxonomy shifts; “puzzle + roguelike” hybrids are a crowded but relevant cluster for **mutator / run-based** positioning (different from pure hidden-card memory).
+
+**How to use Steam search**
+
+- Open [Steam Search](https://store.steampowered.com/search/) and combine **tags** your buyers might use: e.g. **Puzzle**, **Roguelike** / **Roguelite**, **Card Game**, **Casual**, **Solitaire**, **Deckbuilding**, **Match 3** (adjacent mechanical framing, not exact fit).
+- Sort by **New & Trending** or **Top Sellers** for a time-stamped snapshot; copy 3–5 **representative titles + tags** into this section when you refresh quarterly.
+
+**Example row (April 2026 web pass)**
+
+| Title | Steam | Tags called out on store (representative) |
+|-------|--------|---------------------------------------------|
+| **Kaamos: Puzzle Roguelike** | [store page](https://store.steampowered.com/app/3317660/) | Roguelike, Puzzle, Deckbuilding, Match 3, Strategy RPG, Turn-Based Tactics (exact badge set may change) |
+
+**Design takeaway:** Titles in this cluster sell **named modifiers + build paths + replay** more than infinite level count; useful language for **daily / wild / meditation** differentiation in copy and trailers — without claiming medical benefits (see **§4 Risks and backlash** above).

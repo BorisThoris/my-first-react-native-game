@@ -1,6 +1,7 @@
 import { ACHIEVEMENTS } from '../../shared/achievements';
-import { MAX_LIVES, type AchievementId, type MutatorId, type RelicId, type RunState } from '../../shared/contracts';
-import { canShuffleBoard } from '../../shared/game';
+import { MAX_LIVES, MAX_PINNED_TILES, type AchievementId, type MutatorId, type RelicId, type RunState } from '../../shared/contracts';
+import { canRegionShuffle, canRegionShuffleRow, canShuffleBoard } from '../../shared/game';
+import { hasMutator } from '../../shared/mutators';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { UI_ART } from '../assets/ui';
@@ -36,7 +37,8 @@ const MUTATOR_HUD_LABELS: Record<MutatorId, string> = {
     wide_recall: 'Wide recall',
     silhouette_twist: 'Silhouette',
     n_back_anchor: 'N-back',
-    distraction_channel: 'Distraction'
+    distraction_channel: 'Distraction',
+    findables_floor: 'Findables'
 };
 
 const RELIC_LABELS: Record<RelicId, string> = {
@@ -44,7 +46,18 @@ const RELIC_LABELS: Record<RelicId, string> = {
     first_shuffle_free_per_floor: 'First shuffle each floor is free',
     memorize_bonus_ms: 'Longer memorize phases',
     destroy_bank_plus_one: '+1 destroy charge (now)',
-    combo_shard_plus_step: '+1 combo shard (now)'
+    combo_shard_plus_step: '+1 combo shard (now)',
+    memorize_under_short_memorize: '+220ms memorize when Short memorize is active',
+    parasite_ward_once: 'Ignore next parasite life loss once',
+    region_shuffle_free_first: 'First row shuffle each floor is free'
+};
+
+const BONUS_TAG_LABELS: Record<string, string> = {
+    scholar_style: 'Scholar style',
+    glass_witness: 'Glass witness',
+    cursed_last: 'Cursed last',
+    flip_par: 'Flip par',
+    boss_floor: 'Boss floor'
 };
 
 const getClearLifeBonusLabel = (result: NonNullable<RunState['lastLevelResult']>): string | null => {
@@ -61,6 +74,13 @@ const getClearLifeBonusLabel = (result: NonNullable<RunState['lastLevelResult']>
     }
 
     return null;
+};
+
+const formatBonusTagsLine = (tags: string[] | undefined): string | null => {
+    if (!tags || tags.length === 0) {
+        return null;
+    }
+    return tags.map((t) => BONUS_TAG_LABELS[t] ?? t).join(' · ');
 };
 
 const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameScreenProps) => {
@@ -100,6 +120,8 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         saveData,
         settings,
         shuffleBoard,
+        shuffleRegionRow,
+        applyFlashPairPower,
         toggleBoardPinMode,
         toggleDestroyPairArmed,
         togglePeekMode,
@@ -123,6 +145,8 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
             saveData: state.saveData,
             settings: state.settings,
             shuffleBoard: state.shuffleBoard,
+            shuffleRegionRow: state.shuffleRegionRow,
+            applyFlashPairPower: state.applyFlashPairPower,
             toggleBoardPinMode: state.toggleBoardPinMode,
             toggleDestroyPairArmed: state.toggleDestroyPairArmed,
             togglePeekMode: state.togglePeekMode,
@@ -217,6 +241,10 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         });
         return dim;
     }, [run.board, run.status, settings.tileFocusAssist]);
+    const mergedPeekTileIds = useMemo(() => {
+        const merged = new Set<string>([...run.peekRevealedTileIds, ...run.flashPairRevealedTileIds]);
+        return [...merged];
+    }, [run.peekRevealedTileIds, run.flashPairRevealedTileIds]);
     const allowGambitThirdFlip = run.gambitAvailableThisFloor && !run.gambitThirdFlipUsed;
     const wideRecallInPlay = run.activeMutators.includes('wide_recall');
     const scoreParasiteActive = run.activeMutators.includes('score_parasite');
@@ -228,6 +256,11 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const cameraViewportMode = true;
     const pauseActionLabel = run.status === 'paused' ? 'Resume' : 'Pause';
     const clearLifeBonusLabel = run.lastLevelResult ? getClearLifeBonusLabel(run.lastLevelResult) : null;
+    const objectiveBonusLine =
+        run.lastLevelResult && (run.lastLevelResult.objectiveBonusScore ?? 0) > 0
+            ? `Objective bonuses: +${run.lastLevelResult.objectiveBonusScore!.toLocaleString()}`
+            : null;
+    const bonusTagsLine = run.lastLevelResult ? formatBonusTagsLine(run.lastLevelResult.bonusTags) : null;
 
     if (!run.board) {
         return null;
@@ -259,6 +292,28 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         run.stats.tries === 0;
     const showBoardPowerBar = run.status === 'playing';
     const shuffleDisabled = !canShuffleBoard(run);
+    const regionShuffleDisabled = !canRegionShuffle(run);
+    const regionShuffleTitle = run.activeContract?.noShuffle
+        ? 'Scholar contract: row shuffle disabled'
+        : regionShuffleDisabled
+          ? run.regionShuffleCharges < 1 &&
+              !(run.regionShuffleFreeThisFloor && run.relicIds.includes('region_shuffle_free_first'))
+            ? 'No row shuffle charges'
+            : run.board.flippedTileIds.length > 0
+              ? 'Finish the current flip first'
+              : 'Need at least one hidden pair on the board'
+          : 'Shuffle hidden tiles within one row (uses 1 row charge)';
+    const showFlashPairPower = (run.practiceMode || run.wildMenuRun) && run.status === 'playing';
+    const flashPairDisabled =
+        !showFlashPairPower ||
+        run.flashPairCharges < 1 ||
+        run.board.flippedTileIds.length > 0;
+    const flashPairTitle =
+        run.flashPairCharges < 1
+            ? 'No flash charges this floor'
+            : run.board.flippedTileIds.length > 0
+              ? 'Finish the current flip first'
+              : 'Briefly reveal a random hidden pair (practice / wild)';
     const shuffleTitle = run.activeContract?.noShuffle
         ? 'Scholar contract: shuffle disabled'
         : shuffleDisabled
@@ -322,10 +377,15 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                     className={`${styles.gamePlayLayout} ${cameraViewportMode ? styles.mobileCameraGamePlayLayout : ''}`.trim()}
                 >
                     <GameLeftToolbar
+                        applyFlashPairPower={applyFlashPairPower}
                         boardPinMode={boardPinMode}
                         cameraViewportMode={cameraViewportMode}
+                        canRegionShuffleRow={(row) => canRegionShuffleRow(run, row)}
                         destroyDisabled={destroyDisabled}
                         destroyPairArmed={destroyPairArmed}
+                        flashPairDisabled={flashPairDisabled}
+                        flashPairTitle={flashPairTitle}
+                        maxPinnedTiles={MAX_PINNED_TILES}
                         onRequestAbandonRun={() => setAbandonRunConfirmOpen(true)}
                         onViewportReset={() => setViewportResetToken((current) => current + 1)}
                         openCodexFromPlaying={openCodexFromPlaying}
@@ -334,6 +394,8 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         pause={pause}
                         pauseActionLabel={pauseActionLabel}
                         peekModeArmed={peekModeArmed}
+                        regionShuffleDisabled={regionShuffleDisabled}
+                        regionShuffleTitle={regionShuffleTitle}
                         resume={resume}
                         rulesHintsExpanded={rulesHintsExpanded}
                         run={run}
@@ -341,9 +403,11 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         setUtilityFlyoutOpen={setUtilityFlyoutOpen}
                         settings={settings}
                         showBoardPowerBar={showBoardPowerBar}
+                        showFlashPairPower={showFlashPairPower}
                         showForgivenessHint={showForgivenessHint}
                         shuffleBoard={shuffleBoard}
                         shuffleDisabled={shuffleDisabled}
+                        shuffleRegionRow={shuffleRegionRow}
                         shuffleTitle={shuffleTitle}
                         tileBoardRef={tileBoardRef}
                         toggleBoardPinMode={toggleBoardPinMode}
@@ -381,6 +445,15 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                         <div className={`${styles.hudSegment} ${styles.floorBadge}`} title="Current floor">
                                             <span className={styles.floorLabel}>Floor</span>
                                             <span className={styles.floorValue}>{run.board.level}</span>
+                                            {run.board.floorTag === 'boss' ? (
+                                                <span className={styles.floorTagPill} title="Boss floor scoring">
+                                                    Boss
+                                                </span>
+                                            ) : run.board.floorTag === 'breather' ? (
+                                                <span className={styles.floorTagPill} title="Breather floor">
+                                                    Rest
+                                                </span>
+                                            ) : null}
                                         </div>
                                         <div className={`${styles.hudSegment} ${styles.hudLivesSegment}`}>
                                             <span className={styles.statKey}>Lives</span>
@@ -461,10 +534,28 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                                     </span>
                                                 </div>
                                             ) : null}
+                                            {hasMutator(run, 'findables_floor') ? (
+                                                <div
+                                                    className={styles.statPillCompact}
+                                                    data-testid="hud-findables-claimed"
+                                                    title="Bonus pickups claimed by matching pairs this floor"
+                                                >
+                                                    <span className={styles.statKey}>Findables</span>
+                                                    <span className={styles.statVal}>{run.findablesClaimedThisFloor}</span>
+                                                </div>
+                                            ) : null}
                                             {run.activeContract?.noShuffle ? (
                                                 <div className={styles.statPillCompact}>
                                                     <span className={styles.statKey}>Contract</span>
                                                     <span className={styles.statVal}>Scholar</span>
+                                                </div>
+                                            ) : null}
+                                            {run.activeContract?.maxPinsTotalRun != null ? (
+                                                <div className={styles.statPillCompact} title="Pin vow contract">
+                                                    <span className={styles.statKey}>Pins</span>
+                                                    <span className={styles.statVal}>
+                                                        {run.pinsPlacedCountThisRun}/{run.activeContract.maxPinsTotalRun}
+                                                    </span>
                                                 </div>
                                             ) : null}
                                             {run.gameMode === 'meditation' ? (
@@ -509,6 +600,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                 ref={tileBoardRef}
                                 allowGambitThirdFlip={allowGambitThirdFlip}
                                 board={run.board}
+                                cursedPairKey={run.board.cursedPairKey ?? null}
                                 debugPeekActive={run.debugPeekActive}
                                 dimmedTileIds={focusDimmedTileIds}
                                 interactive={run.status === 'playing'}
@@ -516,7 +608,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                 mobileCameraMode={cameraViewportMode}
                                 nBackAnchorPairKey={run.nBackAnchorPairKey}
                                 nBackMutatorActive={nBackMutatorActive}
-                                peekRevealedTileIds={run.peekRevealedTileIds}
+                                peekRevealedTileIds={mergedPeekTileIds}
                                 pinnedTileIds={run.pinnedTileIds}
                                 onTileSelect={(tileId) => {
                                     useAppStore.getState().pressTile(tileId);
@@ -616,6 +708,8 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         title="Floor Cleared"
                     >
                         {clearLifeBonusLabel ? <p className={styles.modalNote}>{clearLifeBonusLabel}</p> : null}
+                        {objectiveBonusLine ? <p className={styles.modalNote}>{objectiveBonusLine}</p> : null}
+                        {bonusTagsLine ? <p className={styles.modalNote}>{bonusTagsLine}</p> : null}
                         <div className={styles.modalStats}>
                             <StatTile
                                 density="minimal"

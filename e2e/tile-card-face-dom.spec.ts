@@ -1,11 +1,16 @@
 import { expect, test } from '@playwright/test';
 import {
     BOARD_HIDDEN_TILE_BUTTON_RE,
+    defaultE2eGameSaveJson,
     navigateToLevel1PlayPhase,
-    reduceMotionSaveJson,
     clickHiddenTileRowCol
 } from './tileBoardGameFlow';
 
+/**
+ * QA-004 — DOM tile “fingerprint”: asserts `tile-card-face` uses bundled `back.svg` (hidden) and `front.svg` (face-up)
+ * with 100%×100% cover, centered, no-repeat. If `.cardBack` / face URLs or stacking change intentionally, update
+ * expectations and note the rationale here (see `TASKS_ASSETS_QA.md` QA-004).
+ */
 test.use({
     launchOptions: {
         args: ['--disable-webgl', '--disable-webgl2']
@@ -15,7 +20,8 @@ test.use({
 test.describe('Tile card face (DOM fallback)', () => {
     test('hidden uses back art; revealed uses face art; layout stack unchanged', async ({ page }) => {
         await page.setViewportSize({ width: 1280, height: 720 });
-        await navigateToLevel1PlayPhase(page, reduceMotionSaveJson);
+        /* default save: reduceMotion + intro dismissed (reduceMotionSaveJson leaves intro on and flakes dismissStartupIntro). */
+        await navigateToLevel1PlayPhase(page, defaultE2eGameSaveJson);
 
         await expect(page.getByTestId('tile-board-fallback')).toBeVisible({ timeout: 8000 });
 

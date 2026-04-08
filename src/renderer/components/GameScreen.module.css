@@ -305,6 +305,7 @@
 /* Glass deck for run stats (actions live in the left toolbar). */
 .hudRow {
     display: flex;
+    flex-direction: row;
     flex-wrap: wrap;
     align-items: center;
     justify-content: center;
@@ -423,6 +424,84 @@
     text-shadow: 0 0 20px var(--theme-glow-gold-soft);
 }
 
+.floorTagPill {
+    display: inline-block;
+    margin-top: 0.08rem;
+    padding: 0.1rem 0.38rem;
+    border-radius: var(--ui-radius-pill, 999px);
+    border: 1px solid rgba(186, 140, 255, 0.45);
+    background: rgba(120, 80, 180, 0.22);
+    color: rgba(232, 220, 255, 0.95);
+    font-size: 0.52rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    line-height: 1.1;
+}
+
+.regionShuffleCluster {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.22rem;
+    width: 100%;
+    max-width: 2.85rem;
+}
+
+.regionShuffleLabel {
+    font-size: 0.52rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(248, 244, 234, 0.55);
+    text-align: center;
+    line-height: 1.1;
+}
+
+.regionShuffleRows {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.14rem;
+    width: 100%;
+}
+
+.regionRowBtn {
+    appearance: none;
+    min-width: 1.35rem;
+    padding: 0.18rem 0.22rem;
+    border-radius: var(--ui-radius-sm, 6px);
+    border: 1px solid rgba(87, 220, 255, 0.35);
+    background: rgba(87, 220, 255, 0.1);
+    color: rgba(248, 244, 234, 0.92);
+    font-size: 0.62rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    line-height: 1;
+    transition:
+        background 140ms ease,
+        border-color 140ms ease,
+        opacity 140ms ease;
+}
+
+.regionRowBtn:hover:not(:disabled) {
+    background: rgba(87, 220, 255, 0.18);
+    border-color: rgba(87, 220, 255, 0.55);
+}
+
+.regionRowBtn:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+}
+
+.toolbarFlashGlyph {
+    display: block;
+    font-size: 1.05rem;
+    line-height: 1;
+    filter: drop-shadow(0 0 6px rgba(255, 230, 120, 0.35));
+}
+
 .hudLivesSegment {
     min-width: 10rem;
 }
@@ -508,6 +587,7 @@
     text-transform: uppercase;
 }
 
+/* AST-004: ornament position/size paired with hud-segment-ornament.svg viewBox; narrow breakpoints only tweak segment min-width, not this layer. */
 .hudScoreSegment {
     flex: 1 1 14rem;
     min-width: 12rem;

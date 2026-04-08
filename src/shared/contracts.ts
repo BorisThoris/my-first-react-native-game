@@ -1,6 +1,6 @@
 export const SAVE_SCHEMA_VERSION = 4;
 /** Bump when generation rules change (tile order, mutators, pair layout). */
-export const GAME_RULES_VERSION = 1;
+export const GAME_RULES_VERSION = 4;
 export const INITIAL_LIVES = 4;
 export const MAX_LIVES = 5;
 export const MATCH_DELAY_MS = 850;
@@ -18,8 +18,19 @@ export const CHAIN_HEAL_STREAK_STEP = 8;
 export const MAX_GUARD_TOKENS = 2;
 export const MAX_COMBO_SHARDS = 2;
 export const INITIAL_SHUFFLE_CHARGES = 1;
+export const INITIAL_REGION_SHUFFLE_CHARGES = 1;
 export const MAX_DESTROY_PAIR_BANK = 2;
 export const MAX_PINNED_TILES = 3;
+
+/** Bonus score when the floor is cleared without shuffle or destroy (per-floor). */
+export const SCHOLAR_STYLE_FLOOR_BONUS_SCORE = 40;
+/** Bonus when glass_floor decoy was never involved in a mismatch this floor. */
+export const GLASS_WITNESS_BONUS_SCORE = 35;
+/** GP-O02: match cursed pair last among real pairs. */
+export const CURSED_LAST_BONUS_SCORE = 50;
+/** GP-O03: clear within flip par (match resolutions). */
+export const FLIP_PAR_BONUS_SCORE = 30;
+export const BOSS_FLOOR_SCORE_MULTIPLIER = 1.15;
 
 export type DisplayMode = 'windowed' | 'fullscreen';
 export type TileState = 'hidden' | 'flipped' | 'matched' | 'removed';
@@ -50,7 +61,17 @@ export type MutatorId =
     | 'wide_recall'
     | 'silhouette_twist'
     | 'n_back_anchor'
-    | 'distraction_channel';
+    | 'distraction_channel'
+    | 'findables_floor';
+
+/** Bonus pickups on some pairs when `findables_floor` mutator is active (flat score on match claim). */
+export type FindableKind = 'shard_spark' | 'score_glint';
+
+/** Flat score added on top of normal match score when a findable pair is matched. */
+export const FINDABLE_MATCH_SCORE: Record<FindableKind, number> = {
+    shard_spark: 25,
+    score_glint: 12
+};
 
 /** Hidden shuffle: full Fisher–Yates vs row-preserving permute. */
 export type WeakerShuffleMode = 'full' | 'rows_only';
@@ -60,12 +81,17 @@ export type RelicId =
     | 'first_shuffle_free_per_floor'
     | 'memorize_bonus_ms'
     | 'destroy_bank_plus_one'
-    | 'combo_shard_plus_step';
+    | 'combo_shard_plus_step'
+    | 'memorize_under_short_memorize'
+    | 'parasite_ward_once'
+    | 'region_shuffle_free_first';
 
 export interface ContractFlags {
     noShuffle: boolean;
     noDestroy: boolean;
     maxMismatches: number | null;
+    /** GP-C01: max pins allowed this run (null = default cap). */
+    maxPinsTotalRun?: number | null;
 }
 export type ResumableRunStatus = 'memorize' | 'playing' | 'resolving';
 export type RunStatus = ResumableRunStatus | 'paused' | 'levelComplete' | 'gameOver';
@@ -130,7 +156,11 @@ export interface Tile {
     state: TileState;
     /** Visual variant index for atomic-pairs styling (optional). */
     atomicVariant?: number;
+    /** If set, matching this pair claims a bonus when the `findables_floor` mutator is active. */
+    findableKind?: FindableKind;
 }
+
+export type FloorTag = 'normal' | 'breather' | 'boss';
 
 export interface BoardState {
     level: number;
@@ -140,6 +170,10 @@ export interface BoardState {
     tiles: Tile[];
     flippedTileIds: string[];
     matchedPairs: number;
+    /** GP-O02: optional pair key that grants a bonus if matched last among real pairs. */
+    cursedPairKey?: string | null;
+    /** GP-F03: pacing tag for this floor. */
+    floorTag?: FloorTag;
 }
 
 export interface SessionStats {
@@ -170,6 +204,10 @@ export interface LevelResult {
     mistakes: number;
     clearLifeReason: ClearLifeReason;
     clearLifeGained: number;
+    /** Optional objective bonuses (e.g. scholar_style, glass_witness, cursed_last, flip_par). */
+    bonusTags?: string[];
+    /** Extra score from bonusTags (included in scoreGained). */
+    objectiveBonusScore?: number;
 }
 
 export interface RunSummary {
@@ -274,6 +312,34 @@ export interface RunState {
     echoFeedbackEnabled: boolean;
     /** Started from Wild / Joker menu (restart routing). */
     wildMenuRun: boolean;
+    /** GP-O04: shuffle used this floor (for scholar-style bonus). */
+    shuffleUsedThisFloor: boolean;
+    /** GP-O04: destroy used this floor. */
+    destroyUsedThisFloor: boolean;
+    /** GP-O01: decoy tile was part of a mismatch resolution this floor. */
+    decoyFlippedThisFloor: boolean;
+    /** True when current board includes the glass decoy tile. */
+    glassDecoyActiveThisFloor: boolean;
+    /** GP-O02: cursed pair matched before all other real pairs cleared. */
+    cursedMatchedEarlyThisFloor: boolean;
+    /** GP-O03: number of successful match resolutions (two flips → match) this floor. */
+    matchResolutionsThisFloor: number;
+    /** GP-R02: ignore next parasite life loss once. */
+    parasiteWardRemaining: number;
+    /** GP-H02: flash-pair charges (practice / wild). */
+    flashPairCharges: number;
+    /** Tile ids temporarily shown by flash pair (ms handled in renderer/timer). */
+    flashPairRevealedTileIds: string[];
+    /** GP-H01: charges for shuffling a single row. */
+    regionShuffleCharges: number;
+    /** GP-H01: arm row index or null. */
+    regionShuffleRowArmed: number | null;
+    /** First region shuffle this floor free when relic (GP-R03). */
+    regionShuffleFreeThisFloor: boolean;
+    /** GP-C01: cumulative pins placed this run (for maxPinsTotalRun contract). */
+    pinsPlacedCountThisRun: number;
+    /** Findables: successful match claims this floor (resets on advance). */
+    findablesClaimedThisFloor: number;
 }
 
 export type AchievementState = Record<AchievementId, boolean>;

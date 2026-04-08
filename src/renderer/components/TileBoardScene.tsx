@@ -9,19 +9,25 @@ import {
     MultiplyBlending,
     PlaneGeometry,
     Raycaster,
+    RingGeometry,
     SRGBColorSpace,
     Vector2,
     Vector3,
     type BufferAttribute,
     type BufferGeometry,
     type Group,
-    type MeshBasicMaterial
+    type MeshBasicMaterial,
+    type MeshStandardMaterial
 } from 'three';
 import type { BoardState, RunStatus, Tile } from '../../shared/contracts';
 import {
     applyAnisotropyToCachedTileTextures,
+    getCardBackRasterNormalMapTexture,
     getCardBackStaticTexture,
+    getCardFaceRasterNormalMapTexture,
     getCardFaceStaticTexture,
+    getCardPanelDisplacementTexture,
+    getCardPanelNormalTexture,
     getTileFaceOverlayTexture,
     subscribeTextureImageUpdates,
     type FaceVariant
@@ -62,6 +68,8 @@ interface TileBoardSceneProps {
     previewActive: boolean;
     reduceMotion: boolean;
     runStatus: RunStatus;
+    peekRevealedTileIds?: string[];
+    cursedPairKey?: string | null;
     /** Wall-clock ms; while `now < deadline`, tile groups ease XY toward layout targets (shuffle). */
     shuffleMotionDeadlineMs: number;
 }
@@ -86,6 +94,8 @@ interface TileBezelProps {
     sharedCardFrontGeometry: BufferGeometry | null;
     /** Merged SVG mesh for hidden side; when set, replaces back texture and back-plane bend/wear. */
     sharedCardBackGeometry: BufferGeometry | null;
+    memorizeCurseHighlight?: boolean;
+    findableFaceHighlight?: boolean;
 }
 
 export interface TileHoverTiltState {
@@ -118,8 +128,18 @@ const CARD_FACE_INSET = 0.016;
 const CARD_FACE_WIDTH = CARD_WIDTH - CARD_FACE_INSET * 2;
 const CARD_FACE_HEIGHT = CARD_HEIGHT - CARD_FACE_INSET * 2;
 
-/** Segments per card face for soft bend deformation. */
-const CARD_BEND_SEGMENTS = 22;
+/**
+ * Segments per card face: bend deformation + enough tessellation for
+ * `displacementMap` (real height — needs dense grid or ridges look blocky).
+ */
+const CARD_BEND_SEGMENTS = 48;
+/** World units: height map × scale + bias displaces vertices along normals (see `getCardPanelDisplacementTexture`). */
+const CARD_DISPLACEMENT_SCALE = 0.0082;
+const CARD_DISPLACEMENT_BIAS = -CARD_DISPLACEMENT_SCALE * 0.5;
+/** Keep wear multiply layer above peak displacement (front/back). */
+const CARD_WEAR_Z_SLIVER = 0.0052;
+/** Shared tangent-space strength for authored + procedural normal maps (front and back). */
+const CARD_NORMAL_SCALE: [number, number] = [0.14, 0.14];
 /** Base bulge depth (world units); tuned so a single click is clearly visible. */
 const CARD_BEND_MAX_DEPTH = 0.038;
 const CARD_BEND_RADIUS = 0.52 * Math.min(CARD_WIDTH, CARD_HEIGHT);
@@ -334,7 +354,9 @@ const TileBezel = ({
     tile,
     transform,
     sharedCardFrontGeometry,
-    sharedCardBackGeometry
+    sharedCardBackGeometry,
+    memorizeCurseHighlight = false,
+    findableFaceHighlight = false
 }: TileBezelProps) => {
     const { gl } = useThree();
     const groupRef = useRef<Group | null>(null);
@@ -359,6 +381,27 @@ const TileBezel = ({
             ),
         []
     );
+    const curseRingGeometry = useMemo(() => {
+        const maxR = Math.max(CARD_WIDTH, CARD_HEIGHT) * 0.48;
+        return new RingGeometry(maxR * 0.86, maxR, 36);
+    }, []);
+    const findableCornerRingGeometry = useMemo(() => new RingGeometry(0.02, 0.032, 22), []);
+    const useSvgMeshFront = sharedCardFrontGeometry != null;
+    const useSvgMeshBack = sharedCardBackGeometry != null;
+    const cardPanelNormalMap = useMemo(() => getCardPanelNormalTexture(), []);
+    const cardPanelDisplacementMap = useMemo(() => getCardPanelDisplacementTexture(), []);
+    const frontNormalMapEffective = useMemo(() => {
+        if (useSvgMeshFront) {
+            return cardPanelNormalMap;
+        }
+        return getCardFaceRasterNormalMapTexture() ?? cardPanelNormalMap;
+    }, [useSvgMeshFront, cardPanelNormalMap, textureRevision]);
+    const backNormalMapEffective = useMemo(() => {
+        if (useSvgMeshBack) {
+            return cardPanelNormalMap;
+        }
+        return getCardBackRasterNormalMapTexture() ?? cardPanelNormalMap;
+    }, [useSvgMeshBack, cardPanelNormalMap, textureRevision]);
 
     const frontBaseRef = useRef<Float32Array | null>(null);
     const backBaseRef = useRef<Float32Array | null>(null);
@@ -375,8 +418,8 @@ const TileBezel = ({
     /** FX-005 WebGL match burst scale; decays in ~0.35s (cap-style budget, ~PERF-009). */
     const matchPulseRef = useRef(0);
     const liftSmoothRef = useRef(0);
-    const frontCardMatRef = useRef<MeshBasicMaterial | null>(null);
-    const backCardMatRef = useRef<MeshBasicMaterial | null>(null);
+    const frontCardMatRef = useRef<MeshStandardMaterial | null>(null);
+    const backCardMatRef = useRef<MeshStandardMaterial | null>(null);
 
     const bendURef = useRef(0.5);
     const bendVRef = useRef(0.5);
@@ -396,13 +439,19 @@ const TileBezel = ({
         };
     });
 
-    const useSvgMeshFront = sharedCardFrontGeometry != null;
-    const useSvgMeshBack = sharedCardBackGeometry != null;
-
     useLayoutEffect(() => {
         frontBaseRef.current = cloneBasePositions(frontGeometry);
         backBaseRef.current = cloneBasePositions(backGeometry);
         overlayBaseRef.current = cloneBasePositions(overlayGeometry);
+        for (const geom of [frontGeometry, backGeometry]) {
+            if (geom.index) {
+                try {
+                    geom.computeTangents();
+                } catch {
+                    /* bend-deformed planes still approximate OK for subtle normal map */
+                }
+            }
+        }
     }, [backGeometry, frontGeometry, overlayGeometry]);
 
     useLayoutEffect(() => {
@@ -839,11 +888,18 @@ const TileBezel = ({
                 </mesh>
                 {useSvgMeshFront && sharedCardFrontGeometry ? (
                     <mesh geometry={sharedCardFrontGeometry} position={[0, 0, faceZ]} raycast={noopMeshRaycast}>
-                        <meshBasicMaterial
+                        <meshStandardMaterial
                             ref={frontCardMatRef}
                             alphaTest={0.06}
                             color={cardTint}
                             depthWrite
+                            displacementBias={CARD_DISPLACEMENT_BIAS}
+                            displacementMap={cardPanelDisplacementMap ?? undefined}
+                            displacementScale={CARD_DISPLACEMENT_SCALE}
+                            metalness={0.02}
+                            normalMap={frontNormalMapEffective ?? undefined}
+                            normalScale={CARD_NORMAL_SCALE}
+                            roughness={0.84}
                             side={DoubleSide}
                             toneMapped={false}
                             transparent
@@ -852,12 +908,19 @@ const TileBezel = ({
                     </mesh>
                 ) : (
                     <mesh geometry={frontGeometry} position={[0, 0, faceZ]} raycast={noopMeshRaycast}>
-                        <meshBasicMaterial
+                        <meshStandardMaterial
                             ref={frontCardMatRef}
                             alphaTest={0.06}
                             color={cardTint}
                             depthWrite
+                            displacementBias={CARD_DISPLACEMENT_BIAS}
+                            displacementMap={cardPanelDisplacementMap ?? undefined}
+                            displacementScale={CARD_DISPLACEMENT_SCALE}
                             map={cardFrontArtTexture ?? undefined}
+                            metalness={0.02}
+                            normalMap={frontNormalMapEffective ?? undefined}
+                            normalScale={CARD_NORMAL_SCALE}
+                            roughness={0.84}
                             side={DoubleSide}
                             toneMapped={false}
                             transparent
@@ -867,7 +930,7 @@ const TileBezel = ({
                 {wearAssets && !useSvgMeshFront ? (
                     <mesh
                         geometry={frontGeometry}
-                        position={[0, 0, faceZ + 0.00045]}
+                        position={[0, 0, faceZ + CARD_WEAR_Z_SLIVER]}
                         raycast={noopMeshRaycast}
                         renderOrder={6}
                     >
@@ -891,11 +954,18 @@ const TileBezel = ({
                         rotation={[0, Math.PI, 0]}
                         raycast={noopMeshRaycast}
                     >
-                        <meshBasicMaterial
+                        <meshStandardMaterial
                             ref={backCardMatRef}
                             alphaTest={0.06}
                             color={cardTint}
                             depthWrite
+                            displacementBias={CARD_DISPLACEMENT_BIAS}
+                            displacementMap={cardPanelDisplacementMap ?? undefined}
+                            displacementScale={CARD_DISPLACEMENT_SCALE}
+                            metalness={0.02}
+                            normalMap={backNormalMapEffective ?? undefined}
+                            normalScale={CARD_NORMAL_SCALE}
+                            roughness={0.84}
                             side={DoubleSide}
                             toneMapped={false}
                             transparent
@@ -904,12 +974,19 @@ const TileBezel = ({
                     </mesh>
                 ) : (
                     <mesh geometry={backGeometry} position={[0, 0, -faceZ]} rotation={[0, Math.PI, 0]} raycast={noopMeshRaycast}>
-                        <meshBasicMaterial
+                        <meshStandardMaterial
                             ref={backCardMatRef}
                             alphaTest={0.06}
                             color={cardTint}
                             depthWrite
+                            displacementBias={CARD_DISPLACEMENT_BIAS}
+                            displacementMap={cardPanelDisplacementMap ?? undefined}
+                            displacementScale={CARD_DISPLACEMENT_SCALE}
                             map={cardBackArtTexture ?? undefined}
+                            metalness={0.02}
+                            normalMap={backNormalMapEffective ?? undefined}
+                            normalScale={CARD_NORMAL_SCALE}
+                            roughness={0.84}
                             side={DoubleSide}
                             toneMapped={false}
                             transparent
@@ -919,7 +996,7 @@ const TileBezel = ({
                 {wearAssets && !useSvgMeshBack ? (
                     <mesh
                         geometry={backGeometry}
-                        position={[0, 0, -faceZ - 0.00045]}
+                        position={[0, 0, -faceZ - CARD_WEAR_Z_SLIVER]}
                         raycast={noopMeshRaycast}
                         renderOrder={6}
                         rotation={[0, Math.PI, 0]}
@@ -932,6 +1009,37 @@ const TileBezel = ({
                             polygonOffsetFactor={-1}
                             polygonOffsetUnits={-1}
                             premultipliedAlpha
+                            toneMapped={false}
+                            transparent
+                        />
+                    </mesh>
+                ) : null}
+                {memorizeCurseHighlight ? (
+                    <mesh geometry={curseRingGeometry} position={[0, 0, faceZ + 0.014]} raycast={noopMeshRaycast} renderOrder={9}>
+                        <meshBasicMaterial
+                            color="#c49cff"
+                            depthTest
+                            depthWrite={false}
+                            opacity={0.88}
+                            side={DoubleSide}
+                            toneMapped={false}
+                            transparent
+                        />
+                    </mesh>
+                ) : null}
+                {findableFaceHighlight ? (
+                    <mesh
+                        geometry={findableCornerRingGeometry}
+                        position={[CARD_WIDTH * 0.36, CARD_HEIGHT * 0.4, faceZ + 0.017]}
+                        raycast={noopMeshRaycast}
+                        renderOrder={9}
+                    >
+                        <meshBasicMaterial
+                            color={tile.findableKind === 'score_glint' ? '#7ec8e8' : '#e8c058'}
+                            depthTest
+                            depthWrite={false}
+                            opacity={0.92}
+                            side={DoubleSide}
                             toneMapped={false}
                             transparent
                         />
@@ -969,6 +1077,8 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
     previewActive,
     reduceMotion,
     runStatus,
+    peekRevealedTileIds = [],
+    cursedPairKey = null,
     shuffleMotionDeadlineMs
 }: TileBoardSceneProps, ref) => {
     const { camera, gl, viewport } = useThree();
@@ -980,11 +1090,39 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
     const [sharedCardBackGeometry, setSharedCardBackGeometry] = useState<BufferGeometry | null>(null);
     const flipLocked = board.flippedTileIds.length === 2;
     const pinnedSet = useMemo(() => new Set(pinnedTileIds), [pinnedTileIds]);
+    const peekSet = useMemo(() => new Set(peekRevealedTileIds), [peekRevealedTileIds]);
     const boardGroupRef = useRef<Group | null>(null);
     const pickRaycasterRef = useRef<Raycaster>(new Raycaster());
     const pickPointerRef = useRef<Vector2>(new Vector2());
 
     useEffect(() => subscribeTextureImageUpdates(() => setTextureRevision((current) => current + 1)), []);
+
+    const overlayPrewarmKey = `${board.level}:${board.tiles.map((tile) => tile.id).join(',')}`;
+    useEffect(() => {
+        let cancelled = false;
+        const tiles = board.tiles;
+        const variants: Array<'active' | 'matched' | 'mismatch'> = ['active', 'matched', 'mismatch'];
+        let index = 0;
+        const pump = (): void => {
+            if (cancelled) {
+                return;
+            }
+            const total = tiles.length * variants.length;
+            if (index >= total) {
+                return;
+            }
+            const tileIndex = Math.floor(index / variants.length);
+            const variant = variants[index % variants.length];
+            getTileFaceOverlayTexture(tiles[tileIndex], variant);
+            index += 1;
+            requestAnimationFrame(pump);
+        };
+        requestAnimationFrame(pump);
+        return () => {
+            cancelled = true;
+        };
+    }, [overlayPrewarmKey]);
+
     /** Chain front → back so two huge SVGLoader.parse passes never run in parallel (main-thread + memory). */
     useEffect(() => {
         let cancelled = false;
@@ -1089,7 +1227,18 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
 
     return (
         <>
-            <ambientLight color={colors.text} intensity={compact ? 0.56 : 0.64} />
+            <ambientLight color={colors.text} intensity={compact ? 0.62 : 0.72} />
+            <hemisphereLight
+                color={colors.text}
+                groundColor={colors.smokeDeep}
+                intensity={compact ? 0.26 : 0.32}
+            />
+            <directionalLight
+                castShadow={false}
+                color={colors.text}
+                intensity={compact ? 0.24 : 0.3}
+                position={[0, 2.2, 12]}
+            />
             <directionalLight
                 castShadow={false}
                 color={colors.goldBright}
@@ -1101,7 +1250,15 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
 
             <group ref={boardGroupRef} rotation={[-0.1, 0.08, 0]}>
                 {board.tiles.map((tile, index) => {
-                    const faceUp = tile.state !== 'hidden' || previewActive || debugPeekActive;
+                    const faceUp =
+                        tile.state !== 'hidden' || previewActive || debugPeekActive || peekSet.has(tile.id);
+                    const memorizeCurseHighlight =
+                        Boolean(previewActive) &&
+                        Boolean(cursedPairKey) &&
+                        tile.pairKey === cursedPairKey &&
+                        tile.state === 'hidden';
+                    const findableFaceHighlight =
+                        Boolean(tile.findableKind) && faceUp && tile.state !== 'matched';
                     const transform = getTileTransform(tile, index, totalColumns, totalRows, compact, faceUp);
 
                     return (
@@ -1111,9 +1268,11 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                             fieldTiltRef={fieldTiltRef}
                             flipLocked={flipLocked}
                             hoverTiltRef={hoverTiltRef}
+                            findableFaceHighlight={findableFaceHighlight}
                             interactionSuppressed={interactionSuppressed}
                             interactive={interactive}
                             isPinned={pinnedSet.has(tile.id)}
+                            memorizeCurseHighlight={memorizeCurseHighlight}
                             key={tile.id}
                             onTilePick={onTilePick}
                             reduceMotion={reduceMotion}

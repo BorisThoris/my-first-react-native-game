@@ -1,4 +1,5 @@
-import type { RelicId, RunSummary, SaveData } from '../../shared/contracts';
+import type { MutatorId, RelicId, RunSummary, SaveData } from '../../shared/contracts';
+import { MUTATOR_CATALOG } from '../../shared/mutators';
 import { RELIC_CATALOG } from '../../shared/game-catalog';
 import { formatNextUtcReset } from '../../shared/utc-countdown';
 import { useEffect, useRef, useState } from 'react';
@@ -8,7 +9,12 @@ import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
 import { Eyebrow, Panel, ScreenTitle, UiButton } from '../ui';
 import MainMenuBackground from './MainMenuBackground';
+import OverlayModal from './OverlayModal';
 import styles from './MainMenu.module.css';
+
+const MEDITATION_PICK_MUTATOR_IDS = (Object.keys(MUTATOR_CATALOG) as MutatorId[]).sort((a, b) =>
+    MUTATOR_CATALOG[a]!.title.localeCompare(MUTATOR_CATALOG[b]!.title)
+);
 
 interface MainMenuProps {
     bestScore: number;
@@ -31,6 +37,8 @@ interface MainMenuProps {
     onScholarContractRun: () => void;
     onImportRun: () => void;
     onMeditationRun: () => void;
+    onMeditationRunWithMutators: (mutators: MutatorId[]) => void;
+    onPinVowRun: () => void;
     onWildRun: () => void;
 }
 
@@ -55,9 +63,13 @@ const MainMenu = ({
     onScholarContractRun,
     onImportRun,
     onMeditationRun,
+    onMeditationRunWithMutators,
+    onPinVowRun,
     onWildRun
 }: MainMenuProps) => {
     const shellRef = useRef<HTMLElement | null>(null);
+    const [meditationOpen, setMeditationOpen] = useState(false);
+    const [meditationSelection, setMeditationSelection] = useState<Set<MutatorId>>(() => new Set());
     const [nowMs, setNowMs] = useState(() => Date.now());
     const { tiltRef: menuFieldTiltRef } = usePlatformTiltField({
         enabled: true,
@@ -76,6 +88,18 @@ const MainMenu = ({
         ? `${lastRunSummary.totalScore.toLocaleString()} score / Floor ${lastRunSummary.highestLevel} / ${lastRunSummary.bestStreak} streak`
         : 'No descent recorded yet.';
     const dailyCountdown = formatNextUtcReset(nowMs);
+
+    const toggleMeditationMutator = (id: MutatorId): void => {
+        setMeditationSelection((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    };
 
     useEffect(() => {
         const id = window.setInterval(() => setNowMs(Date.now()), 1000);
@@ -263,7 +287,12 @@ const MainMenu = ({
                                 <UiButton className={styles.modeButton} size="md" variant="secondary" onClick={onMirrorPuzzleRun}>
                                     Mirror Puzzle
                                 </UiButton>
-                                <UiButton className={styles.modeButton} size="md" variant="secondary" onClick={onMeditationRun}>
+                                <UiButton
+                                    className={styles.modeButton}
+                                    size="md"
+                                    variant="secondary"
+                                    onClick={() => setMeditationOpen(true)}
+                                >
                                     Meditation
                                 </UiButton>
                                 <UiButton className={styles.modeButton} size="md" variant="secondary" onClick={onWildRun}>
@@ -279,6 +308,9 @@ const MainMenu = ({
                                     onClick={onScholarContractRun}
                                 >
                                     Scholar
+                                </UiButton>
+                                <UiButton className={styles.modeButton} size="md" variant="secondary" onClick={onPinVowRun}>
+                                    Pin vow
                                 </UiButton>
                                 <UiButton className={styles.modeButton} size="md" variant="ghost" onClick={onImportRun}>
                                     Import JSON
@@ -343,6 +375,56 @@ const MainMenu = ({
                     </aside>
                 </div>
             </div>
+            {meditationOpen ? (
+                <OverlayModal
+                    actions={[
+                        {
+                            label: 'Cancel',
+                            onClick: () => setMeditationOpen(false),
+                            variant: 'secondary'
+                        },
+                        {
+                            label: 'Calm (no mutators)',
+                            onClick: () => {
+                                onMeditationRun();
+                                setMeditationOpen(false);
+                            },
+                            variant: 'secondary'
+                        },
+                        {
+                            label: 'Start with selection',
+                            onClick: () => {
+                                onMeditationRunWithMutators([...meditationSelection]);
+                                setMeditationOpen(false);
+                            },
+                            variant: 'primary'
+                        }
+                    ]}
+                    subtitle="Toggle mutators for a focused study run, or start calm with a clean ruleset."
+                    title="Meditation setup"
+                >
+                    <ul className={styles.meditationMutatorList}>
+                        {MEDITATION_PICK_MUTATOR_IDS.map((id) => {
+                            const def = MUTATOR_CATALOG[id]!;
+                            const inputId = `meditation-mutator-${id}`;
+                            return (
+                                <li className={styles.meditationMutatorRow} key={id}>
+                                    <input
+                                        checked={meditationSelection.has(id)}
+                                        id={inputId}
+                                        onChange={() => toggleMeditationMutator(id)}
+                                        type="checkbox"
+                                    />
+                                    <label className={styles.meditationMutatorLabel} htmlFor={inputId}>
+                                        <strong>{def.title}</strong>
+                                        <span>{def.description}</span>
+                                    </label>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                </OverlayModal>
+            ) : null}
         </section>
     );
 };

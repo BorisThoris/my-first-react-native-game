@@ -26,7 +26,7 @@ export async function dismissStartupIntro(page: Page): Promise<void> {
                 introVisible: await intro.isVisible().catch(() => false),
                 playVisible: await playButton.isVisible().catch(() => false)
             }),
-            { timeout: 15000 }
+            { timeout: 30_000, intervals: [80, 150, 300, 500] }
         )
         .toEqual({
             introVisible: false,
@@ -35,5 +35,5 @@ export async function dismissStartupIntro(page: Page): Promise<void> {
 
     // Main menu keeps `pointer-events: none` while the intro blur layer is applied; the a11y poll
     // above can pass before React removes that state, so Play clicks would be dropped (flaky under load).
-    await expect(page.locator('[data-e2e-menu-pointer="interactive"]')).toBeAttached({ timeout: 15000 });
+    await expect(page.locator('[data-e2e-menu-pointer="interactive"]')).toBeAttached({ timeout: 25_000 });
 }

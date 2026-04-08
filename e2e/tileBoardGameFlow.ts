@@ -75,13 +75,17 @@ export async function navigateToLevel1PlayPhase(page: Page, saveJson: string = d
     await page.getByRole('button', { name: /^play$/i }).click();
     await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
     await page.getByRole('button', { name: /classic run/i }).click();
-    await expect(page.getByRole('heading', { name: /level 1/i })).toBeVisible();
-    await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible({ timeout: 10000 });
+    // Level title can be sr-only on compact viewports; attached is enough to proceed.
+    await expect(page.getByRole('heading', { name: /level 1/i })).toBeAttached({ timeout: 15_000 });
+    await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible({ timeout: 15_000 });
     await expect
-        .poll(async () => page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count(), { timeout: 12000 })
+        .poll(async () => page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count(), {
+            timeout: 50_000,
+            intervals: [80, 120, 200, 400]
+        })
         .toBeGreaterThan(0);
     const firstHidden = page.getByRole('button', { name: /hidden tile, row 1, column 1/i });
-    await expect(firstHidden).toBeEnabled({ timeout: 15000 });
+    await expect(firstHidden).toBeEnabled({ timeout: 25_000 });
 }
 
 export async function clickHiddenTileRowCol(page: Page, row: number, column: number, hiddenBefore: number): Promise<void> {

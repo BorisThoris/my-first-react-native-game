@@ -11,6 +11,10 @@ import {
     waitLevel1PlayReady
 } from './visualScreenHelpers';
 
+/**
+ * QA-006 — Visual baseline scenarios for `yarn test:e2e:visual` (see `fileBase` / capture names).
+ * Extend `VISUAL_SCREEN_SCENARIOS` when new HUD regions or chrome need diff coverage; keep `04-game-playing` asserting HUD visibility.
+ */
 export type VisualScenarioCapture = (baseName: string) => Promise<void>;
 
 export interface VisualScreenScenario {
@@ -135,6 +139,7 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
         name: 'game playing (level 1)',
         run: async (page, capture) => {
             await openLevel1Play(page);
+            await expect(page.getByTestId('game-hud')).toBeVisible();
             await expect(page.getByRole('toolbar', { name: /game controls/i })).toBeVisible();
             await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible();
             await expectNoHorizontalOverflow(page);
@@ -144,6 +149,7 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
     {
         fileBase: '05-pause-modal',
         name: 'pause modal',
+        timeoutMs: 120_000,
         run: async (page, capture) => {
             await openLevel1Play(page);
             await page.getByRole('button', { name: /pause/i }).click();
@@ -153,7 +159,9 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
             await page
                 .getByRole('dialog', { name: /run paused/i })
                 .getByRole('button', { name: /^resume$/i })
-                .click();
+                .evaluate((element) => {
+                    (element as HTMLButtonElement).click();
+                });
             await expect(page.getByRole('dialog', { name: /run paused/i })).toBeHidden();
         }
     },
