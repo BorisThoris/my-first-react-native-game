@@ -18,6 +18,10 @@ import cardFaceNormalTextureUrl from '../assets/textures/cards/front-normal.png'
 import edgeTextureUrl from '../assets/textures/cards/edge.png';
 import panelRoughnessTextureUrl from '../assets/textures/cards/panel-roughness.png';
 import edgeRoughnessTextureUrl from '../assets/textures/cards/edge-roughness.png';
+import {
+    drawProgrammaticCardFaceOverlay,
+    tileUsesProgrammaticFaceMotif
+} from '../cardFace/programmaticCardFace';
 
 export type FaceVariant = 'hidden' | 'active' | 'matched' | 'mismatch';
 export type TileFace = 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom';
@@ -31,7 +35,7 @@ const TEXTURE_SIZE = 512;
 /** Taller canvas for WebGL static card PNGs so 1403×2048 sources aren’t over-downscaled (was 512 — felt cropped/soft). */
 const STATIC_CARD_TEXTURE_HEIGHT = 1024;
 const STATIC_CARD_TEXTURE_WIDTH = Math.max(2, Math.round(STATIC_CARD_TEXTURE_HEIGHT * (CARD_PLANE_WIDTH / CARD_PLANE_HEIGHT)));
-const TILE_TEXTURE_VERSION = 28;
+const TILE_TEXTURE_VERSION = 29;
 /** Bump when procedural card-surface maps change (independent of tile face caches). */
 const CARD_SURFACE_MAP_VERSION = 2;
 const textureCache = new Map<string, CanvasTexture>();
@@ -811,6 +815,11 @@ const drawCardFrontOverlay = (
     tile: Tile,
     variant: Exclude<FaceVariant, 'hidden'>
 ): void => {
+    if (tileUsesProgrammaticFaceMotif(tile)) {
+        drawProgrammaticCardFaceOverlay(context, canvas, tile, variant);
+        return;
+    }
+
     const { width, height } = canvas;
     const matched = variant === 'matched';
     const mismatch = variant === 'mismatch';

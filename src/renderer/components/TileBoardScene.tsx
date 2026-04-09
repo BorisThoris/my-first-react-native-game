@@ -70,6 +70,8 @@ interface TileBoardSceneProps {
     runStatus: RunStatus;
     peekRevealedTileIds?: string[];
     cursedPairKey?: string | null;
+    wardPairKey?: string | null;
+    bountyPairKey?: string | null;
     /** Wall-clock ms; while `now < deadline`, tile groups ease XY toward layout targets (shuffle). */
     shuffleMotionDeadlineMs: number;
 }
@@ -96,6 +98,8 @@ interface TileBezelProps {
     sharedCardBackGeometry: BufferGeometry | null;
     memorizeCurseHighlight?: boolean;
     findableFaceHighlight?: boolean;
+    spotlightWardHighlight?: boolean;
+    spotlightBountyHighlight?: boolean;
 }
 
 export interface TileHoverTiltState {
@@ -356,7 +360,9 @@ const TileBezel = ({
     sharedCardFrontGeometry,
     sharedCardBackGeometry,
     memorizeCurseHighlight = false,
-    findableFaceHighlight = false
+    findableFaceHighlight = false,
+    spotlightWardHighlight = false,
+    spotlightBountyHighlight = false
 }: TileBezelProps) => {
     const { gl } = useThree();
     const groupRef = useRef<Group | null>(null);
@@ -1045,6 +1051,42 @@ const TileBezel = ({
                         />
                     </mesh>
                 ) : null}
+                {spotlightWardHighlight ? (
+                    <mesh
+                        geometry={findableCornerRingGeometry}
+                        position={[-CARD_WIDTH * 0.36, CARD_HEIGHT * 0.4, faceZ + 0.018]}
+                        raycast={noopMeshRaycast}
+                        renderOrder={9}
+                    >
+                        <meshBasicMaterial
+                            color="#ff7a6a"
+                            depthTest
+                            depthWrite={false}
+                            opacity={0.9}
+                            side={DoubleSide}
+                            toneMapped={false}
+                            transparent
+                        />
+                    </mesh>
+                ) : null}
+                {spotlightBountyHighlight ? (
+                    <mesh
+                        geometry={findableCornerRingGeometry}
+                        position={[CARD_WIDTH * 0.36, -CARD_HEIGHT * 0.4, faceZ + 0.018]}
+                        raycast={noopMeshRaycast}
+                        renderOrder={9}
+                    >
+                        <meshBasicMaterial
+                            color="#5ee0c8"
+                            depthTest
+                            depthWrite={false}
+                            opacity={0.9}
+                            side={DoubleSide}
+                            toneMapped={false}
+                            transparent
+                        />
+                    </mesh>
+                ) : null}
                 {overlayTexture ? (
                     <mesh geometry={overlayGeometry} position={[0, 0, overlayZ]} raycast={noopMeshRaycast} renderOrder={10}>
                         <meshBasicMaterial
@@ -1079,6 +1121,8 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
     runStatus,
     peekRevealedTileIds = [],
     cursedPairKey = null,
+    wardPairKey = null,
+    bountyPairKey = null,
     shuffleMotionDeadlineMs
 }: TileBoardSceneProps, ref) => {
     const { camera, gl, viewport } = useThree();
@@ -1101,19 +1145,16 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
     useEffect(() => {
         let cancelled = false;
         const tiles = board.tiles;
-        const variants: Array<'active' | 'matched' | 'mismatch'> = ['active', 'matched', 'mismatch'];
+        /** Only `active`: prewarming all variants was 3× canvas allocations per tile on every board. */
         let index = 0;
         const pump = (): void => {
             if (cancelled) {
                 return;
             }
-            const total = tiles.length * variants.length;
-            if (index >= total) {
+            if (index >= tiles.length) {
                 return;
             }
-            const tileIndex = Math.floor(index / variants.length);
-            const variant = variants[index % variants.length];
-            getTileFaceOverlayTexture(tiles[tileIndex], variant);
+            getTileFaceOverlayTexture(tiles[index], 'active');
             index += 1;
             requestAnimationFrame(pump);
         };
@@ -1259,6 +1300,16 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                         tile.state === 'hidden';
                     const findableFaceHighlight =
                         Boolean(tile.findableKind) && faceUp && tile.state !== 'matched';
+                    const spotlightWardHighlight =
+                        Boolean(wardPairKey) &&
+                        faceUp &&
+                        tile.state !== 'matched' &&
+                        tile.pairKey === wardPairKey;
+                    const spotlightBountyHighlight =
+                        Boolean(bountyPairKey) &&
+                        faceUp &&
+                        tile.state !== 'matched' &&
+                        tile.pairKey === bountyPairKey;
                     const transform = getTileTransform(tile, index, totalColumns, totalRows, compact, faceUp);
 
                     return (
@@ -1269,6 +1320,8 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                             flipLocked={flipLocked}
                             hoverTiltRef={hoverTiltRef}
                             findableFaceHighlight={findableFaceHighlight}
+                            spotlightBountyHighlight={spotlightBountyHighlight}
+                            spotlightWardHighlight={spotlightWardHighlight}
                             interactionSuppressed={interactionSuppressed}
                             interactive={interactive}
                             isPinned={pinnedSet.has(tile.id)}

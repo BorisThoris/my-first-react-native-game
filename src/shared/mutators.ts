@@ -69,6 +69,12 @@ export const MUTATOR_CATALOG: Record<MutatorId, MutatorDefinition> = {
         title: 'Findables floor',
         description:
             'Some pairs carry a bonus pickup (0–2 per floor). Match the pair to claim score; Destroy removes the pickup with no reward.'
+    },
+    shifting_spotlight: {
+        id: 'shifting_spotlight',
+        title: 'Shifting spotlight',
+        description:
+            'Each flip sequence (match, miss, gambit, or destroy) moves a Ward pair (lower match score) and a Bounty pair (bonus score) among remaining pairs. Distinct from the cursed “match last” pair.'
     }
 };
 

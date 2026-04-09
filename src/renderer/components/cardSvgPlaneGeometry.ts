@@ -16,6 +16,13 @@ import { CARD_PLANE_HEIGHT, CARD_PLANE_WIDTH } from './tileShatter';
 /** Skip degenerate paths; merged card must stay under this for mobile GPUs. */
 const MAX_VERTEX_COUNT = 520_000;
 
+/**
+ * SVGLoader + merge on multi‑MB card art freezes the main thread for seconds; those assets already
+ * render via raster textures (`tileTextures` + `?url` images). Skip mesh build without downloading
+ * the body when `Content-Length` is available.
+ */
+const MAX_SVG_SOURCE_BYTES_FOR_MESH = 512 * 1024;
+
 const resolvedByUrl = new Map<string, BufferGeometry | null>();
 const inflightByUrl = new Map<string, Promise<BufferGeometry | null>>();
 
@@ -62,12 +69,33 @@ export function loadSharedCardSvgPlaneGeometry(assetUrl: string): Promise<Buffer
 
     inflight = (async (): Promise<BufferGeometry | null> => {
         try {
+            try {
+                const probe = await fetch(assetUrl, { method: 'HEAD' });
+                if (probe.ok) {
+                    const cl = probe.headers.get('content-length');
+                    if (cl != null) {
+                        const bytes = Number(cl);
+                        if (Number.isFinite(bytes) && bytes > MAX_SVG_SOURCE_BYTES_FOR_MESH) {
+                            resolvedByUrl.set(assetUrl, null);
+                            return null;
+                        }
+                    }
+                }
+            } catch {
+                /* HEAD unsupported or blocked — fall through to GET + length check */
+            }
+
             const text = await fetch(assetUrl).then((response) => {
                 if (!response.ok) {
                     throw new Error(`SVG fetch ${response.status}`);
                 }
                 return response.text();
             });
+
+            if (text.length > MAX_SVG_SOURCE_BYTES_FOR_MESH) {
+                resolvedByUrl.set(assetUrl, null);
+                return null;
+            }
 
             const data = new SVGLoader().parse(text);
             const parts: BufferGeometry[] = [];

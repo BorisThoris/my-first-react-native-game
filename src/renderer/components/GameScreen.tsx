@@ -38,7 +38,8 @@ const MUTATOR_HUD_LABELS: Record<MutatorId, string> = {
     silhouette_twist: 'Silhouette',
     n_back_anchor: 'N-back',
     distraction_channel: 'Distraction',
-    findables_floor: 'Findables'
+    findables_floor: 'Findables',
+    shifting_spotlight: 'Shifting spotlight'
 };
 
 const RELIC_LABELS: Record<RelicId, string> = {
@@ -601,6 +602,8 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                 allowGambitThirdFlip={allowGambitThirdFlip}
                                 board={run.board}
                                 cursedPairKey={run.board.cursedPairKey ?? null}
+                                wardPairKey={run.board.wardPairKey ?? null}
+                                bountyPairKey={run.board.bountyPairKey ?? null}
                                 debugPeekActive={run.debugPeekActive}
                                 dimmedTileIds={focusDimmedTileIds}
                                 interactive={run.status === 'playing'}

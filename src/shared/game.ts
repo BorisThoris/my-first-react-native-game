@@ -7,6 +7,8 @@ import {
     FINDABLE_MATCH_SCORE,
     FLIP_PAR_BONUS_SCORE,
     GAME_RULES_VERSION,
+    SHIFTING_BOUNTY_MATCH_BONUS,
+    SHIFTING_WARD_MATCH_PENALTY,
     GLASS_WITNESS_BONUS_SCORE,
     INITIAL_LIVES,
     INITIAL_REGION_SHUFFLE_CHARGES,
@@ -59,7 +61,11 @@ import {
     hashStringToSeed,
     shuffleWithRng
 } from './rng';
-import { LETTER_SYMBOLS, getSymbolSetForLevel as getSymbolSetForLevelFromCatalog } from './tile-symbol-catalog';
+import {
+    LETTER_SYMBOLS,
+    NUMBER_SYMBOLS,
+    getSymbolSetForLevel as getSymbolSetForLevelFromCatalog
+} from './tile-symbol-catalog';
 
 type SymbolEntry = { symbol: string; label: string };
 const COMBO_SHARD_STREAK_STEP = 2;
@@ -368,6 +374,97 @@ const assignFindableKindsToTiles = (
     });
 };
 
+/** Remaining real pairs that can still be matched (not both matched; no removed tile in pair). */
+const eligibleSpotlightPairKeys = (board: BoardState): string[] => {
+    const groups = new Map<string, Tile[]>();
+    for (const t of board.tiles) {
+        if (t.pairKey === DECOY_PAIR_KEY || t.pairKey === WILD_PAIR_KEY) {
+            continue;
+        }
+        const list = groups.get(t.pairKey) ?? [];
+        list.push(t);
+        groups.set(t.pairKey, list);
+    }
+    const keys: string[] = [];
+    for (const [key, tiles] of groups) {
+        if (tiles.some((x) => x.state === 'removed')) {
+            continue;
+        }
+        if (tiles.every((x) => x.state === 'matched')) {
+            continue;
+        }
+        keys.push(key);
+    }
+    return keys;
+};
+
+const pickShiftingSpotlightKeys = (
+    board: BoardState,
+    runSeed: number,
+    rulesVersion: number,
+    level: number,
+    step: 'init' | number
+): { wardPairKey: string | null; bountyPairKey: string | null } => {
+    const keys = eligibleSpotlightPairKeys(board);
+    if (keys.length === 0) {
+        return { wardPairKey: null, bountyPairKey: null };
+    }
+    const stepTag = step === 'init' ? 'init' : String(step);
+    const rng = createMulberry32(
+        hashStringToSeed(`shiftSpotlight:${rulesVersion}:${runSeed}:${level}:${stepTag}`)
+    );
+    const shuffled = [...keys];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        const tmp = shuffled[i]!;
+        shuffled[i] = shuffled[j]!;
+        shuffled[j] = tmp;
+    }
+    if (shuffled.length === 1) {
+        return { wardPairKey: null, bountyPairKey: shuffled[0]! };
+    }
+    return { wardPairKey: shuffled[0]!, bountyPairKey: shuffled[1]! };
+};
+
+const shiftingSpotlightMatchDelta = (board: BoardState | undefined, matchedPairKey: string): number => {
+    if (!board) {
+        return 0;
+    }
+    let d = 0;
+    if (board.bountyPairKey === matchedPairKey) {
+        d += SHIFTING_BOUNTY_MATCH_BONUS;
+    }
+    if (board.wardPairKey === matchedPairKey) {
+        d -= SHIFTING_WARD_MATCH_PENALTY;
+    }
+    return d;
+};
+
+const withRotatedShiftingSpotlight = (
+    run: RunState,
+    board: BoardState
+): { board: BoardState; shiftingSpotlightNonce: number } => {
+    const nonceBase = run.shiftingSpotlightNonce ?? 0;
+    if (!hasMutator(run, 'shifting_spotlight')) {
+        return { board, shiftingSpotlightNonce: nonceBase };
+    }
+    if (isBoardComplete(board)) {
+        return { board, shiftingSpotlightNonce: nonceBase };
+    }
+    const nextNonce = nonceBase + 1;
+    const { wardPairKey, bountyPairKey } = pickShiftingSpotlightKeys(
+        board,
+        run.runSeed,
+        run.runRulesVersion,
+        board.level,
+        nextNonce
+    );
+    return {
+        board: { ...board, wardPairKey, bountyPairKey },
+        shiftingSpotlightNonce: nextNonce
+    };
+};
+
 export const buildBoard = (level: number, options: BuildBoardOptions = {}): BoardState => {
     const runSeed = options.runSeed ?? 0;
     const rulesVersion = options.runRulesVersion ?? GAME_RULES_VERSION;
@@ -389,11 +486,13 @@ export const buildBoard = (level: number, options: BuildBoardOptions = {}): Boar
             flippedTileIds: [],
             matchedPairs: 0,
             floorTag: options.floorTag ?? 'normal',
-            cursedPairKey: null
+            cursedPairKey: null,
+            wardPairKey: null,
+            bountyPairKey: null
         };
     }
 
-    const pairCount = Math.min(level + 1, LETTER_SYMBOLS.length);
+    const pairCount = Math.min(level + 1, NUMBER_SYMBOLS.length);
     const tiles = assignFindableKindsToTiles(
         createTiles(level, pairCount, runSeed, rulesVersion, mutators, options.includeWildTile),
         mutators,
@@ -405,8 +504,7 @@ export const buildBoard = (level: number, options: BuildBoardOptions = {}): Boar
     const columns = clamp(Math.ceil(Math.sqrt(tileCount)), 2, 8);
     const rows = Math.ceil(tileCount / columns);
     const cursedPairKey = pickCursedPairKey(tiles, runSeed, rulesVersion, level);
-
-    return {
+    const baseBoard: BoardState = {
         level,
         pairCount,
         columns,
@@ -417,6 +515,17 @@ export const buildBoard = (level: number, options: BuildBoardOptions = {}): Boar
         floorTag: options.floorTag ?? 'normal',
         cursedPairKey
     };
+    if (!mutators.includes('shifting_spotlight')) {
+        return { ...baseBoard, wardPairKey: null, bountyPairKey: null };
+    }
+    const { wardPairKey, bountyPairKey } = pickShiftingSpotlightKeys(
+        baseBoard,
+        runSeed,
+        rulesVersion,
+        level,
+        'init'
+    );
+    return { ...baseBoard, wardPairKey, bountyPairKey };
 };
 
 export const isBoardComplete = (board: BoardState): boolean =>
@@ -847,7 +956,8 @@ export const createNewRun = (bestScore: number, options: CreateRunOptions = {}):
         regionShuffleRowArmed: null,
         regionShuffleFreeThisFloor: false,
         pinsPlacedCountThisRun: 0,
-        findablesClaimedThisFloor: 0
+        findablesClaimedThisFloor: 0,
+        shiftingSpotlightNonce: 0
     };
 
     let runWithRelics = run;
@@ -1149,13 +1259,16 @@ export const applyDestroyPair = (run: RunState, tileId: string): RunState => {
 
     const pinnedTileIds = run.pinnedTileIds.filter((id) => !pairTileIds.includes(id));
 
+    const spunDestroy = withRotatedShiftingSpotlight(run, board);
+
     const nextRun: RunState = {
         ...run,
         powersUsedThisRun: true,
         destroyUsedThisFloor: true,
         destroyPairCharges: run.destroyPairCharges - 1,
         pinnedTileIds,
-        board,
+        board: spunDestroy.board,
+        shiftingSpotlightNonce: spunDestroy.shiftingSpotlightNonce,
         parasiteFloors: hasMutator(run, 'score_parasite') ? 0 : run.parasiteFloors,
         stats: {
             ...run.stats,
@@ -1164,7 +1277,7 @@ export const applyDestroyPair = (run: RunState, tileId: string): RunState => {
         }
     };
 
-    return isBoardComplete(board) ? finalizeLevel(nextRun, board) : nextRun;
+    return isBoardComplete(spunDestroy.board) ? finalizeLevel(nextRun, spunDestroy.board) : nextRun;
 };
 
 export const applyPeek = (run: RunState, tileId: string): RunState => {
@@ -1314,10 +1427,14 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
         const cursedEarlyG =
             Boolean(cursedKeyG && encoreKey === cursedKeyG && run.board.matchedPairs < run.board.pairCount - 1);
         const encoreBonus = encorePairKeys.includes(encoreKey) ? ENCORE_BONUS_SCORE : 0;
-        const matchScore =
+        const spotlightDelta = shiftingSpotlightMatchDelta(run.board, encoreKey);
+        const matchScore = Math.max(
+            0,
             calculateMatchScore(board.level, currentStreak, run.matchScoreMultiplier) +
-            encoreBonus +
-            findableBonus;
+                encoreBonus +
+                findableBonus +
+                spotlightDelta
+        );
         const totalScore = run.stats.totalScore + matchScore;
         const currentLevelScore = run.stats.currentLevelScore + matchScore;
         const bestScore = Math.max(run.stats.bestScore, totalScore);
@@ -1329,6 +1446,8 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
                 ? 0
                 : run.wildMatchesRemaining;
 
+        const spunG = withRotatedShiftingSpotlight(run, board);
+
         const nextRun: RunState = {
             ...run,
             gambitThirdFlipUsed: true,
@@ -1336,7 +1455,8 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
             powersUsedThisRun: true,
             status: 'playing',
             lives,
-            board,
+            board: spunG.board,
+            shiftingSpotlightNonce: spunG.shiftingSpotlightNonce,
             wildMatchesRemaining,
             nBackMatchCounter,
             nBackAnchorPairKey,
@@ -1362,7 +1482,7 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
             },
             timerState: clearResolveState(run)
         };
-        return isBoardComplete(board) ? finalizeLevel(nextRun, board) : nextRun;
+        return isBoardComplete(spunG.board) ? finalizeLevel(nextRun, spunG.board) : nextRun;
     }
 
     const tries = run.stats.tries + GAMBIT_FAIL_EXTRA_TRIES;
@@ -1387,6 +1507,8 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
     const gambitDecoy =
         ta.pairKey === DECOY_PAIR_KEY || tb.pairKey === DECOY_PAIR_KEY || tc.pairKey === DECOY_PAIR_KEY;
 
+    const spunGambitMiss = withRotatedShiftingSpotlight(run, board);
+
     return {
         ...run,
         gambitThirdFlipUsed: true,
@@ -1394,7 +1516,8 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
         powersUsedThisRun: true,
         status,
         lives: Math.max(lives, 0),
-        board,
+        board: spunGambitMiss.board,
+        shiftingSpotlightNonce: spunGambitMiss.shiftingSpotlightNonce,
         stickyBlockIndex: null,
         decoyFlippedThisFloor: run.decoyFlippedThisFloor || gambitDecoy,
         stats: {
@@ -1461,10 +1584,14 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
         const cursedEarly =
             Boolean(cursedKey && encoreKey === cursedKey && run.board.matchedPairs < run.board.pairCount - 1);
         const encoreBonus = encorePairKeys.includes(encoreKey) ? ENCORE_BONUS_SCORE : 0;
-        const matchScore =
+        const spotlightDelta = shiftingSpotlightMatchDelta(run.board, encoreKey);
+        const matchScore = Math.max(
+            0,
             calculateMatchScore(board.level, currentStreak, run.matchScoreMultiplier) +
-            encoreBonus +
-            findableBonus;
+                encoreBonus +
+                findableBonus +
+                spotlightDelta
+        );
         const totalScore = run.stats.totalScore + matchScore;
         const currentLevelScore = run.stats.currentLevelScore + matchScore;
         const bestScore = Math.max(run.stats.bestScore, totalScore);
@@ -1478,11 +1605,14 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
         const usedWild = isWildPairKey(firstTile.pairKey) || isWildPairKey(secondTile.pairKey);
         const wildMatchesRemaining = usedWild ? 0 : run.wildMatchesRemaining;
 
+        const spun = withRotatedShiftingSpotlight(run, board);
+
         const nextRun: RunState = {
             ...run,
             status: 'playing',
             lives,
-            board,
+            board: spun.board,
+            shiftingSpotlightNonce: spun.shiftingSpotlightNonce,
             powersUsedThisRun: usedWild ? true : run.powersUsedThisRun,
             wildMatchesRemaining,
             nBackMatchCounter,
@@ -1508,7 +1638,7 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
             timerState: clearResolveState(run)
         };
 
-        return isBoardComplete(board) ? finalizeLevel(nextRun, board) : nextRun;
+        return isBoardComplete(spun.board) ? finalizeLevel(nextRun, spun.board) : nextRun;
     }
 
     const tries = run.stats.tries + 1;
@@ -1541,11 +1671,14 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
     const decoyTouch =
         firstTile.pairKey === DECOY_PAIR_KEY || secondTile.pairKey === DECOY_PAIR_KEY;
 
+    const spunMiss = withRotatedShiftingSpotlight(run, board);
+
     return {
         ...run,
         status,
         lives: Math.max(lives, 0),
-        board,
+        board: spunMiss.board,
+        shiftingSpotlightNonce: spunMiss.shiftingSpotlightNonce,
         pendingMemorizeBonusMs,
         stickyBlockIndex: null,
         decoyFlippedThisFloor: run.decoyFlippedThisFloor || decoyTouch,
@@ -1647,6 +1780,7 @@ export const advanceToNextLevel = (run: RunState): RunState => {
         cursedMatchedEarlyThisFloor: false,
         matchResolutionsThisFloor: 0,
         findablesClaimedThisFloor: 0,
+        shiftingSpotlightNonce: 0,
         flashPairRevealedTileIds: [],
         regionShuffleRowArmed: null,
         regionShuffleCharges: INITIAL_REGION_SHUFFLE_CHARGES,

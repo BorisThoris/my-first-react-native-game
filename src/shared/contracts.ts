@@ -1,6 +1,6 @@
 export const SAVE_SCHEMA_VERSION = 4;
 /** Bump when generation rules change (tile order, mutators, pair layout). */
-export const GAME_RULES_VERSION = 4;
+export const GAME_RULES_VERSION = 5;
 export const INITIAL_LIVES = 4;
 export const MAX_LIVES = 5;
 export const MATCH_DELAY_MS = 850;
@@ -30,6 +30,10 @@ export const GLASS_WITNESS_BONUS_SCORE = 35;
 export const CURSED_LAST_BONUS_SCORE = 50;
 /** GP-O03: clear within flip par (match resolutions). */
 export const FLIP_PAR_BONUS_SCORE = 30;
+/** `shifting_spotlight`: extra score when the current bounty pair is matched. */
+export const SHIFTING_BOUNTY_MATCH_BONUS = 22;
+/** `shifting_spotlight`: subtracted from match score when the current ward pair is matched (floored at 0 with base match). */
+export const SHIFTING_WARD_MATCH_PENALTY = 15;
 export const BOSS_FLOOR_SCORE_MULTIPLIER = 1.15;
 
 export type DisplayMode = 'windowed' | 'fullscreen';
@@ -62,7 +66,8 @@ export type MutatorId =
     | 'silhouette_twist'
     | 'n_back_anchor'
     | 'distraction_channel'
-    | 'findables_floor';
+    | 'findables_floor'
+    | 'shifting_spotlight';
 
 /** Bonus pickups on some pairs when `findables_floor` mutator is active (flat score on match claim). */
 export type FindableKind = 'shard_spark' | 'score_glint';
@@ -172,6 +177,10 @@ export interface BoardState {
     matchedPairs: number;
     /** GP-O02: optional pair key that grants a bonus if matched last among real pairs. */
     cursedPairKey?: string | null;
+    /** `shifting_spotlight`: pair that scores less if matched while it is the ward (rotates after each flip resolution). */
+    wardPairKey?: string | null;
+    /** `shifting_spotlight`: pair that scores more if matched while it is the bounty. */
+    bountyPairKey?: string | null;
     /** GP-F03: pacing tag for this floor. */
     floorTag?: FloorTag;
 }
@@ -340,6 +349,8 @@ export interface RunState {
     pinsPlacedCountThisRun: number;
     /** Findables: successful match claims this floor (resets on advance). */
     findablesClaimedThisFloor: number;
+    /** `shifting_spotlight`: increments each time ward/bounty rotates this floor (seed step for next pick). */
+    shiftingSpotlightNonce: number;
 }
 
 export type AchievementState = Record<AchievementId, boolean>;

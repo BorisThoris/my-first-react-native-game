@@ -38,8 +38,9 @@ describe('tile board viewport math', () => {
         });
 
         expect(clamped.zoom).toBe(MOBILE_CAMERA_MAX_ZOOM);
-        expect(clamped.panX).toBeCloseTo(9.2);
-        expect(clamped.panY).toBeCloseTo(-6.4);
+        // Overlap-based bounds: (viewport + scaledBoard) / 2 per axis (wider than the old “fill viewport” cap).
+        expect(clamped.panX).toBeCloseTo(13.2);
+        expect(clamped.panY).toBeCloseTo(-10.4);
     });
 
     it('allows zooming out below the fitted view until the safety floor', () => {
@@ -82,11 +83,11 @@ describe('tile board viewport math', () => {
 
         expect(nextViewport.fitZoom).toBeCloseTo(0.8);
         expect(nextViewport.zoom).toBeCloseTo(1.4);
-        expect(nextViewport.panX).toBeCloseTo(2.36);
-        expect(nextViewport.panY).toBeCloseTo(-1.3527, 3);
+        expect(nextViewport.panX).toBeCloseTo(2.0652631578947367);
+        expect(nextViewport.panY).toBeCloseTo(-1.2541935483870968);
     });
 
-    it('keeps at least one card footprint visible at the pan clamp', () => {
+    it('keeps the board overlapping the viewport at extreme pan (edge/corner can remain)', () => {
         const fitZoom = 1;
         const zoom = 1.35;
         const viewportWidth = 4;
@@ -103,15 +104,37 @@ describe('tile board viewport math', () => {
         });
         const scaledBoardWidth = boardWidth * fitZoom * zoom;
         const scaledBoardHeight = boardHeight * fitZoom * zoom;
-        const visibleWidth =
-            Math.min(viewportWidth / 2, maxPanX + scaledBoardWidth / 2) -
-            Math.max(-viewportWidth / 2, maxPanX - scaledBoardWidth / 2);
-        const visibleHeight =
-            Math.min(viewportHeight / 2, maxPanY + scaledBoardHeight / 2) -
-            Math.max(-viewportHeight / 2, maxPanY - scaledBoardHeight / 2);
+        const halfVw = viewportWidth / 2;
+        const halfVh = viewportHeight / 2;
 
-        expect(visibleWidth).toBeGreaterThanOrEqual(fitZoom * zoom);
-        expect(visibleHeight).toBeGreaterThanOrEqual(fitZoom * zoom);
+        const overlapForPan = (panX: number, panY: number): { w: number; h: number } => {
+            const boardLeft = panX - scaledBoardWidth / 2;
+            const boardRight = panX + scaledBoardWidth / 2;
+            const boardBottom = panY - scaledBoardHeight / 2;
+            const boardTop = panY + scaledBoardHeight / 2;
+            return {
+                w: Math.min(halfVw, boardRight) - Math.max(-halfVw, boardLeft),
+                h: Math.min(halfVh, boardTop) - Math.max(-halfVh, boardBottom)
+            };
+        };
+
+        const corners = [
+            overlapForPan(maxPanX, maxPanY),
+            overlapForPan(maxPanX, -maxPanY),
+            overlapForPan(-maxPanX, maxPanY),
+            overlapForPan(-maxPanX, -maxPanY)
+        ];
+
+        for (const { w, h } of corners) {
+            expect(w).toBeGreaterThanOrEqual(0);
+            expect(h).toBeGreaterThanOrEqual(0);
+            expect(w * h).toBeGreaterThanOrEqual(0);
+        }
+
+        // Slightly inside the limit should leave a non-degenerate on-screen patch.
+        const inset = overlapForPan(maxPanX * 0.95, maxPanY * 0.95);
+        expect(inset.w).toBeGreaterThan(0);
+        expect(inset.h).toBeGreaterThan(0);
     });
 
     it('maps screen coordinates to board world coordinates', () => {

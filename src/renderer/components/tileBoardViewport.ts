@@ -72,10 +72,12 @@ export const getBoardPanBounds = ({
     const scaledBoardWidth = boardWidth * activeScale;
     const scaledBoardHeight = boardHeight * activeScale;
 
+    // Pan limits: viewport [-V/2,V/2] must still overlap board [pan-B/2, pan+B/2] on each axis (non-empty 2D
+    // intersection ⟺ overlap on both axes). That allows dragging when the board is smaller than the viewport
+    // while still preventing the whole grid from leaving the frame (at worst an edge/corner remains).
     return {
-        // Board span includes one full card footprint at the outer edges, so edge-lock bounds keep at least one card visible.
-        maxPanX: Math.max(0, (scaledBoardWidth - viewportWidth) / 2),
-        maxPanY: Math.max(0, (scaledBoardHeight - viewportHeight) / 2)
+        maxPanX: (viewportWidth + scaledBoardWidth) / 2,
+        maxPanY: (viewportHeight + scaledBoardHeight) / 2
     };
 };
 

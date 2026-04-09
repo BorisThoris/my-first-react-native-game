@@ -73,6 +73,10 @@ interface TileBoardProps {
     nBackMutatorActive?: boolean;
     /** Memorize-phase marker for the cursed pair objective (non-color-only ring). */
     cursedPairKey?: string | null;
+    /** `shifting_spotlight`: current ward pair (lower match score if matched now). */
+    wardPairKey?: string | null;
+    /** `shifting_spotlight`: current bounty pair (bonus if matched now). */
+    bountyPairKey?: string | null;
     runStatus?: RunStatus;
     onTileSelect: (tileId: string, event?: MouseEvent<HTMLButtonElement>) => void;
 }
@@ -94,6 +98,8 @@ interface TileBoardFallbackProps {
     nBackAnchorPairKey?: string | null;
     nBackMutatorActive?: boolean;
     cursedPairKey?: string | null;
+    wardPairKey?: string | null;
+    bountyPairKey?: string | null;
     runStatus?: RunStatus;
     onTileSelect: (tileId: string, event?: MouseEvent<HTMLButtonElement>) => void;
     tileGridStyle: CSSProperties;
@@ -225,6 +231,8 @@ const TileBoardFallback = ({
     nBackAnchorPairKey = null,
     nBackMutatorActive = false,
     cursedPairKey = null,
+    wardPairKey = null,
+    bountyPairKey = null,
     runStatus = 'playing',
     onTileSelect,
     tileGridStyle
@@ -268,6 +276,14 @@ const TileBoardFallback = ({
                     tile.state === 'hidden'
                         ? styles.cursedMemorizeTile
                         : '';
+                const spotlightWardClass =
+                    wardPairKey && faceUp && tile.state !== 'matched' && tile.pairKey === wardPairKey
+                        ? styles.spotlightWardTile
+                        : '';
+                const spotlightBountyClass =
+                    bountyPairKey && faceUp && tile.state !== 'matched' && tile.pairKey === bountyPairKey
+                        ? styles.spotlightBountyTile
+                        : '';
 
                 const fieldAmp = getTileFieldAmplification(index, board.columns, board.rows);
                 const showFindableMarker = Boolean(tile.findableKind) && faceUp && tile.state !== 'matched';
@@ -275,7 +291,7 @@ const TileBoardFallback = ({
                 return (
                     <button
                         aria-label={getTileAriaLabel(tile, faceUp, row, column)}
-                        className={`${getTileClassName(tile, faceUp, locked, isPinned, isFocusDimmed, resolvingSelectionState)} ${atomicClass} ${nBackClass} ${cursedClass}`.trim()}
+                        className={`${getTileClassName(tile, faceUp, locked, isPinned, isFocusDimmed, resolvingSelectionState)} ${atomicClass} ${nBackClass} ${cursedClass} ${spotlightWardClass} ${spotlightBountyClass}`.trim()}
                         data-findable-kind={showFindableMarker ? tile.findableKind : undefined}
                         data-tile-id={tile.id}
                         disabled={disabled}
@@ -370,6 +386,8 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         nBackAnchorPairKey = null,
         nBackMutatorActive = false,
         cursedPairKey = null,
+        wardPairKey = null,
+        bountyPairKey = null,
         runStatus = 'playing',
         onTileSelect
     },
@@ -1045,6 +1063,8 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
             nBackAnchorPairKey={nBackAnchorPairKey}
             nBackMutatorActive={nBackMutatorActive}
             cursedPairKey={cursedPairKey}
+            wardPairKey={wardPairKey}
+            bountyPairKey={bountyPairKey}
             onHoverLeave={clearHoverTilt}
             onHoverMove={updateHoverTilt}
             onTileSelect={handleTileSelect}
@@ -1113,6 +1133,8 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                                     boardViewport={renderedViewportState}
                                     compact={compact}
                                     cursedPairKey={cursedPairKey}
+                                    wardPairKey={wardPairKey}
+                                    bountyPairKey={bountyPairKey}
                                     debugPeekActive={debugPeekActive}
                                     fieldTiltRef={fieldTiltRef}
                                     hoverTiltRef={hoverTiltRef}

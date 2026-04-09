@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { BoardState, MutatorId, RunState, Tile } from './contracts';
-import { FINDABLE_MATCH_SCORE, GAME_RULES_VERSION, MATCH_DELAY_MS, MAX_DESTROY_PAIR_BANK } from './contracts';
+import {
+    FINDABLE_MATCH_SCORE,
+    GAME_RULES_VERSION,
+    MATCH_DELAY_MS,
+    MAX_DESTROY_PAIR_BANK,
+    SHIFTING_BOUNTY_MATCH_BONUS,
+    SHIFTING_WARD_MATCH_PENALTY
+} from './contracts';
 import {
     advanceToNextLevel,
     applyDestroyPair,
@@ -664,6 +671,95 @@ describe('board powers', () => {
             };
             const next = advanceToNextLevel(finishedLevel);
             expect(next.findablesClaimedThisFloor).toBe(0);
+        });
+    });
+
+    describe('shifting_spotlight', () => {
+        const twoPairTiles: Tile[] = [
+            createTile('a1', 'A', 'A'),
+            createTile('a2', 'A', 'A'),
+            createTile('b1', 'B', 'B'),
+            createTile('b2', 'B', 'B')
+        ];
+
+        it('seeds ward and bounty keys on buildBoard when mutator is active', () => {
+            const board = buildBoard(2, {
+                activeMutators: ['shifting_spotlight'] as MutatorId[],
+                runSeed: 31415,
+                runRulesVersion: GAME_RULES_VERSION
+            });
+            expect(board.bountyPairKey != null || board.wardPairKey != null).toBe(true);
+            if (board.wardPairKey && board.bountyPairKey) {
+                expect(board.wardPairKey).not.toBe(board.bountyPairKey);
+            }
+        });
+
+        it('adds bounty bonus when the matched pair is the current bounty', () => {
+            const brd = {
+                ...createBoard(twoPairTiles),
+                wardPairKey: 'B' as const,
+                bountyPairKey: 'A' as const
+            };
+            const started: RunState = {
+                ...createRun(twoPairTiles),
+                board: brd,
+                activeMutators: ['shifting_spotlight'] as MutatorId[],
+                shiftingSpotlightNonce: 0
+            };
+            const resolved = resolveBoardTurn(flipTile(flipTile(started, 'a1'), 'a2'));
+            const base = calculateMatchScore(1, 1, 1);
+            expect(resolved.stats.totalScore).toBe(base + SHIFTING_BOUNTY_MATCH_BONUS);
+            expect(resolved.shiftingSpotlightNonce).toBe(1);
+        });
+
+        it('applies ward penalty when the matched pair is the current ward', () => {
+            const brd = {
+                ...createBoard(twoPairTiles),
+                wardPairKey: 'A' as const,
+                bountyPairKey: 'B' as const
+            };
+            const started: RunState = {
+                ...createRun(twoPairTiles),
+                board: brd,
+                activeMutators: ['shifting_spotlight'] as MutatorId[],
+                shiftingSpotlightNonce: 0
+            };
+            const resolved = resolveBoardTurn(flipTile(flipTile(started, 'a1'), 'a2'));
+            expect(resolved.stats.totalScore).toBe(
+                Math.max(0, calculateMatchScore(1, 1, 1) - SHIFTING_WARD_MATCH_PENALTY)
+            );
+        });
+
+        it('rotates and bumps nonce on mismatch', () => {
+            const brd = {
+                ...createBoard(twoPairTiles),
+                wardPairKey: 'A' as const,
+                bountyPairKey: 'B' as const
+            };
+            const started: RunState = {
+                ...createRun(twoPairTiles),
+                board: brd,
+                activeMutators: ['shifting_spotlight'] as MutatorId[],
+                shiftingSpotlightNonce: 0
+            };
+            const out = resolveBoardTurn(flipTile(flipTile(started, 'a1'), 'b1'));
+            expect(out.shiftingSpotlightNonce).toBe(1);
+        });
+
+        it('resets shiftingSpotlightNonce on advanceToNextLevel', () => {
+            const tiles = [createTile('a1', 'A', 'A'), createTile('a2', 'A', 'A')];
+            const finishedLevel: RunState = {
+                ...createRun(tiles),
+                shiftingSpotlightNonce: 12,
+                status: 'levelComplete',
+                board: {
+                    ...createRun(tiles).board!,
+                    matchedPairs: 1,
+                    flippedTileIds: [],
+                    tiles: tiles.map((t) => ({ ...t, state: 'matched' as const }))
+                }
+            };
+            expect(advanceToNextLevel(finishedLevel).shiftingSpotlightNonce).toBe(0);
         });
     });
 });

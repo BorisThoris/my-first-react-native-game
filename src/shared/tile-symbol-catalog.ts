@@ -76,7 +76,8 @@ export const CALLSIGN_SYMBOLS: TileSymbolEntry[] = [
     ['F4', 'Fathom']
 ].map(([symbol, label]) => ({ symbol, label }));
 
-export const TILE_SYMBOL_SETS = [LETTER_SYMBOLS, NUMBER_SYMBOLS, CALLSIGN_SYMBOLS] as const;
+/** Symbol bands for gallery / mutators. Default level play uses numeric ranks only (see {@link getSymbolSetForLevel}). */
+export const TILE_SYMBOL_SETS = [NUMBER_SYMBOLS, LETTER_SYMBOLS, CALLSIGN_SYMBOLS] as const;
 
 export const ALL_TILE_SYMBOLS_FOR_GALLERY: TileSymbolEntry[] = [
     ...LETTER_SYMBOLS,
@@ -84,8 +85,7 @@ export const ALL_TILE_SYMBOLS_FOR_GALLERY: TileSymbolEntry[] = [
     ...CALLSIGN_SYMBOLS
 ];
 
-export const getSymbolSetIndexForLevel = (level: number): number =>
-    Math.floor((level - 1) / 3) % TILE_SYMBOL_SETS.length;
+/** Index of the band used by {@link getSymbolSetForLevel} (always numeric — no letter/callsign rotation). */
+export const getSymbolSetIndexForLevel = (_level: number): number => 0;
 
-export const getSymbolSetForLevel = (level: number): readonly TileSymbolEntry[] =>
-    TILE_SYMBOL_SETS[getSymbolSetIndexForLevel(level)];
+export const getSymbolSetForLevel = (_level: number): readonly TileSymbolEntry[] => NUMBER_SYMBOLS;

@@ -567,6 +567,19 @@
         inset 0 0 0 5px rgba(186, 120, 255, 0.12);
 }
 
+/* shifting_spotlight: ward / bounty (pattern + inset ring; visible memorize + when face is up). */
+.spotlightWardTile {
+    box-shadow:
+        inset 0 0 0 2px rgba(255, 120, 100, 0.78),
+        inset 0 0 0 5px rgba(255, 80, 60, 0.1);
+}
+
+.spotlightBountyTile {
+    box-shadow:
+        inset 0 0 0 2px rgba(80, 220, 200, 0.78),
+        inset 0 0 0 5px rgba(40, 180, 200, 0.12);
+}
+
 .fallbackTilePinned:not(.faceUp):not(.matched) {
     border-color: rgba(255, 214, 133, 0.55);
     box-shadow:
