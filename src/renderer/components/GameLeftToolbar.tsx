@@ -14,7 +14,7 @@ export interface GameLeftToolbarProps {
     utilityFlyoutOpen: boolean;
     setUtilityFlyoutOpen: Dispatch<SetStateAction<boolean>>;
     run: RunState;
-    settings: Settings;
+    debugFlags: Settings['debugFlags'];
     pauseActionLabel: string;
     showForgivenessHint: boolean;
     rulesHintsExpanded: boolean;
@@ -57,7 +57,7 @@ const GameLeftToolbar = ({
     utilityFlyoutOpen,
     setUtilityFlyoutOpen,
     run,
-    settings,
+    debugFlags,
     pauseActionLabel,
     showForgivenessHint,
     rulesHintsExpanded,
@@ -111,8 +111,8 @@ const GameLeftToolbar = ({
     }, [
         cameraViewportMode,
         run.status,
-        settings.debugFlags.allowBoardReveal,
-        settings.debugFlags.showDebugTools,
+        debugFlags.allowBoardReveal,
+        debugFlags.showDebugTools,
         utilityFlyoutOpen
     ]);
 
@@ -251,17 +251,15 @@ const GameLeftToolbar = ({
                 >
                     <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.menuHamburger} />
                 </button>
-                {cameraViewportMode ? (
-                    <button
-                        aria-label="Fit board"
-                        className={styles.iconAction}
-                        onClick={onViewportReset}
-                        title="Fit board"
-                        type="button"
-                    >
-                        <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.fitBoard} />
-                    </button>
-                ) : null}
+                <button
+                    aria-label="Fit board"
+                    className={styles.iconAction}
+                    onClick={onViewportReset}
+                    title="Fit board"
+                    type="button"
+                >
+                    <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.fitBoard} />
+                </button>
                 <button
                     aria-label="Return to main menu"
                     className={styles.iconAction}
@@ -313,7 +311,7 @@ const GameLeftToolbar = ({
                 >
                     <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.settings} />
                 </button>
-                {import.meta.env.DEV && settings.debugFlags.showDebugTools && settings.debugFlags.allowBoardReveal ? (
+                {import.meta.env.DEV && debugFlags.showDebugTools && debugFlags.allowBoardReveal ? (
                     <UiButton className={styles.toolbarDebugBtn} size="sm" variant="debug" onClick={triggerDebugReveal}>
                         Reveal
                     </UiButton>

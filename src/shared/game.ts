@@ -104,6 +104,24 @@ const GAMBIT_FAIL_EXTRA_TRIES = 1;
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
 
+/** Flat penalty per successful match for mutators that are also expressed in the renderer (rules integrity). */
+const PRESENTATION_MUTATOR_PENALTY_WIDE_RECALL = 3;
+const PRESENTATION_MUTATOR_PENALTY_SILHOUETTE = 3;
+const PRESENTATION_MUTATOR_PENALTY_DISTRACTION = 2;
+
+export const getPresentationMutatorMatchPenalty = (run: RunState): number => {
+    let penalty = 0;
+    if (hasMutator(run, 'wide_recall')) {
+        penalty += PRESENTATION_MUTATOR_PENALTY_WIDE_RECALL;
+    }
+    if (hasMutator(run, 'silhouette_twist')) {
+        penalty += PRESENTATION_MUTATOR_PENALTY_SILHOUETTE;
+    }
+    if (hasMutator(run, 'distraction_channel')) {
+        penalty += PRESENTATION_MUTATOR_PENALTY_DISTRACTION;
+    }
+    return penalty;
+};
 
 const createTimerState = (overrides?: Partial<RunState['timerState']>): RunState['timerState'] => ({
     memorizeRemainingMs: null,
@@ -936,7 +954,6 @@ export const createNewRun = (bestScore: number, options: CreateRunOptions = {}):
         nBackMatchCounter: 0,
         nBackAnchorPairKey: null,
         matchedPairKeysThisRun: [],
-        distractionTick: 0,
         weakerShuffleMode,
         shuffleScoreTaxActive,
         resolveDelayMultiplier: options.resolveDelayMultiplier ?? 1,
@@ -1088,7 +1105,17 @@ export const finishMemorizePhase = (run: RunState): RunState =>
           };
 
 export const flipTile = (run: RunState, tileId: string): RunState => {
-    if (run.status !== 'playing' || !run.board) {
+    if (!run.board) {
+        return run;
+    }
+
+    const gambitThirdWhileResolving =
+        run.status === 'resolving' &&
+        run.gambitAvailableThisFloor &&
+        !run.gambitThirdFlipUsed &&
+        run.board.flippedTileIds.length === 2;
+
+    if (run.status !== 'playing' && !gambitThirdWhileResolving) {
         return run;
     }
 
@@ -1428,12 +1455,14 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
             Boolean(cursedKeyG && encoreKey === cursedKeyG && run.board.matchedPairs < run.board.pairCount - 1);
         const encoreBonus = encorePairKeys.includes(encoreKey) ? ENCORE_BONUS_SCORE : 0;
         const spotlightDelta = shiftingSpotlightMatchDelta(run.board, encoreKey);
+        const presentationPenalty = getPresentationMutatorMatchPenalty(run);
         const matchScore = Math.max(
             0,
             calculateMatchScore(board.level, currentStreak, run.matchScoreMultiplier) +
                 encoreBonus +
                 findableBonus +
-                spotlightDelta
+                spotlightDelta -
+                presentationPenalty
         );
         const totalScore = run.stats.totalScore + matchScore;
         const currentLevelScore = run.stats.currentLevelScore + matchScore;
@@ -1585,12 +1614,14 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
             Boolean(cursedKey && encoreKey === cursedKey && run.board.matchedPairs < run.board.pairCount - 1);
         const encoreBonus = encorePairKeys.includes(encoreKey) ? ENCORE_BONUS_SCORE : 0;
         const spotlightDelta = shiftingSpotlightMatchDelta(run.board, encoreKey);
+        const presentationPenalty = getPresentationMutatorMatchPenalty(run);
         const matchScore = Math.max(
             0,
             calculateMatchScore(board.level, currentStreak, run.matchScoreMultiplier) +
                 encoreBonus +
                 findableBonus +
-                spotlightDelta
+                spotlightDelta -
+                presentationPenalty
         );
         const totalScore = run.stats.totalScore + matchScore;
         const currentLevelScore = run.stats.currentLevelScore + matchScore;

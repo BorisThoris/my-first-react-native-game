@@ -8,21 +8,21 @@ Hooks in `src/shared/game.ts` consult `activeMutators` via `hasMutator` / `src/s
 |--------|---------------------|
 | **Memorize** | `short_memorize`, `category_letters` (symbol set), `glass_floor` (extra decoy in pair list), `findables_floor` (spawn 0–2 bonus pair markers on generation), `shifting_spotlight` (ward/bounty pair keys on `BoardState`) |
 | **Playing / flip** | `sticky_fingers` (block index after match), `glass_floor` (decoy mismatch handling) |
-| **Powers** | Contracts (`activeContract`) gate shuffle/destroy; relics adjust charges — combine with mutators in tests |
-| **Scoring / floor advance** | `score_parasite` (life drain on cadence), `category_letters`, `n_back_anchor` (anchor cadence), `findables_floor` (flat score on match claim; destroy forfeits pickup), `shifting_spotlight` (bounty/ward match score delta; rotates after each flip resolution / destroy) |
-| **Presentation** | `wide_recall` (label-first play), `silhouette_twist` (silhouette styling), `distraction_channel` (renderer pulse; **off** in settings by default), `shifting_spotlight` (ward/bounty tile highlights when face-up / memorize) |
+| **Powers** | Contracts (`activeContract`) gate shuffle/destroy; relics adjust charges — combine with mutators in tests (`game.test.ts` also has an `it.each` matrix over `noShuffle` × `noDestroy` vs `canShuffleBoard` / `applyDestroyPair`, plus wild-run contract rows) |
+| **Scoring / floor advance** | `score_parasite` (life drain on cadence), `category_letters`, `n_back_anchor` (anchor cadence), `findables_floor` (flat score on match claim; destroy forfeits pickup), `shifting_spotlight` (bounty/ward match score delta; rotates after each flip resolution / destroy), `wide_recall` / `silhouette_twist` / `distraction_channel` (flat per-match penalty stacked with presentation—see `getPresentationMutatorMatchPenalty` in `game.ts`) |
+| **Presentation** | `wide_recall` (label-first play on flipped tiles), `silhouette_twist` (silhouette styling), `distraction_channel` (optional **numeric** HUD overlay in `GameScreen`—cyclically changing digit for visual noise; local React tick, **not** `RunState`; **off** in settings by default; disabled when reduced motion), `shifting_spotlight` (ward/bounty tile highlights when face-up / memorize) |
 
 ## Shipped IDs (`MutatorId`)
 
 - `glass_floor` — decoy `pairKey` (`DECOY_PAIR_KEY`); destroy/peek rules in `applyDestroyPair` / flip flow.
 - `sticky_fingers` — `stickyBlockIndex` on match path.
 - `score_parasite` — `parasiteFloors` in `advanceToNextLevel`.
-- `category_letters` — filters symbol set for generation (`getSymbolSetForLevel` path).
+- `category_letters` — forces the letter symbol band for generation (overrides floor-based `getSymbolSetForLevel` rotation).
 - `short_memorize` — reduced memorize window (`getMemorizeDurationForRun`).
-- `wide_recall` — play phase shows **labels** primarily (symbols de-emphasized in renderer).
-- `silhouette_twist` — silhouette / reduced-face styling during play (CSS / materials).
+- `wide_recall` — play phase shows **labels** primarily (symbols de-emphasized in renderer); **rules:** flat match-score penalty per match.
+- `silhouette_twist` — silhouette / reduced-face styling during play (CSS / materials); **rules:** flat match-score penalty per match.
 - `n_back_anchor` — every 2 successful matches, surface an “anchor” pair key for recall pressure (`nBackAnchorPairKey` on `RunState`).
-- `distraction_channel` — paired with Settings `distractionChannelEnabled` for optional UI pulse (no mandatory audio).
+- `distraction_channel` — optional numeric HUD (settings `distractionChannelEnabled`, **off** by default; no mandatory audio); **rules:** flat match-score penalty per match while the mutator is active (`getPresentationMutatorMatchPenalty` in `game.ts`; HUD is cosmetic).
 - `findables_floor` — seeded 0–2 pairs per floor carry `findableKind` on tiles; matching claims `FINDABLE_MATCH_SCORE`; `applyDestroyPair` clears the marker without reward (`findablesClaimedThisFloor` on `RunState`).
 - `shifting_spotlight` — `wardPairKey` / `bountyPairKey` on `BoardState` (distinct from `cursedPairKey` “match last” objective). Bounty adds `SHIFTING_BOUNTY_MATCH_BONUS`, ward subtracts `SHIFTING_WARD_MATCH_PENALTY` (match score floored at 0). Keys re-roll from unresolved pairs after each two-flip resolution (match or miss), gambit resolution, and `applyDestroyPair` (`shiftingSpotlightNonce` on `RunState`).
 

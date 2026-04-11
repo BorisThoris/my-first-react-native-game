@@ -7,6 +7,7 @@ interface ModalAction {
     label: string;
     onClick: () => void;
     variant?: 'primary' | 'secondary' | 'danger';
+    disabled?: boolean;
 }
 
 interface OverlayModalProps {
@@ -14,6 +15,8 @@ interface OverlayModalProps {
     subtitle?: string;
     children?: ReactNode;
     actions: ModalAction[];
+    /** Optional stable hook for e2e (applied to the dialog surface). */
+    testId?: string;
 }
 
 const toUiVariant = (variant: ModalAction['variant']): UiButtonVariant => {
@@ -28,7 +31,7 @@ const toUiVariant = (variant: ModalAction['variant']): UiButtonVariant => {
     return 'primary';
 };
 
-const OverlayModal = ({ title, subtitle, children, actions }: OverlayModalProps) => {
+const OverlayModal = ({ title, subtitle, children, actions, testId }: OverlayModalProps) => {
     const modalRef = useRef<HTMLElement | null>(null);
     const previousFocusRef = useRef<HTMLElement | null>(null);
     const titleId = useId();
@@ -89,6 +92,7 @@ const OverlayModal = ({ title, subtitle, children, actions }: OverlayModalProps)
                 aria-labelledby={titleId}
                 aria-modal="true"
                 className={styles.modal}
+                data-testid={testId}
                 onKeyDown={handleKeyDown}
                 ref={modalRef}
                 role="dialog"
@@ -114,6 +118,7 @@ const OverlayModal = ({ title, subtitle, children, actions }: OverlayModalProps)
                     {actions.map((action) => (
                         <UiButton
                             className={styles.modalAction}
+                            disabled={action.disabled}
                             key={action.label}
                             onClick={action.onClick}
                             size="md"

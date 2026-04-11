@@ -1,3 +1,42 @@
+.pathFitViewport {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    max-height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.pathFitMeasureOuter {
+    flex: 0 0 auto;
+    width: min(1200px, 100%);
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.pathFitZoomInner {
+    width: 100%;
+    will-change: zoom;
+}
+
+.pathFitStack {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    box-sizing: border-box;
+    min-height: 0;
+}
+
+.pathFitStack .pathBody {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: visible;
+}
+
 .cardGrid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -13,12 +52,12 @@
     gap: 0.75rem;
     padding: 1.25rem 1.1rem;
     border-radius: var(--ui-radius-lg);
-    border: 1px solid rgba(242, 211, 157, 0.12);
+    border: 1px solid var(--theme-hud-chrome-border-soft);
     background:
         linear-gradient(180deg, rgba(255, 243, 217, 0.06), transparent 28%),
         linear-gradient(160deg, rgba(22, 24, 38, 0.92), rgba(10, 12, 20, 0.88)),
         rgba(8, 10, 16, 0.6);
-    box-shadow: inset 0 1px 0 rgba(255, 243, 217, 0.04);
+    box-shadow: inset 0 1px 0 var(--theme-hud-chrome-inset);
     text-align: left;
     color: inherit;
     cursor: pointer;
@@ -61,13 +100,13 @@
 }
 
 .card:hover:not(:disabled) {
-    border-color: rgba(242, 211, 157, 0.28);
+    border-color: var(--theme-border-strong);
     transform: translateY(-2px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+    box-shadow: var(--theme-elevation-lift);
 }
 
 .card:focus-visible {
-    outline: 2px solid rgba(242, 211, 157, 0.5);
+    outline: 2px solid var(--theme-focus, #f1d4a0);
     outline-offset: 2px;
 }
 
@@ -97,25 +136,25 @@
 
 .cardFooter {
     font-size: 0.82rem;
-    color: rgba(242, 211, 157, 0.65);
+    color: var(--theme-text-subtle);
     padding-top: 0.35rem;
-    border-top: 1px solid rgba(242, 211, 157, 0.08);
+    border-top: 1px solid var(--theme-card-border-muted);
 }
 
 .cardClassic {
-    border-color: rgba(120, 180, 255, 0.22);
+    border-color: var(--theme-border-cyan);
 }
 
 .cardDaily {
-    border-color: rgba(186, 140, 255, 0.42);
+    border-color: color-mix(in srgb, var(--theme-violet) 42%, transparent);
     box-shadow:
-        0 0 0 1px rgba(186, 140, 255, 0.14),
-        0 0 32px rgba(140, 90, 220, 0.28),
-        inset 0 1px 0 rgba(255, 243, 217, 0.05);
+        0 0 0 1px color-mix(in srgb, var(--theme-violet) 14%, transparent),
+        0 0 32px color-mix(in srgb, var(--theme-violet) 28%, transparent),
+        inset 0 1px 0 var(--theme-hud-chrome-inset);
 }
 
 .cardEndless {
-    border-color: rgba(255, 160, 90, 0.22);
+    border-color: color-mix(in srgb, var(--theme-amber) 22%, transparent);
 }
 
 .badge {
@@ -126,11 +165,15 @@
     font-size: 0.72rem;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    background: rgba(186, 140, 255, 0.15);
-    color: rgba(230, 210, 255, 0.95);
+    background: color-mix(in srgb, var(--theme-violet) 15%, transparent);
+    color: var(--theme-violet-bright);
 }
 
 .lockedBadge {
-    background: rgba(255, 140, 80, 0.14);
-    color: rgba(255, 210, 180, 0.95);
+    background: color-mix(in srgb, var(--theme-amber) 14%, transparent);
+    color: var(--theme-ember-soft);
+}
+
+:global([data-reduce-motion='true']) .card:hover:not(:disabled) {
+    transform: none;
 }

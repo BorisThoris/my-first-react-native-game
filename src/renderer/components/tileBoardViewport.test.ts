@@ -84,7 +84,7 @@ describe('tile board viewport math', () => {
         expect(nextViewport.fitZoom).toBeCloseTo(0.8);
         expect(nextViewport.zoom).toBeCloseTo(1.4);
         expect(nextViewport.panX).toBeCloseTo(2.0652631578947367);
-        expect(nextViewport.panY).toBeCloseTo(-1.2541935483870968);
+        expect(nextViewport.panY).toBeCloseTo(-1.2541935483870967);
     });
 
     it('keeps the board overlapping the viewport at extreme pan (edge/corner can remain)', () => {

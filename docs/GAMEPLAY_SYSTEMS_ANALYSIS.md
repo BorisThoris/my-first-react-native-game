@@ -13,12 +13,13 @@ The project has a **strong shared rules layer** (`src/shared/game.ts` + `contrac
 
 The **desktop renderer** (`GameScreen`, `TileBoard`, Zustand `useAppStore`) is **correctly wired** to that layer for turns: tile presses and toolbar actions call pure `game.ts` functions and update `run` in the store. **Electron IPC does not drive turns**; it handles settings, save/load, achievements, display, Steam—appropriate for a local rules engine.
 
-**Gaps for “one coherent game feel”** are mostly:
+**Remaining polish** (smaller):
 
-- Some **mutators** exist in types, daily/endless **schedules**, and **HUD/presentation**, but **do not change rule outcomes** in `game.ts` (e.g. `wide_recall`, `silhouette_twist`, `distraction_channel` are largely visual or cosmetic).
-- **Documentation vs README**: README undersells **mode surface** (gauntlet, puzzle, practice, meditation, daily, endless, contracts, etc.).
-- **Presentation gaps**: e.g. focus-assist dimming for **2D fallback only**, not 3D scene.
-- **`RunState.distractionTick`** and similar fields may exist in contracts while **game logic** does not advance them (HUD uses local React state instead).
+- **Symbol band rotation** (`tile-symbol-catalog.ts`): confirm per-level curve when balancing.
+
+**Viewport shell:** `GameScreen` sets `cameraViewportMode` from the same compact breakpoint as the rest of the HUD (`width` / `height` vs `VIEWPORT_MOBILE_MAX`), so wide desktop windows use the non–mobile-camera layout; small windows use the mobile camera shell. **`TileBoard`** still enables mouse wheel / drag pan and zoom carry-forward on wide viewports via `desktopCameraMode` + `renderedViewportState` / viewport `useEffect` (see `TileBoard.tsx`); the **Fit board** toolbar control is always shown so desktop zoom can be reset.
+
+**Addressed in recent refinements:** `wide_recall` / `silhouette_twist` / `distraction_channel` apply **flat per-match score penalties** in `game.ts` (`getPresentationMutatorMatchPenalty`) plus renderer styling; **gauntlet** auto–game over via store interval; **`RunState.distractionTick` removed**—distraction HUD numeric tick is **local React state** in `GameScreen` only; **README** lists run types; **focus-assist dimming** is applied in both **2D fallback and `TileBoardScene`** (`dimmedTileIds`).
 
 ---
 
@@ -54,7 +55,7 @@ The **desktop renderer** (`GameScreen`, `TileBoard`, Zustand `useAppStore`) is *
 - **Floor clear:** all tiles `matched` or `removed`.
 - **Lose:** `lives` to 0 (mismatches, parasite drain on advance, etc.), or contract `maxMismatches` forcing loss.
 
-**Gauntlet time limit:** `isGauntletExpired` in `game.ts` is used by the store: on **`pressTile`**, if expired, the run is set to **`gameOver`** with `lives: 0`. So **timeout is enforced when the player tries to act**, not by a background timer tick inside `game.ts` alone—worth noting for UX (idle player might not see immediate game over).
+**Gauntlet time limit:** `isGauntletExpired` in `game.ts` is used by the store on **`pressTile`** and by a **`useAppStore` subscription** that runs a **~300ms interval** while a gauntlet run is active: when `Date.now()` passes `gauntletDeadlineMs`, **`applyResolvedRun`** sets **`gameOver`** (same path as tile expiry). The HUD still updates from `GameScreen` local timer for display.
 
 ---
 
@@ -64,7 +65,7 @@ Runs are constructed in **`game.ts`** via factories such as `createNewRun`, `cre
 
 **Endless (`floor-mutator-schedule.ts`):** deterministic cycle of mutators + `floorTag` (`normal`, `breather`, `boss`), with a seeded chance to append **`distraction_channel`** on some boss floors.
 
-**README** describes a narrow “arcade” scope; **code** exposes a **wider set of modes** in the app/store. Treat README as high-level positioning, not an exhaustive feature list.
+**README** now summarizes run types (endless/classic, daily, gauntlet, puzzle, meditation, featured runs) and links to this doc and `MUTATORS.md`.
 
 ---
 
@@ -93,15 +94,15 @@ Wired through **`useAppStore`** and **`GameScreen`** / toolbar:
 | `shifting_spotlight` | Catalog / modes | Yes (ward/bounty rotation) | Tests + logic |
 | `score_parasite` | Cycle | Yes (life drain on advance) | Run stats |
 | `n_back_anchor` | Cycle | Yes (`nBackAnchorPairKey` updates) | Optional HUD |
-| `wide_recall` | Endless cycle | **No dedicated rule branch** | **CSS:** de-emphasizes symbol when flipped (`wideRecallInPlay`)—presentation-only |
-| `silhouette_twist` | Endless cycle | **No dedicated rule branch** | **CSS class** on faces during play (`silhouetteFace`) |
-| `distraction_channel` | Sometimes appended on boss floors | **`distractionTick` in state not driven by core** | **Local React HUD** in `GameScreen` (numeric overlay when setting enabled) |
+| `wide_recall` | Endless cycle | Yes: **flat per-match penalty** (`getPresentationMutatorMatchPenalty`) | **CSS:** de-emphasizes symbol when flipped (`wideRecallInPlay`); not a wider grid in `buildBoard` |
+| `silhouette_twist` | Endless cycle | Yes: **flat per-match penalty** | **CSS** `silhouetteFace` on faces during play |
+| `distraction_channel` | Sometimes appended on boss floors | Yes: **flat per-match penalty** while mutator active | **Local React HUD** in `GameScreen` (numeric overlay; gated by settings / reduced motion) |
 
-**Takeaway:** Endless mode **schedules** `wide_recall`, `silhouette_twist`, and `distraction_channel`, but **fairness and difficulty** for those floors are currently **mostly visual** unless you add explicit rule hooks (e.g. scoring modifiers, timing pressure tied to `RunState`, or layout changes in `buildBoard`).
+**Takeaway:** Those three IDs combine **rules-level match score pressure** with **presentation**; see `MUTATORS.md` and `GAME_RULES_VERSION` in `contracts.ts` for semantics.
 
 **`mutators.ts`:** `DAILY_MUTATOR_TABLE` is a **subset** of all shipped mutator IDs; other mutators appear in endless schedule or other run factories.
 
-**Doc nuance:** `MUTATORS.md` and `MUTATOR_CATALOG` descriptions for `wide_recall` may emphasize different readings (e.g. label-first vs wider grid); **actual behavior** today is **not** a wider grid from `game.ts`—it is the **flipped-tile symbol styling** path in `TileBoard`.
+**`wide_recall` scope:** Rules + catalog describe **label-first / de-emphasized symbols on flipped tiles** in `TileBoard` / `TileBoardScene`; there is **no** wider grid or extra columns from `buildBoard`.
 
 ---
 
@@ -114,17 +115,13 @@ Wired through **`useAppStore`** and **`GameScreen`** / toolbar:
 - **3D path:** R3F `Canvas` + `TileBoardScene` + `tileTextures` (programmatic faces for digit motifs, canvas overlays).
 - **2D fallback:** DOM grid buttons; same store actions.
 
-**Known disconnects / polish debt:**
-
-- **`dimmedTileIds` / focus assist:** applied in **fallback** path only; **WebGL scene** does not receive the same dimming (comment in code acknowledges this).
-- **`cameraViewportMode`:** reported as effectively always on in `GameScreen` for the mobile-style shell—verify product intent vs breakpoints.
-- **Distraction:** overlay is **not** synchronized with `run.distractionTick` from shared state—local UI tick only.
+**Presentation note (distraction HUD):** The distraction-channel overlay uses **`useDistractionChannelTick`** in [`GameScreen.tsx`](../src/renderer/components/GameScreen.tsx)—**by design** local UI state only (match penalties live in `game.ts` on `RunState.activeMutators`).
 
 ---
 
 ## 8. Symbol catalog and relics
 
-- **`tile-symbol-catalog.ts`:** `getSymbolSetForLevel` / index helpers may **not** yet implement full per-level band rotation despite `TILE_SYMBOL_SETS` data—worth confirming when balancing difficulty curve.
+- **`tile-symbol-catalog.ts`:** `getSymbolSetForLevel` / `getSymbolSetIndexForLevel` rotate **number → letter → callsign** bands by floor bracket (`SYMBOL_BAND_LAST_LEVEL_NUMERIC` / `SYMBOL_BAND_LAST_LEVEL_LETTER`; currently 1–8 / 9–16 / 17+); `category_letters` still forces the letter band for generation.
 - **Some relic hooks** are partial: e.g. immediate apply no-ops where the real effect is folded into **`getMemorizeDurationForRun`** or floor flags—**not wrong**, but easy to misread as “missing.”
 
 ---
@@ -132,19 +129,16 @@ Wired through **`useAppStore`** and **`GameScreen`** / toolbar:
 ## 9. Persistence, Steam, tests
 
 - **Save** normalizes and stores progress/settings; **game rules** do not require network.
-- **Tests:** `game.test.ts` is broad (memorize, resolve, scoring, shuffle, pins, destroy, findables, spotlight, advance, etc.). Gaps called out in review: explicit tests for some combinations (e.g. full **gambit three-flip** flow, every **contract** variant, **gauntlet** timeout edge cases) may be thinner—**triage against your release bar**.
+- **Rules tests (`game.test.ts`):** broad coverage (memorize, resolve, scoring, shuffle, pins, destroy, findables, spotlight, advance, etc.). **Gambit miss + contract:** a resolved three-flip miss increments tries with `GAMBIT_FAIL_EXTRA_TRIES` and can trip **`maxMismatches`** (`resolveGambitThree` in `game.ts`), including **`maxMismatches: 0`** with floor tries still at zero. **Wild + contracts:** `createWildRun` harness asserts **`noDestroy`** blocks **`applyDestroyPair`** and **`noShuffle`** blocks **`canShuffleBoard` / `applyShuffle`** on a real wild board. **Gambit three-flip** (match path), **`maxMismatches`**, **`noShuffle` / `noDestroy` / `maxPinsTotalRun`**, and **`isGauntletExpired`** are covered. **Stacking:** `describe('relic and mutator stacking')` asserts `getMemorizeDurationForRun` with `short_memorize` plus `memorize_under_short_memorize` / `memorize_bonus_ms`; **`active contract limits`** covers `maxMismatches` with presentation mutators, presentation match penalty with strict contracts, `noShuffle` / `noDestroy` with presentation mutators (including **row / region shuffle** vs full-board shuffle), and an **`it.each`** matrix for the four **`noShuffle` × `noDestroy`** combinations vs **`canShuffleBoard`** / **`applyDestroyPair`**. **`noShuffle` still wins over relic shuffle economy** (extra charges, first free full-board shuffle per floor, or **`region_shuffle_free_first`** with zero paid region charges). **`noDestroy` still blocks destroy** with **`destroy_bank_plus_one`** banked charges. **`noShuffle` + `noDestroy` together** still block full-board shuffle, row shuffle, and destroy when relics grant charges. **`maxPinsTotalRun`** caps pins with presentation mutators active. [`tile-symbol-catalog.test.ts`](../src/shared/tile-symbol-catalog.test.ts) includes a level-17 `buildBoard` smoke check for the callsign band.
+- **Store + e2e:** [`useAppStore.test.ts`](../src/renderer/store/useAppStore.test.ts) covers **`startScholarContractRun`** (`shuffleBoard` / `shuffleRegionRow` / armed destroy + `pressTile` as no-ops under **`noShuffle` + `noDestroy`**), **`restartRun`** preserving the scholar **`activeContract`**, and gauntlet deadline handling without a tile press. Playwright [`e2e/scholar-contract.spec.ts`](../e2e/scholar-contract.spec.ts) smoke-clicks **Scholar** from the main menu and asserts the gameplay HUD shell.
 - **`mutators.ts`** has no dedicated test file; behavior is expected **via `game.test.ts`** and integration/e2e.
 
 ---
 
 ## 10. Recommendations toward “fully refined gameplay”
 
-1. **Mutator contract:** For each `MutatorId`, document **one sentence**: “Changes rules / Changes presentation only / Scheduled but TODO.” Keep `MUTATORS.md` and catalog text aligned with **actual** `game.ts` + renderer behavior.
-2. **Complete or demote:** Either implement **rule-level** effects for `wide_recall`, `silhouette_twist`, and `distraction_channel` (scoring, timing, board generation), or **stop scheduling** them in endless until they are real—avoids players thinking mutators do more than they do.
-3. **Gauntlet UX:** If time runs out, consider a **visible timer + auto gameOver** (interval or rAF) so loss does not depend on the next tile press.
-4. **3D parity:** Port focus-assist dimming (or equivalent) into `TileBoardScene` if that assist is part of the design.
-5. **Single source for distraction:** If `RunState.distractionTick` matters, drive it from **`game.ts`** or drop it from contracts to avoid phantom state.
-6. **README refresh:** List real modes and point to this analysis + `MUTATORS.md` for depth.
+1. **Mutator contract:** Keep `MUTATORS.md` and catalog text aligned with **`game.ts` + renderer** (ongoing).
+2. **Next polish:** Optional high-value **e2e** for board flows; `tile-symbol-catalog` / numeric balance per [BALANCE_NOTES.md](./BALANCE_NOTES.md). Common **relic + mutator** and **contract + presentation mutator** paths are covered in `game.test.ts`; expand only if your release bar needs a fuller contract permutation suite.
 
 ---
 

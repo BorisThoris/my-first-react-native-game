@@ -49,8 +49,8 @@
     z-index: 5;
     padding: 0.28rem var(--ui-space-sm);
     border-radius: var(--ui-radius-pill);
-    border: 1px solid rgba(255, 214, 133, 0.45);
-    background: rgba(12, 16, 24, 0.88);
+    border: 1px solid var(--theme-border-strong);
+    background: var(--theme-panel-solid);
     color: var(--theme-text);
     font-size: 0.68rem;
     font-weight: 600;
@@ -59,11 +59,11 @@
     cursor: pointer;
     pointer-events: auto;
     touch-action: manipulation;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    box-shadow: var(--theme-panel-shadow);
 }
 
 .motionChip:focus-visible {
-    outline: 2px solid rgba(87, 220, 255, 0.65);
+    outline: 2px solid var(--theme-border-cyan);
     outline-offset: 2px;
 }
 
@@ -99,16 +99,16 @@
 }
 
 .hitButtonPinned {
-    box-shadow: inset 0 0 0 2px rgba(87, 220, 255, 0.35);
+    box-shadow: inset 0 0 0 2px var(--theme-hud-accent-border);
     border-radius: 1.2rem;
 }
 
 .hitButton {
     appearance: none;
     position: relative;
-    border: 1px solid rgba(242, 211, 157, 0.04);
+    border: 1px solid color-mix(in srgb, var(--theme-border) 22%, transparent);
     border-radius: 1.2rem;
-    background: radial-gradient(circle at center, rgba(242, 211, 157, 0.02), transparent 70%);
+    background: radial-gradient(circle at center, color-mix(in srgb, var(--theme-gold-bright) 4%, transparent), transparent 70%);
     color: transparent;
     cursor: pointer;
     margin: 0;
@@ -131,20 +131,20 @@
 }
 
 .hitButton:focus-visible {
-    border-color: rgba(255, 214, 133, 0.88);
-    background: linear-gradient(180deg, rgba(255, 214, 133, 0.1), rgba(255, 214, 133, 0.03));
+    border-color: var(--theme-border-strong);
+    background: linear-gradient(180deg, var(--theme-glow-gold-soft), color-mix(in srgb, var(--theme-glow-gold) 12%, transparent));
     box-shadow:
-        0 0 0 3px rgba(255, 214, 133, 0.18),
-        inset 0 0 0 1px rgba(255, 214, 133, 0.14);
+        0 0 0 3px var(--theme-glow-gold),
+        inset 0 0 0 1px var(--theme-border);
 }
 
 .hitButtonFaceUp:focus-visible {
-    border-color: rgba(255, 214, 133, 0.55);
-    background: linear-gradient(180deg, rgba(255, 214, 133, 0.09), rgba(255, 214, 133, 0.02));
+    border-color: var(--theme-border-strong);
+    background: linear-gradient(180deg, var(--theme-glow-gold-soft), color-mix(in srgb, var(--theme-glow-gold) 8%, transparent));
 }
 
 .hitButtonMatched:focus-visible {
-    border-color: rgba(255, 214, 133, 0.42);
+    border-color: var(--theme-border);
 }
 
 /* Reference-style matched read: prominent check over the hit layer (WebGL + DOM picking). */
@@ -157,10 +157,10 @@
     font-size: clamp(1.05rem, 22%, 2.25rem);
     font-weight: 800;
     line-height: 1;
-    color: rgba(200, 255, 170, 0.94);
+    color: var(--theme-emerald-bright);
     text-shadow:
-        0 0 14px rgba(90, 200, 80, 0.75),
-        0 0 28px rgba(60, 160, 70, 0.45);
+        0 0 14px color-mix(in srgb, var(--theme-emerald) 75%, transparent),
+        0 0 28px color-mix(in srgb, var(--theme-emerald) 45%, transparent);
     pointer-events: none;
     z-index: 3;
 }
@@ -189,24 +189,24 @@
 }
 
 .hitButtonResolvingMatch {
-    border-color: rgba(180, 235, 141, 0.46);
+    border-color: color-mix(in srgb, var(--theme-emerald-bright) 46%, transparent);
     box-shadow:
-        0 0 0 2px rgba(180, 235, 141, 0.12),
-        0 0 24px rgba(125, 194, 106, 0.26);
+        0 0 0 2px color-mix(in srgb, var(--theme-emerald) 12%, transparent),
+        0 0 24px color-mix(in srgb, var(--theme-emerald) 26%, transparent);
 }
 
 .hitButtonResolvingMismatch {
-    border-color: rgba(216, 106, 88, 0.5);
+    border-color: color-mix(in srgb, var(--theme-danger) 50%, transparent);
     box-shadow:
-        0 0 0 2px rgba(216, 106, 88, 0.12),
-        0 0 24px rgba(216, 106, 88, 0.24);
+        0 0 0 2px color-mix(in srgb, var(--theme-danger) 12%, transparent),
+        0 0 24px color-mix(in srgb, var(--theme-danger) 24%, transparent);
 }
 
 .hitButtonResolvingGambitSpare {
-    border-color: rgba(110, 195, 225, 0.42);
+    border-color: color-mix(in srgb, var(--theme-cyan-bright) 42%, transparent);
     box-shadow:
-        0 0 0 2px rgba(110, 195, 225, 0.14),
-        0 0 22px rgba(80, 170, 210, 0.22);
+        0 0 0 2px color-mix(in srgb, var(--theme-cyan) 14%, transparent),
+        0 0 22px color-mix(in srgb, var(--theme-cyan) 22%, transparent);
 }
 
 @keyframes tileResolvingMatchPulse {
@@ -341,14 +341,14 @@
     aspect-ratio: 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    border: 1px solid rgba(255, 214, 133, 0.22);
+    border: 1px solid var(--theme-border);
     border-radius: 1.12rem;
     /* Reinforce clip when children use preserve-3d + translateZ (overflow:hidden alone can leak). */
     clip-path: inset(0 round 1.12rem);
     background:
-        radial-gradient(circle at 18% 16%, rgba(255, 214, 133, 0.16), transparent 34%),
-        radial-gradient(circle at 82% 78%, rgba(87, 220, 255, 0.08), transparent 34%),
-        linear-gradient(160deg, rgba(20, 24, 34, 0.98), rgba(7, 9, 14, 0.98));
+        radial-gradient(circle at 18% 16%, var(--theme-glow-gold-soft), transparent 34%),
+        radial-gradient(circle at 82% 78%, var(--theme-hud-accent-fill), transparent 34%),
+        linear-gradient(160deg, color-mix(in srgb, var(--theme-void-alt) 98%, transparent), color-mix(in srgb, var(--theme-void) 98%, transparent));
     color: var(--theme-text);
     overflow: hidden;
     transition:
@@ -365,18 +365,18 @@
     will-change: transform;
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.08),
-        inset 0 -1px 0 rgba(255, 214, 133, 0.08),
-        0 14px 28px rgba(8, 10, 18, 0.28);
+        inset 0 -1px 0 var(--theme-hud-chrome-inset),
+        0 14px 28px color-mix(in srgb, var(--theme-ink) 28%, transparent);
 }
 
 .fallbackTile:hover:not(.faceUp):not(.matched) {
-    border-color: rgba(244, 213, 142, 0.52);
+    border-color: var(--theme-border-strong);
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.1),
-        inset 0 -1px 0 rgba(255, 214, 133, 0.12),
-        0 0 0 2px rgba(244, 213, 142, 0.28),
-        0 0 40px rgba(195, 149, 79, 0.14),
-        0 18px 36px rgba(8, 10, 18, 0.32);
+        inset 0 -1px 0 var(--theme-hud-chrome-inset),
+        0 0 0 2px var(--theme-hud-chrome-border),
+        0 0 40px var(--theme-glow-gold),
+        0 18px 36px color-mix(in srgb, var(--theme-ink) 32%, transparent);
     transform:
         perspective(940px)
         rotateX(calc((var(--tilt-y, 0) * var(--field-amp) + var(--hover-y)) * -9deg))
@@ -389,7 +389,7 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 30%);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--theme-text) 12%, transparent), transparent 30%);
     opacity: 0.52;
 }
 
@@ -398,16 +398,16 @@
     position: absolute;
     inset: 14%;
     border-radius: 0.84rem;
-    border: 1px solid rgba(255, 214, 133, 0.24);
-    box-shadow: inset 0 0 0 1px rgba(255, 214, 133, 0.1);
+    border: 1px solid var(--theme-border);
+    box-shadow: inset 0 0 0 1px var(--theme-glow-gold-soft);
     pointer-events: none;
 }
 
 .fallbackTile:focus-visible {
-    border-color: rgba(255, 214, 133, 0.88);
+    border-color: var(--theme-border-strong);
     box-shadow:
-        0 0 0 3px rgba(255, 214, 133, 0.18),
-        0 18px 34px rgba(8, 14, 25, 0.32);
+        0 0 0 3px var(--theme-glow-gold),
+        0 18px 34px color-mix(in srgb, var(--theme-ink) 32%, transparent);
 }
 
 /* Findables: pattern + border (not hue-only); shown when face is visible (memorize / flipped / peek). */
@@ -421,12 +421,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid rgba(255, 255, 255, 0.42);
+    border: 1px solid color-mix(in srgb, var(--theme-text) 42%, transparent);
     border-radius: 2px;
-    background: rgba(10, 12, 20, 0.82);
+    background: var(--theme-panel-solid);
     box-shadow:
-        inset 0 0 0 1px rgba(0, 0, 0, 0.35),
-        0 1px 3px rgba(0, 0, 0, 0.4);
+        inset 0 0 0 1px color-mix(in srgb, var(--theme-shadow) 65%, transparent),
+        0 1px 3px color-mix(in srgb, var(--theme-shadow) 40%, transparent);
     pointer-events: none;
     color: var(--theme-text);
     font-size: 0.62rem;
@@ -445,10 +445,10 @@
 
 .faceUp {
     background:
-        radial-gradient(circle at 18% 16%, rgba(187, 147, 255, 0.22), transparent 34%),
-        radial-gradient(circle at 82% 78%, rgba(244, 213, 142, 0.12), transparent 34%),
-        linear-gradient(160deg, rgba(20, 24, 34, 0.98), rgba(7, 9, 14, 0.98));
-    border-color: rgba(187, 147, 255, 0.34);
+        radial-gradient(circle at 18% 16%, color-mix(in srgb, var(--theme-violet-bright) 22%, transparent), transparent 34%),
+        radial-gradient(circle at 82% 78%, var(--theme-hud-chrome-inset), transparent 34%),
+        linear-gradient(160deg, color-mix(in srgb, var(--theme-void-alt) 98%, transparent), color-mix(in srgb, var(--theme-void) 98%, transparent));
+    border-color: color-mix(in srgb, var(--theme-violet) 34%, transparent);
 }
 
 .matched {
@@ -457,40 +457,40 @@
         box-shadow 180ms ease,
         background 180ms ease;
     background:
-        radial-gradient(circle at 18% 16%, rgba(166, 211, 134, 0.22), transparent 38%),
-        radial-gradient(circle at 84% 78%, rgba(166, 211, 134, 0.12), transparent 36%),
-        linear-gradient(160deg, rgba(19, 24, 33, 0.98), rgba(8, 10, 16, 0.98));
-    border-color: rgba(166, 211, 134, 0.52);
+        radial-gradient(circle at 18% 16%, color-mix(in srgb, var(--theme-emerald-bright) 22%, transparent), transparent 38%),
+        radial-gradient(circle at 84% 78%, color-mix(in srgb, var(--theme-emerald) 12%, transparent), transparent 36%),
+        linear-gradient(160deg, color-mix(in srgb, var(--theme-void-alt) 98%, transparent), color-mix(in srgb, var(--theme-void) 98%, transparent));
+    border-color: color-mix(in srgb, var(--theme-emerald-bright) 52%, transparent);
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.08),
-        inset 0 -1px 0 rgba(255, 214, 133, 0.08),
-        0 0 0 1px rgba(166, 211, 134, 0.18),
-        0 18px 36px rgba(8, 10, 18, 0.34);
+        inset 0 -1px 0 var(--theme-hud-chrome-inset),
+        0 0 0 1px color-mix(in srgb, var(--theme-emerald) 18%, transparent),
+        0 18px 36px color-mix(in srgb, var(--theme-ink) 34%, transparent);
 }
 
 .resolvingMatch {
     transition:
         border-color 160ms ease,
         box-shadow 160ms ease;
-    border-color: rgba(180, 235, 141, 0.52);
+    border-color: color-mix(in srgb, var(--theme-emerald-bright) 52%, transparent);
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.08),
-        inset 0 -1px 0 rgba(180, 235, 141, 0.16),
-        0 0 0 2px rgba(180, 235, 141, 0.12),
-        0 18px 36px rgba(8, 10, 18, 0.34);
+        inset 0 -1px 0 color-mix(in srgb, var(--theme-emerald) 16%, transparent),
+        0 0 0 2px color-mix(in srgb, var(--theme-emerald) 12%, transparent),
+        0 18px 36px color-mix(in srgb, var(--theme-ink) 34%, transparent);
 }
 
 .resolvingMismatch {
     transition:
         border-color 160ms ease,
         box-shadow 160ms ease;
-    border-color: rgba(216, 106, 88, 0.62);
+    border-color: color-mix(in srgb, var(--theme-danger) 62%, transparent);
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.08),
-        inset 0 -1px 0 rgba(216, 106, 88, 0.2),
-        0 0 0 2px rgba(216, 106, 88, 0.2),
-        0 0 36px rgba(216, 106, 88, 0.22),
-        0 18px 36px rgba(8, 10, 18, 0.34);
+        inset 0 -1px 0 color-mix(in srgb, var(--theme-danger) 20%, transparent),
+        0 0 0 2px color-mix(in srgb, var(--theme-danger) 20%, transparent),
+        0 0 36px color-mix(in srgb, var(--theme-danger) 22%, transparent),
+        0 18px 36px color-mix(in srgb, var(--theme-ink) 34%, transparent);
 }
 
 /* Gambit: third tile while the other two form a valid pair (CARD-012). */
@@ -498,24 +498,24 @@
     transition:
         border-color 160ms ease,
         box-shadow 160ms ease;
-    border-color: rgba(120, 200, 230, 0.48);
+    border-color: color-mix(in srgb, var(--theme-cyan-bright) 48%, transparent);
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.08),
-        inset 0 -1px 0 rgba(120, 200, 230, 0.14),
-        0 0 0 2px rgba(120, 200, 230, 0.16),
-        0 0 28px rgba(80, 160, 200, 0.18),
-        0 18px 36px rgba(8, 10, 18, 0.34);
+        inset 0 -1px 0 color-mix(in srgb, var(--theme-cyan) 14%, transparent),
+        0 0 0 2px color-mix(in srgb, var(--theme-cyan) 16%, transparent),
+        0 0 28px color-mix(in srgb, var(--theme-cyan) 18%, transparent),
+        0 18px 36px color-mix(in srgb, var(--theme-ink) 34%, transparent);
 }
 
 /* Pinned hidden tile + resolving match highlight stack (CARD-018). */
 .fallbackTilePinned.resolvingMatch:not(.matched) {
-    border-color: rgba(170, 235, 190, 0.58);
+    border-color: color-mix(in srgb, var(--theme-emerald-bright) 58%, transparent);
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.1),
-        inset 0 -1px 0 rgba(180, 235, 141, 0.16),
-        0 0 0 2px rgba(87, 220, 255, 0.34),
-        0 0 0 1px rgba(180, 235, 141, 0.22),
-        0 16px 32px rgba(8, 10, 18, 0.3);
+        inset 0 -1px 0 color-mix(in srgb, var(--theme-emerald) 16%, transparent),
+        0 0 0 2px var(--theme-hud-accent-border),
+        0 0 0 1px color-mix(in srgb, var(--theme-emerald) 22%, transparent),
+        0 16px 32px color-mix(in srgb, var(--theme-ink) 30%, transparent);
 }
 
 .locked {
@@ -542,51 +542,51 @@
 }
 
 .atomicPair0 {
-    box-shadow: inset 0 0 0 2px rgba(255, 118, 90, 0.55);
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--theme-ember-soft) 55%, transparent);
 }
 
 .atomicPair1 {
-    box-shadow: inset 0 0 0 2px rgba(120, 200, 255, 0.55);
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--theme-cyan-bright) 55%, transparent);
 }
 
 .atomicPair2 {
-    box-shadow: inset 0 0 0 2px rgba(186, 140, 255, 0.55);
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--theme-violet-bright) 55%, transparent);
 }
 
 .atomicPair3 {
-    box-shadow: inset 0 0 0 2px rgba(120, 230, 160, 0.55);
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--theme-emerald-bright) 55%, transparent);
 }
 
 .nBackAnchorTile {
-    box-shadow: inset 0 0 0 2px rgba(255, 214, 100, 0.65);
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--theme-gold-bright) 65%, transparent);
 }
 
 .cursedMemorizeTile {
     box-shadow:
-        inset 0 0 0 2px rgba(186, 120, 255, 0.75),
-        inset 0 0 0 5px rgba(186, 120, 255, 0.12);
+        inset 0 0 0 2px color-mix(in srgb, var(--theme-violet-bright) 75%, transparent),
+        inset 0 0 0 5px color-mix(in srgb, var(--theme-violet) 12%, transparent);
 }
 
 /* shifting_spotlight: ward / bounty (pattern + inset ring; visible memorize + when face is up). */
 .spotlightWardTile {
     box-shadow:
-        inset 0 0 0 2px rgba(255, 120, 100, 0.78),
-        inset 0 0 0 5px rgba(255, 80, 60, 0.1);
+        inset 0 0 0 2px color-mix(in srgb, var(--theme-danger) 78%, transparent),
+        inset 0 0 0 5px color-mix(in srgb, var(--theme-ember) 10%, transparent);
 }
 
 .spotlightBountyTile {
     box-shadow:
-        inset 0 0 0 2px rgba(80, 220, 200, 0.78),
-        inset 0 0 0 5px rgba(40, 180, 200, 0.12);
+        inset 0 0 0 2px color-mix(in srgb, var(--theme-cyan-bright) 78%, transparent),
+        inset 0 0 0 5px color-mix(in srgb, var(--theme-cyan) 12%, transparent);
 }
 
 .fallbackTilePinned:not(.faceUp):not(.matched) {
-    border-color: rgba(255, 214, 133, 0.55);
+    border-color: var(--theme-border-strong);
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.1),
-        inset 0 -1px 0 rgba(255, 214, 133, 0.14),
-        0 0 0 2px rgba(87, 220, 255, 0.22),
-        0 14px 28px rgba(8, 10, 18, 0.28);
+        inset 0 -1px 0 var(--theme-hud-chrome-inset),
+        0 0 0 2px var(--theme-hud-accent-line),
+        0 14px 28px color-mix(in srgb, var(--theme-ink) 28%, transparent);
 }
 
 .tileFocusDim:not(.faceUp):not(.matched) {
@@ -637,10 +637,10 @@
     font-size: clamp(1.05rem, 22%, 2.25rem);
     font-weight: 800;
     line-height: 1;
-    color: rgba(200, 255, 170, 0.94);
+    color: var(--theme-emerald-bright);
     text-shadow:
-        0 0 14px rgba(90, 200, 80, 0.75),
-        0 0 28px rgba(60, 160, 70, 0.45);
+        0 0 14px color-mix(in srgb, var(--theme-emerald) 75%, transparent),
+        0 0 28px color-mix(in srgb, var(--theme-emerald) 45%, transparent);
     pointer-events: none;
 }
 
@@ -674,21 +674,29 @@
     border-radius: 0.72rem;
     /* Clip background layers to rounded rect (avoids subpixel bleed past border on some GPUs). */
     background-clip: padding-box;
-    border: 1px solid rgba(255, 214, 133, 0.3);
+    border: 1px solid var(--theme-border);
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.1),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.12),
-        0 8px 18px rgba(8, 10, 18, 0.22);
+        inset 0 -1px 0 color-mix(in srgb, var(--theme-shadow) 12%, transparent),
+        0 8px 18px color-mix(in srgb, var(--theme-ink) 22%, transparent);
     overflow: hidden;
     background:
         url('../assets/textures/cards/back.svg') center / 100% 100% no-repeat,
-        linear-gradient(170deg, rgba(21, 33, 50, 0.98), rgba(8, 12, 20, 0.98));
+        linear-gradient(
+            170deg,
+            color-mix(in srgb, var(--theme-void-alt) 96%, var(--theme-cyan-deep)),
+            color-mix(in srgb, var(--theme-void) 96%, var(--theme-smoke-deep))
+        );
 }
 
 .cardFaceBack {
     background:
         url('../assets/textures/cards/back.svg') center / 100% 100% no-repeat,
-        linear-gradient(170deg, rgba(21, 33, 50, 0.98), rgba(8, 12, 20, 0.98));
+        linear-gradient(
+            170deg,
+            color-mix(in srgb, var(--theme-void-alt) 96%, var(--theme-cyan-deep)),
+            color-mix(in srgb, var(--theme-void) 96%, var(--theme-smoke-deep))
+        );
 }
 
 /* DOM fallback: hidden uses back.svg; face-up uses front.svg (fills frame — matches WebGL plane mapping). */
@@ -696,22 +704,34 @@
 .faceUp .cardBack {
     background:
         url('../assets/textures/cards/front.svg') center / 100% 100% no-repeat,
-        linear-gradient(170deg, rgba(21, 33, 50, 0.98), rgba(8, 12, 20, 0.98));
-    border-color: rgba(245, 224, 182, 0.4);
+        linear-gradient(
+            170deg,
+            color-mix(in srgb, var(--theme-void-alt) 96%, var(--theme-cyan-deep)),
+            color-mix(in srgb, var(--theme-void) 96%, var(--theme-smoke-deep))
+        );
+    border-color: color-mix(in srgb, var(--theme-rune) 40%, transparent);
 }
 
 .matched .cardBack {
     background:
         url('../assets/textures/cards/front.svg') center / 100% 100% no-repeat,
-        linear-gradient(170deg, rgba(21, 33, 50, 0.98), rgba(8, 12, 20, 0.98));
-    border-color: rgba(196, 235, 165, 0.44);
+        linear-gradient(
+            170deg,
+            color-mix(in srgb, var(--theme-void-alt) 96%, var(--theme-cyan-deep)),
+            color-mix(in srgb, var(--theme-void) 96%, var(--theme-smoke-deep))
+        );
+    border-color: color-mix(in srgb, var(--theme-emerald-bright) 44%, transparent);
 }
 
 .resolvingMismatch .cardBack {
     background:
         url('../assets/textures/cards/front.svg') center / 100% 100% no-repeat,
-        linear-gradient(170deg, rgba(21, 33, 50, 0.98), rgba(8, 12, 20, 0.98));
-    border-color: rgba(216, 106, 88, 0.44);
+        linear-gradient(
+            170deg,
+            color-mix(in srgb, var(--theme-void-alt) 96%, var(--theme-cyan-deep)),
+            color-mix(in srgb, var(--theme-void) 96%, var(--theme-smoke-deep))
+        );
+    border-color: color-mix(in srgb, var(--theme-danger) 44%, transparent);
 }
 
 .cardFaceLabel {
@@ -737,7 +757,12 @@
     inset: auto 18% 12%;
     height: 18px;
     border-radius: 999px;
-    background: radial-gradient(circle at center, rgba(255, 214, 133, 0.32), rgba(255, 214, 133, 0.08) 58%, transparent);
+    background: radial-gradient(
+        circle at center,
+        color-mix(in srgb, var(--theme-gold-bright) 32%, transparent),
+        color-mix(in srgb, var(--theme-gold-bright) 8%, transparent) 58%,
+        transparent
+    );
     filter: blur(14px);
 }
 
@@ -777,12 +802,22 @@
 
 .matched .pulseGlow {
     animation: pulseMatched 1.15s ease-in-out infinite;
-    background: radial-gradient(circle at center, rgba(180, 235, 141, 0.42), rgba(180, 235, 141, 0.08) 58%, transparent);
+    background: radial-gradient(
+        circle at center,
+        color-mix(in srgb, var(--theme-emerald-bright) 42%, transparent),
+        color-mix(in srgb, var(--theme-emerald) 8%, transparent) 58%,
+        transparent
+    );
 }
 
 .resolvingMismatch .pulseGlow {
     animation: pulseMismatch 0.95s ease-in-out infinite;
-    background: radial-gradient(circle at center, rgba(216, 106, 88, 0.42), rgba(216, 106, 88, 0.08) 58%, transparent);
+    background: radial-gradient(
+        circle at center,
+        color-mix(in srgb, var(--theme-danger) 42%, transparent),
+        color-mix(in srgb, var(--theme-danger) 8%, transparent) 58%,
+        transparent
+    );
 }
 
 :global([data-reduce-motion='true']) .faceUp .pulseGlow,

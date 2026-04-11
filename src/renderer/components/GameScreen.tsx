@@ -1,11 +1,21 @@
 import { ACHIEVEMENTS } from '../../shared/achievements';
-import { MAX_LIVES, MAX_PINNED_TILES, type AchievementId, type MutatorId, type RelicId, type RunState } from '../../shared/contracts';
+import {
+    MAX_LIVES,
+    MAX_PINNED_TILES,
+    type AchievementId,
+    type MutatorId,
+    type RelicId,
+    type RunState,
+    type Settings
+} from '../../shared/contracts';
+import { computeFocusDimmedTileIds } from '../../shared/focusDimmedTileIds';
 import { canRegionShuffle, canRegionShuffleRow, canShuffleBoard } from '../../shared/game';
 import { hasMutator } from '../../shared/mutators';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { UI_ART } from '../assets/ui';
 import { VIEWPORT_MOBILE_MAX, VIEWPORT_TIGHT_MAX_H, VIEWPORT_TIGHT_MAX_W } from '../breakpoints';
+import { useDistractionChannelTick } from '../hooks/useDistractionChannelTick';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
 import { StatTile } from '../ui';
@@ -90,7 +100,6 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const { height, width } = useViewportSize();
     const [viewportResetToken, setViewportResetToken] = useState(0);
     const [gauntletNowMs, setGauntletNowMs] = useState(() => Date.now());
-    const [distractionTick, setDistractionTick] = useState(0);
     const [rulesHintsExpanded, setRulesHintsExpanded] = useState(true);
     const [utilityFlyoutOpen, setUtilityFlyoutOpen] = useState(false);
     const [abandonRunConfirmOpen, setAbandonRunConfirmOpen] = useState(false);
@@ -105,49 +114,20 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         const id = window.setInterval(tick, 300);
         return () => window.clearInterval(id);
     }, [run.gauntletDeadlineMs]);
-    const {
-        boardPinMode,
-        continueToNextLevel,
-        destroyPairArmed,
-        dismissPowersFtue,
-        goToMenu,
-        openCodexFromPlaying,
-        openInventoryFromPlaying,
-        openSettings,
-        pause,
-        peekModeArmed,
-        pickRelic,
-        resume,
-        saveData,
-        settings,
-        shuffleBoard,
-        shuffleRegionRow,
-        applyFlashPairPower,
-        toggleBoardPinMode,
-        toggleDestroyPairArmed,
-        togglePeekMode,
-        toggleStrayArm,
-        triggerDebugReveal,
-        undoResolvingFlip
-    } = useAppStore(
+    const gameScreenActions = useAppStore(
         useShallow((state) => ({
-            boardPinMode: state.boardPinMode,
+            applyFlashPairPower: state.applyFlashPairPower,
             continueToNextLevel: state.continueToNextLevel,
-            destroyPairArmed: state.destroyPairArmed,
             dismissPowersFtue: state.dismissPowersFtue,
             goToMenu: state.goToMenu,
             openCodexFromPlaying: state.openCodexFromPlaying,
             openInventoryFromPlaying: state.openInventoryFromPlaying,
             openSettings: state.openSettings,
             pause: state.pause,
-            peekModeArmed: state.peekModeArmed,
             pickRelic: state.pickRelic,
             resume: state.resume,
-            saveData: state.saveData,
-            settings: state.settings,
             shuffleBoard: state.shuffleBoard,
             shuffleRegionRow: state.shuffleRegionRow,
-            applyFlashPairPower: state.applyFlashPairPower,
             toggleBoardPinMode: state.toggleBoardPinMode,
             toggleDestroyPairArmed: state.toggleDestroyPairArmed,
             togglePeekMode: state.togglePeekMode,
@@ -156,6 +136,52 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
             undoResolvingFlip: state.undoResolvingFlip
         }))
     );
+    const saveData = useAppStore((state) => state.saveData);
+    const { boardPinMode, destroyPairArmed, peekModeArmed } = useAppStore(
+        useShallow((state) => ({
+            boardPinMode: state.boardPinMode,
+            destroyPairArmed: state.destroyPairArmed,
+            peekModeArmed: state.peekModeArmed
+        }))
+    );
+    const settingsReduceMotion = useAppStore((state) => state.settings.reduceMotion);
+    const settingsDistractionChannelEnabled = useAppStore((state) => state.settings.distractionChannelEnabled);
+    const settingsTileFocusAssist = useAppStore((state) => state.settings.tileFocusAssist);
+    const settingsBoardPresentation = useAppStore((state) => state.settings.boardPresentation);
+    const settingsGraphicsQuality = useAppStore((state) => state.settings.graphicsQuality);
+    const settingsBoardBloomEnabled = useAppStore((state) => state.settings.boardBloomEnabled);
+    const settingsBoardScreenSpaceAA = useAppStore((state) => state.settings.boardScreenSpaceAA);
+    const debugAllowBoardReveal = useAppStore((state) => state.settings.debugFlags.allowBoardReveal);
+    const debugShowDebugTools = useAppStore((state) => state.settings.debugFlags.showDebugTools);
+    const debugDisableAchievementsOnDebug = useAppStore((state) => state.settings.debugFlags.disableAchievementsOnDebug);
+    const toolbarDebugFlags = useMemo(
+        (): Settings['debugFlags'] => ({
+            allowBoardReveal: debugAllowBoardReveal,
+            disableAchievementsOnDebug: debugDisableAchievementsOnDebug,
+            showDebugTools: debugShowDebugTools
+        }),
+        [debugAllowBoardReveal, debugDisableAchievementsOnDebug, debugShowDebugTools]
+    );
+    const {
+        applyFlashPairPower,
+        continueToNextLevel,
+        dismissPowersFtue,
+        goToMenu,
+        openCodexFromPlaying,
+        openInventoryFromPlaying,
+        openSettings,
+        pause,
+        pickRelic,
+        resume,
+        shuffleBoard,
+        shuffleRegionRow,
+        toggleBoardPinMode,
+        toggleDestroyPairArmed,
+        togglePeekMode,
+        toggleStrayArm,
+        triggerDebugReveal,
+        undoResolvingFlip
+    } = gameScreenActions;
     const [scorePops, setScorePops] = useState<Array<{ id: number; points: number }>>([]);
     const prevMatchStatsRef = useRef<{ matches: number; total: number } | null>(null);
     useEffect(() => {
@@ -175,7 +201,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
             if (gained > 0) {
                 const id = Date.now() + Math.floor(Math.random() * 1000);
                 setScorePops((current) => [...current, { id, points: gained }]);
-                const dismissMs = settings.reduceMotion ? 1400 : 2400;
+                const dismissMs = settingsReduceMotion ? 1400 : 2400;
                 window.setTimeout(() => {
                     setScorePops((current) => current.filter((item) => item.id !== id));
                 }, dismissMs);
@@ -185,68 +211,32 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
             matches: run.stats.matchesFound,
             total: run.stats.totalScore
         };
-    }, [run.board, run.stats.matchesFound, run.stats.totalScore, run.status, settings.reduceMotion]);
+    }, [run.board, run.stats.matchesFound, run.stats.totalScore, run.status, settingsReduceMotion]);
     const distractionHudOn =
         run.activeMutators.includes('distraction_channel') &&
-        settings.distractionChannelEnabled &&
-        !settings.reduceMotion &&
+        settingsDistractionChannelEnabled &&
+        !settingsReduceMotion &&
         run.status === 'playing';
-    useEffect(() => {
-        if (!distractionHudOn) {
-            return;
-        }
-        const id = window.setInterval(() => setDistractionTick((n) => n + 1), 880);
-        return () => window.clearInterval(id);
-    }, [distractionHudOn]);
+    const distractionTick = useDistractionChannelTick(distractionHudOn);
     const { tiltRef: gameFieldTiltRef } = usePlatformTiltField({
         enabled: true,
-        reduceMotion: settings.reduceMotion,
+        reduceMotion: settingsReduceMotion,
         surfaceRef: shellRef,
         strength: 1
     });
-    const focusDimmedTileIds = useMemo(() => {
-        const b = run.board;
-        if (!b || !settings.tileFocusAssist || run.status !== 'playing') {
-            return undefined;
-        }
-        if (b.flippedTileIds.length !== 1) {
-            return undefined;
-        }
-        const openId = b.flippedTileIds[0];
-        const idx = b.tiles.findIndex((t) => t.id === openId);
-        if (idx < 0) {
-            return undefined;
-        }
-        const c = b.columns;
-        const row = Math.floor(idx / c);
-        const col = idx % c;
-        const neighborIdx: number[] = [];
-        if (col > 0) {
-            neighborIdx.push(idx - 1);
-        }
-        if (col < c - 1) {
-            neighborIdx.push(idx + 1);
-        }
-        if (row > 0) {
-            neighborIdx.push(idx - c);
-        }
-        if (row < b.rows - 1) {
-            neighborIdx.push(idx + c);
-        }
-        const keep = new Set<number>([idx, ...neighborIdx]);
-        const dim = new Set<string>();
-        b.tiles.forEach((t, i) => {
-            if (t.state === 'hidden' && !keep.has(i)) {
-                dim.add(t.id);
-            }
-        });
-        return dim;
-    }, [run.board, run.status, settings.tileFocusAssist]);
+    const focusDimmedTileIds = useMemo(
+        () => computeFocusDimmedTileIds(run.board, run.status, settingsTileFocusAssist),
+        [run.board, run.status, settingsTileFocusAssist]
+    );
     const mergedPeekTileIds = useMemo(() => {
         const merged = new Set<string>([...run.peekRevealedTileIds, ...run.flashPairRevealedTileIds]);
         return [...merged];
     }, [run.peekRevealedTileIds, run.flashPairRevealedTileIds]);
     const allowGambitThirdFlip = run.gambitAvailableThisFloor && !run.gambitThirdFlipUsed;
+    const gambitThirdPickActive =
+        run.status === 'resolving' &&
+        allowGambitThirdFlip &&
+        (run.board?.flippedTileIds.length ?? 0) === 2;
     const wideRecallInPlay = run.activeMutators.includes('wide_recall');
     const scoreParasiteActive = run.activeMutators.includes('score_parasite');
     const parasiteFloorProgress = Math.min(1, run.parasiteFloors / 4);
@@ -254,7 +244,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const nBackMutatorActive = run.activeMutators.includes('n_back_anchor');
     const isCompact = width <= VIEWPORT_MOBILE_MAX || height <= VIEWPORT_MOBILE_MAX;
     const isTight = width <= VIEWPORT_TIGHT_MAX_W || height <= VIEWPORT_TIGHT_MAX_H;
-    const cameraViewportMode = true;
+    const cameraViewportMode = isCompact;
     const pauseActionLabel = run.status === 'paused' ? 'Resume' : 'Pause';
     const clearLifeBonusLabel = run.lastLevelResult ? getClearLifeBonusLabel(run.lastLevelResult) : null;
     const objectiveBonusLine =
@@ -329,7 +319,6 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         (run.status === 'playing' || run.status === 'memorize') &&
         run.board.level <= 2 &&
         !saveData.powersFtueSeen;
-    void distractionTick;
     const gauntletRemainingMs =
         run.gauntletDeadlineMs !== null ? Math.max(0, run.gauntletDeadlineMs - gauntletNowMs) : null;
     const hudModeLabel =
@@ -347,9 +336,9 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const nBackLabel =
         run.nBackAnchorPairKey && nBackMutatorActive ? `Anchor ${run.nBackAnchorPairKey.slice(0, 6)}` : null;
     const boardPresentationClass =
-        settings.boardPresentation === 'spaghetti'
+        settingsBoardPresentation === 'spaghetti'
             ? styles.boardStageSpaghetti
-            : settings.boardPresentation === 'breathing' && !settings.reduceMotion
+            : settingsBoardPresentation === 'breathing' && !settingsReduceMotion
               ? styles.boardStageBreathing
               : '';
     const destroyDisabled = run.destroyPairCharges < 1 && !destroyPairArmed;
@@ -362,9 +351,9 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         >
             <MainMenuBackground
                 fieldTiltRef={gameFieldTiltRef}
-                graphicsQuality={settings.graphicsQuality}
+                graphicsQuality={settingsGraphicsQuality}
                 height={height}
-                reduceMotion={settings.reduceMotion}
+                reduceMotion={settingsReduceMotion}
                 width={width}
             />
             <div
@@ -402,7 +391,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         run={run}
                         setRulesHintsExpanded={setRulesHintsExpanded}
                         setUtilityFlyoutOpen={setUtilityFlyoutOpen}
-                        settings={settings}
+                        debugFlags={toolbarDebugFlags}
                         showBoardPowerBar={showBoardPowerBar}
                         showFlashPairPower={showFlashPairPower}
                         showForgivenessHint={showForgivenessHint}
@@ -606,7 +595,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                 bountyPairKey={run.board.bountyPairKey ?? null}
                                 debugPeekActive={run.debugPeekActive}
                                 dimmedTileIds={focusDimmedTileIds}
-                                interactive={run.status === 'playing'}
+                                interactive={run.status === 'playing' || gambitThirdPickActive}
                                 frameStyle={cameraViewportMode ? undefined : boardStyle}
                                 mobileCameraMode={cameraViewportMode}
                                 nBackAnchorPairKey={run.nBackAnchorPairKey}
@@ -617,10 +606,10 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                     useAppStore.getState().pressTile(tileId);
                                 }}
                                 previewActive={run.status === 'memorize'}
-                                boardBloomEnabled={settings.boardBloomEnabled}
-                                boardScreenSpaceAA={settings.boardScreenSpaceAA}
-                                graphicsQuality={settings.graphicsQuality}
-                                reduceMotion={settings.reduceMotion}
+                                boardBloomEnabled={settingsBoardBloomEnabled}
+                                boardScreenSpaceAA={settingsBoardScreenSpaceAA}
+                                graphicsQuality={settingsGraphicsQuality}
+                                reduceMotion={settingsReduceMotion}
                                 runStatus={run.status}
                                 silhouetteDuringPlay={silhouetteDuringPlay}
                                 viewportResetToken={viewportResetToken}

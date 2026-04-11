@@ -146,6 +146,66 @@ export const RENDERER_THEME = {
             '0 26px 64px rgba(0, 0, 0, 0.46), inset 0 1px 0 rgba(255, 255, 255, 0.06)',
         '--theme-overlay-plate-inner-glow': 'rgba(255, 244, 218, 0.05)',
 
+        /*
+         * HUD-001 — in-game rail / stat deck / flyout: shared warm-gold chrome (GameScreen.module.css).
+         * Keeps literal rgba stacks in one place while matching Panel/overlay vocabulary.
+         */
+        '--theme-hud-chrome-border': 'rgba(244, 213, 142, 0.18)',
+        '--theme-hud-chrome-border-soft': 'rgba(244, 213, 142, 0.12)',
+        '--theme-hud-chrome-border-muted': 'rgba(244, 213, 142, 0.14)',
+        '--theme-hud-chrome-inset': 'rgba(255, 243, 217, 0.06)',
+        '--theme-hud-chrome-gloss': 'linear-gradient(180deg, rgba(255, 243, 217, 0.07) 0%, transparent 20%)',
+        '--theme-hud-chrome-fill':
+            'linear-gradient(180deg, rgba(24, 19, 16, 0.96) 0%, rgba(8, 8, 12, 0.96) 100%)',
+        '--theme-hud-chrome-shadow':
+            '0 0 0 1px rgba(0, 0, 0, 0.35), 0 18px 42px rgba(0, 0, 0, 0.4), inset 0 1px 0 var(--theme-hud-chrome-inset)',
+        '--theme-hud-flyout-surface':
+            'radial-gradient(circle at top left, rgba(244, 213, 142, 0.1), transparent 38%), radial-gradient(circle at bottom right, rgba(127, 90, 198, 0.12), transparent 34%), linear-gradient(180deg, rgba(23, 18, 17, 0.98), rgba(8, 8, 11, 0.98))',
+        '--theme-hud-flyout-shadow': '0 24px 60px rgba(0, 0, 0, 0.42), inset 0 1px 0 var(--theme-hud-chrome-inset)',
+        '--theme-hud-scrim': 'rgba(6, 8, 12, 0.42)',
+        '--theme-hud-accent-line': 'rgba(87, 220, 255, 0.18)',
+        '--theme-hud-accent-fill': 'rgba(87, 220, 255, 0.1)',
+        '--theme-hud-accent-fill-strong': 'rgba(87, 220, 255, 0.14)',
+        '--theme-hud-accent-border': 'rgba(87, 220, 255, 0.35)',
+        '--theme-hud-accent-border-strong': 'rgba(87, 220, 255, 0.5)',
+        '--theme-hud-glyph-glow': 'rgba(255, 214, 133, 0.18)',
+
+        /*
+         * META-002 — meta shells, settings modal, inventory/codex overlay, pause-style scrims.
+         */
+        '--theme-scrim-heavy':
+            'radial-gradient(circle at center, rgba(5, 5, 10, 0.2), rgba(5, 5, 10, 0.78)), rgba(2, 4, 8, 0.82)',
+        '--theme-scrim-medium':
+            'radial-gradient(circle at center, rgba(5, 5, 10, 0.18), rgba(5, 5, 10, 0.76)), rgba(2, 4, 8, 0.76)',
+        '--theme-scrim-dialog':
+            'radial-gradient(circle at center, rgba(4, 6, 10, 0.18), rgba(4, 6, 10, 0.8)), rgba(2, 5, 10, 0.56)',
+        '--theme-meta-stage-wash':
+            'radial-gradient(ellipse 85% 58% at 50% 36%, rgba(99, 165, 187, 0.07), transparent 56%), radial-gradient(circle at 14% 16%, rgba(195, 149, 79, 0.1), transparent 44%), linear-gradient(168deg, rgba(5, 7, 12, 0.96), rgba(3, 4, 9, 0.99))',
+        '--theme-surface-well': 'rgba(7, 7, 11, 0.28)',
+        '--theme-surface-archive': 'rgba(9, 9, 13, 0.36)',
+        '--theme-surface-raised':
+            'linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent), rgba(12, 12, 18, 0.62)',
+        '--theme-surface-raised-soft':
+            'linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent), rgba(12, 12, 18, 0.44)',
+        '--theme-divider-hairline': 'rgba(242, 211, 157, 0.1)',
+        '--theme-card-border-muted': 'rgba(242, 211, 157, 0.08)',
+        '--theme-glow-violet-drop': 'rgba(140, 98, 223, 0.36)',
+        '--theme-elevation-card': '0 14px 34px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.04)',
+        '--theme-elevation-lift': '0 12px 40px rgba(0, 0, 0, 0.35)',
+
+        /*
+         * INTRO-001 / SHELL-001 — StartupIntro overlay blooms + MainMenuBackground atmosphere fallback.
+         */
+        '--theme-intro-bloom-gold': 'rgba(255, 215, 127, 0.14)',
+        '--theme-intro-bloom-cyan': 'rgba(87, 220, 255, 0.12)',
+        '--theme-intro-overlay-veil':
+            'linear-gradient(180deg, rgba(3, 4, 8, 0.72), rgba(4, 6, 10, 0.86) 38%, rgba(4, 6, 10, 0.92))',
+        '--theme-shell-bloom-gold': 'rgba(255, 215, 127, 0.16)',
+        '--theme-shell-bloom-cyan': 'rgba(194, 245, 255, 0.15)',
+        '--theme-shell-bloom-ember': 'rgba(255, 177, 107, 0.1)',
+        '--theme-shell-fallback-vignette':
+            'radial-gradient(circle at center, rgba(14, 19, 29, 0.02), rgba(5, 6, 8, 0.42) 88%)',
+
         /* UI system: radius */
         '--ui-radius-sm': '0.45rem',
         '--ui-radius-md': '0.7rem',

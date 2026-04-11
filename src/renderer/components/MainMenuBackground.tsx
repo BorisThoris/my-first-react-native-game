@@ -60,6 +60,8 @@ interface SceneController {
     resize: (width: number, height: number) => void;
     setGraphicsQuality: (quality: GraphicsQualityPreset) => void;
     setReduceMotion: (reduceMotion: boolean) => void;
+    /** PERF-003: pause Pixi ticker while tab is hidden; resume when visible if motion is on. */
+    setPageVisibilityPaused: (paused: boolean) => void;
     /** For tests / debugging: last applied field tilt after transforms. */
     getLastFieldTilt: () => TiltVector;
 }
@@ -302,6 +304,7 @@ const createSceneController = (
     let lastFieldTilt: TiltVector = { x: 0, y: 0 };
     let gridSpacing = surfaceWidth <= 720 || surfaceHeight <= 720 ? 72 : 88;
     let animationActive = false;
+    let pageVisibilityPaused = false;
     let lastFrameTime = performance.now();
 
     const registerDynamicTexture = (texture: Texture): Texture => {
@@ -515,7 +518,7 @@ const createSceneController = (
     };
 
     const startAnimation = (): void => {
-        if (reduceMotion || animationActive) {
+        if (reduceMotion || animationActive || pageVisibilityPaused) {
             return;
         }
 
@@ -563,6 +566,15 @@ const createSceneController = (
                 return;
             }
 
+            renderStaticFrame();
+            startAnimation();
+        },
+        setPageVisibilityPaused: (paused) => {
+            pageVisibilityPaused = paused;
+            if (paused) {
+                stopAnimation();
+                return;
+            }
             renderStaticFrame();
             startAnimation();
         },
@@ -667,7 +679,7 @@ const MainMenuBackground = ({
             sceneRef.current?.destroy();
             sceneRef.current = null;
         };
-    }, []);
+    }, [menuFieldTiltRef]);
 
     useEffect(() => {
         sceneRef.current?.resize(width, height);
@@ -676,6 +688,23 @@ const MainMenuBackground = ({
     useEffect(() => {
         sceneRef.current?.setReduceMotion(reduceMotion);
     }, [reduceMotion]);
+
+    useEffect(() => {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const sync = (): void => {
+            sceneRef.current?.setPageVisibilityPaused(document.visibilityState !== 'visible');
+        };
+
+        sync();
+        document.addEventListener('visibilitychange', sync);
+
+        return () => {
+            document.removeEventListener('visibilitychange', sync);
+        };
+    }, []);
 
     return (
         <div className={styles.atmosphereLayer}>

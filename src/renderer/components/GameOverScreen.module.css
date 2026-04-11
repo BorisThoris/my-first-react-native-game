@@ -24,8 +24,12 @@
     inset: 0;
     pointer-events: none;
     z-index: 0;
-    background:
-        radial-gradient(circle at center, rgba(255, 255, 255, 0), rgba(5, 5, 10, 0.18) 52%, rgba(5, 5, 10, 0.56) 100%);
+    background: radial-gradient(
+        circle at center,
+        rgba(255, 255, 255, 0),
+        var(--theme-backdrop-body-shade-mid) 52%,
+        var(--theme-backdrop-body-shade-deep) 100%
+    );
 }
 
 .foreground {
@@ -107,10 +111,8 @@
 .metaChip {
     padding: 0.34rem 0.7rem 0.38rem;
     border-radius: var(--ui-radius-pill);
-    border: 1px solid rgba(242, 211, 157, 0.16);
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent),
-        rgba(12, 12, 18, 0.56);
+    border: 1px solid var(--theme-border);
+    background: var(--theme-surface-raised);
     color: var(--theme-rune);
     font-size: 0.72rem;
     font-weight: 700;
@@ -185,7 +187,7 @@
 
 .detailsPanel {
     opacity: 0.92;
-    border: 1px solid rgba(242, 211, 157, 0.08);
+    border: 1px solid var(--theme-card-border-muted);
 }
 
 .achievementHeading {
@@ -205,8 +207,8 @@
     gap: 0.15rem;
     padding: 0.95rem 1rem;
     border-radius: var(--ui-radius-lg);
-    border: 1px solid rgba(242, 211, 157, 0.1);
-    background: rgba(7, 7, 11, 0.28);
+    border: 1px solid var(--theme-divider-hairline);
+    background: var(--theme-surface-well);
 }
 
 .achievementItem strong {
@@ -251,8 +253,8 @@
     font-size: 0.66rem;
     line-height: 1.4;
     border-radius: var(--ui-radius-md);
-    background: rgba(6, 6, 10, 0.88);
-    border: 1px solid rgba(242, 211, 157, 0.08);
+    background: var(--theme-panel-solid);
+    border: 1px solid var(--theme-card-border-muted);
     color: var(--theme-text-subtle);
     word-break: break-all;
 }

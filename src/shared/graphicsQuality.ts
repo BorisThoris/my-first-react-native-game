@@ -11,3 +11,7 @@ export const getBoardDprCap = (quality: GraphicsQualityPreset, compact: boolean)
 /** Main menu Pixi atmosphere: cap internal renderer resolution vs OS DPR (PERF-006). */
 export const getMenuPixiResolutionCap = (quality: GraphicsQualityPreset): number =>
     quality === 'low' ? 1.25 : quality === 'medium' ? 2 : 2.5;
+
+/** WebGL tile textures: max anisotropy vs device cap (PERF-007). */
+export const getBoardAnisotropyCap = (quality: GraphicsQualityPreset): number =>
+    quality === 'low' ? 2 : quality === 'medium' ? 4 : 8;

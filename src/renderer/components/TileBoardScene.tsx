@@ -1,5 +1,18 @@
-import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
-import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
+import { useFrame, useThree, type RootState, type ThreeEvent } from '@react-three/fiber';
+import {
+    createContext,
+    forwardRef,
+    memo,
+    useContext,
+    useEffect,
+    useImperativeHandle,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState,
+    type MutableRefObject,
+    type RefObject
+} from 'react';
 import {
     CanvasTexture,
     Color,
@@ -16,10 +29,10 @@ import {
     type BufferAttribute,
     type BufferGeometry,
     type Group,
-    type MeshBasicMaterial,
     type MeshStandardMaterial
 } from 'three';
-import type { BoardState, RunStatus, Tile } from '../../shared/contracts';
+import type { BoardState, GraphicsQualityPreset, RunStatus, Tile } from '../../shared/contracts';
+import { getBoardAnisotropyCap } from '../../shared/graphicsQuality';
 import {
     applyAnisotropyToCachedTileTextures,
     getCardBackRasterNormalMapTexture,
@@ -42,6 +55,8 @@ import {
 } from './tileShatter';
 import type { TiltVector } from '../platformTilt/platformTiltTypes';
 import { RENDERER_THEME } from '../styles/theme';
+import { boardWebglPerfSampleAccumulate, boardWebglPerfSampleEnabled } from '../dev/boardWebglPerfSample';
+import { readTileStepLegacy } from '../dev/tileStepLegacy';
 import { getTileFieldAmplification } from './tileFieldTilt';
 import { isTilePickable, noopMeshRaycast, pickableMeshRaycast } from './tileBoardPick';
 import { getResolvingSelectionState, type ResolvingSelectionState } from './tileResolvingSelection';
@@ -74,6 +89,12 @@ interface TileBoardSceneProps {
     bountyPairKey?: string | null;
     /** Wall-clock ms; while `now < deadline`, tile groups ease XY toward layout targets (shuffle). */
     shuffleMotionDeadlineMs: number;
+    /** Hidden tiles to de-emphasize when focus-assist is on (matches 2D `.tileFocusDim`). */
+    dimmedTileIds?: ReadonlySet<string>;
+    /** When true with two flips, allow picking a third tile (gambit) instead of locking hidden tiles. */
+    allowGambitThirdFlip?: boolean;
+    /** PERF-007: caps texture anisotropy vs device max. */
+    graphicsQuality?: GraphicsQualityPreset;
 }
 
 interface TileBezelProps {
@@ -100,6 +121,13 @@ interface TileBezelProps {
     findableFaceHighlight?: boolean;
     spotlightWardHighlight?: boolean;
     spotlightBountyHighlight?: boolean;
+    /** Dims card materials when focus-assist targets this hidden tile (not when peek shows face). */
+    focusDimmed?: boolean;
+    /**
+     * When true (default), tile motion is stepped from `TileBoardScene`’s consolidated `useFrame`.
+     * When false (dev `tileStepLegacy`), this tile registers its own `useFrame` for A/B comparison.
+     */
+    hostConsolidatesTileFrames?: boolean;
 }
 
 export interface TileHoverTiltState {
@@ -341,7 +369,269 @@ const getTileTransform = (tile: Tile, index: number, totalColumns: number, total
     };
 };
 
-const TileBezel = ({
+interface TileBezelFramePropsSnapshot {
+    faceUp: boolean;
+    fieldAmp: number;
+    flipLocked: boolean;
+    focusDimmed: boolean;
+    interactionSuppressed: boolean;
+    interactive: boolean;
+    isPinned: boolean;
+    pickable: boolean;
+    reduceMotion: boolean;
+    resolvingSelection: ResolvingSelectionState;
+    shuffleMotionDeadlineMs: number;
+    textureRevision: number;
+    tile: Tile;
+    transform: TileTransform;
+    useSvgMeshBack: boolean;
+    useSvgMeshFront: boolean;
+    fieldTiltRef: MutableRefObject<TiltVector>;
+    hoverTiltRef: MutableRefObject<TileHoverTiltState>;
+}
+
+interface TileBezelPlaneGeometries {
+    front: PlaneGeometry;
+    back: PlaneGeometry;
+    overlay: PlaneGeometry;
+}
+
+interface TileBezelFrameBag {
+    groupRef: RefObject<Group | null>;
+    propsRef: MutableRefObject<TileBezelFramePropsSnapshot>;
+    planeGeometries: TileBezelPlaneGeometries;
+    frontBaseRef: MutableRefObject<Float32Array | null>;
+    backBaseRef: MutableRefObject<Float32Array | null>;
+    overlayBaseRef: MutableRefObject<Float32Array | null>;
+    frontPersistentRef: MutableRefObject<Float32Array>;
+    backPersistentRef: MutableRefObject<Float32Array>;
+    overlayPersistentRef: MutableRefObject<Float32Array>;
+    prevFaceUpRef: MutableRefObject<boolean>;
+    flipPopT0Ref: MutableRefObject<number | null>;
+    prevResolvingRef: MutableRefObject<ResolvingSelectionState | null>;
+    matchPulseRef: MutableRefObject<number>;
+    liftSmoothRef: MutableRefObject<number>;
+    frontCardMatRef: MutableRefObject<MeshStandardMaterial | null>;
+    backCardMatRef: MutableRefObject<MeshStandardMaterial | null>;
+    focusDimBlendRef: MutableRefObject<number>;
+    bendURef: MutableRefObject<number>;
+    bendVRef: MutableRefObject<number>;
+    bendBuildupRef: MutableRefObject<number>;
+    lastBumpURef: MutableRefObject<number | null>;
+    lastBumpVRef: MutableRefObject<number | null>;
+    pressingOnCardRef: MutableRefObject<boolean>;
+}
+
+const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: number): void => {
+    if (typeof document !== 'undefined' && document.hidden) {
+        return;
+    }
+
+    const p = bag.propsRef.current;
+    const group = bag.groupRef.current;
+
+    if (!group) {
+        return;
+    }
+
+    const clock = state.clock;
+    const prevFace = bag.prevFaceUpRef.current;
+    if (p.faceUp && !prevFace && !p.reduceMotion) {
+        bag.flipPopT0Ref.current = clock.elapsedTime;
+    }
+    bag.prevFaceUpRef.current = p.faceUp;
+
+    const prevR = bag.prevResolvingRef.current;
+    if (p.resolvingSelection === 'match' && prevR !== 'match' && !p.reduceMotion) {
+        bag.matchPulseRef.current = 1;
+    }
+    bag.prevResolvingRef.current = p.resolvingSelection;
+    bag.matchPulseRef.current = Math.max(0, bag.matchPulseRef.current - delta * 2.8);
+    const matchPulse = bag.matchPulseRef.current;
+
+    let flipPopMul = 1;
+    const fp0 = bag.flipPopT0Ref.current;
+    if (fp0 != null && !p.reduceMotion) {
+        const td = clock.elapsedTime - fp0;
+        if (td < 0.22) {
+            flipPopMul = 1 + Math.sin((td / 0.22) * Math.PI) * 0.065;
+        } else {
+            bag.flipPopT0Ref.current = null;
+        }
+    }
+
+    const frontBase = bag.frontBaseRef.current;
+    const backBase = bag.backBaseRef.current;
+    const overlayBase = bag.overlayBaseRef.current;
+
+    if (frontBase && backBase && overlayBase) {
+        const bu = bag.bendURef.current;
+        const bv = bag.bendVRef.current;
+        const bendOverlay = getSurfaceVariant(p.tile, p.faceUp, p.resolvingSelection) !== 'hidden';
+        const depthMultiplier = 1 + bag.bendBuildupRef.current * 0.52;
+        const pressing = !p.reduceMotion && p.pickable && bag.pressingOnCardRef.current;
+        const live = pressing ? depthMultiplier : 0;
+        const liveOverlay = pressing && bendOverlay ? live : 0;
+
+        const { front: frontGeometry, back: backGeometry, overlay: overlayGeometry } = bag.planeGeometries;
+        const frontPos = frontGeometry.attributes.position as BufferAttribute;
+        const backPos = backGeometry.attributes.position as BufferAttribute;
+        const overlayPos = overlayGeometry.attributes.position as BufferAttribute;
+
+        if (!p.useSvgMeshFront) {
+            composeCardPositions(
+                frontPos,
+                frontBase,
+                bag.frontPersistentRef.current,
+                bu,
+                bv,
+                CARD_WIDTH,
+                CARD_HEIGHT,
+                live
+            );
+        }
+        if (!p.useSvgMeshBack) {
+            composeCardPositions(
+                backPos,
+                backBase,
+                bag.backPersistentRef.current,
+                bu,
+                bv,
+                CARD_WIDTH,
+                CARD_HEIGHT,
+                live
+            );
+        }
+        composeCardPositions(
+            overlayPos,
+            overlayBase,
+            bag.overlayPersistentRef.current,
+            bu,
+            bv,
+            CARD_WIDTH,
+            CARD_HEIGHT,
+            liveOverlay
+        );
+    }
+
+    const isMatched = p.tile.state === 'matched';
+    const time = state.clock.elapsedTime;
+    const idleDrift = p.reduceMotion ? 0 : Math.sin(time * 0.09 + p.transform.seed * 0.017) * (isMatched ? 0.00038 : 0.00024);
+    const settle = p.reduceMotion ? 0 : Math.sin(time * 0.08 + p.transform.seed * 0.013) * (isMatched ? 0.00048 : 0.0003);
+    const field = p.fieldTiltRef.current;
+    const fieldRotX = p.reduceMotion ? 0 : MathUtils.clamp(-field.y, -1, 1) * p.fieldAmp * (isMatched ? 0.042 : 0.074);
+    const fieldRotZ = p.reduceMotion ? 0 : MathUtils.clamp(field.x, -1, 1) * p.fieldAmp * (isMatched ? 0.038 : 0.068);
+    const fieldLift = p.reduceMotion ? 0 : MathUtils.clamp(Math.hypot(field.x, field.y), 0, 1) * p.fieldAmp * (isMatched ? 0.00035 : 0.00062);
+    const fieldDepth = p.reduceMotion ? 0 : MathUtils.clamp(Math.hypot(field.x, field.y), 0, 1) * p.fieldAmp * (isMatched ? 0.0005 : 0.00095);
+    const hoverTilt = p.hoverTiltRef.current;
+    const hovered = !p.reduceMotion && hoverTilt.tileId === p.tile.id;
+    const hoverTiltX = hovered ? MathUtils.clamp(-hoverTilt.y, -1, 1) * (isMatched ? 0.046 : 0.1) : 0;
+    const hoverTiltZ = hovered ? MathUtils.clamp(hoverTilt.x, -1, 1) * (isMatched ? 0.042 : 0.092) : 0;
+    const hoverLift = hovered ? (isMatched ? 0.001 : 0.0022) : 0;
+    const hoverDepth = hovered ? (isMatched ? 0.0014 : 0.0032) : 0;
+    const targetLift = isMatched ? 0.0024 : p.faceUp ? 0.0012 : 0;
+    const targetDepth = isMatched ? 0.0036 : p.faceUp ? 0.0018 : 0;
+    const liftGoal = targetLift + hoverLift;
+    const liftLambda = p.reduceMotion ? 400 : p.faceUp && !isMatched ? 15 : 200;
+    bag.liftSmoothRef.current = MathUtils.damp(bag.liftSmoothRef.current, liftGoal, liftLambda, delta);
+    const rotationDamp = p.reduceMotion ? 42 : p.faceUp ? 18 : 16;
+
+    group.rotation.x = MathUtils.damp(
+        group.rotation.x,
+        p.transform.imperfectionRotationX + fieldRotX + hoverTiltX,
+        p.reduceMotion ? 42 : 22,
+        delta
+    );
+    group.rotation.z = MathUtils.damp(
+        group.rotation.z,
+        p.transform.imperfectionRotationZ + fieldRotZ + hoverTiltZ,
+        p.reduceMotion ? 42 : 22,
+        delta
+    );
+    group.rotation.y = p.reduceMotion
+        ? p.transform.targetRotation
+        : MathUtils.damp(group.rotation.y, p.transform.targetRotation, rotationDamp, delta);
+    const targetX = p.transform.baseX + p.transform.imperfectionX;
+    const targetY =
+        p.transform.baseY + p.transform.imperfectionY + bag.liftSmoothRef.current + fieldLift + idleDrift + settle;
+    const now = performance.now();
+    const shuffleLayoutActive =
+        !p.reduceMotion && p.shuffleMotionDeadlineMs > 0 && now < p.shuffleMotionDeadlineMs;
+    const shuffleZJitter = shuffleLayoutActive ? ((p.transform.seed % 11) - 5) * 0.0002 : 0;
+    const targetZ = targetDepth + hoverDepth + fieldDepth + shuffleZJitter;
+    const wobbleT = clock.elapsedTime;
+    const mismatchShakeX =
+        !p.reduceMotion && p.resolvingSelection === 'mismatch' ? Math.sin(wobbleT * 36) * 0.014 : 0;
+    const mismatchShakeY =
+        !p.reduceMotion && p.resolvingSelection === 'mismatch' ? Math.cos(wobbleT * 29) * 0.011 : 0;
+    const posX = targetX + mismatchShakeX;
+    const posY = targetY + mismatchShakeY;
+    const posLambda = shuffleLayoutActive ? 9 : 200;
+
+    if (shuffleLayoutActive) {
+        group.position.x = MathUtils.damp(group.position.x, posX, posLambda, delta);
+        group.position.y = MathUtils.damp(group.position.y, posY, posLambda, delta);
+        group.position.z = MathUtils.damp(group.position.z, targetZ, posLambda, delta);
+    } else {
+        group.position.x = posX;
+        group.position.y = posY;
+        group.position.z = targetZ;
+    }
+    const matchPulseMul = p.resolvingSelection === 'match' ? 0.11 : 0.08;
+    const scaleMul = p.transform.baseScale * flipPopMul * (1 + matchPulse * matchPulseMul);
+    group.scale.x = group.scale.y = group.scale.z = scaleMul;
+
+    const hiddenPinned = p.isPinned && p.tile.state === 'hidden';
+    scratchCardTint.set('#ffffff');
+    if (hiddenPinned) {
+        scratchCardTint.set('#d4b870');
+    } else if (p.resolvingSelection === 'mismatch' && p.faceUp) {
+        scratchCardTint.set('#ffc8bc');
+    } else if (p.resolvingSelection === 'gambitNeutral' && p.faceUp) {
+        scratchCardTint.set('#cfe8f2');
+    }
+    if (hovered && !p.reduceMotion) {
+        scratchCardTint.lerp(HOVER_RIM_TINT, 0.2);
+    }
+    const dimTarget = p.focusDimmed && !p.faceUp && p.tile.state === 'hidden' ? 1 : 0;
+    bag.focusDimBlendRef.current = MathUtils.damp(
+        bag.focusDimBlendRef.current,
+        dimTarget,
+        p.reduceMotion ? 400 : 32,
+        delta
+    );
+    const dimBrightness = MathUtils.lerp(1, 0.52, bag.focusDimBlendRef.current);
+    const dimOpacity = MathUtils.lerp(1, 0.88, bag.focusDimBlendRef.current);
+    scratchCardTint.multiplyScalar(dimBrightness);
+    bag.frontCardMatRef.current?.color.copy(scratchCardTint);
+    bag.backCardMatRef.current?.color.copy(scratchCardTint);
+    if (bag.frontCardMatRef.current) {
+        bag.frontCardMatRef.current.opacity = dimOpacity;
+    }
+    if (bag.backCardMatRef.current) {
+        bag.backCardMatRef.current.opacity = dimOpacity;
+    }
+};
+
+const TileBezelFrameRegistryContext = createContext<{
+    register(id: string, bag: TileBezelFrameBag): void;
+    unregister(id: string): void;
+} | null>(null);
+
+/** Dev legacy path only: per-tile `useFrame` so consolidated mode avoids N no-op subscriptions. */
+const TileBezelLegacyFrameDriver = ({ bagRef }: { bagRef: RefObject<TileBezelFrameBag | null> }) => {
+    useFrame((state, delta) => {
+        const bag = bagRef.current;
+
+        if (bag) {
+            advanceTileBezelFrame(bag, state, delta);
+        }
+    });
+
+    return null;
+};
+
+const TileBezelInner = ({
     faceUp,
     fieldAmp,
     fieldTiltRef,
@@ -362,11 +652,15 @@ const TileBezel = ({
     memorizeCurseHighlight = false,
     findableFaceHighlight = false,
     spotlightWardHighlight = false,
-    spotlightBountyHighlight = false
+    spotlightBountyHighlight = false,
+    focusDimmed = false,
+    hostConsolidatesTileFrames = true
 }: TileBezelProps) => {
     const { gl } = useThree();
+    const frameRegistry = useContext(TileBezelFrameRegistryContext);
     const groupRef = useRef<Group | null>(null);
-    const isMatched = tile.state === 'matched';
+    const propsRef = useRef<TileBezelFramePropsSnapshot>({} as TileBezelFramePropsSnapshot);
+    const bagRef = useRef<TileBezelFrameBag | null>(null);
     const pickable = !interactionSuppressed && isTilePickable(tile, interactive, flipLocked);
 
     const frontGeometry = useMemo(
@@ -394,15 +688,39 @@ const TileBezel = ({
     const findableCornerRingGeometry = useMemo(() => new RingGeometry(0.02, 0.032, 22), []);
     const useSvgMeshFront = sharedCardFrontGeometry != null;
     const useSvgMeshBack = sharedCardBackGeometry != null;
+
+    propsRef.current = {
+        faceUp,
+        fieldAmp,
+        flipLocked,
+        focusDimmed,
+        interactionSuppressed,
+        interactive,
+        isPinned,
+        pickable,
+        reduceMotion,
+        resolvingSelection,
+        shuffleMotionDeadlineMs,
+        textureRevision,
+        tile,
+        transform,
+        useSvgMeshBack,
+        useSvgMeshFront,
+        fieldTiltRef,
+        hoverTiltRef
+    };
+
     const cardPanelNormalMap = useMemo(() => getCardPanelNormalTexture(), []);
     const cardPanelDisplacementMap = useMemo(() => getCardPanelDisplacementTexture(), []);
     const frontNormalMapEffective = useMemo(() => {
+        void textureRevision;
         if (useSvgMeshFront) {
             return cardPanelNormalMap;
         }
         return getCardFaceRasterNormalMapTexture() ?? cardPanelNormalMap;
     }, [useSvgMeshFront, cardPanelNormalMap, textureRevision]);
     const backNormalMapEffective = useMemo(() => {
+        void textureRevision;
         if (useSvgMeshBack) {
             return cardPanelNormalMap;
         }
@@ -426,6 +744,7 @@ const TileBezel = ({
     const liftSmoothRef = useRef(0);
     const frontCardMatRef = useRef<MeshStandardMaterial | null>(null);
     const backCardMatRef = useRef<MeshStandardMaterial | null>(null);
+    const focusDimBlendRef = useRef(0);
 
     const bendURef = useRef(0.5);
     const bendVRef = useRef(0.5);
@@ -433,6 +752,48 @@ const TileBezel = ({
     const lastBumpURef = useRef<number | null>(null);
     const lastBumpVRef = useRef<number | null>(null);
     const pressingOnCardRef = useRef(false);
+
+    useLayoutEffect(() => {
+        if (bagRef.current === null) {
+            bagRef.current = {
+                groupRef,
+                propsRef,
+                planeGeometries: { front: frontGeometry, back: backGeometry, overlay: overlayGeometry },
+                frontBaseRef,
+                backBaseRef,
+                overlayBaseRef,
+                frontPersistentRef,
+                backPersistentRef,
+                overlayPersistentRef,
+                prevFaceUpRef,
+                flipPopT0Ref,
+                prevResolvingRef,
+                matchPulseRef,
+                liftSmoothRef,
+                frontCardMatRef,
+                backCardMatRef,
+                focusDimBlendRef,
+                bendURef,
+                bendVRef,
+                bendBuildupRef,
+                lastBumpURef,
+                lastBumpVRef,
+                pressingOnCardRef
+            };
+        } else {
+            bagRef.current.planeGeometries = { front: frontGeometry, back: backGeometry, overlay: overlayGeometry };
+        }
+
+        if (!frameRegistry || !hostConsolidatesTileFrames) {
+            return undefined;
+        }
+
+        frameRegistry.register(tile.id, bagRef.current);
+
+        return () => {
+            frameRegistry.unregister(tile.id);
+        };
+    }, [backGeometry, frameRegistry, frontGeometry, hostConsolidatesTileFrames, overlayGeometry, tile.id]);
 
     const [wearAssets] = useState(() => {
         if (typeof document === 'undefined') {
@@ -685,172 +1046,6 @@ const TileBezel = ({
         }
     };
 
-    useFrame((state, delta) => {
-        const group = groupRef.current;
-
-        if (!group) {
-            return;
-        }
-
-        const clock = state.clock;
-        const prevFace = prevFaceUpRef.current;
-        if (faceUp && !prevFace && !reduceMotion) {
-            flipPopT0Ref.current = clock.elapsedTime;
-        }
-        prevFaceUpRef.current = faceUp;
-
-        const prevR = prevResolvingRef.current;
-        if (resolvingSelection === 'match' && prevR !== 'match' && !reduceMotion) {
-            matchPulseRef.current = 1;
-        }
-        prevResolvingRef.current = resolvingSelection;
-        matchPulseRef.current = Math.max(0, matchPulseRef.current - delta * 2.8);
-        const matchPulse = matchPulseRef.current;
-
-        let flipPopMul = 1;
-        const fp0 = flipPopT0Ref.current;
-        if (fp0 != null && !reduceMotion) {
-            const td = clock.elapsedTime - fp0;
-            if (td < 0.22) {
-                flipPopMul = 1 + Math.sin((td / 0.22) * Math.PI) * 0.065;
-            } else {
-                flipPopT0Ref.current = null;
-            }
-        }
-
-        const frontBase = frontBaseRef.current;
-        const backBase = backBaseRef.current;
-        const overlayBase = overlayBaseRef.current;
-
-        if (frontBase && backBase && overlayBase) {
-            const bu = bendURef.current;
-            const bv = bendVRef.current;
-            const bendOverlay = getSurfaceVariant(tile, faceUp, resolvingSelection) !== 'hidden';
-            const depthMultiplier = 1 + bendBuildupRef.current * 0.52;
-            const pressing = !reduceMotion && pickable && pressingOnCardRef.current;
-            const live = pressing ? depthMultiplier : 0;
-            const liveOverlay = pressing && bendOverlay ? live : 0;
-
-            const frontPos = frontGeometry.attributes.position as BufferAttribute;
-            const backPos = backGeometry.attributes.position as BufferAttribute;
-            const overlayPos = overlayGeometry.attributes.position as BufferAttribute;
-
-            if (!useSvgMeshFront) {
-                composeCardPositions(
-                    frontPos,
-                    frontBase,
-                    frontPersistentRef.current,
-                    bu,
-                    bv,
-                    CARD_WIDTH,
-                    CARD_HEIGHT,
-                    live
-                );
-            }
-            if (!useSvgMeshBack) {
-                composeCardPositions(
-                    backPos,
-                    backBase,
-                    backPersistentRef.current,
-                    bu,
-                    bv,
-                    CARD_WIDTH,
-                    CARD_HEIGHT,
-                    live
-                );
-            }
-            composeCardPositions(
-                overlayPos,
-                overlayBase,
-                overlayPersistentRef.current,
-                bu,
-                bv,
-                CARD_WIDTH,
-                CARD_HEIGHT,
-                liveOverlay
-            );
-        }
-
-        const time = state.clock.elapsedTime;
-        const idleDrift = reduceMotion ? 0 : Math.sin(time * 0.09 + transform.seed * 0.017) * (isMatched ? 0.00038 : 0.00024);
-        const settle = reduceMotion ? 0 : Math.sin(time * 0.08 + transform.seed * 0.013) * (isMatched ? 0.00048 : 0.0003);
-        const field = fieldTiltRef.current;
-        const fieldRotX = reduceMotion ? 0 : MathUtils.clamp(-field.y, -1, 1) * fieldAmp * (isMatched ? 0.042 : 0.074);
-        const fieldRotZ = reduceMotion ? 0 : MathUtils.clamp(field.x, -1, 1) * fieldAmp * (isMatched ? 0.038 : 0.068);
-        const fieldLift = reduceMotion ? 0 : MathUtils.clamp(Math.hypot(field.x, field.y), 0, 1) * fieldAmp * (isMatched ? 0.00035 : 0.00062);
-        const fieldDepth = reduceMotion ? 0 : MathUtils.clamp(Math.hypot(field.x, field.y), 0, 1) * fieldAmp * (isMatched ? 0.0005 : 0.00095);
-        const hoverTilt = hoverTiltRef.current;
-        const hovered = !reduceMotion && hoverTilt.tileId === tile.id;
-        const hoverTiltX = hovered ? MathUtils.clamp(-hoverTilt.y, -1, 1) * (isMatched ? 0.046 : 0.1) : 0;
-        const hoverTiltZ = hovered ? MathUtils.clamp(hoverTilt.x, -1, 1) * (isMatched ? 0.042 : 0.092) : 0;
-        const hoverLift = hovered ? (isMatched ? 0.001 : 0.0022) : 0;
-        const hoverDepth = hovered ? (isMatched ? 0.0014 : 0.0032) : 0;
-        const targetLift = isMatched ? 0.0024 : faceUp ? 0.0012 : 0;
-        const targetDepth = isMatched ? 0.0036 : faceUp ? 0.0018 : 0;
-        const liftGoal = targetLift + hoverLift;
-        const liftLambda = reduceMotion ? 400 : faceUp && !isMatched ? 15 : 200;
-        liftSmoothRef.current = MathUtils.damp(liftSmoothRef.current, liftGoal, liftLambda, delta);
-        const rotationDamp = reduceMotion ? 42 : faceUp ? 18 : 16;
-
-        group.rotation.x = MathUtils.damp(
-            group.rotation.x,
-            transform.imperfectionRotationX + fieldRotX + hoverTiltX,
-            reduceMotion ? 42 : 22,
-            delta
-        );
-        group.rotation.z = MathUtils.damp(
-            group.rotation.z,
-            transform.imperfectionRotationZ + fieldRotZ + hoverTiltZ,
-            reduceMotion ? 42 : 22,
-            delta
-        );
-        group.rotation.y = reduceMotion ? transform.targetRotation : MathUtils.damp(group.rotation.y, transform.targetRotation, rotationDamp, delta);
-        const targetX = transform.baseX + transform.imperfectionX;
-        const targetY =
-            transform.baseY + transform.imperfectionY + liftSmoothRef.current + fieldLift + idleDrift + settle;
-        const now = performance.now();
-        const shuffleLayoutActive =
-            !reduceMotion && shuffleMotionDeadlineMs > 0 && now < shuffleMotionDeadlineMs;
-        const shuffleZJitter = shuffleLayoutActive ? ((transform.seed % 11) - 5) * 0.0002 : 0;
-        const targetZ = targetDepth + hoverDepth + fieldDepth + shuffleZJitter;
-        const wobbleT = clock.elapsedTime;
-        const mismatchShakeX =
-            !reduceMotion && resolvingSelection === 'mismatch' ? Math.sin(wobbleT * 36) * 0.014 : 0;
-        const mismatchShakeY =
-            !reduceMotion && resolvingSelection === 'mismatch' ? Math.cos(wobbleT * 29) * 0.011 : 0;
-        const posX = targetX + mismatchShakeX;
-        const posY = targetY + mismatchShakeY;
-        const posLambda = shuffleLayoutActive ? 9 : 200;
-
-        if (shuffleLayoutActive) {
-            group.position.x = MathUtils.damp(group.position.x, posX, posLambda, delta);
-            group.position.y = MathUtils.damp(group.position.y, posY, posLambda, delta);
-            group.position.z = MathUtils.damp(group.position.z, targetZ, posLambda, delta);
-        } else {
-            group.position.x = posX;
-            group.position.y = posY;
-            group.position.z = targetZ;
-        }
-        const matchPulseMul = resolvingSelection === 'match' ? 0.11 : 0.08;
-        const scaleMul = transform.baseScale * flipPopMul * (1 + matchPulse * matchPulseMul);
-        group.scale.x = group.scale.y = group.scale.z = scaleMul;
-
-        const hiddenPinned = isPinned && tile.state === 'hidden';
-        scratchCardTint.set('#ffffff');
-        if (hiddenPinned) {
-            scratchCardTint.set('#d4b870');
-        } else if (resolvingSelection === 'mismatch' && faceUp) {
-            scratchCardTint.set('#ffc8bc');
-        } else if (resolvingSelection === 'gambitNeutral' && faceUp) {
-            scratchCardTint.set('#cfe8f2');
-        }
-        if (hovered && !reduceMotion) {
-            scratchCardTint.lerp(HOVER_RIM_TINT, 0.2);
-        }
-        frontCardMatRef.current?.color.copy(scratchCardTint);
-        backCardMatRef.current?.color.copy(scratchCardTint);
-    });
-
     const surfaceVariant = getSurfaceVariant(tile, faceUp, resolvingSelection);
     const hiddenPinned = isPinned && tile.state === 'hidden';
     const cardTint =
@@ -873,7 +1068,9 @@ const TileBezel = ({
     const overlayZ = halfDepth + 0.004;
 
     return (
-        <group ref={groupRef}>
+        <>
+            {!hostConsolidatesTileFrames ? <TileBezelLegacyFrameDriver bagRef={bagRef} /> : null}
+            <group ref={groupRef}>
             {/*
               Rounded card art is transparent in the corners. A box mesh exposes dark side quads there.
               Invisible pick slab + two planes lets corners composite to the scene instead.
@@ -1101,8 +1298,12 @@ const TileBezel = ({
                 ) : null}
             </group>
         </group>
+        </>
     );
 };
+
+TileBezelInner.displayName = 'TileBezel';
+const TileBezel = memo(TileBezelInner);
 
 const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
     board,
@@ -1123,7 +1324,10 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
     cursedPairKey = null,
     wardPairKey = null,
     bountyPairKey = null,
-    shuffleMotionDeadlineMs
+    shuffleMotionDeadlineMs,
+    dimmedTileIds,
+    allowGambitThirdFlip = false,
+    graphicsQuality = 'medium'
 }: TileBoardSceneProps, ref) => {
     const { camera, gl, viewport } = useThree();
     const { colors } = RENDERER_THEME;
@@ -1132,12 +1336,70 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
     const [textureRevision, setTextureRevision] = useState(0);
     const [sharedCardFrontGeometry, setSharedCardFrontGeometry] = useState<BufferGeometry | null>(null);
     const [sharedCardBackGeometry, setSharedCardBackGeometry] = useState<BufferGeometry | null>(null);
-    const flipLocked = board.flippedTileIds.length === 2;
+    const flippedN = board.flippedTileIds.length;
+    const flipLocked = flippedN >= 2 && !(allowGambitThirdFlip && flippedN === 2);
     const pinnedSet = useMemo(() => new Set(pinnedTileIds), [pinnedTileIds]);
     const peekSet = useMemo(() => new Set(peekRevealedTileIds), [peekRevealedTileIds]);
+    const tileStepLegacy = useMemo(() => readTileStepLegacy(), []);
+    const hostConsolidatesTileFrames = !tileStepLegacy;
+    const tileBezelRows = useMemo(() => {
+        return board.tiles.map((tile, index) => {
+            const faceUp =
+                tile.state !== 'hidden' || previewActive || debugPeekActive || peekSet.has(tile.id);
+            const memorizeCurseHighlight =
+                Boolean(previewActive) &&
+                Boolean(cursedPairKey) &&
+                tile.pairKey === cursedPairKey &&
+                tile.state === 'hidden';
+            const findableFaceHighlight = Boolean(tile.findableKind) && faceUp && tile.state !== 'matched';
+            const spotlightWardHighlight =
+                Boolean(wardPairKey) && faceUp && tile.state !== 'matched' && tile.pairKey === wardPairKey;
+            const spotlightBountyHighlight =
+                Boolean(bountyPairKey) && faceUp && tile.state !== 'matched' && tile.pairKey === bountyPairKey;
+            return {
+                faceUp,
+                fieldAmp: getTileFieldAmplification(index, totalColumns, totalRows),
+                findableFaceHighlight,
+                focusDimmed: Boolean(dimmedTileIds?.has(tile.id)),
+                isPinned: pinnedSet.has(tile.id),
+                memorizeCurseHighlight,
+                resolvingSelection: getResolvingSelectionState(board, runStatus, tile.id),
+                spotlightBountyHighlight,
+                spotlightWardHighlight,
+                tile,
+                transform: getTileTransform(tile, index, totalColumns, totalRows, compact, faceUp)
+            };
+        });
+    }, [
+        board,
+        bountyPairKey,
+        compact,
+        cursedPairKey,
+        debugPeekActive,
+        dimmedTileIds,
+        peekSet,
+        pinnedSet,
+        previewActive,
+        runStatus,
+        totalColumns,
+        totalRows,
+        wardPairKey
+    ]);
     const boardGroupRef = useRef<Group | null>(null);
     const pickRaycasterRef = useRef<Raycaster>(new Raycaster());
     const pickPointerRef = useRef<Vector2>(new Vector2());
+    const tileFrameBagsRef = useRef(new Map<string, TileBezelFrameBag>());
+    const tileFrameRegistry = useMemo(
+        () => ({
+            register(id: string, bag: TileBezelFrameBag): void {
+                tileFrameBagsRef.current.set(id, bag);
+            },
+            unregister(id: string): void {
+                tileFrameBagsRef.current.delete(id);
+            }
+        }),
+        []
+    );
 
     useEffect(() => subscribeTextureImageUpdates(() => setTextureRevision((current) => current + 1)), []);
 
@@ -1162,7 +1424,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
         return () => {
             cancelled = true;
         };
-    }, [overlayPrewarmKey]);
+    }, [overlayPrewarmKey]); // eslint-disable-line react-hooks/exhaustive-deps -- overlayPrewarmKey encodes level + tile ids
 
     /** Chain front → back so two huge SVGLoader.parse passes never run in parallel (main-thread + memory). */
     useEffect(() => {
@@ -1188,8 +1450,9 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
     }, [onViewportMetricsChange, viewport.height, viewport.width]);
 
     useLayoutEffect(() => {
-        applyAnisotropyToCachedTileTextures(Math.min(8, gl.capabilities.getMaxAnisotropy()));
-    }, [gl, textureRevision]);
+        const tierCap = getBoardAnisotropyCap(graphicsQuality);
+        applyAnisotropyToCachedTileTextures(Math.min(tierCap, gl.capabilities.getMaxAnisotropy()));
+    }, [gl, graphicsQuality, textureRevision]);
 
     useImperativeHandle(
         ref,
@@ -1238,35 +1501,48 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
         const initialScale = boardViewport.fitZoom * boardViewport.zoom;
         boardGroup.position.set(boardViewport.panX, boardViewport.panY, 0);
         boardGroup.scale.setScalar(initialScale);
-    }, []);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps -- mount-only; useFrame updates boardGroup each frame
 
-    useFrame((_state, delta) => {
+    useFrame((state, delta) => {
+        const perfOn = boardWebglPerfSampleEnabled();
+        const t0 = perfOn ? performance.now() : 0;
+
+        if (!tileStepLegacy) {
+            for (const bag of tileFrameBagsRef.current.values()) {
+                advanceTileBezelFrame(bag, state, delta);
+            }
+        }
+
         const boardGroup = boardGroupRef.current;
 
-        if (!boardGroup) {
-            return;
+        if (boardGroup) {
+            const targetScale = boardViewport.fitZoom * boardViewport.zoom;
+
+            if (reduceMotion) {
+                boardGroup.position.x = boardViewport.panX;
+                boardGroup.position.y = boardViewport.panY;
+                boardGroup.scale.setScalar(targetScale);
+            } else {
+                const panDamping = interactionSuppressed ? BOARD_VIEWPORT_ACTIVE_DAMPING : BOARD_VIEWPORT_IDLE_DAMPING;
+                const scaleDamping = interactionSuppressed
+                    ? BOARD_VIEWPORT_ACTIVE_SCALE_DAMPING
+                    : BOARD_VIEWPORT_IDLE_SCALE_DAMPING;
+
+                boardGroup.position.x = MathUtils.damp(boardGroup.position.x, boardViewport.panX, panDamping, delta);
+                boardGroup.position.y = MathUtils.damp(boardGroup.position.y, boardViewport.panY, panDamping, delta);
+                boardGroup.scale.x = MathUtils.damp(boardGroup.scale.x, targetScale, scaleDamping, delta);
+                boardGroup.scale.y = MathUtils.damp(boardGroup.scale.y, targetScale, scaleDamping, delta);
+                boardGroup.scale.z = MathUtils.damp(boardGroup.scale.z, targetScale, scaleDamping, delta);
+            }
         }
 
-        const targetScale = boardViewport.fitZoom * boardViewport.zoom;
-
-        if (reduceMotion) {
-            boardGroup.position.x = boardViewport.panX;
-            boardGroup.position.y = boardViewport.panY;
-            boardGroup.scale.setScalar(targetScale);
-            return;
+        if (perfOn) {
+            boardWebglPerfSampleAccumulate(performance.now() - t0);
         }
-
-        const panDamping = interactionSuppressed ? BOARD_VIEWPORT_ACTIVE_DAMPING : BOARD_VIEWPORT_IDLE_DAMPING;
-        const scaleDamping = interactionSuppressed ? BOARD_VIEWPORT_ACTIVE_SCALE_DAMPING : BOARD_VIEWPORT_IDLE_SCALE_DAMPING;
-
-        boardGroup.position.x = MathUtils.damp(boardGroup.position.x, boardViewport.panX, panDamping, delta);
-        boardGroup.position.y = MathUtils.damp(boardGroup.position.y, boardViewport.panY, panDamping, delta);
-        boardGroup.scale.x = MathUtils.damp(boardGroup.scale.x, targetScale, scaleDamping, delta);
-        boardGroup.scale.y = MathUtils.damp(boardGroup.scale.y, targetScale, scaleDamping, delta);
-        boardGroup.scale.z = MathUtils.damp(boardGroup.scale.z, targetScale, scaleDamping, delta);
     });
 
     return (
+        <TileBezelFrameRegistryContext.Provider value={tileFrameRegistry}>
         <>
             <ambientLight color={colors.text} intensity={compact ? 0.62 : 0.72} />
             <hemisphereLight
@@ -1290,46 +1566,39 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
             <pointLight color={colors.gold} intensity={compact ? 0.14 : 0.2} position={[0, -2.2, 5.4]} />
 
             <group ref={boardGroupRef} rotation={[-0.1, 0.08, 0]}>
-                {board.tiles.map((tile, index) => {
-                    const faceUp =
-                        tile.state !== 'hidden' || previewActive || debugPeekActive || peekSet.has(tile.id);
-                    const memorizeCurseHighlight =
-                        Boolean(previewActive) &&
-                        Boolean(cursedPairKey) &&
-                        tile.pairKey === cursedPairKey &&
-                        tile.state === 'hidden';
-                    const findableFaceHighlight =
-                        Boolean(tile.findableKind) && faceUp && tile.state !== 'matched';
-                    const spotlightWardHighlight =
-                        Boolean(wardPairKey) &&
-                        faceUp &&
-                        tile.state !== 'matched' &&
-                        tile.pairKey === wardPairKey;
-                    const spotlightBountyHighlight =
-                        Boolean(bountyPairKey) &&
-                        faceUp &&
-                        tile.state !== 'matched' &&
-                        tile.pairKey === bountyPairKey;
-                    const transform = getTileTransform(tile, index, totalColumns, totalRows, compact, faceUp);
-
-                    return (
+                {tileBezelRows.map(
+                    ({
+                        faceUp,
+                        fieldAmp,
+                        findableFaceHighlight,
+                        focusDimmed,
+                        isPinned,
+                        memorizeCurseHighlight,
+                        resolvingSelection,
+                        spotlightBountyHighlight,
+                        spotlightWardHighlight,
+                        tile,
+                        transform
+                    }) => (
                         <TileBezel
+                            key={tile.id}
                             faceUp={faceUp}
-                            fieldAmp={getTileFieldAmplification(index, totalColumns, totalRows)}
+                            fieldAmp={fieldAmp}
                             fieldTiltRef={fieldTiltRef}
                             flipLocked={flipLocked}
+                            focusDimmed={focusDimmed}
+                            hostConsolidatesTileFrames={hostConsolidatesTileFrames}
                             hoverTiltRef={hoverTiltRef}
                             findableFaceHighlight={findableFaceHighlight}
                             spotlightBountyHighlight={spotlightBountyHighlight}
                             spotlightWardHighlight={spotlightWardHighlight}
                             interactionSuppressed={interactionSuppressed}
                             interactive={interactive}
-                            isPinned={pinnedSet.has(tile.id)}
+                            isPinned={isPinned}
                             memorizeCurseHighlight={memorizeCurseHighlight}
-                            key={tile.id}
                             onTilePick={onTilePick}
                             reduceMotion={reduceMotion}
-                            resolvingSelection={getResolvingSelectionState(board, runStatus, tile.id)}
+                            resolvingSelection={resolvingSelection}
                             shuffleMotionDeadlineMs={shuffleMotionDeadlineMs}
                             sharedCardBackGeometry={sharedCardBackGeometry}
                             sharedCardFrontGeometry={sharedCardFrontGeometry}
@@ -1337,10 +1606,11 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                             tile={tile}
                             transform={transform}
                         />
-                    );
-                })}
+                    )
+                )}
             </group>
         </>
+        </TileBezelFrameRegistryContext.Provider>
     );
 });
 

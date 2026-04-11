@@ -119,4 +119,99 @@ describe('useAppStore timers', () => {
         expect(runAfterNextPress?.board).not.toBeNull();
         expect(runAfterNextPress?.board?.flippedTileIds).toContain(nextPairTile!.id);
     });
+
+    it('ends gauntlet when the deadline passes without a tile press', async () => {
+        useAppStore.getState().startGauntletRun();
+        const started = useAppStore.getState().run;
+        expect(started?.gameMode).toBe('gauntlet');
+        useAppStore.setState({
+            run: { ...started!, gauntletDeadlineMs: Date.now() - 50 }
+        });
+        await vi.advanceTimersByTimeAsync(400);
+        expect(useAppStore.getState().run?.status).toBe('gameOver');
+        expect(useAppStore.getState().view).toBe('gameOver');
+    });
+});
+
+describe('useAppStore scholar contract', () => {
+    beforeEach(() => {
+        window.localStorage.clear();
+        vi.useFakeTimers();
+        resetStore();
+    });
+
+    afterEach(() => {
+        vi.runOnlyPendingTimers();
+        vi.useRealTimers();
+    });
+
+    it('startScholarContractRun leaves shuffle and region shuffle as no-ops from store', async () => {
+        useAppStore.getState().startScholarContractRun();
+        const started = useAppStore.getState().run;
+        expect(started?.activeContract).toEqual({ noShuffle: true, noDestroy: true, maxMismatches: null });
+
+        const memorizeDuration = started?.timerState.memorizeRemainingMs ?? 0;
+        await vi.advanceTimersByTimeAsync(memorizeDuration + 1);
+
+        const run = useAppStore.getState().run;
+        expect(run?.status).toBe('playing');
+
+        const nonceBefore = run!.shuffleNonce;
+        const tileIdsBefore = run!.board!.tiles.map((t) => t.id);
+
+        useAppStore.getState().shuffleBoard();
+        let after = useAppStore.getState().run;
+        expect(after?.shuffleNonce).toBe(nonceBefore);
+        expect(after?.board!.tiles.map((t) => t.id)).toEqual(tileIdsBefore);
+
+        useAppStore.getState().shuffleRegionRow(0);
+        after = useAppStore.getState().run;
+        expect(after?.shuffleNonce).toBe(nonceBefore);
+        expect(after?.board!.tiles.map((t) => t.id)).toEqual(tileIdsBefore);
+    });
+
+    it('scholar contract blocks destroy when armed with banked charges', async () => {
+        useAppStore.getState().startScholarContractRun();
+        const memorizeDuration = useAppStore.getState().run?.timerState.memorizeRemainingMs ?? 0;
+        await vi.advanceTimersByTimeAsync(memorizeDuration + 1);
+
+        const playing = useAppStore.getState().run!;
+        useAppStore.setState({
+            run: { ...playing, destroyPairCharges: 1 }
+        });
+        useAppStore.getState().toggleDestroyPairArmed();
+        expect(useAppStore.getState().destroyPairArmed).toBe(true);
+
+        const hidden = useAppStore.getState().run!.board!.tiles.find((t) => t.state === 'hidden')!;
+        const boardKeyBefore = JSON.stringify(
+            useAppStore.getState().run!.board!.tiles.map((t) => ({ id: t.id, state: t.state }))
+        );
+
+        useAppStore.getState().pressTile(hidden.id);
+
+        const after = useAppStore.getState().run!;
+        expect(JSON.stringify(after.board!.tiles.map((t) => ({ id: t.id, state: t.state })))).toBe(boardKeyBefore);
+        expect(after.destroyPairCharges).toBe(1);
+        expect(useAppStore.getState().destroyPairArmed).toBe(true);
+    });
+
+    it('restartRun keeps scholar activeContract on the new run', async () => {
+        useAppStore.getState().startScholarContractRun();
+        const memorizeDuration = useAppStore.getState().run?.timerState.memorizeRemainingMs ?? 0;
+        await vi.advanceTimersByTimeAsync(memorizeDuration + 1);
+
+        expect(useAppStore.getState().run?.activeContract).toEqual({
+            noShuffle: true,
+            noDestroy: true,
+            maxMismatches: null
+        });
+
+        useAppStore.getState().restartRun();
+
+        expect(useAppStore.getState().run?.activeContract).toEqual({
+            noShuffle: true,
+            noDestroy: true,
+            maxMismatches: null
+        });
+    });
 });

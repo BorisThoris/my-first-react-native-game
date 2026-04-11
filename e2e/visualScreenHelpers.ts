@@ -82,6 +82,18 @@ export async function captureVisualScreen(
 }
 
 /** No unintended horizontal page scroll on the root (common mobile breakage). */
+/** App shell must not use vertical document scroll (native-app / game shell). */
+export async function expectAppScrollportHasNoVerticalOverflow(page: Page, epsilon = 10): Promise<void> {
+    const { scrollHeight, clientHeight } = await page.locator('[data-app-scrollport]').evaluate((el) => ({
+        scrollHeight: el.scrollHeight,
+        clientHeight: el.clientHeight
+    }));
+    expect(
+        scrollHeight,
+        `app scrollport scrollHeight ${scrollHeight} should fit clientHeight ${clientHeight} (no page scroll)`
+    ).toBeLessThanOrEqual(clientHeight + epsilon);
+}
+
 export async function expectNoHorizontalOverflow(page: Page): Promise<void> {
     const { scrollWidth, clientWidth } = await page.evaluate(() => ({
         scrollWidth: document.documentElement.scrollWidth,

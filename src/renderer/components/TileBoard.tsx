@@ -63,7 +63,7 @@ interface TileBoardProps {
     boardBloomEnabled?: boolean;
     viewportResetToken: number;
     frameStyle?: CSSProperties;
-    /** Hidden tiles to dim when focus-assist is on (fallback 2D board only). */
+    /** Hidden tiles to dim when focus-assist is on (2D fallback and WebGL scene). */
     dimmedTileIds?: ReadonlySet<string>;
     peekRevealedTileIds?: string[];
     allowGambitThirdFlip?: boolean;
@@ -187,9 +187,9 @@ const getTileClassName = (
         .filter(Boolean)
         .join(' ');
 
-const buildTileGridStyle = (board: BoardState): CSSProperties => ({
-    gridTemplateColumns: `repeat(${board.columns}, minmax(0, 1fr))`,
-    gridTemplateRows: `repeat(${board.rows}, minmax(0, 1fr))`
+const buildTileGridStyle = (columns: number, rows: number): CSSProperties => ({
+    gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+    gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`
 });
 
 const getTilePosition = (index: number, columns: number): { row: number; column: number } => ({
@@ -402,7 +402,11 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
     const threeEnabled = baselineWebGl && !gpuSurfaceLost;
     const cameraViewportMode = mobileCameraMode && threeEnabled;
     const touchGestureMode = cameraViewportMode && touchPrimary;
-    const desktopCameraMode = cameraViewportMode && !touchPrimary;
+    /**
+     * Mouse wheel / drag pan on the stage: wide (non-compact) viewports always get it with WebGL; compact shell keeps
+     * the previous rule (mouse only) so touch-first phones stay on pinch/pan gestures.
+     */
+    const desktopCameraMode = threeEnabled && (!mobileCameraMode || !touchPrimary);
     const frameRef = useRef<HTMLDivElement>(null);
     const shuffleClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [shuffleAnimating, setShuffleAnimating] = useState(false);
@@ -489,7 +493,9 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         },
         []
     );
-    const tileGridStyle = buildTileGridStyle(board);
+    const gridColumns = board.columns;
+    const gridRows = board.rows;
+    const tileGridStyle = useMemo(() => buildTileGridStyle(gridColumns, gridRows), [gridColumns, gridRows]);
     const deviceDpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
     /** Cap DPR for GPU cost (PERF-001 `graphicsQuality` + compact layout). */
     const dpr = Math.min(deviceDpr, getBoardDprCap(graphicsQuality, compact));
@@ -517,7 +523,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         [boardWorldHeight, boardWorldWidth, fitMargin, stageWorldViewport.height, stageWorldViewport.width]
     );
     const renderedViewportState = useMemo(() => {
-        if (!cameraViewportMode) {
+        if (!cameraViewportMode && !desktopCameraMode) {
             return createFittedBoardViewport(fitZoom);
         }
 
@@ -536,6 +542,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         boardWorldWidth,
         fitZoom,
         cameraViewportMode,
+        desktopCameraMode,
         stageWorldViewport.height,
         stageWorldViewport.width,
         viewportState.panX,
@@ -543,32 +550,35 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         viewportState.zoom
     ]);
 
-    const syncGestureActive = (active: boolean): void => {
+    const syncGestureActive = useCallback((active: boolean): void => {
         gestureActiveRef.current = active;
         setGestureActive((current) => (current === active ? current : active));
-    };
+    }, []);
 
-    const syncSelectionSuppressed = (suppressed: boolean): void => {
+    const syncSelectionSuppressed = useCallback((suppressed: boolean): void => {
         selectionSuppressedRef.current = suppressed;
         setSelectionSuppressed((current) => (current === suppressed ? current : suppressed));
-    };
+    }, []);
 
-    const clearTouchGestureState = (clearSuppression: boolean): void => {
+    const clearTouchGestureState = useCallback((clearSuppression: boolean): void => {
         activeTouchPointsRef.current.clear();
         gestureSnapshotRef.current = null;
         syncGestureActive(false);
         if (clearSuppression) {
             syncSelectionSuppressed(false);
         }
-    };
+    }, [syncGestureActive, syncSelectionSuppressed]);
 
-    const handleTileSelect = (tileId: string): void => {
-        if (selectionSuppressedRef.current) {
-            return;
-        }
+    const handleTileSelect = useCallback(
+        (tileId: string): void => {
+            if (selectionSuppressedRef.current) {
+                return;
+            }
 
-        onTileSelect(tileId);
-    };
+            onTileSelect(tileId);
+        },
+        [onTileSelect]
+    );
 
     const clearHoverTilt = (tileId: string, event: ReactPointerEvent<HTMLButtonElement>): void => {
         if (hoverTiltRef.current.tileId === tileId) {
@@ -636,7 +646,11 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
 
         viewportResetTokenRef.current = viewportResetToken;
 
-        if (!cameraViewportMode || stageWorldViewport.width <= 0 || stageWorldViewport.height <= 0) {
+        if (
+            (!cameraViewportMode && !desktopCameraMode) ||
+            stageWorldViewport.width <= 0 ||
+            stageWorldViewport.height <= 0
+        ) {
             const nextViewport = createFittedBoardViewport(fitZoom);
             viewportStateRef.current = nextViewport;
             viewportMetricsRef.current = nextMetrics;
@@ -666,9 +680,11 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         boardWorldWidth,
         fitZoom,
         cameraViewportMode,
+        desktopCameraMode,
         stageWorldViewport.height,
         stageWorldViewport.width,
-        viewportResetToken
+        viewportResetToken,
+        clearTouchGestureState
     ]);
     /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -844,7 +860,10 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         fitZoom,
         touchGestureMode,
         stageWorldViewport.height,
-        stageWorldViewport.width
+        stageWorldViewport.width,
+        clearTouchGestureState,
+        syncGestureActive,
+        syncSelectionSuppressed
     ]);
 
     useEffect(() => {
@@ -1048,7 +1067,9 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         desktopCameraMode,
         fitZoom,
         stageWorldViewport.height,
-        stageWorldViewport.width
+        stageWorldViewport.width,
+        syncGestureActive,
+        syncSelectionSuppressed
     ]);
 
     const showMotionChip = touchPrimary && !reduceMotion && (permission === 'prompt' || permission === 'denied');
@@ -1129,10 +1150,13 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                                 camera={{ fov: 42, near: 0.1, far: 100, position: [0, 0, 10.5] }}
                             >
                                 <TileBoardScene
+                                    allowGambitThirdFlip={allowGambitThirdFlip}
                                     board={board}
                                     boardViewport={renderedViewportState}
                                     compact={compact}
                                     cursedPairKey={cursedPairKey}
+                                    dimmedTileIds={dimmedTileIds}
+                                    graphicsQuality={graphicsQuality}
                                     wardPairKey={wardPairKey}
                                     bountyPairKey={bountyPairKey}
                                     debugPeekActive={debugPeekActive}
@@ -1159,7 +1183,8 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
 
                         <div className={styles.interactionLayer} style={tileGridStyle}>
                             {board.tiles.map((tile, index) => {
-                                const locked = board.flippedTileIds.length === 2;
+                                const flippedN = board.flippedTileIds.length;
+                                const locked = flippedN >= 2 && !(allowGambitThirdFlip && flippedN === 2);
                                 const faceUp =
                                     tile.state !== 'hidden' ||
                                     debugPeekActive ||

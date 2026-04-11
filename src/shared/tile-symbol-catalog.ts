@@ -1,5 +1,10 @@
 /** Read-only tile face symbols for gallery + gameplay (pair generation imports from here). */
 
+/** Inclusive last floor level for the numeric (two-digit rank) symbol band. */
+export const SYMBOL_BAND_LAST_LEVEL_NUMERIC = 8;
+/** Inclusive last floor level for the letter / digit-mixed band before callsigns. */
+export const SYMBOL_BAND_LAST_LEVEL_LETTER = 16;
+
 export interface TileSymbolEntry {
     symbol: string;
     label: string;
@@ -76,7 +81,7 @@ export const CALLSIGN_SYMBOLS: TileSymbolEntry[] = [
     ['F4', 'Fathom']
 ].map(([symbol, label]) => ({ symbol, label }));
 
-/** Symbol bands for gallery / mutators. Default level play uses numeric ranks only (see {@link getSymbolSetForLevel}). */
+/** Symbol bands for gallery / mutators. Default level play rotates bands by floor (see {@link getSymbolSetIndexForLevel}). */
 export const TILE_SYMBOL_SETS = [NUMBER_SYMBOLS, LETTER_SYMBOLS, CALLSIGN_SYMBOLS] as const;
 
 export const ALL_TILE_SYMBOLS_FOR_GALLERY: TileSymbolEntry[] = [
@@ -85,7 +90,17 @@ export const ALL_TILE_SYMBOLS_FOR_GALLERY: TileSymbolEntry[] = [
     ...CALLSIGN_SYMBOLS
 ];
 
-/** Index of the band used by {@link getSymbolSetForLevel} (always numeric — no letter/callsign rotation). */
-export const getSymbolSetIndexForLevel = (_level: number): number => 0;
+/** Staged band index: numeric glyphs early, mixed letters mid, callsigns later (caps at last band). */
+export const getSymbolSetIndexForLevel = (level: number): number => {
+    const L = Math.max(1, Math.floor(level));
+    if (L <= SYMBOL_BAND_LAST_LEVEL_NUMERIC) {
+        return 0;
+    }
+    if (L <= SYMBOL_BAND_LAST_LEVEL_LETTER) {
+        return 1;
+    }
+    return 2;
+};
 
-export const getSymbolSetForLevel = (_level: number): readonly TileSymbolEntry[] => NUMBER_SYMBOLS;
+export const getSymbolSetForLevel = (level: number): readonly TileSymbolEntry[] =>
+    TILE_SYMBOL_SETS[getSymbolSetIndexForLevel(level)];

@@ -2,6 +2,7 @@ import { expect, type Page } from '@playwright/test';
 import {
     buildVisualSaveJson,
     completeLevel1Play,
+    expectAppScrollportHasNoVerticalOverflow,
     expectNoHorizontalOverflow,
     forceGameOverWithMismatches,
     gotoWithSaveExpectStartupIntroVisible,
@@ -41,8 +42,15 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
         run: async (page, capture) => {
             await openMainMenuFromSave(page, true);
             await expectNoHorizontalOverflow(page);
-            await expect(mainMenuPlayButton(page)).toBeVisible();
-            await expect(page.getByRole('group', { name: /more run types/i })).toBeVisible();
+            await expectAppScrollportHasNoVerticalOverflow(page);
+            const play = mainMenuPlayButton(page);
+            const moreRuns = page.getByRole('group', { name: /more run types/i });
+            await expect(play).toBeVisible();
+            await expect(moreRuns).toBeVisible();
+            await expect(async () => {
+                await expect(play).toBeInViewport();
+                await expect(moreRuns).toBeInViewport();
+            }).toPass({ timeout: 12_000 });
             await capture('01-main-menu');
         }
     },
@@ -54,6 +62,8 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
             await mainMenuPlayButton(page).click();
             await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
             await expectNoHorizontalOverflow(page);
+            await expectAppScrollportHasNoVerticalOverflow(page);
+            await expect(page.getByRole('button', { name: /classic run/i })).toBeInViewport();
             await capture('01a-choose-your-path');
         }
     },

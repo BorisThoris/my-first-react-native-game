@@ -9,9 +9,7 @@
         max(clamp(1rem, 3vw, 1.6rem), env(safe-area-inset-right, 0px))
         max(clamp(1rem, 3vw, 1.6rem), env(safe-area-inset-bottom, 0px))
         max(clamp(1rem, 3vw, 1.6rem), env(safe-area-inset-left, 0px));
-    background:
-        radial-gradient(circle at center, rgba(4, 6, 10, 0.18), rgba(4, 6, 10, 0.8)),
-        rgba(2, 5, 10, 0.56);
+    background: var(--theme-scrim-dialog);
     backdrop-filter: blur(14px) saturate(130%);
     z-index: 21;
     overflow-y: auto;

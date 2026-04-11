@@ -145,10 +145,57 @@ const clearDebugRevealTimer = (): void => {
     debugRevealTimer = null;
 };
 
+let gauntletExpiryIntervalId: ReturnType<typeof setInterval> | null = null;
+
+const clearGauntletExpiryWatch = (): void => {
+    if (gauntletExpiryIntervalId !== null) {
+        clearInterval(gauntletExpiryIntervalId);
+        gauntletExpiryIntervalId = null;
+    }
+};
+
+const syncGauntletExpiryWatch = (): void => {
+    const { run, view } = useAppStore.getState();
+    const shouldWatch =
+        view === 'playing' &&
+        run &&
+        run.gameMode === 'gauntlet' &&
+        run.gauntletDeadlineMs !== null &&
+        run.status !== 'gameOver';
+
+    if (!shouldWatch) {
+        clearGauntletExpiryWatch();
+        return;
+    }
+
+    if (gauntletExpiryIntervalId !== null) {
+        return;
+    }
+
+    gauntletExpiryIntervalId = setInterval(() => {
+        const { run: currentRun, view: currentView } = useAppStore.getState();
+        if (
+            !currentRun ||
+            currentView !== 'playing' ||
+            currentRun.gameMode !== 'gauntlet' ||
+            currentRun.gauntletDeadlineMs === null ||
+            currentRun.status === 'gameOver'
+        ) {
+            clearGauntletExpiryWatch();
+            return;
+        }
+        if (isGauntletExpired(currentRun)) {
+            clearGauntletExpiryWatch();
+            applyResolvedRun({ ...currentRun, status: 'gameOver', lives: 0 });
+        }
+    }, 300);
+};
+
 const clearAllTimers = (): void => {
     clearMemorizeTimer();
     clearResolveTimer();
     clearDebugRevealTimer();
+    clearGauntletExpiryWatch();
 };
 
 const patchRunFromUserSettings = (run: RunState, settings: Settings): RunState => ({
@@ -801,7 +848,34 @@ export const useAppStore = create<AppState>((set, get) => ({
     pressTile: (tileId) => {
         const { run, view, boardPinMode, destroyPairArmed, peekModeArmed } = get();
 
-        if (!run || view !== 'playing' || run.status !== 'playing') {
+        if (!run || view !== 'playing') {
+            return;
+        }
+
+        const gambitThirdPick =
+            run.status === 'resolving' &&
+            run.board &&
+            run.gambitAvailableThisFloor &&
+            !run.gambitThirdFlipUsed &&
+            run.board.flippedTileIds.length === 2;
+
+        if (gambitThirdPick) {
+            if (isGauntletExpired(run)) {
+                applyResolvedRun({ ...run, status: 'gameOver', lives: 0 });
+                return;
+            }
+            const nextRun = flipTile(run, tileId);
+            if (nextRun === run) {
+                return;
+            }
+            set({ run: nextRun, peekModeArmed: false });
+            if (nextRun.status === 'resolving' && nextRun.timerState.resolveRemainingMs !== null) {
+                scheduleResolveTimer(nextRun.timerState.resolveRemainingMs);
+            }
+            return;
+        }
+
+        if (run.status !== 'playing') {
             return;
         }
 
@@ -1110,3 +1184,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
     }
 }));
+
+useAppStore.subscribe(() => {
+    syncGauntletExpiryWatch();
+});

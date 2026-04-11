@@ -34,11 +34,15 @@
 .root::before {
     inset: 1px;
     border-radius: calc(var(--ui-radius-button) - 2px);
-    border: 1px solid rgba(255, 244, 218, 0.08);
+    border: 1px solid var(--theme-overlay-plate-inner-glow);
 }
 
 .root::after {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent 36%);
+    background: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--theme-text) 16%, transparent),
+        transparent 36%
+    );
     opacity: 0.5;
 }
 
@@ -73,7 +77,7 @@
 }
 
 .primary::before {
-    border-color: rgba(255, 244, 218, 0.14);
+    border-color: var(--theme-border);
 }
 
 .secondary,
@@ -82,36 +86,36 @@
     border-color: var(--theme-border);
     background: var(--theme-secondary-surface);
     box-shadow:
-        0 18px 36px rgba(0, 0, 0, 0.28),
+        0 18px 36px color-mix(in srgb, var(--theme-shadow) 52%, transparent),
         inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .ghost {
     background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent),
-        rgba(11, 10, 15, 0.7);
+        linear-gradient(180deg, color-mix(in srgb, var(--theme-text) 5%, transparent), transparent),
+        var(--theme-panel);
 }
 
 .danger {
-    color: rgba(255, 232, 224, 0.95);
-    border-color: rgba(216, 106, 88, 0.42);
+    color: var(--theme-text);
+    border-color: color-mix(in srgb, var(--theme-danger) 42%, transparent);
     background:
-        radial-gradient(circle at top left, rgba(216, 106, 88, 0.18), transparent 40%),
+        radial-gradient(circle at top left, color-mix(in srgb, var(--theme-danger) 18%, transparent), transparent 40%),
         linear-gradient(180deg, rgba(67, 18, 18, 0.94), rgba(31, 10, 12, 0.94));
     box-shadow:
-        0 18px 34px rgba(0, 0, 0, 0.26),
-        0 0 22px rgba(188, 84, 52, 0.18);
+        0 18px 34px color-mix(in srgb, var(--theme-shadow) 48%, transparent),
+        0 0 22px var(--theme-glow-ember);
 }
 
 .debug {
-    color: rgba(241, 212, 160, 0.94);
-    border-color: rgba(242, 211, 157, 0.28);
+    color: var(--theme-focus);
+    border-color: color-mix(in srgb, var(--theme-violet) 28%, transparent);
     background:
-        radial-gradient(circle at top left, rgba(140, 98, 223, 0.14), transparent 36%),
+        radial-gradient(circle at top left, color-mix(in srgb, var(--theme-violet) 14%, transparent), transparent 36%),
         linear-gradient(180deg, rgba(28, 22, 38, 0.94), rgba(12, 10, 16, 0.94));
     box-shadow:
-        0 18px 34px rgba(0, 0, 0, 0.26),
-        0 0 22px rgba(140, 98, 223, 0.16);
+        0 18px 34px color-mix(in srgb, var(--theme-shadow) 48%, transparent),
+        0 0 22px color-mix(in srgb, var(--theme-violet) 16%, transparent);
 }
 
 .root:hover:not(:disabled) {
@@ -125,8 +129,8 @@
 
 .primary:hover:not(:disabled) {
     box-shadow:
-        0 22px 40px rgba(0, 0, 0, 0.32),
-        0 0 34px rgba(188, 84, 52, 0.24);
+        0 22px 40px color-mix(in srgb, var(--theme-shadow) 60%, transparent),
+        0 0 34px var(--theme-glow-ember);
 }
 
 .secondary:hover:not(:disabled),
@@ -134,16 +138,16 @@
     border-color: var(--theme-border-strong);
     background: var(--theme-secondary-surface-active);
     box-shadow:
-        0 20px 38px rgba(0, 0, 0, 0.32),
-        0 0 28px rgba(195, 149, 79, 0.12);
+        0 20px 38px color-mix(in srgb, var(--theme-shadow) 60%, transparent),
+        0 0 28px var(--theme-glow-gold);
 }
 
 .danger:hover:not(:disabled) {
-    border-color: rgba(216, 106, 88, 0.62);
+    border-color: color-mix(in srgb, var(--theme-danger) 62%, transparent);
 }
 
 .debug:hover:not(:disabled) {
-    border-color: rgba(140, 98, 223, 0.46);
+    border-color: color-mix(in srgb, var(--theme-violet) 46%, transparent);
 }
 
 .root:disabled {

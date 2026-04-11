@@ -1,6 +1,6 @@
 .entry {
     padding: 0.75rem 0;
-    border-bottom: 1px solid rgba(242, 211, 157, 0.08);
+    border-bottom: 1px solid var(--theme-card-border-muted);
 }
 
 .entry:last-child {

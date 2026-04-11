@@ -3,10 +3,13 @@ import { MUTATOR_CATALOG } from '../../shared/mutators';
 import { RELIC_CATALOG } from '../../shared/game-catalog';
 import { formatNextUtcReset } from '../../shared/utc-countdown';
 import { useEffect, useRef, useState } from 'react';
+import { useFitShellZoom } from '../hooks/useFitShellZoom';
+import { useShallow } from 'zustand/react/shallow';
 import { UI_ART } from '../assets/ui';
 import { desktopClient } from '../desktop-client';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
+import { useAppStore } from '../store/useAppStore';
 import { Eyebrow, Panel, ScreenTitle, UiButton } from '../ui';
 import MainMenuBackground from './MainMenuBackground';
 import OverlayModal from './OverlayModal';
@@ -35,7 +38,6 @@ interface MainMenuProps {
     onMirrorPuzzleRun: () => void;
     onPracticeRun: () => void;
     onScholarContractRun: () => void;
-    onImportRun: () => void;
     onMeditationRun: () => void;
     onMeditationRunWithMutators: (mutators: MutatorId[]) => void;
     onPinVowRun: () => void;
@@ -61,15 +63,23 @@ const MainMenu = ({
     onMirrorPuzzleRun,
     onPracticeRun,
     onScholarContractRun,
-    onImportRun,
     onMeditationRun,
     onMeditationRunWithMutators,
     onPinVowRun,
     onWildRun
 }: MainMenuProps) => {
+    const { importRunFromClipboard } = useAppStore(
+        useShallow((state) => ({
+            importRunFromClipboard: state.importRunFromClipboard
+        }))
+    );
     const shellRef = useRef<HTMLElement | null>(null);
+    const menuFitMeasureRef = useRef<HTMLDivElement | null>(null); /* outer box; zoom applied on inner .content */
     const [meditationOpen, setMeditationOpen] = useState(false);
     const [meditationSelection, setMeditationSelection] = useState<Set<MutatorId>>(() => new Set());
+    const [importModalOpen, setImportModalOpen] = useState(false);
+    const [importJsonText, setImportJsonText] = useState('');
+    const [importError, setImportError] = useState<string | null>(null);
     const [nowMs, setNowMs] = useState(() => Date.now());
     const { tiltRef: menuFieldTiltRef } = usePlatformTiltField({
         enabled: true,
@@ -79,6 +89,12 @@ const MainMenu = ({
     });
     const { height, width } = useViewportSize();
     const isCompact = width <= 960 || height <= 760;
+    const { fitZoom } = useFitShellZoom({
+        measureRef: menuFitMeasureRef,
+        viewportWidth: width,
+        viewportHeight: height,
+        padding: 12
+    });
     const relicPickEntries = saveData.playerStats
         ? (Object.entries(saveData.playerStats.relicPickCounts) as [RelicId, number][])
               .filter(([, count]) => count > 0)
@@ -99,6 +115,27 @@ const MainMenu = ({
             }
             return next;
         });
+    };
+
+    const openImportModal = (): void => {
+        setImportModalOpen(true);
+        setImportJsonText('');
+        setImportError(null);
+    };
+
+    const closeImportModal = (): void => {
+        setImportModalOpen(false);
+        setImportJsonText('');
+        setImportError(null);
+    };
+
+    const submitImport = (): void => {
+        const ok = importRunFromClipboard(importJsonText);
+        if (ok) {
+            closeImportModal();
+            return;
+        }
+        setImportError('Could not import that payload. Check the JSON and try again.');
     };
 
     useEffect(() => {
@@ -123,7 +160,9 @@ const MainMenu = ({
             />
             <div className={styles.scrim} />
 
-            <div className={styles.content}>
+            <div className={styles.fitViewport}>
+                <div ref={menuFitMeasureRef} className={styles.fitMeasureOuter}>
+                    <div className={styles.content} style={{ zoom: fitZoom }}>
                 <header className={styles.metaRow}>
                     <div className={styles.metaCard}>
                         <span className={styles.metaLabel}>Build</span>
@@ -312,7 +351,7 @@ const MainMenu = ({
                                 <UiButton className={styles.modeButton} size="md" variant="secondary" onClick={onPinVowRun}>
                                     Pin vow
                                 </UiButton>
-                                <UiButton className={styles.modeButton} size="md" variant="ghost" onClick={onImportRun}>
+                                <UiButton className={styles.modeButton} size="md" variant="ghost" onClick={openImportModal}>
                                     Import JSON
                                 </UiButton>
                             </div>
@@ -374,7 +413,50 @@ const MainMenu = ({
                         ) : null}
                     </aside>
                 </div>
+                    </div>
+                </div>
             </div>
+            {importModalOpen ? (
+                <OverlayModal
+                    actions={[
+                        {
+                            label: 'Cancel',
+                            onClick: closeImportModal,
+                            variant: 'secondary'
+                        },
+                        {
+                            label: 'Import',
+                            disabled: importJsonText.trim().length === 0,
+                            onClick: submitImport,
+                            variant: 'primary'
+                        }
+                    ]}
+                    subtitle="Paste a Memory Dungeon run JSON (from Copy run seed on game over)."
+                    testId="run-import-modal"
+                    title="Import run"
+                >
+                    <textarea
+                        aria-invalid={importError ? 'true' : undefined}
+                        aria-label="Run export JSON"
+                        className={styles.importJsonField}
+                        data-testid="run-import-json"
+                        onChange={(event) => {
+                            setImportJsonText(event.target.value);
+                            if (importError) {
+                                setImportError(null);
+                            }
+                        }}
+                        placeholder='Example: {"v":1,"seed":0,"rules":7,"mode":"endless","mutators":[]}'
+                        spellCheck={false}
+                        value={importJsonText}
+                    />
+                    {importError ? (
+                        <p className={styles.importError} data-testid="run-import-error" role="alert">
+                            {importError}
+                        </p>
+                    ) : null}
+                </OverlayModal>
+            ) : null}
             {meditationOpen ? (
                 <OverlayModal
                     actions={[

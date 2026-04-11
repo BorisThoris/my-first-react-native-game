@@ -3,12 +3,8 @@
  * Traced SVGs are not decomposed into separate meshes per motif; DOM-only FX overlays live in
  * `components/cards/cardArt/` instead.
  */
-import {
-    BufferAttribute,
-    BufferGeometry,
-    Color,
-    ShapeGeometry
-} from 'three';
+import { BufferAttribute, Color, ShapeGeometry } from 'three';
+import type { BufferGeometry } from 'three';
 import { SVGLoader } from 'three/addons/loaders/SVGLoader.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { CARD_PLANE_HEIGHT, CARD_PLANE_WIDTH } from './tileShatter';

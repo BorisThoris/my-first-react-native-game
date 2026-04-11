@@ -6,7 +6,7 @@
     text-wrap: balance;
     text-shadow:
         0 0 24px var(--theme-glow-gold),
-        0 10px 28px rgba(0, 0, 0, 0.28);
+        0 10px 28px var(--theme-shadow);
 }
 
 .display {

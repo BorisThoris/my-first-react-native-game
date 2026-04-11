@@ -11,18 +11,26 @@ import {
 import {
     advanceToNextLevel,
     applyDestroyPair,
+    applyRegionShuffle,
     applyShuffle,
     buildBoard,
     calculateMatchScore,
+    canRegionShuffle,
+    canRegionShuffleRow,
     canShuffleBoard,
     countFullyHiddenPairs,
     createNewRun,
+    createWildRun,
     enableDebugPeek,
     finishMemorizePhase,
     flipTile,
     getMemorizeDuration,
+    getMemorizeDurationForRun,
+    getPresentationMutatorMatchPenalty,
+    isGauntletExpired,
     resolveBoardTurn,
-    togglePinnedTile
+    togglePinnedTile,
+    WILD_PAIR_KEY
 } from './game';
 
 const createTile = (id: string, pairKey: string, symbol: string): Tile => ({
@@ -61,6 +69,31 @@ describe('game rules', () => {
         expect(getMemorizeDuration(3)).toBe(1250);
         expect(getMemorizeDuration(20)).toBe(850);
         expect(getMemorizeDuration(29)).toBe(600);
+    });
+
+    it('uses staged symbol bands by level when category_letters is off', () => {
+        const numericBand = buildBoard(4, { runSeed: 11_022, runRulesVersion: GAME_RULES_VERSION });
+        expect(numericBand.tiles.some((t) => /^\d{2}$/.test(t.symbol))).toBe(true);
+        const letterBand = buildBoard(10, { runSeed: 11_022, runRulesVersion: GAME_RULES_VERSION });
+        expect(letterBand.tiles.some((t) => /^[A-Z1-4]$/.test(t.symbol))).toBe(true);
+    });
+
+    it('applies flat presentation mutator penalties to each match score', () => {
+        const tiles: Tile[] = [
+            createTile('a1', 'A', 'A'),
+            createTile('a2', 'A', 'A'),
+            createTile('b1', 'B', 'B'),
+            createTile('b2', 'B', 'B')
+        ];
+        const started = {
+            ...createRun(tiles),
+            activeMutators: ['wide_recall', 'silhouette_twist', 'distraction_channel'] as MutatorId[]
+        };
+        const penalty = getPresentationMutatorMatchPenalty(started);
+        expect(penalty).toBe(8);
+        const resolved = resolveBoardTurn(flipTile(flipTile(started, 'a1'), 'a2'));
+        const base = calculateMatchScore(1, 1, 1);
+        expect(resolved.stats.totalScore).toBe(Math.max(0, base - penalty));
     });
 
     it('forgives the first mismatch on a floor without spending a life or guard', () => {
@@ -761,5 +794,435 @@ describe('board powers', () => {
             };
             expect(advanceToNextLevel(finishedLevel).shiftingSpotlightNonce).toBe(0);
         });
+    });
+});
+
+describe('gambit third flip', () => {
+    const twoPairTiles: Tile[] = [
+        createTile('a1', 'p1', 'A'),
+        createTile('a2', 'p1', 'A'),
+        createTile('b1', 'p2', 'B'),
+        createTile('b2', 'p2', 'B')
+    ];
+
+    it('resolves a match when the third flip completes a pair after a mismatch', () => {
+        let run = createRun(twoPairTiles);
+        run = flipTile(run, 'a1');
+        run = flipTile(run, 'b1');
+        expect(run.board!.flippedTileIds).toHaveLength(2);
+        run = flipTile(run, 'a2');
+        expect(run.status).toBe('resolving');
+        expect(run.board!.flippedTileIds).toHaveLength(3);
+        const resolved = resolveBoardTurn(run);
+        expect(resolved.gambitThirdFlipUsed).toBe(true);
+        expect(resolved.gambitAvailableThisFloor).toBe(false);
+        expect(resolved.board!.matchedPairs).toBe(1);
+        expect(resolved.board!.tiles.find((t) => t.id === 'b1')?.state).toBe('hidden');
+        expect(resolved.status).toBe('playing');
+    });
+
+    it('gambit miss forces game over when maxMismatches would be exceeded', () => {
+        const threePairTiles: Tile[] = [
+            createTile('a1', 'p1', 'A'),
+            createTile('a2', 'p1', 'A'),
+            createTile('b1', 'p2', 'B'),
+            createTile('b2', 'p2', 'B'),
+            createTile('c1', 'p3', 'C'),
+            createTile('c2', 'p3', 'C')
+        ];
+        const base = createRun(threePairTiles);
+        let run: RunState = {
+            ...base,
+            activeContract: { noShuffle: false, noDestroy: false, maxMismatches: 1 },
+            stats: { ...base.stats, tries: 1 }
+        };
+        run = flipTile(run, 'a1');
+        run = flipTile(run, 'b1');
+        run = flipTile(run, 'c1');
+        expect(run.board!.flippedTileIds).toHaveLength(3);
+        const resolved = resolveBoardTurn(run);
+        expect(resolved.gambitThirdFlipUsed).toBe(true);
+        expect(resolved.status).toBe('gameOver');
+        expect(resolved.stats.tries).toBe(2);
+    });
+
+    it('gambit miss forces game over when maxMismatches is 0 and floor tries are still zero', () => {
+        const threePairTiles: Tile[] = [
+            createTile('a1', 'p1', 'A'),
+            createTile('a2', 'p1', 'A'),
+            createTile('b1', 'p2', 'B'),
+            createTile('b2', 'p2', 'B'),
+            createTile('c1', 'p3', 'C'),
+            createTile('c2', 'p3', 'C')
+        ];
+        const base = createRun(threePairTiles);
+        let run: RunState = {
+            ...base,
+            activeContract: { noShuffle: false, noDestroy: false, maxMismatches: 0 },
+            stats: { ...base.stats, tries: 0 }
+        };
+        run = flipTile(run, 'a1');
+        run = flipTile(run, 'b1');
+        run = flipTile(run, 'c1');
+        const resolved = resolveBoardTurn(run);
+        expect(resolved.gambitThirdFlipUsed).toBe(true);
+        expect(resolved.status).toBe('gameOver');
+        expect(resolved.stats.tries).toBe(1);
+    });
+});
+
+describe('wild run with scholar-style contracts', () => {
+    it('noDestroy blocks destroy on a real wild board', () => {
+        const wild = finishMemorizePhase(createWildRun(0));
+        expect(wild.board).not.toBeNull();
+        const target = wild.board!.tiles.find(
+            (t) => t.state === 'hidden' && t.pairKey !== WILD_PAIR_KEY && t.pairKey !== '__decoy__'
+        );
+        expect(target).toBeDefined();
+        const run: RunState = {
+            ...wild,
+            status: 'playing',
+            activeContract: { noShuffle: false, noDestroy: true, maxMismatches: null },
+            destroyPairCharges: 1
+        };
+        expect(applyDestroyPair(run, target!.id)).toBe(run);
+    });
+
+    it('noShuffle blocks full-board shuffle on a real wild run', () => {
+        let wild = finishMemorizePhase(createWildRun(0));
+        wild = {
+            ...wild,
+            status: 'playing',
+            shuffleCharges: 1,
+            activeContract: { noShuffle: true, noDestroy: false, maxMismatches: null }
+        };
+        expect(canShuffleBoard(wild)).toBe(false);
+        expect(applyShuffle(wild)).toBe(wild);
+    });
+});
+
+describe('active contract limits', () => {
+    const fourPairTiles: Tile[] = [
+        createTile('a1', 'A', 'A'),
+        createTile('a2', 'A', 'A'),
+        createTile('b1', 'B', 'B'),
+        createTile('b2', 'B', 'B')
+    ];
+
+    it('ends the run when mismatches exceed maxMismatches', () => {
+        const run: RunState = {
+            ...createRun(fourPairTiles),
+            activeContract: { noShuffle: false, noDestroy: false, maxMismatches: 0 }
+        };
+        const mismatching = resolveBoardTurn(flipTile(flipTile(run, 'a1'), 'b1'));
+        expect(mismatching.status).toBe('gameOver');
+    });
+
+    it('blocks shuffle when contract sets noShuffle', () => {
+        const run: RunState = {
+            ...createRun(fourPairTiles),
+            shuffleCharges: 1,
+            activeContract: { noShuffle: true, noDestroy: false, maxMismatches: null }
+        };
+        expect(canShuffleBoard(run)).toBe(false);
+        expect(applyShuffle(run)).toBe(run);
+    });
+
+    it('blocks destroy when contract sets noDestroy', () => {
+        const run: RunState = {
+            ...createRun(fourPairTiles),
+            destroyPairCharges: 1,
+            activeContract: { noShuffle: false, noDestroy: true, maxMismatches: null }
+        };
+        expect(applyDestroyPair(run, 'a1')).toBe(run);
+    });
+
+    it('respects maxPinsTotalRun when adding new pins', () => {
+        let run: RunState = {
+            ...createRun(fourPairTiles),
+            activeContract: { noShuffle: false, noDestroy: false, maxMismatches: null, maxPinsTotalRun: 1 }
+        };
+        run = togglePinnedTile(run, 'a1');
+        expect(run.pinnedTileIds).toEqual(['a1']);
+        expect(run.pinsPlacedCountThisRun).toBe(1);
+        const capped = togglePinnedTile(run, 'b1');
+        expect(capped.pinnedTileIds).toEqual(['a1']);
+        expect(capped.pinsPlacedCountThisRun).toBe(1);
+    });
+
+    it('respects maxPinsTotalRun when adding new pins with presentation mutators active', () => {
+        let run: RunState = {
+            ...createRun(fourPairTiles),
+            activeMutators: ['wide_recall'] as MutatorId[],
+            activeContract: { noShuffle: false, noDestroy: false, maxMismatches: null, maxPinsTotalRun: 1 }
+        };
+        run = togglePinnedTile(run, 'a1');
+        expect(run.pinnedTileIds).toEqual(['a1']);
+        expect(run.pinsPlacedCountThisRun).toBe(1);
+        const capped = togglePinnedTile(run, 'b1');
+        expect(capped.pinnedTileIds).toEqual(['a1']);
+        expect(capped.pinsPlacedCountThisRun).toBe(1);
+    });
+
+    it('ends the run on the second mismatch when maxMismatches is 1 while presentation mutators are active', () => {
+        const sixTiles: Tile[] = [
+            createTile('a1', 'A', 'A'),
+            createTile('a2', 'A', 'A'),
+            createTile('b1', 'B', 'B'),
+            createTile('b2', 'B', 'B'),
+            createTile('c1', 'C', 'C'),
+            createTile('c2', 'C', 'C')
+        ];
+        const run: RunState = {
+            ...createRun(sixTiles),
+            activeMutators: ['wide_recall', 'silhouette_twist'] as MutatorId[],
+            activeContract: { noShuffle: false, noDestroy: false, maxMismatches: 1 }
+        };
+        const afterFirstMiss = resolveBoardTurn(flipTile(flipTile(run, 'a1'), 'b1'));
+        expect(afterFirstMiss.status).toBe('playing');
+        expect(afterFirstMiss.stats.tries).toBe(1);
+        const afterSecondMiss = resolveBoardTurn(flipTile(flipTile(afterFirstMiss, 'a2'), 'c1'));
+        expect(afterSecondMiss.status).toBe('gameOver');
+    });
+
+    it('still applies presentation match penalty when a contract is active', () => {
+        const run: RunState = {
+            ...createRun([
+                createTile('a1', 'A', 'A'),
+                createTile('a2', 'A', 'A'),
+                createTile('b1', 'B', 'B'),
+                createTile('b2', 'B', 'B')
+            ]),
+            activeMutators: ['distraction_channel'] as MutatorId[],
+            activeContract: { noShuffle: true, noDestroy: true, maxMismatches: null }
+        };
+        const penalty = getPresentationMutatorMatchPenalty(run);
+        expect(penalty).toBe(2);
+        const resolved = resolveBoardTurn(flipTile(flipTile(run, 'a1'), 'a2'));
+        const base = calculateMatchScore(1, 1, 1);
+        expect(resolved.stats.totalScore).toBe(Math.max(0, base - penalty));
+    });
+
+    it('blocks shuffle under noShuffle with presentation mutators active', () => {
+        const run: RunState = {
+            ...createRun(fourPairTiles),
+            shuffleCharges: 1,
+            activeMutators: ['wide_recall', 'distraction_channel'] as MutatorId[],
+            activeContract: { noShuffle: true, noDestroy: false, maxMismatches: null }
+        };
+        expect(canShuffleBoard(run)).toBe(false);
+        expect(applyShuffle(run)).toBe(run);
+    });
+
+    it('blocks destroy under noDestroy with presentation mutators active', () => {
+        const run: RunState = {
+            ...createRun(fourPairTiles),
+            destroyPairCharges: 1,
+            activeMutators: ['wide_recall', 'distraction_channel'] as MutatorId[],
+            activeContract: { noShuffle: false, noDestroy: true, maxMismatches: null }
+        };
+        expect(applyDestroyPair(run, 'a1')).toBe(run);
+    });
+
+    it('allows shuffle when contract only blocks destroy with presentation mutators active', () => {
+        const run: RunState = {
+            ...createRun(fourPairTiles),
+            shuffleCharges: 1,
+            activeMutators: ['silhouette_twist'] as MutatorId[],
+            activeContract: { noShuffle: false, noDestroy: true, maxMismatches: null }
+        };
+        expect(canShuffleBoard(run)).toBe(true);
+        const shuffled = applyShuffle(run);
+        expect(shuffled).not.toBe(run);
+        expect(shuffled.shuffleNonce).toBe(run.shuffleNonce + 1);
+    });
+
+    it('blocks region shuffle under noShuffle with presentation mutators active', () => {
+        const run: RunState = {
+            ...createRun(fourPairTiles),
+            activeMutators: ['wide_recall'] as MutatorId[],
+            activeContract: { noShuffle: true, noDestroy: false, maxMismatches: null }
+        };
+        expect(canRegionShuffle(run)).toBe(false);
+        expect(applyRegionShuffle(run, 0)).toBe(run);
+    });
+
+    it('allows region shuffle when contract only blocks destroy with presentation mutators active', () => {
+        const run: RunState = {
+            ...createRun(fourPairTiles),
+            activeMutators: ['distraction_channel'] as MutatorId[],
+            activeContract: { noShuffle: false, noDestroy: true, maxMismatches: null }
+        };
+        expect(canRegionShuffle(run)).toBe(true);
+        expect(canRegionShuffleRow(run, 0)).toBe(true);
+        const shuffled = applyRegionShuffle(run, 0);
+        expect(shuffled).not.toBe(run);
+        expect(shuffled.shuffleNonce).toBe(run.shuffleNonce + 1);
+    });
+
+    it('noShuffle overrides extra_shuffle_charge with presentation mutators active', () => {
+        const memorized = finishMemorizePhase(
+            createNewRun(0, {
+                gameMode: 'puzzle',
+                initialRelicIds: ['extra_shuffle_charge'],
+                activeMutators: ['silhouette_twist'] as MutatorId[]
+            })
+        );
+        expect(memorized.shuffleCharges).toBe(2);
+        const run: RunState = {
+            ...memorized,
+            board: createBoard(fourPairTiles),
+            activeContract: { noShuffle: true, noDestroy: false, maxMismatches: null }
+        };
+        expect(canShuffleBoard(run)).toBe(false);
+        expect(canRegionShuffle(run)).toBe(false);
+        expect(applyShuffle(run)).toBe(run);
+        expect(applyRegionShuffle(run, 0)).toBe(run);
+    });
+
+    it('noShuffle overrides first_shuffle_free_per_floor with presentation mutators active', () => {
+        const memorized = finishMemorizePhase(
+            createNewRun(0, {
+                gameMode: 'puzzle',
+                initialRelicIds: ['first_shuffle_free_per_floor'],
+                activeMutators: ['wide_recall'] as MutatorId[]
+            })
+        );
+        expect(memorized.freeShuffleThisFloor).toBe(true);
+        const run: RunState = {
+            ...memorized,
+            board: createBoard(fourPairTiles),
+            shuffleCharges: 0,
+            activeContract: { noShuffle: true, noDestroy: false, maxMismatches: null }
+        };
+        expect(canShuffleBoard(run)).toBe(false);
+        expect(canRegionShuffle(run)).toBe(false);
+        expect(applyShuffle(run)).toBe(run);
+        expect(applyRegionShuffle(run, 0)).toBe(run);
+    });
+
+    it('noShuffle overrides region_shuffle_free_first with presentation mutators active', () => {
+        const memorized = finishMemorizePhase(
+            createNewRun(0, {
+                gameMode: 'puzzle',
+                initialRelicIds: ['region_shuffle_free_first'],
+                activeMutators: ['distraction_channel'] as MutatorId[]
+            })
+        );
+        expect(memorized.regionShuffleFreeThisFloor).toBe(true);
+        expect(memorized.relicIds).toContain('region_shuffle_free_first');
+        const run: RunState = {
+            ...memorized,
+            board: createBoard(fourPairTiles),
+            regionShuffleCharges: 0,
+            activeContract: { noShuffle: true, noDestroy: false, maxMismatches: null }
+        };
+        expect(canShuffleBoard(run)).toBe(false);
+        expect(canRegionShuffle(run)).toBe(false);
+        expect(applyRegionShuffle(run, 0)).toBe(run);
+    });
+
+    it('noDestroy overrides destroy_bank_plus_one with presentation mutators active', () => {
+        const memorized = finishMemorizePhase(
+            createNewRun(0, {
+                gameMode: 'puzzle',
+                initialRelicIds: ['destroy_bank_plus_one'],
+                activeMutators: ['wide_recall'] as MutatorId[]
+            })
+        );
+        expect(memorized.destroyPairCharges).toBeGreaterThanOrEqual(1);
+        const run: RunState = {
+            ...memorized,
+            board: createBoard(fourPairTiles),
+            activeContract: { noShuffle: false, noDestroy: true, maxMismatches: null }
+        };
+        expect(applyDestroyPair(run, 'a1')).toBe(run);
+    });
+
+    it('noShuffle and noDestroy block shuffle region destroy with relic economy and presentation mutators active', () => {
+        const memorized = finishMemorizePhase(
+            createNewRun(0, {
+                gameMode: 'puzzle',
+                initialRelicIds: ['extra_shuffle_charge', 'destroy_bank_plus_one'],
+                activeMutators: ['wide_recall', 'distraction_channel'] as MutatorId[]
+            })
+        );
+        expect(memorized.shuffleCharges).toBeGreaterThanOrEqual(2);
+        expect(memorized.destroyPairCharges).toBeGreaterThanOrEqual(1);
+        const run: RunState = {
+            ...memorized,
+            board: createBoard(fourPairTiles),
+            activeContract: { noShuffle: true, noDestroy: true, maxMismatches: null }
+        };
+        expect(canShuffleBoard(run)).toBe(false);
+        expect(canRegionShuffle(run)).toBe(false);
+        expect(applyShuffle(run)).toBe(run);
+        expect(applyRegionShuffle(run, 0)).toBe(run);
+        expect(applyDestroyPair(run, 'a1')).toBe(run);
+    });
+
+    it.each([
+        [false, false],
+        [false, true],
+        [true, false],
+        [true, true]
+    ])('contract matrix noShuffle=%s noDestroy=%s gates shuffle and destroy', (noShuffle, noDestroy) => {
+        const run: RunState = {
+            ...createRun(fourPairTiles),
+            shuffleCharges: 1,
+            destroyPairCharges: 1,
+            activeContract: { noShuffle, noDestroy, maxMismatches: null }
+        };
+        expect(canShuffleBoard(run)).toBe(!noShuffle);
+        if (noDestroy) {
+            expect(applyDestroyPair(run, 'a1')).toBe(run);
+        } else {
+            expect(applyDestroyPair(run, 'a1')).not.toBe(run);
+        }
+    });
+});
+
+describe('relic and mutator stacking', () => {
+    it('extends memorize under short_memorize when memorize_under_short_memorize relic is owned', () => {
+        const withRelic = createNewRun(0, {
+            gameMode: 'puzzle',
+            activeMutators: ['short_memorize'],
+            initialRelicIds: ['memorize_under_short_memorize']
+        });
+        const withoutRelic = createNewRun(0, {
+            gameMode: 'puzzle',
+            activeMutators: ['short_memorize']
+        });
+        expect(getMemorizeDurationForRun(withRelic, 1)).toBe(getMemorizeDurationForRun(withoutRelic, 1) + 220);
+        expect(getMemorizeDurationForRun(withoutRelic, 1)).toBe(getMemorizeDuration(1) - 350);
+    });
+
+    it('stacks memorize_bonus_ms with short_memorize', () => {
+        const run = createNewRun(0, {
+            gameMode: 'puzzle',
+            activeMutators: ['short_memorize'],
+            initialRelicIds: ['memorize_bonus_ms']
+        });
+        expect(getMemorizeDurationForRun(run, 1)).toBe(getMemorizeDuration(1) - 350 + 280);
+    });
+});
+
+describe('gauntlet deadline', () => {
+    it('reports expired when deadline is in the past', () => {
+        const run: RunState = {
+            ...createNewRun(0, { gameMode: 'puzzle' }),
+            gameMode: 'gauntlet',
+            gauntletDeadlineMs: Date.now() - 1
+        };
+        expect(isGauntletExpired(run)).toBe(true);
+    });
+
+    it('reports not expired when deadline is in the future', () => {
+        const run: RunState = {
+            ...createNewRun(0, { gameMode: 'puzzle' }),
+            gameMode: 'gauntlet',
+            gauntletDeadlineMs: Date.now() + 86_400_000
+        };
+        expect(isGauntletExpired(run)).toBe(false);
     });
 });

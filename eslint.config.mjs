@@ -51,7 +51,18 @@ export default tseslint.config(
         },
         rules: {
             ...reactHooks.configs.recommended.rules,
-            'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+            'react-refresh/only-export-components': [
+                'warn',
+                {
+                    allowConstantExport: true,
+                    allowExportNames: [
+                        'useCardArtFilters',
+                        'useCardArtFiltersOptional',
+                        'usePlatformTiltContext',
+                        'wipEndproductSvgFiles'
+                    ]
+                }
+            ],
             '@typescript-eslint/consistent-type-imports': 'warn',
             '@typescript-eslint/no-misused-promises': ['error', { checksVoidReturn: { attributes: false } }]
         }
@@ -77,7 +88,18 @@ export default tseslint.config(
         },
         rules: {
             ...reactHooks.configs.recommended.rules,
-            'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+            'react-refresh/only-export-components': [
+                'warn',
+                {
+                    allowConstantExport: true,
+                    allowExportNames: [
+                        'useCardArtFilters',
+                        'useCardArtFiltersOptional',
+                        'usePlatformTiltContext',
+                        'wipEndproductSvgFiles'
+                    ]
+                }
+            ],
             '@typescript-eslint/consistent-type-imports': 'off',
             '@typescript-eslint/no-misused-promises': 'off'
         }

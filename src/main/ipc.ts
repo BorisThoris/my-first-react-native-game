@@ -5,31 +5,92 @@ import type { PersistenceService } from './persistence';
 import type { SteamAdapter } from './steam';
 
 const applyDisplayMode = (window: BrowserWindow, mode: DisplayMode): void => {
-    window.setFullScreen(mode === 'fullscreen');
+    try {
+        window.setFullScreen(mode === 'fullscreen');
+    } catch (error) {
+        console.error('[ipc] setFullScreen failed', mode, error);
+        throw error;
+    }
 };
 
 export const registerIpcHandlers = (
-    window: BrowserWindow,
+    getMainWindow: () => BrowserWindow | null,
     persistence: PersistenceService,
     steamAdapter: SteamAdapter
 ): void => {
-    ipcMain.handle('desktop:get-settings', () => persistence.getSettings());
-    ipcMain.handle('desktop:get-save-data', () => persistence.getSaveData());
-    ipcMain.handle('desktop:is-steam-connected', () => steamAdapter.isConnected());
+    ipcMain.handle('desktop:get-settings', () => {
+        try {
+            return persistence.getSettings();
+        } catch (error) {
+            console.error('[ipc] desktop:get-settings failed', error);
+            throw error;
+        }
+    });
+    ipcMain.handle('desktop:get-save-data', () => {
+        try {
+            return persistence.getSaveData();
+        } catch (error) {
+            console.error('[ipc] desktop:get-save-data failed', error);
+            throw error;
+        }
+    });
+    ipcMain.handle('desktop:is-steam-connected', () => {
+        try {
+            return steamAdapter.isConnected();
+        } catch (error) {
+            console.error('[ipc] desktop:is-steam-connected failed', error);
+            throw error;
+        }
+    });
     ipcMain.handle('desktop:set-display-mode', (_event, mode: DisplayMode) => {
-        applyDisplayMode(window, mode);
+        try {
+            const window = getMainWindow();
+            if (!window || window.isDestroyed()) {
+                console.warn('[ipc] desktop:set-display-mode skipped: no main window');
+                return;
+            }
+            applyDisplayMode(window, mode);
+        } catch (error) {
+            console.error('[ipc] desktop:set-display-mode failed', error);
+            throw error;
+        }
     });
     ipcMain.handle('desktop:save-settings', (_event, settings: Settings) => {
-        const saveData = persistence.saveSettings(settings);
-        applyDisplayMode(window, saveData.settings.displayMode);
-        return saveData.settings;
+        try {
+            const saveData = persistence.saveSettings(settings);
+            const window = getMainWindow();
+            if (window && !window.isDestroyed()) {
+                applyDisplayMode(window, saveData.settings.displayMode);
+            }
+            return saveData.settings;
+        } catch (error) {
+            console.error('[ipc] desktop:save-settings failed', error);
+            throw error;
+        }
     });
-    ipcMain.handle('desktop:save-game', (_event, saveData: SaveData) => persistence.saveGame(saveData));
+    ipcMain.handle('desktop:save-game', (_event, saveData: SaveData) => {
+        try {
+            return persistence.saveGame(saveData);
+        } catch (error) {
+            console.error('[ipc] desktop:save-game failed', error);
+            throw error;
+        }
+    });
     ipcMain.handle('desktop:unlock-achievement', (_event, achievementId: AchievementId) => {
-        persistence.unlockAchievement(achievementId);
-        return steamAdapter.unlockAchievement(achievementId);
+        try {
+            persistence.unlockAchievement(achievementId);
+            return steamAdapter.unlockAchievement(achievementId);
+        } catch (error) {
+            console.error('[ipc] desktop:unlock-achievement failed', achievementId, error);
+            throw error;
+        }
     });
     ipcMain.handle('desktop:quit-app', () => {
-        app.quit();
+        try {
+            app.quit();
+        } catch (error) {
+            console.error('[ipc] desktop:quit-app failed', error);
+            throw error;
+        }
     });
 };

@@ -5,6 +5,12 @@ import { registerIpcHandlers } from './ipc';
 import { PersistenceService } from './persistence';
 import { createSteamAdapter } from './steam';
 
+/** Single BrowserWindow; getter supports IPC after macOS close + activate without re-registering handlers. */
+let mainWindow: BrowserWindow | null = null;
+let persistence: PersistenceService | null = null;
+let steamAdapter: ReturnType<typeof createSteamAdapter> | null = null;
+let ipcHandlersRegistered = false;
+
 const createMainWindow = (displayMode: DisplayMode): BrowserWindow => {
     const window = new BrowserWindow({
         width: 1600,
@@ -37,26 +43,62 @@ const createMainWindow = (displayMode: DisplayMode): BrowserWindow => {
         void window.loadFile(path.join(app.getAppPath(), 'dist', 'index.html'));
     }
 
+    window.on('closed', () => {
+        if (mainWindow === window) {
+            mainWindow = null;
+        }
+    });
+
     return window;
 };
 
-const bootstrap = async (): Promise<void> => {
-    const persistence = new PersistenceService();
-    const steamAdapter = createSteamAdapter();
-    const mainWindow = createMainWindow(persistence.getSettings().displayMode);
-
-    registerIpcHandlers(mainWindow, persistence, steamAdapter);
+const ensureServicesAndIpc = (): void => {
+    if (!persistence) {
+        persistence = new PersistenceService();
+    }
+    if (!steamAdapter) {
+        steamAdapter = createSteamAdapter();
+    }
+    if (!ipcHandlersRegistered && persistence && steamAdapter) {
+        registerIpcHandlers(() => mainWindow, persistence, steamAdapter);
+        ipcHandlersRegistered = true;
+    }
 };
 
-app.whenReady().then(() => {
-    void bootstrap();
+const createOrShowMainWindow = (): void => {
+    ensureServicesAndIpc();
 
-    app.on('activate', () => {
-        if (BrowserWindow.getAllWindows().length === 0) {
-            void bootstrap();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        if (mainWindow.isMinimized()) {
+            mainWindow.restore();
         }
+        mainWindow.focus();
+        return;
+    }
+
+    const displayMode = persistence?.getSettings().displayMode ?? 'windowed';
+    mainWindow = createMainWindow(displayMode);
+};
+
+const gotLock = app.requestSingleInstanceLock();
+
+if (!gotLock) {
+    app.quit();
+} else {
+    app.on('second-instance', () => {
+        createOrShowMainWindow();
     });
-});
+
+    app.whenReady().then(() => {
+        createOrShowMainWindow();
+
+        app.on('activate', () => {
+            if (BrowserWindow.getAllWindows().length === 0) {
+                createOrShowMainWindow();
+            }
+        });
+    });
+}
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {

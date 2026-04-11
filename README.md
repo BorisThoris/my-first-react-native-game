@@ -37,6 +37,17 @@ yarn package:dir
 yarn package:win
 ```
 
+## Dev: WebGL board profiling
+
+These flags are **dev builds only** (`import.meta.env.DEV`). After changing `localStorage`, **reload the page** so the renderer picks up the new value.
+
+| Flag | Effect |
+| --- | --- |
+| `localStorage.perfBoard = '1'` | Logs `[perfBoard]` average milliseconds per frame for the consolidated tile-stepping slice in the board scene (see `src/renderer/dev/boardWebglPerfSample.ts`). |
+| `localStorage.tileStepLegacy = '1'` | Uses per-tile `useFrame` stepping instead of the scene-level consolidated loop (see `src/renderer/dev/tileStepLegacy.ts`). |
+
+Clear the key or set it to anything other than `'1'` to turn a flag off, then reload.
+
 ## Steam Notes
 
 - `steam_appid.txt` is set to `480` for local testing.
@@ -46,12 +57,22 @@ yarn package:win
 
 ## Product Scope
 
-This v1 desktop build is intentionally narrow:
+This v1 desktop build is intentionally narrow on platform, but exposes several **run types** from the main menu (see `src/shared/game-catalog.ts` for codex copy):
 
-- Arcade mode only
-- Mouse + keyboard only
+- **Classic run** (internal mode: endless): procedural floors, relic offers, escalating pair counts
+- **Daily challenge**: shared UTC seed with a rotated daily mutator
+- **Gauntlet**: run-wide countdown
+- **Puzzle**: fixed handcrafted boards from the built-in set
+- **Meditation**: calmer pacing / longer memorize windows
+- **Featured runs** from the menu include practice, scholar contract, pin vow, wild/joker, and puzzle shortcuts
+
+Also:
+
+- Mouse + keyboard (responsive layout for different window sizes)
 - Local saves, settings, and achievements
 - Windows x64 only
+
+Design and mutator details: [docs/MUTATORS.md](docs/MUTATORS.md), [docs/GAMEPLAY_SYSTEMS_ANALYSIS.md](docs/GAMEPLAY_SYSTEMS_ANALYSIS.md).
 
 ## Archived Legacy Code
 

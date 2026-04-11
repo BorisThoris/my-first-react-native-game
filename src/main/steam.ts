@@ -6,6 +6,19 @@ export interface SteamAdapter {
     unlockAchievement(achievementId: AchievementId): boolean;
 }
 
+/**
+ * Steamworks `achievement.activate` expects the **API Name** from the Steamworks Partner site
+ * (Stats & Achievements). These are currently identical to `AchievementId`; if Partner names differ,
+ * update this map only — keep `AchievementId` / save data unchanged.
+ */
+const STEAM_ACHIEVEMENT_API_NAME = {
+    ACH_FIRST_CLEAR: 'ACH_FIRST_CLEAR',
+    ACH_LAST_LIFE: 'ACH_LAST_LIFE',
+    ACH_LEVEL_FIVE: 'ACH_LEVEL_FIVE',
+    ACH_PERFECT_CLEAR: 'ACH_PERFECT_CLEAR',
+    ACH_SCORE_THOUSAND: 'ACH_SCORE_THOUSAND'
+} as const satisfies Record<AchievementId, string>;
+
 const createMockSteamAdapter = (): SteamAdapter => ({
     isConnected: () => false,
     unlockAchievement: () => false
@@ -25,7 +38,8 @@ export const createSteamAdapter = (): SteamAdapter => {
             isConnected: () => true,
             unlockAchievement: (achievementId) => {
                 try {
-                    return client.achievement.activate(achievementId);
+                    const apiName = STEAM_ACHIEVEMENT_API_NAME[achievementId];
+                    return client.achievement.activate(apiName);
                 } catch (error) {
                     console.warn('[steam] achievement unlock failed', achievementId, error);
                     return false;

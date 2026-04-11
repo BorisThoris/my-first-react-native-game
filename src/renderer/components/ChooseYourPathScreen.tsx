@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useFitShellZoom } from '../hooks/useFitShellZoom';
+import { useViewportSize } from '../hooks/useViewportSize';
 import { useShallow } from 'zustand/react/shallow';
 import { formatNextUtcReset } from '../../shared/utc-countdown';
 import { MODE_CARD_ART } from '../assets/ui';
@@ -18,6 +20,14 @@ const ChooseYourPathScreen = () => {
     );
     const [nowMs, setNowMs] = useState(() => Date.now());
     const dailyCountdown = formatNextUtcReset(nowMs);
+    const pathFitMeasureRef = useRef<HTMLDivElement | null>(null);
+    const { height: vpH, width: vpW } = useViewportSize();
+    const { fitZoom } = useFitShellZoom({
+        measureRef: pathFitMeasureRef,
+        viewportWidth: vpW,
+        viewportHeight: vpH,
+        padding: 14
+    });
 
     useEffect(() => {
         const id = window.setInterval(() => setNowMs(Date.now()), 1000);
@@ -26,6 +36,10 @@ const ChooseYourPathScreen = () => {
 
     return (
         <section aria-label="Choose Your Path" className={`${metaStyles.shell} ${metaStyles.shellMetaStage}`} role="region">
+            <div className={styles.pathFitViewport}>
+                <div ref={pathFitMeasureRef} className={styles.pathFitMeasureOuter}>
+                    <div className={styles.pathFitZoomInner} style={{ zoom: fitZoom }}>
+                        <div className={styles.pathFitStack}>
             <header className={metaStyles.header}>
                 <div className={metaStyles.headerText}>
                     <Eyebrow tone="menu">Start a run</Eyebrow>
@@ -42,7 +56,7 @@ const ChooseYourPathScreen = () => {
                 </UiButton>
             </header>
 
-            <div className={metaStyles.body}>
+            <div className={`${metaStyles.body} ${styles.pathBody}`}>
                 <div className={styles.cardGrid}>
                     <button
                         className={`${styles.card} ${styles.cardClassic}`}
@@ -95,6 +109,10 @@ const ChooseYourPathScreen = () => {
                         <div className={styles.cardFooter}>Best floor: —</div>
                         </span>
                     </button>
+                </div>
+            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>

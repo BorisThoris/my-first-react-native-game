@@ -4,7 +4,10 @@ import { createMulberry32, hashStringToSeed } from './rng';
 /** Rules version that introduced per-floor endless mutators (keep in sync with contracts bump). */
 export const FLOOR_SCHEDULE_RULES_VERSION = 2;
 
-/** One entry per step in the endless cycle (level 1 = index 0). */
+/**
+ * One entry per step in the endless cycle (level 1 = index 0).
+ * `wide_recall`, `silhouette_twist`, and `distraction_channel` pair with renderer styling and flat per-match penalties in `game.ts` (rules v6+).
+ */
 const ENDLESS_FLOOR_CYCLE: { mutators: MutatorId[]; floorTag: FloorTag }[] = [
     { mutators: ['wide_recall'], floorTag: 'normal' },
     { mutators: ['short_memorize'], floorTag: 'normal' },

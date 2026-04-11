@@ -23,7 +23,6 @@ const App = () => {
         dismissHowToPlay,
         hydrated,
         hydrate,
-        importRunFromClipboard,
         newlyUnlockedAchievements,
         openCollection,
         openCodexFromMenu,
@@ -50,7 +49,6 @@ const App = () => {
             dismissHowToPlay: state.dismissHowToPlay,
             hydrated: state.hydrated,
             hydrate: state.hydrate,
-            importRunFromClipboard: state.importRunFromClipboard,
             newlyUnlockedAchievements: state.newlyUnlockedAchievements,
             openCollection: state.openCollection,
             openCodexFromMenu: state.openCodexFromMenu,
@@ -133,7 +131,7 @@ const App = () => {
             style={themeStyle}
         >
             <div className={styles.ambientGlow} />
-            <div className={styles.content}>
+            <div className={styles.content} data-app-scrollport>
                 {showMenuShell && (
                     <div
                         aria-hidden={introOverlayVisible}
@@ -163,22 +161,6 @@ const App = () => {
                                 onMeditationRunWithMutators={startMeditationRunWithMutators}
                                 onPinVowRun={startPinVowRun}
                                 onWildRun={startWildRun}
-                                onImportRun={() => {
-                                    const raw = window.prompt(
-                                        'Paste a Memory Dungeon run JSON (from Copy run seed on game over).'
-                                    );
-                                    if (raw === null) {
-                                        return;
-                                    }
-                                    const trimmed = raw.trim();
-                                    if (!trimmed) {
-                                        return;
-                                    }
-                                    const ok = importRunFromClipboard(trimmed);
-                                    if (!ok) {
-                                        window.alert('Could not import that payload. Check the JSON and try again.');
-                                    }
-                                }}
                                 showHowToPlay={!saveData.onboardingDismissed}
                             />
                         ) : null}

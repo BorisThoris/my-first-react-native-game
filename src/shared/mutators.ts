@@ -47,12 +47,13 @@ export const MUTATOR_CATALOG: Record<MutatorId, MutatorDefinition> = {
     wide_recall: {
         id: 'wide_recall',
         title: 'Wide recall',
-        description: 'Recall phase spans a wider tile grid footprint.'
+        description:
+            'Play phase de-emphasizes symbols vs labels on flipped tiles; each successful match scores slightly less.'
     },
     silhouette_twist: {
         id: 'silhouette_twist',
         title: 'Silhouette twist',
-        description: 'Face presentation leans on silhouette-style reads for matching.'
+        description: 'Silhouette-style face reads during play; each successful match scores slightly less.'
     },
     n_back_anchor: {
         id: 'n_back_anchor',
@@ -62,7 +63,8 @@ export const MUTATOR_CATALOG: Record<MutatorId, MutatorDefinition> = {
     distraction_channel: {
         id: 'distraction_channel',
         title: 'Distraction channel',
-        description: 'Optional transient numeric channel—respects reduced motion when enabled.'
+        description:
+            'Optional cycling digit HUD during play (settings; off by default; hidden when reduced motion). Cosmetic only—each successful match still scores slightly less while the mutator is active.'
     },
     findables_floor: {
         id: 'findables_floor',

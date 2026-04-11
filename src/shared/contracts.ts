@@ -1,6 +1,6 @@
 export const SAVE_SCHEMA_VERSION = 4;
 /** Bump when generation rules change (tile order, mutators, pair layout). */
-export const GAME_RULES_VERSION = 5;
+export const GAME_RULES_VERSION = 7;
 export const INITIAL_LIVES = 4;
 export const MAX_LIVES = 5;
 export const MATCH_DELAY_MS = 850;
@@ -312,8 +312,6 @@ export interface RunState {
     nBackAnchorPairKey: string | null;
     /** Pair keys matched this run (spaced encore bookkeeping). */
     matchedPairKeysThisRun: string[];
-    /** Distraction UI tick (renderer). */
-    distractionTick: number;
     weakerShuffleMode: WeakerShuffleMode;
     shuffleScoreTaxActive: boolean;
     /** Copied from settings at run start for resolve timing. */
