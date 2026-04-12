@@ -266,22 +266,6 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const unlockedDefinitions = achievements
         .map((achievementId) => ACHIEVEMENTS.find((item) => item.id === achievementId))
         .filter((achievement): achievement is (typeof ACHIEVEMENTS)[number] => Boolean(achievement));
-    const cols = run.board.columns;
-    const rows = run.board.rows;
-    /** Space above the board: single-row HUD + shell / foreground padding (compact rules in GameScreen.module.css). */
-    const chromeReserveY = isTight ? 92 : 84;
-    /** Horizontal insets: shell + gameForeground padding + left action toolbar. */
-    const chromeReserveX = (isTight ? 20 : 32) + 56;
-    const boardHorizontalBudget = Math.max(160, width - chromeReserveX);
-    const boardVerticalBudget = Math.max(200, height - chromeReserveY);
-    const minTile = isCompact ? 48 : 56;
-    const tileFit = Math.floor(Math.min(boardHorizontalBudget / cols, boardVerticalBudget / rows));
-    /** No artificial max on small viewports — tiles scale up to fill the playable area. */
-    const tileSize = Math.max(minTile, tileFit);
-    const boardStyle = {
-        ['--board-width' as string]: `${tileSize * cols}px`,
-        ['--board-height' as string]: `${tileSize * rows}px`
-    };
     const showForgivenessHint =
         run.board.level <= 3 &&
         (run.status === 'memorize' || run.status === 'playing') &&
@@ -602,7 +586,6 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                 debugPeekActive={run.debugPeekActive}
                                 dimmedTileIds={focusDimmedTileIds}
                                 interactive={run.status === 'playing' || gambitThirdPickActive}
-                                frameStyle={cameraViewportMode ? undefined : boardStyle}
                                 mobileCameraMode={cameraViewportMode}
                                 nBackAnchorPairKey={run.nBackAnchorPairKey}
                                 nBackMutatorActive={nBackMutatorActive}

@@ -1565,7 +1565,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
             <directionalLight color={colors.cyan} intensity={compact ? 0.14 : 0.18} position={[-5.8, 2.2, 6.8]} />
             <pointLight color={colors.gold} intensity={compact ? 0.14 : 0.2} position={[0, -2.2, 5.4]} />
 
-            <group ref={boardGroupRef} rotation={[-0.1, 0.08, 0]}>
+            <group ref={boardGroupRef} rotation={[0, 0, 0]}>
                 {tileBezelRows.map(
                     ({
                         faceUp,

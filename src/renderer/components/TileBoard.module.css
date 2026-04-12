@@ -1,10 +1,14 @@
-/* Size: GameScreen sets --board-width/--board-height (tileSize × columns/rows). No panel chrome — tiles read as floating on the page. */
+/* Fills the flex slot from GameScreen `.boardStage`; WebGL fit uses measured stage viewport. */
 .frame {
     position: relative;
-    width: min(100%, var(--board-width, 920px));
-    max-width: 100%;
-    aspect-ratio: var(--board-aspect, 1 / 1);
-    max-height: min(100%, var(--board-height, 920px));
+    flex: 1 1 auto;
+    align-self: stretch;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    max-width: none;
+    max-height: none;
+    margin-inline: 0;
     background: transparent;
     border: none;
     box-shadow: none;
@@ -357,11 +361,8 @@
         box-shadow 160ms ease,
         background 160ms ease,
         opacity 160ms ease;
-    transform:
-        perspective(940px)
-        rotateX(calc((var(--tilt-y, 0) * var(--field-amp) + var(--hover-y)) * -8deg))
-        rotateY(calc((var(--tilt-x, 0) * var(--field-amp) + var(--hover-x)) * 8deg));
-    transform-style: preserve-3d;
+    transform: none;
+    transform-style: flat;
     will-change: transform;
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.08),
@@ -377,11 +378,7 @@
         0 0 0 2px var(--theme-hud-chrome-border),
         0 0 40px var(--theme-glow-gold),
         0 18px 36px color-mix(in srgb, var(--theme-ink) 32%, transparent);
-    transform:
-        perspective(940px)
-        rotateX(calc((var(--tilt-y, 0) * var(--field-amp) + var(--hover-y)) * -9deg))
-        rotateY(calc((var(--tilt-x, 0) * var(--field-amp) + var(--hover-x)) * 9deg))
-        translateZ(2px);
+    transform: translateZ(0);
 }
 
 .fallbackTile::before {
@@ -609,12 +606,12 @@
 /* CARD-002: subtle face-up arc; instant when reduce-motion (parent strips transitions). */
 @keyframes domCardFaceReveal {
     from {
-        transform: rotateX(-10deg) translateZ(6px) scale(0.97);
+        transform: scale(0.97);
         opacity: 0.93;
     }
 
     to {
-        transform: rotateX(0) translateZ(0) scale(1);
+        transform: scale(1);
         opacity: 1;
     }
 }

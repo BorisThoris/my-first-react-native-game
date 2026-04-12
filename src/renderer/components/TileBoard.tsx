@@ -433,13 +433,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         strength: 1,
         suspended: gestureActive
     });
-    const mergedFrameStyle = useMemo(
-        () => ({
-            ...frameStyle,
-            ['--board-aspect' as string]: `${board.columns} / ${board.rows}`
-        }),
-        [board.columns, board.rows, frameStyle]
-    );
+    const mergedFrameStyle = useMemo(() => ({ ...frameStyle }), [frameStyle]);
 
     useImperativeHandle(ref, () => ({
         runShuffleAnimation: (applyShuffle: () => void) => {

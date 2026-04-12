@@ -822,19 +822,20 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 0.55rem;
+    justify-content: flex-start;
+    gap: 0.35rem;
     width: 100%;
     position: relative;
-    padding: 0.15rem 0 0.35rem;
+    padding: 0.05rem 0 0.15rem;
     border-radius: calc(var(--ui-radius-lg) + 0.2rem);
     box-shadow:
         inset 0 0 0 1px var(--theme-hud-chrome-border-soft),
         inset 0 24px 80px color-mix(in srgb, var(--theme-shadow) 35%, transparent);
 }
 
+/* Spaghetti layout mode: no perspective skew (flat board); sizing still follows board rules. */
 .boardStageSpaghetti {
-    transform: perspective(880px) rotateX(5deg) skewX(-3.5deg);
+    transform: none;
     transform-origin: center center;
 }
 
