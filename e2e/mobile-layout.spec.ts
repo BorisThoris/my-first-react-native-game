@@ -1,7 +1,11 @@
-import { expect, test, type Locator } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { dispatchTouchSequence, forceCoarsePointerMedia, type TouchDispatchPoint } from './mobileTouchHelpers';
 import { BOARD_HIDDEN_TILE_BUTTON_RE, navigateToLevel1PlayPhase } from './tileBoardGameFlow';
-import { openMainMenuFromSave } from './visualScreenHelpers';
+import {
+    expectAppScrollportHasNoVerticalOverflow,
+    expectLocatorFullyInWindowViewport,
+    openMainMenuFromSave
+} from './visualScreenHelpers';
 
 /**
  * QA-002 — Geometry tolerances (compact touch / mobile camera layout):
@@ -42,6 +46,11 @@ async function readSettingsLayout(container: Locator): Promise<{
         footerWidth: footer!.width,
         buttonWidths: buttons
     };
+}
+
+async function expectSettingsFooterButtonsInViewport(page: Page, container: Locator): Promise<void> {
+    await expectLocatorFullyInWindowViewport(page, container.getByRole('button', { name: /^back$/i }));
+    await expectLocatorFullyInWindowViewport(page, container.getByRole('button', { name: /^save$/i }));
 }
 
 async function readBoardViewportState(frame: Locator): Promise<{
@@ -235,6 +244,8 @@ test.describe('Mobile layout (renderer)', () => {
         expect(layout.buttonWidths).toHaveLength(2);
         expect(layout.buttonWidths[0]).toBeGreaterThanOrEqual(layout.footerWidth - 2);
         expect(layout.buttonWidths[1]).toBeGreaterThanOrEqual(layout.footerWidth - 2);
+        await expectSettingsFooterButtonsInViewport(page, page.locator('section').filter({ has: page.getByRole('heading', { name: /^settings$/i }) }).first());
+        await expectAppScrollportHasNoVerticalOverflow(page);
     });
 
     test('short-height landscape run settings modal collapses to one column with full-width actions', async ({ page }) => {
@@ -251,6 +262,74 @@ test.describe('Mobile layout (renderer)', () => {
         expect(layout.buttonWidths).toHaveLength(2);
         expect(layout.buttonWidths[0]).toBeGreaterThanOrEqual(layout.footerWidth - 2);
         expect(layout.buttonWidths[1]).toBeGreaterThanOrEqual(layout.footerWidth - 2);
+        await expectSettingsFooterButtonsInViewport(page, dialog);
+        await expectAppScrollportHasNoVerticalOverflow(page);
+    });
+
+    test('900x700 settings page keeps About reset action in the viewport without app scroll', async ({ page }) => {
+        await page.setViewportSize({ width: 900, height: 700 });
+        await openMainMenuFromSave(page, true);
+        await page.getByRole('button', { name: /^settings$/i }).evaluate((element) => {
+            (element as HTMLButtonElement).click();
+        });
+        const settingsSection = page
+            .locator('section')
+            .filter({ has: page.getByRole('heading', { name: /^settings$/i }) })
+            .first();
+        await expect(settingsSection).toBeVisible();
+        await settingsSection.getByRole('button', { name: /about/i }).first().click();
+        const reset = settingsSection.getByRole('button', { name: /reset to defaults/i });
+        await expect(reset).toBeVisible();
+        await expectLocatorFullyInWindowViewport(page, reset);
+        await expectSettingsFooterButtonsInViewport(page, settingsSection);
+        await expectAppScrollportHasNoVerticalOverflow(page);
+    });
+
+    test('900x700 run settings modal keeps About reset action in the viewport without app scroll', async ({ page }) => {
+        await page.setViewportSize({ width: 900, height: 700 });
+        await navigateToLevel1PlayPhase(page);
+        await page.getByRole('button', { name: /run settings \(toolbar\)/i }).evaluate((element) => {
+            (element as HTMLButtonElement).click();
+        });
+        const dialog = page.getByRole('dialog', { name: /run settings/i });
+        await expect(dialog).toBeVisible();
+        await dialog.getByRole('button', { name: /about/i }).first().click();
+        const reset = dialog.getByRole('button', { name: /reset to defaults/i });
+        await expect(reset).toBeVisible();
+        await expectLocatorFullyInWindowViewport(page, reset);
+        await expectSettingsFooterButtonsInViewport(page, dialog);
+        await expectAppScrollportHasNoVerticalOverflow(page);
+    });
+
+    test('1280x720 settings page stays two-column and keeps actions in viewport', async ({ page }) => {
+        await page.setViewportSize({ width: 1280, height: 720 });
+        await openMainMenuFromSave(page, true);
+        await page.getByRole('button', { name: /^settings$/i }).evaluate((element) => {
+            (element as HTMLButtonElement).click();
+        });
+        const settingsSection = page
+            .locator('section')
+            .filter({ has: page.getByRole('heading', { name: /^settings$/i }) })
+            .first();
+        await expect(settingsSection).toBeVisible();
+        const layout = await readSettingsLayout(settingsSection);
+        expect(layout.contentBelowNav).toBe(false);
+        await expectSettingsFooterButtonsInViewport(page, settingsSection);
+        await expectAppScrollportHasNoVerticalOverflow(page);
+    });
+
+    test('1280x720 run settings modal stays two-column and keeps actions in viewport', async ({ page }) => {
+        await page.setViewportSize({ width: 1280, height: 720 });
+        await navigateToLevel1PlayPhase(page);
+        await page.getByRole('button', { name: /run settings \(toolbar\)/i }).evaluate((element) => {
+            (element as HTMLButtonElement).click();
+        });
+        const dialog = page.getByRole('dialog', { name: /run settings/i });
+        await expect(dialog).toBeVisible();
+        const layout = await readSettingsLayout(dialog);
+        expect(layout.contentBelowNav).toBe(false);
+        await expectSettingsFooterButtonsInViewport(page, dialog);
+        await expectAppScrollportHasNoVerticalOverflow(page);
     });
 
     test('compact touch viewport uses a full-bleed board behind the HUD', async ({ page }) => {

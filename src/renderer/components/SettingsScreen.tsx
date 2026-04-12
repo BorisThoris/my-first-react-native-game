@@ -9,9 +9,12 @@ import type {
     WeakerShuffleMode
 } from '../../shared/contracts';
 import { DEFAULT_SETTINGS } from '../../shared/save-data';
+import { isNarrowShortLandscapeForMenuStack, VIEWPORT_MOBILE_MAX } from '../breakpoints';
 import { Eyebrow, Panel, ScreenTitle, UiButton } from '../ui';
 import packageJson from '../../../package.json';
 import { getFocusableElements } from '../a11y/focusables';
+import { useFitShellZoom } from '../hooks/useFitShellZoom';
+import { useViewportSize } from '../hooks/useViewportSize';
 import { useAppStore } from '../store/useAppStore';
 import styles from './SettingsScreen.module.css';
 
@@ -164,11 +167,25 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
     const [activeCategory, setActiveCategory] = useState<SettingsCategory>('gameplay');
     const isModal = presentation === 'modal';
     const modalShellRef = useRef<HTMLElement | null>(null);
+    const settingsFitMeasureRef = useRef<HTMLDivElement | null>(null);
     const previousFocusRef = useRef<HTMLElement | null>(null);
+    const { height: viewportHeight, width: viewportWidth } = useViewportSize();
     const titleId = useId();
     const title = isModal ? 'Run Settings' : 'Settings';
     const eyebrow = isModal ? 'Paused' : 'Preferences';
     const isDirty = JSON.stringify(draft) !== JSON.stringify(settings);
+    const isPhoneViewport = viewportWidth <= VIEWPORT_MOBILE_MAX;
+    const stackedSettingsShell = isPhoneViewport || isNarrowShortLandscapeForMenuStack(viewportWidth, viewportHeight);
+    const wideShortDesktopShell = !stackedSettingsShell && viewportWidth >= 1024 && viewportHeight <= 760;
+    const fitShellPadding = wideShortDesktopShell ? 8 : 14;
+    const { fitZoom: settingsFitZoom } = useFitShellZoom({
+        enabled: true,
+        measureRef: settingsFitMeasureRef,
+        padding: fitShellPadding,
+        recomputeKey: activeCategory,
+        viewportHeight,
+        viewportWidth
+    });
 
     useEffect(() => {
         setDraft(settings);
@@ -248,53 +265,51 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
         <section
             aria-labelledby={isModal ? titleId : undefined}
             aria-modal={isModal ? 'true' : undefined}
-            className={`${styles.shell} ${isModal ? styles.shellModal : ''}`}
+            className={`${styles.shell} ${isModal ? styles.shellModal : ''} ${stackedSettingsShell ? styles.stackedShell : ''} ${wideShortDesktopShell ? styles.wideShortShell : ''}`.trim()}
             onKeyDown={isModal ? handleModalKeyDown : undefined}
             ref={modalShellRef}
             role={isModal ? 'dialog' : undefined}
             tabIndex={isModal ? -1 : undefined}
         >
-            <Panel
-                className={`${styles.panel} ${isModal ? styles.panelModal : ''}`}
-                maxViewportHeight
-                padding="none"
-                variant="strong"
-            >
-                <div className={styles.frame}>
-                    <aside className={styles.sidebar}>
-                        <div className={styles.sidebarHeader}>
-                            <Eyebrow>{eyebrow}</Eyebrow>
-                            <ScreenTitle as="h2" id={titleId} role="screenMd">
-                                {title}
-                            </ScreenTitle>
-                        </div>
+            <div className={styles.fitViewport}>
+                <div ref={settingsFitMeasureRef} className={styles.fitMeasureOuter}>
+                    <div className={styles.fitZoomInner} style={{ zoom: settingsFitZoom }}>
+                        <Panel className={`${styles.panel} ${isModal ? styles.panelModal : ''}`} padding="none" variant="strong">
+                            <div className={styles.frame}>
+                                <aside className={styles.sidebar}>
+                                    <div className={styles.sidebarHeader}>
+                                        <Eyebrow>{eyebrow}</Eyebrow>
+                                        <ScreenTitle as="h2" id={titleId} role="screenMd">
+                                            {title}
+                                        </ScreenTitle>
+                                    </div>
 
-                        <nav className={styles.categoryNav}>
-                            {SETTINGS_CATEGORIES.map((category) => (
-                                <button
-                                    aria-pressed={activeCategory === category.id}
-                                    className={`${styles.categoryButton} ${activeCategory === category.id ? styles.categoryButtonActive : ''}`.trim()}
-                                    key={category.id}
-                                    onClick={() => setActiveCategory(category.id)}
-                                    type="button"
-                                >
-                                    <span className={styles.categoryLabel}>{category.label}</span>
-                                    <span className={styles.categoryNote}>{category.note}</span>
-                                </button>
-                            ))}
-                        </nav>
-                    </aside>
+                                    <nav className={styles.categoryNav}>
+                                        {SETTINGS_CATEGORIES.map((category) => (
+                                            <button
+                                                aria-pressed={activeCategory === category.id}
+                                                className={`${styles.categoryButton} ${activeCategory === category.id ? styles.categoryButtonActive : ''}`.trim()}
+                                                key={category.id}
+                                                onClick={() => setActiveCategory(category.id)}
+                                                type="button"
+                                            >
+                                                <span className={styles.categoryLabel}>{category.label}</span>
+                                                <span className={styles.categoryNote}>{category.note}</span>
+                                            </button>
+                                        ))}
+                                    </nav>
+                                </aside>
 
-                    <div className={styles.contentPane}>
-                        <header className={styles.contentHeader}>
-                            <Eyebrow tone="tight">{activeCategoryMeta.label}</Eyebrow>
-                            <ScreenTitle as="h3" role="screen">
-                                {activeCategoryMeta.label}
-                            </ScreenTitle>
-                            <p className={styles.headerCopy}>{activeCategoryMeta.note}</p>
-                        </header>
+                                <div className={styles.contentPane}>
+                                    <header className={styles.contentHeader}>
+                                        <Eyebrow tone="tight">{activeCategoryMeta.label}</Eyebrow>
+                                        <ScreenTitle as="h3" role="screen">
+                                            {activeCategoryMeta.label}
+                                        </ScreenTitle>
+                                        <p className={styles.headerCopy}>{activeCategoryMeta.note}</p>
+                                    </header>
 
-                        <div className={styles.contentScroll}>
+                                    <div className={styles.contentScroll}>
                             {activeCategory === 'gameplay' ? (
                                 <>
                                     <Panel className={styles.section} padding="lg" variant="muted">
@@ -587,9 +602,12 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                                 </UiButton>
                             </div>
                         </footer>
+                                </div>
+                            </div>
+                        </Panel>
                     </div>
                 </div>
-            </Panel>
+            </div>
         </section>
     );
 };

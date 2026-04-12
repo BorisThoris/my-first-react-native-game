@@ -1,8 +1,8 @@
 .shell {
     min-height: 100dvh;
     max-height: 100dvh;
-    display: grid;
-    place-items: center;
+    display: flex;
+    flex-direction: column;
     padding: var(--ui-shell-screen-pad-block) var(--ui-shell-screen-pad-inline);
     overflow: hidden;
 }
@@ -21,33 +21,67 @@
     z-index: 24;
 }
 
-.panel {
+.fitViewport {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    max-height: 100%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    container-type: size;
+    container-name: settings-shell;
+
+    --settings-sidebar-gap: var(--theme-space-xl);
+    --settings-sidebar-pad: var(--ui-card-pad-lg);
+    --settings-content-gap: var(--theme-space-xl);
+    --settings-content-pad: var(--ui-card-pad-lg);
+    --settings-header-gap: var(--theme-space-2xs);
+    --settings-section-gap: calc(var(--theme-space-lg) + var(--theme-space-2xs));
+    --settings-section-pad: var(--ui-card-pad-lg);
+    --settings-field-pad: var(--ui-card-pad-md);
+    --settings-footer-pad-top: var(--theme-space-xl);
+}
+
+.fitMeasureOuter {
+    flex: 0 0 auto;
     width: min(1220px, 100%);
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.shellModal .fitMeasureOuter {
+    width: min(980px, 100%);
+}
+
+.fitZoomInner {
+    width: 100%;
+    will-change: zoom;
+}
+
+.panel,
+.panelModal {
+    width: 100%;
     display: flex;
     flex-direction: column;
     min-height: 0;
     backdrop-filter: blur(18px);
 }
 
-.panelModal {
-    width: min(980px, 100%);
-    max-height: calc(100dvh - (var(--theme-space-3xl) + var(--theme-space-md)));
-}
-
 .frame {
     display: grid;
     grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
-    flex: 1 1 auto;
     min-height: 0;
-    max-height: min(760px, calc(100dvh - (var(--theme-space-3xl) + var(--theme-space-xl))));
     overflow: hidden;
 }
 
 .sidebar {
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-xl);
-    padding: var(--ui-card-pad-lg);
+    gap: var(--settings-sidebar-gap);
+    padding: var(--settings-sidebar-pad);
     border-right: 1px solid var(--theme-divider-hairline);
     background:
         linear-gradient(180deg, var(--theme-backdrop-body-rim), transparent 18%),
@@ -119,15 +153,15 @@
 .contentPane {
     display: flex;
     flex-direction: column;
+    gap: var(--settings-content-gap);
     min-width: 0;
     min-height: 0;
-    padding: var(--ui-card-pad-lg);
+    padding: var(--settings-content-pad);
 }
 
 .contentHeader {
     display: grid;
-    gap: var(--theme-space-2xs);
-    padding-bottom: var(--theme-space-xl);
+    gap: var(--settings-header-gap);
 }
 
 .headerCopy {
@@ -138,16 +172,15 @@
 
 .contentScroll {
     display: grid;
-    gap: calc(var(--theme-space-lg) + var(--theme-space-2xs));
+    gap: var(--settings-section-gap);
     min-height: 0;
     overflow: hidden;
-    padding-right: 0;
-    padding-bottom: var(--theme-space-sm);
 }
 
 .section {
     display: grid;
-    gap: calc(var(--theme-space-lg) + var(--theme-space-2xs));
+    gap: var(--settings-section-gap);
+    padding: var(--settings-section-pad);
 }
 
 .sectionHeading {
@@ -157,7 +190,7 @@
 .fieldCard {
     display: grid;
     gap: var(--theme-space-md);
-    padding: var(--ui-card-pad-md);
+    padding: var(--settings-field-pad);
     border-radius: var(--ui-radius-lg);
     border: 1px solid var(--theme-card-border-muted);
     background: var(--theme-surface-well);
@@ -239,7 +272,7 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--theme-space-xl);
-    padding: var(--ui-card-pad-md);
+    padding: var(--settings-field-pad);
     border-radius: var(--ui-radius-lg);
     border: 1px solid var(--theme-card-border-muted);
     background: var(--theme-surface-well);
@@ -317,12 +350,10 @@
 }
 
 .footer {
-    margin-top: var(--theme-space-xl);
-    padding-top: var(--theme-space-xl);
+    margin-top: auto;
+    padding-top: var(--settings-footer-pad-top);
     border-top: 1px solid var(--theme-divider-hairline);
-    position: sticky;
-    bottom: 0;
-    background: linear-gradient(180deg, rgba(7, 8, 12, 0), rgba(7, 8, 12, 0.94) 22%);
+    background: linear-gradient(180deg, rgba(7, 8, 12, 0), rgba(7, 8, 12, 0.94) 40%);
 }
 
 .footerActions {
@@ -331,82 +362,100 @@
     gap: var(--ui-footer-action-gap);
 }
 
-@media (max-width: 960px), ((max-height: 760px) and (max-width: 1024px)) {
-    .frame {
-        grid-template-columns: 1fr;
-    }
-
-    .sidebar {
-        border-right: none;
-        border-bottom: 1px solid var(--theme-divider-hairline);
-        padding-bottom: var(--ui-card-pad-md);
-    }
-
-    .categoryNav {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+.stackedShell .fitViewport {
+    --settings-sidebar-gap: var(--theme-space-md);
+    --settings-sidebar-pad: var(--ui-card-pad-md);
+    --settings-content-gap: var(--theme-space-md);
+    --settings-content-pad: var(--ui-card-pad-md);
+    --settings-section-gap: var(--theme-space-md);
+    --settings-section-pad: var(--ui-card-pad-md);
+    --settings-field-pad: calc(var(--ui-card-pad-md) - var(--theme-space-2xs));
+    --settings-footer-pad-top: var(--theme-space-md);
 }
 
-@media (max-width: 760px), ((max-height: 760px) and (max-width: 1024px)) {
-    .shell {
-        place-items: start;
-    }
+.stackedShell .frame {
+    grid-template-columns: 1fr;
+}
 
-    .shellModal {
-        padding:
-            max(var(--theme-space-xl), env(safe-area-inset-top, 0px))
-            max(var(--theme-space-xl), env(safe-area-inset-right, 0px))
-            max(var(--theme-space-xl), env(safe-area-inset-bottom, 0px))
-            max(var(--theme-space-xl), env(safe-area-inset-left, 0px));
-    }
+.stackedShell .sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--theme-divider-hairline);
+    padding-bottom: var(--ui-card-pad-md);
+}
 
-    .panel {
-        max-height: calc(100dvh - var(--theme-space-xl));
-    }
+.stackedShell .categoryNav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
 
-    .contentPane {
-        padding: var(--ui-card-pad-md);
-    }
+.stackedShell .footerActions {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+}
 
-    .contentScroll {
-        gap: var(--theme-space-lg);
-        padding-right: 0;
-    }
+.stackedShell .footerActions :global(button) {
+    width: 100%;
+}
 
-    .footerActions {
-        flex-direction: column;
-        align-items: stretch;
-        width: 100%;
-    }
+.wideShortShell .fitViewport {
+    --settings-sidebar-gap: var(--theme-space-md);
+    --settings-sidebar-pad: calc(var(--theme-space-md) + var(--theme-space-2xs));
+    --settings-content-gap: var(--theme-space-md);
+    --settings-content-pad: calc(var(--theme-space-md) + var(--theme-space-2xs));
+    --settings-section-gap: var(--theme-space-md);
+    --settings-section-pad: calc(var(--theme-space-md) + var(--theme-space-2xs));
+    --settings-field-pad: calc(var(--ui-card-pad-md) - var(--theme-space-2xs));
+    --settings-footer-pad-top: var(--theme-space-md);
+}
 
-    .footerActions :global(button) {
-        width: 100%;
-    }
+.wideShortShell .frame {
+    grid-template-columns: minmax(220px, 272px) minmax(0, 1fr);
+}
+
+.wideShortShell .categoryButton {
+    padding: 0.8rem 0.9rem;
+}
+
+.wideShortShell .categoryLabel {
+    font-size: 0.86rem;
+}
+
+.wideShortShell .categoryNote {
+    font-size: 0.72rem;
+}
+
+.wideShortShell .fieldText strong {
+    font-size: 0.88rem;
+}
+
+.wideShortShell .fieldText span {
+    font-size: 0.78rem;
+}
+
+.wideShortShell .sliderValue {
+    font-size: 0.94rem;
 }
 
 @media (max-width: 560px) {
-    .sidebar {
+    .stackedShell .sidebar {
         gap: var(--theme-space-sm);
     }
 
-    .categoryNav {
+    .stackedShell .categoryNav {
         display: flex;
         flex-wrap: wrap;
         gap: 0.45rem;
+        grid-template-columns: none;
     }
 
-    .categoryButton {
+    .stackedShell .categoryButton {
         flex: 1 1 calc(50% - 0.45rem);
         min-height: var(--ui-touch-target-min);
         padding: 0.75rem 0.82rem;
     }
 
-    .categoryNote {
+    .stackedShell .categoryNote {
         display: none;
-    }
-
-    .categoryNav {
-        grid-template-columns: 1fr;
     }
 
     .toggleRow {

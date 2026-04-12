@@ -9,6 +9,8 @@ export interface UseFitShellZoomArgs {
     padding?: number;
     /** Disable fit zoom entirely when the shell should not scale (caller applies zoom: 1). */
     enabled?: boolean;
+    /** Re-run fit measurement when shell content changes without a viewport resize (e.g. tab/category switch). */
+    recomputeKey?: unknown;
 }
 
 export interface ComputeFitShellZoomFactorArgs {
@@ -53,7 +55,8 @@ export function useFitShellZoom({
     viewportWidth,
     viewportHeight,
     padding = 14,
-    enabled = true
+    enabled = true,
+    recomputeKey
 }: UseFitShellZoomArgs): { fitZoom: number } {
     const [fitZoom, setFitZoom] = useState(1);
     const appliedZoomRef = useRef(1);
@@ -139,7 +142,7 @@ export function useFitShellZoom({
             window.clearTimeout(delayed);
             void fontsDone;
         };
-    }, [measureRef, viewportWidth, viewportHeight, padding, enabled]);
+    }, [measureRef, viewportWidth, viewportHeight, padding, enabled, recomputeKey]);
 
     return { fitZoom };
 }
