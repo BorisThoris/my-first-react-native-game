@@ -53,6 +53,51 @@ async function expectSettingsFooterButtonsInViewport(page: Page, container: Loca
     await expectLocatorFullyInWindowViewport(page, container.getByRole('button', { name: /^save$/i }));
 }
 
+async function readSettingsShellMetrics(
+    page: Page,
+    container: Locator
+): Promise<{ panelTop: number; panelBottom: number; viewportHeight: number; zoom: number }> {
+    const panel = container.getByTestId('settings-shell-panel');
+    const zoomNode = container.getByTestId('settings-shell-fit-zoom');
+    const panelBox = await panel.boundingBox();
+
+    expect(panelBox).toBeTruthy();
+
+    const zoom = await zoomNode.evaluate((element) => {
+        const node = element as HTMLElement;
+        const inlineZoom = node.style.zoom;
+        const computedZoom = getComputedStyle(node).zoom;
+        return Number.parseFloat(inlineZoom || computedZoom || '1') || 1;
+    });
+
+    return {
+        panelTop: panelBox!.y,
+        panelBottom: panelBox!.y + panelBox!.height,
+        viewportHeight: await page.evaluate(() => window.innerHeight),
+        zoom
+    };
+}
+
+async function expectSettingsPanelInset(page: Page, container: Locator, minInset = 4): Promise<void> {
+    const metrics = await readSettingsShellMetrics(page, container);
+    expect(metrics.panelTop).toBeGreaterThanOrEqual(minInset);
+    expect(metrics.panelBottom).toBeLessThanOrEqual(metrics.viewportHeight - minInset);
+}
+
+/** Short stacked settings must stay readable at shell zoom 1 (no tiny-fit regression on controls). */
+async function expectSettingsCategoryStripReadable(container: Locator): Promise<void> {
+    const gameplayTab = container.getByRole('button', { name: /^gameplay$/i }).first();
+    const tabBox = await gameplayTab.boundingBox();
+    expect(tabBox).toBeTruthy();
+    expect(tabBox!.height, 'category tab height').toBeGreaterThanOrEqual(26);
+
+    const layoutStandard = container.getByRole('button', { name: /^standard$/i }).first();
+    await expect(layoutStandard).toBeVisible();
+    const segBox = await layoutStandard.boundingBox();
+    expect(segBox).toBeTruthy();
+    expect(segBox!.height, 'segment control height').toBeGreaterThanOrEqual(22);
+}
+
 async function readBoardViewportState(frame: Locator): Promise<{
     mobileCameraMode: boolean;
     panX: number;
@@ -235,16 +280,22 @@ test.describe('Mobile layout (renderer)', () => {
             (element as HTMLButtonElement).click();
         });
         await expect(page.getByRole('heading', { name: /^settings$/i })).toBeVisible();
-
-        const layout = await readSettingsLayout(
-            page.locator('section').filter({ has: page.getByRole('heading', { name: /^settings$/i }) }).first()
-        );
+        const settingsSection = page
+            .locator('section')
+            .filter({ has: page.getByRole('heading', { name: /^settings$/i }) })
+            .first();
+        await expect(settingsSection).toHaveAttribute('data-settings-layout', 'short-stacked');
+        const layout = await readSettingsLayout(settingsSection);
+        const metrics = await readSettingsShellMetrics(page, settingsSection);
 
         expect(layout.contentBelowNav).toBe(true);
         expect(layout.buttonWidths).toHaveLength(2);
         expect(layout.buttonWidths[0]).toBeGreaterThanOrEqual(layout.footerWidth - 2);
         expect(layout.buttonWidths[1]).toBeGreaterThanOrEqual(layout.footerWidth - 2);
-        await expectSettingsFooterButtonsInViewport(page, page.locator('section').filter({ has: page.getByRole('heading', { name: /^settings$/i }) }).first());
+        expect(metrics.zoom).toBeCloseTo(1, 3);
+        await expectSettingsPanelInset(page, settingsSection, 6);
+        await expectSettingsCategoryStripReadable(settingsSection);
+        await expectSettingsFooterButtonsInViewport(page, settingsSection);
         await expectAppScrollportHasNoVerticalOverflow(page);
     });
 
@@ -256,12 +307,17 @@ test.describe('Mobile layout (renderer)', () => {
         });
         const dialog = page.getByRole('dialog', { name: /run settings/i });
         await expect(dialog).toBeVisible();
+        await expect(dialog).toHaveAttribute('data-settings-layout', 'short-stacked');
         const layout = await readSettingsLayout(dialog);
+        const metrics = await readSettingsShellMetrics(page, dialog);
 
         expect(layout.contentBelowNav).toBe(true);
         expect(layout.buttonWidths).toHaveLength(2);
         expect(layout.buttonWidths[0]).toBeGreaterThanOrEqual(layout.footerWidth - 2);
         expect(layout.buttonWidths[1]).toBeGreaterThanOrEqual(layout.footerWidth - 2);
+        expect(metrics.zoom).toBeCloseTo(1, 3);
+        await expectSettingsPanelInset(page, dialog, 6);
+        await expectSettingsCategoryStripReadable(dialog);
         await expectSettingsFooterButtonsInViewport(page, dialog);
         await expectAppScrollportHasNoVerticalOverflow(page);
     });
@@ -277,7 +333,9 @@ test.describe('Mobile layout (renderer)', () => {
             .filter({ has: page.getByRole('heading', { name: /^settings$/i }) })
             .first();
         await expect(settingsSection).toBeVisible();
+        await expect(settingsSection).toHaveAttribute('data-settings-layout', 'short-stacked');
         await settingsSection.getByRole('button', { name: /about/i }).first().click();
+        await settingsSection.getByTestId('settings-subsection-nav').getByRole('button', { name: /^reset$/i }).click();
         const reset = settingsSection.getByRole('button', { name: /reset to defaults/i });
         await expect(reset).toBeVisible();
         await expectLocatorFullyInWindowViewport(page, reset);
@@ -293,7 +351,9 @@ test.describe('Mobile layout (renderer)', () => {
         });
         const dialog = page.getByRole('dialog', { name: /run settings/i });
         await expect(dialog).toBeVisible();
+        await expect(dialog).toHaveAttribute('data-settings-layout', 'short-stacked');
         await dialog.getByRole('button', { name: /about/i }).first().click();
+        await dialog.getByTestId('settings-subsection-nav').getByRole('button', { name: /^reset$/i }).click();
         const reset = dialog.getByRole('button', { name: /reset to defaults/i });
         await expect(reset).toBeVisible();
         await expectLocatorFullyInWindowViewport(page, reset);
@@ -312,8 +372,13 @@ test.describe('Mobile layout (renderer)', () => {
             .filter({ has: page.getByRole('heading', { name: /^settings$/i }) })
             .first();
         await expect(settingsSection).toBeVisible();
+        await expect(settingsSection).toHaveAttribute('data-settings-layout', 'wide-short');
         const layout = await readSettingsLayout(settingsSection);
+        const metrics = await readSettingsShellMetrics(page, settingsSection);
         expect(layout.contentBelowNav).toBe(false);
+        expect(metrics.zoom).toBeGreaterThanOrEqual(0.92);
+        expect(metrics.zoom).toBeLessThanOrEqual(1.01);
+        await expectSettingsPanelInset(page, settingsSection, 4);
         await expectSettingsFooterButtonsInViewport(page, settingsSection);
         await expectAppScrollportHasNoVerticalOverflow(page);
     });
@@ -326,8 +391,13 @@ test.describe('Mobile layout (renderer)', () => {
         });
         const dialog = page.getByRole('dialog', { name: /run settings/i });
         await expect(dialog).toBeVisible();
+        await expect(dialog).toHaveAttribute('data-settings-layout', 'wide-short');
         const layout = await readSettingsLayout(dialog);
+        const metrics = await readSettingsShellMetrics(page, dialog);
         expect(layout.contentBelowNav).toBe(false);
+        expect(metrics.zoom).toBeGreaterThanOrEqual(0.92);
+        expect(metrics.zoom).toBeLessThanOrEqual(1.01);
+        await expectSettingsPanelInset(page, dialog, 4);
         await expectSettingsFooterButtonsInViewport(page, dialog);
         await expectAppScrollportHasNoVerticalOverflow(page);
     });

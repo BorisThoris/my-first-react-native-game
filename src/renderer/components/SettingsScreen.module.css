@@ -21,6 +21,30 @@
     z-index: 24;
 }
 
+.stackedShell {
+    padding: 8px;
+}
+
+.stackedShell.shellModal {
+    padding:
+        max(8px, env(safe-area-inset-top, 0px))
+        max(8px, env(safe-area-inset-right, 0px))
+        max(8px, env(safe-area-inset-bottom, 0px))
+        max(8px, env(safe-area-inset-left, 0px));
+}
+
+.shortLandscapeShell {
+    padding-block: 6px;
+}
+
+.shortLandscapeShell.shellModal {
+    padding:
+        max(6px, env(safe-area-inset-top, 0px))
+        max(8px, env(safe-area-inset-right, 0px))
+        max(6px, env(safe-area-inset-bottom, 0px))
+        max(8px, env(safe-area-inset-left, 0px));
+}
+
 .fitViewport {
     position: relative;
     flex: 1 1 auto;
@@ -54,6 +78,11 @@
 
 .shellModal .fitMeasureOuter {
     width: min(980px, 100%);
+}
+
+/* Wide short desktop: modal matches page max width so multi-column settings do not wrap extra-tall. */
+.wideShortShell.shellModal .fitMeasureOuter {
+    width: min(1220px, 100%);
 }
 
 .fitZoomInner {
@@ -150,6 +179,11 @@
     line-height: 1.35;
 }
 
+.shellTitle,
+.contentTitle {
+    margin: 0;
+}
+
 .contentPane {
     display: flex;
     flex-direction: column;
@@ -170,11 +204,44 @@
     line-height: 1.45;
 }
 
+.subsectionNav {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(5.6rem, 1fr));
+    gap: 0.4rem;
+}
+
+.subsectionButton {
+    appearance: none;
+    min-height: 2.25rem;
+    padding: 0.45rem 0.7rem;
+    border-radius: var(--ui-radius-md);
+    border: 1px solid var(--theme-hud-chrome-border-soft);
+    background: var(--theme-surface-raised);
+    color: var(--theme-text-muted);
+    font-family: var(--theme-display-font);
+    font-size: 0.64rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition:
+        border-color 140ms ease,
+        background 140ms ease,
+        color 140ms ease;
+}
+
+.subsectionButtonActive {
+    border-color: var(--theme-border-strong);
+    background:
+        radial-gradient(circle at top left, var(--theme-glow-gold), transparent 56%),
+        linear-gradient(180deg, color-mix(in srgb, var(--theme-gold-deep) 68%, transparent), rgba(13, 11, 14, 0.92));
+    color: var(--theme-gold-bright);
+}
+
 .contentScroll {
     display: grid;
     gap: var(--settings-section-gap);
     min-height: 0;
-    overflow: hidden;
+    align-content: start;
+    overflow: visible;
 }
 
 .section {
@@ -363,14 +430,24 @@
 }
 
 .stackedShell .fitViewport {
-    --settings-sidebar-gap: var(--theme-space-md);
-    --settings-sidebar-pad: var(--ui-card-pad-md);
-    --settings-content-gap: var(--theme-space-md);
-    --settings-content-pad: var(--ui-card-pad-md);
-    --settings-section-gap: var(--theme-space-md);
-    --settings-section-pad: var(--ui-card-pad-md);
-    --settings-field-pad: calc(var(--ui-card-pad-md) - var(--theme-space-2xs));
-    --settings-footer-pad-top: var(--theme-space-md);
+    align-items: stretch;
+    justify-content: flex-start;
+    padding-block: max(4px, var(--theme-space-2xs));
+    box-sizing: border-box;
+
+    --settings-sidebar-gap: var(--theme-space-sm);
+    --settings-sidebar-pad: 0.7rem;
+    --settings-content-gap: var(--theme-space-sm);
+    --settings-content-pad: 0.7rem;
+    --settings-header-gap: 0.15rem;
+    --settings-section-gap: 0.55rem;
+    --settings-section-pad: 0.7rem;
+    --settings-field-pad: 0.6rem;
+    --settings-footer-pad-top: 0.55rem;
+}
+
+.stackedShell .fitMeasureOuter {
+    width: 100%;
 }
 
 .stackedShell .frame {
@@ -380,11 +457,37 @@
 .stackedShell .sidebar {
     border-right: none;
     border-bottom: 1px solid var(--theme-divider-hairline);
-    padding-bottom: var(--ui-card-pad-md);
+    padding-bottom: 0.55rem;
 }
 
 .stackedShell .categoryNav {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.35rem;
+}
+
+.stackedShell .sidebarHeader {
+    gap: 0.15rem;
+}
+
+.stackedShell .shellTitle {
+    font-size: clamp(1.02rem, 2.8vw, 1.18rem);
+}
+
+.stackedShell .contentTitle {
+    font-size: clamp(0.98rem, 2.6vw, 1.12rem);
+}
+
+.stackedShell .categoryButton {
+    min-height: 2.2rem;
+    padding: 0.42rem 0.5rem;
+}
+
+.stackedShell .categoryLabel {
+    font-size: 0.7rem;
+}
+
+.stackedShell .categoryNote {
+    display: none;
 }
 
 .stackedShell .footerActions {
@@ -397,19 +500,182 @@
     width: 100%;
 }
 
+.shortLandscapeShell .fitViewport {
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding-block: max(2px, var(--theme-space-2xs));
+
+    --settings-sidebar-gap: 0.35rem;
+    --settings-sidebar-pad: 0.5rem;
+    --settings-content-gap: 0.42rem;
+    --settings-content-pad: 0.5rem;
+    --settings-header-gap: 0.08rem;
+    --settings-section-gap: 0.38rem;
+    --settings-section-pad: 0.5rem;
+    --settings-field-pad: 0.45rem;
+    --settings-footer-pad-top: 0.38rem;
+}
+
+.shortLandscapeShell .fitMeasureOuter {
+    align-self: stretch;
+    max-height: 100%;
+}
+
+.shortLandscapeShell .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--settings-sidebar-gap);
+    padding: var(--settings-sidebar-pad);
+    padding-bottom: 0.45rem;
+}
+
+.shortLandscapeShell .categoryNav {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 0.28rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 0.12rem;
+    margin-inline: calc(var(--settings-sidebar-pad) * -1);
+    padding-inline: var(--settings-sidebar-pad);
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+}
+
+.shortLandscapeShell .categoryButton {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: min(5.5rem, 22vw);
+    min-height: 1.72rem;
+    padding: 0.26rem 0.5rem;
+    text-align: center;
+}
+
+.shortLandscapeShell .sidebarHeader {
+    gap: 0.05rem;
+}
+
+.shortLandscapeShell .sidebarHeader p {
+    display: none;
+}
+
+.shortLandscapeShell .contentHeader {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    column-gap: 0.35rem;
+    row-gap: 0.15rem;
+}
+
+.shortLandscapeShell .contentHeader > .headerCopy {
+    display: none;
+}
+
+.shortLandscapeShell .subsectionNav {
+    gap: 0.3rem;
+}
+
+.shortLandscapeShell .subsectionButton {
+    min-height: 1.8rem;
+    padding: 0.28rem 0.48rem;
+    font-size: 0.6rem;
+}
+
+.shortLandscapeShell .sectionHeading {
+    font-size: 0.94rem;
+}
+
+.shortLandscapeShell .fieldCard {
+    gap: 0.35rem;
+}
+
+.shortLandscapeShell .categoryLabel {
+    font-size: 0.62rem;
+}
+
+.shortLandscapeShell .fieldText strong {
+    font-size: 0.8rem;
+}
+
+.shortLandscapeShell .fieldText span {
+    font-size: 0.72rem;
+    line-height: 1.25;
+}
+
+.shortLandscapeShell .segmentButton,
+.shortLandscapeShell .segmentButtonDisabled {
+    min-height: 2rem;
+    padding: 0.38rem 0.55rem;
+    font-size: 0.62rem;
+}
+
+.shortLandscapeShell .toggleStack {
+    gap: 0.45rem;
+}
+
+.shortLandscapeShell .toggleRow {
+    align-items: flex-start;
+    gap: var(--theme-space-sm);
+}
+
+.shortLandscapeShell .toggleTrack {
+    width: 2.9rem;
+    height: 1.7rem;
+}
+
+.shortLandscapeShell .toggleTrack::after {
+    top: 0.13rem;
+    left: 0.13rem;
+    width: 1.2rem;
+    height: 1.2rem;
+}
+
+.shortLandscapeShell .toggleShell input:checked + .toggleTrack::after {
+    transform: translateX(1.16rem);
+}
+
+.shortLandscapeShell .sliderValue {
+    font-size: 0.82rem;
+}
+
+.shortLandscapeShell .footer {
+    padding-top: 0.3rem;
+}
+
+.shortLandscapeShell .footerActions {
+    gap: 0.3rem;
+}
+
+.shortLandscapeShell .footerActions :global(button) {
+    min-height: 1.8rem;
+    padding: 0.34rem 0.65rem;
+    font-size: 0.62rem;
+}
+
 .wideShortShell .fitViewport {
-    --settings-sidebar-gap: var(--theme-space-md);
-    --settings-sidebar-pad: calc(var(--theme-space-md) + var(--theme-space-2xs));
-    --settings-content-gap: var(--theme-space-md);
-    --settings-content-pad: calc(var(--theme-space-md) + var(--theme-space-2xs));
-    --settings-section-gap: var(--theme-space-md);
-    --settings-section-pad: calc(var(--theme-space-md) + var(--theme-space-2xs));
-    --settings-field-pad: calc(var(--ui-card-pad-md) - var(--theme-space-2xs));
-    --settings-footer-pad-top: var(--theme-space-md);
+    --settings-sidebar-gap: var(--theme-space-sm);
+    --settings-sidebar-pad: calc(var(--theme-space-sm) + var(--theme-space-2xs));
+    --settings-content-gap: var(--theme-space-sm);
+    --settings-content-pad: calc(var(--theme-space-sm) + var(--theme-space-2xs));
+    --settings-section-gap: var(--theme-space-sm);
+    --settings-section-pad: calc(var(--theme-space-sm) + var(--theme-space-2xs));
+    --settings-field-pad: calc(var(--ui-card-pad-md) - var(--theme-space-xs));
+    --settings-footer-pad-top: var(--theme-space-sm);
 }
 
 .wideShortShell .frame {
     grid-template-columns: minmax(220px, 272px) minmax(0, 1fr);
+}
+
+.wideShortShell .contentScroll {
+    /* Three columns when a category has three panels (e.g. gameplay) so 1280×720 stays mildly zoomed, not crushed. */
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+}
+
+.wideShortShell .contentScroll > :only-child {
+    grid-column: 1 / -1;
 }
 
 .wideShortShell .categoryButton {
