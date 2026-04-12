@@ -53,19 +53,19 @@
 }
 
 .paddingMd {
-    padding: clamp(1.1rem, 2.2vw, 1.4rem);
+    padding: var(--ui-card-pad-md);
 }
 
 .paddingLg {
-    padding: clamp(1.2rem, 2.3vw, 1.9rem);
+    padding: var(--ui-card-pad-lg);
 }
 
 .paddingSection {
-    padding: 1rem 1.2rem 1.1rem;
+    padding: var(--ui-card-pad-md);
 }
 
 .overflowAuto {
-    overflow-y: auto;
+    overflow: hidden;
     min-height: 0;
 }
 

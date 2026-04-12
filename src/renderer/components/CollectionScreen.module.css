@@ -71,3 +71,30 @@
 .statRow strong {
     margin-left: 0.35rem;
 }
+
+@media (max-width: 760px) {
+    .section {
+        gap: var(--theme-space-sm);
+    }
+
+    .grid {
+        grid-template-columns: 1fr;
+    }
+
+    .achievementCard {
+        padding: var(--ui-card-pad-md);
+    }
+
+    .symbolGrid {
+        gap: 0.35rem;
+    }
+
+    .symbolChip {
+        min-width: 2.2rem;
+        font-size: 0.88rem;
+    }
+
+    .statRow {
+        gap: 0.65rem 1rem;
+    }
+}

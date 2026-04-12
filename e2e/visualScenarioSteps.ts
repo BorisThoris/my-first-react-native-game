@@ -1,8 +1,10 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import {
     buildVisualSaveJson,
     completeLevel1Play,
     expectAppScrollportHasNoVerticalOverflow,
+    expectLocatorFullyInWindowViewport,
+    expectMinimumTargetSize,
     expectNoHorizontalOverflow,
     forceGameOverWithMismatches,
     gotoWithSaveExpectStartupIntroVisible,
@@ -23,6 +25,13 @@ export interface VisualScreenScenario {
     fileBase: string;
     timeoutMs?: number;
     run: (page: Page, capture: VisualScenarioCapture) => Promise<void>;
+}
+
+async function expectCoarsePointerTarget(page: Page, locator: Locator): Promise<void> {
+    const usesCoarsePointer = await page.evaluate(() => globalThis.matchMedia('(pointer: coarse)').matches);
+    if (usesCoarsePointer) {
+        await expectMinimumTargetSize(locator);
+    }
 }
 
 export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
@@ -51,6 +60,8 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
                 await expect(play).toBeInViewport();
                 await expect(moreRuns).toBeInViewport();
             }).toPass({ timeout: 12_000 });
+            await expectLocatorFullyInWindowViewport(page, page.getByTestId('main-menu-low-cta'));
+            await expectCoarsePointerTarget(page, play);
             await capture('01-main-menu');
         }
     },
@@ -63,7 +74,10 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
             await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
             await expectNoHorizontalOverflow(page);
             await expectAppScrollportHasNoVerticalOverflow(page);
-            await expect(page.getByRole('button', { name: /classic run/i })).toBeInViewport();
+            const classicRun = page.getByRole('button', { name: /classic run/i });
+            await expect(classicRun).toBeInViewport();
+            await expectLocatorFullyInWindowViewport(page, page.getByTestId('choose-path-low-cta'));
+            await expectCoarsePointerTarget(page, classicRun);
             await capture('01a-choose-your-path');
         }
     },
@@ -127,6 +141,8 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
             await openMainMenuFromSave(page, false);
             await expect(page.getByText(/How To Play/i).first()).toBeVisible();
             await expectNoHorizontalOverflow(page);
+            await expectAppScrollportHasNoVerticalOverflow(page);
+            await expectLocatorFullyInWindowViewport(page, page.getByTestId('main-menu-low-cta'));
             await capture('02-main-menu-howto');
         }
     },
@@ -139,7 +155,9 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
                 (element as HTMLButtonElement).click();
             });
             await expect(page.getByRole('heading', { name: /^settings$/i })).toBeVisible();
-            await expect(page.getByRole('button', { name: /gameplay/i }).first()).toBeVisible();
+            const gameplayCategory = page.getByRole('button', { name: /gameplay/i }).first();
+            await expect(gameplayCategory).toBeVisible();
+            await expectCoarsePointerTarget(page, gameplayCategory);
             await expectNoHorizontalOverflow(page);
             await capture('03-settings-page');
         }
@@ -149,9 +167,12 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
         name: 'game playing (level 1)',
         run: async (page, capture) => {
             await openLevel1Play(page);
+            await waitLevel1PlayReady(page);
             await expect(page.getByTestId('game-hud')).toBeVisible();
             await expect(page.getByRole('toolbar', { name: /game controls/i })).toBeVisible();
             await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible();
+            await expect(page.getByTestId('tile-board-frame')).toBeVisible();
+            await expect(page.getByRole('button', { name: /hidden tile, row \d+, column \d+/i }).first()).toBeInViewport();
             await expectNoHorizontalOverflow(page);
             await capture('04-game-playing');
         }

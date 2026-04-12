@@ -258,7 +258,6 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                 className={`${styles.panel} ${isModal ? styles.panelModal : ''}`}
                 maxViewportHeight
                 padding="none"
-                scrollable
                 variant="strong"
             >
                 <div className={styles.frame}>

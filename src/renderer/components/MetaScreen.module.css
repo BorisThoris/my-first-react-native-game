@@ -13,13 +13,13 @@
     max-height: 100dvh;
     height: 100%;
     padding:
-        max(1rem, env(safe-area-inset-top, 0px))
-        max(1.25rem, env(safe-area-inset-right, 0px))
-        max(1.25rem, env(safe-area-inset-bottom, 0px))
-        max(1.25rem, env(safe-area-inset-left, 0px));
+        max(var(--ui-shell-screen-pad-block), env(safe-area-inset-top, 0px))
+        max(var(--ui-shell-screen-pad-inline), env(safe-area-inset-right, 0px))
+        max(var(--ui-shell-screen-pad-block), env(safe-area-inset-bottom, 0px))
+        max(var(--ui-shell-screen-pad-inline), env(safe-area-inset-left, 0px));
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: var(--ui-shell-screen-gap);
     overflow: hidden;
 }
 
@@ -28,12 +28,12 @@
     flex-wrap: wrap;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 1rem;
+    gap: var(--theme-space-xl);
 }
 
 .headerText {
     display: grid;
-    gap: 0.35rem;
+    gap: var(--theme-space-xs);
     max-width: min(720px, 100%);
 }
 
@@ -49,22 +49,41 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: var(--ui-shell-screen-gap);
     width: min(1200px, 100%);
     margin: 0 auto;
-    overflow-y: auto;
+    overflow: hidden;
+}
+
+@media (max-height: 720px) {
+    .body {
+        gap: var(--theme-space-md);
+    }
 }
 
 /* META-005–007: in-page TOC for long meta screens (keyboard: tab to links, Enter to jump). */
 .inPageToc {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.35rem 0.85rem;
-    padding: 0.35rem 0 0.5rem;
+    gap: var(--theme-space-xs);
+    padding: var(--theme-space-2xs) 0 var(--theme-space-sm);
     border-bottom: 1px solid var(--theme-divider-hairline);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: linear-gradient(180deg, rgba(6, 7, 12, 0.96), rgba(6, 7, 12, 0.84));
+    backdrop-filter: blur(10px) saturate(130%);
 }
 
 .inPageToc a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--ui-touch-target-min);
+    padding: 0.24rem 0.7rem;
+    border-radius: var(--ui-radius-pill);
+    border: 1px solid var(--theme-card-border-muted);
+    background: var(--theme-surface-raised-soft);
     font-size: 0.65rem;
     font-weight: 700;
     letter-spacing: 0.1em;
@@ -88,10 +107,10 @@
     display: flex;
     flex-direction: column;
     padding:
-        max(1rem, env(safe-area-inset-top, 0px))
-        max(1rem, env(safe-area-inset-right, 0px))
-        max(1rem, env(safe-area-inset-bottom, 0px))
-        max(1rem, env(safe-area-inset-left, 0px));
+        max(var(--ui-shell-screen-pad-block), env(safe-area-inset-top, 0px))
+        max(var(--ui-shell-screen-pad-inline), env(safe-area-inset-right, 0px))
+        max(var(--ui-shell-screen-pad-block), env(safe-area-inset-bottom, 0px))
+        max(var(--ui-shell-screen-pad-inline), env(safe-area-inset-left, 0px));
     background: var(--theme-scrim-heavy);
     backdrop-filter: blur(12px) saturate(130%);
     overflow: hidden;
@@ -103,26 +122,49 @@
     margin: 0 auto;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    overflow-y: auto;
+    gap: var(--ui-shell-screen-gap);
+    overflow: hidden;
     min-height: 0;
 }
 
 :global([data-density='compact']) .shell {
-    gap: 1rem;
     padding:
-        max(0.75rem, env(safe-area-inset-top, 0px))
-        max(1rem, env(safe-area-inset-right, 0px))
-        max(1rem, env(safe-area-inset-bottom, 0px))
-        max(1rem, env(safe-area-inset-left, 0px));
+        max(var(--theme-space-lg), env(safe-area-inset-top, 0px))
+        max(var(--theme-space-xl), env(safe-area-inset-right, 0px))
+        max(var(--theme-space-xl), env(safe-area-inset-bottom, 0px))
+        max(var(--theme-space-xl), env(safe-area-inset-left, 0px));
 }
 
-:global([data-density='compact']) .header {
-    gap: 0.75rem;
-}
+@media (max-width: 760px) {
+    .header {
+        flex-direction: column;
+        align-items: stretch;
+    }
 
-:global([data-density='compact']) .headerText {
-    gap: 0.28rem;
+    .header :global(button) {
+        width: 100%;
+    }
+
+    .subtitle {
+        font-size: 0.88rem;
+        line-height: 1.4;
+    }
+
+    .body {
+        width: 100%;
+    }
+
+    .inPageToc {
+        gap: 0.4rem;
+        padding-bottom: var(--theme-space-xs);
+    }
+
+    .inPageToc a {
+        min-height: 2.35rem;
+        padding: 0.18rem 0.58rem;
+        font-size: 0.6rem;
+        letter-spacing: 0.08em;
+    }
 }
 
 :global([data-reduce-motion='true']) .modalOverlay {

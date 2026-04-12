@@ -1,6 +1,6 @@
 import { mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import { BOARD_HIDDEN_TILE_BUTTON_RE, STORAGE_KEY } from './tileBoardGameFlow';
 import { dismissStartupIntro } from './startupIntroHelpers';
 
@@ -83,6 +83,31 @@ export async function captureVisualScreen(
 
 /** No unintended horizontal page scroll on the root (common mobile breakage). */
 /** App shell must not use vertical document scroll (native-app / game shell). */
+/**
+ * Ensures the element’s bounding box lies fully inside the window layout viewport
+ * (catches clipping inside nested overflow:hidden that does not affect [data-app-scrollport] scrollHeight).
+ */
+export async function expectLocatorFullyInWindowViewport(_page: Page, locator: Locator, epsilon = 6): Promise<void> {
+    const box = await locator.evaluate((element, eps) => {
+        const r = element.getBoundingClientRect();
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        return {
+            bottom: r.bottom,
+            eps,
+            left: r.left,
+            right: r.right,
+            top: r.top,
+            vh,
+            vw
+        };
+    }, epsilon);
+    expect(
+        box.top >= -box.eps && box.left >= -box.eps && box.right <= box.vw + box.eps && box.bottom <= box.vh + box.eps,
+        `expected locator in window viewport; got top=${box.top} left=${box.left} right=${box.right} bottom=${box.bottom} for ${box.vw}x${box.vh}`
+    ).toBeTruthy();
+}
+
 export async function expectAppScrollportHasNoVerticalOverflow(page: Page, epsilon = 10): Promise<void> {
     const { scrollHeight, clientHeight } = await page.locator('[data-app-scrollport]').evaluate((el) => ({
         scrollHeight: el.scrollHeight,
@@ -103,6 +128,19 @@ export async function expectNoHorizontalOverflow(page: Page): Promise<void> {
         scrollWidth,
         `document scrollWidth ${scrollWidth} should not exceed clientWidth ${clientWidth} by more than 1px`
     ).toBeLessThanOrEqual(clientWidth + 1);
+}
+
+export async function expectMinimumTargetSize(
+    locator: Locator,
+    minWidth = 44,
+    minHeight = 44
+): Promise<void> {
+    const box = await locator.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        return { height: rect.height, width: rect.width };
+    });
+    expect(box.width, `target width ${box.width} should be at least ${minWidth}px`).toBeGreaterThanOrEqual(minWidth);
+    expect(box.height, `target height ${box.height} should be at least ${minHeight}px`).toBeGreaterThanOrEqual(minHeight);
 }
 
 /** Main menu CTA — scope avoids accidental matches if another "Play" appears elsewhere in the tree. */
@@ -306,27 +344,39 @@ async function restartLevel1FromMainMenu(page: Page): Promise<void> {
     await waitForPlayPhaseHiddenTiles(page, 4);
 }
 
+async function leaveRunForMainMenu(page: Page): Promise<void> {
+    const abandonRunConfirm = page.getByRole('dialog', { name: /abandon run\?/i });
+
+    await expect
+        .poll(
+            async () => {
+                if (await mainMenuPlayButton(page).isVisible().catch(() => false)) {
+                    return 'menu';
+                }
+                if (await abandonRunConfirm.isVisible().catch(() => false)) {
+                    return 'confirm';
+                }
+                return 'pending';
+            },
+            { timeout: 15_000 }
+        )
+        .toMatch(/^(menu|confirm)$/);
+
+    if (await abandonRunConfirm.isVisible().catch(() => false)) {
+        await abandonRunConfirm.getByRole('button', { name: /^abandon run$/i }).click();
+    }
+}
+
 async function restartLevel1AfterAccidentalMatch(page: Page): Promise<void> {
     const floorCleared = page.getByRole('dialog', { name: /floor cleared/i });
 
-    if (!(await floorCleared.isVisible().catch(() => false))) {
-        await expect
-            .poll(() => page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count(), {
-                timeout: 8000
-            })
-            .toBe(2);
-        const remaining = await getHiddenTilePositions(page);
-        if (remaining.length !== 2) {
-            throw new Error('expected the accidental match fallback to leave one hidden pair');
-        }
-        await clickHiddenTile(page, remaining[0].row, remaining[0].col);
-        await page.waitForTimeout(MATCH_SETTLE_MS);
-        await clickHiddenTile(page, remaining[1].row, remaining[1].col);
-        await page.waitForTimeout(MATCH_SETTLE_MS);
-        await expect(floorCleared).toBeVisible({ timeout: 45_000 });
+    if (await floorCleared.isVisible().catch(() => false)) {
+        await floorCleared.getByRole('button', { name: /main menu/i }).click();
+    } else {
+        await page.getByRole('button', { name: /return to main menu/i }).click();
     }
 
-    await floorCleared.getByRole('button', { name: /main menu/i }).click();
+    await leaveRunForMainMenu(page);
     await restartLevel1FromMainMenu(page);
 }
 
@@ -360,12 +410,14 @@ async function discoverMismatchPair(
         await clickHiddenTile(page, guess.a.row, guess.a.col);
         await clickHiddenTile(page, guess.b.row, guess.b.col);
 
-        let hiddenAfter = await page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count();
-        const settleDeadline = Date.now() + 15_000;
-        while (hiddenAfter !== 2 && hiddenAfter !== 4 && Date.now() < settleDeadline) {
-            await page.waitForTimeout(120);
-            hiddenAfter = await page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count();
+        await page.waitForTimeout(MATCH_SETTLE_MS);
+
+        if (await page.getByRole('dialog', { name: /floor cleared/i }).isVisible().catch(() => false)) {
+            await restartLevel1AfterAccidentalMatch(page);
+            continue;
         }
+
+        const hiddenAfter = await page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count();
 
         if (hiddenAfter === 4) {
             return guess;
@@ -374,8 +426,6 @@ async function discoverMismatchPair(
         if (hiddenAfter !== 2) {
             throw new Error(`expected 2 or 4 hidden tiles after probe flip; got ${hiddenAfter}`);
         }
-
-        await page.waitForTimeout(MATCH_SETTLE_MS);
         await restartLevel1AfterAccidentalMatch(page);
     }
 

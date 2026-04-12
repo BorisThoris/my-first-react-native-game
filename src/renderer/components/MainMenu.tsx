@@ -7,6 +7,7 @@ import { useFitShellZoom } from '../hooks/useFitShellZoom';
 import { useShallow } from 'zustand/react/shallow';
 import { UI_ART } from '../assets/ui';
 import { desktopClient } from '../desktop-client';
+import { isShortLandscapeViewport, VIEWPORT_MOBILE_MAX, VIEWPORT_TABLET_MAX } from '../breakpoints';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
 import { useAppStore } from '../store/useAppStore';
@@ -89,12 +90,28 @@ const MainMenu = ({
     });
     const { height, width } = useViewportSize();
     const isCompact = width <= 960 || height <= 760;
-    const { fitZoom } = useFitShellZoom({
+    const isPhoneViewport = width <= VIEWPORT_MOBILE_MAX;
+    const isShortLandscapeShell = isShortLandscapeViewport(width, height);
+    const ultraCompactPhone = width <= 430 && height <= 700;
+    const touchCompactLayout = isPhoneViewport || isShortLandscapeShell;
+    const prioritizeModesInHero = width <= VIEWPORT_TABLET_MAX;
+    /** Layout-only compaction for wide, short desktop (not tied to fit-zoom, which runs for all sizes). */
+    const shortDesktopShell = !touchCompactLayout && width >= 1024 && height <= 760;
+    const ultraShortDesktopShell = shortDesktopShell && height <= 700;
+    const fitShellPadding = width >= 1024 && height <= 760 ? 8 : 12;
+    /* App.tsx sets outer .content zoom from --ui-scale when not compact; useFitShellZoom scales the menu column only (no DOM scroll). */
+    const { fitZoom: rawFitZoom } = useFitShellZoom({
+        enabled: true,
         measureRef: menuFitMeasureRef,
         viewportWidth: width,
         viewportHeight: height,
-        padding: 12
+        padding: fitShellPadding
     });
+    const shellFitZoom = rawFitZoom;
+    const ctaSize = touchCompactLayout || shortDesktopShell ? 'md' : 'lg';
+    const modeButtonSize = touchCompactLayout || shortDesktopShell ? 'sm' : 'md';
+    const showArchivePanel = !prioritizeModesInHero;
+    const showBottomCards = !(ultraCompactPhone || ultraShortDesktopShell || (isShortLandscapeShell && height <= 720));
     const relicPickEntries = saveData.playerStats
         ? (Object.entries(saveData.playerStats.relicPickCounts) as [RelicId, number][])
               .filter(([, count]) => count > 0)
@@ -143,8 +160,110 @@ const MainMenu = ({
         return () => window.clearInterval(id);
     }, []);
 
+    const moreModesPanel = (
+        <Panel
+            className={`${styles.supportPanel} ${prioritizeModesInHero ? styles.inlineModesPanel : ''}`.trim()}
+            padding="lg"
+            variant="strong"
+        >
+            <Eyebrow>More Modes</Eyebrow>
+            <ScreenTitle as="h2" className={styles.supportHeading} role="screen">
+                Alternate descents
+            </ScreenTitle>
+            <div className={styles.modeGrid} role="group" aria-label="More run types">
+                <UiButton className={styles.modeButton} size={modeButtonSize} variant="secondary" onClick={onGauntletRun}>
+                    Gauntlet 10m
+                </UiButton>
+                <UiButton className={styles.modeButton} size={modeButtonSize} variant="secondary" onClick={onPuzzleStarter}>
+                    Puzzle
+                </UiButton>
+                <UiButton className={styles.modeButton} size={modeButtonSize} variant="secondary" onClick={onMirrorPuzzleRun}>
+                    Mirror Puzzle
+                </UiButton>
+                <UiButton className={styles.modeButton} size={modeButtonSize} variant="secondary" onClick={() => setMeditationOpen(true)}>
+                    Meditation
+                </UiButton>
+                <UiButton className={styles.modeButton} size={modeButtonSize} variant="secondary" onClick={onWildRun}>
+                    Wild Run
+                </UiButton>
+                <UiButton className={styles.modeButton} size={modeButtonSize} variant="secondary" onClick={onPracticeRun}>
+                    Practice
+                </UiButton>
+                <UiButton className={styles.modeButton} size={modeButtonSize} variant="secondary" onClick={onScholarContractRun}>
+                    Scholar
+                </UiButton>
+                <UiButton className={styles.modeButton} size={modeButtonSize} variant="secondary" onClick={onPinVowRun}>
+                    Pin vow
+                </UiButton>
+                <UiButton
+                    className={styles.modeButton}
+                    data-testid="main-menu-low-cta"
+                    size={modeButtonSize}
+                    variant="ghost"
+                    onClick={openImportModal}
+                >
+                    Import JSON
+                </UiButton>
+            </div>
+        </Panel>
+    );
+
+    const archivePanel = showArchivePanel ? (
+        <Panel className={styles.supportPanel} padding="lg" variant="default">
+            <Eyebrow>Run Archive</Eyebrow>
+            <ScreenTitle as="h2" className={styles.supportHeading} role="screen">
+                Profile and progress
+            </ScreenTitle>
+            <div className={styles.archiveStats}>
+                <div className={styles.archiveStat}>
+                    <span className={styles.archiveLabel}>Dailies Cleared</span>
+                    <strong className={styles.archiveValue}>{saveData.playerStats?.dailiesCompleted ?? 0}</strong>
+                </div>
+                <div className={styles.archiveStat}>
+                    <span className={styles.archiveLabel}>Best No-Powers Floor</span>
+                    <strong className={styles.archiveValue}>{saveData.playerStats?.bestFloorNoPowers ?? 0}</strong>
+                </div>
+            </div>
+            <details className={styles.relicDetails}>
+                <summary>Most-picked relics</summary>
+                {relicPickEntries.length > 0 ? (
+                    <ul className={styles.relicList}>
+                        {relicPickEntries.slice(0, 5).map(([id, count]) => (
+                            <li key={id}>
+                                <span>{RELIC_CATALOG[id]?.title ?? id}</span>
+                                <strong>{count}</strong>
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    <p className={styles.emptyState}>No relic history yet.</p>
+                )}
+            </details>
+        </Panel>
+    ) : null;
+
+    const howToPanel = showHowToPlay ? (
+        <Panel className={styles.supportPanel} padding="lg" variant="accent">
+            <Eyebrow tone="tight">How To Play</Eyebrow>
+            <ScreenTitle as="h2" className={styles.supportHeading} role="screen">
+                Read, match, and protect the streak
+            </ScreenTitle>
+            <div className={styles.howToGrid}>
+                <p>The board opens face-up for a short memorize window before the tiles hide again.</p>
+                <p>Every clean pair grows score and streak. Wrong pairs cut the chain instead of wiping it.</p>
+                <p>Every 2-pair chain earns a shard. Three shards restore one life.</p>
+            </div>
+            <UiButton fullWidth size="md" variant="secondary" onClick={() => void onDismissHowToPlay()}>
+                Dismiss
+            </UiButton>
+        </Panel>
+    ) : null;
+
     return (
-        <section className={`${styles.shell} ${isCompact ? styles.compactShell : ''}`} ref={shellRef}>
+        <section
+            className={`${styles.shell} ${isCompact ? styles.compactShell : ''} ${touchCompactLayout ? styles.touchCompactShell : ''} ${isShortLandscapeShell ? styles.shortTouchLandscapeShell : ''} ${shortDesktopShell ? styles.shortDesktopShell : ''} ${ultraShortDesktopShell ? styles.ultraShortDesktopShell : ''} ${ultraCompactPhone ? styles.ultraCompactPhoneShell : ''}`.trim()}
+            ref={shellRef}
+        >
             <MainMenuBackground
                 fieldTiltRef={menuFieldTiltRef}
                 graphicsQuality={saveData.settings.graphicsQuality}
@@ -162,7 +281,7 @@ const MainMenu = ({
 
             <div className={styles.fitViewport}>
                 <div ref={menuFitMeasureRef} className={styles.fitMeasureOuter}>
-                    <div className={styles.content} style={{ zoom: fitZoom }}>
+                    <div className={styles.content} style={{ zoom: shellFitZoom }}>
                 <header className={styles.metaRow}>
                     <div className={styles.metaCard}>
                         <span className={styles.metaLabel}>Build</span>
@@ -218,7 +337,7 @@ const MainMenu = ({
                                 aria-label="Collection"
                                 className={styles.ctaButton}
                                 fullWidth
-                                size="lg"
+                                size={ctaSize}
                                 variant="secondary"
                                 onClick={onOpenCollection}
                             >
@@ -231,7 +350,7 @@ const MainMenu = ({
                                 aria-label="Inventory"
                                 className={styles.ctaButton}
                                 fullWidth
-                                size="lg"
+                                size={ctaSize}
                                 variant="ghost"
                                 onClick={onOpenInventory}
                             >
@@ -244,7 +363,7 @@ const MainMenu = ({
                                 aria-label="Codex"
                                 className={styles.ctaButton}
                                 fullWidth
-                                size="lg"
+                                size={ctaSize}
                                 variant="ghost"
                                 onClick={onOpenCodex}
                             >
@@ -257,7 +376,7 @@ const MainMenu = ({
                                 aria-label="Settings"
                                 className={styles.ctaButton}
                                 fullWidth
-                                size="lg"
+                                size={ctaSize}
                                 variant="secondary"
                                 onClick={onOpenSettings}
                             >
@@ -270,7 +389,7 @@ const MainMenu = ({
                                 aria-label="Exit Game"
                                 className={styles.ctaButton}
                                 fullWidth
-                                size="lg"
+                                size={ctaSize}
                                 variant="ghost"
                                 onClick={() => void desktopClient.quitApp()}
                             >
@@ -281,6 +400,10 @@ const MainMenu = ({
                             </UiButton>
                         </div>
 
+                        {prioritizeModesInHero && ultraCompactPhone && showHowToPlay ? howToPanel : null}
+                        {prioritizeModesInHero ? moreModesPanel : null}
+
+                        {showBottomCards ? (
                         <div className={styles.bottomCards}>
                             <Panel className={styles.bottomPanel} padding="md" variant="strong">
                                 <div className={styles.bottomPanelHeader}>
@@ -308,110 +431,18 @@ const MainMenu = ({
                                 <p className={styles.panelBodyCopy}>{lastRunLabel}</p>
                             </Panel>
                         </div>
+                        ) : null}
+
+                        {prioritizeModesInHero && !(ultraCompactPhone && showHowToPlay) ? howToPanel : null}
                     </main>
 
-                    <aside className={styles.supportColumn}>
-                        <Panel className={styles.supportPanel} padding="lg" variant="strong">
-                            <Eyebrow>More Modes</Eyebrow>
-                            <ScreenTitle as="h2" className={styles.supportHeading} role="screen">
-                                Alternate descents
-                            </ScreenTitle>
-                            <div className={styles.modeGrid} role="group" aria-label="More run types">
-                                <UiButton className={styles.modeButton} size="md" variant="secondary" onClick={onGauntletRun}>
-                                    Gauntlet 10m
-                                </UiButton>
-                                <UiButton className={styles.modeButton} size="md" variant="secondary" onClick={onPuzzleStarter}>
-                                    Puzzle
-                                </UiButton>
-                                <UiButton className={styles.modeButton} size="md" variant="secondary" onClick={onMirrorPuzzleRun}>
-                                    Mirror Puzzle
-                                </UiButton>
-                                <UiButton
-                                    className={styles.modeButton}
-                                    size="md"
-                                    variant="secondary"
-                                    onClick={() => setMeditationOpen(true)}
-                                >
-                                    Meditation
-                                </UiButton>
-                                <UiButton className={styles.modeButton} size="md" variant="secondary" onClick={onWildRun}>
-                                    Wild Run
-                                </UiButton>
-                                <UiButton className={styles.modeButton} size="md" variant="secondary" onClick={onPracticeRun}>
-                                    Practice
-                                </UiButton>
-                                <UiButton
-                                    className={styles.modeButton}
-                                    size="md"
-                                    variant="secondary"
-                                    onClick={onScholarContractRun}
-                                >
-                                    Scholar
-                                </UiButton>
-                                <UiButton className={styles.modeButton} size="md" variant="secondary" onClick={onPinVowRun}>
-                                    Pin vow
-                                </UiButton>
-                                <UiButton className={styles.modeButton} size="md" variant="ghost" onClick={openImportModal}>
-                                    Import JSON
-                                </UiButton>
-                            </div>
-                        </Panel>
-
-                        <Panel className={styles.supportPanel} padding="lg" variant="default">
-                            <Eyebrow>Run Archive</Eyebrow>
-                            <ScreenTitle as="h2" className={styles.supportHeading} role="screen">
-                                Profile and progress
-                            </ScreenTitle>
-                            <div className={styles.archiveStats}>
-                                <div className={styles.archiveStat}>
-                                    <span className={styles.archiveLabel}>Dailies Cleared</span>
-                                    <strong className={styles.archiveValue}>
-                                        {saveData.playerStats?.dailiesCompleted ?? 0}
-                                    </strong>
-                                </div>
-                                <div className={styles.archiveStat}>
-                                    <span className={styles.archiveLabel}>Best No-Powers Floor</span>
-                                    <strong className={styles.archiveValue}>
-                                        {saveData.playerStats?.bestFloorNoPowers ?? 0}
-                                    </strong>
-                                </div>
-                            </div>
-                            <details className={styles.relicDetails}>
-                                <summary>Most-picked relics</summary>
-                                {relicPickEntries.length > 0 ? (
-                                    <ul className={styles.relicList}>
-                                        {relicPickEntries.slice(0, 5).map(([id, count]) => (
-                                            <li key={id}>
-                                                <span>{RELIC_CATALOG[id]?.title ?? id}</span>
-                                                <strong>{count}</strong>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                ) : (
-                                    <p className={styles.emptyState}>No relic history yet.</p>
-                                )}
-                            </details>
-                        </Panel>
-
-                        {showHowToPlay ? (
-                            <Panel className={styles.supportPanel} padding="lg" variant="accent">
-                                <Eyebrow tone="tight">How To Play</Eyebrow>
-                                <ScreenTitle as="h2" className={styles.supportHeading} role="screen">
-                                    Read, match, and protect the streak
-                                </ScreenTitle>
-                                <div className={styles.howToGrid}>
-                                    <p>
-                                        The board opens face-up for a short memorize window before the tiles hide again.
-                                    </p>
-                                    <p>Every clean pair grows score and streak. Wrong pairs cut the chain instead of wiping it.</p>
-                                    <p>Every 2-pair chain earns a shard. Three shards restore one life.</p>
-                                </div>
-                                <UiButton fullWidth size="md" variant="secondary" onClick={() => void onDismissHowToPlay()}>
-                                    Dismiss
-                                </UiButton>
-                            </Panel>
-                        ) : null}
-                    </aside>
+                    {!prioritizeModesInHero || showArchivePanel || (!prioritizeModesInHero && showHowToPlay) ? (
+                        <aside className={styles.supportColumn}>
+                            {!prioritizeModesInHero ? moreModesPanel : null}
+                            {archivePanel}
+                            {!prioritizeModesInHero ? howToPanel : null}
+                        </aside>
+                    ) : null}
                 </div>
                     </div>
                 </div>

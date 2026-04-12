@@ -12,7 +12,7 @@
     background: var(--theme-scrim-dialog);
     backdrop-filter: blur(14px) saturate(130%);
     z-index: 21;
-    overflow-y: auto;
+    overflow: hidden;
 }
 
 .modal {
@@ -23,7 +23,7 @@
     align-items: start;
     gap: clamp(1rem, 3vw, 1.5rem);
     padding: clamp(1rem, 2vw, 1.2rem);
-    overflow-y: auto;
+    overflow: hidden;
     min-height: 0;
     background: var(--theme-panel-surface-strong, var(--theme-panel-surface));
     border: var(--theme-overlay-plate-border, 1px solid var(--theme-border-strong));
@@ -53,7 +53,7 @@
 .body {
     margin-top: 0.9rem;
     flex: 1;
-    overflow-y: auto;
+    overflow: hidden;
     min-height: 0;
 }
 
@@ -69,6 +69,15 @@
 .modalAction {
     flex: 0 0 auto;
     min-width: min(100%, 10rem);
+}
+
+@media (max-height: 720px) {
+    .modal {
+        grid-template-columns: 1fr;
+        max-height: calc(100dvh - 1rem);
+        gap: 0.85rem;
+        padding: 0.85rem;
+    }
 }
 
 @media (max-width: 760px) {

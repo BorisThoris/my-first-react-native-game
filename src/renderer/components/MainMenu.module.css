@@ -2,8 +2,8 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    height: 100%;
-    min-height: 100dvh;
+    flex: 1 1 auto;
+    min-height: 0;
     isolation: isolate;
     overflow: hidden;
 }
@@ -52,6 +52,32 @@
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
+    container-type: size;
+    container-name: menu-shell;
+
+    /* Shell spacing — defaults (roomy); @container / breakpoints override these only. */
+    --menu-content-gap: calc(var(--theme-space-xl) + var(--theme-space-2xs));
+    --menu-content-pad-block-start: var(--theme-space-xl);
+    --menu-content-pad-inline: calc(var(--theme-space-xl) + var(--theme-space-2xs));
+    --menu-content-pad-block-end: calc(var(--theme-space-xl) + var(--theme-space-xs));
+    --menu-meta-row-gap: var(--theme-space-md);
+    --menu-meta-card-pad-block: var(--theme-space-lg);
+    --menu-meta-card-pad-inline: var(--theme-space-xl);
+    --menu-layout-gap: var(--theme-space-2xl);
+    --menu-hero-gap: calc(var(--theme-space-xl) + var(--theme-space-2xs));
+    --menu-hero-pad-block: var(--theme-space-2xl) var(--theme-space-xl) var(--theme-space-md);
+    --menu-brand-gap: var(--theme-space-sm);
+    --menu-brand-pad-block: var(--theme-space-2xl) var(--theme-space-xl) var(--theme-space-md);
+    --menu-action-stack-gap: var(--theme-space-lg);
+    --menu-bottom-cards-gap: calc(var(--theme-space-lg) + var(--theme-space-2xs));
+    --menu-support-gap: calc(var(--theme-space-lg) + var(--theme-space-2xs));
+    --menu-support-pad-block-start: calc(var(--theme-space-sm) + var(--theme-space-2xs));
+    --menu-mode-grid-gap: var(--theme-space-md);
+    --menu-mode-grid-mt: var(--theme-space-xl);
+    --menu-archive-stats-gap: var(--theme-space-md);
+    --menu-archive-stats-mt: var(--theme-space-xl);
+    --menu-archive-stat-pad-block: var(--theme-space-lg);
+    --menu-archive-stat-pad-inline: calc(var(--theme-space-lg) + var(--theme-space-2xs));
 }
 
 .fitMeasureOuter {
@@ -66,10 +92,10 @@
     z-index: 1;
     display: flex;
     flex-direction: column;
-    gap: 1.15rem;
+    gap: var(--menu-content-gap);
     width: 100%;
     margin: 0;
-    padding: 1rem 1.05rem 1.2rem;
+    padding: var(--menu-content-pad-block-start) var(--menu-content-pad-inline) var(--menu-content-pad-block-end);
     box-sizing: border-box;
     min-height: 0;
     will-change: zoom;
@@ -78,7 +104,7 @@
 .metaRow {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.75rem;
+    gap: var(--menu-meta-row-gap);
 }
 
 .metaCard {
@@ -86,7 +112,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.18rem;
-    padding: 0.8rem 0.95rem;
+    padding: var(--menu-meta-card-pad-block) var(--menu-meta-card-pad-inline);
     border-radius: var(--ui-radius-lg);
     background:
         radial-gradient(circle at top left, rgba(195, 149, 79, 0.12), transparent 42%),
@@ -112,7 +138,7 @@
 .layout {
     display: grid;
     grid-template-columns: minmax(0, 1.18fr) minmax(min(360px, 100%), 0.82fr);
-    gap: 1.25rem;
+    gap: var(--menu-layout-gap);
     flex: 1 1 auto;
     min-height: 0;
 }
@@ -127,8 +153,8 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 1.1rem;
-    padding: 1.4rem 1rem 0.6rem;
+    gap: var(--menu-hero-gap);
+    padding: var(--menu-hero-pad-block);
 }
 
 .brandLockup {
@@ -136,9 +162,9 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 0.5rem;
+    gap: var(--menu-brand-gap);
     width: min(100%, 780px);
-    padding: 1.4rem 1rem 0.6rem;
+    padding: var(--menu-brand-pad-block);
 }
 
 .brandCrest {
@@ -173,7 +199,7 @@
 .actionStack {
     width: min(100%, 32rem);
     display: grid;
-    gap: 0.8rem;
+    gap: var(--menu-action-stack-gap);
 }
 
 .ctaButton {
@@ -207,7 +233,7 @@
     width: min(100%, 44rem);
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.9rem;
+    gap: var(--menu-bottom-cards-gap);
     margin-top: 0.2rem;
 }
 
@@ -223,7 +249,7 @@
 .bottomPanelHeader {
     display: flex;
     align-items: center;
-    gap: 0.85rem;
+    gap: var(--theme-space-lg);
 }
 
 .panelSeal {
@@ -258,8 +284,8 @@
 .supportColumn {
     display: flex;
     flex-direction: column;
-    gap: 0.95rem;
-    padding: 0.55rem 0 0.5rem;
+    gap: var(--menu-support-gap);
+    padding: var(--menu-support-pad-block-start) 0 var(--theme-space-sm);
 }
 
 .supportHeading {
@@ -269,8 +295,8 @@
 .modeGrid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.7rem;
-    margin-top: 1rem;
+    gap: var(--menu-mode-grid-gap);
+    margin-top: var(--menu-mode-grid-mt);
 }
 
 .modeButton {
@@ -280,12 +306,12 @@
 .archiveStats {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.75rem;
-    margin-top: 1rem;
+    gap: var(--menu-archive-stats-gap);
+    margin-top: var(--menu-archive-stats-mt);
 }
 
 .archiveStat {
-    padding: 0.85rem 0.9rem;
+    padding: var(--menu-archive-stat-pad-block) var(--menu-archive-stat-pad-inline);
     border-radius: var(--ui-radius-lg);
     border: 1px solid var(--theme-hud-chrome-border-soft);
     background: var(--theme-surface-archive);
@@ -359,8 +385,404 @@
     line-height: 1.45;
 }
 
-.compactShell .content {
-    padding-bottom: 1rem;
+.compactShell .fitViewport {
+    --menu-content-pad-block-end: var(--theme-space-xl);
+}
+
+.touchCompactShell .fitViewport {
+    --menu-content-gap: var(--theme-space-md);
+    --menu-content-pad-block-start: var(--theme-space-md);
+    --menu-content-pad-inline: var(--ui-shell-screen-pad-inline);
+    --menu-content-pad-block-end: var(--theme-space-lg);
+    --menu-meta-row-gap: var(--theme-space-sm);
+    --menu-meta-card-pad-block: var(--theme-space-sm);
+    --menu-meta-card-pad-inline: var(--theme-space-md);
+    --menu-layout-gap: var(--theme-space-md);
+    --menu-hero-gap: var(--theme-space-md);
+    --menu-hero-pad-block: 0;
+    --menu-brand-gap: var(--theme-space-xs);
+    --menu-brand-pad-block: 0;
+    --menu-action-stack-gap: var(--theme-space-sm);
+    --menu-bottom-cards-gap: var(--theme-space-sm);
+    --menu-support-gap: var(--theme-space-sm);
+    --menu-support-pad-block-start: 0;
+    --menu-mode-grid-gap: var(--theme-space-sm);
+    --menu-mode-grid-mt: var(--theme-space-sm);
+    --menu-archive-stats-gap: var(--theme-space-sm);
+    --menu-archive-stats-mt: var(--theme-space-sm);
+    --menu-archive-stat-pad-block: var(--theme-space-md);
+    --menu-archive-stat-pad-inline: var(--theme-space-md);
+}
+
+.touchCompactShell .metaRow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.touchCompactShell .metaValue {
+    font-size: 0.92rem;
+}
+
+.touchCompactShell .layout {
+    grid-template-columns: 1fr;
+    gap: var(--theme-space-md);
+}
+
+.touchCompactShell .heroColumn {
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 0;
+    gap: var(--theme-space-md);
+}
+
+.touchCompactShell .brandLockup {
+    width: 100%;
+    align-items: flex-start;
+    text-align: left;
+    padding: 0;
+}
+
+.touchCompactShell .brandCrest {
+    width: clamp(3.2rem, 14vw, 4.4rem);
+}
+
+.touchCompactShell .heroTitle {
+    max-width: none;
+    font-size: clamp(2.2rem, 12vw, 3.8rem);
+}
+
+.touchCompactShell .divider {
+    width: min(100%, 13rem);
+}
+
+.touchCompactShell .tagline {
+    max-width: none;
+    font-size: 0.82rem;
+    line-height: 1.35;
+}
+
+.touchCompactShell .actionStack,
+.touchCompactShell .bottomCards {
+    width: 100%;
+}
+
+.touchCompactShell .bottomCards {
+    grid-template-columns: 1fr;
+}
+
+.touchCompactShell .ctaHint {
+    font-size: 0.72rem;
+}
+
+.touchCompactShell .supportColumn {
+    padding: 0;
+    gap: var(--theme-space-sm);
+}
+
+.touchCompactShell .bottomPanel,
+.touchCompactShell .supportPanel {
+    padding: var(--ui-card-pad-md);
+    transform: none;
+}
+
+.touchCompactShell .panelHeading {
+    font-size: 1rem;
+}
+
+.touchCompactShell .panelBodyCopy {
+    margin-top: 0.45rem;
+    font-size: 0.84rem;
+    line-height: 1.38;
+}
+
+.touchCompactShell .modeGrid {
+    margin-top: var(--theme-space-sm);
+}
+
+.touchCompactShell .archiveStats {
+    margin-top: var(--theme-space-sm);
+}
+
+.touchCompactShell .relicDetails {
+    margin-top: 0.55rem;
+}
+
+.touchCompactShell .howToGrid {
+    margin: 0.65rem 0 0.85rem;
+    gap: 0.45rem;
+}
+
+.shortTouchLandscapeShell .fitViewport {
+    --menu-content-pad-block-start: var(--theme-space-sm);
+    --menu-content-pad-block-end: var(--theme-space-sm);
+}
+
+.shortTouchLandscapeShell .layout {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+}
+
+.shortTouchLandscapeShell .metaRow {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.shortTouchLandscapeShell .metaCard {
+    padding: 0.34rem 0.5rem;
+}
+
+.shortTouchLandscapeShell .metaLabel {
+    font-size: 0.5rem;
+}
+
+.shortTouchLandscapeShell .metaValue {
+    font-size: 0.8rem;
+}
+
+.shortTouchLandscapeShell .heroColumn {
+    display: grid;
+    grid-template-columns: minmax(0, 1.08fr) minmax(230px, 0.92fr);
+    align-items: start;
+}
+
+.shortTouchLandscapeShell .brandLockup,
+.shortTouchLandscapeShell .actionStack {
+    grid-column: 1;
+}
+
+.shortTouchLandscapeShell .inlineModesPanel {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: stretch;
+}
+
+.shortTouchLandscapeShell .heroTitle {
+    font-size: clamp(2rem, 8vw, 3rem);
+}
+
+.shortTouchLandscapeShell .brandCrest {
+    width: 2.6rem;
+}
+
+.shortTouchLandscapeShell .tagline {
+    display: none;
+}
+
+.shortTouchLandscapeShell .actionStack {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+}
+
+.shortTouchLandscapeShell .actionStack > :first-child {
+    grid-column: 1 / -1;
+}
+
+.shortTouchLandscapeShell .ctaHint {
+    display: none;
+}
+
+.shortTouchLandscapeShell .ctaTitle {
+    font-size: 0.78rem;
+}
+
+.shortTouchLandscapeShell .bottomCards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-column: 1 / -1;
+}
+
+.shortTouchLandscapeShell .bottomCards .panelBodyCopy {
+    display: none;
+}
+
+.shortTouchLandscapeShell .bottomPanelHeader {
+    gap: 0.5rem;
+}
+
+.shortTouchLandscapeShell .panelSeal {
+    width: 2rem;
+    height: 2rem;
+}
+
+/*
+ * shortDesktopShell: do not set --menu-* on .fitViewport here — that beat @container menu-shell
+ * (higher specificity) and crushed 1280×720. Spacing comes from .fitViewport defaults + @container.
+ * Keep only touch/panel density helpers that are not overridden by the container ladder.
+ */
+.shortDesktopShell .fitViewport {
+    --ui-touch-target-min: 2.35rem;
+    --ui-card-pad-md: 0.8rem;
+    --ui-card-pad-lg: 0.95rem;
+}
+
+.shortDesktopShell .layout {
+    grid-template-columns: minmax(0, 1.06fr) minmax(300px, 0.94fr);
+}
+
+.shortDesktopShell .heroColumn {
+    justify-content: flex-start;
+    padding: 0;
+}
+
+.shortDesktopShell .brandLockup {
+    width: min(100%, 34rem);
+    padding: 0.2rem 0 0;
+}
+
+.shortDesktopShell .brandCrest {
+    width: 3rem;
+}
+
+.shortDesktopShell .heroTitle {
+    font-size: clamp(3rem, 6.2vw, 4.75rem);
+}
+
+.shortDesktopShell .divider {
+    width: min(100%, 15rem);
+}
+
+.shortDesktopShell .tagline {
+    max-width: 24rem;
+    font-size: 0.78rem;
+}
+
+.shortDesktopShell .metaValue {
+    font-size: 0.88rem;
+}
+
+.shortDesktopShell .actionStack {
+    width: min(100%, 31rem);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.shortDesktopShell .actionStack > :first-child,
+.shortDesktopShell .actionStack > :last-child {
+    grid-column: 1 / -1;
+}
+
+.shortDesktopShell .ctaTitle {
+    font-size: 0.86rem;
+}
+
+.shortDesktopShell .ctaHint {
+    display: none;
+}
+
+.shortDesktopShell .bottomCards {
+    width: min(100%, 34rem);
+    margin-top: 0;
+}
+
+.shortDesktopShell .bottomPanelHeader {
+    gap: var(--theme-space-md);
+}
+
+.shortDesktopShell .panelSeal {
+    width: 1.9rem;
+    height: 1.9rem;
+}
+
+.shortDesktopShell .panelHeading {
+    font-size: 0.96rem;
+}
+
+.shortDesktopShell .panelBodyCopy {
+    margin-top: 0.35rem;
+    font-size: 0.78rem;
+    line-height: 1.32;
+}
+
+.shortDesktopShell .supportColumn {
+    padding: 0;
+}
+
+.shortDesktopShell .supportPanel {
+    transform: none;
+}
+
+.shortDesktopShell .archiveValue {
+    font-size: 1rem;
+}
+
+.shortDesktopShell .relicDetails {
+    margin-top: 0.5rem;
+}
+
+.shortDesktopShell .relicDetails summary {
+    font-size: 0.72rem;
+}
+
+.shortDesktopShell .howToGrid {
+    margin: 0.45rem 0 0.55rem;
+    gap: 0.38rem;
+}
+
+.ultraShortDesktopShell .fitViewport {
+    --menu-content-pad-inline: var(--theme-space-lg);
+    --menu-meta-card-pad-inline: var(--theme-space-md);
+    --menu-layout-gap: var(--theme-space-sm);
+    --menu-action-stack-gap: var(--theme-space-xs);
+    --menu-support-gap: var(--theme-space-sm);
+    --ui-touch-target-min: 2.15rem;
+    --ui-card-pad-md: 0.72rem;
+    --ui-card-pad-lg: 0.82rem;
+}
+
+.ultraShortDesktopShell .heroTitle {
+    font-size: clamp(2.65rem, 5.8vw, 4.1rem);
+}
+
+.ultraShortDesktopShell .tagline,
+.ultraShortDesktopShell .panelBodyCopy {
+    display: none;
+}
+
+.ultraShortDesktopShell .metaValue {
+    font-size: 0.82rem;
+}
+
+.ultraShortDesktopShell .supportHeading {
+    font-size: 1.45rem;
+}
+
+.ultraCompactPhoneShell .fitViewport {
+    --menu-content-gap: var(--theme-space-sm);
+    --menu-content-pad-block-start: var(--theme-space-sm);
+    --menu-content-pad-block-end: var(--theme-space-sm);
+    --menu-meta-card-pad-block: 0.34rem;
+    --menu-meta-card-pad-inline: 0.48rem;
+    --menu-brand-gap: var(--theme-space-2xs);
+    --menu-action-stack-gap: var(--theme-space-xs);
+    --menu-support-gap: var(--theme-space-xs);
+}
+
+.ultraCompactPhoneShell .brandCrest {
+    width: 2.8rem;
+}
+
+.ultraCompactPhoneShell .heroTitle {
+    font-size: clamp(1.9rem, 12vw, 3rem);
+}
+
+.ultraCompactPhoneShell .tagline {
+    display: none;
+}
+
+.ultraCompactPhoneShell .actionStack {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ultraCompactPhoneShell .actionStack > :first-child {
+    grid-column: 1 / -1;
+}
+
+.ultraCompactPhoneShell .ctaHint {
+    display: none;
+}
+
+.ultraCompactPhoneShell .modeGrid {
+    margin-top: 0.45rem;
+}
+
+.ultraCompactPhoneShell .supportPanel {
+    padding: 0.82rem;
 }
 
 :global([data-reduce-motion='true']) .bottomPanel,
@@ -379,17 +801,16 @@
 }
 
 @media (max-width: 760px) {
-    .content {
-        gap: 0.85rem;
-        padding: 0.85rem 0.75rem 1rem;
+    .fitViewport {
+        --menu-content-gap: var(--theme-space-lg);
+        --menu-content-pad-block-start: var(--theme-space-lg);
+        --menu-content-pad-inline: var(--theme-space-lg);
+        --menu-content-pad-block-end: var(--theme-space-xl);
+        --menu-hero-pad-block: var(--theme-space-lg) 0 var(--theme-space-2xs);
     }
 
     .metaRow {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .heroColumn {
-        padding: 0.9rem 0 0.25rem;
     }
 
     .tagline {
@@ -404,17 +825,14 @@
 }
 
 @media (max-width: 430px), (max-height: 620px) {
+    .fitViewport {
+        --menu-brand-gap: var(--theme-space-xs);
+        --menu-brand-pad-block: var(--theme-space-md) var(--theme-space-xl) var(--theme-space-md);
+        --menu-action-stack-gap: var(--theme-space-md);
+    }
+
     .metaRow {
         grid-template-columns: 1fr;
-    }
-
-    .brandLockup {
-        gap: 0.35rem;
-        padding-top: 0.65rem;
-    }
-
-    .actionStack {
-        gap: 0.65rem;
     }
 
     .ctaTitle {
@@ -428,27 +846,29 @@
 
 /* Wide + very short (e.g. 844×390): keep chrome on-screen without relying only on scroll. */
 @media (orientation: landscape) and (max-height: 440px) {
-    .content {
-        gap: 0.55rem;
-        padding: 0.55rem 0.75rem 0.75rem;
-    }
-
-    .metaCard {
-        padding: 0.55rem 0.65rem;
+    .fitViewport {
+        --menu-content-gap: calc(var(--theme-space-sm) + var(--theme-space-2xs));
+        --menu-content-pad-block-start: calc(var(--theme-space-sm) + var(--theme-space-2xs));
+        --menu-content-pad-inline: var(--theme-space-lg);
+        --menu-content-pad-block-end: var(--theme-space-lg);
+        --menu-meta-card-pad-block: calc(var(--theme-space-sm) + var(--theme-space-2xs));
+        --menu-meta-card-pad-inline: calc(var(--theme-space-md) + var(--theme-space-2xs));
+        --menu-hero-gap: calc(var(--theme-space-sm) + var(--theme-space-2xs));
+        --menu-hero-pad-block: var(--theme-space-sm) var(--theme-space-sm) var(--theme-space-2xs);
+        --menu-brand-gap: var(--theme-space-2xs);
+        --menu-brand-pad-block: calc(var(--theme-space-sm) + var(--theme-space-2xs))
+            calc(var(--theme-space-md) + var(--theme-space-2xs)) var(--theme-space-xs);
+        --menu-action-stack-gap: var(--theme-space-sm);
+        --menu-support-gap: calc(var(--theme-space-sm) + var(--theme-space-2xs));
+        --menu-support-pad-block-start: var(--theme-space-2xs);
+        --menu-mode-grid-mt: calc(var(--theme-space-sm) + var(--theme-space-2xs));
+        --menu-mode-grid-gap: var(--theme-space-sm);
+        --menu-archive-stats-mt: calc(var(--theme-space-sm) + var(--theme-space-2xs));
+        --menu-archive-stats-gap: calc(var(--theme-space-sm) + var(--theme-space-2xs));
     }
 
     .metaValue {
         font-size: 0.92rem;
-    }
-
-    .heroColumn {
-        gap: 0.55rem;
-        padding: 0.45rem 0.5rem 0.25rem;
-    }
-
-    .brandLockup {
-        gap: 0.28rem;
-        padding: 0.55rem 0.65rem 0.35rem;
     }
 
     .brandCrest {
@@ -458,36 +878,98 @@
     .tagline {
         font-size: 0.78rem;
     }
+}
 
-    .actionStack {
-        gap: 0.5rem;
+/* Wide desktop, 720p-class height (e.g. 1280×720): shrink vertical rhythm so fit-zoom stays near 1. */
+@container menu-shell (min-width: 1024px) and (max-height: 760px) {
+    .fitViewport {
+        --menu-content-gap: calc(var(--theme-space-md) + var(--theme-space-2xs));
+        --menu-content-pad-block-start: calc(var(--theme-space-md) + var(--theme-space-2xs));
+        --menu-content-pad-inline: var(--theme-space-xl);
+        --menu-content-pad-block-end: var(--theme-space-lg);
+        --menu-meta-row-gap: var(--theme-space-sm);
+        --menu-meta-card-pad-block: var(--theme-space-sm);
+        --menu-meta-card-pad-inline: calc(var(--theme-space-md) + var(--theme-space-2xs));
+        --menu-layout-gap: var(--theme-space-lg);
+        --menu-hero-gap: calc(var(--theme-space-sm) + var(--theme-space-2xs));
+        --menu-hero-pad-block: var(--theme-space-sm) var(--theme-space-lg) var(--theme-space-xs);
+        --menu-brand-gap: var(--theme-space-2xs);
+        --menu-brand-pad-block: var(--theme-space-sm) var(--theme-space-lg) var(--theme-space-xs);
+        --menu-action-stack-gap: calc(var(--theme-space-sm) + var(--theme-space-2xs));
+        --menu-bottom-cards-gap: var(--theme-space-md);
+        --menu-support-gap: calc(var(--theme-space-sm) + var(--theme-space-2xs));
+        --menu-support-pad-block-start: var(--theme-space-2xs);
+        --menu-mode-grid-mt: var(--theme-space-sm);
+        --menu-mode-grid-gap: var(--theme-space-sm);
+        --menu-archive-stats-mt: var(--theme-space-sm);
+        --menu-archive-stats-gap: var(--theme-space-sm);
+        --menu-archive-stat-pad-block: var(--theme-space-md);
+        --menu-archive-stat-pad-inline: calc(var(--theme-space-md) + var(--theme-space-2xs));
     }
 
-    .supportColumn {
-        gap: 0.55rem;
-        padding-top: 0.15rem;
+    .metaValue {
+        font-size: 0.94rem;
     }
 
-    .modeGrid {
-        margin-top: 0.55rem;
-        gap: 0.5rem;
+    .brandCrest {
+        width: clamp(3.35rem, 6.5vw, 4.5rem);
     }
 
-    .archiveStats {
-        margin-top: 0.55rem;
-        gap: 0.55rem;
+    .tagline {
+        font-size: 0.86rem;
+    }
+
+    .ctaTitle {
+        font-size: 0.94rem;
+    }
+
+    .ctaHint {
+        font-size: 0.74rem;
+    }
+
+    .bottomCards {
+        margin-top: 0;
+    }
+
+    .archiveValue {
+        font-size: 1.12rem;
+    }
+
+    .panelBodyCopy {
+        margin: 0.5rem 0 0;
+    }
+
+    .howToGrid {
+        margin: 0.55rem 0 0.55rem;
+        gap: 0.48rem;
+    }
+
+    .relicDetails {
+        margin-top: 0.65rem;
+    }
+}
+
+@media (orientation: landscape) and (max-height: 720px) and (min-width: 1024px) {
+    .shell:not(.touchCompactShell) .metaRow {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
 .meditationMutatorList {
-    display: flex;
-    flex-direction: column;
-    gap: 0.45rem;
-    max-height: min(46vh, 300px);
-    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem 0.55rem;
+    max-height: min(38vh, 260px);
+    overflow: hidden;
     margin: 0;
     padding: 0;
     list-style: none;
+}
+
+@media (max-width: 520px) {
+    .meditationMutatorList {
+        grid-template-columns: 1fr;
+    }
 }
 
 .meditationMutatorRow {

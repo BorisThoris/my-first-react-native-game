@@ -3,7 +3,7 @@
     max-height: 100dvh;
     display: grid;
     place-items: center;
-    padding: clamp(0.85rem, 1.8vw, 1.5rem);
+    padding: var(--ui-shell-screen-pad-block) var(--ui-shell-screen-pad-inline);
     overflow: hidden;
 }
 
@@ -12,10 +12,10 @@
     inset: 0;
     min-height: 0;
     padding:
-        max(1.25rem, env(safe-area-inset-top, 0px))
-        max(1.25rem, env(safe-area-inset-right, 0px))
-        max(1.25rem, env(safe-area-inset-bottom, 0px))
-        max(1.25rem, env(safe-area-inset-left, 0px));
+        max(var(--ui-shell-screen-pad-block), env(safe-area-inset-top, 0px))
+        max(var(--ui-shell-screen-pad-inline), env(safe-area-inset-right, 0px))
+        max(var(--ui-shell-screen-pad-block), env(safe-area-inset-bottom, 0px))
+        max(var(--ui-shell-screen-pad-inline), env(safe-area-inset-left, 0px));
     background: var(--theme-scrim-medium);
     backdrop-filter: blur(14px) saturate(135%);
     z-index: 24;
@@ -31,7 +31,7 @@
 
 .panelModal {
     width: min(980px, 100%);
-    max-height: calc(100dvh - 2.5rem);
+    max-height: calc(100dvh - (var(--theme-space-3xl) + var(--theme-space-md)));
 }
 
 .frame {
@@ -39,15 +39,15 @@
     grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
     flex: 1 1 auto;
     min-height: 0;
-    max-height: min(760px, calc(100dvh - 3rem));
+    max-height: min(760px, calc(100dvh - (var(--theme-space-3xl) + var(--theme-space-xl))));
     overflow: hidden;
 }
 
 .sidebar {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    padding: 1.3rem 1.1rem;
+    gap: var(--theme-space-xl);
+    padding: var(--ui-card-pad-lg);
     border-right: 1px solid var(--theme-divider-hairline);
     background:
         linear-gradient(180deg, var(--theme-backdrop-body-rim), transparent 18%),
@@ -121,13 +121,13 @@
     flex-direction: column;
     min-width: 0;
     min-height: 0;
-    padding: 1.3rem 1.3rem 1rem;
+    padding: var(--ui-card-pad-lg);
 }
 
 .contentHeader {
     display: grid;
-    gap: 0.22rem;
-    padding-bottom: 1rem;
+    gap: var(--theme-space-2xs);
+    padding-bottom: var(--theme-space-xl);
 }
 
 .headerCopy {
@@ -138,15 +138,16 @@
 
 .contentScroll {
     display: grid;
-    gap: 0.9rem;
+    gap: calc(var(--theme-space-lg) + var(--theme-space-2xs));
     min-height: 0;
-    overflow-y: auto;
-    padding-right: 0.15rem;
+    overflow: hidden;
+    padding-right: 0;
+    padding-bottom: var(--theme-space-sm);
 }
 
 .section {
     display: grid;
-    gap: 0.9rem;
+    gap: calc(var(--theme-space-lg) + var(--theme-space-2xs));
 }
 
 .sectionHeading {
@@ -155,8 +156,8 @@
 
 .fieldCard {
     display: grid;
-    gap: 0.75rem;
-    padding: 1rem;
+    gap: var(--theme-space-md);
+    padding: var(--ui-card-pad-md);
     border-radius: var(--ui-radius-lg);
     border: 1px solid var(--theme-card-border-muted);
     background: var(--theme-surface-well);
@@ -237,8 +238,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
-    padding: 1rem;
+    gap: var(--theme-space-xl);
+    padding: var(--ui-card-pad-md);
     border-radius: var(--ui-radius-lg);
     border: 1px solid var(--theme-card-border-muted);
     background: var(--theme-surface-well);
@@ -316,15 +317,18 @@
 }
 
 .footer {
-    margin-top: 1rem;
-    padding-top: 1rem;
+    margin-top: var(--theme-space-xl);
+    padding-top: var(--theme-space-xl);
     border-top: 1px solid var(--theme-divider-hairline);
+    position: sticky;
+    bottom: 0;
+    background: linear-gradient(180deg, rgba(7, 8, 12, 0), rgba(7, 8, 12, 0.94) 22%);
 }
 
 .footerActions {
     display: flex;
     justify-content: flex-end;
-    gap: 0.8rem;
+    gap: var(--ui-footer-action-gap);
 }
 
 @media (max-width: 960px), (max-height: 760px) {
@@ -335,6 +339,7 @@
     .sidebar {
         border-right: none;
         border-bottom: 1px solid var(--theme-divider-hairline);
+        padding-bottom: var(--ui-card-pad-md);
     }
 
     .categoryNav {
@@ -349,22 +354,23 @@
 
     .shellModal {
         padding:
-            max(1rem, env(safe-area-inset-top, 0px))
-            max(1rem, env(safe-area-inset-right, 0px))
-            max(1rem, env(safe-area-inset-bottom, 0px))
-            max(1rem, env(safe-area-inset-left, 0px));
+            max(var(--theme-space-xl), env(safe-area-inset-top, 0px))
+            max(var(--theme-space-xl), env(safe-area-inset-right, 0px))
+            max(var(--theme-space-xl), env(safe-area-inset-bottom, 0px))
+            max(var(--theme-space-xl), env(safe-area-inset-left, 0px));
     }
 
     .panel {
-        max-height: calc(100dvh - 1rem);
+        max-height: calc(100dvh - var(--theme-space-xl));
     }
 
     .contentPane {
-        padding: 1rem;
+        padding: var(--ui-card-pad-md);
     }
 
     .contentScroll {
-        gap: 0.8rem;
+        gap: var(--theme-space-lg);
+        padding-right: 0;
     }
 
     .footerActions {
@@ -379,6 +385,26 @@
 }
 
 @media (max-width: 560px) {
+    .sidebar {
+        gap: var(--theme-space-sm);
+    }
+
+    .categoryNav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+    }
+
+    .categoryButton {
+        flex: 1 1 calc(50% - 0.45rem);
+        min-height: var(--ui-touch-target-min);
+        padding: 0.75rem 0.82rem;
+    }
+
+    .categoryNote {
+        display: none;
+    }
+
     .categoryNav {
         grid-template-columns: 1fr;
     }

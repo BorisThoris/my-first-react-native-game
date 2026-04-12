@@ -72,13 +72,17 @@ const App = () => {
             view: state.view
         }))
     );
-    const isCompactViewport = width <= VIEWPORT_MOBILE_MAX || height <= VIEWPORT_MOBILE_MAX;
+    /** Wide short landscape (e.g. 1280×720): use roomy density + outer ui-scale; phones/tablet stays compact. */
+    const shortLandscapeDesktop =
+        width > VIEWPORT_TABLET_MAX && width > height && height > 0 && height <= VIEWPORT_MOBILE_MAX;
+    const isCompactViewport =
+        width <= VIEWPORT_MOBILE_MAX || (height <= VIEWPORT_MOBILE_MAX && !shortLandscapeDesktop);
     const safeUiScale = isCompactViewport
         ? 1
         : width <= VIEWPORT_TABLET_MAX
           ? Math.min(settings.uiScale, 1.08)
           : Math.min(settings.uiScale, 1.15);
-    const themeStyle = buildRendererThemeStyle(safeUiScale);
+    const themeStyle = buildRendererThemeStyle(safeUiScale, isCompactViewport ? 'compact' : 'roomy');
     const activeView = hydrated ? view : 'boot';
     const [introPlayback, setIntroPlayback] = useState<Exclude<IntroPlaybackState, 'playing'>>('pending');
     const inGameSettingsOverlay =

@@ -22,7 +22,7 @@ const slot = (
 
 /**
  * Canonical portrait sizes; landscape is always swapped dimensions.
- * Used by `visual-inventory-capture.spec.ts` only.
+ * Used by the full-device visual UI audit.
  */
 export const INVENTORY_DEVICE_SLOTS: ReadonlyArray<InventoryDeviceSlot> = [
     slot('iphone-se', 'portrait', 375, 667, true),

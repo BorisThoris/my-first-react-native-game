@@ -98,9 +98,10 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const shellRef = useRef<HTMLElement | null>(null);
     const tileBoardRef = useRef<TileBoardHandle>(null);
     const { height, width } = useViewportSize();
+    const compactTouchChrome = width <= VIEWPORT_MOBILE_MAX || height <= VIEWPORT_MOBILE_MAX;
     const [viewportResetToken, setViewportResetToken] = useState(0);
     const [gauntletNowMs, setGauntletNowMs] = useState(() => Date.now());
-    const [rulesHintsExpanded, setRulesHintsExpanded] = useState(true);
+    const [rulesHintsExpanded, setRulesHintsExpanded] = useState(() => !compactTouchChrome);
     const [utilityFlyoutOpen, setUtilityFlyoutOpen] = useState(false);
     const [abandonRunConfirmOpen, setAbandonRunConfirmOpen] = useState(false);
     useEffect(() => {
@@ -114,6 +115,11 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         const id = window.setInterval(tick, 300);
         return () => window.clearInterval(id);
     }, [run.gauntletDeadlineMs]);
+    useEffect(() => {
+        if (compactTouchChrome) {
+            setRulesHintsExpanded(false);
+        }
+    }, [compactTouchChrome]);
     const gameScreenActions = useAppStore(
         useShallow((state) => ({
             applyFlashPairPower: state.applyFlashPairPower,
@@ -242,7 +248,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const parasiteFloorProgress = Math.min(1, run.parasiteFloors / 4);
     const silhouetteDuringPlay = run.activeMutators.includes('silhouette_twist');
     const nBackMutatorActive = run.activeMutators.includes('n_back_anchor');
-    const isCompact = width <= VIEWPORT_MOBILE_MAX || height <= VIEWPORT_MOBILE_MAX;
+    const isCompact = compactTouchChrome;
     const isTight = width <= VIEWPORT_TIGHT_MAX_W || height <= VIEWPORT_TIGHT_MAX_H;
     const cameraViewportMode = isCompact;
     const pauseActionLabel = run.status === 'paused' ? 'Resume' : 'Pause';

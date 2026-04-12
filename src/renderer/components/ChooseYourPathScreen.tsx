@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useFitShellZoom } from '../hooks/useFitShellZoom';
+import { isShortLandscapeViewport, VIEWPORT_MOBILE_MAX } from '../breakpoints';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { useShallow } from 'zustand/react/shallow';
 import { formatNextUtcReset } from '../../shared/utc-countdown';
@@ -22,12 +23,18 @@ const ChooseYourPathScreen = () => {
     const dailyCountdown = formatNextUtcReset(nowMs);
     const pathFitMeasureRef = useRef<HTMLDivElement | null>(null);
     const { height: vpH, width: vpW } = useViewportSize();
-    const { fitZoom } = useFitShellZoom({
+    const isPhoneViewport = vpW <= VIEWPORT_MOBILE_MAX;
+    const isShortLandscapeShell = isShortLandscapeViewport(vpW, vpH);
+    const pathFitPadding = vpW >= 1024 && vpH <= 760 ? 8 : 14;
+    const pathTouchCompact = isPhoneViewport || isShortLandscapeShell;
+    const { fitZoom: rawPathFitZoom } = useFitShellZoom({
+        enabled: true,
         measureRef: pathFitMeasureRef,
         viewportWidth: vpW,
         viewportHeight: vpH,
-        padding: 14
+        padding: pathFitPadding
     });
+    const pathShellFitZoom = rawPathFitZoom;
 
     useEffect(() => {
         const id = window.setInterval(() => setNowMs(Date.now()), 1000);
@@ -35,18 +42,22 @@ const ChooseYourPathScreen = () => {
     }, []);
 
     return (
-        <section aria-label="Choose Your Path" className={`${metaStyles.shell} ${metaStyles.shellMetaStage}`} role="region">
+        <section
+            aria-label="Choose Your Path"
+            className={`${metaStyles.shell} ${metaStyles.shellMetaStage} ${isPhoneViewport ? styles.compactPathShell : ''} ${isShortLandscapeShell ? styles.shortTouchLandscapeShell : ''}`.trim()}
+            role="region"
+        >
             <div className={styles.pathFitViewport}>
                 <div ref={pathFitMeasureRef} className={styles.pathFitMeasureOuter}>
-                    <div className={styles.pathFitZoomInner} style={{ zoom: fitZoom }}>
+                    <div className={styles.pathFitZoomInner} style={{ zoom: pathShellFitZoom }}>
                         <div className={styles.pathFitStack}>
-            <header className={metaStyles.header}>
+            <header className={`${metaStyles.header} ${styles.pathStackHeader}`}>
                 <div className={metaStyles.headerText}>
                     <Eyebrow tone="menu">Start a run</Eyebrow>
                     <ScreenTitle as="h1" role="display">
                         Choose Your Path
                     </ScreenTitle>
-                    <p className={metaStyles.subtitle}>
+                    <p className={`${metaStyles.subtitle} ${styles.pathSubtitle}`}>
                         Classic Run uses the standard descent. Daily Challenge uses the rotating UTC seed. Endless Mode is
                         still in design.
                     </p>
@@ -94,6 +105,7 @@ const ChooseYourPathScreen = () => {
                     <button
                         aria-disabled="true"
                         className={`${styles.card} ${styles.cardEndless} ${styles.cardDisabled}`}
+                        data-testid="choose-path-low-cta"
                         disabled
                         type="button"
                     >

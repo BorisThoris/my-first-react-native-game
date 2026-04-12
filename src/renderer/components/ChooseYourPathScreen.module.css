@@ -8,6 +8,16 @@
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
+    container-type: size;
+    container-name: path-shell;
+
+    --path-stack-gap: var(--theme-space-2xl);
+    --path-card-grid-gap: var(--theme-space-xl);
+    --path-card-inner-gap: var(--theme-space-md);
+    --path-card-pad-block: var(--theme-space-2xl);
+    --path-card-pad-inline: calc(var(--theme-space-xl) + var(--theme-space-2xs));
+    --path-card-body-wrap-gap: var(--theme-space-md);
+    --path-stack-header-gap: var(--theme-space-xl);
 }
 
 .pathFitMeasureOuter {
@@ -26,9 +36,13 @@
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: var(--path-stack-gap);
     box-sizing: border-box;
     min-height: 0;
+}
+
+.pathFitViewport .pathStackHeader {
+    gap: var(--path-stack-header-gap);
 }
 
 .pathFitStack .pathBody {
@@ -40,7 +54,7 @@
 .cardGrid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 1rem;
+    gap: var(--path-card-grid-gap);
     align-items: stretch;
 }
 
@@ -49,8 +63,8 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    padding: 1.25rem 1.1rem;
+    gap: var(--path-card-inner-gap);
+    padding: var(--path-card-pad-block) var(--path-card-pad-inline);
     border-radius: var(--ui-radius-lg);
     border: 1px solid var(--theme-hud-chrome-border-soft);
     background:
@@ -94,7 +108,7 @@
     z-index: 1;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: var(--path-card-body-wrap-gap);
     flex: 1;
     min-height: 0;
 }
@@ -118,6 +132,67 @@
 .cardDisabled:hover {
     transform: none;
     box-shadow: none;
+}
+
+.compactPathShell .pathFitViewport {
+    --path-stack-gap: var(--theme-space-lg);
+    --path-card-grid-gap: var(--theme-space-sm);
+    --path-card-inner-gap: var(--theme-space-sm);
+    --path-card-pad-block: var(--ui-card-pad-lg);
+    --path-card-pad-inline: var(--ui-card-pad-md);
+    --path-card-body-wrap-gap: var(--theme-space-sm);
+    --path-stack-header-gap: var(--theme-space-sm);
+}
+
+.compactPathShell .pathBody {
+    width: 100%;
+}
+
+.compactPathShell .cardTitle {
+    font-size: 1rem;
+}
+
+.compactPathShell .cardBody {
+    font-size: 0.84rem;
+    line-height: 1.38;
+}
+
+.compactPathShell .cardFooter {
+    font-size: 0.76rem;
+}
+
+.shortTouchLandscapeShell .pathFitViewport {
+    --path-stack-gap: var(--theme-space-sm);
+    --path-card-grid-gap: var(--theme-space-sm);
+    --path-card-pad-block: var(--ui-card-pad-md);
+    --path-card-pad-inline: var(--ui-card-pad-md);
+    --path-card-body-wrap-gap: var(--theme-space-sm);
+}
+
+.shortTouchLandscapeShell .cardGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.shortTouchLandscapeShell .card {
+    min-height: 0;
+}
+
+.shortTouchLandscapeShell .pathSubtitle {
+    font-size: 0.82rem;
+    line-height: 1.35;
+}
+
+.shortTouchLandscapeShell .cardTitle {
+    font-size: 0.94rem;
+}
+
+.shortTouchLandscapeShell .cardBody {
+    font-size: 0.78rem;
+}
+
+.shortTouchLandscapeShell .cardFooter {
+    font-size: 0.72rem;
+    padding-top: 0.24rem;
 }
 
 .cardTitle {
@@ -176,4 +251,35 @@
 
 :global([data-reduce-motion='true']) .card:hover:not(:disabled) {
     transform: none;
+}
+
+@container path-shell (min-width: 1024px) and (max-height: 760px) {
+    .pathFitViewport {
+        --path-stack-gap: calc(var(--theme-space-md) + var(--theme-space-2xs));
+        --path-card-grid-gap: calc(var(--theme-space-sm) + var(--theme-space-2xs));
+        --path-card-inner-gap: calc(var(--theme-space-sm) + var(--theme-space-2xs));
+        --path-card-pad-block: var(--theme-space-lg);
+        --path-card-pad-inline: var(--theme-space-xl);
+        --path-card-body-wrap-gap: calc(var(--theme-space-sm) + var(--theme-space-2xs));
+        --path-stack-header-gap: calc(var(--theme-space-sm) + var(--theme-space-2xs));
+    }
+
+    .pathSubtitle {
+        font-size: 0.86rem;
+        line-height: 1.38;
+    }
+
+    .cardTitle {
+        font-size: 1.05rem;
+    }
+
+    .cardBody {
+        font-size: 0.82rem;
+        line-height: 1.38;
+    }
+
+    .cardFooter {
+        padding-top: 0.28rem;
+        font-size: 0.78rem;
+    }
 }

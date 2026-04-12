@@ -19,6 +19,7 @@ import {
     canRegionShuffleRow,
     canShuffleBoard,
     countFullyHiddenPairs,
+    createDailyRun,
     createNewRun,
     createWildRun,
     enableDebugPeek,
@@ -32,6 +33,7 @@ import {
     togglePinnedTile,
     WILD_PAIR_KEY
 } from './game';
+import { DAILY_MUTATOR_TABLE } from './mutators';
 
 const createTile = (id: string, pairKey: string, symbol: string): Tile => ({
     id,
@@ -54,6 +56,16 @@ const createBoard = (tiles: Tile[]): BoardState => ({
 const createRun = (tiles: Tile[]): RunState => ({
     ...finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false, gameMode: 'puzzle' })),
     board: createBoard(tiles)
+});
+
+describe('createDailyRun', () => {
+    it('uses daily mode, one table mutator, and a UTC date key', () => {
+        const run = createDailyRun(0);
+        expect(run.gameMode).toBe('daily');
+        expect(run.activeMutators).toHaveLength(1);
+        expect(DAILY_MUTATOR_TABLE).toContain(run.activeMutators[0]);
+        expect(run.dailyDateKeyUtc).toMatch(/^\d{8}$/);
+    });
 });
 
 describe('game rules', () => {

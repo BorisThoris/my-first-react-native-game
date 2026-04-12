@@ -678,6 +678,11 @@
     "@eslint/core" "^0.17.0"
     levn "^0.4.1"
 
+"@fit-screen/react@^1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@fit-screen/react/-/react-1.0.2.tgz#e877f8ea7ed927c917a4e59b9aadae374843e80a"
+  integrity sha512-Ay/1AvHe2dpaZr/dzKMDKsThL2V/E8H1pnxikg/JqGxuqvADXDQZKLZqkgGtDpNVFFZfcIJdp3uLDSPUOVQAzQ==
+
 "@fontsource/cinzel@5.2.5":
   version "5.2.5"
   resolved "https://registry.yarnpkg.com/@fontsource/cinzel/-/cinzel-5.2.5.tgz#f962c1baa3a7aa88df1d3a1622cbedc6bb2ff49f"

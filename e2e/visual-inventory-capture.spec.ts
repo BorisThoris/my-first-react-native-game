@@ -6,6 +6,7 @@ import { captureVisualScreen } from './visualScreenHelpers';
 
 test.describe.configure({ mode: 'serial' });
 
+/** Full named-device UI audit: every visual screen scenario across touch and desktop slots. */
 for (const slot of INVENTORY_DEVICE_SLOTS) {
     test.describe(`Visual inventory @ ${slot.deviceId} / ${slot.orientation} (${slot.width}x${slot.height})`, () => {
         test.beforeEach(async ({ page }) => {

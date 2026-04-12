@@ -226,6 +226,19 @@ export const RENDERER_THEME = {
         '--ui-space-2xl': '1.35rem',
         '--ui-space-3xl': '1.75rem',
 
+        /*
+         * Spacing ladder aliases — use in shells (main menu, meta, settings) so density and fit-viewport
+         * overrides only need to touch --ui-space-* on .app (buildRendererThemeStyle) or local shell props.
+         */
+        '--theme-space-2xs': 'var(--ui-space-2xs)',
+        '--theme-space-xs': 'var(--ui-space-xs)',
+        '--theme-space-sm': 'var(--ui-space-sm)',
+        '--theme-space-md': 'var(--ui-space-md)',
+        '--theme-space-lg': 'var(--ui-space-lg)',
+        '--theme-space-xl': 'var(--ui-space-xl)',
+        '--theme-space-2xl': 'var(--ui-space-2xl)',
+        '--theme-space-3xl': 'var(--ui-space-3xl)',
+
         /* UI system: typography scale */
         '--ui-font-eyebrow': '0.72rem',
         '--ui-font-display-family': "'Cinzel', 'Palatino Linotype', 'Book Antiqua', Georgia, serif",
@@ -246,13 +259,45 @@ export const RENDERER_THEME = {
         /* Shared layout */
         '--ui-panel-max': 'min(1180px, 100%)',
         '--ui-shell-pad-x': 'clamp(0.65rem, 1.5vw, 1.15rem)',
-        '--ui-shell-pad-y': 'clamp(0.55rem, 1.2vw, 0.85rem)'
+        '--ui-shell-pad-y': 'clamp(0.55rem, 1.2vw, 0.85rem)',
+        '--ui-touch-target-min': '2.75rem',
+        '--ui-shell-screen-pad-inline': 'clamp(0.85rem, 1.8vw, 1.35rem)',
+        '--ui-shell-screen-pad-block': 'clamp(0.78rem, 1.6vw, 1.1rem)',
+        '--ui-shell-screen-gap': 'var(--theme-space-xl)',
+        '--ui-card-pad-md': 'clamp(0.95rem, 2vw, 1.2rem)',
+        '--ui-card-pad-lg': 'clamp(1.05rem, 2.2vw, 1.45rem)',
+        '--ui-footer-action-gap': 'var(--theme-space-md)'
     } as const
+} as const;
+
+/** Tighter step values when `data-density="compact"` (narrow or short viewport). */
+const RENDERER_THEME_UI_SPACE_COMPACT = {
+    '--ui-space-2xs': '0.2rem',
+    '--ui-space-xs': '0.28rem',
+    '--ui-space-sm': '0.42rem',
+    '--ui-space-md': '0.55rem',
+    '--ui-space-lg': '0.72rem',
+    '--ui-space-xl': '0.88rem',
+    '--ui-space-2xl': '1.12rem',
+    '--ui-space-3xl': '1.48rem',
+    '--ui-shell-screen-pad-inline': '0.78rem',
+    '--ui-shell-screen-pad-block': '0.7rem',
+    '--ui-shell-screen-gap': '0.78rem',
+    '--ui-card-pad-md': '0.92rem',
+    '--ui-card-pad-lg': '1.02rem',
+    '--ui-footer-action-gap': '0.65rem'
 } as const;
 
 export type RendererThemeVars = typeof RENDERER_THEME.cssVars;
 
-export const buildRendererThemeStyle = (uiScale: number): CSSProperties => ({
-    ...RENDERER_THEME.cssVars,
-    ['--ui-scale' as string]: uiScale
-} as CSSProperties);
+export type RendererThemeDensity = 'compact' | 'roomy';
+
+export const buildRendererThemeStyle = (
+    uiScale: number,
+    density: RendererThemeDensity = 'roomy'
+): CSSProperties =>
+    ({
+        ...RENDERER_THEME.cssVars,
+        ...(density === 'compact' ? RENDERER_THEME_UI_SPACE_COMPACT : {}),
+        ['--ui-scale' as string]: uiScale
+    }) as CSSProperties;

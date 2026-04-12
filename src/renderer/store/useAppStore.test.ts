@@ -215,3 +215,58 @@ describe('useAppStore scholar contract', () => {
         });
     });
 });
+
+describe('useAppStore restartRun menu modes', () => {
+    beforeEach(() => {
+        window.localStorage.clear();
+        vi.useFakeTimers();
+        resetStore();
+    });
+
+    afterEach(() => {
+        vi.runOnlyPendingTimers();
+        vi.useRealTimers();
+    });
+
+    it('restartRun after Wild Run keeps wild menu run and joker mutator bundle', async () => {
+        useAppStore.getState().startWildRun();
+        const started = useAppStore.getState().run;
+        expect(started?.wildMenuRun).toBe(true);
+        expect(started?.wildMatchesRemaining).toBeGreaterThanOrEqual(1);
+
+        const memorizeDuration = started?.timerState.memorizeRemainingMs ?? 0;
+        await vi.advanceTimersByTimeAsync(memorizeDuration + 1);
+        expect(useAppStore.getState().run?.status).toBe('playing');
+
+        useAppStore.getState().restartRun();
+
+        const next = useAppStore.getState().run;
+        expect(next?.wildMenuRun).toBe(true);
+        expect(next?.wildMatchesRemaining).toBeGreaterThanOrEqual(1);
+        expect(next?.activeMutators).toEqual(['sticky_fingers', 'short_memorize', 'findables_floor']);
+    });
+
+    it('restartRun after Pin vow keeps maxPinsTotalRun contract', async () => {
+        useAppStore.getState().startPinVowRun();
+        const started = useAppStore.getState().run;
+        expect(started?.activeContract).toEqual({
+            noShuffle: false,
+            noDestroy: false,
+            maxMismatches: null,
+            maxPinsTotalRun: 10
+        });
+
+        const memorizeDuration = started?.timerState.memorizeRemainingMs ?? 0;
+        await vi.advanceTimersByTimeAsync(memorizeDuration + 1);
+        expect(useAppStore.getState().run?.status).toBe('playing');
+
+        useAppStore.getState().restartRun();
+
+        expect(useAppStore.getState().run?.activeContract).toEqual({
+            noShuffle: false,
+            noDestroy: false,
+            maxMismatches: null,
+            maxPinsTotalRun: 10
+        });
+    });
+});

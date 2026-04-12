@@ -7,7 +7,7 @@ import { VISUAL_SCREEN_SCENARIOS } from './visualScenarioSteps';
  * Full-page PNGs for design review across viewports. Output:
  *   docs/ui-design-reference/<width>x<height>/<scenario-fileBase>.png
  *
- * Run: `yarn capture:ui-design-reference` (7 viewports × all visual scenarios; serial, ~18+ min).
+ * Run: `yarn capture:ui-design-reference` (8 viewports × all visual scenarios; serial, ~22+ min).
  */
 const OUT_ROOT = join(process.cwd(), 'docs', 'ui-design-reference');
 
@@ -20,6 +20,8 @@ const VIEWPORTS = [
     { label: '820x1180', width: 820, height: 1180 },
     /* Tight square — crosses GameScreen / layout compact breakpoints (~760). */
     { label: '760x760', width: 760, height: 760 },
+    /* Steam / Electron minimum window — desktop-short compaction + fit zoom. */
+    { label: '1280x720', width: 1280, height: 720 },
     { label: '1280x800', width: 1280, height: 800 },
     { label: '1440x900', width: 1440, height: 900 }
 ] as const;
