@@ -4,6 +4,8 @@
 
 Shipped chrome (main menu, meta shells, settings, modals, panels) must not use **`overflow-y: auto` / `scroll`** on HTML. Prefer **`@media` / `@container` reflow**, **row→column** layout, **progressive disclosure** (group or hide secondary actions), then **uniform `zoom`** via [`useFitShellZoom`](../src/renderer/hooks/useFitShellZoom.ts). Short landscape detection for layout matches [`VIEWPORT_SHORT_LANDSCAPE_MAX_HEIGHT`](../src/renderer/breakpoints.ts) (860px) in TS and in shell CSS.
 
+**Main menu stack vs fit:** Short height alone does not force the phone-style single-column hero/support stack. That stack applies when the viewport is a **phone** (`width ≤ VIEWPORT_MOBILE_MAX`) or a **narrow** short landscape: [`isNarrowShortLandscapeForMenuStack`](../src/renderer/breakpoints.ts) (`isShortLandscapeViewport` **and** `width ≤ VIEWPORT_LANDSCAPE_STACK_MAX_WIDTH`, 960px). Examples: **844×390** and **900×700** stack; **1280×720** and **1920×720** keep the two-column grid and rely on fit zoom + tokens for height.
+
 This project keeps meta shells (main menu, choose-your-path, etc.) inside the visible area **without document scrolling**, using a hybrid of **layout compaction** and **uniform scale** when content would still overflow.
 
 ## Guides and patterns (bookmark)
@@ -31,7 +33,7 @@ A minimal **spike test** lives at [`src/renderer/dev/fitScreenSpike.test.tsx`](.
 ## In-repo decision (why not replace `useFitShellZoom` today)
 
 1. **Implementation today** — [`src/renderer/hooks/useFitShellZoom.ts`](../src/renderer/hooks/useFitShellZoom.ts) + **`zoom`** on the inner menu/path column:
-   - Uses **`ResizeObserver`** and measured **`scrollWidth` / `scrollHeight`** so short landscape heights (e.g. 844×390) get a correct intrinsic height.
+   - Recomputes on viewport size, **`document.fonts.ready`**, and a short delayed pass; measures the wrapper and unwraps the current zoom to get intrinsic size (no ResizeObserver loop on the shell).
    - **`zoom`** adjusts layout size in Chromium, which matches **Steam / Electron** and keeps **hit targets** aligned with painted controls (same concern as `transform` + wrapper math, but less glue code).
 
 2. **`@fit-screen/react`** uses **`transform: scale`** from a **fixed design draft** (`width` / `height` props). That is a good fit when the entire UI is authored at one resolution. Our menu height is **content-driven** (save state, “How to play”, etc.), so a single draft size is a second source of truth unless we lock layout to a canvas-like frame.

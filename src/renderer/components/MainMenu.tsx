@@ -7,7 +7,12 @@ import { useFitShellZoom } from '../hooks/useFitShellZoom';
 import { useShallow } from 'zustand/react/shallow';
 import { UI_ART } from '../assets/ui';
 import { desktopClient } from '../desktop-client';
-import { isShortLandscapeViewport, VIEWPORT_MOBILE_MAX, VIEWPORT_TABLET_MAX } from '../breakpoints';
+import {
+    isNarrowShortLandscapeForMenuStack,
+    isShortLandscapeViewport,
+    VIEWPORT_MOBILE_MAX,
+    VIEWPORT_TABLET_MAX
+} from '../breakpoints';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
 import { useAppStore } from '../store/useAppStore';
@@ -93,7 +98,7 @@ const MainMenu = ({
     const isPhoneViewport = width <= VIEWPORT_MOBILE_MAX;
     const isShortLandscapeShell = isShortLandscapeViewport(width, height);
     const ultraCompactPhone = width <= 430 && height <= 700;
-    const touchCompactLayout = isPhoneViewport || isShortLandscapeShell;
+    const touchCompactLayout = isPhoneViewport || isNarrowShortLandscapeForMenuStack(width, height);
     const prioritizeModesInHero = width <= VIEWPORT_TABLET_MAX;
     /** Layout-only compaction for wide, short desktop (not tied to fit-zoom, which runs for all sizes). */
     const shortDesktopShell = !touchCompactLayout && width >= 1024 && height <= 760;

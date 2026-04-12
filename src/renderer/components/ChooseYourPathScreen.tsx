@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useFitShellZoom } from '../hooks/useFitShellZoom';
-import { isShortLandscapeViewport, VIEWPORT_MOBILE_MAX } from '../breakpoints';
+import { isNarrowShortLandscapeForMenuStack, isShortLandscapeViewport, VIEWPORT_MOBILE_MAX } from '../breakpoints';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { useShallow } from 'zustand/react/shallow';
 import { formatNextUtcReset } from '../../shared/utc-countdown';
@@ -26,7 +26,7 @@ const ChooseYourPathScreen = () => {
     const isPhoneViewport = vpW <= VIEWPORT_MOBILE_MAX;
     const isShortLandscapeShell = isShortLandscapeViewport(vpW, vpH);
     const pathFitPadding = vpW >= 1024 && vpH <= 760 ? 8 : 14;
-    const pathTouchCompact = isPhoneViewport || isShortLandscapeShell;
+    const pathTouchCompact = isPhoneViewport || isNarrowShortLandscapeForMenuStack(vpW, vpH);
     const { fitZoom: rawPathFitZoom } = useFitShellZoom({
         enabled: true,
         measureRef: pathFitMeasureRef,
@@ -44,7 +44,7 @@ const ChooseYourPathScreen = () => {
     return (
         <section
             aria-label="Choose Your Path"
-            className={`${metaStyles.shell} ${metaStyles.shellMetaStage} ${isPhoneViewport ? styles.compactPathShell : ''} ${isShortLandscapeShell ? styles.shortTouchLandscapeShell : ''}`.trim()}
+            className={`${metaStyles.shell} ${metaStyles.shellMetaStage} ${pathTouchCompact ? styles.compactPathShell : ''} ${isShortLandscapeShell ? styles.shortTouchLandscapeShell : ''}`.trim()}
             role="region"
         >
             <div className={styles.pathFitViewport}>

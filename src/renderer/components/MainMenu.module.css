@@ -516,11 +516,6 @@
     --menu-content-pad-block-end: var(--theme-space-sm);
 }
 
-.shortTouchLandscapeShell .layout {
-    grid-template-columns: 1fr;
-    align-items: stretch;
-}
-
 .shortTouchLandscapeShell .metaRow {
     grid-template-columns: repeat(4, minmax(0, 1fr));
 }

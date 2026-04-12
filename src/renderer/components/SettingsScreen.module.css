@@ -331,7 +331,7 @@
     gap: var(--ui-footer-action-gap);
 }
 
-@media (max-width: 960px), (max-height: 760px) {
+@media (max-width: 960px), ((max-height: 760px) and (max-width: 1024px)) {
     .frame {
         grid-template-columns: 1fr;
     }
@@ -347,7 +347,7 @@
     }
 }
 
-@media (max-width: 760px), (max-height: 760px) {
+@media (max-width: 760px), ((max-height: 760px) and (max-width: 1024px)) {
     .shell {
         place-items: start;
     }
