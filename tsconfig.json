@@ -15,7 +15,10 @@
         "isolatedModules": true,
         "noEmit": true,
         "jsx": "react-jsx",
-        "types": ["node", "vite/client"]
+        "types": ["node", "vite/client"],
+        "paths": {
+            "@cross-repo-libs/notifications": ["../cross-repo-libs/packages/notifications/src/index.ts"]
+        }
     },
     "include": ["src", "vite.config.mts", "tsup.config.ts", "vitest.setup.ts"]
 }

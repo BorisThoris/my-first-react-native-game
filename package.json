@@ -52,6 +52,7 @@
         "postinstall": "node scripts/postinstall.cjs"
     },
     "dependencies": {
+        "@cross-repo-libs/notifications": "file:../cross-repo-libs/packages/notifications",
         "@fontsource/cinzel": "5.2.5",
         "@fontsource/source-sans-3": "5.2.5",
         "@react-three/fiber": "^9.5.0",

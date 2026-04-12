@@ -1,0 +1,77 @@
+/**
+ * Positions and themes @cross-repo-libs/notifications to match former GameScreen toast rails.
+ * Loaded after package styles; uses renderer theme CSS vars from theme.ts (set on :root).
+ */
+
+.crn-host {
+    top: auto;
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 6.5rem);
+    z-index: 9999;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    width: min(calc(100% - 1rem), 960px);
+    max-width: min(100%, 960px);
+    pointer-events: none;
+    --crn-stack-gap: 0.35rem;
+    --crn-text: var(--theme-text);
+    --crn-radius: 999px;
+    --crn-padding-y: 0.38rem;
+    --crn-padding-x: 0.85rem;
+    --crn-message-font-size: 0.68rem;
+    --crn-message-line-height: 1.35;
+    --crn-shadow: 0 8px 28px color-mix(in srgb, var(--theme-shadow) 35%, transparent);
+    --crn-success-bg: color-mix(in srgb, var(--theme-gold) 42%, var(--theme-smoke-deep));
+    --crn-info-bg: color-mix(in srgb, var(--theme-panel-solid) 82%, var(--theme-cyan) 18%);
+    --crn-warning-bg: color-mix(in srgb, var(--theme-amber) 55%, var(--theme-smoke-deep));
+    --crn-error-bg: color-mix(in srgb, var(--theme-danger) 65%, var(--theme-smoke-deep));
+    --crn-close-hover-bg: color-mix(in srgb, var(--theme-text) 12%, transparent);
+    --crn-action-bg: color-mix(in srgb, var(--theme-ink) 35%, transparent);
+    --crn-action-hover-bg: color-mix(in srgb, var(--theme-ink) 48%, transparent);
+}
+
+@media (min-width: 761px) and (min-height: 761px) {
+    .crn-host {
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 2.25rem);
+    }
+}
+
+.crn-card {
+    pointer-events: auto;
+    border: 1px solid var(--theme-border-cyan);
+    box-shadow:
+        var(--crn-shadow),
+        0 0 18px var(--theme-glow-gold-soft, rgba(242, 211, 157, 0.14));
+}
+
+.crn-card--success {
+    border-color: color-mix(in srgb, var(--theme-border-strong) 85%, transparent);
+    box-shadow:
+        0 0 22px var(--theme-glow-gold, rgba(195, 149, 79, 0.24)),
+        0 10px 28px color-mix(in srgb, var(--theme-shadow) 40%, transparent);
+    font-family: var(--theme-display-font, 'Cinzel', serif);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+    --crn-message-font-size: clamp(0.95rem, 2.4vw, 1.15rem);
+    --crn-text: var(--theme-gold-bright);
+    text-shadow: 0 0 12px var(--theme-glow-gold, rgba(195, 149, 79, 0.24));
+}
+
+.crn-card--info .crn-message {
+    font-weight: 700;
+    color: var(--theme-cyan-bright);
+    letter-spacing: 0.04em;
+}
+
+.crn-card--info .crn-close {
+    color: var(--theme-cyan-bright);
+}
+
+/* NotificationHost renders .crn-host as next sibling after App's root `.app` */
+.app[data-reduce-motion='true'] + .crn-host .crn-card {
+    animation: none;
+}

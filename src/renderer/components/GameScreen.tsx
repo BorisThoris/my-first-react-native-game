@@ -11,10 +11,11 @@ import {
 import { computeFocusDimmedTileIds } from '../../shared/focusDimmedTileIds';
 import { canRegionShuffle, canRegionShuffleRow, canShuffleBoard } from '../../shared/game';
 import { hasMutator } from '../../shared/mutators';
+import { useNotificationStore } from '@cross-repo-libs/notifications';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { UI_ART } from '../assets/ui';
-import { VIEWPORT_MOBILE_MAX, VIEWPORT_TIGHT_MAX_H, VIEWPORT_TIGHT_MAX_W } from '../breakpoints';
+import { VIEWPORT_MOBILE_MAX } from '../breakpoints';
 import { useDistractionChannelTick } from '../hooks/useDistractionChannelTick';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
@@ -116,9 +117,13 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         return () => window.clearInterval(id);
     }, [run.gauntletDeadlineMs]);
     useEffect(() => {
-        if (compactTouchChrome) {
-            setRulesHintsExpanded(false);
+        if (!compactTouchChrome) {
+            return;
         }
+        const id = window.setTimeout(() => {
+            setRulesHintsExpanded(false);
+        }, 0);
+        return () => window.clearTimeout(id);
     }, [compactTouchChrome]);
     const gameScreenActions = useAppStore(
         useShallow((state) => ({
@@ -151,6 +156,28 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         }))
     );
     const settingsReduceMotion = useAppStore((state) => state.settings.reduceMotion);
+    const seenAchievementToastIdsRef = useRef<Set<string>>(new Set());
+
+    useEffect(() => {
+        if (achievements.length === 0) {
+            seenAchievementToastIdsRef.current = new Set();
+            return;
+        }
+
+        const infoDuration = settingsReduceMotion ? 3500 : 5500;
+        const { showInfo } = useNotificationStore.getState();
+
+        for (const achievementId of achievements) {
+            if (seenAchievementToastIdsRef.current.has(achievementId)) {
+                continue;
+            }
+            seenAchievementToastIdsRef.current.add(achievementId);
+            const def = ACHIEVEMENTS.find((item) => item.id === achievementId);
+            if (def) {
+                showInfo(`${def.title} — ${def.description}`, infoDuration);
+            }
+        }
+    }, [achievements, settingsReduceMotion]);
     const settingsDistractionChannelEnabled = useAppStore((state) => state.settings.distractionChannelEnabled);
     const settingsTileFocusAssist = useAppStore((state) => state.settings.tileFocusAssist);
     const settingsBoardPresentation = useAppStore((state) => state.settings.boardPresentation);
@@ -188,7 +215,6 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         triggerDebugReveal,
         undoResolvingFlip
     } = gameScreenActions;
-    const [scorePops, setScorePops] = useState<Array<{ id: number; points: number }>>([]);
     const prevMatchStatsRef = useRef<{ matches: number; total: number } | null>(null);
     useEffect(() => {
         if (run.status !== 'playing' || !run.board) {
@@ -205,12 +231,8 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         if (run.stats.matchesFound > prev.matches) {
             const gained = run.stats.totalScore - prev.total;
             if (gained > 0) {
-                const id = Date.now() + Math.floor(Math.random() * 1000);
-                setScorePops((current) => [...current, { id, points: gained }]);
                 const dismissMs = settingsReduceMotion ? 1400 : 2400;
-                window.setTimeout(() => {
-                    setScorePops((current) => current.filter((item) => item.id !== id));
-                }, dismissMs);
+                useNotificationStore.getState().showSuccess(`+${gained.toLocaleString()}`, dismissMs);
             }
         }
         prevMatchStatsRef.current = {
@@ -249,7 +271,6 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const silhouetteDuringPlay = run.activeMutators.includes('silhouette_twist');
     const nBackMutatorActive = run.activeMutators.includes('n_back_anchor');
     const isCompact = compactTouchChrome;
-    const isTight = width <= VIEWPORT_TIGHT_MAX_W || height <= VIEWPORT_TIGHT_MAX_H;
     const cameraViewportMode = isCompact;
     const pauseActionLabel = run.status === 'paused' ? 'Resume' : 'Pause';
     const clearLifeBonusLabel = run.lastLevelResult ? getClearLifeBonusLabel(run.lastLevelResult) : null;
@@ -263,9 +284,6 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         return null;
     }
 
-    const unlockedDefinitions = achievements
-        .map((achievementId) => ACHIEVEMENTS.find((item) => item.id === achievementId))
-        .filter((achievement): achievement is (typeof ACHIEVEMENTS)[number] => Boolean(achievement));
     const showForgivenessHint =
         run.board.level <= 3 &&
         (run.status === 'memorize' || run.status === 'playing') &&
@@ -607,41 +625,6 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                             {distractionHudOn ? (
                                 <div aria-hidden className={styles.distractionHud}>
                                     {(distractionTick % 7) + 3}
-                                </div>
-                            ) : null}
-                            {unlockedDefinitions.length > 0 || scorePops.length > 0 ? (
-                                <div
-                                    className={`${styles.toastRailStack} ${cameraViewportMode ? styles.mobileCameraToastRail : ''}`}
-                                >
-                                    {scorePops.length > 0 ? (
-                                        <div
-                                            aria-atomic="false"
-                                            aria-live="polite"
-                                            className={styles.toastRail}
-                                            data-testid="game-toast-score-rail"
-                                        >
-                                            {scorePops.map((pop) => (
-                                                <div className={styles.scorePop} key={pop.id}>
-                                                    +{pop.points.toLocaleString()}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : null}
-                                    {unlockedDefinitions.length > 0 ? (
-                                        <div
-                                            aria-atomic="true"
-                                            aria-live="polite"
-                                            className={styles.toastRail}
-                                            data-testid="game-toast-achievement-rail"
-                                        >
-                                            {unlockedDefinitions.map((a) => (
-                                                <div className={styles.toast} key={a.id}>
-                                                    <span className={styles.toastTitle}>{a.title}</span>
-                                                    <span className={styles.toastDesc}>{a.description}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : null}
                                 </div>
                             ) : null}
                         </div>
