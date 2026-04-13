@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useShallow } from 'zustand/react/shallow';
 import ChooseYourPathScreen from './components/ChooseYourPathScreen';
 import CodexScreen from './components/CodexScreen';
@@ -116,7 +117,8 @@ const App = () => {
     /*
      * OVR-008 — overlay z-index ladder (low → high within .content):
      * 0–1: menu / game shells (App.module.css .menuLayer, .content).
-     * 6–8: StartupIntro layers (StartupIntro.module.css).
+     * 6–8: StartupIntro layers (StartupIntro.module.css); intro is portaled to document.body
+     *     so fixed sizing is not distorted by `.content` zoom.
      * 21: OverlayModal backdrop (pause, floor clear, abandon).
      * 22: Meta in-run modal (inventory/codex over play) — MetaScreen.module.css .modalOverlay.
      * 24: Settings shell modal — SettingsScreen.module.css.
@@ -171,12 +173,14 @@ const App = () => {
                     </div>
                 )}
 
-                {introOverlayVisible && (
-                    <StartupIntro
-                        onComplete={() => setIntroPlayback('done')}
-                        reduceMotion={settings.reduceMotion}
-                    />
-                )}
+                {introOverlayVisible &&
+                    createPortal(
+                        <StartupIntro
+                            onComplete={() => setIntroPlayback('done')}
+                            reduceMotion={settings.reduceMotion}
+                        />,
+                        document.body
+                    )}
 
                 {hydrated && view === 'modeSelect' && <ChooseYourPathScreen />}
 

@@ -560,6 +560,7 @@ const RelicIntroScene = ({
             camera={{ fov: 26, near: 0.1, far: 40, position: [0, 0, 5.4] }}
             className={styles.canvas}
             dpr={dpr}
+            style={{ display: 'block', height: '100%', width: '100%' }}
             gl={{
                 alpha: true,
                 antialias: true,

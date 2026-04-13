@@ -39,6 +39,12 @@ export default defineConfig({
     },
     build: {
         outDir: 'dist',
-        sourcemap: true
+        sourcemap: true,
+        rollupOptions: {
+            input: {
+                main: path.resolve(__dirname, 'index.html'),
+                logoSandbox: path.resolve(__dirname, 'logo-sandbox.html')
+            }
+        }
     }
 });
