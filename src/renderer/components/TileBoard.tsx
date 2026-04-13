@@ -16,6 +16,7 @@ import {
 import { flushSync } from 'react-dom';
 import type { BoardScreenSpaceAA, BoardState, GraphicsQualityPreset, RunStatus, Tile } from '../../shared/contracts';
 import { getBoardDprCap } from '../../shared/graphicsQuality';
+import { isNarrowShortLandscapeForMenuStack, VIEWPORT_MOBILE_MAX } from '../breakpoints';
 import { useCoarsePointer } from '../hooks/useCoarsePointer';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
@@ -395,7 +396,8 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
 ) {
     const { height, width } = useViewportSize();
     const peekSet = useMemo(() => new Set(peekRevealedTileIds), [peekRevealedTileIds]);
-    const compact = width <= 760 || height <= 760;
+    const compact =
+        width <= VIEWPORT_MOBILE_MAX || isNarrowShortLandscapeForMenuStack(width, height);
     const touchPrimary = useCoarsePointer();
     const baselineWebGl = useMemo(() => canUseWebGL(), []);
     const [gpuSurfaceLost, setGpuSurfaceLost] = useState(false);

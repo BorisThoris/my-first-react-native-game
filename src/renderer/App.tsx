@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useShallow } from 'zustand/react/shallow';
 import ChooseYourPathScreen from './components/ChooseYourPathScreen';
@@ -16,6 +16,7 @@ import { VIEWPORT_MOBILE_MAX, VIEWPORT_TABLET_MAX } from './breakpoints';
 import { useViewportSize } from './hooks/useViewportSize';
 import styles from './styles/App.module.css';
 import { buildRendererThemeStyle } from './styles/theme';
+import { readDevSandboxConfig } from './dev/devSandboxParams';
 import { useAppStore } from './store/useAppStore';
 
 const App = () => {
@@ -110,9 +111,30 @@ const App = () => {
     const showMenuShell = showMainMenu || (!hydrated && introPlayback === 'pending');
     const menuShellBlurred = showMainMenu && introOverlayVisible;
 
+    const devSandboxAppliedRef = useRef(false);
+
     useEffect(() => {
         void hydrate();
     }, [hydrate]);
+
+    useEffect(() => {
+        if (!hydrated || devSandboxAppliedRef.current) {
+            return;
+        }
+        const cfg = readDevSandboxConfig();
+        if (!cfg.enabled) {
+            return;
+        }
+        devSandboxAppliedRef.current = true;
+        void Promise.resolve().then(() => {
+            if (cfg.skipIntro) {
+                setIntroPlayback('done');
+            }
+            if (cfg.screen) {
+                useAppStore.getState().__devApplySandbox(cfg);
+            }
+        });
+    }, [hydrated]);
 
     /*
      * OVR-008 — overlay z-index ladder (low → high within .content):

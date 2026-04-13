@@ -1,4 +1,4 @@
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { expect, type Locator, type Page } from '@playwright/test';
 import { BOARD_HIDDEN_TILE_BUTTON_RE, STORAGE_KEY } from './tileBoardGameFlow';
@@ -157,6 +157,117 @@ export async function gotoWithSave(page: Page, saveJson: string): Promise<void> 
     );
     await page.goto('/');
 }
+
+/**
+ * Seed the same visual save JSON as `gotoWithSave`, then open `/?{queryString}` for dev sandbox params
+ * (`devSandbox=1&screen=…`). `queryString` must not include a leading `?`.
+ */
+export async function gotoWithSaveAndQuery(page: Page, saveJson: string, queryString: string): Promise<void> {
+    const qs = queryString.startsWith('?') ? queryString.slice(1) : queryString;
+    await page.addInitScript(
+        ([key, json]) => {
+            localStorage.setItem(key, json);
+        },
+        [STORAGE_KEY, saveJson]
+    );
+    await page.goto(`/?${qs}`);
+}
+
+/** Output folder for HUD/board crops vs `docs/ENDPRODUCTIMAGE.png` (see `capture:endproduct-parity`). */
+export function getEndproductParityCaptureDir(): string {
+    const root = process.env.VISUAL_CAPTURE_ROOT?.trim()
+        ? resolve(process.cwd(), process.env.VISUAL_CAPTURE_ROOT.trim())
+        : join(process.cwd(), 'test-results', 'endproduct-parity');
+    mkdirSync(root, { recursive: true });
+    return root;
+}
+
+/** Sizes + computed min-height for HUD layout debugging (see `e2e/hud-inspect.spec.ts`). */
+export type HudLayoutMetricsEntry = {
+    className: string;
+    clientHeight: number;
+    maxHeight: string;
+    minHeight: string;
+    offsetHeight: number;
+    scrollHeight: number;
+    tagName: string;
+    testId: string;
+};
+
+/**
+ * Full-page + HUD element screenshots, bounding metrics for HUD wings, raw `outerHTML` of `game-hud`,
+ * and JSON under `outDir` (defaults to endproduct parity dir).
+ */
+export async function writeHudLayoutDiagnostics(page: Page, outDir: string): Promise<void> {
+    mkdirSync(outDir, { recursive: true });
+    await page.screenshot({ path: join(outDir, 'hud-context-fullpage.png'), fullPage: true });
+    const hud = page.getByTestId('game-hud');
+    await hud.screenshot({ path: join(outDir, 'hud-element.png') });
+
+    const testIds = ['game-hud', 'hud-wing-left', 'hud-wing-center', 'hud-wing-right'] as const;
+    const elements: HudLayoutMetricsEntry[] = [];
+    for (const id of testIds) {
+        const loc = page.getByTestId(id);
+        const entry = await loc.evaluate((el) => {
+            const cs = getComputedStyle(el);
+            return {
+                className: typeof el.className === 'string' ? el.className : '',
+                clientHeight: el.clientHeight,
+                maxHeight: cs.maxHeight,
+                minHeight: cs.minHeight,
+                offsetHeight: el.offsetHeight,
+                scrollHeight: el.scrollHeight,
+                tagName: el.tagName,
+                testId: el.getAttribute('data-testid') ?? ''
+            };
+        });
+        elements.push(entry);
+    }
+
+    const viewport = page.viewportSize();
+    writeFileSync(
+        join(outDir, 'hud-metrics.json'),
+        JSON.stringify(
+            {
+                capturedAt: new Date().toISOString(),
+                elements,
+                viewport
+            },
+            null,
+            2
+        ),
+        'utf8'
+    );
+
+    const outerHtml = await hud.evaluate((el) => el.outerHTML);
+    writeFileSync(join(outDir, 'hud-fragment.html'), outerHtml, 'utf8');
+}
+
+export interface OpenDevSandboxPlayingOptions {
+    fixture?: string;
+    reduceMotion?: boolean;
+    onboardingDismissed?: boolean;
+}
+
+/**
+ * Hydrates with a deterministic save, then applies URL dev sandbox to `playing` + fixture (see `runFixtures.ts`).
+ */
+export async function openDevSandboxPlaying(page: Page, options?: OpenDevSandboxPlayingOptions): Promise<void> {
+    const fixture = options?.fixture ?? 'dailyParasite';
+    const reduceMotion = options?.reduceMotion ?? true;
+    const onboardingDismissed = options?.onboardingDismissed ?? true;
+    const params = new URLSearchParams({
+        devSandbox: '1',
+        fixture,
+        screen: 'playing',
+        skipIntro: '1'
+    });
+    await gotoWithSaveAndQuery(page, buildVisualSaveJson(onboardingDismissed, reduceMotion), params.toString());
+    await expect(page.getByTestId('game-hud')).toBeVisible({ timeout: 25_000 });
+    await expect(page.getByTestId('tile-board-frame')).toBeVisible({ timeout: 25_000 });
+    await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible({ timeout: 25_000 });
+    await waitForPlayPhaseHiddenTiles(page, 4);
+}
 /**
  * Seeds localStorage then navigates home while waiting for the startup intro dialog.
  * Reduced-motion intros auto-dismiss in ~1.8s; `page.goto` default `load` can resolve after that on a
@@ -282,7 +393,7 @@ async function completeLevel1ByTryingHiddenPairs(page: Page): Promise<void> {
     await expect(page.getByRole('dialog', { name: /floor cleared/i })).toBeVisible({ timeout: 5000 });
 }
 
-async function waitForPlayPhaseHiddenTiles(page: Page, expected: number): Promise<void> {
+export async function waitForPlayPhaseHiddenTiles(page: Page, expected: number): Promise<void> {
     await expect
         .poll(async () => page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count(), { timeout: 15000 })
         .toBe(expected);

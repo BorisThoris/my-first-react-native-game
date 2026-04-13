@@ -1,14 +1,23 @@
-<svg width="120" height="48" viewBox="0 0 120 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg width="168" height="58" viewBox="0 0 168 58" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="hudGold" x1="0" y1="24" x2="120" y2="24" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#6B441B" stop-opacity="0"/>
-      <stop offset="0.35" stop-color="#C3954F"/>
-      <stop offset="0.65" stop-color="#F2D39D"/>
-      <stop offset="1" stop-color="#6B441B" stop-opacity="0"/>
+    <linearGradient id="hudGold" x1="0" y1="29" x2="168" y2="29" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6B441B" stop-opacity="0" />
+      <stop offset="0.32" stop-color="#C3954F" />
+      <stop offset="0.5" stop-color="#F2D39D" />
+      <stop offset="0.68" stop-color="#C3954F" />
+      <stop offset="1" stop-color="#6B441B" stop-opacity="0" />
+    </linearGradient>
+    <linearGradient id="hudGoldPeak" x1="84" y1="0" x2="84" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F2D39D" stop-opacity="0.15" />
+      <stop offset="0.5" stop-color="#C3954F" stop-opacity="0.55" />
+      <stop offset="1" stop-color="#8A6228" stop-opacity="0.2" />
     </linearGradient>
   </defs>
-  <path d="M8 24h32" stroke="url(#hudGold)" stroke-width="2" stroke-linecap="round" opacity="0.85"/>
-  <path d="M80 24h32" stroke="url(#hudGold)" stroke-width="2" stroke-linecap="round" opacity="0.85"/>
-  <path d="M52 12L60 8l8 4v24l-8 4-8-4V12z" stroke="#C3954F" stroke-width="1.75" fill="rgba(8,10,16,0.35)"/>
-  <path d="M56 16h8v16h-8z" stroke="#F2D39D" stroke-opacity="0.5" stroke-width="1" fill="none"/>
+  <path d="M12 29h48" stroke="url(#hudGold)" stroke-width="2.25" stroke-linecap="round" opacity="0.9" />
+  <path d="M108 29h48" stroke="url(#hudGold)" stroke-width="2.25" stroke-linecap="round" opacity="0.9" />
+  <path d="M84 4l10 8-4 36h-12l-4-36 10-8z" fill="url(#hudGoldPeak)" stroke="#C3954F" stroke-width="1.85" />
+  <path d="M84 10l6 5-2.5 30h-7l-2.5-30 6-5z" stroke="#F2D39D" stroke-opacity="0.45" stroke-width="1" fill="rgba(8,10,16,0.25)" />
+  <path d="M84 48l-6-6h12l-6 6z" fill="rgba(8,10,16,0.35)" stroke="#C3954F" stroke-width="1.35" stroke-linejoin="round" />
+  <path d="M72 16L84 8l12 8v26l-12 8-12-8V16z" stroke="#D4A85A" stroke-width="1.65" fill="rgba(8,10,16,0.32)" />
+  <path d="M78 20h12v18h-12z" stroke="#F2D39D" stroke-opacity="0.42" stroke-width="1" fill="none" />
 </svg>

@@ -187,6 +187,15 @@ test.describe('Mobile layout (renderer)', () => {
         expect(layout.flexDirection).toBe('row');
     });
 
+    test('wide short landscape keeps desktop mobile-camera mode off (parity with main menu)', async ({ page }) => {
+        await page.setViewportSize({ width: 1280, height: 720 });
+        await navigateToLevel1PlayPhase(page);
+        const shell = page.getByTestId('game-shell');
+        const frame = page.getByTestId('tile-board-frame');
+        await expect(shell).toHaveAttribute('data-mobile-camera-mode', 'false');
+        await expect(frame).toHaveAttribute('data-mobile-camera-mode', 'false');
+    });
+
     test('game control icons meet minimum touch target on compact touch viewport', async ({ page }) => {
         await forceCoarsePointerMedia(page);
         await page.setViewportSize({ width: 390, height: 844 });

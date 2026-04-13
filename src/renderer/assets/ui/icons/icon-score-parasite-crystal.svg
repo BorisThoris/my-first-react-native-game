@@ -1,0 +1,26 @@
+<svg width="36" height="44" viewBox="0 0 36 44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs>
+    <linearGradient id="parCrystal" x1="18" y1="4" x2="18" y2="40" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5B3D9A" />
+      <stop offset="0.45" stop-color="#B89AEF" />
+      <stop offset="0.72" stop-color="#EDE4FF" />
+      <stop offset="1" stop-color="#6E4AC4" />
+    </linearGradient>
+    <filter id="parGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="2.2" result="b" />
+      <feMerge>
+        <feMergeNode in="b" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+  <path
+    d="M18 3L29 15.5L24.5 38H11.5L7 15.5L18 3Z"
+    fill="url(#parCrystal)"
+    stroke="#E9D7FF"
+    stroke-opacity="0.75"
+    stroke-width="1.15"
+    filter="url(#parGlow)"
+  />
+  <path d="M18 10l6 8-1.2 12H13.2L12 18l6-8z" fill="rgba(255,255,255,0.12)" />
+</svg>

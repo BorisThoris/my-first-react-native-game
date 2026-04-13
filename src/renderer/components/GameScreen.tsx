@@ -15,7 +15,8 @@ import { useNotificationStore } from '@cross-repo-libs/notifications';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { UI_ART } from '../assets/ui';
-import { VIEWPORT_MOBILE_MAX } from '../breakpoints';
+import scoreParasiteCrystalUrl from '../assets/ui/icons/icon-score-parasite-crystal.svg?url';
+import { isNarrowShortLandscapeForMenuStack, VIEWPORT_MOBILE_MAX } from '../breakpoints';
 import { useDistractionChannelTick } from '../hooks/useDistractionChannelTick';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
@@ -102,7 +103,8 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const shellRef = useRef<HTMLElement | null>(null);
     const tileBoardRef = useRef<TileBoardHandle>(null);
     const { height, width } = useViewportSize();
-    const compactTouchChrome = width <= VIEWPORT_MOBILE_MAX || height <= VIEWPORT_MOBILE_MAX;
+    const isPhoneViewport = width <= VIEWPORT_MOBILE_MAX;
+    const compactTouchChrome = isPhoneViewport || isNarrowShortLandscapeForMenuStack(width, height);
     const [viewportResetToken, setViewportResetToken] = useState(0);
     const [gauntletNowMs, setGauntletNowMs] = useState(() => Date.now());
     const [rulesHintsExpanded, setRulesHintsExpanded] = useState(() => !compactTouchChrome);
@@ -399,9 +401,10 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         !saveData.powersFtueSeen;
     const gauntletRemainingMs =
         run.gauntletDeadlineMs !== null ? Math.max(0, run.gauntletDeadlineMs - gauntletNowMs) : null;
+    const dailyDateStripKey = run.gameMode === 'daily' && run.dailyDateKeyUtc ? run.dailyDateKeyUtc : null;
     const hudModeLabel =
-        run.gameMode === 'daily' && run.dailyDateKeyUtc
-            ? `Daily ${run.dailyDateKeyUtc}`
+        dailyDateStripKey != null
+            ? 'Daily challenge'
             : gauntletRemainingMs !== null
               ? `Gauntlet ${Math.ceil(gauntletRemainingMs / 1000)}s`
               : run.activeContract?.noShuffle
@@ -494,11 +497,8 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                             data-testid="game-hud"
                         >
                             <div className={`${styles.floatingDeck} ${styles.statsDeck} ${styles.hudDeck}`} role="group" aria-label="Run stats">
-                                <div className={styles.deckCluster}>
-                                    {/*
-                                      Wings: floor → lives → shards | centered score | context + mutators + rail.
-                                    */}
-                                    <div className={styles.hudWingLeft} data-testid="hud-wing-left">
+                                <div className={styles.hudStatsStrip}>
+                                    <div className={styles.hudStripLeftModule} data-testid="hud-wing-left">
                                         <div className={`${styles.hudSegment} ${styles.floorBadge}`} title="Current floor">
                                             <span className={styles.floorLabel}>Floor</span>
                                             <span className={styles.floorValue}>{run.board.level}</span>
@@ -512,6 +512,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                                 </span>
                                             ) : null}
                                         </div>
+                                        <div className={styles.hudStripDivider} aria-hidden="true" />
                                         <div className={`${styles.hudSegment} ${styles.hudLivesSegment}`}>
                                             <span className={styles.statKey}>Lives</span>
                                             <div className={styles.lifeTrack} aria-label={`${run.lives} lives remaining`}>
@@ -526,13 +527,20 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                                 ))}
                                             </div>
                                         </div>
-                                        <div className={`${styles.hudSegment} ${styles.statPill}`}>
+                                        <div className={styles.hudStripDivider} aria-hidden="true" />
+                                        <div className={`${styles.hudSegment} ${styles.statPill} ${styles.hudShardsSegment}`}>
                                             <span className={styles.statKey}>Shards</span>
-                                            <span className={styles.statVal}>{run.stats.comboShards}</span>
+                                            <span className={`${styles.statVal} ${styles.hudShardsValue}`}>
+                                                {run.stats.comboShards}
+                                            </span>
                                             <span className={styles.statSubline}>Guards {run.stats.guardTokens}</span>
                                         </div>
                                     </div>
-                                    <div className={styles.hudWingCenter} data-testid="hud-wing-center">
+                                    <div
+                                        className={`${styles.hudStripDivider} ${styles.hudStripDividerBetweenZones}`}
+                                        aria-hidden="true"
+                                    />
+                                    <div className={styles.hudStripScoreModule} data-testid="hud-wing-center">
                                         <div className={`${styles.hudSegment} ${styles.hudScoreSegment}`}>
                                             <span className={styles.statKey}>Score</span>
                                             <span className={`${styles.statVal} ${styles.statValScore}`}>
@@ -540,99 +548,125 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                             </span>
                                         </div>
                                     </div>
-                                    <div className={styles.hudWingRight} data-testid="hud-wing-right">
-                                        {scoreParasiteActive ? (
-                                            <div
-                                                aria-label={`Score parasite progress, floor ${run.parasiteFloors} of 4`}
-                                                className={styles.hudParasiteSegment}
-                                                title="Every four floors with this mutator triggers a score penalty event"
-                                            >
-                                                <span className={styles.hudParasiteLabel}>
-                                                    {MUTATOR_HUD_LABELS.score_parasite}
-                                                </span>
-                                                <div className={styles.hudParasiteTrack}>
-                                                    <div
-                                                        className={styles.hudParasiteFill}
-                                                        style={{ width: `${parasiteFloorProgress * 100}%` }}
-                                                    />
-                                                </div>
-                                                <span className={styles.hudParasiteCaption}>
-                                                    {run.parasiteFloors} / 4 floors
-                                                </span>
-                                            </div>
-                                        ) : null}
-                                        <div className={`${styles.hudSegment} ${styles.hudMetaSegment}`}>
-                                            <span className={styles.statKey}>Mode</span>
-                                            <span className={styles.statVal}>{hudModeLabel}</span>
-                                            {nBackLabel ? <span className={styles.statSubline}>{nBackLabel}</span> : null}
-                                            {run.activeMutators.length > 0 ? (
-                                                <div className={styles.mutatorRow}>
-                                                    {run.activeMutators.map((mutator) => (
-                                                        <div
-                                                            className={styles.mutatorChip}
-                                                            key={mutator}
-                                                            title={MUTATOR_HUD_LABELS[mutator] ?? mutator}
-                                                        >
-                                                            {MUTATOR_HUD_LABELS[mutator] ?? mutator}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <span className={styles.statSubline}>No active mutators</span>
-                                            )}
-                                        </div>
-
-                                        <div className={styles.statRail}>
-                                            {gauntletRemainingMs !== null ? (
-                                                <div className={styles.statPillCompact} title="Gauntlet time left">
-                                                    <span className={styles.statKey}>Time</span>
-                                                    <span className={styles.statVal}>
-                                                        {Math.ceil(gauntletRemainingMs / 1000)}s
-                                                    </span>
-                                                </div>
-                                            ) : null}
-                                            {hasMutator(run, 'findables_floor') ? (
+                                    <div
+                                        className={`${styles.hudStripDivider} ${styles.hudStripDividerBetweenZones}`}
+                                        aria-hidden="true"
+                                    />
+                                    <div className={styles.hudStripRightModule} data-testid="hud-wing-right">
+                                        {dailyDateStripKey ? (
+                                            <>
                                                 <div
-                                                    className={styles.statPillCompact}
-                                                    data-testid="hud-findables-claimed"
-                                                    title="Bonus pickups claimed by matching pairs this floor"
+                                                    className={`${styles.hudSegment} ${styles.hudDailySegment}`}
+                                                    title="UTC daily challenge id"
                                                 >
-                                                    <span className={styles.statKey}>Findables</span>
-                                                    <span className={styles.statVal}>{run.findablesClaimedThisFloor}</span>
-                                                </div>
-                                            ) : null}
-                                            {run.activeContract?.noShuffle ? (
-                                                <div className={styles.statPillCompact}>
-                                                    <span className={styles.statKey}>Contract</span>
-                                                    <span className={styles.statVal}>Scholar</span>
-                                                </div>
-                                            ) : null}
-                                            {run.activeContract?.maxPinsTotalRun != null ? (
-                                                <div className={styles.statPillCompact} title="Pin vow contract">
-                                                    <span className={styles.statKey}>Pins</span>
-                                                    <span className={styles.statVal}>
-                                                        {run.pinsPlacedCountThisRun}/{run.activeContract.maxPinsTotalRun}
-                                                    </span>
-                                                </div>
-                                            ) : null}
-                                            {run.gameMode === 'meditation' ? (
-                                                <div className={styles.statPillCompact} title="Meditation run">
-                                                    <span className={styles.statKey}>Mode</span>
-                                                    <span className={styles.statVal}>Meditation</span>
-                                                </div>
-                                            ) : null}
-                                            {run.wildMenuRun ? (
-                                                <div className={styles.statPillCompact} title="Wild joker run">
-                                                    <span className={styles.statKey}>Wild</span>
-                                                    <span className={styles.statVal}>On</span>
-                                                </div>
-                                            ) : null}
-                                            {run.gameMode === 'daily' && run.dailyDateKeyUtc ? (
-                                                <div className={styles.statPillCompact} title="UTC daily id">
                                                     <span className={styles.statKey}>Daily</span>
-                                                    <span className={styles.statVal}>{run.dailyDateKeyUtc}</span>
+                                                    <span className={styles.hudDailyDate}>{dailyDateStripKey}</span>
                                                 </div>
-                                            ) : null}
+                                                <div className={styles.hudStripDivider} aria-hidden="true" />
+                                            </>
+                                        ) : null}
+                                        {scoreParasiteActive ? (
+                                            <>
+                                                <div
+                                                    aria-label={`Score parasite progress, floor ${run.parasiteFloors} of 4`}
+                                                    className={styles.hudParasiteSegment}
+                                                    title="Every four floors with this mutator triggers a score penalty event"
+                                                >
+                                                    <div className={styles.hudParasiteRow}>
+                                                        <img
+                                                            alt=""
+                                                            className={styles.hudParasiteCrystal}
+                                                            height={30}
+                                                            src={scoreParasiteCrystalUrl}
+                                                            width={24}
+                                                        />
+                                                        <div className={styles.hudParasiteBody}>
+                                                            <span className={styles.hudParasiteLabel}>
+                                                                {MUTATOR_HUD_LABELS.score_parasite}
+                                                            </span>
+                                                            <div className={styles.hudParasiteTrack}>
+                                                                <div
+                                                                    className={styles.hudParasiteFill}
+                                                                    style={{ width: `${parasiteFloorProgress * 100}%` }}
+                                                                />
+                                                            </div>
+                                                            <span className={styles.hudParasiteCaption}>
+                                                                {run.parasiteFloors} / 4 floors
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className={styles.hudStripDivider} aria-hidden="true" />
+                                            </>
+                                        ) : null}
+                                        <div className={styles.hudStripRightInnerColumn}>
+                                            <div className={`${styles.hudSegment} ${styles.hudMetaSegment}`}>
+                                                <span className={styles.statKey}>Mode</span>
+                                                <span className={styles.statVal}>{hudModeLabel}</span>
+                                                {nBackLabel ? <span className={styles.statSubline}>{nBackLabel}</span> : null}
+                                                {run.activeMutators.length > 0 ? (
+                                                    <div className={styles.mutatorRow}>
+                                                        {run.activeMutators.map((mutator) => (
+                                                            <div
+                                                                className={styles.mutatorChip}
+                                                                key={mutator}
+                                                                title={MUTATOR_HUD_LABELS[mutator] ?? mutator}
+                                                            >
+                                                                {MUTATOR_HUD_LABELS[mutator] ?? mutator}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <span className={styles.statSubline}>No active mutators</span>
+                                                )}
+                                            </div>
+
+                                            <div className={styles.statRail}>
+                                                {gauntletRemainingMs !== null ? (
+                                                    <div className={styles.statPillCompact} title="Gauntlet time left">
+                                                        <span className={styles.statKey}>Time</span>
+                                                        <span className={styles.statVal}>
+                                                            {Math.ceil(gauntletRemainingMs / 1000)}s
+                                                        </span>
+                                                    </div>
+                                                ) : null}
+                                                {hasMutator(run, 'findables_floor') ? (
+                                                    <div
+                                                        className={styles.statPillCompact}
+                                                        data-testid="hud-findables-claimed"
+                                                        title="Bonus pickups claimed by matching pairs this floor"
+                                                    >
+                                                        <span className={styles.statKey}>Findables</span>
+                                                        <span className={styles.statVal}>{run.findablesClaimedThisFloor}</span>
+                                                    </div>
+                                                ) : null}
+                                                {run.activeContract?.noShuffle ? (
+                                                    <div className={styles.statPillCompact}>
+                                                        <span className={styles.statKey}>Contract</span>
+                                                        <span className={styles.statVal}>Scholar</span>
+                                                    </div>
+                                                ) : null}
+                                                {run.activeContract?.maxPinsTotalRun != null ? (
+                                                    <div className={styles.statPillCompact} title="Pin vow contract">
+                                                        <span className={styles.statKey}>Pins</span>
+                                                        <span className={styles.statVal}>
+                                                            {run.pinsPlacedCountThisRun}/{run.activeContract.maxPinsTotalRun}
+                                                        </span>
+                                                    </div>
+                                                ) : null}
+                                                {run.gameMode === 'meditation' ? (
+                                                    <div className={styles.statPillCompact} title="Meditation run">
+                                                        <span className={styles.statKey}>Mode</span>
+                                                        <span className={styles.statVal}>Meditation</span>
+                                                    </div>
+                                                ) : null}
+                                                {run.wildMenuRun ? (
+                                                    <div className={styles.statPillCompact} title="Wild joker run">
+                                                        <span className={styles.statKey}>Wild</span>
+                                                        <span className={styles.statVal}>On</span>
+                                                    </div>
+                                                ) : null}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
