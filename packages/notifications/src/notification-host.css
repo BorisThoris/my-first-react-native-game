@@ -1,0 +1,107 @@
+.crn-host {
+  position: fixed;
+  top: var(--crn-stack-top, 16px);
+  right: var(--crn-stack-right, 16px);
+  z-index: var(--crn-stack-z, 9999);
+  display: flex;
+  flex-direction: column;
+  gap: var(--crn-stack-gap, 8px);
+}
+
+.crn-card {
+  color: var(--crn-text, #ffffff);
+  padding: var(--crn-padding-y, 12px) var(--crn-padding-x, 20px);
+  border-radius: var(--crn-radius, 8px);
+  box-shadow: var(--crn-shadow, 0 10px 25px rgba(0, 0, 0, 0.28));
+  min-width: 300px;
+  max-width: 400px;
+  position: relative;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .crn-card {
+    animation: crn-slide-in 0.3s ease-out;
+  }
+
+  @keyframes crn-slide-in {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+}
+
+.crn-card--info {
+  background-color: var(--crn-info-bg, #2563eb);
+}
+
+.crn-card--success {
+  background-color: var(--crn-success-bg, #16a34a);
+}
+
+.crn-card--warning {
+  background-color: var(--crn-warning-bg, #ca8a04);
+}
+
+.crn-card--error {
+  background-color: var(--crn-error-bg, #dc2626);
+}
+
+.crn-close {
+  position: absolute;
+  top: var(--crn-close-inset, 8px);
+  right: var(--crn-close-inset, 8px);
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: var(--crn-close-font-size, 14px);
+  font-weight: 700;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.crn-close:hover {
+  background-color: var(--crn-close-hover-bg, rgba(0, 0, 0, 0.12));
+  opacity: 0.9;
+}
+
+.crn-message {
+  margin-right: 25px;
+  word-wrap: break-word;
+  font-size: var(--crn-message-font-size, 13px);
+  line-height: var(--crn-message-line-height, 1.45);
+}
+
+.crn-actions {
+  margin-top: var(--crn-actions-margin-top, 8px);
+  display: flex;
+  gap: var(--crn-actions-gap, 8px);
+}
+
+.crn-action {
+  color: inherit;
+  border: none;
+  padding: var(--crn-action-padding-y, 4px) var(--crn-action-padding-x, 12px);
+  border-radius: var(--crn-radius, 8px);
+  cursor: pointer;
+  font-size: var(--crn-action-font-size, 12px);
+  font-weight: 500;
+  background-color: var(--crn-action-bg, rgba(0, 0, 0, 0.15));
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.crn-action:hover {
+  background-color: var(--crn-action-hover-bg, rgba(0, 0, 0, 0.22));
+  opacity: 0.95;
+}

@@ -17,7 +17,7 @@
         "jsx": "react-jsx",
         "types": ["node", "vite/client"],
         "paths": {
-            "@cross-repo-libs/notifications": ["../cross-repo-libs/packages/notifications/src/index.ts"]
+            "@cross-repo-libs/notifications": ["./packages/notifications/src/index.ts"]
         }
     },
     "include": ["src", "vite.config.mts", "tsup.config.ts", "vitest.setup.ts"]

@@ -195,7 +195,7 @@
     "@babel/helper-string-parser" "^7.27.1"
     "@babel/helper-validator-identifier" "^7.28.5"
 
-"@cross-repo-libs/notifications@file:../cross-repo-libs/packages/notifications":
+"@cross-repo-libs/notifications@file:./packages/notifications":
   version "0.1.0"
   dependencies:
     zustand "^5.0.8"
