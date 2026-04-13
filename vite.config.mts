@@ -8,7 +8,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
     plugins: [react()],
     resolve: {
+        dedupe: ['react', 'react-dom'],
         alias: {
+            // Notifications (and zustand) live under cross-repo-libs; force one React for Vitest + Vite.
+            react: path.resolve(__dirname, 'node_modules/react'),
+            'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
+            zustand: path.resolve(__dirname, 'node_modules/zustand'),
             '@cross-repo-libs/notifications/styles.css': path.resolve(
                 __dirname,
                 '../cross-repo-libs/packages/notifications/src/notification-host.css'

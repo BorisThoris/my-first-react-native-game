@@ -1,3 +1,4 @@
+const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 if (process.env.CF_PAGES) {
@@ -5,9 +6,12 @@ if (process.env.CF_PAGES) {
     process.exit(0);
 }
 
-const command = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-const result = spawnSync(command, ['electron-builder', 'install-app-deps'], {
-    stdio: 'inherit'
+const cwd = path.join(__dirname, '..');
+// `shell: true` avoids Windows spawn EINVAL with `npx.cmd` when paths or stdio interact badly.
+const result = spawnSync('npx', ['electron-builder', 'install-app-deps'], {
+    cwd,
+    stdio: 'inherit',
+    shell: true
 });
 
 if (result.error) {

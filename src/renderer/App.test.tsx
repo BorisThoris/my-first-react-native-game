@@ -1,3 +1,4 @@
+import { NotificationHost } from '@cross-repo-libs/notifications';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -21,7 +22,9 @@ const originalHydrate = useAppStore.getState().hydrate;
 const renderApp = (): ReturnType<typeof render> =>
     render(
         <PlatformTiltProvider>
-            <App />
+            <NotificationHost>
+                <App />
+            </NotificationHost>
         </PlatformTiltProvider>
     );
 
@@ -84,7 +87,9 @@ describe('desktop app flow', () => {
         expect(await screen.findByRole('heading', { name: /level 1/i })).toBeInTheDocument();
         expect(screen.getByRole('group', { name: /run stats/i })).toBeInTheDocument();
         expect(screen.getByText(/^shards$/i)).toBeInTheDocument();
-        expect(screen.getByTestId('forgiveness-hint')).toHaveTextContent(/first miss each floor is free/i);
+        await waitFor(() => {
+            expect(screen.getByText(/first miss each floor is free/i)).toBeInTheDocument();
+        });
     });
 
     it('turns off the app-level ambient grid while the menu or game Pixi background is active', async () => {
@@ -150,8 +155,12 @@ describe('desktop app flow', () => {
         renderApp();
 
         await dismissStartupIntro(user);
-        expect(await screen.findByRole('heading', { name: /read, match, and protect the streak/i })).toBeInTheDocument();
-        expect(screen.getByText(/every 2-pair chain earns a shard/i)).toBeInTheDocument();
+        expect(
+            await screen.findByRole('heading', { name: /read, match, and protect the streak/i })
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText(/every 2-pair chain earns a shard\. three shards restore one life\./i)
+        ).toBeInTheDocument();
 
         await user.click(screen.getByRole('button', { name: /dismiss/i }));
 
@@ -273,7 +282,7 @@ describe('desktop app flow', () => {
         renderApp();
 
         expect(await screen.findByRole('heading', { name: /level 1/i })).toBeInTheDocument();
-        expect(screen.queryByTestId('forgiveness-hint')).not.toBeInTheDocument();
+        expect(screen.queryByText(/first miss each floor is free/i)).not.toBeInTheDocument();
     });
 
     it('pauses and resumes the run with the on-screen controls', async () => {

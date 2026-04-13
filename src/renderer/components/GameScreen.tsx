@@ -39,6 +39,9 @@ const FORGIVENESS_HINT =
 const BOARD_POWER_HINT =
     'Powers: Shuffle once per run (needs 2+ hidden pairs). Pin up to 3 hidden tiles. Destroy removes a pair for no score — earn charges on clean floors (≤1 miss), then tap Destroy and a tile.';
 
+const POWERS_FTUE_TOAST =
+    'Board powers: shuffle (charges), pin mode, destroy (earn charges on clean floors). Try Daily / Scholar run from the main menu for more challenge types.';
+
 const MUTATOR_HUD_LABELS: Record<MutatorId, string> = {
     glass_floor: 'Glass floor',
     sticky_fingers: 'Sticky fingers',
@@ -157,27 +160,6 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     );
     const settingsReduceMotion = useAppStore((state) => state.settings.reduceMotion);
     const seenAchievementToastIdsRef = useRef<Set<string>>(new Set());
-
-    useEffect(() => {
-        if (achievements.length === 0) {
-            seenAchievementToastIdsRef.current = new Set();
-            return;
-        }
-
-        const infoDuration = settingsReduceMotion ? 3500 : 5500;
-        const { showInfo } = useNotificationStore.getState();
-
-        for (const achievementId of achievements) {
-            if (seenAchievementToastIdsRef.current.has(achievementId)) {
-                continue;
-            }
-            seenAchievementToastIdsRef.current.add(achievementId);
-            const def = ACHIEVEMENTS.find((item) => item.id === achievementId);
-            if (def) {
-                showInfo(`${def.title} — ${def.description}`, infoDuration);
-            }
-        }
-    }, [achievements, settingsReduceMotion]);
     const settingsDistractionChannelEnabled = useAppStore((state) => state.settings.distractionChannelEnabled);
     const settingsTileFocusAssist = useAppStore((state) => state.settings.tileFocusAssist);
     const settingsBoardPresentation = useAppStore((state) => state.settings.boardPresentation);
@@ -215,6 +197,94 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         triggerDebugReveal,
         undoResolvingFlip
     } = gameScreenActions;
+
+    useEffect(() => {
+        if (achievements.length === 0) {
+            seenAchievementToastIdsRef.current = new Set();
+            return;
+        }
+
+        const infoDuration = settingsReduceMotion ? 3500 : 5500;
+        const { showInfo } = useNotificationStore.getState();
+
+        for (const achievementId of achievements) {
+            if (seenAchievementToastIdsRef.current.has(achievementId)) {
+                continue;
+            }
+            seenAchievementToastIdsRef.current.add(achievementId);
+            const def = ACHIEVEMENTS.find((item) => item.id === achievementId);
+            if (def) {
+                showInfo(`${def.title} — ${def.description}`, infoDuration);
+            }
+        }
+    }, [achievements, settingsReduceMotion]);
+
+    useEffect(() => {
+        const stripRuleHintToasts = () => {
+            const { notifications, removeNotification } = useNotificationStore.getState();
+            for (const n of notifications) {
+                if (n.message === FORGIVENESS_HINT || n.message === BOARD_POWER_HINT) {
+                    removeNotification(n.id);
+                }
+            }
+        };
+
+        if (!rulesHintsExpanded) {
+            stripRuleHintToasts();
+            return;
+        }
+
+        const board = run.board;
+        if (!board) {
+            return;
+        }
+
+        const eligible =
+            board.level <= 3 &&
+            (run.status === 'memorize' || run.status === 'playing') &&
+            board.matchedPairs === 0 &&
+            run.stats.tries === 0;
+
+        if (!eligible) {
+            stripRuleHintToasts();
+            return;
+        }
+
+        const { notifications, addNotification } = useNotificationStore.getState();
+        if (notifications.some((n) => n.message === FORGIVENESS_HINT)) {
+            return;
+        }
+
+        const hintDuration = settingsReduceMotion ? 10_000 : 14_000;
+        addNotification(FORGIVENESS_HINT, 'info', hintDuration, null, null);
+        addNotification(BOARD_POWER_HINT, 'info', hintDuration + 400, null, null);
+    }, [rulesHintsExpanded, run.board, run.status, run.stats.tries, settingsReduceMotion]);
+
+    useEffect(() => {
+        const board = run.board;
+        if (!board) {
+            return;
+        }
+
+        const showPowersFtueNow =
+            (run.status === 'playing' || run.status === 'memorize') &&
+            board.level <= 2 &&
+            !saveData.powersFtueSeen;
+
+        if (!showPowersFtueNow) {
+            return;
+        }
+
+        const { notifications, addNotification } = useNotificationStore.getState();
+        if (notifications.some((n) => n.message === POWERS_FTUE_TOAST)) {
+            return;
+        }
+
+        addNotification(POWERS_FTUE_TOAST, 'info', 0, null, () => {
+            void dismissPowersFtue();
+        });
+    }, [dismissPowersFtue, run.board, run.status, saveData.powersFtueSeen]);
+
     const prevMatchStatsRef = useRef<{ matches: number; total: number } | null>(null);
     useEffect(() => {
         if (run.status !== 'playing' || !run.board) {
@@ -419,17 +489,6 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                     <div
                         className={`${styles.mainGameColumn} ${cameraViewportMode ? styles.mobileCameraMainColumn : ''}`.trim()}
                     >
-                        {showPowersFtue ? (
-                            <div className={styles.ftueBanner} role="status">
-                                <span>
-                                    Board powers: shuffle (charges), pin mode, destroy (earn charges on clean floors). Try
-                                    Daily / Scholar run from the main menu for more challenge types.
-                                </span>
-                                <button className={styles.ftueDismiss} onClick={() => void dismissPowersFtue()} type="button">
-                                    Got it
-                                </button>
-                            </div>
-                        ) : null}
                         <header
                             className={`${styles.hudRow} ${cameraViewportMode ? styles.mobileCameraHud : ''}`}
                             data-testid="game-hud"
@@ -579,16 +638,6 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                 </div>
                             </div>
                         </header>
-                        {showForgivenessHint && rulesHintsExpanded ? (
-                            <div className={styles.ruleHintStack}>
-                                <p className={styles.ruleHint} data-testid="forgiveness-hint" role="note">
-                                    {FORGIVENESS_HINT}
-                                </p>
-                                <p className={styles.ruleHint} data-testid="board-power-hint" role="note">
-                                    {BOARD_POWER_HINT}
-                                </p>
-                            </div>
-                        ) : null}
 
                         <div
                             className={`${styles.boardStage} ${cameraViewportMode ? styles.boardStageCamera : ''} ${boardPresentationClass}`.trim()}

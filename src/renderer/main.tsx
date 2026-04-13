@@ -16,7 +16,12 @@ for (const [key, value] of Object.entries(RENDERER_THEME.cssVars)) {
 createRoot(document.getElementById('root')!).render(
     <StrictMode>
         <PlatformTiltProvider>
-            <NotificationHost>
+            <NotificationHost
+                labels={{
+                    closeAriaLabel: 'Dismiss tip',
+                    regionAriaLabel: 'Memory Dungeon tips'
+                }}
+            >
                 <App />
             </NotificationHost>
         </PlatformTiltProvider>

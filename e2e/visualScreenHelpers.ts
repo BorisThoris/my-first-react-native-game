@@ -36,7 +36,7 @@ export const STANDARD_VISUAL_VIEWPORTS: ReadonlyArray<VisualViewport> = [
     { deviceId: 'desktop', height: 900, id: 'desktop-landscape', orientation: 'landscape', width: 1440 }
 ];
 
-export const buildVisualSaveJson = (onboardingDismissed: boolean): string =>
+export const buildVisualSaveJson = (onboardingDismissed: boolean, reduceMotion = true): string =>
     JSON.stringify({
         schemaVersion: 2,
         bestScore: 0,
@@ -53,7 +53,7 @@ export const buildVisualSaveJson = (onboardingDismissed: boolean): string =>
             sfxVolume: 0.8,
             displayMode: 'windowed',
             uiScale: 1,
-            reduceMotion: true,
+            reduceMotion,
             debugFlags: {
                 showDebugTools: false,
                 allowBoardReveal: false,
