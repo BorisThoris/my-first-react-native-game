@@ -4,8 +4,8 @@ import { rafDelay } from './rafDelay.js';
 
 export type NotificationType = 'info' | 'success' | 'warning' | 'error';
 
-/** Visual + a11y grouping: generic info rail vs milestone vs powers FTUE chrome (OVR-004 / OVR-006). */
-export type NotificationSurface = 'generic' | 'achievement' | 'powers-ftue';
+/** Visual + a11y grouping: generic info rail vs milestone vs compact match score (OVR-004). */
+export type NotificationSurface = 'generic' | 'achievement' | 'match-score';
 
 export type NotificationMeta = {
   stackKey?: string;
@@ -161,7 +161,7 @@ export type NotificationStoreState = {
   showSuccess: (
     message: string,
     duration?: number,
-    options?: { stackKey?: string; ariaLive?: 'polite' | 'assertive' | 'off' }
+    options?: { stackKey?: string; ariaLive?: 'polite' | 'assertive' | 'off'; surface?: NotificationSurface }
   ) => string;
   showError: (message: string, duration?: number) => string;
   showWarning: (message: string, duration?: number) => string;
@@ -287,7 +287,8 @@ export const createNotificationStore = () =>
       showSuccess: (message, duration = 3000, options) => {
         return get().addNotification(message, 'success', duration, null, null, {
           stackKey: options?.stackKey,
-          ariaLive: options?.ariaLive
+          ariaLive: options?.ariaLive,
+          surface: options?.surface
         });
       },
 

@@ -37,16 +37,7 @@ interface GameScreenProps {
     suppressStatusOverlays?: boolean;
 }
 
-const FORGIVENESS_HINT =
-    'First miss each floor is free. Wrong pairs halve your streak (not zero). Lose a life → extra memorize next floor. Every 2-pair chain earns a shard; 3 shards heal 1 life.';
-
-const BOARD_POWER_HINT =
-    'Powers: Shuffle once per run (needs 2+ hidden pairs). Pin up to 3 hidden tiles. Destroy removes a pair for no score — earn charges on clean floors (≤1 miss), then tap Destroy and a tile.';
-
-const POWERS_FTUE_TOAST =
-    'Board powers: shuffle (charges), pin mode, destroy (earn charges on clean floors). Try Daily / Scholar run from the main menu for more challenge types.';
-
-/** PLAY-009: pair-index rings on face-down DOM tiles only for very early floors + until powers FTUE is cleared. */
+/** PLAY-009: pair-index rings on face-down DOM tiles only for very early floors + until FTUE flag clears after tutorial floors. */
 const TUTORIAL_PAIR_MARKER_MAX_LEVEL = 2;
 
 const RELIC_LABELS: Record<RelicId, string> = {
@@ -103,16 +94,9 @@ const formatBonusTagsLine = (tags: string[] | undefined): string | null => {
     return tags.map((t) => BONUS_TAG_LABELS[t] ?? t).join(' · ');
 };
 
-/** FX-019: land after the tile match check pop peak (`matchedCheckPop` ≈ 420ms in TileBoard.module.css). */
-const SCORE_POP_AFTER_MATCH_MS = 220;
-const SCORE_POP_AFTER_MATCH_REDUCE_MOTION_MS = 90;
-/** OVR-005: coalesce rapid matches to a single concurrent score burst in the notification rail. */
-const MATCH_SCORE_TOAST_STACK_KEY = 'match-score';
-
 const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameScreenProps) => {
     const shellRef = useRef<HTMLElement | null>(null);
     const tileBoardRef = useRef<TileBoardHandle>(null);
-    const scorePopRevealTimerRef = useRef<number | null>(null);
     const { height, width } = useViewportSize();
     const isPhoneViewport = width <= VIEWPORT_MOBILE_MAX;
     const compactTouchChrome = isPhoneViewport || isNarrowShortLandscapeForMenuStack(width, height);
@@ -339,122 +323,14 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         suppressStatusOverlays
     ]);
 
+    /** Persist `powersFtueSeen` once the player leaves tutorial floors (pair markers no longer needed). */
     useEffect(() => {
-        const stripRuleHintToasts = () => {
-            const { notifications, removeNotification } = useNotificationStore.getState();
-            for (const n of notifications) {
-                if (n.message === FORGIVENESS_HINT || n.message === BOARD_POWER_HINT) {
-                    removeNotification(n.id);
-                }
-            }
-        };
-
-        if (!rulesHintsExpanded) {
-            stripRuleHintToasts();
-            return;
-        }
-
-        const board = run.board;
-        if (!board) {
-            return;
-        }
-
-        const eligible =
-            board.level <= 3 &&
-            (run.status === 'memorize' || run.status === 'playing') &&
-            board.matchedPairs === 0 &&
-            run.stats.tries === 0;
-
-        if (!eligible) {
-            stripRuleHintToasts();
-            return;
-        }
-
-        const { notifications, addNotification } = useNotificationStore.getState();
-        if (notifications.some((n) => n.message === FORGIVENESS_HINT)) {
-            return;
-        }
-
-        const hintDuration = settingsReduceMotion ? 10_000 : 14_000;
-        addNotification(FORGIVENESS_HINT, 'info', hintDuration, null, null);
-        addNotification(BOARD_POWER_HINT, 'info', hintDuration + 400, null, null);
-    }, [rulesHintsExpanded, run.board, run.status, run.stats.tries, settingsReduceMotion]);
-
-    useEffect(() => {
-        const board = run.board;
-        if (!board) {
-            return;
-        }
-
-        const showPowersFtueNow =
-            (run.status === 'playing' || run.status === 'memorize') &&
-            board.level <= 2 &&
-            !saveData.powersFtueSeen;
-
-        if (!showPowersFtueNow) {
-            return;
-        }
-
-        const { notifications, addNotification } = useNotificationStore.getState();
-        if (notifications.some((n) => n.message === POWERS_FTUE_TOAST)) {
-            return;
-        }
-
-        addNotification(POWERS_FTUE_TOAST, 'info', 0, null, () => {
+        const level = run.board?.level;
+        if (level !== undefined && level > TUTORIAL_PAIR_MARKER_MAX_LEVEL && !saveData.powersFtueSeen) {
             void dismissPowersFtue();
-        }, { surface: 'powers-ftue', stackKey: 'powers-ftue', ariaLive: 'polite' });
-    }, [dismissPowersFtue, run.board, run.status, saveData.powersFtueSeen]);
+        }
+    }, [dismissPowersFtue, run.board?.level, saveData.powersFtueSeen]);
 
-    useEffect(() => {
-        return () => {
-            if (scorePopRevealTimerRef.current !== null) {
-                window.clearTimeout(scorePopRevealTimerRef.current);
-                scorePopRevealTimerRef.current = null;
-            }
-        };
-    }, []);
-
-    const prevMatchStatsRef = useRef<{ matches: number; total: number } | null>(null);
-    useEffect(() => {
-        if (run.status !== 'playing' || !run.board) {
-            if (scorePopRevealTimerRef.current !== null) {
-                window.clearTimeout(scorePopRevealTimerRef.current);
-                scorePopRevealTimerRef.current = null;
-            }
-            return;
-        }
-        if (prevMatchStatsRef.current === null) {
-            prevMatchStatsRef.current = {
-                matches: run.stats.matchesFound,
-                total: run.stats.totalScore
-            };
-            return;
-        }
-        const prev = prevMatchStatsRef.current;
-        if (run.stats.matchesFound > prev.matches) {
-            const gained = run.stats.totalScore - prev.total;
-            if (gained > 0) {
-                if (scorePopRevealTimerRef.current !== null) {
-                    window.clearTimeout(scorePopRevealTimerRef.current);
-                }
-                const dismissMs = settingsReduceMotion ? 1400 : 2400;
-                const delayMs = settingsReduceMotion
-                    ? SCORE_POP_AFTER_MATCH_REDUCE_MOTION_MS
-                    : SCORE_POP_AFTER_MATCH_MS;
-                scorePopRevealTimerRef.current = window.setTimeout(() => {
-                    scorePopRevealTimerRef.current = null;
-                    useNotificationStore.getState().showSuccess(`+${gained.toLocaleString()}`, dismissMs, {
-                        stackKey: MATCH_SCORE_TOAST_STACK_KEY,
-                        ariaLive: 'off'
-                    });
-                }, delayMs);
-            }
-        }
-        prevMatchStatsRef.current = {
-            matches: run.stats.matchesFound,
-            total: run.stats.totalScore
-        };
-    }, [run.board, run.stats.matchesFound, run.stats.totalScore, run.status, settingsReduceMotion]);
     const distractionHudOn =
         run.activeMutators.includes('distraction_channel') &&
         settingsDistractionChannelEnabled &&
