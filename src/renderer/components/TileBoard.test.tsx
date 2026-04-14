@@ -74,7 +74,9 @@ describe('TileBoard touch and click controls', () => {
         });
 
         expect(screen.getByTestId('tile-board-application')).toHaveAttribute('role', 'application');
-        expect(screen.getByTestId('tile-board-frame')).toHaveAttribute('data-hidden-tile-count', '4');
+        const frame = screen.getByTestId('tile-board-frame');
+        expect(frame).toHaveAttribute('data-hidden-tile-count', '4');
+        expect(frame).toHaveAttribute('data-board-run-status', 'playing');
     });
 
     it('shows WebGL required copy when the browser cannot create a GL context', () => {

@@ -1,7 +1,12 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { expect, type Locator, type Page } from '@playwright/test';
-import { readFrameHiddenTileCount, STORAGE_KEY } from './tileBoardGameFlow';
+import {
+    flipTileAtGridCellKeyboard,
+    readFrameHiddenTileCount,
+    STORAGE_KEY,
+    waitForBoardPlayPhase
+} from './tileBoardGameFlow';
 import { dismissStartupIntro } from './startupIntroHelpers';
 
 const MATCH_SETTLE_MS = 950;
@@ -109,6 +114,40 @@ export const buildVisualSaveJson = (onboardingDismissed: boolean, reduceMotion =
             }
         },
         onboardingDismissed,
+        lastRunSummary: null,
+        powersFtueSeen: true
+    });
+
+/**
+ * Save JSON for Playwright captures of matched rim fire: `graphicsQuality: high` (shader on; hidden on low)
+ * and motion enabled so the flame animates in screenshots.
+ */
+export const buildMatchedFlameCaptureSaveJson = (): string =>
+    JSON.stringify({
+        schemaVersion: 2,
+        bestScore: 0,
+        achievements: {
+            ACH_FIRST_CLEAR: false,
+            ACH_LEVEL_FIVE: false,
+            ACH_SCORE_THOUSAND: false,
+            ACH_PERFECT_CLEAR: false,
+            ACH_LAST_LIFE: false
+        },
+        settings: {
+            masterVolume: 0.8,
+            musicVolume: 0.55,
+            sfxVolume: 0.8,
+            displayMode: 'windowed',
+            uiScale: 1,
+            reduceMotion: false,
+            graphicsQuality: 'high',
+            debugFlags: {
+                showDebugTools: false,
+                allowBoardReveal: false,
+                disableAchievementsOnDebug: true
+            }
+        },
+        onboardingDismissed: true,
         lastRunSummary: null,
         powersFtueSeen: true
     });
@@ -322,7 +361,7 @@ export async function openDevSandboxPlaying(page: Page, options?: OpenDevSandbox
     await expect(page.getByTestId('game-hud')).toBeVisible({ timeout: 25_000 });
     await expect(page.getByTestId('tile-board-frame')).toBeVisible({ timeout: 25_000 });
     await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible({ timeout: 25_000 });
-    await waitForPlayPhaseHiddenTiles(page, 4);
+    await waitForPlayingAndHiddenCount(page, 4);
 }
 
 /**
@@ -467,24 +506,18 @@ async function completeLevel1ByTryingHiddenPairs(page: Page): Promise<void> {
     await expect(page.getByRole('dialog', { name: /floor cleared/i })).toBeVisible({ timeout: 5000 });
 }
 
+/** Poll hidden-tile count only (run may be `playing`, `resolving`, or briefly `paused` — do not require `playing` here). */
 export async function waitForPlayPhaseHiddenTiles(page: Page, expected: number): Promise<void> {
     await expect.poll(async () => readFrameHiddenTileCount(page), { timeout: 15000 }).toBe(expected);
 }
 
+async function waitForPlayingAndHiddenCount(page: Page, expected: number): Promise<void> {
+    await waitForBoardPlayPhase(page);
+    await expect.poll(async () => readFrameHiddenTileCount(page), { timeout: 15000 }).toBe(expected);
+}
+
 async function clickHiddenTile(page: Page, row: number, col: number): Promise<void> {
-    const frame = page.getByTestId('tile-board-frame');
-    const cols = Number(await frame.getAttribute('data-board-columns'));
-    const rows = Number(await frame.getAttribute('data-board-rows'));
-    const stage = page.getByTestId('tile-board-stage-shell');
-    const box = await stage.boundingBox();
-    if (!box) {
-        throw new Error('tile-board-stage-shell missing layout');
-    }
-    const cellW = box.width / cols;
-    const cellH = box.height / rows;
-    const cx = box.x + (col - 0.5) * cellW;
-    const cy = box.y + (row - 0.5) * cellH;
-    await page.mouse.click(cx, cy);
+    await flipTileAtGridCellKeyboard(page, row, col);
 }
 
 /**
@@ -500,12 +533,14 @@ export async function waitLevel1PlayReady(page: Page): Promise<PairPositions | n
             lastMemorizeSnap = snap;
         }
         const hidden = await readFrameHiddenTileCount(page);
-        if (hidden === 4) {
+        const runStatus = await page.getByTestId('tile-board-frame').getAttribute('data-board-run-status');
+        /** `hidden === 4` alone can occur during memorize; require `playing` before keyboard/canvas picks work. */
+        if (hidden === 4 && runStatus === 'playing') {
             return lastMemorizeSnap;
         }
         await page.waitForTimeout(40);
     }
-    await waitForPlayPhaseHiddenTiles(page, 4);
+    await waitForPlayingAndHiddenCount(page, 4);
     return lastMemorizeSnap;
 }
 
@@ -533,7 +568,7 @@ async function restartLevel1FromMainMenu(page: Page): Promise<void> {
     await mainMenuPlayButton(page).click();
     await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
     await startClassicRunFromModeSelect(page);
-    await waitForPlayPhaseHiddenTiles(page, 4);
+    await waitForPlayingAndHiddenCount(page, 4);
 }
 
 async function leaveRunForMainMenu(page: Page): Promise<void> {

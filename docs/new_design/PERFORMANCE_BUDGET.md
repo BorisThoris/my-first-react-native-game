@@ -15,7 +15,7 @@ Targets are **guidelines** for mid-range laptops and phones; actual headroom dep
 | Setting | Effect |
 |---------|--------|
 | **Graphics quality** | Caps **tile board DPR** (`getBoardDprCap`) and **menu Pixi renderer resolution** (`getMenuPixiResolutionCap`). |
-| **Board bloom** (**FX-015**) | Optional `@react-three/postprocessing` **Bloom** on the tile board (`TileBoardPostFx.tsx`). **Default: off** (`save-data` / Settings). **Forced off** on Low quality regardless of the toggle. **Medium / High** with the toggle on runs the bloom pass (intensity ~0.35, luminance threshold ~0.82). On **High** only, `GameScreen` adds a small extra **CSS** `box-shadow` rim under the board (`.boardStageCssBloom`) so the stage reads warmer without another GPU pass at Medium. |
+| **Board bloom** (**FX-015** / **TBF-003**) | Optional `@react-three/postprocessing` **Bloom** on the tile board (`TileBoardPostFx.tsx`). **Default: off** (`save-data` / Settings). **Forced off** on Low quality regardless of the toggle. **Medium / High** with the toggle on runs the bloom pass (intensity ~**0.38**, luminance threshold ~**0.78**, tuned so rim/check burst reads align with tile chrome). On **High** only, `GameScreen` adds a small extra **CSS** `box-shadow` rim under the board (`.boardStageCssBloom`) so the stage reads warmer without another GPU pass at Medium. |
 | **Board anti-aliasing** | SMAA vs MSAA vs off (`boardScreenSpaceAA`); see `FX_REDUCE_MOTION_MATRIX.md`. |
 
 ## FX caps (cross-reference)
@@ -23,7 +23,7 @@ Targets are **guidelines** for mid-range laptops and phones; actual headroom dep
 | FX | Budget hook |
 |----|-------------|
 | FX-005 match particles | Cap count; off when reduce motion |
-| FX-015 bloom | Intensity ~0.35; luminance threshold ~0.82; tier-gated |
+| FX-015 bloom | Intensity ~0.38; luminance threshold ~0.78; tier-gated (**TBF-003**) |
 
 ## WebGL resilience (PERF-005)
 

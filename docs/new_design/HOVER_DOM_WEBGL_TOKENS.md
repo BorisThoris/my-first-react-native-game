@@ -2,6 +2,8 @@
 
 DOM fallback hover is defined on `.fallbackTile:hover:not(.faceUp):not(.matched)` in [`TileBoard.module.css`](../../src/renderer/components/TileBoard.module.css). WebGL cards approximate the same read in [`TileBoardScene.tsx`](../../src/renderer/components/TileBoardScene.tsx) `TileBezel` via pointer UV tilt, **Z lift/depth**, a **warm tint lerp** on `meshStandardMaterial.color`, **emissive** (`#f2d39d`, theme `goldBright`), and **gold quad strips** on the visible hidden face — only while that DOM selector would apply (`hoverDomParity`: pointer hover + `!faceUp` + tile not `matched`).
 
+**TBF-008 (face-up pickable):** When the tile is **face-up**, still **pickable**, and not `matched` (e.g. gambit third pick), a **second set** of the same four gold strips is drawn on the **front** face at reduced opacity (`getFaceUpHoverRimOpacityMul` × `getHoverGoldQualityScales.rimOpacity`). Tint lerp uses `HOVER_RIM_TINT_LERP * 0.38` and emissive uses ~34% of the hidden-hover intensity so the board does not read “dead” but stays lighter than the full hidden-back treatment.
+
 ## Border / rim (screen-space feel)
 
 | Token | DOM (CSS) | WebGL mapping |

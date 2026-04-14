@@ -16,6 +16,7 @@ import { VIEWPORT_MOBILE_MAX, VIEWPORT_TABLET_MAX } from './breakpoints';
 import { useViewportSize } from './hooks/useViewportSize';
 import styles from './styles/App.module.css';
 import { buildRendererThemeStyle } from './styles/theme';
+import MatchedCardRimFireSandbox from './dev/MatchedCardRimFireSandbox';
 import { readDevSandboxConfig } from './dev/devSandboxParams';
 import { useAppStore } from './store/useAppStore';
 
@@ -137,6 +138,10 @@ const App = () => {
         if (!cfg.enabled) {
             return;
         }
+        if (cfg.fxSandbox) {
+            devSandboxAppliedRef.current = true;
+            return;
+        }
         devSandboxAppliedRef.current = true;
         void Promise.resolve().then(() => {
             if (cfg.skipIntro) {
@@ -167,6 +172,10 @@ const App = () => {
      *   Toolbar flyout: `.flyoutScrim` fixed 1; `.utilityFlyout` 10 — both participate in the rail stacking
      *       context, which sits above `.mainGameColumn` (0), so the panel is not occluded by the HUD/board.
      */
+    if (import.meta.env.DEV && readDevSandboxConfig().fxSandbox === 'matchedRimFire') {
+        return <MatchedCardRimFireSandbox />;
+    }
+
     return (
         <div
             className={styles.app}

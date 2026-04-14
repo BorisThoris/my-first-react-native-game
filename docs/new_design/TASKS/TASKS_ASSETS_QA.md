@@ -27,7 +27,7 @@
 | QA-002 | P1 | `mobile-layout` tolerances | Re-tune overlap assertions if toolbar width or HUD height changes. | Spec documents px tolerances. | HUD-001, SIDE-004 |
 | QA-003 | P1 | Selector migration | If `game-hud` splits, update `navigation-flow` + `mobile-layout`. | Grep-clean `game-hud` usage. | HUD-018 |
 | QA-004 | P1 | DOM tile fingerprint | After `.cardBack` / face asset / gradient changes, update `tile-card-face-dom` expectations. | Intentional choice documented. | CARD-001 |
-| QA-005 | P1 | WebGL diff budget | If particles/bloom affect stage shot, adjust `maxDiffRatio` or mask region. | Stable CI. | FX-005, FX-015 |
+| QA-005 | P1 | WebGL diff budget | If particles/bloom affect stage shot, adjust `maxDiffRatio` or mask region. `tile-card-face-webgl` / `tile-board-raycast` flip steps use **keyboard** (application focus + arrows + Enter) instead of canvas `mouse.click` for reliable picks; still validates one-flip screenshot delta. | Stable CI. | FX-005, FX-015, TBF-010 |
 | QA-006 | P2 | Visual scenarios | Add steps if new HUD regions need coverage. | Scenario list updated. | HUD-011 |
 | QA-007 | P2 | Raycast spec | Run after `tile-board-frame` / stage DOM changes. | `tile-board-raycast` green. | Layout |
 

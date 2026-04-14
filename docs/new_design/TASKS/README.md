@@ -66,6 +66,12 @@ Use this whenever gameplay HUD, sidebar, or tile chrome changes, or before a rel
 | [TASKS_PERFORMANCE_GRAPHICS.md](./TASKS_PERFORMANCE_GRAPHICS.md) | Quality presets, DPR, WebGL lifecycle, motion vs GPU cost | `PERF-*` |
 | [TASKS_A11Y_I18N_E2E.md](./TASKS_A11Y_I18N_E2E.md) | Landmarks, focus traps, live regions, i18n, extra e2e specs | `A11Y-*`, `E2E-*` |
 
+### WebGL tile board FX (post–canvas-only)
+
+| File | Scope | Primary IDs |
+|------|--------|-------------|
+| [TASKS_TILE_BOARD_WEBGL_FX_V2.md](./TASKS_TILE_BOARD_WEBGL_FX_V2.md) | Dual-layer rims, bloom, rounded bezels, burst/check/focus polish, quality + regression | `TBF-*` |
+
 ### Cross-cutting
 
 | File | Purpose |
@@ -78,7 +84,7 @@ Use this whenever gameplay HUD, sidebar, or tile chrome changes, or before a rel
 
 ## Master ID map (quick grep)
 
-`HUD-*` `SIDE-*` `PLAY-*` `CARD-*` `FX-*` `AST-*` `QA-*` `META-*` `NAV-*` `OVR-*` `DS-*` `PERF-*` `A11Y-*` `E2E-*`
+`HUD-*` `SIDE-*` `PLAY-*` `CARD-*` `FX-*` `TBF-*` `AST-*` `QA-*` `META-*` `NAV-*` `OVR-*` `DS-*` `PERF-*` `A11Y-*` `E2E-*`
 
 ---
 

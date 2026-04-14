@@ -11,6 +11,13 @@ export async function readFrameHiddenTileCount(page: Page): Promise<number> {
     return Number.parseInt(raw ?? '0', 10);
 }
 
+/** Memorize can still report hidden tiles; picks only work in `playing`. */
+export async function waitForBoardPlayPhase(page: Page): Promise<void> {
+    await expect(page.getByTestId('tile-board-frame')).toHaveAttribute('data-board-run-status', 'playing', {
+        timeout: 60_000
+    });
+}
+
 /** Menu + level 1 play without onboarding or powers FTUE chrome (used by gesture/layout harnesses). */
 export const defaultE2eGameSaveJson = JSON.stringify({
     schemaVersion: 2,
@@ -90,27 +97,40 @@ export async function navigateToLevel1PlayPhase(page: Page, saveJson: string = d
         })
         .toBeGreaterThan(0);
     await expect(page.getByTestId('tile-board-application')).toBeVisible({ timeout: 25_000 });
+    await waitForBoardPlayPhase(page);
 }
 
 /**
- * Click a board cell on the WebGL canvas using stage-shell layout (row/column are 1-based).
+ * Flip the tile at (row, column) using the same path as keyboard users: `role="application"` focus +
+ * Arrow keys + Enter. More reliable in Playwright than synthesizing canvas pointer picks (stage vs GL rect).
+ * Row/column are 1-based; after `focus()` the board seeds keyboard focus to the first pickable tile (reading order).
+ */
+export async function flipTileAtGridCellKeyboard(page: Page, row: number, column: number): Promise<void> {
+    await page.getByTestId('tile-board-application').focus();
+    const tr = row - 1;
+    const tc = column - 1;
+    for (let i = 0; i < tc; i += 1) {
+        await page.keyboard.press('ArrowRight');
+    }
+    for (let i = 0; i < tr; i += 1) {
+        await page.keyboard.press('ArrowDown');
+    }
+    await page.keyboard.press('Enter');
+}
+
+/**
+ * Select a hidden tile at (row, column) and wait for the board to register a flip.
  */
 export async function clickHiddenTileRowCol(page: Page, row: number, column: number, hiddenBefore?: number): Promise<void> {
-    const frame = page.getByTestId('tile-board-frame');
-    const cols = Number(await frame.getAttribute('data-board-columns'));
-    const rows = Number(await frame.getAttribute('data-board-rows'));
-    const stage = page.getByTestId('tile-board-stage-shell');
-    await expect(stage).toBeVisible();
-    const box = await stage.boundingBox();
-    expect(box).toBeTruthy();
-    const cellW = box!.width / cols;
-    const cellH = box!.height / rows;
-    const cx = box!.x + (column - 0.5) * cellW;
-    const cy = box!.y + (row - 0.5) * cellH;
-    await page.mouse.click(cx, cy);
+    await flipTileAtGridCellKeyboard(page, row, column);
     if (hiddenBefore != null) {
         await expect
             .poll(async () => readFrameHiddenTileCount(page), { timeout: 12_000 })
             .not.toBe(hiddenBefore);
     }
+}
+
+/** @deprecated Alias for `flipTileAtGridCellKeyboard` — kept for specs that still say “click canvas”. */
+export async function clickCanvasTile(page: Page, row: number, column: number): Promise<void> {
+    await flipTileAtGridCellKeyboard(page, row, column);
 }

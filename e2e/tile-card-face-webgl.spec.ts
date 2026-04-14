@@ -56,6 +56,7 @@ test.describe('Tile card face (WebGL)', () => {
         await page.waitForTimeout(400);
         const shotHidden = await screenshotStageShellPng(page, stageLocator);
         const hiddenCount = await readFrameHiddenTileCount(page);
+        /** Flip via keyboard (focus + Enter); same as player path; avoids flaky canvas pointer synthesis in CI. */
         await clickHiddenTileRowCol(page, 1, 1, hiddenCount);
 
         await expect.poll(async () => readFrameHiddenTileCount(page), { timeout: 4000 }).toBeLessThan(hiddenCount);

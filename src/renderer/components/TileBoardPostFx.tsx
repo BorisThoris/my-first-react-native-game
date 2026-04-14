@@ -9,7 +9,7 @@ interface TileBoardPostFxProps {
 
 const ComposerBloomOnly = () => (
     <EffectComposer multisampling={0}>
-        <Bloom intensity={0.35} luminanceSmoothing={0.35} luminanceThreshold={0.82} mipmapBlur />
+        <Bloom intensity={0.38} luminanceSmoothing={0.33} luminanceThreshold={0.78} mipmapBlur />
     </EffectComposer>
 );
 
@@ -21,7 +21,7 @@ const ComposerSmaaOnly = () => (
 
 const ComposerBloomSmaa = () => (
     <EffectComposer multisampling={0}>
-        <Bloom intensity={0.35} luminanceSmoothing={0.35} luminanceThreshold={0.82} mipmapBlur />
+        <Bloom intensity={0.38} luminanceSmoothing={0.33} luminanceThreshold={0.78} mipmapBlur />
         <SMAA />
     </EffectComposer>
 );

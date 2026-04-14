@@ -37,6 +37,7 @@
         "capture:visual-inventory": "yarn capture:ui-audit",
         "capture:ui-design-reference": "playwright test e2e/ui-design-reference.spec.ts --workers=1",
         "capture:endproduct-parity": "cross-env VISUAL_CAPTURE_ROOT=docs/visual-capture/endproduct-parity playwright test e2e/visual-endproduct-parity.spec.ts --workers=1",
+        "capture:matched-flame": "playwright test e2e/capture-matched-flame.spec.ts --workers=1",
         "docs:ui-audit": "node scripts/generate-visual-inventory-md.mjs",
         "docs:visual-inventory": "yarn docs:ui-audit",
         "wip:extract-endproduct": "node scripts/extract-endproduct-wip-assets.mjs",

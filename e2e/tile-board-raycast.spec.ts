@@ -1,22 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
 import { dismissStartupIntro } from './startupIntroHelpers';
-import { defaultE2eGameSaveJson, readFrameHiddenTileCount, STORAGE_KEY } from './tileBoardGameFlow';
+import {
+    clickCanvasTile,
+    defaultE2eGameSaveJson,
+    readFrameHiddenTileCount,
+    STORAGE_KEY,
+    waitForBoardPlayPhase
+} from './tileBoardGameFlow';
 import { completeLevel1Play, waitLevel1PlayReady } from './visualScreenHelpers';
-
-async function clickCanvasTile(page: Page, row: number, column: number): Promise<void> {
-    const frame = page.getByTestId('tile-board-frame');
-    const cols = Number(await frame.getAttribute('data-board-columns'));
-    const rows = Number(await frame.getAttribute('data-board-rows'));
-    const stage = page.getByTestId('tile-board-stage-shell');
-    await expect(stage).toBeVisible();
-    const box = await stage.boundingBox();
-    expect(box).toBeTruthy();
-    const cellW = box!.width / cols;
-    const cellH = box!.height / rows;
-    const cx = box!.x + (column - 0.5) * cellW;
-    const cy = box!.y + (row - 0.5) * cellH;
-    await page.mouse.click(cx, cy);
-}
 
 async function readBoardViewport(page: Page): Promise<{ panX: number; panY: number; zoom: number }> {
     return page.getByTestId('tile-board-frame').evaluate((element) => ({
@@ -89,6 +80,8 @@ test.describe('Tile board interaction', () => {
                 intervals: [80, 120, 200, 400]
             })
             .toBeGreaterThan(0);
+
+        await waitForBoardPlayPhase(page);
 
         const hiddenBefore = await readFrameHiddenTileCount(page);
 

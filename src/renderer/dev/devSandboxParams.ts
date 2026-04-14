@@ -14,6 +14,10 @@
  *   http://127.0.0.1:5173/?devSandbox=1&screen=playing&fixture=dailyParasite
  *   http://127.0.0.1:5173/?devSandbox=1&screen=settings&skipIntro=1
  *
+ * FX shader sandbox (no full game shell — isolated WebGL card + rim fire; DEV only):
+ *   http://127.0.0.1:5173/?devSandbox=1&fx=matchedRimFire
+ *   Playwright: `yarn capture:matched-flame` → `test-results/matched-flame-capture/` (or set `VISUAL_CAPTURE_ROOT`).
+ *
  * Screenshot workflow (compare to `docs/ENDPRODUCTIMAGE.png`):
  * - `yarn capture:endproduct-parity` — Playwright writes element crops to `docs/visual-capture/endproduct-parity/`
  *   (`hud-*.png`, `tile-board-*.png`). Without the script, the same spec defaults to `test-results/endproduct-parity/`.
@@ -41,8 +45,13 @@ const parseUnlockAchievementsParam = (params: URLSearchParams): AchievementId[] 
 
 export type DevSandboxScreen = Exclude<ViewState, 'boot'>;
 
+/** Isolated FX previews (replace app chrome; `devSandbox=1` required). */
+export type FxSandboxId = 'matchedRimFire';
+
 export interface DevSandboxConfig {
     enabled: boolean;
+    /** When set, `App` renders only this FX preview (ignores `screen` / store sandbox navigation). */
+    fxSandbox: FxSandboxId | null;
     /** Target shell when `enabled`; null = leave default after hydrate (menu). */
     screen: DevSandboxScreen | null;
     /** Canned run preset for `playing` / `gameOver`; ignored for meta screens without a run. */
@@ -73,22 +82,49 @@ export const parseScreenParam = (raw: string | null): DevSandboxScreen | null =>
     return SCREEN_MAP[key] ?? null;
 };
 
+const parseFxSandboxParam = (raw: string | null): FxSandboxId | null => {
+    if (!raw) {
+        return null;
+    }
+    const key = raw.trim().toLowerCase().replace(/-/g, '');
+    if (key === 'matchedrimfire') {
+        return 'matchedRimFire';
+    }
+    return null;
+};
+
 export const readDevSandboxConfig = (): DevSandboxConfig => {
     if (!import.meta.env.DEV || typeof window === 'undefined') {
-        return { enabled: false, screen: null, fixture: null, skipIntro: false, unlockAchievements: [] };
+        return {
+            enabled: false,
+            fxSandbox: null,
+            screen: null,
+            fixture: null,
+            skipIntro: false,
+            unlockAchievements: []
+        };
     }
 
     const params = new URLSearchParams(window.location.search);
     if (params.get('devSandbox') !== '1') {
-        return { enabled: false, screen: null, fixture: null, skipIntro: false, unlockAchievements: [] };
+        return {
+            enabled: false,
+            fxSandbox: null,
+            screen: null,
+            fixture: null,
+            skipIntro: false,
+            unlockAchievements: []
+        };
     }
 
+    const fxSandbox = parseFxSandboxParam(params.get('fx'));
     const screen = parseScreenParam(params.get('screen'));
     const fixture = params.get('fixture')?.trim() || null;
     const skipIntro = params.get('skipIntro') === '1' || params.get('skipIntro') === 'true';
 
     return {
         enabled: true,
+        fxSandbox,
         screen,
         fixture,
         skipIntro,

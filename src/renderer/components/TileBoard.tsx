@@ -9,6 +9,7 @@ import {
     useRef,
     useState,
     type CSSProperties,
+    type FocusEvent,
     type ReactNode
 } from 'react';
 import { flushSync } from 'react-dom';
@@ -285,6 +286,8 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
     const viewportMetricsRef = useRef<TileBoardViewportMetrics | null>(null);
     const viewportResetTokenRef = useRef(viewportResetToken);
     const [focusedTileId, setFocusedTileId] = useState<string | null>(null);
+    /** When false, no tile should show the keyboard focus ring (avoids a permanent “hover” on first pickable tile). */
+    const [boardApplicationFocused, setBoardApplicationFocused] = useState(false);
     const [boardLiveMessage, setBoardLiveMessage] = useState('');
     const { tiltRef: fieldTiltRef, permission, requestMotionPermission } = usePlatformTiltField({
         enabled: true,
@@ -326,7 +329,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
             if (cur && pickable.includes(cur)) {
                 return cur;
             }
-            return pickable[0];
+            return null;
         });
     }, [board, interactive, allowGambitThirdFlip]);
 
@@ -489,6 +492,29 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         },
         [onTileSelect]
     );
+
+    const handleBoardApplicationFocus = useCallback((): void => {
+        setBoardApplicationFocused(true);
+        setFocusedTileId((cur) => {
+            const pickable = getPickableTileIds(board, interactive, allowGambitThirdFlip);
+            if (pickable.length === 0) {
+                return null;
+            }
+            if (cur && pickable.includes(cur)) {
+                return cur;
+            }
+            return pickable[0];
+        });
+    }, [board, interactive, allowGambitThirdFlip]);
+
+    const handleBoardApplicationBlur = useCallback((event: FocusEvent<HTMLDivElement>): void => {
+        const related = event.relatedTarget;
+        if (related instanceof Node && boardAppRef.current?.contains(related)) {
+            return;
+        }
+        setBoardApplicationFocused(false);
+        setFocusedTileId(null);
+    }, []);
 
     const handleBoardApplicationKeyDown = useCallback(
         (event: React.KeyboardEvent<HTMLDivElement>): void => {
@@ -1008,6 +1034,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
             }`}
             data-board-columns={board.columns}
             data-board-rows={board.rows}
+            data-board-run-status={runStatus}
             data-hidden-tile-count={hiddenTileCount}
             data-hidden-slots={hiddenSlotsAttr}
             data-shuffle-animating={shuffleAnimating ? 'true' : 'false'}
@@ -1037,6 +1064,8 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                     aria-label="Memory tile board. Use arrow keys to move focus, Enter or Space to flip."
                     className={styles.boardCanvasApplication}
                     data-testid="tile-board-application"
+                    onBlur={handleBoardApplicationBlur}
+                    onFocus={handleBoardApplicationFocus}
                     onKeyDown={handleBoardApplicationKeyDown}
                     ref={boardAppRef}
                     role="application"
@@ -1077,7 +1106,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                                         compact={compact}
                                         cursedPairKey={cursedPairKey}
                                         dimmedTileIds={dimmedTileIds}
-                                        focusedTileId={focusedTileId}
+                                        focusedTileId={boardApplicationFocused ? focusedTileId : null}
                                         graphicsQuality={graphicsQuality}
                                         wardPairKey={wardPairKey}
                                         bountyPairKey={bountyPairKey}

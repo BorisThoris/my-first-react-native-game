@@ -2,6 +2,8 @@
 
 **Sweep (P2/P3):** FX-007 `HOVER_DOM_WEBGL_TOKENS.md`, FX-006 hover tint lerp, CARD-002 face-up arc, CARD-010 lift damp, CARD-012 gambit resolving states, CARD-018 pinned+match stack, FX-013 shuffle Z jitter, FX-017 stronger match pulse, matrix rows in `FX_REDUCE_MOTION_MATRIX.md`.
 
+**WebGL-only board (post–DOM hit layer):** layered rims, bloom, rounded bezels, burst/check/focus v2 — see [`TASKS_TILE_BOARD_WEBGL_FX_V2.md`](./TASKS_TILE_BOARD_WEBGL_FX_V2.md) (`TBF-*`).
+
 **Research summary:**
 
 - **DOM fallback:** Logical face flip + optional `domCardFaceReveal` when motion on. Hover: gold border/glow + tilt vars. Match/mismatch: `.resolvingMatch` / `.resolvingMismatch`, `.matched`, `pulseGlow`. **Matched ✓** via `.fallbackMatchedCheck` (parity with WebGL hit-layer checkmark).

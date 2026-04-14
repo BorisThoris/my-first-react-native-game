@@ -13,7 +13,8 @@ test.describe('OVR-013 — overlay smoke', () => {
     test.describe.configure({ retries: 1 });
 
     test('level 1: pause, run settings, floor cleared, toast surface, mobile camera', async ({ page }) => {
-        test.setTimeout(120_000);
+        /* Level 1 completion can span memorize → play → match resolution; allow headroom under load (retries: 1). */
+        test.setTimeout(180_000);
 
         await page.setViewportSize({ width: 390, height: 844 });
         await navigateToLevel1PlayPhase(page);
