@@ -9,7 +9,7 @@
     animation-name: card-art-orbit-spin;
     animation-timing-function: linear;
     animation-iteration-count: infinite;
-    /* Match CARD_BACK_EMBLEM_CENTER: x/w*100 , y/h*100 for 740×1080 */
+    /* Match CARD_BACK_EMBLEM_CENTER: x/w*100 , y/h*100 for traced back (850×1317) */
     transform-origin: 50% 50%;
     transform-box: fill-box;
 }

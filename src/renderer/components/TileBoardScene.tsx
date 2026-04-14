@@ -66,8 +66,8 @@ import {
     getResolvingSelectionState,
     type ResolvingSelectionState
 } from './tileResolvingSelection';
-import cardBackSvgUrl from '../assets/textures/cards/authored-card-back.svg?url';
-import cardFrontSvgUrl from '../assets/textures/cards/authored-card-front.svg?url';
+import cardBackSvgUrl from '../assets/textures/cards/back.svg?url';
+import cardFrontSvgUrl from '../assets/textures/cards/front.svg?url';
 import { loadSharedCardSvgPlaneGeometry } from './cardSvgPlaneGeometry';
 import type { TileBoardViewportState } from './tileBoardViewport';
 import { computeStaggeredShuffleDealZ } from './shuffleFlipAnimation';

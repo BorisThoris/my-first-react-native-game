@@ -11,9 +11,9 @@ import {
 import type { Tile } from '../../shared/contracts';
 import { RENDERER_THEME } from '../styles/theme';
 import { CARD_PLANE_HEIGHT, CARD_PLANE_WIDTH } from './tileShatter';
-import referenceBackTextureUrl from '../assets/textures/cards/authored-card-back.svg?url';
+import referenceBackTextureUrl from '../assets/textures/cards/back.svg?url';
 import cardBackNormalTextureUrl from '../assets/textures/cards/back-normal.png';
-import cardFaceTextureUrl from '../assets/textures/cards/authored-card-front.svg?url';
+import cardFaceTextureUrl from '../assets/textures/cards/front.svg?url';
 import cardFaceNormalTextureUrl from '../assets/textures/cards/front-normal.png';
 import edgeTextureUrl from '../assets/textures/cards/edge.png';
 import panelRoughnessTextureUrl from '../assets/textures/cards/panel-roughness.png';
@@ -35,7 +35,7 @@ const TEXTURE_SIZE = 512;
 /** Taller canvas for WebGL static card PNGs so 1403×2048 sources aren’t over-downscaled (was 512 — felt cropped/soft). */
 const STATIC_CARD_TEXTURE_HEIGHT = 1024;
 const STATIC_CARD_TEXTURE_WIDTH = Math.max(2, Math.round(STATIC_CARD_TEXTURE_HEIGHT * (CARD_PLANE_WIDTH / CARD_PLANE_HEIGHT)));
-const TILE_TEXTURE_VERSION = 30;
+const TILE_TEXTURE_VERSION = 31;
 /** Bump when procedural card-surface maps change (independent of tile face caches). */
 const CARD_SURFACE_MAP_VERSION = 2;
 const textureCache = new Map<string, CanvasTexture>();

@@ -7,8 +7,8 @@ import {
 } from './tileBoardGameFlow';
 
 /**
- * QA-004 — DOM tile “fingerprint”: asserts `tile-card-face` uses authored card art (paths `authored-card-*.svg`
- * or legacy `*back.svg` / `*front.svg`) or an inlined `data:image/svg+xml` bundle, with 100%×100% cover, centered,
+ * QA-004 — DOM tile “fingerprint”: asserts `tile-card-face` uses `back.svg` / `front.svg` (or bundle-inlined SVG)
+ * via `data:image/svg+xml`, with 100%×100% cover, centered,
  * no-repeat. Update if `.cardBack` / face URLs or stacking change (see `TASKS_ASSETS_QA.md` QA-004).
  */
 test.use({
@@ -42,7 +42,7 @@ test.describe('Tile card face (DOM fallback)', () => {
 
         const hiddenStyle = await readBg(cardFace);
         expect(hiddenStyle.backgroundImage, 'Hidden tile should use card back art').toMatch(
-            /back\.svg|authored-card-back|data:image\/svg\+xml/i
+            /back\.svg|data:image\/svg\+xml/i
         );
         expect(hiddenStyle.backgroundSize, 'Back SVG fills card frame').toMatch(/^100%\s+100%/);
         expect(hiddenStyle.backgroundRepeat).toMatch(/^no-repeat/);
@@ -55,7 +55,7 @@ test.describe('Tile card face (DOM fallback)', () => {
         const shownStyle = await readBg(tileShown11.getByTestId('tile-card-face'));
 
         expect(shownStyle.backgroundImage, 'Face-up tile should use card front art').toMatch(
-            /front\.svg|authored-card-front|data:image\/svg\+xml/i
+            /front\.svg|data:image\/svg\+xml/i
         );
         expect(shownStyle.backgroundImage).not.toBe(hiddenStyle.backgroundImage);
         expect(shownStyle.backgroundSize, 'Face SVG stretches to card frame').toMatch(/^100%\s+100%/);

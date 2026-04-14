@@ -903,13 +903,13 @@
         0 8px 18px color-mix(in srgb, var(--theme-ink) 22%, transparent);
     overflow: hidden;
     background:
-        url('../assets/textures/cards/authored-card-back.svg') center / 100% 100% no-repeat,
+        url('../assets/textures/cards/back.svg') center / 100% 100% no-repeat,
         linear-gradient(170deg, rgba(21, 33, 50, 0.98), rgba(8, 12, 20, 0.98));
 }
 
 .cardFaceBack {
     background:
-        url('../assets/textures/cards/authored-card-back.svg') center / 100% 100% no-repeat,
+        url('../assets/textures/cards/back.svg') center / 100% 100% no-repeat,
         linear-gradient(170deg, rgba(21, 33, 50, 0.98), rgba(8, 12, 20, 0.98));
 }
 
@@ -917,21 +917,21 @@
 .cardFaceFront,
 .faceUp .cardBack {
     background:
-        url('../assets/textures/cards/authored-card-front.svg') center / 100% 100% no-repeat,
+        url('../assets/textures/cards/front.svg') center / 100% 100% no-repeat,
         linear-gradient(170deg, rgba(21, 33, 50, 0.98), rgba(8, 12, 20, 0.98));
     border-color: color-mix(in srgb, var(--theme-rune) 40%, transparent);
 }
 
 .matched .cardBack {
     background:
-        url('../assets/textures/cards/authored-card-front.svg') center / 100% 100% no-repeat,
+        url('../assets/textures/cards/front.svg') center / 100% 100% no-repeat,
         linear-gradient(170deg, rgba(21, 33, 50, 0.98), rgba(8, 12, 20, 0.98));
     border-color: color-mix(in srgb, var(--theme-emerald-bright) 44%, transparent);
 }
 
 .resolvingMismatch .cardBack {
     background:
-        url('../assets/textures/cards/authored-card-front.svg') center / 100% 100% no-repeat,
+        url('../assets/textures/cards/front.svg') center / 100% 100% no-repeat,
         linear-gradient(170deg, rgba(21, 33, 50, 0.98), rgba(8, 12, 20, 0.98));
     border-color: color-mix(in srgb, var(--theme-danger) 58%, transparent);
 }

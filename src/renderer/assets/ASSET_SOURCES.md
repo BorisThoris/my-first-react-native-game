@@ -43,10 +43,10 @@ Two files both export a constant named `UI_ART` — they are **not** interchange
 | `ui/icons/icon-undo-v1.svg` | Resolving-phase undo | Authored SVG | Same |
 | `ui/icons/icon-score-parasite-crystal.svg` | HUD score parasite mutator crystal glyph | Authored SVG | **HUD-007:** arcane-violet / gold-rim crystal aligned to `VISUAL_SYSTEM_SPEC` + `theme.ts` `--theme-hud-parasite-*`; used in `GameplayHudBar.tsx` (`?url` import). |
 | `ui/frames/hud-segment-ornament.svg` | HUD score segment flourish | Authored SVG | Hex motif; used in `GameScreen.module.css` |
-| `textures/cards/authored-card-back.svg` | Tile **hidden** side (shipped) | Hand-authored vector: leather/walnut, gold filigree, center diamond (**PLAY-007** / **TASK-011**); wired from `tileTextures.ts`, `TileBoard.module.css`, `slots.ts`. WebGL merged mesh when under byte/vertex caps ([`cardSvgPlaneGeometry.ts`](../components/cardSvgPlaneGeometry.ts)). | Replaces multi-MB traced `back.svg` for perf + parity. |
-| `textures/cards/authored-card-front.svg` | Face-up panel (shipped) | Hand-authored stone frame + calm center well for glyph overlay | Pairs with `authored-card-back.svg`. |
-| `textures/cards/back.svg` | Legacy traced back | **Not** default import; kept for pipeline tools / reference | Huge path count — prefer authored SVG for runtime. |
-| `textures/cards/front.svg` | Legacy traced front | **Not** default import | Same. |
+| `textures/cards/back.svg` | Tile **hidden** side (default runtime) | SVG Storm–style trace; wired from `tileTextures.ts`, `TileBoard.module.css`, `TileBoardScene.tsx`, `slots.ts`. WebGL merged mesh when under byte/vertex caps ([`cardSvgPlaneGeometry.ts`](../components/cardSvgPlaneGeometry.ts)). | Large path count; primary card back source. |
+| `textures/cards/front.svg` | Face-up panel (default runtime) | Traced front; pairs with `back.svg` | Same pipeline as `back.svg`. |
+| `textures/cards/authored-card-back.svg` | Alternate back art (optional) | Hand-authored vector (**PLAY-007** / **TASK-011**); not wired by default | On disk for reference or future toggle. |
+| `textures/cards/authored-card-front.svg` | Alternate face panel (optional) | Hand-authored stone frame + center well | Pairs with `authored-card-back.svg`. |
 | `textures/cards/edge.png` | Card edge map | `scripts/card-pipeline/generate-card-textures.ps1` | Pairs with `tileTextures.ts` |
 | `textures/cards/panel-roughness.png` | Panel roughness | `scripts/card-pipeline/generate-card-textures.ps1` | |
 | `textures/cards/edge-roughness.png` | Edge roughness | `scripts/card-pipeline/generate-card-textures.ps1` | |
