@@ -164,6 +164,11 @@ export interface Settings {
     distractionChannelEnabled: boolean;
     /** Reduce match score multiplier slightly each shuffle this run when enabled. */
     shuffleScoreTaxEnabled: boolean;
+    /**
+     * While face-up on a committed flip, show Manhattan grid distance to the nearest tile that can complete the pair
+     * (helps on larger boards; decoys show no number).
+     */
+    pairProximityHintsEnabled: boolean;
 }
 
 export interface Tile {

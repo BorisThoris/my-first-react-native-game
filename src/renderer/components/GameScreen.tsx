@@ -186,6 +186,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const pendingAchievementToastIdsRef = useRef<AchievementId[]>([]);
     const settingsDistractionChannelEnabled = useAppStore((state) => state.settings.distractionChannelEnabled);
     const settingsTileFocusAssist = useAppStore((state) => state.settings.tileFocusAssist);
+    const settingsPairProximityHintsEnabled = useAppStore((state) => state.settings.pairProximityHintsEnabled);
     const settingsBoardPresentation = useAppStore((state) => state.settings.boardPresentation);
     const settingsGraphicsQuality = useAppStore((state) => state.settings.graphicsQuality);
     const settingsBoardBloomEnabled = useAppStore((state) => state.settings.boardBloomEnabled);
@@ -621,6 +622,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                 onTileSelect={(tileId) => {
                                     useAppStore.getState().pressTile(tileId);
                                 }}
+                                pairProximityHintsEnabled={settingsPairProximityHintsEnabled}
                                 previewActive={run.status === 'memorize'}
                                 boardBloomEnabled={settingsBoardBloomEnabled}
                                 boardScreenSpaceAA={settingsBoardScreenSpaceAA}

@@ -548,6 +548,12 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                                                         onChange={(next) => patchSettings('echoFeedbackEnabled', next)}
                                                     />
                                                     <ToggleRow
+                                                        checked={draft.pairProximityHintsEnabled}
+                                                        hint="On a flip, shows grid steps (Manhattan) to the nearest tile that can complete the pair. Off for a purer memory read."
+                                                        label="Pair distance hints"
+                                                        onChange={(next) => patchSettings('pairProximityHintsEnabled', next)}
+                                                    />
+                                                    <ToggleRow
                                                         checked={draft.distractionChannelEnabled}
                                                         hint="Enables the distraction mutator overlay when the daily includes it."
                                                         label="Distraction Channel"

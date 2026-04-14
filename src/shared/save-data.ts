@@ -34,7 +34,8 @@ export const DEFAULT_SETTINGS: Settings = {
     weakerShuffleMode: 'full',
     echoFeedbackEnabled: true,
     distractionChannelEnabled: false,
-    shuffleScoreTaxEnabled: false
+    shuffleScoreTaxEnabled: false,
+    pairProximityHintsEnabled: true
 };
 
 export const ACHIEVEMENT_IDS: AchievementId[] = [
@@ -100,6 +101,10 @@ export const normalizeSaveData = (input?: Partial<SaveData> | null): SaveData =>
         typeof mergedSettingsBase.boardBloomEnabled === 'boolean'
             ? mergedSettingsBase.boardBloomEnabled
             : defaults.settings.boardBloomEnabled;
+    const pairProximityHintsEnabled =
+        typeof mergedSettingsBase.pairProximityHintsEnabled === 'boolean'
+            ? mergedSettingsBase.pairProximityHintsEnabled
+            : defaults.settings.pairProximityHintsEnabled;
     const cvRaw = mergedSettingsBase.cameraViewportModePreference as CameraViewportModePreference | undefined;
     const cameraViewportModePreference: CameraViewportModePreference =
         cvRaw === 'auto' || cvRaw === 'always' || cvRaw === 'never'
@@ -118,7 +123,8 @@ export const normalizeSaveData = (input?: Partial<SaveData> | null): SaveData =>
             boardScreenSpaceAA,
             boardBloomEnabled,
             graphicsQuality,
-            cameraViewportModePreference
+            cameraViewportModePreference,
+            pairProximityHintsEnabled
         },
         onboardingDismissed: typeof input.onboardingDismissed === 'boolean' ? input.onboardingDismissed : defaults.onboardingDismissed,
         lastRunSummary: input.lastRunSummary ?? defaults.lastRunSummary,

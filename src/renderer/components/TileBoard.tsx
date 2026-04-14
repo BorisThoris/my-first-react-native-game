@@ -77,6 +77,8 @@ interface TileBoardProps {
      * WebGL path has no equivalent overlay.
      */
     showTutorialPairMarkers?: boolean;
+    /** Distance-to-pair badge on flipped tiles (Manhattan grid steps). */
+    pairProximityHintsEnabled?: boolean;
     onTileSelect: (tileId: string) => void;
 }
 
@@ -243,6 +245,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         bountyPairKey = null,
         runStatus = 'playing',
         showTutorialPairMarkers: _showTutorialPairMarkers = true,
+        pairProximityHintsEnabled = true,
         onTileSelect
     },
     ref
@@ -1117,6 +1120,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                                         interactive={interactive}
                                         onTilePick={handleTileSelect}
                                         onViewportMetricsChange={handleStageViewportChange}
+                                        pairProximityHintsEnabled={pairProximityHintsEnabled}
                                         peekRevealedTileIds={peekRevealedTileIds}
                                         pinnedTileIds={pinnedTileIds}
                                         previewActive={previewActive}

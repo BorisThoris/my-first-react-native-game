@@ -35,6 +35,7 @@ import {
     type MeshStandardMaterial
 } from 'three';
 import type { BoardState, GraphicsQualityPreset, RunStatus, Tile } from '../../shared/contracts';
+import { getPairProximityGridDistance } from '../../shared/pairProximityHint';
 import { getBoardAnisotropyCap } from '../../shared/graphicsQuality';
 import {
     applyAnisotropyToCachedTileTextures,
@@ -62,6 +63,7 @@ import { boardWebglPerfSampleAccumulate, boardWebglPerfSampleEnabled } from '../
 import { readTileStepLegacy } from '../dev/tileStepLegacy';
 import { getTileFieldAmplification } from './tileFieldTilt';
 import { isTilePickable, noopMeshRaycast, pickableMeshRaycast } from './tileBoardPick';
+import { PairProximityHintPlane } from './PairProximityHintPlane';
 import { getResolvingSelectionState, type ResolvingSelectionState } from './tileResolvingSelection';
 import cardBackSvgUrl from '../assets/textures/cards/back.svg?url';
 import cardFrontSvgUrl from '../assets/textures/cards/front.svg?url';
@@ -148,6 +150,8 @@ interface TileBoardSceneProps {
     graphicsQuality?: GraphicsQualityPreset;
     /** Keyboard focus ring target — only set while the board application region is actually focused (see `TileBoard`). */
     focusedTileId?: string | null;
+    /** Manhattan distance-to-pair badge on flipped tiles (assist). */
+    pairProximityHintsEnabled?: boolean;
 }
 
 interface TileBezelProps {
@@ -188,6 +192,8 @@ interface TileBezelProps {
     hostConsolidatesTileFrames?: boolean;
     /** Keyboard focus from canvas application (arrow keys). */
     keyboardFocused?: boolean;
+    /** Grid steps to nearest legal pair partner; only when flipped + setting on. */
+    pairProximityDistance?: number | null;
 }
 
 export interface TileHoverTiltState {
@@ -1026,7 +1032,8 @@ const TileBezelInner = ({
     spotlightBountyHighlight = false,
     focusDimmed = false,
     hostConsolidatesTileFrames = true,
-    keyboardFocused = false
+    keyboardFocused = false,
+    pairProximityDistance = null
 }: TileBezelProps) => {
     const { gl } = useThree();
     const frameRegistry = useContext(TileBezelFrameRegistryContext);
@@ -1900,6 +1907,9 @@ const TileBezelInner = ({
                         />
                     </mesh>
                 ) : null}
+                {pairProximityDistance != null ? (
+                    <PairProximityHintPlane distance={pairProximityDistance} faceZ={faceZ} />
+                ) : null}
                 <mesh
                     ref={matchedVictoryFlameMeshRef}
                     geometry={resolvingInnerGeometry}
@@ -2021,7 +2031,8 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
     dimmedTileIds,
     allowGambitThirdFlip = false,
     graphicsQuality = 'medium',
-    focusedTileId = null
+    focusedTileId = null,
+    pairProximityHintsEnabled = true
 }: TileBoardSceneProps, ref) => {
     const { camera, gl, viewport } = useThree();
     const { colors } = RENDERER_THEME;
@@ -2050,6 +2061,12 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                 Boolean(wardPairKey) && faceUp && tile.state !== 'matched' && tile.pairKey === wardPairKey;
             const spotlightBountyHighlight =
                 Boolean(bountyPairKey) && faceUp && tile.state !== 'matched' && tile.pairKey === bountyPairKey;
+            const pairProximityDistance =
+                pairProximityHintsEnabled &&
+                (runStatus === 'playing' || runStatus === 'resolving') &&
+                tile.state === 'flipped'
+                    ? getPairProximityGridDistance(board, tile.id)
+                    : null;
             return {
                 faceUp,
                 fieldAmp: getTileFieldAmplification(index, totalColumns, totalRows),
@@ -2057,6 +2074,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                 focusDimmed: Boolean(dimmedTileIds?.has(tile.id)),
                 isPinned: pinnedSet.has(tile.id),
                 memorizeCurseHighlight,
+                pairProximityDistance,
                 resolvingSelection: getResolvingSelectionState(board, runStatus, tile.id),
                 shuffleBoardOrderIndex: index,
                 spotlightBountyHighlight,
@@ -2072,6 +2090,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
         cursedPairKey,
         debugPeekActive,
         dimmedTileIds,
+        pairProximityHintsEnabled,
         peekSet,
         pinnedSet,
         previewActive,
@@ -2269,6 +2288,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                         focusDimmed,
                         isPinned,
                         memorizeCurseHighlight,
+                        pairProximityDistance,
                         resolvingSelection,
                         shuffleBoardOrderIndex,
                         spotlightBountyHighlight,
@@ -2287,6 +2307,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                             hoverTiltRef={hoverTiltRef}
                             findableFaceHighlight={findableFaceHighlight}
                             keyboardFocused={focusedTileId === tile.id}
+                            pairProximityDistance={pairProximityDistance}
                             spotlightBountyHighlight={spotlightBountyHighlight}
                             spotlightWardHighlight={spotlightWardHighlight}
                             interactionSuppressed={interactionSuppressed}
