@@ -126,6 +126,8 @@ interface TileBoardSceneProps {
     allowGambitThirdFlip?: boolean;
     /** PERF-007: caps texture anisotropy vs device max. */
     graphicsQuality?: GraphicsQualityPreset;
+    /** Keyboard focus ring target (canvas `role="application"`). */
+    focusedTileId?: string | null;
 }
 
 interface TileBezelProps {
@@ -164,6 +166,8 @@ interface TileBezelProps {
      * When false (dev `tileStepLegacy`), this tile registers its own `useFrame` for A/B comparison.
      */
     hostConsolidatesTileFrames?: boolean;
+    /** Keyboard focus from canvas application (arrow keys). */
+    keyboardFocused?: boolean;
 }
 
 export interface TileHoverTiltState {
@@ -200,6 +204,39 @@ const CARD_FACE_HEIGHT = CARD_HEIGHT - CARD_FACE_INSET * 2;
 const HOVER_GOLD_RIM_STRIP = 0.0036;
 const hoverGoldRimGeomH = new PlaneGeometry(CARD_WIDTH, HOVER_GOLD_RIM_STRIP, 1, 1);
 const hoverGoldRimGeomV = new PlaneGeometry(HOVER_GOLD_RIM_STRIP, CARD_HEIGHT, 1, 1);
+
+/** GPU tile chrome (replaces DOM `.hitButton*` resolving / focus / burst / matched check). */
+const RESOLVING_RING_GEOM = new RingGeometry(CARD_WIDTH * 0.37, CARD_WIDTH * 0.505, 64);
+const FOCUS_RING_GEOM = new RingGeometry(CARD_WIDTH * 0.35, CARD_WIDTH * 0.52, 64);
+const BURST_RING_GEOM = new RingGeometry(CARD_WIDTH * 0.32, CARD_WIDTH * 0.54, 40);
+const MATCH_CHECK_GEOM = new PlaneGeometry(CARD_WIDTH * 0.2, CARD_HEIGHT * 0.2, 1, 1);
+
+let matchedCheckTextureSingleton: CanvasTexture | null = null;
+
+const getMatchedCheckTexture = (): CanvasTexture | null => {
+    if (typeof document === 'undefined') {
+        return null;
+    }
+    if (!matchedCheckTextureSingleton) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 128;
+        canvas.height = 128;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            return null;
+        }
+        ctx.clearRect(0, 0, 128, 128);
+        ctx.fillStyle = RENDERER_THEME.colors.emeraldBright;
+        ctx.font = '900 92px system-ui, "Segoe UI", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('✓', 64, 58);
+        matchedCheckTextureSingleton = new CanvasTexture(canvas);
+        matchedCheckTextureSingleton.colorSpace = SRGBColorSpace;
+        matchedCheckTextureSingleton.needsUpdate = true;
+    }
+    return matchedCheckTextureSingleton;
+};
 
 /**
  * Segments per card face: bend deformation + enough tessellation for
@@ -439,6 +476,7 @@ interface TileBezelFramePropsSnapshot {
     graphicsQuality: GraphicsQualityPreset;
     fieldTiltRef: MutableRefObject<TiltVector>;
     hoverTiltRef: MutableRefObject<TileHoverTiltState>;
+    keyboardFocused: boolean;
 }
 
 interface TileBezelPlaneGeometries {
@@ -478,6 +516,15 @@ interface TileBezelFrameBag {
     hoverRimBottomMatRef: MutableRefObject<MeshBasicMaterial | null>;
     hoverRimRightMatRef: MutableRefObject<MeshBasicMaterial | null>;
     hoverRimLeftMatRef: MutableRefObject<MeshBasicMaterial | null>;
+    resolvingRimMatRef: MutableRefObject<MeshBasicMaterial | null>;
+    focusRimMatRef: MutableRefObject<MeshBasicMaterial | null>;
+    burstRingMatRef: MutableRefObject<MeshBasicMaterial | null>;
+    burstRingMeshRef: MutableRefObject<Mesh | null>;
+    matchedCheckMatRef: MutableRefObject<MeshBasicMaterial | null>;
+    matchedCheckMeshRef: MutableRefObject<Mesh | null>;
+    matchBurstT0Ref: MutableRefObject<number | null>;
+    matchedCheckPopT0Ref: MutableRefObject<number | null>;
+    prevTileMatchedRef: MutableRefObject<boolean>;
 }
 
 const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: number): void => {
@@ -531,8 +578,15 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
     const prevR = bag.prevResolvingRef.current;
     if (p.resolvingSelection === 'match' && prevR !== 'match' && !p.reduceMotion) {
         bag.matchPulseRef.current = 1;
+        bag.matchBurstT0Ref.current = clock.elapsedTime;
     }
     bag.prevResolvingRef.current = p.resolvingSelection;
+
+    const wasMatched = bag.prevTileMatchedRef.current;
+    if (p.tile.state === 'matched' && !wasMatched && !p.reduceMotion) {
+        bag.matchedCheckPopT0Ref.current = clock.elapsedTime;
+    }
+    bag.prevTileMatchedRef.current = p.tile.state === 'matched';
     bag.matchPulseRef.current = Math.max(0, bag.matchPulseRef.current - delta * 2.8);
     const matchPulse = bag.matchPulseRef.current;
 
@@ -720,6 +774,84 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
             m.opacity = hoverRimOpacityTarget;
         }
     }
+
+    const { colors } = RENDERER_THEME;
+    const resolvingRim = bag.resolvingRimMatRef.current;
+    const focusRim = bag.focusRimMatRef.current;
+    const burstMat = bag.burstRingMatRef.current;
+    const burstMesh = bag.burstRingMeshRef.current;
+    const checkMat = bag.matchedCheckMatRef.current;
+    const checkMesh = bag.matchedCheckMeshRef.current;
+
+    const resolvingActive = p.resolvingSelection !== null && p.faceUp;
+    const pinnedFaceResolvingFx = p.isPinned && p.faceUp && p.resolvingSelection !== null;
+    if (resolvingRim) {
+        if (p.resolvingSelection === 'mismatch') {
+            resolvingRim.color.set(colors.danger);
+        } else if (p.resolvingSelection === 'gambitNeutral') {
+            resolvingRim.color.set(colors.cyanBright);
+        } else {
+            resolvingRim.color.set(colors.emeraldBright);
+        }
+        const pulse = p.reduceMotion
+            ? 0.62
+            : 0.38 +
+              0.32 *
+                  Math.sin(
+                      clock.elapsedTime * (p.resolvingSelection === 'mismatch' ? 5.1 : 4.05)
+                  );
+        const baseOp = resolvingActive ? (pinnedFaceResolvingFx ? Math.min(1, pulse + 0.2) : pulse) : 0;
+        resolvingRim.opacity = baseOp;
+    }
+
+    if (focusRim) {
+        const fk = p.keyboardFocused && p.pickable;
+        focusRim.opacity = fk ? (p.reduceMotion ? 0.68 : 0.88) : 0;
+    }
+
+    const bT0 = bag.matchBurstT0Ref.current;
+    if (burstMat && burstMesh) {
+        if (bT0 != null && !p.reduceMotion) {
+            const u = (clock.elapsedTime - bT0) / 0.45;
+            if (u <= 1) {
+                const ease = 1 - (1 - u) * (1 - u);
+                burstMesh.visible = true;
+                burstMesh.scale.setScalar(0.22 + ease * 0.9);
+                burstMat.opacity = 0.85 * (1 - ease);
+            } else {
+                burstMesh.visible = false;
+                bag.matchBurstT0Ref.current = null;
+            }
+        } else {
+            burstMesh.visible = false;
+            if (bT0 != null && p.reduceMotion) {
+                bag.matchBurstT0Ref.current = null;
+            }
+        }
+    }
+
+    const showCheck = p.tile.state === 'matched';
+    if (checkMat && checkMesh) {
+        checkMesh.visible = showCheck;
+        const popT0 = bag.matchedCheckPopT0Ref.current;
+        if (showCheck && popT0 != null && !p.reduceMotion) {
+            const t = clock.elapsedTime - popT0;
+            if (t <= 0.42) {
+                const u = t / 0.42;
+                const scale = u < 0.58 ? 0.35 + (1.12 - 0.35) * (u / 0.58) : 1 - ((u - 0.58) / 0.42) * 0.1;
+                checkMesh.scale.setScalar(MathUtils.clamp(scale, 0.35, 1.08));
+                checkMat.opacity = 1;
+            } else {
+                checkMesh.scale.setScalar(1);
+                checkMat.opacity = 1;
+                bag.matchedCheckPopT0Ref.current = null;
+            }
+        } else if (showCheck) {
+            checkMesh.scale.setScalar(1);
+            checkMat.opacity = 1;
+        }
+    }
+
     const dimTarget = p.focusDimmed && !p.faceUp && p.tile.state === 'hidden' ? 1 : 0;
     bag.focusDimBlendRef.current = MathUtils.damp(
         bag.focusDimBlendRef.current,
@@ -789,7 +921,8 @@ const TileBezelInner = ({
     spotlightWardHighlight = false,
     spotlightBountyHighlight = false,
     focusDimmed = false,
-    hostConsolidatesTileFrames = true
+    hostConsolidatesTileFrames = true,
+    keyboardFocused = false
 }: TileBezelProps) => {
     const { gl } = useThree();
     const frameRegistry = useContext(TileBezelFrameRegistryContext);
@@ -846,7 +979,8 @@ const TileBezelInner = ({
         useSvgMeshFront,
         graphicsQuality,
         fieldTiltRef,
-        hoverTiltRef
+        hoverTiltRef,
+        keyboardFocused
     };
 
     const cardPanelNormalMap = useMemo(() => getCardPanelNormalTexture(), []);
@@ -897,6 +1031,15 @@ const TileBezelInner = ({
     const hoverRimBottomMatRef = useRef<MeshBasicMaterial | null>(null);
     const hoverRimRightMatRef = useRef<MeshBasicMaterial | null>(null);
     const hoverRimLeftMatRef = useRef<MeshBasicMaterial | null>(null);
+    const resolvingRimMatRef = useRef<MeshBasicMaterial | null>(null);
+    const focusRimMatRef = useRef<MeshBasicMaterial | null>(null);
+    const burstRingMatRef = useRef<MeshBasicMaterial | null>(null);
+    const burstRingMeshRef = useRef<Mesh | null>(null);
+    const matchedCheckMatRef = useRef<MeshBasicMaterial | null>(null);
+    const matchedCheckMeshRef = useRef<Mesh | null>(null);
+    const matchBurstT0Ref = useRef<number | null>(null);
+    const matchedCheckPopT0Ref = useRef<number | null>(null);
+    const prevTileMatchedRef = useRef(false);
 
     useLayoutEffect(() => {
         if (bagRef.current === null) {
@@ -929,7 +1072,16 @@ const TileBezelInner = ({
                 hoverRimTopMatRef,
                 hoverRimBottomMatRef,
                 hoverRimRightMatRef,
-                hoverRimLeftMatRef
+                hoverRimLeftMatRef,
+                resolvingRimMatRef,
+                focusRimMatRef,
+                burstRingMatRef,
+                burstRingMeshRef,
+                matchedCheckMatRef,
+                matchedCheckMeshRef,
+                matchBurstT0Ref,
+                matchedCheckPopT0Ref,
+                prevTileMatchedRef
             };
         } else {
             bagRef.current.planeGeometries = { front: frontGeometry, back: backGeometry, overlay: overlayGeometry };
@@ -1212,6 +1364,7 @@ const TileBezelInner = ({
     const cardFrontArtTexture = useSvgMeshFront ? null : getCardFaceStaticTexture();
     const overlayTexture =
         surfaceVariant === 'hidden' ? null : getTileFaceOverlayTexture(tile, surfaceVariant);
+    const matchedCheckMap = useMemo(() => getMatchedCheckTexture(), []);
     const forceTextureRefreshKey = textureRevision;
 
     const halfDepth = TILE_DEPTH * 0.5;
@@ -1529,6 +1682,76 @@ const TileBezelInner = ({
                         />
                     </mesh>
                 ) : null}
+                <mesh geometry={RESOLVING_RING_GEOM} position={[0, 0, faceZ + 0.024]} raycast={noopMeshRaycast} renderOrder={13}>
+                    <meshBasicMaterial
+                        ref={resolvingRimMatRef}
+                        color={RENDERER_THEME.colors.emeraldBright}
+                        depthTest
+                        depthWrite={false}
+                        opacity={0}
+                        polygonOffset
+                        polygonOffsetFactor={-1}
+                        polygonOffsetUnits={-1}
+                        side={DoubleSide}
+                        toneMapped={false}
+                        transparent
+                    />
+                </mesh>
+                <mesh geometry={FOCUS_RING_GEOM} position={[0, 0, faceZ + 0.027]} raycast={noopMeshRaycast} renderOrder={15}>
+                    <meshBasicMaterial
+                        ref={focusRimMatRef}
+                        color={RENDERER_THEME.colors.goldBright}
+                        depthTest
+                        depthWrite={false}
+                        opacity={0}
+                        polygonOffset
+                        polygonOffsetFactor={-1}
+                        polygonOffsetUnits={-1}
+                        side={DoubleSide}
+                        toneMapped={false}
+                        transparent
+                    />
+                </mesh>
+                <mesh
+                    ref={burstRingMeshRef}
+                    geometry={BURST_RING_GEOM}
+                    position={[0, 0, faceZ + 0.018]}
+                    raycast={noopMeshRaycast}
+                    renderOrder={12}
+                    visible={false}
+                >
+                    <meshBasicMaterial
+                        ref={burstRingMatRef}
+                        color={RENDERER_THEME.colors.emeraldBright}
+                        depthTest
+                        depthWrite={false}
+                        opacity={0}
+                        side={DoubleSide}
+                        toneMapped={false}
+                        transparent
+                    />
+                </mesh>
+                {matchedCheckMap ? (
+                    <mesh
+                        ref={matchedCheckMeshRef}
+                        geometry={MATCH_CHECK_GEOM}
+                        position={[0, CARD_HEIGHT * 0.06, faceZ + 0.03]}
+                        raycast={noopMeshRaycast}
+                        renderOrder={16}
+                        visible={false}
+                    >
+                        <meshBasicMaterial
+                            ref={matchedCheckMatRef}
+                            depthTest
+                            depthWrite={false}
+                            map={matchedCheckMap}
+                            opacity={0}
+                            side={DoubleSide}
+                            toneMapped={false}
+                            transparent
+                        />
+                    </mesh>
+                ) : null}
             </group>
         </group>
         </>
@@ -1666,7 +1889,8 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
     shuffleStaggerTileCount,
     dimmedTileIds,
     allowGambitThirdFlip = false,
-    graphicsQuality = 'medium'
+    graphicsQuality = 'medium',
+    focusedTileId = null
 }: TileBoardSceneProps, ref) => {
     const { camera, gl, viewport } = useThree();
     const { colors } = RENDERER_THEME;
@@ -1939,6 +2163,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                             hostConsolidatesTileFrames={hostConsolidatesTileFrames}
                             hoverTiltRef={hoverTiltRef}
                             findableFaceHighlight={findableFaceHighlight}
+                            keyboardFocused={focusedTileId === tile.id}
                             spotlightBountyHighlight={spotlightBountyHighlight}
                             spotlightWardHighlight={spotlightWardHighlight}
                             interactionSuppressed={interactionSuppressed}

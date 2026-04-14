@@ -1,9 +1,27 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createRef, useState, type ReactElement } from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BoardState } from '../../shared/contracts';
 import { PlatformTiltProvider } from '../platformTilt/PlatformTiltProvider';
 import TileBoard, { type TileBoardHandle } from './TileBoard';
+
+/** jsdom has no GPU; stub a minimal WebGL context so the board mounts the canvas path. */
+const mockWebGL2Context = (): object => ({
+    canvas: document.createElement('canvas'),
+    getExtension: () => null,
+    loseContext: () => ({ loseContext: (): void => undefined })
+});
+
+const installWebGLMock = (): void => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(
+        ((contextId: string): RenderingContext | null => {
+            if (contextId === 'webgl2' || contextId === 'webgl' || contextId === 'experimental-webgl') {
+                return mockWebGL2Context() as unknown as WebGLRenderingContext;
+            }
+            return null;
+        }) as typeof HTMLCanvasElement.prototype.getContext
+    );
+};
 
 const renderBoard = (props: {
     board: BoardState;
@@ -41,62 +59,70 @@ describe('TileBoard touch and click controls', () => {
         vi.restoreAllMocks();
     });
 
-    it('flips a tile when clicked on the DOM fallback board', () => {
-        const onTileSelect = vi.fn();
-        const getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => null);
-
-        try {
-            renderBoard({
-                board,
-                debugPeekActive: false,
-                interactive: true,
-                onTileSelect,
-                previewActive: false,
-                reduceMotion: false
-            });
-
-            const hiddenTiles = screen.getAllByRole('button', { name: /hidden tile/i });
-            fireEvent.click(hiddenTiles[1]);
-
-            expect(onTileSelect).toHaveBeenCalledWith('a2');
-        } finally {
-            getContext.mockRestore();
-        }
+    beforeEach(() => {
+        installWebGLMock();
     });
 
-    it('reveals the board during the memorize preview', () => {
+    it('mounts the canvas application when WebGL is available', () => {
         renderBoard({
             board,
             debugPeekActive: false,
             interactive: true,
             onTileSelect: vi.fn(),
-            previewActive: true,
+            previewActive: false,
             reduceMotion: false
         });
 
-        expect(screen.getAllByRole('button', { name: /tile/i })).toHaveLength(4);
+        expect(screen.getByTestId('tile-board-application')).toHaveAttribute('role', 'application');
+        expect(screen.getByTestId('tile-board-frame')).toHaveAttribute('data-hidden-tile-count', '4');
     });
 
-    it('falls back to the DOM board when WebGL support is unavailable', () => {
-        const getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => null);
-        try {
-            renderBoard({
-                board,
-                debugPeekActive: false,
-                interactive: true,
-                onTileSelect: vi.fn(),
-                previewActive: false,
-                reduceMotion: false
-            });
+    it('shows WebGL required copy when the browser cannot create a GL context', () => {
+        vi.restoreAllMocks();
+        vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => null);
 
-            expect(screen.getAllByRole('button', { name: /hidden tile/i })).toHaveLength(4);
-        } finally {
-            getContext.mockRestore();
-        }
+        renderBoard({
+            board,
+            debugPeekActive: false,
+            interactive: true,
+            onTileSelect: vi.fn(),
+            previewActive: false,
+            reduceMotion: false
+        });
+
+        expect(screen.getByTestId('tile-board-webgl-required')).toBeInTheDocument();
+        expect(screen.queryByTestId('tile-board-application')).toBeNull();
     });
 
-    it('runs shuffle FLIP chrome on the DOM fallback board (CARD-020)', async () => {
-        const getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => null);
+    it('announces keyboard focus in the live region', () => {
+        renderBoard({
+            board,
+            debugPeekActive: false,
+            interactive: true,
+            onTileSelect: vi.fn(),
+            previewActive: false,
+            reduceMotion: false
+        });
+
+        expect(screen.getByText(/Focus: Hidden tile, row 1, column 1/i)).toBeInTheDocument();
+    });
+
+    it('exposes board grid dimensions on the frame for tests and assistive tech', () => {
+        renderBoard({
+            board,
+            debugPeekActive: false,
+            interactive: true,
+            onTileSelect: vi.fn(),
+            previewActive: false,
+            reduceMotion: false
+        });
+
+        const frame = screen.getByTestId('tile-board-frame');
+        expect(frame.getAttribute('data-board-columns')).toBe('2');
+        expect(frame.getAttribute('data-board-rows')).toBe('2');
+    });
+
+    it('sets shuffle animating on the frame while the WebGL stagger window is active', async () => {
         const tileBoardRef = createRef<TileBoardHandle>();
 
         const ShuffleHarness = (): ReactElement => {
@@ -130,168 +156,65 @@ describe('TileBoard touch and click controls', () => {
             );
         };
 
-        try {
-            const { container } = render(<ShuffleHarness />);
-            const frame = container.querySelector('[data-testid="tile-board-frame"]');
+        const { container } = render(<ShuffleHarness />);
+        const frame = container.querySelector('[data-testid="tile-board-frame"]');
 
-            expect(frame).not.toBeNull();
-            fireEvent.click(screen.getByTestId('trigger-shuffle-flip'));
+        expect(frame).not.toBeNull();
+        fireEvent.click(screen.getByTestId('trigger-shuffle-flip'));
 
-            await waitFor(() => {
-                expect(frame?.getAttribute('data-shuffle-animating')).toBe('true');
-            });
-        } finally {
-            getContext.mockRestore();
-        }
+        await waitFor(() => {
+            expect(frame?.getAttribute('data-shuffle-animating')).toBe('true');
+        });
     });
 
-    it('applies resolving mismatch chrome on DOM fallback tiles (CARD-020)', () => {
-        const getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => null);
-        const resolvingBoard: BoardState = {
-            ...board,
-            flippedTileIds: ['a1', 'b1'],
-            tiles: board.tiles.map((tile) =>
-                tile.id === 'a1' || tile.id === 'b1' ? { ...tile, state: 'flipped' as const } : tile
-            )
-        };
+    it('does not set field tilt CSS on the frame when reduced motion is enabled', async () => {
+        const { container } = renderBoard({
+            board,
+            debugPeekActive: false,
+            interactive: true,
+            onTileSelect: vi.fn(),
+            previewActive: false,
+            reduceMotion: true
+        });
 
-        try {
-            render(
-                <PlatformTiltProvider>
-                    <TileBoard
-                        board={resolvingBoard}
-                        debugPeekActive={false}
-                        interactive={false}
-                        mobileCameraMode={false}
-                        onTileSelect={vi.fn()}
-                        previewActive={false}
-                        reduceMotion={false}
-                        runStatus="resolving"
-                        viewportResetToken={0}
-                    />
-                </PlatformTiltProvider>
-            );
+        const frame = container.firstElementChild as HTMLElement;
 
-            const a1 = screen.getByRole('button', { name: /tile A.*row 1.*column 1/i });
-            const b1 = screen.getByRole('button', { name: /tile B.*row 2.*column 1/i });
+        fireEvent.pointerMove(window, {
+            clientX: Math.round(window.innerWidth * 0.84),
+            clientY: Math.round(window.innerHeight * 0.22),
+            pointerType: 'mouse'
+        });
 
-            expect(a1.className).toContain('resolvingMismatch');
-            expect(b1.className).toContain('resolvingMismatch');
-        } finally {
-            getContext.mockRestore();
-        }
+        await new Promise((r) => {
+            setTimeout(r, 30);
+        });
+
+        expect(frame.style.getPropertyValue('--tilt-x')).toBe('');
     });
 
-    it('writes nonzero field tilt CSS on the frame after viewport pointer move', async () => {
-        const getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => null);
+    it('writes nonzero field tilt CSS on the frame after viewport pointer move when motion is on', async () => {
+        const { container } = renderBoard({
+            board,
+            debugPeekActive: false,
+            interactive: true,
+            onTileSelect: vi.fn(),
+            previewActive: false,
+            reduceMotion: false
+        });
 
-        try {
-            const { container } = renderBoard({
-                board,
-                debugPeekActive: false,
-                interactive: true,
-                onTileSelect: vi.fn(),
-                previewActive: false,
-                reduceMotion: false
-            });
+        const frame = container.firstElementChild as HTMLElement;
 
-            const frame = container.firstElementChild as HTMLElement;
+        fireEvent.pointerMove(window, {
+            clientX: Math.round(window.innerWidth * 0.84),
+            clientY: Math.round(window.innerHeight * 0.22),
+            pointerType: 'mouse'
+        });
 
-            fireEvent.pointerMove(window, {
-                clientX: Math.round(window.innerWidth * 0.84),
-                clientY: Math.round(window.innerHeight * 0.22),
-                pointerType: 'mouse'
-            });
+        await waitFor(() => {
+            const tx = frame.style.getPropertyValue('--tilt-x').trim();
 
-            await waitFor(() => {
-                const tx = frame.style.getPropertyValue('--tilt-x').trim();
-
-                expect(tx).not.toBe('');
-                expect(Math.abs(Number.parseFloat(tx))).toBeGreaterThan(0.01);
-            });
-        } finally {
-            getContext.mockRestore();
-        }
-    });
-
-    it('exposes data-pair-marker on hidden DOM tiles only when showTutorialPairMarkers is true', () => {
-        const getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => null);
-        const boardWithAtomic: BoardState = {
-            ...board,
-            tiles: board.tiles.map((t, i) => ({ ...t, atomicVariant: i % 4 }))
-        };
-
-        try {
-            const { rerender } = render(
-                <PlatformTiltProvider>
-                    <TileBoard
-                        board={boardWithAtomic}
-                        debugPeekActive={false}
-                        interactive
-                        mobileCameraMode={false}
-                        onTileSelect={vi.fn()}
-                        previewActive={false}
-                        reduceMotion={false}
-                        showTutorialPairMarkers
-                        viewportResetToken={0}
-                    />
-                </PlatformTiltProvider>
-            );
-
-            const shown = screen.getAllByRole('button', { name: /hidden tile/i });
-            expect(shown.every((el) => el.getAttribute('data-pair-marker') !== null)).toBe(true);
-
-            rerender(
-                <PlatformTiltProvider>
-                    <TileBoard
-                        board={boardWithAtomic}
-                        debugPeekActive={false}
-                        interactive
-                        mobileCameraMode={false}
-                        onTileSelect={vi.fn()}
-                        previewActive={false}
-                        reduceMotion={false}
-                        showTutorialPairMarkers={false}
-                        viewportResetToken={0}
-                    />
-                </PlatformTiltProvider>
-            );
-
-            const hidden = screen.getAllByRole('button', { name: /hidden tile/i });
-            expect(hidden.every((el) => el.getAttribute('data-pair-marker') === null)).toBe(true);
-        } finally {
-            getContext.mockRestore();
-        }
-    });
-
-    it('does not set field tilt CSS when reduced motion is enabled', async () => {
-        const getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => null);
-
-        try {
-            const { container } = renderBoard({
-                board,
-                debugPeekActive: false,
-                interactive: true,
-                onTileSelect: vi.fn(),
-                previewActive: false,
-                reduceMotion: true
-            });
-
-            const frame = container.firstElementChild as HTMLElement;
-
-            fireEvent.pointerMove(window, {
-                clientX: Math.round(window.innerWidth * 0.84),
-                clientY: Math.round(window.innerHeight * 0.22),
-                pointerType: 'mouse'
-            });
-
-            await new Promise((r) => {
-                setTimeout(r, 30);
-            });
-
-            expect(frame.style.getPropertyValue('--tilt-x')).toBe('');
-        } finally {
-            getContext.mockRestore();
-        }
+            expect(tx).not.toBe('');
+            expect(Math.abs(Number.parseFloat(tx))).toBeGreaterThan(0.01);
+        });
     });
 });

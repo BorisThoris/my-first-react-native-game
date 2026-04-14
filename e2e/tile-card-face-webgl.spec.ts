@@ -1,10 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
 import { countPngPixelDiffs } from './pngDiff';
 import {
-    BOARD_HIDDEN_TILE_BUTTON_RE,
     defaultE2eGameSaveJson,
     navigateToLevel1PlayPhase,
-    clickHiddenTileRowCol
+    clickHiddenTileRowCol,
+    readFrameHiddenTileCount
 } from './tileBoardGameFlow';
 
 /** Locator screenshots wait for layout stability; GL + camera layout can stay “unstable” — clip from the live box instead. */
@@ -37,7 +37,7 @@ test.describe('Tile card face (WebGL)', () => {
         const stageLocator = page.getByTestId('tile-board-stage-shell');
         const canvasLocator = page.getByTestId('tile-board-stage').locator('canvas');
         await expect(canvasLocator).toBeVisible();
-        await expect(stageLocator).toHaveAttribute('data-dom-tile-picks', 'true');
+        await expect(page.getByTestId('tile-board-application')).toBeVisible();
         /**
          * Stage shell can report a zero Playwright bounding box while absolutely positioned under the mobile camera
          * layout; wait on the GL canvas backing dimensions instead (R3F resize).
@@ -55,10 +55,10 @@ test.describe('Tile card face (WebGL)', () => {
 
         await page.waitForTimeout(400);
         const shotHidden = await screenshotStageShellPng(page, stageLocator);
-        const hiddenCount = await page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count();
+        const hiddenCount = await readFrameHiddenTileCount(page);
         await clickHiddenTileRowCol(page, 1, 1, hiddenCount);
 
-        await expect(page.getByRole('button', { name: /tile .*, row 1, column 1/i })).toBeVisible({ timeout: 3000 });
+        await expect.poll(async () => readFrameHiddenTileCount(page), { timeout: 4000 }).toBeLessThan(hiddenCount);
         await page.waitForTimeout(2200);
 
         const shotFlipped = await screenshotStageShellPng(page, stageLocator);

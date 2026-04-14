@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { expect, type Locator, type Page } from '@playwright/test';
-import { BOARD_HIDDEN_TILE_BUTTON_RE, STORAGE_KEY } from './tileBoardGameFlow';
+import { readFrameHiddenTileCount, STORAGE_KEY } from './tileBoardGameFlow';
 import { dismissStartupIntro } from './startupIntroHelpers';
 
 const MATCH_SETTLE_MS = 950;
@@ -26,7 +26,7 @@ async function settleAfterHiddenPairClick(page: Page, timeoutMs = 18_000): Promi
         if (await floorCleared.isVisible().catch(() => false)) {
             return 'floor_cleared';
         }
-        const hidden = await page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count();
+        const hidden = await readFrameHiddenTileCount(page);
         if (hidden === 4) {
             return 'four_hidden';
         }
@@ -35,7 +35,7 @@ async function settleAfterHiddenPairClick(page: Page, timeoutMs = 18_000): Promi
         }
         await page.waitForTimeout(80);
     }
-    const hidden = await page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count();
+    const hidden = await readFrameHiddenTileCount(page);
     throw new Error(`timeout settling after hidden pair click (hidden=${hidden})`);
 }
 
@@ -46,7 +46,7 @@ async function settleAfterMismatchBurnClick(page: Page, timeoutMs = 22_000): Pro
         if (await expeditionOver.isVisible().catch(() => false)) {
             return;
         }
-        const hidden = await page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count();
+        const hidden = await readFrameHiddenTileCount(page);
         if (hidden === 4) {
             return;
         }
@@ -411,18 +411,18 @@ async function readMemorizeSnapshot(page: Page): Promise<PairPositions | null> {
 }
 
 async function getHiddenTilePositions(page: Page): Promise<{ row: number; col: number }[]> {
-    const buttons = page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE });
-    const n = await buttons.count();
-    const out: { row: number; col: number }[] = [];
-    for (let i = 0; i < n; i += 1) {
-        const label = await buttons.nth(i).getAttribute('aria-label');
-        const m = label?.match(/row (\d+), column (\d+)/i);
-        if (!m) {
-            continue;
-        }
-        out.push({ row: Number(m[1]), col: Number(m[2]) });
+    const raw = await page.getByTestId('tile-board-frame').getAttribute('data-hidden-slots');
+    if (!raw) {
+        return [];
     }
-    return out.sort((a, b) => a.row - b.row || a.col - b.col);
+    return raw
+        .split(';')
+        .filter(Boolean)
+        .map((part) => {
+            const [r, c] = part.split(',').map((x) => Number.parseInt(x, 10));
+            return { row: r, col: c };
+        })
+        .sort((a, b) => a.row - b.row || a.col - b.col);
 }
 
 function pairKey(a: { row: number; col: number }, b: { row: number; col: number }): string {
@@ -468,16 +468,23 @@ async function completeLevel1ByTryingHiddenPairs(page: Page): Promise<void> {
 }
 
 export async function waitForPlayPhaseHiddenTiles(page: Page, expected: number): Promise<void> {
-    await expect
-        .poll(async () => page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count(), { timeout: 15000 })
-        .toBe(expected);
+    await expect.poll(async () => readFrameHiddenTileCount(page), { timeout: 15000 }).toBe(expected);
 }
 
 async function clickHiddenTile(page: Page, row: number, col: number): Promise<void> {
-    const label = new RegExp(`hidden tile, row ${row}, column ${col}`, 'i');
-    await page.getByRole('button', { name: label }).evaluate((element) => {
-        (element as HTMLButtonElement).click();
-    });
+    const frame = page.getByTestId('tile-board-frame');
+    const cols = Number(await frame.getAttribute('data-board-columns'));
+    const rows = Number(await frame.getAttribute('data-board-rows'));
+    const stage = page.getByTestId('tile-board-stage-shell');
+    const box = await stage.boundingBox();
+    if (!box) {
+        throw new Error('tile-board-stage-shell missing layout');
+    }
+    const cellW = box.width / cols;
+    const cellH = box.height / rows;
+    const cx = box.x + (col - 0.5) * cellW;
+    const cy = box.y + (row - 0.5) * cellH;
+    await page.mouse.click(cx, cy);
 }
 
 /**
@@ -492,7 +499,7 @@ export async function waitLevel1PlayReady(page: Page): Promise<PairPositions | n
         if (snap && Object.keys(snap).length >= 2) {
             lastMemorizeSnap = snap;
         }
-        const hidden = await page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count();
+        const hidden = await readFrameHiddenTileCount(page);
         if (hidden === 4) {
             return lastMemorizeSnap;
         }
@@ -641,7 +648,7 @@ export async function forceGameOverWithMismatches(page: Page, pairs: PairPositio
                 if (await expedition()) {
                     return 'over';
                 }
-                const hidden = await page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count();
+                const hidden = await readFrameHiddenTileCount(page);
                 return hidden === 4 ? 'play' : `bad:${hidden}`;
             },
             { timeout: 20_000 }
@@ -662,7 +669,7 @@ export async function forceGameOverWithMismatches(page: Page, pairs: PairPositio
                     if (await expedition()) {
                         return 'over';
                     }
-                    const hidden = await page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count();
+                    const hidden = await readFrameHiddenTileCount(page);
                     return hidden === 4 ? 'play' : `bad:${hidden}`;
                 },
                 { timeout: 18_000 }

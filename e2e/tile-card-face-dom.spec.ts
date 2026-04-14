@@ -1,15 +1,9 @@
 import { expect, test } from '@playwright/test';
-import {
-    BOARD_HIDDEN_TILE_BUTTON_RE,
-    defaultE2eGameSaveJson,
-    navigateToLevel1PlayPhase,
-    clickHiddenTileRowCol
-} from './tileBoardGameFlow';
+import { dismissStartupIntro } from './startupIntroHelpers';
+import { defaultE2eGameSaveJson, STORAGE_KEY } from './tileBoardGameFlow';
 
 /**
- * QA-004 — DOM tile “fingerprint”: asserts `tile-card-face` uses `back.svg` / `front.svg` (or bundle-inlined SVG)
- * via `data:image/svg+xml`, with 100%×100% cover, centered,
- * no-repeat. Update if `.cardBack` / face URLs or stacking change (see `TASKS_ASSETS_QA.md` QA-004).
+ * Without WebGL the board cannot render; user sees the inline requirement message (DOM path only).
  */
 test.use({
     launchOptions: {
@@ -17,51 +11,23 @@ test.use({
     }
 });
 
-test.describe('Tile card face (DOM fallback)', () => {
-    test('hidden uses back art; revealed uses face art; layout stack unchanged', async ({ page }) => {
+test.describe('Tile board without WebGL', () => {
+    test('shows WebGL required instead of the canvas board', async ({ page }) => {
         await page.setViewportSize({ width: 1280, height: 720 });
-        /* default save: reduceMotion + intro dismissed (reduceMotionSaveJson leaves intro on and flakes dismissStartupIntro). */
-        await navigateToLevel1PlayPhase(page, defaultE2eGameSaveJson);
-
-        await expect(page.getByTestId('tile-board-fallback')).toBeVisible({ timeout: 8000 });
-
-        const tileHidden11 = page.getByRole('button', { name: /hidden tile, row 1, column 1/i });
-        const cardFace = tileHidden11.getByTestId('tile-card-face');
-
-        const readBg = async (locator: typeof cardFace) =>
-            locator.evaluate((el) => {
-                const s = window.getComputedStyle(el);
-                return {
-                    backgroundImage: s.backgroundImage,
-                    backgroundSize: s.backgroundSize,
-                    backgroundPosition: s.backgroundPosition,
-                    backgroundRepeat: s.backgroundRepeat,
-                    backgroundColor: s.backgroundColor
-                };
-            });
-
-        const hiddenStyle = await readBg(cardFace);
-        expect(hiddenStyle.backgroundImage, 'Hidden tile should use card back art').toMatch(
-            /back\.svg|data:image\/svg\+xml/i
+        await page.addInitScript(
+            ([key, json]) => {
+                localStorage.setItem(key, json);
+            },
+            [STORAGE_KEY, defaultE2eGameSaveJson]
         );
-        expect(hiddenStyle.backgroundSize, 'Back SVG fills card frame').toMatch(/^100%\s+100%/);
-        expect(hiddenStyle.backgroundRepeat).toMatch(/^no-repeat/);
-        expect(hiddenStyle.backgroundPosition).toMatch(/50%/);
+        await page.goto('/');
+        await dismissStartupIntro(page);
+        await page.getByRole('button', { name: /^play$/i }).click();
+        await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
+        await page.getByRole('button', { name: /classic run/i }).click();
+        await expect(page.getByRole('heading', { name: /level 1/i })).toBeAttached({ timeout: 15_000 });
 
-        const hiddenCount = await page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count();
-        await clickHiddenTileRowCol(page, 1, 1, hiddenCount);
-
-        const tileShown11 = page.getByRole('button', { name: /tile .*, row 1, column 1/i });
-        const shownStyle = await readBg(tileShown11.getByTestId('tile-card-face'));
-
-        expect(shownStyle.backgroundImage, 'Face-up tile should use card front art').toMatch(
-            /front\.svg|data:image\/svg\+xml/i
-        );
-        expect(shownStyle.backgroundImage).not.toBe(hiddenStyle.backgroundImage);
-        expect(shownStyle.backgroundSize, 'Face SVG stretches to card frame').toMatch(/^100%\s+100%/);
-        expect(shownStyle.backgroundPosition).toBe(hiddenStyle.backgroundPosition);
-        expect(shownStyle.backgroundRepeat).toBe(hiddenStyle.backgroundRepeat);
-
-        await expect(tileShown11).toHaveAttribute('aria-label', /row 1, column 1/i);
+        await expect(page.getByTestId('tile-board-webgl-required')).toBeVisible({ timeout: 12_000 });
+        await expect(page.getByTestId('tile-board-application')).toHaveCount(0);
     });
 });

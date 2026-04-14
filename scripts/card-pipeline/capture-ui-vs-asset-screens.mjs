@@ -32,7 +32,12 @@ async function main() {
 
     await page.screenshot({ path: path.join(outDir, 'compare-01-game-board-hidden.png'), fullPage: true });
 
-    await page.getByRole('button', { name: /hidden tile, row 1, column 1/i }).click({ force: true });
+    {
+        const box = await page.getByTestId('tile-board-stage-shell').boundingBox();
+        if (box) {
+            await page.mouse.click(box.x + box.width * 0.25, box.y + box.height * 0.25);
+        }
+    }
     await page.waitForTimeout(1000);
     await page.screenshot({ path: path.join(outDir, 'compare-02-game-board-one-flipped.png'), fullPage: true });
 

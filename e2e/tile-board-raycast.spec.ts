@@ -1,25 +1,21 @@
 import { expect, test, type Page } from '@playwright/test';
 import { dismissStartupIntro } from './startupIntroHelpers';
-import {
-    BOARD_HIDDEN_TILE_BUTTON_RE,
-    defaultE2eGameSaveJson,
-    STORAGE_KEY
-} from './tileBoardGameFlow';
+import { defaultE2eGameSaveJson, readFrameHiddenTileCount, STORAGE_KEY } from './tileBoardGameFlow';
 import { completeLevel1Play, waitLevel1PlayReady } from './visualScreenHelpers';
 
-/**
- * The semantic button layer is kept for accessibility and deterministic test targeting even when the visible board is
- * camera-driven inside the canvas.
- */
-async function clickThroughProxyTile(page: Page, row: number, column: number, hiddenBefore: number): Promise<void> {
-    const label = new RegExp(`hidden tile, row ${row}, column ${column}`, 'i');
-    await page.getByRole('button', { name: label }).evaluate((element) => {
-        (element as HTMLButtonElement).click();
-    });
-
-    await expect
-        .poll(async () => page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count(), { timeout: 12_000 })
-        .toBeLessThan(hiddenBefore);
+async function clickCanvasTile(page: Page, row: number, column: number): Promise<void> {
+    const frame = page.getByTestId('tile-board-frame');
+    const cols = Number(await frame.getAttribute('data-board-columns'));
+    const rows = Number(await frame.getAttribute('data-board-rows'));
+    const stage = page.getByTestId('tile-board-stage-shell');
+    await expect(stage).toBeVisible();
+    const box = await stage.boundingBox();
+    expect(box).toBeTruthy();
+    const cellW = box!.width / cols;
+    const cellH = box!.height / rows;
+    const cx = box!.x + (column - 0.5) * cellW;
+    const cy = box!.y + (row - 0.5) * cellH;
+    await page.mouse.click(cx, cy);
 }
 
 async function readBoardViewport(page: Page): Promise<{ panX: number; panY: number; zoom: number }> {
@@ -88,15 +84,19 @@ test.describe('Tile board interaction', () => {
 
         // Run stats show during memorize; wait until play phase hides tiles again.
         await expect
-            .poll(async () => page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count(), {
+            .poll(async () => readFrameHiddenTileCount(page), {
                 timeout: 50_000,
                 intervals: [80, 120, 200, 400]
             })
             .toBeGreaterThan(0);
 
-        const hiddenBefore = await page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count();
+        const hiddenBefore = await readFrameHiddenTileCount(page);
 
-        await clickThroughProxyTile(page, 1, 1, hiddenBefore);
+        await clickCanvasTile(page, 1, 1);
+
+        await expect
+            .poll(async () => readFrameHiddenTileCount(page), { timeout: 12_000 })
+            .toBeLessThan(hiddenBefore);
     });
 
     test('desktop wheel zooms in and out, plain drag pans, and Fit board resets the viewport', async ({ page }) => {
@@ -206,9 +206,7 @@ test.describe('Tile board interaction', () => {
         const beforeContinue = await readBoardViewport(page);
 
         const pairs = await waitLevel1PlayReady(page);
-        await expect(page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE })).toHaveCount(4, {
-            timeout: 20_000
-        });
+        await expect.poll(async () => readFrameHiddenTileCount(page), { timeout: 20_000 }).toBe(4);
         await completeLevel1Play(page, pairs);
         await page.getByRole('dialog', { name: /floor cleared/i }).getByRole('button', { name: /^continue$/i }).click();
 

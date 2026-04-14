@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { dispatchTouchSequence, forceCoarsePointerMedia, type TouchDispatchPoint } from './mobileTouchHelpers';
-import { BOARD_HIDDEN_TILE_BUTTON_RE, navigateToLevel1PlayPhase } from './tileBoardGameFlow';
+import { clickHiddenTileRowCol, navigateToLevel1PlayPhase, readFrameHiddenTileCount } from './tileBoardGameFlow';
 import {
     expectAppScrollportHasNoVerticalOverflow,
     expectLocatorFullyInWindowViewport,
@@ -664,14 +664,12 @@ test.describe('Mobile layout (renderer)', () => {
         const afterPan = await readBoardViewportState(frame);
         expect(Math.abs(afterPan.panX) + Math.abs(afterPan.panY)).toBeGreaterThan(0.1);
 
-        const hiddenBefore = await page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count();
+        const hiddenBefore = await readFrameHiddenTileCount(page);
         await page.waitForTimeout(180);
-        await page.getByRole('button', { name: /hidden tile, row 1, column 1/i }).evaluate((element) => {
-            (element as HTMLButtonElement).click();
-        });
+        await clickHiddenTileRowCol(page, 1, 1);
 
         await expect
-            .poll(async () => page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count(), { timeout: 6000 })
+            .poll(async () => readFrameHiddenTileCount(page), { timeout: 6000 })
             .toBeLessThan(hiddenBefore);
     });
 });

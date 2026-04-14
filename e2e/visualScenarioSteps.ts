@@ -174,7 +174,7 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
             await expect(page.getByRole('toolbar', { name: /game controls/i })).toBeVisible();
             await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible();
             await expect(page.getByTestId('tile-board-frame')).toBeVisible();
-            await expect(page.getByRole('button', { name: /hidden tile, row \d+, column \d+/i }).first()).toBeInViewport();
+            await expect(page.getByTestId('tile-board-application')).toBeInViewport();
             await expectNoHorizontalOverflow(page);
             await capture('04-game-playing');
         }

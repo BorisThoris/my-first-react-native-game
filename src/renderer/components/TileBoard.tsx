@@ -9,8 +9,6 @@ import {
     useRef,
     useState,
     type CSSProperties,
-    type MouseEvent,
-    type PointerEvent as ReactPointerEvent,
     type ReactNode
 } from 'react';
 import { flushSync } from 'react-dom';
@@ -21,10 +19,9 @@ import { useCoarsePointer } from '../hooks/useCoarsePointer';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
 import styles from './TileBoard.module.css';
-import { getTileFieldAmplification } from './tileFieldTilt';
+import { isTilePickable } from './tileBoardPick';
 import TileBoardPostFx from './TileBoardPostFx';
 import TileBoardScene, { type TileBoardSceneHandle, type TileHoverTiltState } from './TileBoardScene';
-import { getResolvingSelectionState, type ResolvingSelectionState } from './tileResolvingSelection';
 import {
     COMPACT_BOARD_FIT_MARGIN,
     MOBILE_CAMERA_FIT_MARGIN,
@@ -39,12 +36,7 @@ import {
     type TileBoardViewportState
 } from './tileBoardViewport';
 import { TILE_SPACING } from './tileShatter';
-import {
-    captureTileRects,
-    computeShuffleMotionBudgetMs,
-    runShuffleFlipFromRects
-} from './shuffleFlipAnimation';
-import { CardBackMotifOverlay } from './cards/cardArt';
+import { computeShuffleMotionBudgetMs } from './shuffleFlipAnimation';
 
 export type TileBoardHandle = {
     runShuffleAnimation: (applyShuffle: () => void) => void;
@@ -84,34 +76,7 @@ interface TileBoardProps {
      * WebGL path has no equivalent overlay.
      */
     showTutorialPairMarkers?: boolean;
-    onTileSelect: (tileId: string, event?: MouseEvent<HTMLButtonElement>) => void;
-}
-
-interface TileBoardFallbackProps {
-    board: BoardState;
-    debugPeekActive: boolean;
-    interactive: boolean;
-    onHoverLeave: (tileId: string, event: ReactPointerEvent<HTMLButtonElement>) => void;
-    onHoverMove: (tileId: string, event: ReactPointerEvent<HTMLButtonElement>) => void;
-    pinnedTileIds: string[];
-    previewActive: boolean;
-    reduceMotion: boolean;
-    /** DOM-only: true while FLIP shuffle runs (CARD-020). */
-    shuffleAnimating?: boolean;
-    dimmedTileIds?: ReadonlySet<string>;
-    peekRevealedTileIds?: string[];
-    allowGambitThirdFlip?: boolean;
-    wideRecallInPlay?: boolean;
-    silhouetteDuringPlay?: boolean;
-    nBackAnchorPairKey?: string | null;
-    nBackMutatorActive?: boolean;
-    cursedPairKey?: string | null;
-    wardPairKey?: string | null;
-    bountyPairKey?: string | null;
-    runStatus?: RunStatus;
-    showTutorialPairMarkers?: boolean;
-    onTileSelect: (tileId: string, event?: MouseEvent<HTMLButtonElement>) => void;
-    tileGridStyle: CSSProperties;
+    onTileSelect: (tileId: string) => void;
 }
 
 interface StageWorldViewport {
@@ -148,19 +113,6 @@ const MOUSE_PAN_DRAG_THRESHOLD_PX = 8;
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
 
-const normalizeHoverPoint = (
-    event: ReactPointerEvent<HTMLButtonElement>
-): {
-    x: number;
-    y: number;
-} => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = clamp(((event.clientX - rect.left) / rect.width) * 2 - 1, -1, 1);
-    const y = clamp(((event.clientY - rect.top) / rect.height) * 2 - 1, -1, 1);
-
-    return { x, y };
-};
-
 const canUseWebGL = (): boolean => {
     if (typeof document === 'undefined') {
         return false;
@@ -173,37 +125,6 @@ const canUseWebGL = (): boolean => {
         return false;
     }
 };
-
-const getTileClassName = (
-    tile: Tile,
-    faceUp: boolean,
-    locked: boolean,
-    isPinned: boolean,
-    isFocusDimmed: boolean,
-    resolvingSelectionState: ResolvingSelectionState,
-    runStatus: RunStatus
-): string =>
-    [
-        styles.fallbackTile,
-        faceUp ? styles.faceUp : '',
-        tile.state === 'matched' ? styles.matched : '',
-        locked && tile.state === 'hidden' ? styles.locked : '',
-        isPinned && tile.state === 'hidden' ? styles.fallbackTilePinned : '',
-        isPinned && faceUp && runStatus === 'resolving' && resolvingSelectionState !== null
-            ? styles.fallbackTilePinnedResolving
-            : '',
-        isFocusDimmed ? styles.tileFocusDim : '',
-        resolvingSelectionState === 'match' ? styles.resolvingMatch : '',
-        resolvingSelectionState === 'mismatch' ? styles.resolvingMismatch : '',
-        resolvingSelectionState === 'gambitNeutral' ? styles.resolvingGambitSpare : ''
-    ]
-        .filter(Boolean)
-        .join(' ');
-
-const buildTileGridStyle = (columns: number, rows: number): CSSProperties => ({
-    gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-    gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`
-});
 
 const getTilePosition = (index: number, columns: number): { row: number; column: number } => ({
     row: Math.floor(index / columns) + 1,
@@ -225,159 +146,61 @@ const getTouchCentroid = (first: TouchPoint, second: TouchPoint): TouchPoint => 
 const getTouchDistance = (first: TouchPoint, second: TouchPoint): number =>
     Math.max(1, Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY));
 
-const ATOMIC_PAIR_CLASSES = [styles.atomicPair0, styles.atomicPair1, styles.atomicPair2, styles.atomicPair3];
-
-const TileBoardFallback = ({
-    board,
-    debugPeekActive,
-    interactive,
-    onHoverLeave,
-    onHoverMove,
-    pinnedTileIds,
-    previewActive,
-    reduceMotion,
-    dimmedTileIds,
-    peekRevealedTileIds = [],
-    allowGambitThirdFlip = false,
-    wideRecallInPlay = false,
-    silhouetteDuringPlay = false,
-    nBackAnchorPairKey = null,
-    nBackMutatorActive = false,
-    cursedPairKey = null,
-    wardPairKey = null,
-    bountyPairKey = null,
-    runStatus = 'playing',
-    showTutorialPairMarkers = true,
-    shuffleAnimating = false,
-    onTileSelect,
-    tileGridStyle
-}: TileBoardFallbackProps) => {
+const getPickableTileIds = (board: BoardState, interactive: boolean, allowGambitThirdFlip: boolean): string[] => {
     const flippedN = board.flippedTileIds.length;
-    const locked = flippedN >= 2 && !(allowGambitThirdFlip && flippedN === 2);
-    const pinnedSet = useMemo(() => new Set(pinnedTileIds), [pinnedTileIds]);
-    const peekSet = useMemo(() => new Set(peekRevealedTileIds), [peekRevealedTileIds]);
+    const flipLocked = flippedN >= 2 && !(allowGambitThirdFlip && flippedN === 2);
+    const ids: string[] = [];
+    for (const tile of board.tiles) {
+        if (tile.state === 'removed') {
+            continue;
+        }
+        if (isTilePickable(tile, interactive, flipLocked)) {
+            ids.push(tile.id);
+        }
+    }
+    return ids;
+};
 
-    return (
-        <div
-            className={styles.fallbackBoard}
-            data-shuffle-animating={shuffleAnimating ? 'true' : undefined}
-            data-testid="tile-board-fallback"
-            style={tileGridStyle}
-        >
-            {board.tiles.map((tile, index) => {
-                if (tile.state === 'removed') {
-                    return <div aria-hidden className={styles.tileRemovedSlot} key={tile.id} />;
-                }
-                const disabled = tile.state === 'matched' || !interactive || (locked && tile.state === 'hidden');
-                const peekFace = tile.state === 'hidden' && peekSet.has(tile.id);
-                const faceUp = tile.state !== 'hidden' || debugPeekActive || previewActive || peekFace;
-                const isPinned = pinnedSet.has(tile.id);
-                const isFocusDimmed = Boolean(dimmedTileIds?.has(tile.id));
-                const resolvingSelectionState = getResolvingSelectionState(board, runStatus, tile.id);
-                const { row, column } = getTilePosition(index, board.columns);
-                const labelText = tile.label.toUpperCase();
-                const showFrontLabel = labelText !== tile.symbol.toUpperCase();
-                const showWideRecallStyle = wideRecallInPlay && runStatus === 'playing' && faceUp && tile.state === 'flipped';
-                const silhouetteClass = silhouetteDuringPlay && runStatus === 'playing' && faceUp ? styles.silhouetteFace : '';
-                const atomicClass =
-                    showTutorialPairMarkers && tile.atomicVariant != null
-                        ? ATOMIC_PAIR_CLASSES[tile.atomicVariant % ATOMIC_PAIR_CLASSES.length] ?? ''
-                        : '';
-                const pairMarkerAttr =
-                    showTutorialPairMarkers && tile.atomicVariant != null && tile.state === 'hidden'
-                        ? String(tile.atomicVariant % ATOMIC_PAIR_CLASSES.length)
-                        : undefined;
-                const nBackClass =
-                    nBackMutatorActive &&
-                    nBackAnchorPairKey &&
-                    tile.pairKey === nBackAnchorPairKey &&
-                    tile.state === 'hidden' &&
-                    !previewActive
-                        ? styles.nBackAnchorTile
-                        : '';
-                const cursedClass =
-                    previewActive &&
-                    cursedPairKey &&
-                    tile.pairKey === cursedPairKey &&
-                    tile.state === 'hidden'
-                        ? styles.cursedMemorizeTile
-                        : '';
-                const spotlightWardClass =
-                    wardPairKey && faceUp && tile.state !== 'matched' && tile.pairKey === wardPairKey
-                        ? styles.spotlightWardTile
-                        : '';
-                const spotlightBountyClass =
-                    bountyPairKey && faceUp && tile.state !== 'matched' && tile.pairKey === bountyPairKey
-                        ? styles.spotlightBountyTile
-                        : '';
+const gridIndexFromTileId = (board: BoardState, tileId: string): number => {
+    const i = board.tiles.findIndex((t) => t.id === tileId);
+    return i >= 0 ? i : 0;
+};
 
-                const fieldAmp = getTileFieldAmplification(index, board.columns, board.rows);
-                const showFindableMarker = Boolean(tile.findableKind) && faceUp && tile.state !== 'matched';
-
-                return (
-                    <button
-                        aria-label={getTileAriaLabel(tile, faceUp, row, column)}
-                        className={`${getTileClassName(tile, faceUp, locked, isPinned, isFocusDimmed, resolvingSelectionState, runStatus)} ${atomicClass} ${nBackClass} ${cursedClass} ${spotlightWardClass} ${spotlightBountyClass}`.trim()}
-                        data-findable-kind={showFindableMarker ? tile.findableKind : undefined}
-                        data-pair-marker={pairMarkerAttr}
-                        data-tile-id={tile.id}
-                        disabled={disabled}
-                        key={tile.id}
-                        onClick={() => onTileSelect(tile.id)}
-                        onPointerEnter={(event) => onHoverMove(tile.id, event)}
-                        onPointerLeave={(event) => onHoverLeave(tile.id, event)}
-                        onPointerMove={(event) => onHoverMove(tile.id, event)}
-                        style={{ ['--field-amp' as string]: String(fieldAmp) }}
-                        type="button"
-                    >
-                        <span className={styles.tileFace}>
-                            <span className={styles.pulseGlow} />
-                            {showFindableMarker ? (
-                                <span
-                                    aria-hidden
-                                    className={styles.findableMarker}
-                                    data-findable-kind={tile.findableKind}
-                                    data-testid="tile-findable-marker"
-                                />
-                            ) : null}
-                            {tile.state === 'matched' ? (
-                                <span aria-hidden className={styles.fallbackMatchedCheck}>
-                                    ✓
-                                </span>
-                            ) : null}
-                            <span className={styles.domCardFlipScene}>
-                                <span className={`${styles.domCardFlipInner} ${faceUp ? styles.domCardFlipInnerFaceUp : ''}`.trim()}>
-                                    <span
-                                        aria-hidden={faceUp}
-                                        className={`${styles.cardBack} ${styles.cardFaceBack} ${styles.domCardFlipFace} ${styles.domCardFlipBack}`.trim()}
-                                        data-testid={!faceUp ? 'tile-card-face' : undefined}
-                                    >
-                                        <span className={styles.cardBackFxOverlay}>
-                                            <CardBackMotifOverlay reduceMotion={reduceMotion} />
-                                        </span>
-                                    </span>
-                                    <span
-                                        aria-hidden={!faceUp}
-                                        className={`${styles.cardBack} ${styles.cardFaceFront} ${styles.domCardFlipFace} ${styles.domCardFlipFront} ${silhouetteClass}`.trim()}
-                                        data-testid={faceUp ? 'tile-card-face' : undefined}
-                                    >
-                                        <span
-                                            className={`${styles.tileSymbol} ${showWideRecallStyle ? styles.wideRecallDeemphSymbol : ''}`.trim()}
-                                        >
-                                            {tile.symbol}
-                                        </span>
-                                        {showFrontLabel || showWideRecallStyle ? (
-                                            <span className={styles.cardFaceLabel}>{labelText}</span>
-                                        ) : null}
-                                    </span>
-                                </span>
-                            </span>
-                        </span>
-                    </button>
-                );
-            })}
-        </div>
-    );
+const moveFocusInGrid = (
+    board: BoardState,
+    fromId: string | null,
+    dir: 'up' | 'down' | 'left' | 'right',
+    interactive: boolean,
+    allowGambitThirdFlip: boolean
+): string | null => {
+    const pickable = new Set(getPickableTileIds(board, interactive, allowGambitThirdFlip));
+    if (pickable.size === 0) {
+        return null;
+    }
+    const cols = board.columns;
+    const rows = board.rows;
+    let startIdx = 0;
+    if (fromId && pickable.has(fromId)) {
+        startIdx = gridIndexFromTileId(board, fromId);
+    } else {
+        const firstPickable = board.tiles.find((t) => pickable.has(t.id));
+        startIdx = firstPickable ? gridIndexFromTileId(board, firstPickable.id) : 0;
+    }
+    let r = Math.floor(startIdx / cols);
+    let c = startIdx % cols;
+    const dr = dir === 'up' ? -1 : dir === 'down' ? 1 : 0;
+    const dc = dir === 'left' ? -1 : dir === 'right' ? 1 : 0;
+    let nr = r + dr;
+    let nc = c + dc;
+    while (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+        const t = board.tiles[nr * cols + nc];
+        if (t.state !== 'removed' && pickable.has(t.id)) {
+            return t.id;
+        }
+        nr += dr;
+        nc += dc;
+    }
+    return fromId;
 };
 
 class TileBoardErrorBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { hasError: boolean }> {
@@ -410,15 +233,15 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         dimmedTileIds,
         peekRevealedTileIds = [],
         allowGambitThirdFlip = false,
-        wideRecallInPlay = false,
-        silhouetteDuringPlay = false,
-        nBackAnchorPairKey = null,
-        nBackMutatorActive = false,
+        wideRecallInPlay: _wideRecallInPlay = false,
+        silhouetteDuringPlay: _silhouetteDuringPlay = false,
+        nBackAnchorPairKey: _nBackAnchorPairKey = null,
+        nBackMutatorActive: _nBackMutatorActive = false,
         cursedPairKey = null,
         wardPairKey = null,
         bountyPairKey = null,
         runStatus = 'playing',
-        showTutorialPairMarkers = true,
+        showTutorialPairMarkers: _showTutorialPairMarkers = true,
         onTileSelect
     },
     ref
@@ -430,15 +253,16 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
     const touchPrimary = useCoarsePointer();
     const baselineWebGl = useMemo(() => canUseWebGL(), []);
     const [gpuSurfaceLost, setGpuSurfaceLost] = useState(false);
-    const threeEnabled = baselineWebGl && !gpuSurfaceLost;
-    const cameraViewportMode = mobileCameraMode && threeEnabled;
+    const boardGraphicsOk = baselineWebGl && !gpuSurfaceLost;
+    const cameraViewportMode = mobileCameraMode && boardGraphicsOk;
     const touchGestureMode = cameraViewportMode && touchPrimary;
     /**
      * Mouse wheel / drag pan on the stage: wide (non-compact) viewports always get it with WebGL; compact shell keeps
      * the previous rule (mouse only) so touch-first phones stay on pinch/pan gestures.
      */
-    const desktopCameraMode = threeEnabled && (!mobileCameraMode || !touchPrimary);
+    const desktopCameraMode = boardGraphicsOk && (!mobileCameraMode || !touchPrimary);
     const frameRef = useRef<HTMLDivElement>(null);
+    const boardAppRef = useRef<HTMLDivElement>(null);
     const shuffleClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [shuffleAnimating, setShuffleAnimating] = useState(false);
     const [shuffleMotionDeadlineMs, setShuffleMotionDeadlineMs] = useState(0);
@@ -460,6 +284,8 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
     const viewportStateRef = useRef<TileBoardViewportState>(viewportState);
     const viewportMetricsRef = useRef<TileBoardViewportMetrics | null>(null);
     const viewportResetTokenRef = useRef(viewportResetToken);
+    const [focusedTileId, setFocusedTileId] = useState<string | null>(null);
+    const [boardLiveMessage, setBoardLiveMessage] = useState('');
     const { tiltRef: fieldTiltRef, permission, requestMotionPermission } = usePlatformTiltField({
         enabled: true,
         reduceMotion,
@@ -468,6 +294,64 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         suspended: gestureActive
     });
     const mergedFrameStyle = useMemo(() => ({ ...frameStyle }), [frameStyle]);
+
+    const hiddenTileCount = useMemo(
+        () => board.tiles.filter((t) => t.state === 'hidden').length,
+        [board.tiles]
+    );
+
+    /** Row,col pairs for tiles still hidden — used by e2e (canvas picking has no per-tile DOM). */
+    const hiddenSlotsAttr = useMemo(
+        () =>
+            board.tiles
+                .map((tile, index) => {
+                    if (tile.state !== 'hidden') {
+                        return null;
+                    }
+                    const row = Math.floor(index / board.columns) + 1;
+                    const col = (index % board.columns) + 1;
+                    return `${row},${col}`;
+                })
+                .filter((v): v is string => v != null)
+                .join(';'),
+        [board.columns, board.tiles]
+    );
+
+    useEffect(() => {
+        const pickable = getPickableTileIds(board, interactive, allowGambitThirdFlip);
+        setFocusedTileId((cur) => {
+            if (pickable.length === 0) {
+                return null;
+            }
+            if (cur && pickable.includes(cur)) {
+                return cur;
+            }
+            return pickable[0];
+        });
+    }, [board, interactive, allowGambitThirdFlip]);
+
+    const focusedTileLabel = useMemo(() => {
+        if (!focusedTileId) {
+            return '';
+        }
+        const idx = board.tiles.findIndex((t) => t.id === focusedTileId);
+        if (idx < 0) {
+            return '';
+        }
+        const tile = board.tiles[idx];
+        const faceUp =
+            tile.state !== 'hidden' || debugPeekActive || previewActive || peekSet.has(tile.id);
+        const { row, column } = getTilePosition(idx, board.columns);
+        return getTileAriaLabel(tile, faceUp, row, column);
+    }, [board.tiles, board.columns, focusedTileId, debugPeekActive, previewActive, peekSet]);
+
+    useEffect(() => {
+        if (!focusedTileLabel) {
+            setBoardLiveMessage('');
+            return;
+        }
+        setBoardLiveMessage(`Focus: ${focusedTileLabel}`);
+    }, [focusedTileLabel]);
 
     useImperativeHandle(ref, () => ({
         runShuffleAnimation: (applyShuffle: () => void) => {
@@ -483,9 +367,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                 return;
             }
 
-            const root = frameRef.current;
-            const beforeMap = root ? captureTileRects(root) : new Map<string, DOMRect>();
-            const tileCountForBudget = beforeMap.size > 0 ? beforeMap.size : board.tiles.length;
+            const tileCountForBudget = board.tiles.filter((t) => t.state !== 'removed').length;
             const motionBudgetMs = computeShuffleMotionBudgetMs(tileCountForBudget);
 
             if (shuffleClearTimeoutRef.current) {
@@ -499,26 +381,19 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                 setShuffleMotionDeadlineMs(0);
                 setShuffleMotionBudgetMs(0);
                 setShuffleStaggerTileCount(0);
+                setShuffleAnimating(false);
                 shuffleClearTimeoutRef.current = null;
             }, motionBudgetMs + 100);
 
             setShuffleMotionBudgetMs(motionBudgetMs);
             setShuffleStaggerTileCount(tileCountForBudget);
+            setShuffleAnimating(true);
 
             flushSync(() => {
                 applyShuffle();
             });
-
-            if (root && beforeMap.size > 0) {
-                setShuffleAnimating(true);
-                void runShuffleFlipFromRects(root, beforeMap).finally(() => {
-                    setShuffleAnimating(false);
-                });
-            } else {
-                setShuffleAnimating(false);
-            }
         }
-    }), [board.tiles.length, reduceMotion]);
+    }), [board.tiles, reduceMotion]);
 
     useEffect(
         () => () => {
@@ -528,9 +403,6 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         },
         []
     );
-    const gridColumns = board.columns;
-    const gridRows = board.rows;
-    const tileGridStyle = useMemo(() => buildTileGridStyle(gridColumns, gridRows), [gridColumns, gridRows]);
     const deviceDpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
     /** Cap DPR for GPU cost (PERF-001 `graphicsQuality` + compact layout). */
     const dpr = Math.min(deviceDpr, getBoardDprCap(graphicsQuality, compact));
@@ -595,14 +467,17 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         setSelectionSuppressed((current) => (current === suppressed ? current : suppressed));
     }, [setSelectionSuppressed]);
 
-    const clearTouchGestureState = useCallback((clearSuppression: boolean): void => {
-        activeTouchPointsRef.current.clear();
-        gestureSnapshotRef.current = null;
-        syncGestureActive(false);
-        if (clearSuppression) {
-            syncSelectionSuppressed(false);
-        }
-    }, [syncGestureActive, syncSelectionSuppressed]);
+    const clearTouchGestureState = useCallback(
+        (clearSuppression: boolean): void => {
+            activeTouchPointsRef.current.clear();
+            gestureSnapshotRef.current = null;
+            syncGestureActive(false);
+            if (clearSuppression) {
+                syncSelectionSuppressed(false);
+            }
+        },
+        [syncGestureActive, syncSelectionSuppressed]
+    );
 
     const handleTileSelect = useCallback(
         (tileId: string): void => {
@@ -615,26 +490,37 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         [onTileSelect]
     );
 
-    const clearHoverTilt = (tileId: string, event: ReactPointerEvent<HTMLButtonElement>): void => {
-        if (hoverTiltRef.current.tileId === tileId) {
-            hoverTiltRef.current = { tileId: null, x: 0, y: 0 };
-        }
-
-        event.currentTarget.style.setProperty('--hover-x', '0');
-        event.currentTarget.style.setProperty('--hover-y', '0');
-    };
-
-    const updateHoverTilt = (tileId: string, event: ReactPointerEvent<HTMLButtonElement>): void => {
-        if (reduceMotion || event.pointerType === 'touch' || event.pointerType === 'pen') {
-            clearHoverTilt(tileId, event);
-            return;
-        }
-
-        const { x, y } = normalizeHoverPoint(event);
-        hoverTiltRef.current = { tileId, x, y };
-        event.currentTarget.style.setProperty('--hover-x', x.toFixed(4));
-        event.currentTarget.style.setProperty('--hover-y', y.toFixed(4));
-    };
+    const handleBoardApplicationKeyDown = useCallback(
+        (event: React.KeyboardEvent<HTMLDivElement>): void => {
+            if (!boardGraphicsOk || !interactive) {
+                return;
+            }
+            const pickable = getPickableTileIds(board, interactive, allowGambitThirdFlip);
+            if (pickable.length === 0) {
+                return;
+            }
+            let dir: 'up' | 'down' | 'left' | 'right' | null = null;
+            if (event.key === 'ArrowUp') dir = 'up';
+            else if (event.key === 'ArrowDown') dir = 'down';
+            else if (event.key === 'ArrowLeft') dir = 'left';
+            else if (event.key === 'ArrowRight') dir = 'right';
+            else if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                if (focusedTileId) {
+                    handleTileSelect(focusedTileId);
+                }
+                return;
+            }
+            if (dir) {
+                event.preventDefault();
+                const next = moveFocusInGrid(board, focusedTileId, dir, interactive, allowGambitThirdFlip);
+                if (next && next !== focusedTileId) {
+                    setFocusedTileId(next);
+                }
+            }
+        },
+        [allowGambitThirdFlip, board, boardGraphicsOk, focusedTileId, handleTileSelect, interactive]
+    );
 
     const handleStageViewportChange = useCallback((nextViewport: StageWorldViewport): void => {
         setStageWorldViewport((current) =>
@@ -1109,32 +995,10 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
 
     const showMotionChip = touchPrimary && !reduceMotion && (permission === 'prompt' || permission === 'denied');
 
-    const fallback = (
-        <TileBoardFallback
-            allowGambitThirdFlip={allowGambitThirdFlip}
-            board={board}
-            debugPeekActive={debugPeekActive}
-            dimmedTileIds={dimmedTileIds}
-            interactive={interactive}
-            nBackAnchorPairKey={nBackAnchorPairKey}
-            nBackMutatorActive={nBackMutatorActive}
-            cursedPairKey={cursedPairKey}
-            wardPairKey={wardPairKey}
-            bountyPairKey={bountyPairKey}
-            onHoverLeave={clearHoverTilt}
-            onHoverMove={updateHoverTilt}
-            onTileSelect={handleTileSelect}
-            peekRevealedTileIds={peekRevealedTileIds}
-            pinnedTileIds={pinnedTileIds}
-            previewActive={previewActive}
-            reduceMotion={reduceMotion}
-            runStatus={runStatus}
-            showTutorialPairMarkers={showTutorialPairMarkers}
-            shuffleAnimating={shuffleAnimating}
-            silhouetteDuringPlay={silhouetteDuringPlay}
-            tileGridStyle={tileGridStyle}
-            wideRecallInPlay={wideRecallInPlay}
-        />
+    const sceneErrorFallback = (
+        <div className={styles.webglSceneError} data-testid="tile-board-scene-error" role="alert">
+            Board graphics encountered an error. Try reloading the page.
+        </div>
     );
 
     return (
@@ -1142,6 +1006,10 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
             className={`${styles.frame} ${cameraViewportMode ? styles.frameMobileCamera : ''} ${
                 shuffleAnimating ? styles.frameShuffleAnimating : ''
             }`}
+            data-board-columns={board.columns}
+            data-board-rows={board.rows}
+            data-hidden-tile-count={hiddenTileCount}
+            data-hidden-slots={hiddenSlotsAttr}
             data-shuffle-animating={shuffleAnimating ? 'true' : 'false'}
             data-board-pan-x={renderedViewportState.panX.toFixed(4)}
             data-board-pan-y={renderedViewportState.panY.toFixed(4)}
@@ -1153,134 +1021,108 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
             ref={frameRef}
             style={mergedFrameStyle}
         >
-            <div
-                className={`${styles.stage} ${cameraViewportMode ? styles.stageMobileCamera : ''} ${threeEnabled ? styles.stageWebglPicking : ''}`}
-                data-dom-tile-picks={threeEnabled && reduceMotion ? 'true' : undefined}
-                data-testid="tile-board-stage-shell"
-                ref={stageRef}
-            >
-                {threeEnabled ? (
-                    <TileBoardErrorBoundary fallback={fallback}>
-                        <div className={styles.scene} data-testid="tile-board-stage">
-                            <Canvas
-                                className={styles.canvas}
-                                dpr={dpr}
-                                key={`tile-board-aa-${resolvedBoardAa}`}
-                                gl={{
-                                    alpha: true,
-                                    antialias: glAntialias,
-                                    powerPreference: 'high-performance',
-                                    premultipliedAlpha: false
-                                }}
-                                onCreated={({ gl }) => {
-                                    const canvas = gl.domElement as HTMLCanvasElement;
-                                    const onLost = (event: Event): void => {
-                                        event.preventDefault();
-                                        setGpuSurfaceLost(true);
-                                    };
-                                    const onRestored = (): void => {
-                                        setGpuSurfaceLost(false);
-                                    };
-                                    canvas.addEventListener('webglcontextlost', onLost);
-                                    canvas.addEventListener('webglcontextrestored', onRestored);
-                                }}
-                                shadows={false}
-                                camera={{ fov: 42, near: 0.1, far: 100, position: [0, 0, 10.5] }}
-                            >
-                                <TileBoardScene
-                                    allowGambitThirdFlip={allowGambitThirdFlip}
-                                    board={board}
-                                    boardViewport={renderedViewportState}
-                                    compact={compact}
-                                    cursedPairKey={cursedPairKey}
-                                    dimmedTileIds={dimmedTileIds}
-                                    graphicsQuality={graphicsQuality}
-                                    wardPairKey={wardPairKey}
-                                    bountyPairKey={bountyPairKey}
-                                    debugPeekActive={debugPeekActive}
-                                    fieldTiltRef={fieldTiltRef}
-                                    hoverTiltRef={hoverTiltRef}
-                                    interactionSuppressed={selectionSuppressed}
-                                    interactive={interactive}
-                                    onTilePick={handleTileSelect}
-                                    onViewportMetricsChange={handleStageViewportChange}
-                                    peekRevealedTileIds={peekRevealedTileIds}
-                                    pinnedTileIds={pinnedTileIds}
-                                    previewActive={previewActive}
-                                    ref={sceneHandleRef}
-                                    reduceMotion={reduceMotion}
-                                    runStatus={runStatus}
-                                    shuffleMotionBudgetMs={shuffleMotionBudgetMs}
-                                    shuffleMotionDeadlineMs={shuffleMotionDeadlineMs}
-                                    shuffleStaggerTileCount={shuffleStaggerTileCount}
-                                />
-                                <TileBoardPostFx
-                                    bloomEnabled={bloomEffective}
-                                    smaaEnabled={resolvedBoardAa === 'smaa'}
-                                />
-                            </Canvas>
-                        </div>
-
-                        <div className={styles.interactionLayer} style={tileGridStyle}>
-                            {board.tiles.map((tile, index) => {
-                                const flippedN = board.flippedTileIds.length;
-                                const locked = flippedN >= 2 && !(allowGambitThirdFlip && flippedN === 2);
-                                const faceUp =
-                                    tile.state !== 'hidden' ||
-                                    debugPeekActive ||
-                                    previewActive ||
-                                    peekSet.has(tile.id);
-                                const disabled = tile.state === 'matched' || !interactive || (locked && tile.state === 'hidden');
-                                const isPinned = pinnedTileIds.includes(tile.id);
-                                const resolvingSelectionState = getResolvingSelectionState(board, runStatus, tile.id);
-                                const { row, column } = getTilePosition(index, board.columns);
-
-                                return (
-                                    <button
-                                        aria-label={getTileAriaLabel(tile, faceUp, row, column)}
-                                        className={`${styles.hitButton} ${faceUp ? styles.hitButtonFaceUp : ''} ${
-                                            tile.state === 'matched' ? styles.hitButtonMatched : ''
-                                        } ${isPinned && tile.state === 'hidden' ? styles.hitButtonPinned : ''} ${
-                                            isPinned &&
-                                            tile.state === 'flipped' &&
-                                            runStatus === 'resolving' &&
-                                            resolvingSelectionState !== null
-                                                ? styles.hitButtonPinnedResolving
-                                                : ''
-                                        } ${
-                                            resolvingSelectionState === 'match' ? styles.hitButtonResolvingMatch : ''
-                                        } ${resolvingSelectionState === 'mismatch' ? styles.hitButtonResolvingMismatch : ''} ${
-                                            resolvingSelectionState === 'gambitNeutral' ? styles.hitButtonResolvingGambitSpare : ''
-                                        }`.trim()}
-                                        data-tile-id={tile.id}
-                                        disabled={disabled}
-                                        key={tile.id}
-                                        onClick={() => handleTileSelect(tile.id)}
-                                        type="button"
-                                    />
-                                );
-                            })}
-                        </div>
-                    </TileBoardErrorBoundary>
-                ) : (
-                    fallback
-                )}
-                {showMotionChip ? (
-                    <button
-                        className={styles.motionChip}
-                        onClick={(event) => {
-                            event.stopPropagation();
-                            void requestMotionPermission();
-                        }}
-                        onPointerDown={(event) => {
-                            event.stopPropagation();
-                        }}
-                        type="button"
-                    >
-                        Enable motion
-                    </button>
-                ) : null}
+            <div className={styles.srBoardLive} aria-live="polite">
+                {boardLiveMessage}
             </div>
+            {!baselineWebGl ? (
+                <div className={styles.webglRequired} data-testid="tile-board-webgl-required">
+                    This game requires WebGL. Enable hardware acceleration or update your browser, then reload.
+                </div>
+            ) : gpuSurfaceLost ? (
+                <div className={styles.webglSceneError} data-testid="tile-board-gpu-lost" role="status">
+                    Graphics surface was lost. If this persists, reload the page or update your GPU drivers.
+                </div>
+            ) : (
+                <div
+                    aria-label="Memory tile board. Use arrow keys to move focus, Enter or Space to flip."
+                    className={styles.boardCanvasApplication}
+                    data-testid="tile-board-application"
+                    onKeyDown={handleBoardApplicationKeyDown}
+                    ref={boardAppRef}
+                    role="application"
+                    tabIndex={0}
+                >
+                    <div className={styles.stage} data-testid="tile-board-stage-shell" ref={stageRef}>
+                        <TileBoardErrorBoundary fallback={sceneErrorFallback}>
+                            <div className={styles.scene} data-testid="tile-board-stage">
+                                <Canvas
+                                    className={styles.canvas}
+                                    dpr={dpr}
+                                    key={`tile-board-aa-${resolvedBoardAa}`}
+                                    gl={{
+                                        alpha: true,
+                                        antialias: glAntialias,
+                                        powerPreference: 'high-performance',
+                                        premultipliedAlpha: false
+                                    }}
+                                    onCreated={({ gl }) => {
+                                        const canvas = gl.domElement as HTMLCanvasElement;
+                                        const onLost = (event: Event): void => {
+                                            event.preventDefault();
+                                            setGpuSurfaceLost(true);
+                                        };
+                                        const onRestored = (): void => {
+                                            setGpuSurfaceLost(false);
+                                        };
+                                        canvas.addEventListener('webglcontextlost', onLost);
+                                        canvas.addEventListener('webglcontextrestored', onRestored);
+                                    }}
+                                    shadows={false}
+                                    camera={{ fov: 42, near: 0.1, far: 100, position: [0, 0, 10.5] }}
+                                >
+                                    <TileBoardScene
+                                        allowGambitThirdFlip={allowGambitThirdFlip}
+                                        board={board}
+                                        boardViewport={renderedViewportState}
+                                        compact={compact}
+                                        cursedPairKey={cursedPairKey}
+                                        dimmedTileIds={dimmedTileIds}
+                                        focusedTileId={focusedTileId}
+                                        graphicsQuality={graphicsQuality}
+                                        wardPairKey={wardPairKey}
+                                        bountyPairKey={bountyPairKey}
+                                        debugPeekActive={debugPeekActive}
+                                        fieldTiltRef={fieldTiltRef}
+                                        hoverTiltRef={hoverTiltRef}
+                                        interactionSuppressed={selectionSuppressed}
+                                        interactive={interactive}
+                                        onTilePick={handleTileSelect}
+                                        onViewportMetricsChange={handleStageViewportChange}
+                                        peekRevealedTileIds={peekRevealedTileIds}
+                                        pinnedTileIds={pinnedTileIds}
+                                        previewActive={previewActive}
+                                        ref={sceneHandleRef}
+                                        reduceMotion={reduceMotion}
+                                        runStatus={runStatus}
+                                        shuffleMotionBudgetMs={shuffleMotionBudgetMs}
+                                        shuffleMotionDeadlineMs={shuffleMotionDeadlineMs}
+                                        shuffleStaggerTileCount={shuffleStaggerTileCount}
+                                    />
+                                    <TileBoardPostFx
+                                        bloomEnabled={bloomEffective}
+                                        smaaEnabled={resolvedBoardAa === 'smaa'}
+                                    />
+                                </Canvas>
+                            </div>
+                        </TileBoardErrorBoundary>
+                        {showMotionChip ? (
+                            <button
+                                className={styles.motionChip}
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    void requestMotionPermission();
+                                }}
+                                onPointerDown={(event) => {
+                                    event.stopPropagation();
+                                }}
+                                type="button"
+                            >
+                                Enable motion
+                            </button>
+                        ) : null}
+                    </div>
+                </div>
+            )}
         </div>
     );
 });

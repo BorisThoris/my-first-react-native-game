@@ -3,8 +3,13 @@ import { dismissStartupIntro } from './startupIntroHelpers';
 
 export const STORAGE_KEY = 'memory-dungeon-save-data';
 
-/** Board hit targets only — avoids matching toolbar labels like "Shuffle hidden tiles". */
+/** @deprecated Prefer `data-hidden-tile-count` on `tile-board-frame`; kept for grep / gradual migration. */
 export const BOARD_HIDDEN_TILE_BUTTON_RE = /hidden tile, row \d+, column \d+/i;
+
+export async function readFrameHiddenTileCount(page: Page): Promise<number> {
+    const raw = await page.getByTestId('tile-board-frame').getAttribute('data-hidden-tile-count');
+    return Number.parseInt(raw ?? '0', 10);
+}
 
 /** Menu + level 1 play without onboarding or powers FTUE chrome (used by gesture/layout harnesses). */
 export const defaultE2eGameSaveJson = JSON.stringify({
@@ -79,20 +84,33 @@ export async function navigateToLevel1PlayPhase(page: Page, saveJson: string = d
     await expect(page.getByRole('heading', { name: /level 1/i })).toBeAttached({ timeout: 15_000 });
     await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible({ timeout: 15_000 });
     await expect
-        .poll(async () => page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count(), {
+        .poll(async () => readFrameHiddenTileCount(page), {
             timeout: 50_000,
             intervals: [80, 120, 200, 400]
         })
         .toBeGreaterThan(0);
-    const firstHidden = page.getByRole('button', { name: /hidden tile, row 1, column 1/i });
-    await expect(firstHidden).toBeEnabled({ timeout: 25_000 });
+    await expect(page.getByTestId('tile-board-application')).toBeVisible({ timeout: 25_000 });
 }
 
-export async function clickHiddenTileRowCol(page: Page, row: number, column: number, hiddenBefore: number): Promise<void> {
-    const label = new RegExp(`hidden tile, row ${row}, column ${column}`, 'i');
-    const hit = page.getByRole('button', { name: label });
-    await hit.evaluate((el) => (el as HTMLButtonElement).click());
-    await expect
-        .poll(async () => page.getByRole('button', { name: BOARD_HIDDEN_TILE_BUTTON_RE }).count(), { timeout: 12000 })
-        .toBeLessThan(hiddenBefore);
+/**
+ * Click a board cell on the WebGL canvas using stage-shell layout (row/column are 1-based).
+ */
+export async function clickHiddenTileRowCol(page: Page, row: number, column: number, hiddenBefore?: number): Promise<void> {
+    const frame = page.getByTestId('tile-board-frame');
+    const cols = Number(await frame.getAttribute('data-board-columns'));
+    const rows = Number(await frame.getAttribute('data-board-rows'));
+    const stage = page.getByTestId('tile-board-stage-shell');
+    await expect(stage).toBeVisible();
+    const box = await stage.boundingBox();
+    expect(box).toBeTruthy();
+    const cellW = box!.width / cols;
+    const cellH = box!.height / rows;
+    const cx = box!.x + (column - 0.5) * cellW;
+    const cy = box!.y + (row - 0.5) * cellH;
+    await page.mouse.click(cx, cy);
+    if (hiddenBefore != null) {
+        await expect
+            .poll(async () => readFrameHiddenTileCount(page), { timeout: 12_000 })
+            .not.toBe(hiddenBefore);
+    }
 }
