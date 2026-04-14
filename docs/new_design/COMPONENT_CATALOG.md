@@ -14,8 +14,8 @@ This catalog normalizes the reusable UI and presentation components implied by t
 
 | Surface | Purpose | Examples |
 |--------|---------|----------|
-| **Always-visible rail** | One-tap gameplay and shell actions | Utility toggle, Fit board (mobile), main menu (abandon confirm), pause/resume, inventory, codex, settings, power row (shuffle, pin, destroy, peek, stray), undo while resolving |
-| **Utility flyout** | Duplicate quick paths + overflow-friendly labels | Pause/resume, inventory, codex; **Close** control (SIDE-009); dismissed by outside click, scrim, Escape |
+| **Always-visible rail** | One-tap gameplay and shell actions | Utility toggle, Fit board, pause/resume, settings, codex, inventory, main menu (abandon confirm), power row (shuffle, pin, destroy, peek, stray), undo while resolving |
+| **Utility flyout** | Overflow-friendly labels for paths also on the rail | Inventory, codex (pause is rail-only); **Close** control (SIDE-009); dismissed by outside click, scrim, Escape |
 | **Modals only** | Run-scoped settings, inventory/codex overlays, pause/floor modals | `SettingsScreen` (playing), `OverlayModal`, meta `modalOverlay` for in-run codex/inventory |
 
 Settings are **rail-only** (flyout no longer duplicates Settings). Inventory and codex appear on both rail and flyout so players can use either pattern.
@@ -28,7 +28,7 @@ Settings are **rail-only** (flyout no longer duplicates Settings). Inventory and
 | **CodexScreen** | Read-only rules reference | Header **Back** + in-page TOC → anchors | [`MetaScreen.module.css`](../../src/renderer/components/MetaScreen.module.css) `.inPageToc`, `.sectionAnchor`. |
 | **CollectionScreen** | Save progress / unlocks | Header **Back** + in-page TOC | Jumps to achievements, relics, bests, daily, symbols. |
 | **InventoryScreen** | Active run loadout | Header **Back** + in-page TOC | Run summary, relics, mutators, charges, contract. |
-| **GameOverScreen** | Run summary + export | Hero + side rail + details | **META-002:** cathedral **scene plate** (same asset as main menu) behind scrim for depth parity. |
+| **GameOverScreen** | Run summary + export | Hero + side rail + details | **META-002:** same stack as main menu — Pixi atmosphere, **`sceneLayer`** (`UI_ART.menuScene`), dual-gradient **scrim** (`MainMenu` rim + radial), hero **crest lockup** (`UI_ART.brandCrest`) on the summary plate. |
 
 ---
 
@@ -91,6 +91,19 @@ Settings are **rail-only** (flyout no longer duplicates Settings). Inventory and
   - `Panel`
   - settings sections
   - current menu record card
+
+### 5b. Meta frame (forged gold cornice) — **META-003**
+- Type: Primitive (presentation wrapper)
+- Purpose: scalable **SVG** double-rail + corner rivets around meta plates (“forged gold” read) **without** growing new `Panel` variants; composes with existing `Panel` surfaces.
+- Variants:
+  - Default cornice (theme-driven gradients + `vector-effect: non-scaling-stroke`)
+- Contract:
+  - Decorative only: root sets `data-meta-frame="true"`; SVG is `aria-hidden` with `pointer-events: none`.
+  - Theme tokens: `--theme-meta-frame-outset`, `--theme-meta-frame-accent`, `--theme-meta-frame-drop` (`theme.ts` META-003 block).
+- Current mapping:
+  - [`MetaFrame`](../../src/renderer/ui/MetaFrame.tsx) + [`MetaFrame.module.css`](../../src/renderer/ui/MetaFrame.module.css)
+  - `CollectionScreen` — achievements stack (`data-testid="collection-meta-frame-achievements"`).
+  - `ChooseYourPathScreen` — mode path cards (META-011).
 
 ### 6. Title Bar
 - Type: Primitive
@@ -159,13 +172,20 @@ Settings are **rail-only** (flyout no longer duplicates Settings). Inventory and
   - Daily
   - Mutator
 - Current mapping:
-  - current segmented pills in `GameScreen` but not with target styling
+  - [`GameplayHudBar`](../../src/renderer/components/GameplayHudBar.tsx) segments (floor hex badge, lives row, shards pill, centered score, daily strip when applicable, score-parasite module, mode/meta block with mutator chips, compact `statRail` pills)
+  - Presentation tokens and layout live in [`GameScreen.module.css`](../../src/renderer/components/GameScreen.module.css) (HUD-011 rail: `.hudStatsStrip::before` gold-trim inset frame; `.hudDeck.floatingDeck` glass deck)
 
 ### 12. Gameplay HUD Bar
 - Type: Composite
 - Purpose: assembled top status strip with score in the visual center
 - Current mapping:
-  - current `hudRow` and `statRail` structure in `GameScreen`
+  - [`GameplayHudBar`](../../src/renderer/components/GameplayHudBar.tsx) — mounted from [`GameScreen`](../../src/renderer/components/GameScreen.tsx) (`data-testid="game-hud"`)
+  - Outer chrome: `.hudRow` → `.floatingDeck.statsDeck.hudDeck` → `.hudStatsStrip` (CSS grid: **left wing** | divider | **score** | divider | **right wing**)
+  - **Left wing** (`.hudStripLeftModule`): SVG-framed floor hex (`.floorBadgeHexFrame`), lives hearts, shards + guard subline
+  - **Center** (`.hudStripScoreModule`): score segment (`.hudScoreSegment`, `.statValScore`)
+  - **Right wing** (`.hudStripRightModule`): optional daily date, score-parasite progress when active, then column with mode label / mutator chip row (including gauntlet, scholar, shuffle-tax context chips) and `.statRail` compact pills (gauntlet time, findables, contract, pins, meditation, wild)
+  - **HUD-015:** screen-reader status: `.srOnly` region with `aria-live="polite"` (`politeHudAnnouncement` prop)
+  - **HUD-016:** there is no Storybook package in this repo; static review props for four HUD states (daily, gauntlet, scholar, multi-mutator) live in [`hudFixtures.ts`](../../src/renderer/dev/hudFixtures.ts) as `GameplayHudBar` props (`hudFixturePropsDaily`, `…Gauntlet`, `…Scholar`, `…MultiMutator`, plus `gameplayHudBarFixturePropsById`).
 
 ### 13. In-Game Sidebar Rail
 - Type: Composite
@@ -260,7 +280,7 @@ Settings are **rail-only** (flyout no longer duplicates Settings). Inventory and
   - Timer-badge
   - Stat-footer
 - Current mapping:
-  - no current equivalent
+  - [`ChooseYourPathScreen`](../../src/renderer/components/ChooseYourPathScreen.tsx) + [`ChooseYourPathScreen.module.css`](../../src/renderer/components/ChooseYourPathScreen.module.css) — **META-011:** each card sits in [`MetaFrame`](../../src/renderer/ui/MetaFrame.tsx) (forged-gold cornice) with mode-tinted panel + **Classic** stat footer (tabular numerals, large display values, label lockup)
 
 ---
 
@@ -374,20 +394,6 @@ Settings are **rail-only** (flyout no longer duplicates Settings). Inventory and
 | Card Feedback FX | hover glow, flip motion, success burst, failure recoil |
 | Settings Category Rail | inactive, hovered, selected |
 | Mode Card | neutral, focused, selected, timer-badge |
-
----
-
-## Gameplay left toolbar IA (SIDE-002)
-
-**Component:** [`GameLeftToolbar`](../../src/renderer/components/GameLeftToolbar.tsx) (in-game left rail).
-
-| Surface | Purpose | Examples |
-|--------|---------|----------|
-| **Always-visible rail** | One-tap gameplay and shell actions | Utility toggle, Fit board (mobile), main menu (abandon confirm), pause/resume, inventory, codex, settings, power row (shuffle, pin, destroy, peek, stray), undo while resolving |
-| **Utility flyout** | Duplicate quick paths + overflow-friendly labels | Pause/resume, inventory, codex; **Close** control (SIDE-009); dismissed by outside click, scrim, Escape |
-| **Modals only** | Run-scoped settings, inventory/codex overlays, pause/floor modals | `SettingsScreen` (playing), `OverlayModal`, meta `modalOverlay` for in-run codex/inventory |
-
-Settings are **rail-only** (flyout no longer duplicates Settings). Inventory and codex appear on both rail and flyout so players can use either pattern.
 
 ---
 

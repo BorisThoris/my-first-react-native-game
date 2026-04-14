@@ -192,4 +192,30 @@ describe('NotificationHost', () => {
     });
     await expect(second).resolves.toBe(false);
   });
+
+  test('achievement surface exposes data attribute and polite live region', async () => {
+    await renderWithProviders();
+
+    await act(async () => {
+      useNotificationStore.getState().showAchievement('Badge — description', 0);
+    });
+    await flush();
+
+    const toast = container.querySelector('[data-crn-surface="achievement"]');
+    expect(toast).toBeTruthy();
+    expect(toast?.getAttribute('aria-live')).toBe('polite');
+    expect(toast?.textContent).toContain('Badge — description');
+  });
+
+  test('score-style success toast can set aria-live off', async () => {
+    await renderWithProviders();
+
+    await act(async () => {
+      useNotificationStore.getState().showSuccess('+123', 0, { ariaLive: 'off' });
+    });
+    await flush();
+
+    const toast = container.querySelector('.crn-card--success');
+    expect(toast?.getAttribute('aria-live')).toBe('off');
+  });
 });

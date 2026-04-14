@@ -7,6 +7,8 @@
  *   `inventory` | `codex` (maps to ViewState; excludes `boot`).
  * - `fixture` — when `screen=playing` (or gameOver where applicable), see `runFixtures.ts`.
  * - `skipIntro=1` — skip StartupIntro when landing on `menu` (App sets intro playback to done).
+ * - `unlockAchievements=ACH_FIRST_CLEAR,…` — DEV-only: when `screen=playing`, seeds `newlyUnlockedAchievements`
+ *   so achievement toasts fire once (E2E / harness).
  *
  * Example:
  *   http://127.0.0.1:5173/?devSandbox=1&screen=playing&fixture=dailyParasite
@@ -17,7 +19,25 @@
  *   (`hud-*.png`, `tile-board-*.png`). Without the script, the same spec defaults to `test-results/endproduct-parity/`.
  * - Helpers: `e2e/visualScreenHelpers.ts` → `openDevSandboxPlaying`, `gotoWithSaveAndQuery`, `getEndproductParityCaptureDir`.
  */
-import type { ViewState } from '../../shared/contracts';
+import type { AchievementId, ViewState } from '../../shared/contracts';
+import { ACHIEVEMENT_IDS } from '../../shared/save-data';
+
+const ACHIEVEMENT_ID_SET = new Set<string>(ACHIEVEMENT_IDS);
+
+const parseUnlockAchievementsParam = (params: URLSearchParams): AchievementId[] => {
+    const raw = params.get('unlockAchievements')?.trim();
+    if (!raw) {
+        return [];
+    }
+    const out: AchievementId[] = [];
+    for (const token of raw.split(',')) {
+        const id = token.trim();
+        if (ACHIEVEMENT_ID_SET.has(id)) {
+            out.push(id as AchievementId);
+        }
+    }
+    return out;
+};
 
 export type DevSandboxScreen = Exclude<ViewState, 'boot'>;
 
@@ -28,6 +48,8 @@ export interface DevSandboxConfig {
     /** Canned run preset for `playing` / `gameOver`; ignored for meta screens without a run. */
     fixture: string | null;
     skipIntro: boolean;
+    /** When `screen=playing`, applied as `newlyUnlockedAchievements` for toast harness (DEV only). */
+    unlockAchievements: AchievementId[];
 }
 
 const SCREEN_MAP: Record<string, DevSandboxScreen> = {
@@ -53,12 +75,12 @@ export const parseScreenParam = (raw: string | null): DevSandboxScreen | null =>
 
 export const readDevSandboxConfig = (): DevSandboxConfig => {
     if (!import.meta.env.DEV || typeof window === 'undefined') {
-        return { enabled: false, screen: null, fixture: null, skipIntro: false };
+        return { enabled: false, screen: null, fixture: null, skipIntro: false, unlockAchievements: [] };
     }
 
     const params = new URLSearchParams(window.location.search);
     if (params.get('devSandbox') !== '1') {
-        return { enabled: false, screen: null, fixture: null, skipIntro: false };
+        return { enabled: false, screen: null, fixture: null, skipIntro: false, unlockAchievements: [] };
     }
 
     const screen = parseScreenParam(params.get('screen'));
@@ -69,6 +91,7 @@ export const readDevSandboxConfig = (): DevSandboxConfig => {
         enabled: true,
         screen,
         fixture,
-        skipIntro
+        skipIntro,
+        unlockAchievements: parseUnlockAchievementsParam(params)
     };
 };

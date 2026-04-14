@@ -1,5 +1,7 @@
 export { default as AccentBanner } from './AccentBanner';
 export { default as Eyebrow } from './Eyebrow';
+export { default as MetaFrame } from './MetaFrame';
+export type { MetaFrameProps, MetaFrameTag } from './MetaFrame';
 export { default as Panel } from './Panel';
 export type { PanelTag } from './Panel';
 export { default as ScreenTitle } from './ScreenTitle';

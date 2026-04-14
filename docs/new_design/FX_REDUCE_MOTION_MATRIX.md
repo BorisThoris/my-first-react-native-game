@@ -1,5 +1,7 @@
 # FX-016 — Reduce motion vs board / shell effects
 
+**Status (P0):** Policy table maintained here; new motion must add a row or extend an existing one before ship. QA sign-off: verify `data-reduce-motion` branches for new CSS/JS hooks.
+
 Runtime **`settings.reduceMotion`** is mirrored on the app root as **`data-reduce-motion`** (`App.tsx`). CSS under `:global([data-reduce-motion='true'])` tracks that flag; JS props use the boolean directly.
 
 ## Board (WebGL + DOM)
@@ -13,7 +15,10 @@ Runtime **`settings.reduceMotion`** is mirrored on the app root as **`data-reduc
 | **Platform tilt field** | Can drive `--tilt-*` on frame | Disabled | `usePlatformTiltField` |
 | **Motion permission chip** | May show on touch | Hidden | `TileBoard.module.css` `.motionChip` |
 | **DOM fallback: resolve pulses / glow** | CSS animations on match/mismatch | Reduced / disabled | `TileBoard.module.css` `[data-reduce-motion]` |
+| **Match particle burst (FX-005)** | Conic “spark” ring on `.hitButtonResolvingMatch` + `.fallbackTile.resolvingMatch .tileFace` | Off (`::before` suppressed) | Pure CSS; no extra Canvas/R3F objects |
 | **DOM face-up reveal arc (CARD-002)** | `.tileFace` `domCardFaceReveal` | Disabled | `TileBoard.module.css` |
+| **WebGL flip pop impulse (CARD-003)** | Brief uniform scale + forward Z bump on hidden→face-up | Off (timer cleared; no impulse) | `TileBoardScene` `advanceTileBezelFrame` |
+| **Matched ✓ scale/fade (FX-011)** | `.fallbackMatchedCheck` + `.hitButtonMatched::after` `matchedCheckPop` | Static (no keyframe animation) | `TileBoard.module.css` |
 | **WebGL hover rim lerp (FX-006)** | UV tilt + Z lift + warm `meshBasicMaterial` lerp | Off | `TileBoardScene` `TileBezel` |
 | **WebGL face-up lift ease (CARD-010)** | `liftSmoothRef` damp toward target lift | Instant snap | Same |
 | **Shuffle Z stagger (FX-013)** | — | Off | Per-tile `shuffleZJitter` only while shuffle window active |

@@ -5,14 +5,15 @@ import { useViewportSize } from '../hooks/useViewportSize';
 import { useShallow } from 'zustand/react/shallow';
 import { formatNextUtcReset } from '../../shared/utc-countdown';
 import { MODE_CARD_ART } from '../assets/ui';
-import { Eyebrow, ScreenTitle, UiButton } from '../ui';
+import { Eyebrow, MetaFrame, ScreenTitle, UiButton } from '../ui';
 import { useAppStore } from '../store/useAppStore';
 import metaStyles from './MetaScreen.module.css';
 import styles from './ChooseYourPathScreen.module.css';
 
 const ChooseYourPathScreen = () => {
-    const { bestScore, closeSubscreen, startDailyRun, startRun } = useAppStore(
+    const { bestFloorNoPowers, bestScore, closeSubscreen, startDailyRun, startRun } = useAppStore(
         useShallow((state) => ({
+            bestFloorNoPowers: state.saveData.playerStats?.bestFloorNoPowers ?? 0,
             bestScore: state.saveData.bestScore,
             closeSubscreen: state.closeSubscreen,
             startDailyRun: state.startDailyRun,
@@ -69,58 +70,86 @@ const ChooseYourPathScreen = () => {
 
             <div className={`${metaStyles.body} ${styles.pathBody}`}>
                 <div className={styles.cardGrid}>
-                    <button
-                        className={`${styles.card} ${styles.cardClassic}`}
-                        onClick={startRun}
-                        type="button"
-                    >
-                        <span className={styles.cardPoster} aria-hidden="true">
-                            <img alt="" src={MODE_CARD_ART.classic} />
-                        </span>
-                        <span className={styles.cardBodyWrap}>
-                        <span className={styles.cardTitle}>Classic Run</span>
-                        <p className={styles.cardBody}>Procedural floors, relic milestones, and escalating pair counts.</p>
-                        <div className={styles.cardFooter}>
-                            Best score: {bestScore > 0 ? bestScore.toLocaleString() : 'Unranked'}
-                        </div>
-                        </span>
-                    </button>
+                    <div className={styles.cardShell}>
+                        <MetaFrame className={styles.cardFrame}>
+                            <button
+                                className={`${styles.card} ${styles.cardClassic}`}
+                                onClick={startRun}
+                                type="button"
+                            >
+                                <span className={styles.cardPoster} aria-hidden="true">
+                                    <img alt="" src={MODE_CARD_ART.classic} />
+                                </span>
+                                <span className={styles.cardBodyWrap}>
+                                    <span className={styles.cardTitle}>Classic Run</span>
+                                    <p className={styles.cardBody}>
+                                        Procedural floors, relic milestones, and escalating pair counts.
+                                    </p>
+                                    <div className={styles.cardFooter}>
+                                        <span className={styles.cardStatLine}>
+                                            <span className={styles.cardStatValue}>
+                                                {bestScore > 0 ? bestScore.toLocaleString() : '—'}
+                                            </span>
+                                            <span className={styles.cardStatLabel}>best score</span>
+                                        </span>
+                                        <span className={styles.cardStatLine}>
+                                            <span className={styles.cardStatValue}>
+                                                {bestFloorNoPowers > 0 ? bestFloorNoPowers.toLocaleString() : '—'}
+                                            </span>
+                                            <span className={styles.cardStatLabel}>best floor</span>
+                                        </span>
+                                    </div>
+                                </span>
+                            </button>
+                        </MetaFrame>
+                    </div>
 
-                    <button
-                        className={`${styles.card} ${styles.cardDaily}`}
-                        onClick={startDailyRun}
-                        type="button"
-                    >
-                        <span className={styles.cardPoster} aria-hidden="true">
-                            <img alt="" src={MODE_CARD_ART.daily} />
-                        </span>
-                        <span className={styles.cardBodyWrap}>
-                        <span className={styles.badge}>Featured</span>
-                        <span className={styles.cardTitle}>Daily Challenge</span>
-                        <p className={styles.cardBody}>Shared daily mutators and seed. Resets at UTC midnight.</p>
-                        <div className={styles.cardFooter}>Next rotation in {dailyCountdown}</div>
-                        </span>
-                    </button>
+                    <div className={styles.cardShell}>
+                        <MetaFrame className={styles.cardFrame}>
+                            <button
+                                className={`${styles.card} ${styles.cardDaily}`}
+                                onClick={startDailyRun}
+                                type="button"
+                            >
+                                <span className={styles.cardPoster} aria-hidden="true">
+                                    <img alt="" src={MODE_CARD_ART.daily} />
+                                </span>
+                                <span className={styles.cardBodyWrap}>
+                                    <span className={styles.badge}>Featured</span>
+                                    <span className={styles.cardTitle}>Daily Challenge</span>
+                                    <p className={styles.cardBody}>
+                                        Shared daily mutators and seed. Resets at UTC midnight.
+                                    </p>
+                                    <div className={styles.cardFooter}>Next rotation in {dailyCountdown}</div>
+                                </span>
+                            </button>
+                        </MetaFrame>
+                    </div>
 
-                    <button
-                        aria-disabled="true"
-                        className={`${styles.card} ${styles.cardEndless} ${styles.cardDisabled}`}
-                        data-testid="choose-path-low-cta"
-                        disabled
-                        type="button"
-                    >
-                        <span className={styles.cardPoster} aria-hidden="true">
-                            <img alt="" src={MODE_CARD_ART.endless} />
-                        </span>
-                        <span className={styles.cardBodyWrap}>
-                        <span className={`${styles.badge} ${styles.lockedBadge}`}>Locked</span>
-                        <span className={styles.cardTitle}>Endless Mode</span>
-                        <p className={styles.cardBody}>
-                            Future ruleset for ultra-long descents. Not playable yet—no start action is wired.
-                        </p>
-                        <div className={styles.cardFooter}>Best floor: —</div>
-                        </span>
-                    </button>
+                    <div className={styles.cardShell}>
+                        <MetaFrame className={`${styles.cardFrame} ${styles.cardFrameMuted}`}>
+                            <button
+                                aria-disabled="true"
+                                className={`${styles.card} ${styles.cardEndless} ${styles.cardDisabled}`}
+                                data-testid="choose-path-low-cta"
+                                disabled
+                                type="button"
+                            >
+                                <span className={styles.cardPoster} aria-hidden="true">
+                                    <img alt="" src={MODE_CARD_ART.endless} />
+                                </span>
+                                <span className={styles.cardBodyWrap}>
+                                    <span className={`${styles.badge} ${styles.lockedBadge}`}>Locked</span>
+                                    <span className={styles.cardTitle}>Endless Mode</span>
+                                    <p className={styles.cardBody}>
+                                        Future ruleset for ultra-long descents. Not playable yet—no start action is
+                                        wired.
+                                    </p>
+                                    <div className={styles.cardFooter}>Best floor: —</div>
+                                </span>
+                            </button>
+                        </MetaFrame>
+                    </div>
                 </div>
             </div>
                         </div>

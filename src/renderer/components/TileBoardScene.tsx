@@ -29,6 +29,8 @@ import {
     type BufferAttribute,
     type BufferGeometry,
     type Group,
+    type Mesh,
+    type MeshBasicMaterial,
     type MeshStandardMaterial
 } from 'three';
 import type { BoardState, GraphicsQualityPreset, RunStatus, Tile } from '../../shared/contracts';
@@ -59,14 +61,39 @@ import { boardWebglPerfSampleAccumulate, boardWebglPerfSampleEnabled } from '../
 import { readTileStepLegacy } from '../dev/tileStepLegacy';
 import { getTileFieldAmplification } from './tileFieldTilt';
 import { isTilePickable, noopMeshRaycast, pickableMeshRaycast } from './tileBoardPick';
-import { getResolvingSelectionState, type ResolvingSelectionState } from './tileResolvingSelection';
-import cardBackSvgUrl from '../assets/textures/cards/back.svg?url';
-import cardFrontSvgUrl from '../assets/textures/cards/front.svg?url';
+import {
+    getMatchResolvingPairTileIds,
+    getResolvingSelectionState,
+    type ResolvingSelectionState
+} from './tileResolvingSelection';
+import cardBackSvgUrl from '../assets/textures/cards/authored-card-back.svg?url';
+import cardFrontSvgUrl from '../assets/textures/cards/authored-card-front.svg?url';
 import { loadSharedCardSvgPlaneGeometry } from './cardSvgPlaneGeometry';
-
-const HOVER_RIM_TINT = new Color('#fff0d4');
-const scratchCardTint = new Color();
 import type { TileBoardViewportState } from './tileBoardViewport';
+import { computeStaggeredShuffleDealZ } from './shuffleFlipAnimation';
+
+/** FX-006 / HOVER_DOM_WEBGL_TOKENS: border emphasis → warm tint lerp (~20% toward `#fff0d4` in sRGB mix space). */
+const HOVER_RIM_TINT = new Color('#fff0d4');
+const HOVER_RIM_TINT_LERP = 0.2;
+/** Emissive base (theme `goldBright`); intensity scaled by graphics quality when DOM-hover-parity applies. */
+const HOVER_GOLD_EMISSIVE = new Color('#f2d39d');
+/** CARD-018: warm pin read blended on top of resolving face tints. */
+const PIN_STACK_TINT = new Color('#d4b870');
+const scratchCardTint = new Color();
+
+const getHoverGoldQualityScales = (
+    quality: GraphicsQualityPreset
+): { emissiveIntensity: number; rimOpacity: number } => {
+    switch (quality) {
+        case 'low':
+            return { emissiveIntensity: 0.09, rimOpacity: 0.4 };
+        case 'high':
+            return { emissiveIntensity: 0.22, rimOpacity: 0.74 };
+        case 'medium':
+        default:
+            return { emissiveIntensity: 0.15, rimOpacity: 0.58 };
+    }
+};
 
 interface TileBoardSceneProps {
     board: BoardState;
@@ -89,6 +116,10 @@ interface TileBoardSceneProps {
     bountyPairKey?: string | null;
     /** Wall-clock ms; while `now < deadline`, tile groups ease XY toward layout targets (shuffle). */
     shuffleMotionDeadlineMs: number;
+    /** Motion budget that produced `shuffleMotionDeadlineMs` (FX-013 staggered deal-Z). */
+    shuffleMotionBudgetMs: number;
+    /** Tile count used for `computeShuffleMotionBudgetMs` when shuffle started (reading-order stagger). */
+    shuffleStaggerTileCount: number;
     /** Hidden tiles to de-emphasize when focus-assist is on (matches 2D `.tileFocusDim`). */
     dimmedTileIds?: ReadonlySet<string>;
     /** When true with two flips, allow picking a third tile (gambit) instead of locking hidden tiles. */
@@ -110,9 +141,14 @@ interface TileBezelProps {
     reduceMotion: boolean;
     resolvingSelection: ResolvingSelectionState;
     shuffleMotionDeadlineMs: number;
+    shuffleMotionBudgetMs: number;
+    shuffleStaggerTileCount: number;
+    shuffleBoardOrderIndex: number;
     textureRevision: number;
     tile: Tile;
     transform: TileTransform;
+    /** PERF-007 + FX-006: scales hover emissive / rim strip opacity. */
+    graphicsQuality: GraphicsQualityPreset;
     /** Merged SVG mesh at card plane size; when set, replaces front texture and front-plane bend/wear. */
     sharedCardFrontGeometry: BufferGeometry | null;
     /** Merged SVG mesh for hidden side; when set, replaces back texture and back-plane bend/wear. */
@@ -160,6 +196,11 @@ const CARD_FACE_INSET = 0.016;
 const CARD_FACE_WIDTH = CARD_WIDTH - CARD_FACE_INSET * 2;
 const CARD_FACE_HEIGHT = CARD_HEIGHT - CARD_FACE_INSET * 2;
 
+/** FX-006: thin quads approximating DOM `0 0 0 2px` gold ring on the visible back face while hidden. */
+const HOVER_GOLD_RIM_STRIP = 0.0036;
+const hoverGoldRimGeomH = new PlaneGeometry(CARD_WIDTH, HOVER_GOLD_RIM_STRIP, 1, 1);
+const hoverGoldRimGeomV = new PlaneGeometry(HOVER_GOLD_RIM_STRIP, CARD_HEIGHT, 1, 1);
+
 /**
  * Segments per card face: bend deformation + enough tessellation for
  * `displacementMap` (real height — needs dense grid or ridges look blocky).
@@ -191,6 +232,12 @@ type CardBendFace = 'front' | 'back';
 type BendSourceEvent = ThreeEvent<PointerEvent | MouseEvent>;
 
 const scratchHitLocal = new Vector3();
+const matchLinkWorldA = new Vector3();
+const matchLinkWorldB = new Vector3();
+/** FX-017: ribbon tint (theme `emeraldBright`); opacity pulsed in `useFrame`. */
+const matchLinkColor = new Color(RENDERER_THEME.colors.emeraldBright);
+/** Unit-length X ribbon; thickness from plane height × optional `scale.y`. */
+const MATCH_PAIR_LINK_PLANE_GEOM = new PlaneGeometry(1, 0.0036, 1, 1);
 
 const cloneBasePositions = (geometry: PlaneGeometry): Float32Array =>
     new Float32Array((geometry.attributes.position as BufferAttribute).array);
@@ -381,11 +428,15 @@ interface TileBezelFramePropsSnapshot {
     reduceMotion: boolean;
     resolvingSelection: ResolvingSelectionState;
     shuffleMotionDeadlineMs: number;
+    shuffleMotionBudgetMs: number;
+    shuffleStaggerTileCount: number;
+    shuffleBoardOrderIndex: number;
     textureRevision: number;
     tile: Tile;
     transform: TileTransform;
     useSvgMeshBack: boolean;
     useSvgMeshFront: boolean;
+    graphicsQuality: GraphicsQualityPreset;
     fieldTiltRef: MutableRefObject<TiltVector>;
     hoverTiltRef: MutableRefObject<TileHoverTiltState>;
 }
@@ -408,6 +459,9 @@ interface TileBezelFrameBag {
     overlayPersistentRef: MutableRefObject<Float32Array>;
     prevFaceUpRef: MutableRefObject<boolean>;
     flipPopT0Ref: MutableRefObject<number | null>;
+    /** CARD-010: 0→1 ease over ~200ms on face-up edge (structural lift/depth); instant when `reduceMotion`. */
+    faceUpStructBlendRef: MutableRefObject<number>;
+    faceUpStructT0Ref: MutableRefObject<number | null>;
     prevResolvingRef: MutableRefObject<ResolvingSelectionState | null>;
     matchPulseRef: MutableRefObject<number>;
     liftSmoothRef: MutableRefObject<number>;
@@ -420,6 +474,10 @@ interface TileBezelFrameBag {
     lastBumpURef: MutableRefObject<number | null>;
     lastBumpVRef: MutableRefObject<number | null>;
     pressingOnCardRef: MutableRefObject<boolean>;
+    hoverRimTopMatRef: MutableRefObject<MeshBasicMaterial | null>;
+    hoverRimBottomMatRef: MutableRefObject<MeshBasicMaterial | null>;
+    hoverRimRightMatRef: MutableRefObject<MeshBasicMaterial | null>;
+    hoverRimLeftMatRef: MutableRefObject<MeshBasicMaterial | null>;
 }
 
 const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: number): void => {
@@ -436,10 +494,39 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
 
     const clock = state.clock;
     const prevFace = bag.prevFaceUpRef.current;
-    if (p.faceUp && !prevFace && !p.reduceMotion) {
+    if (p.reduceMotion) {
+        bag.flipPopT0Ref.current = null;
+    } else if (p.faceUp && !prevFace) {
+        /** CARD-003: face-up edge impulse (scale + Z); skipped when `reduceMotion`. */
         bag.flipPopT0Ref.current = clock.elapsedTime;
     }
     bag.prevFaceUpRef.current = p.faceUp;
+
+    /** CARD-010: structural lift/depth follows face-up over ~200ms (aligned with CARD-003 ~0.22s pop). */
+    const CARD_FACE_UP_SURFACE_S = 0.2;
+    if (p.reduceMotion) {
+        bag.faceUpStructT0Ref.current = null;
+        bag.faceUpStructBlendRef.current = p.faceUp ? 1 : 0;
+    } else if (!p.faceUp) {
+        bag.faceUpStructT0Ref.current = null;
+        bag.faceUpStructBlendRef.current = 0;
+    } else if (!prevFace) {
+        bag.faceUpStructT0Ref.current = clock.elapsedTime;
+        bag.faceUpStructBlendRef.current = 0;
+    } else {
+        const t0 = bag.faceUpStructT0Ref.current;
+        if (t0 != null) {
+            const u = Math.min(1, (clock.elapsedTime - t0) / CARD_FACE_UP_SURFACE_S);
+            const eased = 1 - (1 - u) * (1 - u);
+            bag.faceUpStructBlendRef.current = eased;
+            if (u >= 1) {
+                bag.faceUpStructT0Ref.current = null;
+                bag.faceUpStructBlendRef.current = 1;
+            }
+        } else {
+            bag.faceUpStructBlendRef.current = 1;
+        }
+    }
 
     const prevR = bag.prevResolvingRef.current;
     if (p.resolvingSelection === 'match' && prevR !== 'match' && !p.reduceMotion) {
@@ -450,11 +537,14 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
     const matchPulse = bag.matchPulseRef.current;
 
     let flipPopMul = 1;
+    let flipPopZ = 0;
     const fp0 = bag.flipPopT0Ref.current;
     if (fp0 != null && !p.reduceMotion) {
         const td = clock.elapsedTime - fp0;
         if (td < 0.22) {
-            flipPopMul = 1 + Math.sin((td / 0.22) * Math.PI) * 0.065;
+            const envelope = Math.sin((td / 0.22) * Math.PI);
+            flipPopMul = 1 + envelope * 0.065;
+            flipPopZ = envelope * 0.014;
         } else {
             bag.flipPopT0Ref.current = null;
         }
@@ -525,14 +615,19 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
     const fieldDepth = p.reduceMotion ? 0 : MathUtils.clamp(Math.hypot(field.x, field.y), 0, 1) * p.fieldAmp * (isMatched ? 0.0005 : 0.00095);
     const hoverTilt = p.hoverTiltRef.current;
     const hovered = !p.reduceMotion && hoverTilt.tileId === p.tile.id;
-    const hoverTiltX = hovered ? MathUtils.clamp(-hoverTilt.y, -1, 1) * (isMatched ? 0.046 : 0.1) : 0;
-    const hoverTiltZ = hovered ? MathUtils.clamp(hoverTilt.x, -1, 1) * (isMatched ? 0.042 : 0.092) : 0;
-    const hoverLift = hovered ? (isMatched ? 0.001 : 0.0022) : 0;
-    const hoverDepth = hovered ? (isMatched ? 0.0014 : 0.0032) : 0;
-    const targetLift = isMatched ? 0.0024 : p.faceUp ? 0.0012 : 0;
-    const targetDepth = isMatched ? 0.0036 : p.faceUp ? 0.0018 : 0;
-    const liftGoal = targetLift + hoverLift;
-    const liftLambda = p.reduceMotion ? 400 : p.faceUp && !isMatched ? 15 : 200;
+    /** Mirrors `.fallbackTile:hover:not(.faceUp):not(.matched)` — gold rim / lift / tilt only on hidden backs. */
+    const hoverDomParity = hovered && !p.faceUp && p.tile.state !== 'matched';
+    const hoverTiltX = hoverDomParity ? MathUtils.clamp(-hoverTilt.y, -1, 1) * (isMatched ? 0.046 : 0.1) : 0;
+    const hoverTiltZ = hoverDomParity ? MathUtils.clamp(hoverTilt.x, -1, 1) * (isMatched ? 0.042 : 0.092) : 0;
+    const hoverLift = hoverDomParity ? (isMatched ? 0.001 : 0.00265) : 0;
+    const hoverDepth = hoverDomParity ? (isMatched ? 0.0014 : 0.00385) : 0;
+    const structBlend = bag.faceUpStructBlendRef.current;
+    const baseLiftFull = isMatched ? 0.0024 : p.faceUp ? 0.0012 : 0;
+    const baseDepthFull = isMatched ? 0.0036 : p.faceUp ? 0.0018 : 0;
+    const structLift = baseLiftFull * structBlend;
+    const structDepth = baseDepthFull * structBlend;
+    const liftGoal = structLift + hoverLift;
+    const liftLambda = p.reduceMotion ? 400 : p.faceUp && !isMatched ? 48 : 200;
     bag.liftSmoothRef.current = MathUtils.damp(bag.liftSmoothRef.current, liftGoal, liftLambda, delta);
     const rotationDamp = p.reduceMotion ? 42 : p.faceUp ? 18 : 16;
 
@@ -557,27 +652,37 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
     const now = performance.now();
     const shuffleLayoutActive =
         !p.reduceMotion && p.shuffleMotionDeadlineMs > 0 && now < p.shuffleMotionDeadlineMs;
-    const shuffleZJitter = shuffleLayoutActive ? ((p.transform.seed % 11) - 5) * 0.0002 : 0;
-    const targetZ = targetDepth + hoverDepth + fieldDepth + shuffleZJitter;
+    const shuffleDealZ =
+        shuffleLayoutActive && p.shuffleMotionBudgetMs > 0 && p.shuffleStaggerTileCount > 0
+            ? computeStaggeredShuffleDealZ(
+                  now,
+                  p.shuffleMotionDeadlineMs,
+                  p.shuffleMotionBudgetMs,
+                  p.shuffleBoardOrderIndex,
+                  p.shuffleStaggerTileCount
+              )
+            : 0;
+    const targetZ = structDepth + hoverDepth + fieldDepth + shuffleDealZ;
     const wobbleT = clock.elapsedTime;
     const mismatchShakeX =
-        !p.reduceMotion && p.resolvingSelection === 'mismatch' ? Math.sin(wobbleT * 36) * 0.014 : 0;
+        !p.reduceMotion && p.resolvingSelection === 'mismatch' ? Math.sin(wobbleT * 36) * 0.017 : 0;
     const mismatchShakeY =
-        !p.reduceMotion && p.resolvingSelection === 'mismatch' ? Math.cos(wobbleT * 29) * 0.011 : 0;
+        !p.reduceMotion && p.resolvingSelection === 'mismatch' ? Math.cos(wobbleT * 29) * 0.014 : 0;
     const posX = targetX + mismatchShakeX;
     const posY = targetY + mismatchShakeY;
     const posLambda = shuffleLayoutActive ? 9 : 200;
 
+    const zWithFlipPop = targetZ + flipPopZ;
     if (shuffleLayoutActive) {
         group.position.x = MathUtils.damp(group.position.x, posX, posLambda, delta);
         group.position.y = MathUtils.damp(group.position.y, posY, posLambda, delta);
-        group.position.z = MathUtils.damp(group.position.z, targetZ, posLambda, delta);
+        group.position.z = MathUtils.damp(group.position.z, zWithFlipPop, posLambda, delta);
     } else {
         group.position.x = posX;
         group.position.y = posY;
-        group.position.z = targetZ;
+        group.position.z = zWithFlipPop;
     }
-    const matchPulseMul = p.resolvingSelection === 'match' ? 0.11 : 0.08;
+    const matchPulseMul = p.resolvingSelection === 'match' ? 0.13 : 0.085;
     const scaleMul = p.transform.baseScale * flipPopMul * (1 + matchPulse * matchPulseMul);
     group.scale.x = group.scale.y = group.scale.z = scaleMul;
 
@@ -586,12 +691,34 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
     if (hiddenPinned) {
         scratchCardTint.set('#d4b870');
     } else if (p.resolvingSelection === 'mismatch' && p.faceUp) {
-        scratchCardTint.set('#ffc8bc');
+        scratchCardTint.set('#ffb4a6');
     } else if (p.resolvingSelection === 'gambitNeutral' && p.faceUp) {
         scratchCardTint.set('#cfe8f2');
     }
-    if (hovered && !p.reduceMotion) {
-        scratchCardTint.lerp(HOVER_RIM_TINT, 0.2);
+    const pinnedFaceResolving = p.isPinned && p.faceUp && p.resolvingSelection !== null;
+    if (pinnedFaceResolving) {
+        const pinLerp =
+            p.resolvingSelection === 'match' ? 0.36 : p.resolvingSelection === 'gambitNeutral' ? 0.3 : 0.26;
+        scratchCardTint.lerp(PIN_STACK_TINT, pinLerp);
+    }
+    if (hoverDomParity) {
+        scratchCardTint.lerp(HOVER_RIM_TINT, HOVER_RIM_TINT_LERP);
+    }
+    const { emissiveIntensity: hoverEmissiveMul, rimOpacity: hoverRimOpacity } = getHoverGoldQualityScales(
+        p.graphicsQuality
+    );
+    const hoverEmissiveIntensity = hoverDomParity ? hoverEmissiveMul : 0;
+    const hoverRimOpacityTarget = hoverDomParity ? hoverRimOpacity : 0;
+    for (const matRef of [
+        bag.hoverRimTopMatRef,
+        bag.hoverRimBottomMatRef,
+        bag.hoverRimRightMatRef,
+        bag.hoverRimLeftMatRef
+    ]) {
+        const m = matRef.current;
+        if (m) {
+            m.opacity = hoverRimOpacityTarget;
+        }
     }
     const dimTarget = p.focusDimmed && !p.faceUp && p.tile.state === 'hidden' ? 1 : 0;
     bag.focusDimBlendRef.current = MathUtils.damp(
@@ -607,9 +734,13 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
     bag.backCardMatRef.current?.color.copy(scratchCardTint);
     if (bag.frontCardMatRef.current) {
         bag.frontCardMatRef.current.opacity = dimOpacity;
+        bag.frontCardMatRef.current.emissive.copy(HOVER_GOLD_EMISSIVE);
+        bag.frontCardMatRef.current.emissiveIntensity = hoverEmissiveIntensity;
     }
     if (bag.backCardMatRef.current) {
         bag.backCardMatRef.current.opacity = dimOpacity;
+        bag.backCardMatRef.current.emissive.copy(HOVER_GOLD_EMISSIVE);
+        bag.backCardMatRef.current.emissiveIntensity = hoverEmissiveIntensity;
     }
 };
 
@@ -636,6 +767,7 @@ const TileBezelInner = ({
     fieldAmp,
     fieldTiltRef,
     flipLocked,
+    graphicsQuality,
     hoverTiltRef,
     interactionSuppressed,
     interactive,
@@ -644,6 +776,9 @@ const TileBezelInner = ({
     reduceMotion,
     resolvingSelection,
     shuffleMotionDeadlineMs,
+    shuffleMotionBudgetMs,
+    shuffleStaggerTileCount,
+    shuffleBoardOrderIndex,
     textureRevision,
     tile,
     transform,
@@ -701,11 +836,15 @@ const TileBezelInner = ({
         reduceMotion,
         resolvingSelection,
         shuffleMotionDeadlineMs,
+        shuffleMotionBudgetMs,
+        shuffleStaggerTileCount,
+        shuffleBoardOrderIndex,
         textureRevision,
         tile,
         transform,
         useSvgMeshBack,
         useSvgMeshFront,
+        graphicsQuality,
         fieldTiltRef,
         hoverTiltRef
     };
@@ -738,8 +877,10 @@ const TileBezelInner = ({
 
     const prevFaceUpRef = useRef(faceUp);
     const flipPopT0Ref = useRef<number | null>(null);
+    const faceUpStructBlendRef = useRef(faceUp ? 1 : 0);
+    const faceUpStructT0Ref = useRef<number | null>(null);
     const prevResolvingRef = useRef<ResolvingSelectionState | null>(null);
-    /** FX-005 WebGL match burst scale; decays in ~0.35s (cap-style budget, ~PERF-009). */
+    /** FX-005 WebGL: brief match scale pulse (DOM hit layer adds CSS spark ring in `TileBoard.module.css`). */
     const matchPulseRef = useRef(0);
     const liftSmoothRef = useRef(0);
     const frontCardMatRef = useRef<MeshStandardMaterial | null>(null);
@@ -752,6 +893,10 @@ const TileBezelInner = ({
     const lastBumpURef = useRef<number | null>(null);
     const lastBumpVRef = useRef<number | null>(null);
     const pressingOnCardRef = useRef(false);
+    const hoverRimTopMatRef = useRef<MeshBasicMaterial | null>(null);
+    const hoverRimBottomMatRef = useRef<MeshBasicMaterial | null>(null);
+    const hoverRimRightMatRef = useRef<MeshBasicMaterial | null>(null);
+    const hoverRimLeftMatRef = useRef<MeshBasicMaterial | null>(null);
 
     useLayoutEffect(() => {
         if (bagRef.current === null) {
@@ -767,6 +912,8 @@ const TileBezelInner = ({
                 overlayPersistentRef,
                 prevFaceUpRef,
                 flipPopT0Ref,
+                faceUpStructBlendRef,
+                faceUpStructT0Ref,
                 prevResolvingRef,
                 matchPulseRef,
                 liftSmoothRef,
@@ -778,7 +925,11 @@ const TileBezelInner = ({
                 bendBuildupRef,
                 lastBumpURef,
                 lastBumpVRef,
-                pressingOnCardRef
+                pressingOnCardRef,
+                hoverRimTopMatRef,
+                hoverRimBottomMatRef,
+                hoverRimRightMatRef,
+                hoverRimLeftMatRef
             };
         } else {
             bagRef.current.planeGeometries = { front: frontGeometry, back: backGeometry, overlay: overlayGeometry };
@@ -1052,7 +1203,7 @@ const TileBezelInner = ({
         hiddenPinned
             ? '#d4b870'
             : resolvingSelection === 'mismatch' && faceUp
-              ? '#ffc8bc'
+              ? '#ffb4a6'
               : resolvingSelection === 'gambitNeutral' && faceUp
                 ? '#cfe8f2'
                 : '#ffffff';
@@ -1217,6 +1368,88 @@ const TileBezelInner = ({
                         />
                     </mesh>
                 ) : null}
+                {/*
+                  FX-006: gold frame strips on the pickable hidden face (same transform stack as `.fallbackTile:hover` rim).
+                  Opacity driven in `advanceTileBezelFrame`; shared geometry keeps perf sane across tiles.
+                */}
+                <group position={[0, 0, -faceZ - 0.00028]} rotation={[0, Math.PI, 0]}>
+                    <mesh
+                        geometry={hoverGoldRimGeomH}
+                        position={[0, CARD_HEIGHT * 0.5 - HOVER_GOLD_RIM_STRIP * 0.5, 0.00045]}
+                        raycast={noopMeshRaycast}
+                        renderOrder={7}
+                    >
+                        <meshBasicMaterial
+                            ref={hoverRimTopMatRef}
+                            color={RENDERER_THEME.colors.goldBright}
+                            depthWrite={false}
+                            opacity={0}
+                            polygonOffset
+                            polygonOffsetFactor={-1}
+                            polygonOffsetUnits={-1}
+                            side={DoubleSide}
+                            toneMapped={false}
+                            transparent
+                        />
+                    </mesh>
+                    <mesh
+                        geometry={hoverGoldRimGeomH}
+                        position={[0, -CARD_HEIGHT * 0.5 + HOVER_GOLD_RIM_STRIP * 0.5, 0.00045]}
+                        raycast={noopMeshRaycast}
+                        renderOrder={7}
+                    >
+                        <meshBasicMaterial
+                            ref={hoverRimBottomMatRef}
+                            color={RENDERER_THEME.colors.goldBright}
+                            depthWrite={false}
+                            opacity={0}
+                            polygonOffset
+                            polygonOffsetFactor={-1}
+                            polygonOffsetUnits={-1}
+                            side={DoubleSide}
+                            toneMapped={false}
+                            transparent
+                        />
+                    </mesh>
+                    <mesh
+                        geometry={hoverGoldRimGeomV}
+                        position={[CARD_WIDTH * 0.5 - HOVER_GOLD_RIM_STRIP * 0.5, 0, 0.00045]}
+                        raycast={noopMeshRaycast}
+                        renderOrder={7}
+                    >
+                        <meshBasicMaterial
+                            ref={hoverRimRightMatRef}
+                            color={RENDERER_THEME.colors.goldBright}
+                            depthWrite={false}
+                            opacity={0}
+                            polygonOffset
+                            polygonOffsetFactor={-1}
+                            polygonOffsetUnits={-1}
+                            side={DoubleSide}
+                            toneMapped={false}
+                            transparent
+                        />
+                    </mesh>
+                    <mesh
+                        geometry={hoverGoldRimGeomV}
+                        position={[-CARD_WIDTH * 0.5 + HOVER_GOLD_RIM_STRIP * 0.5, 0, 0.00045]}
+                        raycast={noopMeshRaycast}
+                        renderOrder={7}
+                    >
+                        <meshBasicMaterial
+                            ref={hoverRimLeftMatRef}
+                            color={RENDERER_THEME.colors.goldBright}
+                            depthWrite={false}
+                            opacity={0}
+                            polygonOffset
+                            polygonOffsetFactor={-1}
+                            polygonOffsetUnits={-1}
+                            side={DoubleSide}
+                            toneMapped={false}
+                            transparent
+                        />
+                    </mesh>
+                </group>
                 {memorizeCurseHighlight ? (
                     <mesh geometry={curseRingGeometry} position={[0, 0, faceZ + 0.014]} raycast={noopMeshRaycast} renderOrder={9}>
                         <meshBasicMaterial
@@ -1305,6 +1538,110 @@ const TileBezelInner = ({
 TileBezelInner.displayName = 'TileBezel';
 const TileBezel = memo(TileBezelInner);
 
+interface MatchResolvingPairLinkProps {
+    board: BoardState;
+    boardGroupRef: RefObject<Group | null>;
+    graphicsQuality: GraphicsQualityPreset;
+    reduceMotion: boolean;
+    runStatus: RunStatus;
+    tileFrameBagsRef: RefObject<Map<string, TileBezelFrameBag>>;
+}
+
+/**
+ * FX-017: thin emerald ribbon between the two tiles in `match` resolving state.
+ * Sits slightly behind card depth so faces / overlay symbols stay readable; off when `reduceMotion` or `low` quality.
+ */
+const MatchResolvingPairLink = ({
+    board,
+    boardGroupRef,
+    graphicsQuality,
+    reduceMotion,
+    runStatus,
+    tileFrameBagsRef
+}: MatchResolvingPairLinkProps) => {
+    const meshRef = useRef<Mesh | null>(null);
+    const matRef = useRef<MeshBasicMaterial | null>(null);
+    const pairIds = useMemo(() => getMatchResolvingPairTileIds(board, runStatus), [board, runStatus]);
+
+    useFrame((state) => {
+        const mesh = meshRef.current;
+        const mat = matRef.current;
+        const boardRoot = boardGroupRef.current;
+
+        if (!mesh || !mat || !boardRoot) {
+            return;
+        }
+
+        if (reduceMotion || graphicsQuality === 'low' || !pairIds) {
+            mesh.visible = false;
+
+            return;
+        }
+
+        const [idA, idB] = pairIds;
+        const groupA = tileFrameBagsRef.current.get(idA)?.groupRef.current;
+        const groupB = tileFrameBagsRef.current.get(idB)?.groupRef.current;
+
+        if (!groupA || !groupB) {
+            mesh.visible = false;
+
+            return;
+        }
+
+        groupA.getWorldPosition(matchLinkWorldA);
+        groupB.getWorldPosition(matchLinkWorldB);
+        boardRoot.worldToLocal(matchLinkWorldA);
+        boardRoot.worldToLocal(matchLinkWorldB);
+
+        const dx = matchLinkWorldB.x - matchLinkWorldA.x;
+        const dy = matchLinkWorldB.y - matchLinkWorldA.y;
+        const len = Math.hypot(dx, dy);
+
+        if (len < 1e-5) {
+            mesh.visible = false;
+
+            return;
+        }
+
+        mesh.visible = true;
+        const midX = (matchLinkWorldA.x + matchLinkWorldB.x) * 0.5;
+        const midY = (matchLinkWorldA.y + matchLinkWorldB.y) * 0.5;
+        const zUnder = Math.min(matchLinkWorldA.z, matchLinkWorldB.z) - 0.007;
+        mesh.position.set(midX, midY, zUnder);
+        mesh.rotation.set(0, 0, Math.atan2(dy, dx));
+        const thickMul = graphicsQuality === 'high' ? 1.35 : 1;
+        mesh.scale.set(len, thickMul, 1);
+
+        const pulse = 0.34 + 0.24 * Math.sin(state.clock.elapsedTime * 4.05);
+        mat.opacity = pulse;
+        mat.color.copy(matchLinkColor);
+    });
+
+    return (
+        <mesh
+            ref={meshRef}
+            frustumCulled={false}
+            geometry={MATCH_PAIR_LINK_PLANE_GEOM}
+            raycast={noopMeshRaycast}
+            renderOrder={-8}
+        >
+            <meshBasicMaterial
+                ref={matRef}
+                color={matchLinkColor}
+                depthTest
+                depthWrite={false}
+                opacity={0}
+                polygonOffset
+                polygonOffsetFactor={1}
+                polygonOffsetUnits={1}
+                side={DoubleSide}
+                toneMapped={false}
+                transparent
+            />
+        </mesh>
+    );
+};
+
 const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
     board,
     boardViewport,
@@ -1325,6 +1662,8 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
     wardPairKey = null,
     bountyPairKey = null,
     shuffleMotionDeadlineMs,
+    shuffleMotionBudgetMs,
+    shuffleStaggerTileCount,
     dimmedTileIds,
     allowGambitThirdFlip = false,
     graphicsQuality = 'medium'
@@ -1364,6 +1703,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                 isPinned: pinnedSet.has(tile.id),
                 memorizeCurseHighlight,
                 resolvingSelection: getResolvingSelectionState(board, runStatus, tile.id),
+                shuffleBoardOrderIndex: index,
                 spotlightBountyHighlight,
                 spotlightWardHighlight,
                 tile,
@@ -1566,6 +1906,14 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
             <pointLight color={colors.gold} intensity={compact ? 0.14 : 0.2} position={[0, -2.2, 5.4]} />
 
             <group ref={boardGroupRef} rotation={[0, 0, 0]}>
+                <MatchResolvingPairLink
+                    board={board}
+                    boardGroupRef={boardGroupRef}
+                    graphicsQuality={graphicsQuality}
+                    reduceMotion={reduceMotion}
+                    runStatus={runStatus}
+                    tileFrameBagsRef={tileFrameBagsRef}
+                />
                 {tileBezelRows.map(
                     ({
                         faceUp,
@@ -1575,6 +1923,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                         isPinned,
                         memorizeCurseHighlight,
                         resolvingSelection,
+                        shuffleBoardOrderIndex,
                         spotlightBountyHighlight,
                         spotlightWardHighlight,
                         tile,
@@ -1599,12 +1948,16 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                             onTilePick={onTilePick}
                             reduceMotion={reduceMotion}
                             resolvingSelection={resolvingSelection}
+                            shuffleBoardOrderIndex={shuffleBoardOrderIndex}
+                            shuffleMotionBudgetMs={shuffleMotionBudgetMs}
                             shuffleMotionDeadlineMs={shuffleMotionDeadlineMs}
+                            shuffleStaggerTileCount={shuffleStaggerTileCount}
                             sharedCardBackGeometry={sharedCardBackGeometry}
                             sharedCardFrontGeometry={sharedCardFrontGeometry}
                             textureRevision={textureRevision}
                             tile={tile}
                             transform={transform}
+                            graphicsQuality={graphicsQuality}
                         />
                     )
                 )}

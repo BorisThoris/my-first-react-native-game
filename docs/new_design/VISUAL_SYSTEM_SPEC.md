@@ -50,7 +50,7 @@ Key goals:
 
 ### Target Font Pairing
 - Display: classical serif in the spirit of `Cinzel Bold`
-- Utility/body: neutral sans in the spirit of `Inter Regular`
+- Utility/body: **Source Sans 3** (live implementation; Inter was an early reference only)
 
 ### Type Roles
 | Role | Use |

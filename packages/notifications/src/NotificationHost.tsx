@@ -39,8 +39,17 @@ const getNotificationRole = (notification: NotificationRecord) => {
   return notification.type === 'error' ? 'alert' : 'status';
 };
 
-const getNotificationLiveMode = (notification: NotificationRecord) =>
-  notification.type === 'error' ? 'assertive' : 'polite';
+const getNotificationLiveMode = (notification: NotificationRecord) => {
+  if (notification.ariaLive) {
+    return notification.ariaLive;
+  }
+  return notification.type === 'error' ? 'assertive' : 'polite';
+};
+
+const surfaceDataAttribute = (notification: NotificationRecord) => {
+  const surface = notification.surface ?? 'generic';
+  return surface === 'generic' ? undefined : surface;
+};
 
 type NotificationItemProps = {
   notification: NotificationRecord;
@@ -81,6 +90,8 @@ const NotificationItem = ({ notification, onResolve, labels }: NotificationItemP
   return (
     <div
       className={className}
+      data-crn-surface={surfaceDataAttribute(notification)}
+      data-crn-stack-key={notification.stackKey ?? undefined}
       aria-atomic="true"
       aria-describedby={messageId}
       aria-live={getNotificationLiveMode(notification)}
@@ -180,6 +191,7 @@ export const useNotificationActions = () => {
   const showError = useNotificationStore((state) => state.showError);
   const showWarning = useNotificationStore((state) => state.showWarning);
   const showInfo = useNotificationStore((state) => state.showInfo);
+  const showAchievement = useNotificationStore((state) => state.showAchievement);
   const confirm = useNotificationStore((state) => state.confirm);
 
   return {
@@ -190,6 +202,7 @@ export const useNotificationActions = () => {
     showError,
     showWarning,
     showInfo,
+    showAchievement,
     confirm
   };
 };

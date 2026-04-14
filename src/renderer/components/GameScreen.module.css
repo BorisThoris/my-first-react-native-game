@@ -12,6 +12,8 @@
 
 .shell {
     --game-deck-blur: 18px;
+    /* `main` is a flex column; grow to available height and allow children to shrink (settings modal e2e). */
+    flex: 1 1 auto;
     height: 100%;
     min-height: 0;
     display: flex;
@@ -28,15 +30,58 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    opacity: 0.22;
+    opacity: 0.26;
     background-position: center;
     background-repeat: no-repeat;
     background-size: cover;
     mix-blend-mode: screen;
-    /* Vignette: pulls focus to the board “stage” */
-    mask-image: radial-gradient(ellipse 92% 88% at 50% 48%, black 22%, transparent 100%);
+    /* PLAY-006: arena spotlight — slightly tighter than the torch ring so the dais reads centered */
+    mask-image: radial-gradient(ellipse 90% 86% at 50% 47%, black 20%, transparent 100%);
 }
 
+/* PLAY-006: radial floor vignette (multiplies scene art toward the edges). */
+.stageBackdrop::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: radial-gradient(
+        ellipse 128% 94% at 50% 58%,
+        transparent 26%,
+        color-mix(in srgb, var(--theme-shadow) 90%, transparent) 100%
+    );
+    mix-blend-mode: multiply;
+    opacity: 0.68;
+}
+
+/* PLAY-006: warm outer “torch” ring at the spotlight rim (mask keeps center clear). */
+.stageBackdrop::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: radial-gradient(
+        ellipse 84% 78% at 50% 46%,
+        transparent 58%,
+        color-mix(in srgb, var(--theme-gold-bright) 38%, transparent) 74%,
+        color-mix(in srgb, var(--theme-gold-bright) 10%, transparent) 84%,
+        transparent 100%
+    );
+    mix-blend-mode: soft-light;
+    opacity: 0.88;
+    mask-image: radial-gradient(
+        ellipse 90% 86% at 50% 47%,
+        transparent 0%,
+        transparent 66%,
+        black 74%,
+        black 86%,
+        transparent 100%
+    );
+}
+
+/* HUD-013: full in-game z-index ordering is documented in `App.tsx` (OVR-008 comment block). */
 .gameForeground {
     position: relative;
     z-index: 1;
@@ -48,6 +93,14 @@
     padding: 0.45rem clamp(0.35rem, 1vw, 0.65rem) 0.45rem;
 }
 
+.gameplayInertScope {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+}
+
 .gamePlayLayout {
     display: flex;
     flex-direction: row;
@@ -57,10 +110,14 @@
     min-width: 0;
     width: 100%;
     gap: 0.4rem;
+    /* SIDE-010: utility flyout is absolutely positioned outside the rail; avoid clipping from flex defaults. */
+    overflow: visible;
 }
 
 .mainGameColumn {
     position: relative;
+    /* Stack below `.leftToolbar` (z-index 3 / 8) so the flyout + scrim subtree is never painted under the HUD. */
+    z-index: 0;
     display: flex;
     flex-direction: column;
     flex: 1;
@@ -80,6 +137,7 @@
     box-sizing: border-box;
     padding: 0.4rem 0.2rem;
     z-index: 3;
+    overflow: visible;
     border-radius: calc(var(--ui-radius-lg) + 0.12rem);
     background: var(--theme-hud-chrome-gloss), var(--theme-hud-chrome-fill);
     border: 1px solid var(--theme-hud-chrome-border);
@@ -172,8 +230,18 @@
 .utilityFlyout {
     position: absolute;
     top: 0.35rem;
-    left: calc(100% + 0.55rem);
-    width: min(15rem, calc(100vw - 5.4rem));
+    /* Logical inset: opens toward inline-end in LTR and toward inline-start in RTL (`dir=rtl` safe). */
+    inset-inline-start: calc(100% + 0.55rem);
+    inset-inline-end: auto;
+    /* `100dvi` tracks the dynamic layout viewport on mobile; reserve rail + gap so the panel is not clipped by `overflow:hidden` shells. */
+    width: min(
+        15rem,
+        calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 5.4rem)
+    );
+    width: min(
+        15rem,
+        calc(100dvi - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 5.4rem)
+    );
     display: grid;
     gap: 0.45rem;
     padding: 0.55rem;
@@ -181,6 +249,7 @@
     border: 1px solid var(--theme-hud-chrome-border);
     background: var(--theme-hud-flyout-surface);
     box-shadow: var(--theme-hud-flyout-shadow);
+    /* Above `.flyoutScrim` (1) and toolbar sections (2); entire rail stays above HUD via `.leftToolbar` / `.mobileCameraLeftToolbar`. */
     z-index: 10;
 }
 
@@ -189,7 +258,7 @@
     gap: 0.16rem;
     width: 100%;
     padding: 0.7rem 0.8rem;
-    text-align: left;
+    text-align: start;
     border-radius: calc(var(--ui-radius-md) + 0.04rem);
     border: 1px solid var(--theme-hud-chrome-border-soft);
     background: linear-gradient(180deg, rgba(255, 243, 217, 0.05), transparent), var(--theme-panel);
@@ -216,6 +285,10 @@
 .flyoutAction:hover:not(:disabled) {
     transform: translateX(2px);
     border-color: var(--theme-border-strong);
+}
+
+:global([dir='rtl']) .flyoutAction:hover:not(:disabled) {
+    transform: translateX(-2px);
 }
 
 .flyoutAction:focus-visible {
@@ -319,9 +392,26 @@
 
 .hudDeck {
     width: min(100%, 1120px);
+    /* HUD-002: keep the strip centered when the column is wider than the max width */
+    margin-inline: auto;
 }
 
-.hudStatsStrip {
+/*
+ * PLAY-003: `hudDeckDualRow` wraps a hero primary grid (`hudPrimaryStatsRow`) plus a slim full-width context strip.
+ * The gold inset frame spans both rows so the deck reads as one HUD unit (see `GameplayHudBar.tsx` comment).
+ */
+.hudDeckDualRow {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.32rem;
+    min-width: 0;
+    width: 100%;
+    position: relative;
+    isolation: isolate;
+}
+
+.hudPrimaryStatsRow {
     display: grid;
     /* Five children in DOM order: left | zone-divider | score | zone-divider | right */
     grid-template-columns: minmax(0, 1fr) auto auto auto minmax(0, 1fr);
@@ -329,6 +419,44 @@
     gap: 0;
     min-width: 0;
     width: 100%;
+    position: relative;
+}
+
+/* HUD-011: shared outer rail chrome — subtle gold-trimmed inset frame; spans primary + PLAY-003 context row */
+.hudDeckDualRow::before {
+    content: '';
+    position: absolute;
+    inset: -0.05rem;
+    border-radius: calc(var(--ui-radius-md) + 0.24rem);
+    pointer-events: none;
+    z-index: 0;
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 34%, transparent);
+    background: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--theme-gold-bright) 16%, transparent) 0%,
+        transparent 30%,
+        transparent 70%,
+        color-mix(in srgb, var(--theme-gold-bright) 9%, transparent) 100%
+    );
+    box-shadow:
+        inset 0 1px 0 color-mix(in srgb, var(--theme-gold-bright) 26%, transparent),
+        inset 0 -1px 0 color-mix(in srgb, var(--theme-shadow) 42%, transparent),
+        0 0 0 1px color-mix(in srgb, var(--theme-shadow) 26%, transparent);
+}
+
+.hudDeckDualRow > * {
+    position: relative;
+    z-index: 1;
+}
+
+.hudContextSecondaryStrip {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 0.02rem 0.05rem 0;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
 }
 
 .hudStripLeftModule {
@@ -364,12 +492,17 @@
     min-width: 0;
 }
 
+/* PLAY-003: row flex in the secondary strip (mode + rail); mobile camera stacks to a column below */
 .hudStripRightInnerColumn {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
     gap: 0.45rem;
-    flex: 1 1 14rem;
+    flex: 1 1 auto;
     min-width: 0;
+    width: 100%;
 }
 
 .hudStripDivider {
@@ -441,10 +574,25 @@
     align-items: flex-start;
 }
 
+/*
+ * HUD-001 (residual, roomy viewport): primary grid must not pick up a phantom “second row” from flex-wrap
+ * inside the left/right cells; `hud-wing-right` context strip keeps mode + stat rail on one horizontal line.
+ * Mobile-camera + compact breakpoints override below with intentional stack/wrap rules (HUD-014).
+ */
+.shell:not([data-mobile-camera-mode='true']) .hudDeck .hudStripLeftModule {
+    flex-wrap: nowrap;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudDeck .hudStripRightInnerColumn {
+    flex-wrap: nowrap;
+    align-items: center;
+}
+
 .hudDeck .hudStripRightInnerColumn {
     gap: 0.28rem;
-    flex: 1 1 10rem;
+    flex: 1 1 auto;
     min-width: 0;
+    width: 100%;
 }
 
 .hudDeck .hudStripRightInnerColumn .statRail {
@@ -453,29 +601,35 @@
 }
 
 .hudDeck .hudStripRightInnerColumn .statPillCompact {
-    min-height: 2.55rem;
-    padding: 0.26rem 0.5rem 0.32rem;
+    min-height: 2.35rem;
+    padding: 0.22rem 0.45rem 0.26rem;
 }
 
-.hudDeck .hudMetaSegment {
+.hudDeck .hudContextSecondaryStrip .hudMetaSegment {
     min-width: 0;
-    flex: 1 1 min(13rem, 100%);
-    padding: 0.3rem 0.55rem 0.34rem;
+    flex: 1 1 min(16rem, 100%);
+    min-height: 2.55rem;
+    padding: 0.22rem 0.48rem 0.28rem;
 }
 
-.hudDeck .hudMetaSegment .mutatorRow {
-    margin-top: 0.22rem;
+.hudDeck .hudContextSecondaryStrip .hudMetaSegment .mutatorRow {
+    margin-top: 0.16rem;
     gap: 0.22rem;
 }
 
-.hudDeck .hudMetaSegment .mutatorChip {
+.hudDeck .hudContextSecondaryStrip .hudMetaSegment .mutatorChip {
     font-size: 0.56rem;
     padding: 0.08rem 0.3rem;
 }
 
+.hudDeck .hudParasiteCrystalWrap {
+    width: 2.42rem;
+    height: 2.42rem;
+}
+
 .hudDeck .hudParasiteCrystal {
-    width: 24px;
-    height: 30px;
+    width: 22px;
+    height: 28px;
 }
 
 .hudDeck .hudParasiteSegment {
@@ -519,6 +673,40 @@
         linear-gradient(180deg, rgba(255, 243, 217, 0.05), transparent 42%),
         color-mix(in srgb, var(--theme-void) 52%, transparent);
     box-shadow: inset 0 1px 0 var(--theme-hud-chrome-inset);
+}
+
+/* HUD-010 / PLAY-005: tall hex frame reads as a shield escutcheon vs a plain rectangle; inner plate depth below reinforces that read. */
+.floorBadgeHexFrame {
+    position: relative;
+    display: inline-flex;
+    align-self: stretch;
+    align-items: stretch;
+    justify-content: center;
+    min-width: 0;
+    padding: 0.12rem 0.16rem 0.14rem;
+    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--theme-glow-gold-soft) 38%, transparent));
+}
+
+.floorBadgeHexSvg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    overflow: visible;
+}
+
+.floorBadgeHexFrame .floorBadge {
+    position: relative;
+    z-index: 1;
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 44%, var(--theme-border-strong));
+    box-shadow:
+        inset 0 1px 0 var(--theme-hud-chrome-inset),
+        inset 0 12px 22px color-mix(in srgb, var(--theme-gold-bright) 12%, transparent),
+        inset 0 -26px 34px color-mix(in srgb, var(--theme-void) 72%, transparent),
+        0 0 0 1px color-mix(in srgb, var(--theme-glow-gold-soft) 42%, transparent),
+        0 0 20px color-mix(in srgb, var(--theme-glow-gold) 20%, transparent);
 }
 
 .floorBadge {
@@ -575,6 +763,15 @@
     max-width: 2.85rem;
 }
 
+.regionShuffleHeader {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 0.28rem;
+    width: 100%;
+}
+
 .regionShuffleLabel {
     font-size: 0.52rem;
     font-weight: 700;
@@ -583,6 +780,7 @@
     color: var(--theme-text-subtle);
     text-align: center;
     line-height: 1.1;
+    flex-shrink: 0;
 }
 
 .regionShuffleRows {
@@ -595,31 +793,52 @@
 
 .regionRowBtn {
     appearance: none;
-    min-width: 1.35rem;
-    padding: 0.18rem 0.22rem;
-    border-radius: var(--ui-radius-sm, 6px);
-    border: 1px solid var(--theme-hud-accent-border);
-    background: var(--theme-hud-accent-fill);
+    width: 1.42rem;
+    height: 1.42rem;
+    min-width: 1.42rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 1px solid var(--theme-hud-chrome-border-soft);
+    background: linear-gradient(180deg, rgba(255, 243, 217, 0.05), transparent), var(--theme-panel);
     color: var(--theme-text-muted);
-    font-size: 0.62rem;
+    font-size: 0.58rem;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     cursor: pointer;
     line-height: 1;
+    box-shadow:
+        inset 0 1px 0 var(--theme-hud-chrome-inset),
+        0 4px 10px color-mix(in srgb, var(--theme-shadow) 16%, transparent);
     transition:
-        background 140ms ease,
+        color 140ms ease,
         border-color 140ms ease,
+        background 140ms ease,
+        transform 140ms ease,
+        filter 140ms ease,
         opacity 140ms ease;
 }
 
 .regionRowBtn:hover:not(:disabled) {
-    background: var(--theme-hud-accent-fill-strong);
-    border-color: var(--theme-hud-accent-border-strong);
+    color: var(--theme-gold-bright);
+    border-color: color-mix(in srgb, var(--theme-hud-chrome-border) 88%, var(--theme-gold-bright));
+    transform: translateY(-1px);
+    filter: drop-shadow(0 0 12px var(--theme-glow-gold-soft));
 }
 
 .regionRowBtn:disabled {
-    opacity: 0.38;
+    opacity: 1;
     cursor: not-allowed;
+    color: color-mix(in srgb, var(--theme-text-muted) 42%, transparent);
+    border-color: var(--theme-hud-chrome-border-muted);
+    background:
+        linear-gradient(180deg, rgba(255, 243, 217, 0.03), transparent),
+        color-mix(in srgb, var(--theme-panel) 55%, transparent);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--theme-hud-chrome-inset) 65%, transparent);
+    filter: none;
+    transform: none;
 }
 
 .toolbarFlashGlyph {
@@ -635,6 +854,7 @@
 
 .lifeTrack {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.22rem;
     margin-top: 0.14rem;
@@ -653,6 +873,12 @@
 
 .lifeHeartInactive {
     color: color-mix(in srgb, var(--theme-text) 20%, transparent);
+}
+
+/* PLAY-004: tabular capacity line under hearts (sr-only duplicate avoided — lifeTrack carries full phrase). */
+.lifeCapReadout {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.12em;
 }
 
 .statRail {
@@ -756,11 +982,11 @@
     max-width: 17rem;
     padding: 0.4rem 0.55rem 0.48rem;
     border-radius: calc(var(--ui-radius-md) + 0.05rem);
-    border: 1px solid color-mix(in srgb, var(--theme-violet) 45%, transparent);
-    background:
-        linear-gradient(180deg, color-mix(in srgb, var(--theme-violet) 18%, transparent), transparent 55%),
-        rgba(8, 8, 11, 0.55);
-    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--theme-violet-bright) 12%, transparent);
+    border: var(--theme-hud-parasite-segment-border);
+    background: var(--theme-hud-parasite-segment-surface);
+    box-shadow:
+        var(--theme-hud-parasite-segment-shadow),
+        0 0 0 1px color-mix(in srgb, var(--theme-violet) 18%, transparent);
 }
 
 .hudParasiteRow {
@@ -771,11 +997,23 @@
     min-width: 0;
 }
 
+.hudParasiteCrystalWrap {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 2.55rem;
+    height: 2.55rem;
+    border-radius: 50%;
+    background: var(--theme-hud-parasite-crystal-well);
+    border: var(--theme-hud-parasite-crystal-border);
+    box-shadow: var(--theme-hud-parasite-crystal-inset), var(--theme-hud-parasite-crystal-aura);
+}
+
 .hudParasiteCrystal {
     flex-shrink: 0;
     display: block;
     object-fit: contain;
-    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--theme-violet-bright) 55%, transparent));
+    filter: drop-shadow(0 0 8px color-mix(in srgb, var(--theme-violet-bright) 50%, transparent));
 }
 
 .hudParasiteBody {
@@ -792,29 +1030,36 @@
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: color-mix(in srgb, var(--theme-text) 92%, white);
+    color: var(--theme-hud-parasite-label-color);
 }
 
 .hudParasiteTrack {
-    height: 0.42rem;
+    position: relative;
+    height: 0.46rem;
     border-radius: var(--ui-radius-pill);
-    background: color-mix(in srgb, var(--theme-ink) 35%, transparent);
-    border: 1px solid color-mix(in srgb, var(--theme-violet) 35%, transparent);
+    background: var(--theme-hud-parasite-track-bg);
+    border: var(--theme-hud-parasite-track-border);
     overflow: hidden;
-    box-shadow: inset 0 0 8px color-mix(in srgb, var(--theme-violet) 25%, transparent);
+    box-shadow: var(--theme-hud-parasite-track-inset);
 }
 
 .hudParasiteFill {
+    position: relative;
     height: 100%;
     max-width: 100%;
     border-radius: inherit;
-    background: linear-gradient(
-        90deg,
-        color-mix(in srgb, var(--theme-violet) 90%, white),
-        color-mix(in srgb, var(--theme-violet-bright) 70%, var(--theme-violet))
-    );
-    box-shadow: 0 0 12px color-mix(in srgb, var(--theme-violet-bright) 45%, transparent);
+    background: var(--theme-hud-parasite-fill);
+    box-shadow: var(--theme-hud-parasite-fill-glow);
     transition: width 160ms ease;
+}
+
+.hudParasiteFill::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--theme-hud-parasite-fill-sheen);
+    pointer-events: none;
 }
 
 .hudParasiteCaption {
@@ -856,19 +1101,67 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
+    /* Above board tiles (`boardStage > *` z-index 1), still below the HUD header stacking context. */
     z-index: 4;
     display: flex;
     align-items: flex-start;
     justify-content: flex-end;
     padding: 0.35rem 0.5rem;
-    font-size: 1.35rem;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    color: color-mix(in srgb, var(--theme-gold-bright) 22%, transparent);
     user-select: none;
 }
 
+/* OVR-007: channel chrome + legible contrast (decorative only; `aria-hidden` on root). */
+.distractionHudPlate {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.06rem;
+    padding: 0.2rem 0.42rem 0.24rem;
+    border-radius: calc(var(--ui-radius-md) + 0.06rem);
+    border: 1px solid color-mix(in srgb, var(--theme-violet) 48%, transparent);
+    background:
+        linear-gradient(180deg, rgba(255, 243, 217, 0.07), transparent 48%),
+        color-mix(in srgb, var(--theme-void-alt) 78%, var(--theme-violet) 22%);
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--theme-void) 55%, transparent),
+        0 8px 22px color-mix(in srgb, var(--theme-shadow) 48%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--theme-violet-bright) 16%, transparent);
+}
+
+.distractionHudLabel {
+    font-family: var(--ui-font-display-family);
+    font-size: 0.46rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--theme-violet-bright) 92%, white);
+    line-height: 1;
+    text-shadow: 0 0 10px color-mix(in srgb, var(--theme-violet) 40%, transparent);
+}
+
+.distractionHudValue {
+    font-family: var(--ui-font-display-family);
+    font-size: 1.18rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+    color: var(--theme-text);
+    line-height: 1;
+    text-shadow:
+        0 0 12px color-mix(in srgb, var(--theme-violet-bright) 38%, transparent),
+        0 1px 0 color-mix(in srgb, var(--theme-shadow) 50%, transparent);
+}
+
+.shell[data-mobile-camera-mode='true'] .distractionHud {
+    /* HUD-020: full-bleed board extends under the HUD; keep the numeric pulse in the visible playfield. */
+    padding-top: calc(env(safe-area-inset-top, 0px) + 4rem);
+}
+
 .mutatorChip {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.32rem;
     font-size: 0.62rem;
     font-weight: 700;
     letter-spacing: 0.04em;
@@ -882,6 +1175,133 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.mutatorChipLabel {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mutatorChipGlyphSvg {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1rem;
+    height: 1rem;
+    color: inherit;
+    opacity: 0.92;
+}
+
+.mutatorChipSvg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.mutatorChipGlyphImg {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1rem;
+    height: 1rem;
+    opacity: 0.95;
+}
+
+.mutatorChipBookImg,
+.mutatorChipShuffleImg {
+    display: block;
+    width: 14px;
+    height: 14px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 4px color-mix(in srgb, currentColor 35%, transparent));
+}
+
+.mutatorChipSpotlightPair {
+    flex-shrink: 0;
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.18rem;
+}
+
+.mutatorChipSpotWard,
+.mutatorChipSpotBounty {
+    width: 0.42rem;
+    height: 0.42rem;
+    border-radius: 50%;
+    box-shadow: 0 0 6px color-mix(in srgb, currentColor 40%, transparent);
+}
+
+.mutatorChipSpotWard {
+    background: color-mix(in srgb, var(--theme-ember) 72%, var(--theme-gold-bright));
+    border: 1px solid color-mix(in srgb, var(--theme-ember) 55%, transparent);
+}
+
+.mutatorChipSpotBounty {
+    background: color-mix(in srgb, var(--theme-emerald) 65%, var(--theme-emerald-bright));
+    border: 1px solid color-mix(in srgb, var(--theme-emerald) 50%, transparent);
+}
+
+/* HUD-008: time / recall / spotlight mutators — distinct from default violet chip */
+.mutatorChipShortMemorize {
+    border-color: color-mix(in srgb, var(--theme-amber) 55%, var(--theme-gold-deep));
+    background: linear-gradient(
+            135deg,
+            color-mix(in srgb, var(--theme-amber) 22%, transparent),
+            color-mix(in srgb, var(--theme-void-alt) 82%, var(--theme-amber) 12%)
+        ),
+        color-mix(in srgb, var(--theme-void-alt) 70%, var(--theme-amber) 18%);
+    color: color-mix(in srgb, var(--theme-ember-soft) 88%, white);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--theme-amber) 25%, transparent);
+}
+
+.mutatorChipNBack {
+    border-color: color-mix(in srgb, var(--theme-cyan) 52%, var(--theme-border-cyan));
+    background: linear-gradient(
+            160deg,
+            color-mix(in srgb, var(--theme-cyan) 18%, transparent),
+            color-mix(in srgb, var(--theme-void-alt) 80%, var(--theme-cyan) 14%)
+        ),
+        color-mix(in srgb, var(--theme-void-alt) 72%, var(--theme-cyan-deep) 22%);
+    color: var(--theme-cyan-bright);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--theme-cyan-bright) 12%, transparent);
+}
+
+.mutatorChipShiftingSpotlight {
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 42%, var(--theme-emerald) 35%);
+    background: linear-gradient(
+            90deg,
+            color-mix(in srgb, var(--theme-ember) 12%, transparent),
+            color-mix(in srgb, var(--theme-emerald) 14%, transparent)
+        ),
+        color-mix(in srgb, var(--theme-void-alt) 76%, var(--theme-gold) 16%);
+    color: color-mix(in srgb, var(--theme-gold-bright) 90%, var(--theme-text));
+}
+
+/* Run context: gauntlet / scholar contract / shuffle tax */
+.mutatorChipGauntlet {
+    border-color: color-mix(in srgb, var(--theme-ember) 58%, transparent);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--theme-ember) 28%, transparent), var(--theme-void-alt));
+    color: var(--theme-ember-soft);
+    box-shadow:
+        inset 0 1px 0 color-mix(in srgb, var(--theme-ember-soft) 18%, transparent),
+        0 0 14px color-mix(in srgb, var(--theme-ember) 35%, transparent);
+}
+
+.mutatorChipScholar {
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 38%, var(--theme-emerald) 28%);
+    background: linear-gradient(125deg, color-mix(in srgb, var(--theme-emerald) 16%, transparent), var(--theme-void-alt));
+    color: color-mix(in srgb, var(--theme-emerald-bright) 82%, var(--theme-gold-bright));
+}
+
+.mutatorChipShuffleTax {
+    border-color: color-mix(in srgb, var(--theme-gold) 48%, var(--theme-stone-highlight));
+    background: color-mix(in srgb, var(--theme-void-alt) 68%, var(--theme-gold-deep) 28%);
+    color: var(--theme-gold-bright);
 }
 
 .ruleHint {
@@ -947,7 +1367,25 @@
 }
 
 .iconAction:disabled {
-    opacity: 0.55;
+    opacity: 1;
+    cursor: not-allowed;
+    transform: none;
+    filter: none;
+    color: color-mix(in srgb, var(--theme-text-muted) 72%, transparent);
+    border-color: var(--theme-hud-chrome-border-muted);
+    background:
+        linear-gradient(180deg, rgba(255, 243, 217, 0.03), transparent),
+        color-mix(in srgb, var(--theme-panel) 58%, transparent);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--theme-hud-chrome-inset) 70%, transparent);
+}
+
+.iconAction:disabled .toolbarGlyphImg,
+.iconAction:disabled .toolbarFlashGlyph {
+    opacity: 0.4;
+}
+
+.iconAction:disabled .powerBadge {
+    opacity: 1;
 }
 
 .iconActionActive {
@@ -970,10 +1408,39 @@
     font-weight: 700;
     line-height: 1rem;
     text-align: center;
+    font-variant-numeric: tabular-nums;
     background: var(--theme-panel-solid);
     color: var(--theme-text-muted);
     border: 1px solid var(--theme-border-strong);
     pointer-events: none;
+    box-shadow: 0 2px 6px color-mix(in srgb, var(--theme-shadow) 28%, transparent);
+}
+
+.powerBadgeInline {
+    position: static;
+    right: auto;
+    bottom: auto;
+    line-height: 1rem;
+    flex-shrink: 0;
+}
+
+.powerBadgeCharged {
+    color: var(--theme-gold-bright);
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 42%, var(--theme-border-strong));
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--theme-gold-bright) 14%, transparent), transparent),
+        var(--theme-panel-solid);
+    box-shadow:
+        0 0 10px color-mix(in srgb, var(--theme-glow-gold-soft) 55%, transparent),
+        0 2px 6px color-mix(in srgb, var(--theme-shadow) 22%, transparent);
+}
+
+.powerBadgeDepleted {
+    color: var(--theme-text-subtle);
+    border-color: var(--theme-hud-chrome-border-muted);
+    background:
+        linear-gradient(180deg, rgba(255, 243, 217, 0.04), transparent),
+        color-mix(in srgb, var(--theme-panel-solid) 92%, var(--theme-void));
 }
 
 .iconActionWithBadge {
@@ -1000,11 +1467,62 @@
     gap: 0.35rem;
     width: 100%;
     position: relative;
+    isolation: isolate;
+    /* HUD-020: keep gameplay stage painting under the stats header (z-index 2 / mobile 3). */
+    z-index: 1;
     padding: 0.05rem 0 0.15rem;
     border-radius: calc(var(--ui-radius-lg) + 0.2rem);
     box-shadow:
+        inset 0 0 0 1px color-mix(in srgb, var(--theme-gold-bright) 11%, transparent),
         inset 0 0 0 1px var(--theme-hud-chrome-border-soft),
         inset 0 24px 80px color-mix(in srgb, var(--theme-shadow) 35%, transparent);
+}
+
+/* PLAY-006: elliptical “stone dais” under the playfield (no layout / sizing change). */
+.boardStage::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -14%;
+    z-index: 0;
+    width: min(104%, 52rem);
+    height: 46%;
+    transform: translateX(-50%);
+    pointer-events: none;
+    border-radius: 50%;
+    background:
+        radial-gradient(
+            ellipse 100% 52% at 50% 0%,
+            color-mix(in srgb, var(--theme-stone-highlight) 24%, transparent) 0%,
+            color-mix(in srgb, var(--theme-gold-deep) 14%, transparent) 34%,
+            transparent 72%
+        ),
+        radial-gradient(
+            ellipse 100% 38% at 50% 10%,
+            color-mix(in srgb, var(--theme-void) 48%, transparent) 0%,
+            transparent 88%
+        );
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--theme-gold-bright) 13%, transparent),
+        0 0 76px 30px color-mix(in srgb, var(--theme-shadow) 38%, transparent);
+    opacity: 0.94;
+}
+
+.shell[data-mobile-camera-mode='true'] .boardStage::before {
+    /* Full-bleed camera: keep the dais low so it frames the board without fighting the HUD overlay. */
+    bottom: -18%;
+    width: min(108%, 100dvi);
+    height: 40%;
+    opacity: 0.82;
+}
+
+/* FX-015: extra DOM glow under the board when post-FX bloom is on + High quality (see PERFORMANCE_BUDGET.md). */
+.boardStageCssBloom .boardGlow {
+    inset: 4% 7% 8%;
+    opacity: 1;
+    box-shadow:
+        0 0 70px 38px color-mix(in srgb, var(--theme-glow-gold-soft) 24%, transparent),
+        0 0 120px 52px color-mix(in srgb, var(--theme-violet) 7%, transparent);
 }
 
 /* Spaghetti layout mode: no perspective skew (flat board); sizing still follows board rules. */
@@ -1085,6 +1603,11 @@
     padding: 0.28rem 0.46rem 0.36rem;
 }
 
+.mobileCameraHud .floorBadgeHexFrame {
+    padding: 0.08rem 0.12rem 0.1rem;
+    filter: drop-shadow(0 0 8px color-mix(in srgb, var(--theme-glow-gold-soft) 32%, transparent));
+}
+
 .mobileCameraHud .floorBadge {
     min-width: 2.8rem;
 }
@@ -1113,6 +1636,16 @@
     font-size: 0.58rem;
 }
 
+.mobileCameraHud .hudParasiteCrystalWrap {
+    width: 2.15rem;
+    height: 2.15rem;
+}
+
+.mobileCameraHud .hudParasiteCrystal {
+    width: 19px;
+    height: 24px;
+}
+
 .mobileCameraHud .hudScoreSegment {
     min-width: 7.6rem;
     background-size: 132px 48px;
@@ -1121,6 +1654,12 @@
 
 .mobileCameraHud .hudMetaSegment {
     min-width: 0;
+}
+
+/* HUD-014: lives strip min-width is desktop-sized; let hearts wrap/shrink inside narrow main column (e.g. 390×844). */
+.shell[data-mobile-camera-mode='true'] .hudDeck .hudLivesSegment {
+    min-width: 0;
+    flex: 1 1 auto;
 }
 
 .mobileCameraHud .statRail {
@@ -1140,6 +1679,18 @@
     max-width: 6.6rem;
     padding: 0.1rem 0.32rem;
     font-size: 0.56rem;
+}
+
+.mobileCameraHud .hudContextRegion .hudMetaSegment .statVal {
+    font-size: clamp(0.72rem, 3.6vw, 0.84rem);
+}
+
+.mobileCameraHud .hudContextRegion .statPillCompact .statVal {
+    font-size: clamp(0.66rem, 3.2vw, 0.78rem);
+}
+
+.mobileCameraHud .hudContextRegion .mutatorChip {
+    opacity: 0.94;
 }
 
 .mobileCameraLeftToolbar .iconAction {
@@ -1341,6 +1892,10 @@
     transform: none;
 }
 
+:global([data-reduce-motion='true']) .regionRowBtn:hover:not(:disabled) {
+    transform: none;
+}
+
 @media (max-width: 760px), (max-height: 760px) {
     .shell {
         padding: 0.3rem 0.5rem 0.35rem;
@@ -1385,8 +1940,15 @@
     }
 
     .utilityFlyout {
-        left: calc(100% + 0.35rem);
-        width: min(12.75rem, calc(100vw - 4.8rem));
+        inset-inline-start: calc(100% + 0.35rem);
+        width: min(
+            12.75rem,
+            calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 4.8rem)
+        );
+        width: min(
+            12.75rem,
+            calc(100dvi - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 4.8rem)
+        );
         padding: 0.45rem;
     }
 
@@ -1421,20 +1983,36 @@
         padding: 0.35rem 0.5rem;
     }
 
-    .shell[data-mobile-camera-mode='true'] .hudStatsStrip {
+    .shell[data-mobile-camera-mode='true'] .hudPrimaryStatsRow {
         grid-template-columns: 1fr;
         gap: 0.4rem;
         max-width: 100%;
+    }
+
+    .shell[data-mobile-camera-mode='true'] .hudContextSecondaryStrip .hudStripRightInnerColumn {
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
     }
 
     .shell[data-mobile-camera-mode='true'] .hudStripLeftModule,
     .shell[data-mobile-camera-mode='true'] .hudStripRightModule,
     .shell[data-mobile-camera-mode='true'] .hudStripScoreModule {
         justify-content: center;
+        max-width: 100%;
     }
 
     .shell[data-mobile-camera-mode='true'] .statRail {
         width: 100%;
+    }
+
+    /* HUD-014: right wing defaults to nowrap on desktop; allow wrap between ~521–760px so parasite + meta never clip. */
+    .shell[data-mobile-camera-mode='true'] .hudDeck .hudStripRightModule {
+        flex-wrap: wrap;
+        justify-content: center;
+        align-content: flex-start;
+        row-gap: 0.32rem;
+        column-gap: 0.2rem;
     }
 
     .hudSegment,
@@ -1465,6 +2043,31 @@
     }
 }
 
+/* HUD-014: ≤520px + mobile camera — stack right-wing blocks, hide inline dividers, allow mild horizontal scroll for dense mutators. */
+@media (max-width: 520px) {
+    .shell[data-mobile-camera-mode='true'] .hudDeck .hudStripRightModule {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+        gap: 0.3rem;
+    }
+
+    .shell[data-mobile-camera-mode='true'] .hudDeck .hudStripRightModule > .hudStripDivider {
+        display: none;
+    }
+
+    .shell[data-mobile-camera-mode='true'] .hudDeck .hudContextSecondaryStrip .hudStripRightInnerColumn {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .shell[data-mobile-camera-mode='true'] .statsDeck {
+        max-width: 100%;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+    }
+}
+
 @media (max-width: 430px), (max-height: 620px) {
     .floorBadge {
         flex-direction: row;
@@ -1478,6 +2081,13 @@
     }
 
     .utilityFlyout {
-        width: min(11.8rem, calc(100vw - 4.6rem));
+        width: min(
+            11.8rem,
+            calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 4.6rem)
+        );
+        width: min(
+            11.8rem,
+            calc(100dvi - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 4.6rem)
+        );
     }
 }

@@ -1,32 +1,35 @@
 import { ACHIEVEMENTS } from '../../shared/achievements';
 import {
-    MAX_LIVES,
     MAX_PINNED_TILES,
     type AchievementId,
-    type MutatorId,
     type RelicId,
     type RunState,
     type Settings
 } from '../../shared/contracts';
 import { computeFocusDimmedTileIds } from '../../shared/focusDimmedTileIds';
 import { canRegionShuffle, canRegionShuffleRow, canShuffleBoard } from '../../shared/game';
-import { hasMutator } from '../../shared/mutators';
+import { RELIC_MILESTONE_FLOORS } from '../../shared/relics';
 import { useNotificationStore } from '@cross-repo-libs/notifications';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { UI_ART } from '../assets/ui';
-import scoreParasiteCrystalUrl from '../assets/ui/icons/icon-score-parasite-crystal.svg?url';
 import { isNarrowShortLandscapeForMenuStack, VIEWPORT_MOBILE_MAX } from '../breakpoints';
+import { deriveCameraViewportMode } from '../../shared/cameraViewportMode';
 import { useDistractionChannelTick } from '../hooks/useDistractionChannelTick';
+import { useHudPoliteLiveAnnouncement } from '../hooks/useHudPoliteLiveAnnouncement';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
 import { StatTile } from '../ui';
 import { useAppStore } from '../store/useAppStore';
 import GameLeftToolbar from './GameLeftToolbar';
+import GameplayHudBar from './GameplayHudBar';
 import MainMenuBackground from './MainMenuBackground';
 import OverlayModal from './OverlayModal';
 import TileBoard, { type TileBoardHandle } from './TileBoard';
 import styles from './GameScreen.module.css';
+
+/** OVR-007 / HUD-020: decoy readout for `distraction_channel` — not gameplay state; hidden when reduce motion or assist toggle is off. */
+const DISTRACTION_CHANNEL_LABEL = 'Chaff';
 
 interface GameScreenProps {
     achievements: AchievementId[];
@@ -43,19 +46,8 @@ const BOARD_POWER_HINT =
 const POWERS_FTUE_TOAST =
     'Board powers: shuffle (charges), pin mode, destroy (earn charges on clean floors). Try Daily / Scholar run from the main menu for more challenge types.';
 
-const MUTATOR_HUD_LABELS: Record<MutatorId, string> = {
-    glass_floor: 'Glass floor',
-    sticky_fingers: 'Sticky fingers',
-    score_parasite: 'Score parasite',
-    category_letters: 'Letters',
-    short_memorize: 'Short memorize',
-    wide_recall: 'Wide recall',
-    silhouette_twist: 'Silhouette',
-    n_back_anchor: 'N-back',
-    distraction_channel: 'Distraction',
-    findables_floor: 'Findables',
-    shifting_spotlight: 'Shifting spotlight'
-};
+/** PLAY-009: pair-index rings on face-down DOM tiles only for very early floors + until powers FTUE is cleared. */
+const TUTORIAL_PAIR_MARKER_MAX_LEVEL = 2;
 
 const RELIC_LABELS: Record<RelicId, string> = {
     extra_shuffle_charge: '+1 shuffle charge (now)',
@@ -66,6 +58,18 @@ const RELIC_LABELS: Record<RelicId, string> = {
     memorize_under_short_memorize: '+220ms memorize when Short memorize is active',
     parasite_ward_once: 'Ignore next parasite life loss once',
     region_shuffle_free_first: 'First row shuffle each floor is free'
+};
+
+/** OVR-012 — milestone tiers 1–3 align with floors in {@link RELIC_MILESTONE_FLOORS} (reference 05–07 modal family). */
+const getRelicOfferTitle = (tier: number): string =>
+    `Relic offer (${tier} of ${RELIC_MILESTONE_FLOORS.length})`;
+
+const getRelicOfferSubtitle = (tier: number): string => {
+    const idx = Math.max(0, Math.min(tier - 1, RELIC_MILESTONE_FLOORS.length - 1));
+    const floor = RELIC_MILESTONE_FLOORS[idx];
+    const which = ['First', 'Second', 'Third'][idx] ?? 'Milestone';
+
+    return `${which} milestone relic after clearing floor ${floor}. Choose one relic; it applies immediately and lasts the rest of the run.`;
 };
 
 const BONUS_TAG_LABELS: Record<string, string> = {
@@ -99,9 +103,16 @@ const formatBonusTagsLine = (tags: string[] | undefined): string | null => {
     return tags.map((t) => BONUS_TAG_LABELS[t] ?? t).join(' · ');
 };
 
+/** FX-019: land after the tile match check pop peak (`matchedCheckPop` ≈ 420ms in TileBoard.module.css). */
+const SCORE_POP_AFTER_MATCH_MS = 220;
+const SCORE_POP_AFTER_MATCH_REDUCE_MOTION_MS = 90;
+/** OVR-005: coalesce rapid matches to a single concurrent score burst in the notification rail. */
+const MATCH_SCORE_TOAST_STACK_KEY = 'match-score';
+
 const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameScreenProps) => {
     const shellRef = useRef<HTMLElement | null>(null);
     const tileBoardRef = useRef<TileBoardHandle>(null);
+    const scorePopRevealTimerRef = useRef<number | null>(null);
     const { height, width } = useViewportSize();
     const isPhoneViewport = width <= VIEWPORT_MOBILE_MAX;
     const compactTouchChrome = isPhoneViewport || isNarrowShortLandscapeForMenuStack(width, height);
@@ -153,6 +164,15 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         }))
     );
     const saveData = useAppStore((state) => state.saveData);
+    const showTutorialPairMarkers = useMemo(
+        () =>
+            Boolean(
+                run.board &&
+                    !saveData.powersFtueSeen &&
+                    run.board.level <= TUTORIAL_PAIR_MARKER_MAX_LEVEL
+            ),
+        [run.board, saveData.powersFtueSeen]
+    );
     const { boardPinMode, destroyPairArmed, peekModeArmed } = useAppStore(
         useShallow((state) => ({
             boardPinMode: state.boardPinMode,
@@ -162,12 +182,18 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     );
     const settingsReduceMotion = useAppStore((state) => state.settings.reduceMotion);
     const seenAchievementToastIdsRef = useRef<Set<string>>(new Set());
+    /** OVR-014: queue unlock toasts while the floor-cleared dialog is up; `continueToNextLevel` clears `newlyUnlockedAchievements` before the next paint. */
+    const pendingAchievementToastIdsRef = useRef<AchievementId[]>([]);
     const settingsDistractionChannelEnabled = useAppStore((state) => state.settings.distractionChannelEnabled);
     const settingsTileFocusAssist = useAppStore((state) => state.settings.tileFocusAssist);
     const settingsBoardPresentation = useAppStore((state) => state.settings.boardPresentation);
     const settingsGraphicsQuality = useAppStore((state) => state.settings.graphicsQuality);
     const settingsBoardBloomEnabled = useAppStore((state) => state.settings.boardBloomEnabled);
+    /** FX-015: WebGL bloom is medium+ when the toggle is on; add a light CSS rim only on High to avoid doubling cost on phones at Medium. */
+    const boardStageCssBloomClass =
+        settingsBoardBloomEnabled && settingsGraphicsQuality === 'high' ? styles.boardStageCssBloom : '';
     const settingsBoardScreenSpaceAA = useAppStore((state) => state.settings.boardScreenSpaceAA);
+    const settingsCameraViewportModePreference = useAppStore((state) => state.settings.cameraViewportModePreference);
     const debugAllowBoardReveal = useAppStore((state) => state.settings.debugFlags.allowBoardReveal);
     const debugShowDebugTools = useAppStore((state) => state.settings.debugFlags.showDebugTools);
     const debugDisableAchievementsOnDebug = useAppStore((state) => state.settings.debugFlags.disableAchievementsOnDebug);
@@ -201,25 +227,65 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     } = gameScreenActions;
 
     useEffect(() => {
-        if (achievements.length === 0) {
-            seenAchievementToastIdsRef.current = new Set();
+        const floorClearedModalBlocksToasts =
+            !suppressStatusOverlays &&
+            !abandonRunConfirmOpen &&
+            run.status === 'levelComplete' &&
+            Boolean(run.lastLevelResult) &&
+            !run.relicOffer;
+
+        const enqueuePending = (ids: AchievementId[]): void => {
+            for (const achievementId of ids) {
+                if (!pendingAchievementToastIdsRef.current.includes(achievementId)) {
+                    pendingAchievementToastIdsRef.current.push(achievementId);
+                }
+            }
+        };
+
+        const emitAchievementToasts = (ids: AchievementId[]): void => {
+            if (ids.length === 0) {
+                return;
+            }
+            const infoDuration = settingsReduceMotion ? 3500 : 5500;
+            const { showAchievement } = useNotificationStore.getState();
+            for (const achievementId of ids) {
+                if (seenAchievementToastIdsRef.current.has(achievementId)) {
+                    continue;
+                }
+                seenAchievementToastIdsRef.current.add(achievementId);
+                const def = ACHIEVEMENTS.find((item) => item.id === achievementId);
+                if (def) {
+                    showAchievement(`${def.title} — ${def.description}`, infoDuration, {
+                        stackKey: `achievement:${achievementId}`
+                    });
+                }
+            }
+        };
+
+        if (floorClearedModalBlocksToasts) {
+            if (achievements.length > 0) {
+                enqueuePending(achievements);
+            }
             return;
         }
 
-        const infoDuration = settingsReduceMotion ? 3500 : 5500;
-        const { showInfo } = useNotificationStore.getState();
-
+        const combined: AchievementId[] = [...pendingAchievementToastIdsRef.current];
+        pendingAchievementToastIdsRef.current = [];
         for (const achievementId of achievements) {
-            if (seenAchievementToastIdsRef.current.has(achievementId)) {
-                continue;
-            }
-            seenAchievementToastIdsRef.current.add(achievementId);
-            const def = ACHIEVEMENTS.find((item) => item.id === achievementId);
-            if (def) {
-                showInfo(`${def.title} — ${def.description}`, infoDuration);
+            if (!combined.includes(achievementId)) {
+                combined.push(achievementId);
             }
         }
-    }, [achievements, settingsReduceMotion]);
+        emitAchievementToasts(combined);
+    }, [
+        abandonRunConfirmOpen,
+        achievements,
+        run.lastLevelResult,
+        run.relicOffer,
+        run.status,
+        settingsReduceMotion,
+        suppressStatusOverlays
+    ]);
 
     useEffect(() => {
         const stripRuleHintToasts = () => {
@@ -284,12 +350,25 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
 
         addNotification(POWERS_FTUE_TOAST, 'info', 0, null, () => {
             void dismissPowersFtue();
-        });
+        }, { surface: 'powers-ftue', stackKey: 'powers-ftue', ariaLive: 'polite' });
     }, [dismissPowersFtue, run.board, run.status, saveData.powersFtueSeen]);
+
+    useEffect(() => {
+        return () => {
+            if (scorePopRevealTimerRef.current !== null) {
+                window.clearTimeout(scorePopRevealTimerRef.current);
+                scorePopRevealTimerRef.current = null;
+            }
+        };
+    }, []);
 
     const prevMatchStatsRef = useRef<{ matches: number; total: number } | null>(null);
     useEffect(() => {
         if (run.status !== 'playing' || !run.board) {
+            if (scorePopRevealTimerRef.current !== null) {
+                window.clearTimeout(scorePopRevealTimerRef.current);
+                scorePopRevealTimerRef.current = null;
+            }
             return;
         }
         if (prevMatchStatsRef.current === null) {
@@ -303,8 +382,20 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         if (run.stats.matchesFound > prev.matches) {
             const gained = run.stats.totalScore - prev.total;
             if (gained > 0) {
+                if (scorePopRevealTimerRef.current !== null) {
+                    window.clearTimeout(scorePopRevealTimerRef.current);
+                }
                 const dismissMs = settingsReduceMotion ? 1400 : 2400;
-                useNotificationStore.getState().showSuccess(`+${gained.toLocaleString()}`, dismissMs);
+                const delayMs = settingsReduceMotion
+                    ? SCORE_POP_AFTER_MATCH_REDUCE_MOTION_MS
+                    : SCORE_POP_AFTER_MATCH_MS;
+                scorePopRevealTimerRef.current = window.setTimeout(() => {
+                    scorePopRevealTimerRef.current = null;
+                    useNotificationStore.getState().showSuccess(`+${gained.toLocaleString()}`, dismissMs, {
+                        stackKey: MATCH_SCORE_TOAST_STACK_KEY,
+                        ariaLive: 'off'
+                    });
+                }, delayMs);
             }
         }
         prevMatchStatsRef.current = {
@@ -338,12 +429,10 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         allowGambitThirdFlip &&
         (run.board?.flippedTileIds.length ?? 0) === 2;
     const wideRecallInPlay = run.activeMutators.includes('wide_recall');
-    const scoreParasiteActive = run.activeMutators.includes('score_parasite');
-    const parasiteFloorProgress = Math.min(1, run.parasiteFloors / 4);
     const silhouetteDuringPlay = run.activeMutators.includes('silhouette_twist');
     const nBackMutatorActive = run.activeMutators.includes('n_back_anchor');
-    const isCompact = compactTouchChrome;
-    const cameraViewportMode = isCompact;
+    const viewportWantsMobileCamera = compactTouchChrome;
+    const cameraViewportMode = deriveCameraViewportMode(settingsCameraViewportModePreference, viewportWantsMobileCamera);
     const pauseActionLabel = run.status === 'paused' ? 'Resume' : 'Pause';
     const clearLifeBonusLabel = run.lastLevelResult ? getClearLifeBonusLabel(run.lastLevelResult) : null;
     const objectiveBonusLine =
@@ -351,6 +440,19 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
             ? `Objective bonuses: +${run.lastLevelResult.objectiveBonusScore!.toLocaleString()}`
             : null;
     const bonusTagsLine = run.lastLevelResult ? formatBonusTagsLine(run.lastLevelResult.bonusTags) : null;
+
+    const gauntletRemainingMs =
+        run.gauntletDeadlineMs !== null ? Math.max(0, run.gauntletDeadlineMs - gauntletNowMs) : null;
+    const gauntletActive = run.gameMode === 'gauntlet' && run.gauntletDeadlineMs !== null;
+    const politeHudAnnouncement = useHudPoliteLiveAnnouncement({
+        boardLevel: run.board?.level ?? null,
+        gauntletActive,
+        gauntletRemainingMs,
+        lives: run.lives,
+        parasiteFloors: run.parasiteFloors,
+        parasiteWardRemaining: run.parasiteWardRemaining,
+        scoreParasiteActive: run.activeMutators.includes('score_parasite')
+    });
 
     if (!run.board) {
         return null;
@@ -395,27 +497,6 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
               ? 'Finish the current flip first'
               : 'Need at least two hidden pairs to shuffle'
           : 'Shuffle hidden tiles (1 charge this run)';
-    const showPowersFtue =
-        (run.status === 'playing' || run.status === 'memorize') &&
-        run.board.level <= 2 &&
-        !saveData.powersFtueSeen;
-    const gauntletRemainingMs =
-        run.gauntletDeadlineMs !== null ? Math.max(0, run.gauntletDeadlineMs - gauntletNowMs) : null;
-    const dailyDateStripKey = run.gameMode === 'daily' && run.dailyDateKeyUtc ? run.dailyDateKeyUtc : null;
-    const hudModeLabel =
-        dailyDateStripKey != null
-            ? 'Daily challenge'
-            : gauntletRemainingMs !== null
-              ? `Gauntlet ${Math.ceil(gauntletRemainingMs / 1000)}s`
-              : run.activeContract?.noShuffle
-                ? 'Scholar Contract'
-                : run.gameMode === 'meditation'
-                  ? 'Meditation Run'
-                  : run.wildMenuRun
-                    ? 'Wild Run'
-                    : 'Arcade Run';
-    const nBackLabel =
-        run.nBackAnchorPairKey && nBackMutatorActive ? `Anchor ${run.nBackAnchorPairKey.slice(0, 6)}` : null;
     const boardPresentationClass =
         settingsBoardPresentation === 'spaghetti'
             ? styles.boardStageSpaghetti
@@ -423,6 +504,19 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
               ? styles.boardStageBreathing
               : '';
     const destroyDisabled = run.destroyPairCharges < 1 && !destroyPairArmed;
+    /*
+     * A11Y-006 — backdrop inert behind OverlayModal surfaces (pause, relic, floor clear, abandon):
+     * - Native `inert` is supported in Chromium (Electron) and current Safari/Firefox; very old browsers
+     *   ignore it, so `aria-hidden` is set in tandem to reduce stray tab stops where the attribute is honored.
+     * - Do not wrap modal markup in this subtree: nesting focused dialogs inside `aria-hidden` breaks SR semantics.
+     * - `inert` alone should block pointer events on descendants; keep modal siblings outside this wrapper.
+     */
+    const gameplayShellInert =
+        !suppressStatusOverlays &&
+        (abandonRunConfirmOpen ||
+            run.status === 'paused' ||
+            Boolean(run.relicOffer) ||
+            (run.status === 'levelComplete' && Boolean(run.lastLevelResult) && !run.relicOffer));
     return (
         <section
             className={`${styles.shell} ${cameraViewportMode ? styles.mobileCameraShell : ''}`}
@@ -443,10 +537,16 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                 style={{ backgroundImage: `url(${UI_ART.gameplayScene})` }}
             />
             <div className={`${styles.gameForeground} ${cameraViewportMode ? styles.mobileCameraForeground : ''}`}>
-                <h1 className={styles.srOnly}>Level {run.board.level}</h1>
                 <div
-                    className={`${styles.gamePlayLayout} ${cameraViewportMode ? styles.mobileCameraGamePlayLayout : ''}`.trim()}
+                    aria-hidden={gameplayShellInert ? true : undefined}
+                    className={styles.gameplayInertScope}
+                    data-a11y-gameplay-inert={gameplayShellInert ? 'true' : 'false'}
+                    inert={gameplayShellInert ? true : undefined}
                 >
+                    <h1 className={styles.srOnly}>Level {run.board.level}</h1>
+                    <div
+                        className={`${styles.gamePlayLayout} ${cameraViewportMode ? styles.mobileCameraGamePlayLayout : ''}`.trim()}
+                    >
                     <GameLeftToolbar
                         applyFlashPairPower={applyFlashPairPower}
                         boardPinMode={boardPinMode}
@@ -492,189 +592,15 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                     <div
                         className={`${styles.mainGameColumn} ${cameraViewportMode ? styles.mobileCameraMainColumn : ''}`.trim()}
                     >
-                        <header
-                            className={`${styles.hudRow} ${cameraViewportMode ? styles.mobileCameraHud : ''}`}
-                            data-testid="game-hud"
-                        >
-                            <div className={`${styles.floatingDeck} ${styles.statsDeck} ${styles.hudDeck}`} role="group" aria-label="Run stats">
-                                <div className={styles.hudStatsStrip}>
-                                    <div className={styles.hudStripLeftModule} data-testid="hud-wing-left">
-                                        <div className={`${styles.hudSegment} ${styles.floorBadge}`} title="Current floor">
-                                            <span className={styles.floorLabel}>Floor</span>
-                                            <span className={styles.floorValue}>{run.board.level}</span>
-                                            {run.board.floorTag === 'boss' ? (
-                                                <span className={styles.floorTagPill} title="Boss floor scoring">
-                                                    Boss
-                                                </span>
-                                            ) : run.board.floorTag === 'breather' ? (
-                                                <span className={styles.floorTagPill} title="Breather floor">
-                                                    Rest
-                                                </span>
-                                            ) : null}
-                                        </div>
-                                        <div className={styles.hudStripDivider} aria-hidden="true" />
-                                        <div className={`${styles.hudSegment} ${styles.hudLivesSegment}`}>
-                                            <span className={styles.statKey}>Lives</span>
-                                            <div className={styles.lifeTrack} aria-label={`${run.lives} lives remaining`}>
-                                                {Array.from({ length: MAX_LIVES }).map((_, index) => (
-                                                    <span
-                                                        aria-hidden="true"
-                                                        className={index < run.lives ? styles.lifeHeartActive : styles.lifeHeartInactive}
-                                                        key={`life-${index}`}
-                                                    >
-                                                        ♥
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <div className={styles.hudStripDivider} aria-hidden="true" />
-                                        <div className={`${styles.hudSegment} ${styles.statPill} ${styles.hudShardsSegment}`}>
-                                            <span className={styles.statKey}>Shards</span>
-                                            <span className={`${styles.statVal} ${styles.hudShardsValue}`}>
-                                                {run.stats.comboShards}
-                                            </span>
-                                            <span className={styles.statSubline}>Guards {run.stats.guardTokens}</span>
-                                        </div>
-                                    </div>
-                                    <div
-                                        className={`${styles.hudStripDivider} ${styles.hudStripDividerBetweenZones}`}
-                                        aria-hidden="true"
-                                    />
-                                    <div className={styles.hudStripScoreModule} data-testid="hud-wing-center">
-                                        <div className={`${styles.hudSegment} ${styles.hudScoreSegment}`}>
-                                            <span className={styles.statKey}>Score</span>
-                                            <span className={`${styles.statVal} ${styles.statValScore}`}>
-                                                {run.stats.totalScore.toLocaleString()}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div
-                                        className={`${styles.hudStripDivider} ${styles.hudStripDividerBetweenZones}`}
-                                        aria-hidden="true"
-                                    />
-                                    <div className={styles.hudStripRightModule} data-testid="hud-wing-right">
-                                        {dailyDateStripKey ? (
-                                            <>
-                                                <div
-                                                    className={`${styles.hudSegment} ${styles.hudDailySegment}`}
-                                                    title="UTC daily challenge id"
-                                                >
-                                                    <span className={styles.statKey}>Daily</span>
-                                                    <span className={styles.hudDailyDate}>{dailyDateStripKey}</span>
-                                                </div>
-                                                <div className={styles.hudStripDivider} aria-hidden="true" />
-                                            </>
-                                        ) : null}
-                                        {scoreParasiteActive ? (
-                                            <>
-                                                <div
-                                                    aria-label={`Score parasite progress, floor ${run.parasiteFloors} of 4`}
-                                                    className={styles.hudParasiteSegment}
-                                                    title="Every four floors with this mutator triggers a score penalty event"
-                                                >
-                                                    <div className={styles.hudParasiteRow}>
-                                                        <img
-                                                            alt=""
-                                                            className={styles.hudParasiteCrystal}
-                                                            height={30}
-                                                            src={scoreParasiteCrystalUrl}
-                                                            width={24}
-                                                        />
-                                                        <div className={styles.hudParasiteBody}>
-                                                            <span className={styles.hudParasiteLabel}>
-                                                                {MUTATOR_HUD_LABELS.score_parasite}
-                                                            </span>
-                                                            <div className={styles.hudParasiteTrack}>
-                                                                <div
-                                                                    className={styles.hudParasiteFill}
-                                                                    style={{ width: `${parasiteFloorProgress * 100}%` }}
-                                                                />
-                                                            </div>
-                                                            <span className={styles.hudParasiteCaption}>
-                                                                {run.parasiteFloors} / 4 floors
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className={styles.hudStripDivider} aria-hidden="true" />
-                                            </>
-                                        ) : null}
-                                        <div className={styles.hudStripRightInnerColumn}>
-                                            <div className={`${styles.hudSegment} ${styles.hudMetaSegment}`}>
-                                                <span className={styles.statKey}>Mode</span>
-                                                <span className={styles.statVal}>{hudModeLabel}</span>
-                                                {nBackLabel ? <span className={styles.statSubline}>{nBackLabel}</span> : null}
-                                                {run.activeMutators.length > 0 ? (
-                                                    <div className={styles.mutatorRow}>
-                                                        {run.activeMutators.map((mutator) => (
-                                                            <div
-                                                                className={styles.mutatorChip}
-                                                                key={mutator}
-                                                                title={MUTATOR_HUD_LABELS[mutator] ?? mutator}
-                                                            >
-                                                                {MUTATOR_HUD_LABELS[mutator] ?? mutator}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    <span className={styles.statSubline}>No active mutators</span>
-                                                )}
-                                            </div>
-
-                                            <div className={styles.statRail}>
-                                                {gauntletRemainingMs !== null ? (
-                                                    <div className={styles.statPillCompact} title="Gauntlet time left">
-                                                        <span className={styles.statKey}>Time</span>
-                                                        <span className={styles.statVal}>
-                                                            {Math.ceil(gauntletRemainingMs / 1000)}s
-                                                        </span>
-                                                    </div>
-                                                ) : null}
-                                                {hasMutator(run, 'findables_floor') ? (
-                                                    <div
-                                                        className={styles.statPillCompact}
-                                                        data-testid="hud-findables-claimed"
-                                                        title="Bonus pickups claimed by matching pairs this floor"
-                                                    >
-                                                        <span className={styles.statKey}>Findables</span>
-                                                        <span className={styles.statVal}>{run.findablesClaimedThisFloor}</span>
-                                                    </div>
-                                                ) : null}
-                                                {run.activeContract?.noShuffle ? (
-                                                    <div className={styles.statPillCompact}>
-                                                        <span className={styles.statKey}>Contract</span>
-                                                        <span className={styles.statVal}>Scholar</span>
-                                                    </div>
-                                                ) : null}
-                                                {run.activeContract?.maxPinsTotalRun != null ? (
-                                                    <div className={styles.statPillCompact} title="Pin vow contract">
-                                                        <span className={styles.statKey}>Pins</span>
-                                                        <span className={styles.statVal}>
-                                                            {run.pinsPlacedCountThisRun}/{run.activeContract.maxPinsTotalRun}
-                                                        </span>
-                                                    </div>
-                                                ) : null}
-                                                {run.gameMode === 'meditation' ? (
-                                                    <div className={styles.statPillCompact} title="Meditation run">
-                                                        <span className={styles.statKey}>Mode</span>
-                                                        <span className={styles.statVal}>Meditation</span>
-                                                    </div>
-                                                ) : null}
-                                                {run.wildMenuRun ? (
-                                                    <div className={styles.statPillCompact} title="Wild joker run">
-                                                        <span className={styles.statKey}>Wild</span>
-                                                        <span className={styles.statVal}>On</span>
-                                                    </div>
-                                                ) : null}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </header>
+                        <GameplayHudBar
+                            cameraViewportMode={cameraViewportMode}
+                            gauntletRemainingMs={gauntletRemainingMs}
+                            politeHudAnnouncement={politeHudAnnouncement}
+                            run={run}
+                        />
 
                         <div
-                            className={`${styles.boardStage} ${cameraViewportMode ? styles.boardStageCamera : ''} ${boardPresentationClass}`.trim()}
+                            className={`${styles.boardStage} ${cameraViewportMode ? styles.boardStageCamera : ''} ${boardPresentationClass} ${boardStageCssBloomClass}`.trim()}
                         >
                             <div className={styles.boardGlow} aria-hidden="true" />
                             <TileBoard
@@ -701,17 +627,28 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                 graphicsQuality={settingsGraphicsQuality}
                                 reduceMotion={settingsReduceMotion}
                                 runStatus={run.status}
+                                showTutorialPairMarkers={showTutorialPairMarkers}
                                 silhouetteDuringPlay={silhouetteDuringPlay}
                                 viewportResetToken={viewportResetToken}
                                 wideRecallInPlay={wideRecallInPlay}
                             />
                             {distractionHudOn ? (
-                                <div aria-hidden className={styles.distractionHud}>
-                                    {(distractionTick % 7) + 3}
+                                <div
+                                    aria-hidden="true"
+                                    className={styles.distractionHud}
+                                    data-testid="distraction-channel-hud"
+                                >
+                                    <div className={styles.distractionHudPlate}>
+                                        <span className={styles.distractionHudLabel}>{DISTRACTION_CHANNEL_LABEL}</span>
+                                        <span className={styles.distractionHudValue}>
+                                            {(distractionTick % 7) + 3}
+                                        </span>
+                                    </div>
                                 </div>
                             ) : null}
                         </div>
                     </div>
+                </div>
                 </div>
 
                 {!suppressStatusOverlays && !abandonRunConfirmOpen && run.status === 'paused' && (
@@ -720,8 +657,11 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                             { label: 'Resume', onClick: resume, variant: 'primary' },
                             { label: 'Retreat', onClick: () => setAbandonRunConfirmOpen(true), variant: 'danger' }
                         ]}
-                        subtitle="The board, memorize phase, and debug timers are frozen until you return."
-                        title="Run Paused"
+                        headerPlateTone="pause"
+                        ornamentalHeaderPlate
+                        subtitle="Game is paused. The board, memorize phase, and debug timers stay frozen until you resume or retreat."
+                        testId="game-pause-overlay"
+                        title="Run paused"
                     />
                 )}
 
@@ -732,8 +672,11 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                             onClick: () => pickRelic(id),
                             variant: 'primary' as const
                         }))}
-                        subtitle="Choose one relic. It applies immediately and lasts the rest of the run."
-                        title={`Relic — tier ${run.relicOffer.tier}`}
+                        headerPlateTone="relic"
+                        ornamentalHeaderPlate
+                        subtitle={getRelicOfferSubtitle(run.relicOffer.tier)}
+                        testId="game-relic-offer-overlay"
+                        title={getRelicOfferTitle(run.relicOffer.tier)}
                     />
                 ) : null}
 
@@ -751,8 +694,10 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                 variant: 'secondary'
                             }
                         ]}
+                        headerPlateTone="success"
+                        ornamentalHeaderPlate
                         subtitle={`Level ${run.lastLevelResult.level} cleared. Score +${run.lastLevelResult.scoreGained}. Try Daily or Scholar contract from the menu for different goals.`}
-                        title="Floor Cleared"
+                        title="Floor cleared"
                     >
                         {clearLifeBonusLabel ? <p className={styles.modalNote}>{clearLifeBonusLabel}</p> : null}
                         {objectiveBonusLine ? <p className={styles.modalNote}>{objectiveBonusLine}</p> : null}

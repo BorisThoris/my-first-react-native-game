@@ -1,8 +1,9 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type {
     BoardPresentationMode,
     BoardScreenSpaceAA,
+    CameraViewportModePreference,
     DisplayMode,
     GraphicsQualityPreset,
     Settings,
@@ -15,7 +16,7 @@ import {
     VIEWPORT_LANDSCAPE_STACK_MAX_WIDTH,
     VIEWPORT_MOBILE_MAX
 } from '../breakpoints';
-import { getFocusableElements } from '../a11y/focusables';
+import { getFocusableElements, handleTabFocusTrapEvent } from '../a11y/focusables';
 import { useFitShellZoom } from '../hooks/useFitShellZoom';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { useAppStore } from '../store/useAppStore';
@@ -32,6 +33,7 @@ type SettingsSubsection =
     | 'board'
     | 'timing'
     | 'assist'
+    | 'reference'
     | 'input'
     | 'tuning'
     | 'volume'
@@ -57,7 +59,8 @@ const SETTINGS_SUBSECTIONS: Record<
     gameplay: [
         { id: 'board', label: 'Board' },
         { id: 'timing', label: 'Timing' },
-        { id: 'assist', label: 'Assist' }
+        { id: 'assist', label: 'Assist' },
+        { id: 'reference', label: 'Gameplay reference' }
     ],
     controls: [
         { id: 'input', label: 'Input' },
@@ -100,6 +103,7 @@ const ToggleRow = ({ label, hint, checked, disabled = false, onChange }: ToggleR
         </div>
         <span className={styles.toggleShell}>
             <input
+                aria-disabled={disabled ? true : undefined}
                 checked={checked}
                 disabled={disabled}
                 onChange={(event) => onChange(event.currentTarget.checked)}
@@ -188,17 +192,38 @@ interface PlaceholderControlProps {
     label: string;
     hint: string;
     options: string[];
+    /** Reference-only: visible “Coming soon” + Steam demo scope (no save keys). */
+    honestFuturePlaceholder?: boolean;
 }
 
-const PlaceholderControl = ({ label, hint, options }: PlaceholderControlProps) => (
+const PlaceholderControl = ({
+    label,
+    hint,
+    options,
+    honestFuturePlaceholder = false
+}: PlaceholderControlProps) => (
     <div className={`${styles.fieldCard} ${styles.placeholderField}`}>
         <div className={styles.fieldText}>
-            <strong>{label}</strong>
+            {honestFuturePlaceholder ? (
+                <div className={styles.placeholderLabelRow}>
+                    <strong>{label}</strong>
+                    <span className={styles.futurePill}>Coming soon</span>
+                </div>
+            ) : (
+                <strong>{label}</strong>
+            )}
             <span>{hint}</span>
+            {honestFuturePlaceholder ? <span className={styles.demoScopeNote}>Not in Steam demo.</span> : null}
         </div>
         <div className={styles.segmented}>
             {options.map((option) => (
-                <button className={styles.segmentButtonDisabled} disabled key={option} type="button">
+                <button
+                    aria-disabled="true"
+                    className={styles.segmentButtonDisabled}
+                    disabled
+                    key={option}
+                    type="button"
+                >
                     {option}
                 </button>
             ))}
@@ -249,7 +274,7 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
     const isShortLandscapeShell = isShortLandscapeViewport(viewportWidth, viewportHeight);
     const stackedSettingsShell = isPhoneViewport || isNarrowShortLandscapeForMenuStack(viewportWidth, viewportHeight);
     const shortLandscapeStackedShell = stackedSettingsShell && isShortLandscapeShell;
-    /** One subsection at a time only for stacked phone / narrow short-landscape; wide 1280×720 shows all sections. */
+    /** Stacked phone / narrow short-landscape: one subsection at a time. */
     const compactDisclosure = shortLandscapeStackedShell;
     /** Non-stacked short-landscape wider than narrow-stack cap (961–1023px, etc.): same shell as 1280×720, not bare desktop. */
     const wideShortDesktopShell =
@@ -287,14 +312,18 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
         enabled: settingsFitEnabled,
         measureRef: settingsFitMeasureRef,
         padding: 8,
-        recomputeKey: activeCategory,
+        recomputeKey: `${activeCategory}:${activeSubsection}`,
         viewportHeight: fitShellHeight,
         viewportWidth: fitShellWidth
     });
     const activeCategoryMeta = SETTINGS_CATEGORIES.find((item) => item.id === activeCategory) ?? SETTINGS_CATEGORIES[0];
     const subsectionOptions = SETTINGS_SUBSECTIONS[activeCategory];
-    const showSubsectionNav = compactDisclosure && subsectionOptions.length > 1;
-    const showSubsection = (id: SettingsSubsection): boolean => !compactDisclosure || activeSubsection === id;
+    /** Wide-short (e.g. 1280×720): one subsection at a time so intrinsic shell height fits `useFitShellZoom` (≥0.92) with full Gameplay subsections. */
+    const subsectionOneAtATime =
+        compactDisclosure || (wideShortDesktopShell && subsectionOptions.length > 1);
+    const showSubsectionNav = subsectionOneAtATime && subsectionOptions.length > 1;
+    const showSubsection = (id: SettingsSubsection): boolean =>
+        !subsectionOneAtATime || activeSubsection === id;
 
     useEffect(() => {
         setDraft(settings);
@@ -302,8 +331,9 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
 
     useEffect(() => {
         setActiveSubsection(DEFAULT_SUBSECTION_BY_CATEGORY[activeCategory]);
-    }, [activeCategory, compactDisclosure]);
+    }, [activeCategory, compactDisclosure, wideShortDesktopShell]);
 
+    /* OVR-010: matches OverlayModal — rAF initial focus, document capture Tab trap, restore on unmount. */
     useEffect(() => {
         if (!isModal) {
             return;
@@ -321,36 +351,21 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
         };
     }, [isModal]);
 
-    const handleModalKeyDown = (event: KeyboardEvent<HTMLElement>): void => {
-        if (!isModal || event.key !== 'Tab') {
+    useEffect(() => {
+        if (!isModal) {
             return;
         }
 
-        const focusableElements = getFocusableElements(modalShellRef.current);
+        const onDocumentKeyDown = (event: KeyboardEvent): void => {
+            handleTabFocusTrapEvent(event, modalShellRef.current);
+        };
 
-        if (focusableElements.length === 0) {
-            event.preventDefault();
-            modalShellRef.current?.focus();
-            return;
-        }
+        document.addEventListener('keydown', onDocumentKeyDown, true);
 
-        const currentIndex = focusableElements.indexOf(document.activeElement as HTMLElement);
-        const lastIndex = focusableElements.length - 1;
-
-        if (event.shiftKey) {
-            if (currentIndex <= 0) {
-                event.preventDefault();
-                focusableElements[lastIndex]?.focus();
-            }
-
-            return;
-        }
-
-        if (currentIndex === -1 || currentIndex === lastIndex) {
-            event.preventDefault();
-            focusableElements[0]?.focus();
-        }
-    };
+        return () => {
+            document.removeEventListener('keydown', onDocumentKeyDown, true);
+        };
+    }, [isModal]);
 
     const patchSettings = <Key extends keyof Settings>(key: Key, value: Settings[Key]): void => {
         setDraft((current) => ({
@@ -380,7 +395,7 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
             data-settings-layout={
                 shortLandscapeStackedShell ? 'short-stacked' : wideShortDesktopShell ? 'wide-short' : stackedSettingsShell ? 'stacked' : 'desktop'
             }
-            onKeyDown={isModal ? handleModalKeyDown : undefined}
+            data-testid={isModal ? 'settings-modal-shell' : undefined}
             ref={modalShellRef}
             role={isModal ? 'dialog' : undefined}
             tabIndex={isModal ? -1 : undefined}
@@ -402,7 +417,12 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                                 <aside className={styles.sidebar}>
                                     <div className={styles.sidebarHeader}>
                                         <Eyebrow>{eyebrow}</Eyebrow>
-                                        <ScreenTitle as="h2" className={styles.shellTitle} id={titleId} role="screenMd">
+                                        <ScreenTitle
+                                            as={isModal ? 'h2' : 'h1'}
+                                            className={styles.shellTitle}
+                                            id={titleId}
+                                            role="screenMd"
+                                        >
                                             {title}
                                         </ScreenTitle>
                                     </div>
@@ -426,7 +446,11 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                                 <div className={styles.contentPane}>
                                     <header className={styles.contentHeader}>
                                         <Eyebrow tone="tight">{activeCategoryMeta.label}</Eyebrow>
-                                        <ScreenTitle as="h3" className={styles.contentTitle} role="screen">
+                                        <ScreenTitle
+                                            as={isModal ? 'h3' : 'h2'}
+                                            className={styles.contentTitle}
+                                            role="screen"
+                                        >
                                             {activeCategoryMeta.label}
                                         </ScreenTitle>
                                         <p className={styles.headerCopy}>{activeCategoryMeta.note}</p>
@@ -456,17 +480,30 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                                     <div className={styles.contentScroll}>
                                         {activeCategory === 'gameplay' && showSubsection('board') ? (
                                             <SettingsSection title="Board Presentation">
-                                                <SegmentedControl<BoardPresentationMode>
-                                                    hint="Choose the current live board framing mode."
-                                                    label="Layout Style"
-                                                    onChange={(next) => patchSettings('boardPresentation', next)}
-                                                    options={[
-                                                        { label: 'Standard', value: 'standard' },
-                                                        { label: 'Spaghetti', value: 'spaghetti' },
-                                                        { label: 'Breathing', value: 'breathing' }
-                                                    ]}
-                                                    value={draft.boardPresentation}
-                                                />
+                                                <div className={styles.boardPresentationPair}>
+                                                    <SegmentedControl<BoardPresentationMode>
+                                                        hint="Choose the current live board framing mode."
+                                                        label="Layout Style"
+                                                        onChange={(next) => patchSettings('boardPresentation', next)}
+                                                        options={[
+                                                            { label: 'Standard', value: 'standard' },
+                                                            { label: 'Spaghetti', value: 'spaghetti' },
+                                                            { label: 'Breathing', value: 'breathing' }
+                                                        ]}
+                                                        value={draft.boardPresentation}
+                                                    />
+                                                    <SegmentedControl<CameraViewportModePreference>
+                                                        hint="Auto follows phone / narrow-short-landscape breakpoints. Always or Never override."
+                                                        label="Mobile Camera Shell"
+                                                        onChange={(next) => patchSettings('cameraViewportModePreference', next)}
+                                                        options={[
+                                                            { label: 'Auto', value: 'auto' },
+                                                            { label: 'Always', value: 'always' },
+                                                            { label: 'Never', value: 'never' }
+                                                        ]}
+                                                        value={draft.cameraViewportModePreference}
+                                                    />
+                                                </div>
                                             </SettingsSection>
                                         ) : null}
 
@@ -526,6 +563,41 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                                             </SettingsSection>
                                         ) : null}
 
+                                        {activeCategory === 'gameplay' && showSubsection('reference') ? (
+                                            <SettingsSection title="Gameplay reference">
+                                                <p className={styles.headerCopy}>
+                                                    Reference comparison controls with no live save keys in this build.
+                                                    Segments are disabled; the shipped Steam demo ignores these fields.
+                                                </p>
+                                                <div className={styles.toggleStack} data-testid="settings-gameplay-reference">
+                                                    <PlaceholderControl
+                                                        honestFuturePlaceholder
+                                                        hint="No difficulty setting in save data yet; the run uses the shipped balance curve."
+                                                        label="Difficulty"
+                                                        options={['Easy', 'Normal', 'Hard', 'Nightmare']}
+                                                    />
+                                                    <PlaceholderControl
+                                                        honestFuturePlaceholder
+                                                        hint="Timer mode is not connected to save data or run rules in this build."
+                                                        label="Timer mode"
+                                                        options={['Classic', 'Countdown', 'Relentless']}
+                                                    />
+                                                    <PlaceholderControl
+                                                        honestFuturePlaceholder
+                                                        hint="Max lives follow game constants until a future settings schema."
+                                                        label="Max lives"
+                                                        options={['2', '3', '4', '5']}
+                                                    />
+                                                    <PlaceholderControl
+                                                        honestFuturePlaceholder
+                                                        hint="Alternate card art sets are not selectable yet; asset slots only."
+                                                        label="Card theme"
+                                                        options={['Crimson', 'Violet', 'Emerald', 'Steel']}
+                                                    />
+                                                </div>
+                                            </SettingsSection>
+                                        ) : null}
+
                                         {activeCategory === 'controls' && showSubsection('input') ? (
                                             <SettingsSection title="Input">
                                                 <p className={styles.headerCopy}>
@@ -540,26 +612,11 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
 
                                         {activeCategory === 'controls' && showSubsection('tuning') ? (
                                             <SettingsSection title="Future Tuning">
-                                                <PlaceholderControl
-                                                    hint="No live setting yet - the run always uses the shipped balance curve."
-                                                    label="Difficulty"
-                                                    options={['Easy', 'Normal', 'Hard', 'Nightmare']}
-                                                />
-                                                <PlaceholderControl
-                                                    hint="Timer mode is not connected to save data or rules in this build."
-                                                    label="Timer Mode"
-                                                    options={['Classic', 'Countdown', 'Relentless']}
-                                                />
-                                                <PlaceholderControl
-                                                    hint="Max lives are fixed by game rules until a future settings schema."
-                                                    label="Max Lives"
-                                                    options={['2', '3', '4', '5']}
-                                                />
-                                                <PlaceholderControl
-                                                    hint="Alternate card art sets are not selectable yet; asset slots only."
-                                                    label="Card Theme"
-                                                    options={['Crimson', 'Violet', 'Emerald', 'Steel']}
-                                                />
+                                                <p className={styles.headerCopy}>
+                                                    Reference-only balance and presentation selectors are grouped under
+                                                    Gameplay → Gameplay reference as honest "Coming soon" placeholders
+                                                    (not persisted).
+                                                </p>
                                             </SettingsSection>
                                         ) : null}
 
@@ -713,7 +770,6 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                                     <footer className={styles.footer}>
                                         <div className={styles.footerActions}>
                                             <UiButton
-                                                autoFocus={isModal}
                                                 onClick={closeSettings}
                                                 size={footerButtonSize}
                                                 variant="secondary"

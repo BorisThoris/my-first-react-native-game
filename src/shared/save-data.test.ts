@@ -34,4 +34,14 @@ describe('save normalization', () => {
         expect(saveData.settings.debugFlags.disableAchievementsOnDebug).toBe(false);
         expect(saveData.settings.masterVolume).toBe(DEFAULT_SETTINGS.masterVolume);
     });
+
+    it('normalizes invalid cameraViewportModePreference to default', () => {
+        const saveData = normalizeSaveData({
+            settings: {
+                ...DEFAULT_SETTINGS,
+                cameraViewportModePreference: 'bogus' as (typeof DEFAULT_SETTINGS)['cameraViewportModePreference']
+            }
+        });
+        expect(saveData.settings.cameraViewportModePreference).toBe(DEFAULT_SETTINGS.cameraViewportModePreference);
+    });
 });

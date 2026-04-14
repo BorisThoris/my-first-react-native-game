@@ -2,9 +2,11 @@ export {
   createNotificationStore,
   useNotificationStore,
   type ConfirmHandlerBundle,
+  type NotificationMeta,
   type NotificationRecord,
   type NotificationStore,
   type NotificationStoreState,
+  type NotificationSurface,
   type NotificationType
 } from './notificationStore.js';
 export {

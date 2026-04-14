@@ -79,6 +79,11 @@ interface TileBoardProps {
     /** `shifting_spotlight`: current bounty pair (bonus if matched now). */
     bountyPairKey?: string | null;
     runStatus?: RunStatus;
+    /**
+     * When false, hides early-tutorial **pair marker** chrome (inset pair-index ring on face-down DOM tiles).
+     * WebGL path has no equivalent overlay.
+     */
+    showTutorialPairMarkers?: boolean;
     onTileSelect: (tileId: string, event?: MouseEvent<HTMLButtonElement>) => void;
 }
 
@@ -91,6 +96,8 @@ interface TileBoardFallbackProps {
     pinnedTileIds: string[];
     previewActive: boolean;
     reduceMotion: boolean;
+    /** DOM-only: true while FLIP shuffle runs (CARD-020). */
+    shuffleAnimating?: boolean;
     dimmedTileIds?: ReadonlySet<string>;
     peekRevealedTileIds?: string[];
     allowGambitThirdFlip?: boolean;
@@ -102,6 +109,7 @@ interface TileBoardFallbackProps {
     wardPairKey?: string | null;
     bountyPairKey?: string | null;
     runStatus?: RunStatus;
+    showTutorialPairMarkers?: boolean;
     onTileSelect: (tileId: string, event?: MouseEvent<HTMLButtonElement>) => void;
     tileGridStyle: CSSProperties;
 }
@@ -172,7 +180,8 @@ const getTileClassName = (
     locked: boolean,
     isPinned: boolean,
     isFocusDimmed: boolean,
-    resolvingSelectionState: ResolvingSelectionState
+    resolvingSelectionState: ResolvingSelectionState,
+    runStatus: RunStatus
 ): string =>
     [
         styles.fallbackTile,
@@ -180,6 +189,9 @@ const getTileClassName = (
         tile.state === 'matched' ? styles.matched : '',
         locked && tile.state === 'hidden' ? styles.locked : '',
         isPinned && tile.state === 'hidden' ? styles.fallbackTilePinned : '',
+        isPinned && faceUp && runStatus === 'resolving' && resolvingSelectionState !== null
+            ? styles.fallbackTilePinnedResolving
+            : '',
         isFocusDimmed ? styles.tileFocusDim : '',
         resolvingSelectionState === 'match' ? styles.resolvingMatch : '',
         resolvingSelectionState === 'mismatch' ? styles.resolvingMismatch : '',
@@ -235,6 +247,8 @@ const TileBoardFallback = ({
     wardPairKey = null,
     bountyPairKey = null,
     runStatus = 'playing',
+    showTutorialPairMarkers = true,
+    shuffleAnimating = false,
     onTileSelect,
     tileGridStyle
 }: TileBoardFallbackProps) => {
@@ -244,7 +258,12 @@ const TileBoardFallback = ({
     const peekSet = useMemo(() => new Set(peekRevealedTileIds), [peekRevealedTileIds]);
 
     return (
-        <div className={styles.fallbackBoard} data-testid="tile-board-fallback" style={tileGridStyle}>
+        <div
+            className={styles.fallbackBoard}
+            data-shuffle-animating={shuffleAnimating ? 'true' : undefined}
+            data-testid="tile-board-fallback"
+            style={tileGridStyle}
+        >
             {board.tiles.map((tile, index) => {
                 if (tile.state === 'removed') {
                     return <div aria-hidden className={styles.tileRemovedSlot} key={tile.id} />;
@@ -261,7 +280,13 @@ const TileBoardFallback = ({
                 const showWideRecallStyle = wideRecallInPlay && runStatus === 'playing' && faceUp && tile.state === 'flipped';
                 const silhouetteClass = silhouetteDuringPlay && runStatus === 'playing' && faceUp ? styles.silhouetteFace : '';
                 const atomicClass =
-                    tile.atomicVariant != null ? ATOMIC_PAIR_CLASSES[tile.atomicVariant % ATOMIC_PAIR_CLASSES.length] ?? '' : '';
+                    showTutorialPairMarkers && tile.atomicVariant != null
+                        ? ATOMIC_PAIR_CLASSES[tile.atomicVariant % ATOMIC_PAIR_CLASSES.length] ?? ''
+                        : '';
+                const pairMarkerAttr =
+                    showTutorialPairMarkers && tile.atomicVariant != null && tile.state === 'hidden'
+                        ? String(tile.atomicVariant % ATOMIC_PAIR_CLASSES.length)
+                        : undefined;
                 const nBackClass =
                     nBackMutatorActive &&
                     nBackAnchorPairKey &&
@@ -292,8 +317,9 @@ const TileBoardFallback = ({
                 return (
                     <button
                         aria-label={getTileAriaLabel(tile, faceUp, row, column)}
-                        className={`${getTileClassName(tile, faceUp, locked, isPinned, isFocusDimmed, resolvingSelectionState)} ${atomicClass} ${nBackClass} ${cursedClass} ${spotlightWardClass} ${spotlightBountyClass}`.trim()}
+                        className={`${getTileClassName(tile, faceUp, locked, isPinned, isFocusDimmed, resolvingSelectionState, runStatus)} ${atomicClass} ${nBackClass} ${cursedClass} ${spotlightWardClass} ${spotlightBountyClass}`.trim()}
                         data-findable-kind={showFindableMarker ? tile.findableKind : undefined}
+                        data-pair-marker={pairMarkerAttr}
                         data-tile-id={tile.id}
                         disabled={disabled}
                         key={tile.id}
@@ -319,31 +345,33 @@ const TileBoardFallback = ({
                                     ✓
                                 </span>
                             ) : null}
-                            {faceUp ? (
-                                <span
-                                    className={`${styles.cardBack} ${styles.cardFaceFront} ${silhouetteClass}`.trim()}
-                                    data-testid="tile-card-face"
-                                >
+                            <span className={styles.domCardFlipScene}>
+                                <span className={`${styles.domCardFlipInner} ${faceUp ? styles.domCardFlipInnerFaceUp : ''}`.trim()}>
                                     <span
-                                        className={`${styles.tileSymbol} ${showWideRecallStyle ? styles.wideRecallDeemphSymbol : ''}`.trim()}
+                                        aria-hidden={faceUp}
+                                        className={`${styles.cardBack} ${styles.cardFaceBack} ${styles.domCardFlipFace} ${styles.domCardFlipBack}`.trim()}
+                                        data-testid={!faceUp ? 'tile-card-face' : undefined}
                                     >
-                                        {tile.symbol}
+                                        <span className={styles.cardBackFxOverlay}>
+                                            <CardBackMotifOverlay reduceMotion={reduceMotion} />
+                                        </span>
                                     </span>
-                                    {showFrontLabel || showWideRecallStyle ? (
-                                        <span className={styles.cardFaceLabel}>{labelText}</span>
-                                    ) : null}
-                                </span>
-                            ) : (
-                                <span
-                                    aria-hidden="true"
-                                    className={`${styles.cardBack} ${styles.cardFaceBack}`}
-                                    data-testid="tile-card-face"
-                                >
-                                    <span className={styles.cardBackFxOverlay}>
-                                        <CardBackMotifOverlay reduceMotion={reduceMotion} />
+                                    <span
+                                        aria-hidden={!faceUp}
+                                        className={`${styles.cardBack} ${styles.cardFaceFront} ${styles.domCardFlipFace} ${styles.domCardFlipFront} ${silhouetteClass}`.trim()}
+                                        data-testid={faceUp ? 'tile-card-face' : undefined}
+                                    >
+                                        <span
+                                            className={`${styles.tileSymbol} ${showWideRecallStyle ? styles.wideRecallDeemphSymbol : ''}`.trim()}
+                                        >
+                                            {tile.symbol}
+                                        </span>
+                                        {showFrontLabel || showWideRecallStyle ? (
+                                            <span className={styles.cardFaceLabel}>{labelText}</span>
+                                        ) : null}
                                     </span>
                                 </span>
-                            )}
+                            </span>
                         </span>
                     </button>
                 );
@@ -390,6 +418,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         wardPairKey = null,
         bountyPairKey = null,
         runStatus = 'playing',
+        showTutorialPairMarkers = true,
         onTileSelect
     },
     ref
@@ -413,6 +442,9 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
     const shuffleClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [shuffleAnimating, setShuffleAnimating] = useState(false);
     const [shuffleMotionDeadlineMs, setShuffleMotionDeadlineMs] = useState(0);
+    /** Mirrors FLIP motion budget for WebGL FX-013 staggered deal-Z (0 = inactive). */
+    const [shuffleMotionBudgetMs, setShuffleMotionBudgetMs] = useState(0);
+    const [shuffleStaggerTileCount, setShuffleStaggerTileCount] = useState(0);
     const sceneHandleRef = useRef<TileBoardSceneHandle | null>(null);
     const stageRef = useRef<HTMLDivElement>(null);
     const hoverTiltRef = useRef<TileHoverTiltState>({ tileId: null, x: 0, y: 0 });
@@ -445,6 +477,8 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                     shuffleClearTimeoutRef.current = null;
                 }
                 setShuffleMotionDeadlineMs(0);
+                setShuffleMotionBudgetMs(0);
+                setShuffleStaggerTileCount(0);
                 applyShuffle();
                 return;
             }
@@ -463,8 +497,13 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
             setShuffleMotionDeadlineMs(deadline);
             shuffleClearTimeoutRef.current = setTimeout(() => {
                 setShuffleMotionDeadlineMs(0);
+                setShuffleMotionBudgetMs(0);
+                setShuffleStaggerTileCount(0);
                 shuffleClearTimeoutRef.current = null;
             }, motionBudgetMs + 100);
+
+            setShuffleMotionBudgetMs(motionBudgetMs);
+            setShuffleStaggerTileCount(tileCountForBudget);
 
             flushSync(() => {
                 applyShuffle();
@@ -549,12 +588,12 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
     const syncGestureActive = useCallback((active: boolean): void => {
         gestureActiveRef.current = active;
         setGestureActive((current) => (current === active ? current : active));
-    }, []);
+    }, [setGestureActive]);
 
     const syncSelectionSuppressed = useCallback((suppressed: boolean): void => {
         selectionSuppressedRef.current = suppressed;
         setSelectionSuppressed((current) => (current === suppressed ? current : suppressed));
-    }, []);
+    }, [setSelectionSuppressed]);
 
     const clearTouchGestureState = useCallback((clearSuppression: boolean): void => {
         activeTouchPointsRef.current.clear();
@@ -603,7 +642,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                 ? current
                 : nextViewport
         );
-    }, []);
+    }, [setStageWorldViewport]);
 
     useEffect(() => {
         viewportStateRef.current = renderedViewportState;
@@ -1090,6 +1129,8 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
             previewActive={previewActive}
             reduceMotion={reduceMotion}
             runStatus={runStatus}
+            showTutorialPairMarkers={showTutorialPairMarkers}
+            shuffleAnimating={shuffleAnimating}
             silhouetteDuringPlay={silhouetteDuringPlay}
             tileGridStyle={tileGridStyle}
             wideRecallInPlay={wideRecallInPlay}
@@ -1101,6 +1142,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
             className={`${styles.frame} ${cameraViewportMode ? styles.frameMobileCamera : ''} ${
                 shuffleAnimating ? styles.frameShuffleAnimating : ''
             }`}
+            data-shuffle-animating={shuffleAnimating ? 'true' : 'false'}
             data-board-pan-x={renderedViewportState.panX.toFixed(4)}
             data-board-pan-y={renderedViewportState.panY.toFixed(4)}
             data-board-zoom={renderedViewportState.zoom.toFixed(4)}
@@ -1168,7 +1210,9 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                                     ref={sceneHandleRef}
                                     reduceMotion={reduceMotion}
                                     runStatus={runStatus}
+                                    shuffleMotionBudgetMs={shuffleMotionBudgetMs}
                                     shuffleMotionDeadlineMs={shuffleMotionDeadlineMs}
+                                    shuffleStaggerTileCount={shuffleStaggerTileCount}
                                 />
                                 <TileBoardPostFx
                                     bloomEnabled={bloomEffective}
@@ -1197,6 +1241,13 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                                         className={`${styles.hitButton} ${faceUp ? styles.hitButtonFaceUp : ''} ${
                                             tile.state === 'matched' ? styles.hitButtonMatched : ''
                                         } ${isPinned && tile.state === 'hidden' ? styles.hitButtonPinned : ''} ${
+                                            isPinned &&
+                                            tile.state === 'flipped' &&
+                                            runStatus === 'resolving' &&
+                                            resolvingSelectionState !== null
+                                                ? styles.hitButtonPinnedResolving
+                                                : ''
+                                        } ${
                                             resolvingSelectionState === 'match' ? styles.hitButtonResolvingMatch : ''
                                         } ${resolvingSelectionState === 'mismatch' ? styles.hitButtonResolvingMismatch : ''} ${
                                             resolvingSelectionState === 'gambitNeutral' ? styles.hitButtonResolvingGambitSpare : ''

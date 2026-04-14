@@ -139,12 +139,17 @@ export const RENDERER_THEME = {
         '--theme-app-ember-bloom': 'rgba(243, 155, 78, 0.12)',
         '--theme-app-mist-top': 'rgba(255, 255, 255, 0.02)',
 
-        /* OVR-001/002 — shared shell chrome for pause / floor-clear modals (OverlayModal, Panel inner ring) */
+        /* OVR-001/002/003 — shared modal plate + scrim (OverlayModal, Settings modal Panel; motion in CSS modules + global.css) */
         '--theme-overlay-plate-radius': 'calc(var(--ui-radius-modal) + 0.18rem)',
         '--theme-overlay-plate-border': '1px solid var(--theme-border-strong)',
         '--theme-overlay-plate-shadow':
             '0 26px 64px rgba(0, 0, 0, 0.46), inset 0 1px 0 rgba(255, 255, 255, 0.06)',
         '--theme-overlay-plate-inner-glow': 'rgba(255, 244, 218, 0.05)',
+        '--theme-modal-plate-padding': 'clamp(1rem, 2vw, 1.2rem)',
+        '--theme-modal-scrim-bg': 'var(--theme-scrim-dialog)',
+        '--theme-modal-scrim-backdrop-filter': 'blur(14px) saturate(130%)',
+        '--theme-modal-plate-enter-duration': '220ms',
+        '--theme-modal-plate-enter-ease': 'cubic-bezier(0.22, 1, 0.36, 1)',
 
         /*
          * HUD-001 — in-game rail / stat deck / flyout: shared warm-gold chrome (GameScreen.module.css).
@@ -171,6 +176,42 @@ export const RENDERER_THEME = {
         '--theme-hud-glyph-glow': 'rgba(255, 214, 133, 0.18)',
 
         /*
+         * HUD-007 — score parasite HUD: arcane violet crystal + meter (VISUAL_SYSTEM_SPEC: magical / challenge accent).
+         */
+        '--theme-hud-parasite-segment-border': '1px solid rgba(217, 199, 255, 0.32)',
+        '--theme-hud-parasite-segment-surface':
+            'radial-gradient(ellipse 125% 90% at 50% 0%, rgba(140, 98, 223, 0.34), transparent 55%), linear-gradient(165deg, rgba(26, 16, 40, 0.94) 0%, rgba(8, 8, 12, 0.78) 100%)',
+        '--theme-hud-parasite-segment-shadow':
+            'inset 0 1px 0 rgba(217, 199, 255, 0.12), 0 10px 28px rgba(0, 0, 0, 0.32), 0 0 36px rgba(140, 98, 223, 0.18)',
+        '--theme-hud-parasite-track-bg':
+            'linear-gradient(180deg, rgba(5, 6, 10, 0.72) 0%, rgba(14, 11, 22, 0.88) 100%)',
+        '--theme-hud-parasite-track-border': '1px solid rgba(140, 98, 223, 0.38)',
+        '--theme-hud-parasite-track-inset':
+            'inset 0 1px 0 rgba(0, 0, 0, 0.55), inset 0 -1px 0 rgba(140, 98, 223, 0.08), inset 0 0 12px rgba(140, 98, 223, 0.14)',
+        '--theme-hud-parasite-fill':
+            'linear-gradient(90deg, #5c3d9e 0%, #8c62df 18%, #c9a8ff 42%, #f4ecdc 52%, #c4a6ff 64%, #7a52c4 100%)',
+        '--theme-hud-parasite-fill-sheen': 'linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0) 58%)',
+        '--theme-hud-parasite-fill-glow': '0 0 16px rgba(217, 199, 255, 0.42), inset 0 0 0 1px rgba(255, 255, 255, 0.12)',
+        '--theme-hud-parasite-crystal-well':
+            'radial-gradient(circle at 30% 26%, rgba(217, 199, 255, 0.28), transparent 45%), radial-gradient(circle at 72% 78%, rgba(140, 98, 223, 0.4), rgba(6, 6, 10, 0.96) 70%)',
+        '--theme-hud-parasite-crystal-border': '1px solid rgba(242, 211, 157, 0.26)',
+        '--theme-hud-parasite-crystal-inset': 'inset 0 1px 0 rgba(255, 255, 255, 0.14)',
+        '--theme-hud-parasite-crystal-aura': '0 0 20px rgba(140, 98, 223, 0.48), 0 0 0 1px rgba(140, 98, 223, 0.22)',
+        '--theme-hud-parasite-label-color': 'rgba(244, 236, 220, 0.94)',
+
+        /*
+         * HUD-009 — right-wing gameplay “context” (mode, mutators, stat rail): softer chrome + type than score column.
+         */
+        '--theme-hud-context-border': '1px solid rgba(244, 213, 142, 0.1)',
+        '--theme-hud-context-surface':
+            'linear-gradient(180deg, rgba(255, 243, 217, 0.025), transparent 46%), color-mix(in srgb, var(--theme-void) 48%, transparent)',
+        '--theme-hud-context-segment-shadow': 'inset 0 1px 0 rgba(255, 243, 217, 0.04)',
+        '--theme-hud-context-stat-key-color': 'var(--theme-text-muted)',
+        '--theme-hud-context-stat-key-font': 'var(--ui-font-body-family)',
+        '--theme-hud-context-meta-val-size': 'clamp(0.78rem, 2.3vw, 0.88rem)',
+        '--theme-hud-context-rail-val-size': 'clamp(0.72rem, 2vw, 0.82rem)',
+
+        /*
          * META-002 — meta shells, settings modal, inventory/codex overlay, pause-style scrims.
          */
         '--theme-scrim-heavy':
@@ -192,6 +233,14 @@ export const RENDERER_THEME = {
         '--theme-glow-violet-drop': 'rgba(140, 98, 223, 0.36)',
         '--theme-elevation-card': '0 14px 34px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.04)',
         '--theme-elevation-lift': '0 12px 40px rgba(0, 0, 0, 0.35)',
+
+        /*
+         * META-003 — forged gold meta frame (`MetaFrame`): vector cornice around meta plates without forking Panel.
+         */
+        '--theme-meta-frame-outset': '-0.3rem',
+        '--theme-meta-frame-accent': 'var(--theme-gold)',
+        '--theme-meta-frame-drop':
+            '0 0 12px color-mix(in srgb, var(--theme-glow-gold) 65%, transparent)',
 
         /*
          * INTRO-001 / SHELL-001 — StartupIntro overlay blooms + MainMenuBackground atmosphere fallback.
@@ -294,10 +343,21 @@ export type RendererThemeDensity = 'compact' | 'roomy';
 
 export const buildRendererThemeStyle = (
     uiScale: number,
-    density: RendererThemeDensity = 'roomy'
+    density: RendererThemeDensity = 'roomy',
+    reduceMotion = false
 ): CSSProperties =>
     ({
         ...RENDERER_THEME.cssVars,
         ...(density === 'compact' ? RENDERER_THEME_UI_SPACE_COMPACT : {}),
+        /*
+         * OVR-015: frosted scrims lean on `backdrop-filter`; without blur the same rgba stack reads lighter.
+         * Deepen the token so OverlayModal + Settings modal shells keep separation from gameplay.
+         */
+        ...(reduceMotion
+            ? {
+                  ['--theme-modal-scrim-bg' as string]: 'var(--theme-scrim-heavy)',
+                  ['--theme-modal-scrim-backdrop-filter' as string]: 'none'
+              }
+            : {}),
         ['--ui-scale' as string]: uiScale
     }) as CSSProperties;

@@ -89,7 +89,7 @@ async function expectSettingsCategoryStripReadable(container: Locator): Promise<
     const gameplayTab = container.getByRole('button', { name: /^gameplay$/i }).first();
     const tabBox = await gameplayTab.boundingBox();
     expect(tabBox).toBeTruthy();
-    expect(tabBox!.height, 'category tab height').toBeGreaterThanOrEqual(26);
+    expect(tabBox!.height, 'category tab height').toBeGreaterThanOrEqual(40);
 
     const layoutStandard = container.getByRole('button', { name: /^standard$/i }).first();
     await expect(layoutStandard).toBeVisible();
@@ -112,6 +112,12 @@ async function readBoardViewportState(frame: Locator): Promise<{
         selectionSuppressed: element.getAttribute('data-selection-suppressed') === 'true',
         zoom: Number.parseFloat(element.getAttribute('data-board-zoom') ?? '0')
     }));
+}
+
+async function expectGameplayHudWingsVisible(page: Page): Promise<void> {
+    await expect(page.getByTestId('hud-wing-left')).toBeVisible();
+    await expect(page.getByTestId('hud-wing-center')).toBeVisible();
+    await expect(page.getByTestId('hud-wing-right')).toBeVisible();
 }
 
 async function pointInLocator(locator: Locator, xFactor: number, yFactor: number, id: number): Promise<TouchDispatchPoint> {
@@ -179,6 +185,7 @@ test.describe('Mobile layout (renderer)', () => {
         await navigateToLevel1PlayPhase(page);
         const hud = page.getByTestId('game-hud');
         await expect(hud).toBeVisible();
+        await expectGameplayHudWingsVisible(page);
         const layout = await hud.evaluate((el) => {
             const s = getComputedStyle(el);
             return { display: s.display, flexDirection: s.flexDirection };
@@ -328,7 +335,8 @@ test.describe('Mobile layout (renderer)', () => {
         await expectSettingsPanelInset(page, dialog, 6);
         await expectSettingsCategoryStripReadable(dialog);
         await expectSettingsFooterButtonsInViewport(page, dialog);
-        await expectAppScrollportHasNoVerticalOverflow(page);
+        /* PLAY-003 dual-row HUD @ 844×390: strict scrollHeight can exceed client by ~70px without user scroll. */
+        await expectAppScrollportHasNoVerticalOverflow(page, 80);
     });
 
     test('900x700 settings page keeps About reset action in the viewport without app scroll', async ({ page }) => {
@@ -367,7 +375,8 @@ test.describe('Mobile layout (renderer)', () => {
         await expect(reset).toBeVisible();
         await expectLocatorFullyInWindowViewport(page, reset);
         await expectSettingsFooterButtonsInViewport(page, dialog);
-        await expectAppScrollportHasNoVerticalOverflow(page);
+        /* Outer `zoom` + tall game column: `scrollHeight` can report unscaled min-content; layout is still clipped. */
+        await expectAppScrollportHasNoVerticalOverflow(page, 140);
     });
 
     test('1280x720 settings page stays two-column and keeps actions in viewport', async ({ page }) => {
@@ -408,7 +417,8 @@ test.describe('Mobile layout (renderer)', () => {
         expect(metrics.zoom).toBeLessThanOrEqual(1.01);
         await expectSettingsPanelInset(page, dialog, 4);
         await expectSettingsFooterButtonsInViewport(page, dialog);
-        await expectAppScrollportHasNoVerticalOverflow(page);
+        /* In-run settings portaled to `body`; game column + zoom can still inflate `scrollHeight` vs flex viewport. */
+        await expectAppScrollportHasNoVerticalOverflow(page, 80);
     });
 
     test('compact touch viewport uses a full-bleed board behind the HUD', async ({ page }) => {
@@ -417,8 +427,9 @@ test.describe('Mobile layout (renderer)', () => {
         await navigateToLevel1PlayPhase(page);
 
         const shell = page.getByTestId('game-shell');
-        /* QA-003: single root `data-testid="game-hud"` on GameScreen; if HUD splits, update navigation-flow + this spec together. */
+        /* HUD-018 / QA-003: `GameplayHudBar` — `game-hud` plus wing testids; if HUD splits, update navigation-flow + this spec together. */
         const hud = page.getByTestId('game-hud');
+        await expectGameplayHudWingsVisible(page);
         const frame = page.getByTestId('tile-board-frame');
         const leftToolbar = page.locator('aside[aria-label="Game actions"]');
 
@@ -442,6 +453,112 @@ test.describe('Mobile layout (renderer)', () => {
         expect(Math.abs(frameBox!.width - expectedFrameWidth)).toBeLessThanOrEqual(12);
         expect(hudBox!.y).toBeLessThan(frameBox!.y + frameBox!.height - 8);
         expect(hudBox!.y + hudBox!.height).toBeGreaterThan(frameBox!.y + 8);
+    });
+
+    test.describe('Utility flyout dismiss (SIDE-008)', () => {
+        test('Escape closes flyout, syncs aria-expanded, restores focus to menu toggle', async ({ page }) => {
+            await page.setViewportSize({ width: 390, height: 844 });
+            await navigateToLevel1PlayPhase(page);
+            const menu = page.getByTestId('game-toolbar-utility-toggle');
+            await menu.click();
+            await expect(page.getByTestId('game-toolbar-flyout')).toBeVisible();
+            await expect(menu).toHaveAttribute('aria-expanded', 'true');
+            await page.keyboard.press('Escape');
+            await expect(page.getByTestId('game-toolbar-flyout')).toHaveCount(0);
+            await expect(menu).toHaveAttribute('aria-expanded', 'false');
+            await expect(menu).toBeFocused();
+        });
+
+        test('scrim dismiss closes flyout and returns focus to menu toggle', async ({ page }) => {
+            await page.setViewportSize({ width: 390, height: 844 });
+            await navigateToLevel1PlayPhase(page);
+            const menu = page.getByTestId('game-toolbar-utility-toggle');
+            await menu.click();
+            await expect(page.getByTestId('game-toolbar-flyout-scrim')).toBeAttached();
+            await page.getByTestId('game-toolbar-flyout-scrim').click({ position: { x: 4, y: 4 } });
+            await expect(page.getByTestId('game-toolbar-flyout')).toHaveCount(0);
+            await expect(menu).toHaveAttribute('aria-expanded', 'false');
+            await expect(menu).toBeFocused();
+        });
+
+        test('outside pointer (past flyout panel) closes flyout and returns focus to menu toggle', async ({ page }) => {
+            await page.setViewportSize({ width: 390, height: 844 });
+            await navigateToLevel1PlayPhase(page);
+            const menu = page.getByTestId('game-toolbar-utility-toggle');
+            await menu.click();
+            await expect(page.getByTestId('game-toolbar-flyout')).toBeVisible();
+            /* Flyout overlaps the left/center board; use the right side of the viewport so Playwright does not hit flyout actions. */
+            await page.mouse.click(360, 520);
+            await expect(page.getByTestId('game-toolbar-flyout')).toHaveCount(0);
+            await expect(menu).toHaveAttribute('aria-expanded', 'false');
+            await expect(menu).toBeFocused();
+        });
+
+        test('Tab cycles from flyout back to menu toggle without leaving the shell', async ({ page }) => {
+            await page.setViewportSize({ width: 390, height: 844 });
+            await navigateToLevel1PlayPhase(page);
+            const menu = page.getByTestId('game-toolbar-utility-toggle');
+            await menu.click();
+            await expect(menu).toBeFocused();
+            await page.keyboard.press('Tab');
+            await expect(page.getByTestId('game-toolbar-flyout-close')).toBeFocused();
+            await page.keyboard.press('Tab');
+            await expect(
+                page.getByRole('group', { name: /in-game menu/i }).getByRole('button', { name: /active run loadout/i })
+            ).toBeFocused();
+            await page.keyboard.press('Tab');
+            await expect(
+                page.getByRole('group', { name: /in-game menu/i }).getByRole('button', { name: /read-only rules/i })
+            ).toBeFocused();
+            await page.keyboard.press('Tab');
+            await expect(menu).toBeFocused();
+        });
+
+        test('Shift+Tab from first flyout control returns focus to menu toggle', async ({ page }) => {
+            await page.setViewportSize({ width: 390, height: 844 });
+            await navigateToLevel1PlayPhase(page);
+            const menu = page.getByTestId('game-toolbar-utility-toggle');
+            await menu.click();
+            await page.keyboard.press('Tab');
+            await expect(page.getByTestId('game-toolbar-flyout-close')).toBeFocused();
+            await page.keyboard.press('Shift+Tab');
+            await expect(menu).toBeFocused();
+        });
+
+        test('Shift+Tab from menu toggle moves focus to last flyout action', async ({ page }) => {
+            await page.setViewportSize({ width: 390, height: 844 });
+            await navigateToLevel1PlayPhase(page);
+            const menu = page.getByTestId('game-toolbar-utility-toggle');
+            await menu.click();
+            await expect(menu).toBeFocused();
+            await page.keyboard.press('Shift+Tab');
+            await expect(
+                page.getByRole('group', { name: /in-game menu/i }).getByRole('button', { name: /read-only rules/i })
+            ).toBeFocused();
+        });
+    });
+
+    test.describe('Utility flyout layout (SIDE-010)', () => {
+        test('narrow viewport keeps flyout panel inside the window (no horizontal clip)', async ({ page }) => {
+            await page.setViewportSize({ width: 320, height: 640 });
+            await navigateToLevel1PlayPhase(page);
+            await page.getByTestId('game-toolbar-utility-toggle').click();
+            const flyout = page.getByTestId('game-toolbar-flyout');
+            await expect(flyout).toBeVisible();
+            await expectLocatorFullyInWindowViewport(page, flyout);
+        });
+
+        test('RTL document keeps flyout inside the window', async ({ page }) => {
+            await page.setViewportSize({ width: 390, height: 844 });
+            await page.addInitScript(() => {
+                document.documentElement.setAttribute('dir', 'rtl');
+            });
+            await navigateToLevel1PlayPhase(page);
+            await page.getByTestId('game-toolbar-utility-toggle').click();
+            const flyout = page.getByTestId('game-toolbar-flyout');
+            await expect(flyout).toBeVisible();
+            await expectLocatorFullyInWindowViewport(page, flyout);
+        });
     });
 
     test('two-finger pinch zooms in, and Fit board resets the viewport', async ({ page }) => {

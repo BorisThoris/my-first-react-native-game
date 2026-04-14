@@ -16,7 +16,7 @@ import {
 import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
 import { useAppStore } from '../store/useAppStore';
-import { Eyebrow, Panel, ScreenTitle, UiButton } from '../ui';
+import { Eyebrow, MetaFrame, Panel, ScreenTitle, UiButton } from '../ui';
 import MainMenuBackground from './MainMenuBackground';
 import OverlayModal from './OverlayModal';
 import styles from './MainMenu.module.css';
@@ -287,27 +287,35 @@ const MainMenu = ({
             <div className={styles.fitViewport}>
                 <div ref={menuFitMeasureRef} className={styles.fitMeasureOuter}>
                     <div className={styles.content} style={{ zoom: shellFitZoom }}>
-                <header className={styles.metaRow}>
-                    <div className={styles.metaCard}>
-                        <span className={styles.metaLabel}>Build</span>
-                        <strong className={styles.metaValue}>Steam Demo</strong>
-                    </div>
-                    <div className={styles.metaCard}>
-                        <span className={styles.metaLabel}>Best Score</span>
-                        <strong className={styles.metaValue}>
-                            {bestScore > 0 ? bestScore.toLocaleString() : 'Unranked'}
-                        </strong>
-                    </div>
-                    <div className={styles.metaCard}>
-                        <span className={styles.metaLabel}>Daily Streak</span>
-                        <strong className={styles.metaValue}>
-                            {saveData.playerStats?.dailyStreakCosmetic ?? 0}
-                        </strong>
-                    </div>
-                    <div className={styles.metaCard}>
-                        <span className={styles.metaLabel}>Steam</span>
-                        <strong className={styles.metaValue}>{steamConnected ? 'Connected' : 'Offline'}</strong>
-                    </div>
+                <header className={styles.metaRow} data-testid="main-menu-meta-strip">
+                    <MetaFrame className={styles.metaPlaqueFrame}>
+                        <div className={styles.metaCard}>
+                            <span className={styles.metaLabel}>Build</span>
+                            <strong className={styles.metaValue}>Steam Demo</strong>
+                        </div>
+                    </MetaFrame>
+                    <MetaFrame className={styles.metaPlaqueFrame}>
+                        <div className={styles.metaCard}>
+                            <span className={styles.metaLabel}>Best Score</span>
+                            <strong className={styles.metaValue}>
+                                {bestScore > 0 ? bestScore.toLocaleString() : 'Unranked'}
+                            </strong>
+                        </div>
+                    </MetaFrame>
+                    <MetaFrame className={styles.metaPlaqueFrame}>
+                        <div className={styles.metaCard}>
+                            <span className={styles.metaLabel}>Daily Streak</span>
+                            <strong className={styles.metaValue}>
+                                {saveData.playerStats?.dailyStreakCosmetic ?? 0}
+                            </strong>
+                        </div>
+                    </MetaFrame>
+                    <MetaFrame className={styles.metaPlaqueFrame}>
+                        <div className={styles.metaCard}>
+                            <span className={styles.metaLabel}>Steam</span>
+                            <strong className={styles.metaValue}>{steamConnected ? 'Connected' : 'Offline'}</strong>
+                        </div>
+                    </MetaFrame>
                 </header>
 
                 <div className={styles.layout}>
@@ -324,86 +332,94 @@ const MainMenu = ({
                             <p className={styles.tagline}>Test your mind. Conquer the depths.</p>
                         </div>
 
-                        <div className={styles.actionStack} role="group" aria-label="Primary actions">
-                            <UiButton
-                                aria-label="Play"
-                                className={styles.ctaButton}
-                                fullWidth
-                                size="lg"
-                                variant="primary"
-                                onClick={onPlay}
-                            >
-                                <span className={styles.ctaContent}>
-                                    <span className={styles.ctaTitle}>Play</span>
-                                    <span className={styles.ctaHint}>Choose Classic, Daily, or future modes</span>
-                                </span>
-                            </UiButton>
-                            <UiButton
-                                aria-label="Collection"
-                                className={styles.ctaButton}
-                                fullWidth
-                                size={ctaSize}
-                                variant="secondary"
-                                onClick={onOpenCollection}
-                            >
-                                <span className={styles.ctaContent}>
-                                    <span className={styles.ctaTitle}>Collection</span>
-                                    <span className={styles.ctaHint}>Achievements, relics, and run history</span>
-                                </span>
-                            </UiButton>
-                            <UiButton
-                                aria-label="Inventory"
-                                className={styles.ctaButton}
-                                fullWidth
-                                size={ctaSize}
-                                variant="ghost"
-                                onClick={onOpenInventory}
-                            >
-                                <span className={styles.ctaContent}>
-                                    <span className={styles.ctaTitle}>Inventory</span>
-                                    <span className={styles.ctaHint}>Expedition loadout when you are in a run</span>
-                                </span>
-                            </UiButton>
-                            <UiButton
-                                aria-label="Codex"
-                                className={styles.ctaButton}
-                                fullWidth
-                                size={ctaSize}
-                                variant="ghost"
-                                onClick={onOpenCodex}
-                            >
-                                <span className={styles.ctaContent}>
-                                    <span className={styles.ctaTitle}>Codex</span>
-                                    <span className={styles.ctaHint}>Rules, relics, mutators, and mode reference</span>
-                                </span>
-                            </UiButton>
-                            <UiButton
-                                aria-label="Settings"
-                                className={styles.ctaButton}
-                                fullWidth
-                                size={ctaSize}
-                                variant="secondary"
-                                onClick={onOpenSettings}
-                            >
-                                <span className={styles.ctaContent}>
-                                    <span className={styles.ctaTitle}>Settings</span>
-                                    <span className={styles.ctaHint}>Video, audio, controls, accessibility</span>
-                                </span>
-                            </UiButton>
-                            <UiButton
-                                aria-label="Exit Game"
-                                className={styles.ctaButton}
-                                fullWidth
-                                size={ctaSize}
-                                variant="ghost"
-                                onClick={() => void desktopClient.quitApp()}
-                            >
-                                <span className={styles.ctaContent}>
-                                    <span className={styles.ctaTitle}>Exit Game</span>
-                                    <span className={styles.ctaHint}>Close the desktop app</span>
-                                </span>
-                            </UiButton>
-                        </div>
+                        <MetaFrame className={styles.ctaMetaFrame} data-testid="main-menu-primary-meta-frame">
+                            <Panel className={styles.ctaPanel} padding="md" variant="strong">
+                                <div aria-hidden className={styles.ctaIllustratedBand}>
+                                    <img alt="" className={styles.ctaBandSeal} src={UI_ART.menuSeal} />
+                                    <img alt="" className={styles.ctaBandFlourish} src={UI_ART.dividerOrnament} />
+                                </div>
+                                <div className={styles.actionStack} role="group" aria-label="Primary actions">
+                                    <UiButton
+                                        aria-label="Play"
+                                        className={styles.ctaButton}
+                                        fullWidth
+                                        size="lg"
+                                        variant="primary"
+                                        onClick={onPlay}
+                                    >
+                                        <span className={styles.ctaContent}>
+                                            <span className={styles.ctaTitle}>Play</span>
+                                            <span className={styles.ctaHint}>Choose Classic, Daily, or future modes</span>
+                                        </span>
+                                    </UiButton>
+                                    <UiButton
+                                        aria-label="Collection"
+                                        className={styles.ctaButton}
+                                        fullWidth
+                                        size={ctaSize}
+                                        variant="secondary"
+                                        onClick={onOpenCollection}
+                                    >
+                                        <span className={styles.ctaContent}>
+                                            <span className={styles.ctaTitle}>Collection</span>
+                                            <span className={styles.ctaHint}>Achievements, relics, and run history</span>
+                                        </span>
+                                    </UiButton>
+                                    <UiButton
+                                        aria-label="Inventory"
+                                        className={styles.ctaButton}
+                                        fullWidth
+                                        size={ctaSize}
+                                        variant="ghost"
+                                        onClick={onOpenInventory}
+                                    >
+                                        <span className={styles.ctaContent}>
+                                            <span className={styles.ctaTitle}>Inventory</span>
+                                            <span className={styles.ctaHint}>Expedition loadout when you are in a run</span>
+                                        </span>
+                                    </UiButton>
+                                    <UiButton
+                                        aria-label="Codex"
+                                        className={styles.ctaButton}
+                                        fullWidth
+                                        size={ctaSize}
+                                        variant="ghost"
+                                        onClick={onOpenCodex}
+                                    >
+                                        <span className={styles.ctaContent}>
+                                            <span className={styles.ctaTitle}>Codex</span>
+                                            <span className={styles.ctaHint}>Rules, relics, mutators, and mode reference</span>
+                                        </span>
+                                    </UiButton>
+                                    <UiButton
+                                        aria-label="Settings"
+                                        className={styles.ctaButton}
+                                        fullWidth
+                                        size={ctaSize}
+                                        variant="secondary"
+                                        onClick={onOpenSettings}
+                                    >
+                                        <span className={styles.ctaContent}>
+                                            <span className={styles.ctaTitle}>Settings</span>
+                                            <span className={styles.ctaHint}>Video, audio, controls, accessibility</span>
+                                        </span>
+                                    </UiButton>
+                                    <UiButton
+                                        aria-label="Exit Game"
+                                        className={styles.ctaButton}
+                                        fullWidth
+                                        size={ctaSize}
+                                        variant="ghost"
+                                        onClick={() => void desktopClient.quitApp()}
+                                    >
+                                        <span className={styles.ctaContent}>
+                                            <span className={styles.ctaTitle}>Exit Game</span>
+                                            <span className={styles.ctaHint}>Close the desktop app</span>
+                                        </span>
+                                    </UiButton>
+                                </div>
+                            </Panel>
+                        </MetaFrame>
 
                         {prioritizeModesInHero && ultraCompactPhone && showHowToPlay ? howToPanel : null}
                         {prioritizeModesInHero ? moreModesPanel : null}

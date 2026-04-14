@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 740 1080" width="740" height="1080">
+  <title>Memory Dungeon card face panel  stone, gold frame, calm center (TASK-011)</title>
+  <defs>
+    <linearGradient id="stonePanel" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#121820"/>
+      <stop offset="50%" stop-color="#0c1018"/>
+      <stop offset="100%" stop-color="#080a10"/>
+    </linearGradient>
+    <radialGradient id="centerWell" cx="50%" cy="52%" r="42%">
+      <stop offset="0%" stop-color="#0a1624" stop-opacity="0.9"/>
+      <stop offset="70%" stop-color="#060810" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#040508" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="frameGold" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f2d39d"/>
+      <stop offset="50%" stop-color="#a67832"/>
+      <stop offset="100%" stop-color="#4a3218"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="740" height="1080" rx="48" ry="48" fill="url(#stonePanel)"/>
+  <rect x="24" y="28" width="692" height="1024" rx="36" ry="36" fill="none" stroke="url(#frameGold)" stroke-width="4"/>
+  <rect x="40" y="44" width="660" height="992" rx="28" ry="28" fill="none" stroke="#c3954f" stroke-width="1.2" opacity="0.45"/>
+  <!-- Calm center for rune/symbol overlay -->
+  <ellipse cx="370" cy="520" rx="200" ry="240" fill="url(#centerWell)"/>
+</svg>

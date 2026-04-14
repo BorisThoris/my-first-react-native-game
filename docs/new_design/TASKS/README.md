@@ -18,6 +18,18 @@ Gameplay **HUD**, **sidebar** / `gameplayIcons`, **TileBoard** DOM+WebGL / shuff
 - Added **acceptance criteria** and **deps** per task.
 - **Cross-linked** overlapping work (e.g. `META-009` ↔ `OVR-002`, `SIDE-003` ↔ `NAV-003` / `NAV-013`).
 
+## Parity evidence cadence (`PLAY-010` / `QA-001`)
+
+Use this whenever gameplay HUD, sidebar, or tile chrome changes, or before a release that claims endproduct parity.
+
+| Step | Command | Output / gate |
+|------|---------|----------------|
+| 1 — HUD + board crops | `yarn playwright test e2e/hud-inspect.spec.ts e2e/visual-endproduct-parity.spec.ts --workers=1` | `test-results/endproduct-parity/` (`hud-element.png`, `hud-metrics.json`, `hud-fragment.html`, tile crops). Override dir: `cross-env VISUAL_CAPTURE_ROOT=<dir> ...` |
+| 2 — Full scenario stills | `cross-env VISUAL_CAPTURE_ROOT=docs/reference-comparison/captures yarn playwright test e2e/visual-screens.standard.spec.ts --workers=1` (Windows: `npx cross-env …` or PowerShell `$env:VISUAL_CAPTURE_ROOT=…`) | Desktop + tablet captures for `CURRENT_VS_ENDPRODUCT.md` map; may need retries if Vite drops or **`08-game-over`** flakes — see `CURRENT_VS_ENDPRODUCT.md` §6 |
+| 3 — Doc sync | Edit `docs/reference-comparison/CURRENT_VS_ENDPRODUCT.md` if §4 rows are stale; link artifacts in PR | **`QA-001`** satisfied when baselines match team policy (`VISUAL_REVIEW.md` § Recorded default) |
+
+**Owner:** whoever merges the visual change (author runs steps 1–2 locally; CI may run subset). **Frequency:** every PR touching `GameScreen`, `GameLeftToolbar`, or `TileBoard` / WebGL tile FX; at minimum before parity milestone tags.
+
 ### Specs in repo
 
 - `docs/new_design/SCREEN_SPEC_GAMEPLAY.md`
@@ -38,6 +50,10 @@ Gameplay **HUD**, **sidebar** / `gameplayIcons`, **TileBoard** DOM+WebGL / shuff
 | [TASKS_SIDEBAR_PARITY.md](./TASKS_SIDEBAR_PARITY.md) | Left rail, flyout, icons, exit affordance | `SIDE-*` |
 | [TASKS_CARDS_VFX_PARITY.md](./TASKS_CARDS_VFX_PARITY.md) | DOM/WebGL tiles, flip, match/mismatch FX | `CARD-*`, `FX-*` |
 | [TASKS_ASSETS_QA.md](./TASKS_ASSETS_QA.md) | Asset paths, manifests, e2e/visual regression | `AST-*`, `QA-*` |
+| [TASKS_PLAYING_ENDPRODUCT.md](./TASKS_PLAYING_ENDPRODUCT.md) | Playing screen vs `ENDPRODUCTIMAGE.png` (top-left): rail IA, HUD density, stage, cards, FX, evidence | `PLAY-*` |
+| [TASKS_ARCHIVE_PARITY.md](./TASKS_ARCHIVE_PARITY.md) | Completed `HUD-*` / `SIDE-*` rows removed from active tables | archive only |
+
+**Endproduct HUD/board crops (local):** `yarn playwright test e2e/hud-inspect.spec.ts e2e/visual-endproduct-parity.spec.ts --workers=1` → `test-results/endproduct-parity/` (`hud-element.png`, `hud-metrics.json`, `hud-fragment.html`, `tile-board-*.png`). Set `VISUAL_CAPTURE_ROOT` to write elsewhere.
 
 ### Pass 2
 
@@ -54,13 +70,15 @@ Gameplay **HUD**, **sidebar** / `gameplayIcons`, **TileBoard** DOM+WebGL / shuff
 
 | File | Purpose |
 |------|---------|
-| [TASKS_CROSSCUTTING.md](./TASKS_CROSSCUTTING.md) | Epic order, shared risks, duplicate-task matrix, open questions |
+| [TASKS_CROSSCUTTING.md](./TASKS_CROSSCUTTING.md) | Epic order, shared risks, duplicate-task matrix, **decision log** |
+| [TASKS_COMPLETION_LOG.md](./TASKS_COMPLETION_LOG.md) | P0–P2 IDs closed in milestone pushes (rows removed from active tables) |
+| [NAVIGATION_MODEL.md](../NAVIGATION_MODEL.md) | `NAV-001` view + pointer model (`App.tsx` / store) |
 
 ---
 
 ## Master ID map (quick grep)
 
-`HUD-*` `SIDE-*` `CARD-*` `FX-*` `AST-*` `QA-*` `META-*` `NAV-*` `OVR-*` `DS-*` `PERF-*` `A11Y-*` `E2E-*`
+`HUD-*` `SIDE-*` `PLAY-*` `CARD-*` `FX-*` `AST-*` `QA-*` `META-*` `NAV-*` `OVR-*` `DS-*` `PERF-*` `A11Y-*` `E2E-*`
 
 ---
 
@@ -68,7 +86,7 @@ Gameplay **HUD**, **sidebar** / `gameplayIcons`, **TileBoard** DOM+WebGL / shuff
 
 1. **DS-008**, **DS-009**, **DS-010** — cheap token cleanup reduces rework before big visual passes.
 2. **PERF-002** — unblocks honest **reduceMotion** vs quality before **FX-005** / **FX-015**.
-3. **HUD-001 → HUD-002**, **SIDE-001 → SIDE-004 → SIDE-006** (same as pass 1).
+3. **PLAY-010** then **PLAY-001 → PLAY-002** with remaining **SIDE-***; **HUD-001** (residual) / **HUD-002** with **PLAY-003** for HUD density vs mock.
 4. **NAV-002**, **NAV-003**, **NAV-004** — IA and safety before promoting sidebar exit (**SIDE-003**).
 5. **META-001 → META-003** then **OVR-001 → OVR-002** — shared chrome for meta + in-run modals.
 6. **A11Y-003**, **A11Y-004**, **A11Y-005** — alongside overlay work.

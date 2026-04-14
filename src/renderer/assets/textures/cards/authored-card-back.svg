@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 740 1080" width="740" height="1080">
+  <title>Memory Dungeon card back  leather, gold filigree, center diamond (PLAY-007 / TASK-011)</title>
+  <defs>
+    <linearGradient id="leatherBase" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1410"/>
+      <stop offset="35%" stop-color="#3d2818"/>
+      <stop offset="65%" stop-color="#2a1a12"/>
+      <stop offset="100%" stop-color="#120c08"/>
+    </linearGradient>
+    <radialGradient id="leatherWash" cx="50%" cy="38%" r="65%">
+      <stop offset="0%" stop-color="#5c4030" stop-opacity="0.45"/>
+      <stop offset="55%" stop-color="#2a1a12" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#0a0604" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="goldRim" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#8a6230"/>
+      <stop offset="25%" stop-color="#e8c87a"/>
+      <stop offset="50%" stop-color="#c3954f"/>
+      <stop offset="75%" stop-color="#f2d39d"/>
+      <stop offset="100%" stop-color="#7a5228"/>
+    </linearGradient>
+    <linearGradient id="goldFine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f2d39d"/>
+      <stop offset="50%" stop-color="#c3954f"/>
+      <stop offset="100%" stop-color="#6a4a28"/>
+    </linearGradient>
+    <radialGradient id="gemCore" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#e8f4ff"/>
+      <stop offset="35%" stop-color="#63a5bb"/>
+      <stop offset="70%" stop-color="#2a5a78"/>
+      <stop offset="100%" stop-color="#0a1828"/>
+    </radialGradient>
+    <filter id="gemGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Panel -->
+  <rect x="0" y="0" width="740" height="1080" rx="52" ry="52" fill="url(#leatherBase)"/>
+  <rect x="0" y="0" width="740" height="1080" rx="52" ry="52" fill="url(#leatherWash)"/>
+
+  <!-- Outer gold frame -->
+  <rect x="18" y="18" width="704" height="1044" rx="40" ry="40" fill="none" stroke="url(#goldRim)" stroke-width="5" opacity="0.95"/>
+  <rect x="32" y="32" width="676" height="1016" rx="32" ry="32" fill="none" stroke="url(#goldFine)" stroke-width="1.5" opacity="0.55"/>
+
+  <!-- Corner filigree (simplified symmetric arcs) -->
+  <g fill="none" stroke="url(#goldFine)" stroke-width="2" stroke-linecap="round" opacity="0.85">
+    <path d="M 90 96 Q 52 96 52 134 Q 52 168 78 188"/>
+    <path d="M 650 96 Q 688 96 688 134 Q 688 168 662 188"/>
+    <path d="M 90 984 Q 52 984 52 946 Q 52 912 78 892"/>
+    <path d="M 650 984 Q 688 984 688 946 Q 688 912 662 892"/>
+  </g>
+  <g fill="none" stroke="#c3954f" stroke-width="1.2" opacity="0.5">
+    <path d="M 120 120 C 80 140 60 200 100 240"/>
+    <path d="M 620 120 C 660 140 680 200 640 240"/>
+    <path d="M 120 960 C 80 940 60 880 100 840"/>
+    <path d="M 620 960 C 660 940 680 880 640 840"/>
+  </g>
+
+  <!-- Symmetric S-scroll motifs (top/bottom center) -->
+  <g fill="none" stroke="url(#goldRim)" stroke-width="2.2" stroke-linecap="round" opacity="0.75">
+    <path d="M 280 78 C 320 58 420 58 460 78 C 500 98 500 128 470 148 C 450 160 420 152 400 138"/>
+    <path d="M 280 1002 C 320 1022 420 1022 460 1002 C 500 982 500 952 470 932 C 450 920 420 928 400 942"/>
+  </g>
+
+  <!-- Center diamond + glow -->
+  <g filter="url(#gemGlow)" transform="translate(370 540)">
+    <path d="M 0 -88 L 52 0 L 0 88 L -52 0 Z" fill="url(#gemCore)" stroke="#f2d39d" stroke-width="2"/>
+    <path d="M 0 -72 L 38 0 L 0 72 L -38 0 Z" fill="none" stroke="#b8d9e4" stroke-width="1" opacity="0.7"/>
+  </g>
+
+  <!-- Inner ring around gem -->
+  <circle cx="370" cy="540" r="118" fill="none" stroke="url(#goldFine)" stroke-width="1.5" opacity="0.45"/>
+  <circle cx="370" cy="540" r="132" fill="none" stroke="#c3954f" stroke-width="0.8" opacity="0.35"/>
+
+  <!-- Soft edge darkening -->
+  <rect x="0" y="0" width="740" height="1080" rx="52" ry="52" fill="none" stroke="#000" stroke-width="36" opacity="0.22"/>
+</svg>

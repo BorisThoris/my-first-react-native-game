@@ -4,7 +4,7 @@
 
 **Research pass:** `reduceMotion` (settings + `data-reduce-motion`), `threeEnabled` / `canUseWebGL`, DPR cap in `TileBoard`, `glAntialias` vs `TileBoardPostFx` SMAA, Pixi `MainMenuBackground`, anisotropy in `TileBoardScene`, Canvas `key` remount on motion toggle, StartupIntro WebGL.
 
-**Finding:** No **graphics quality preset**; **reduceMotion conflates a11y with AA/PostFX**; OS `prefers-reduced-motion` only partially used; **no context-loss react** for `threeEnabled`; menu Pixi **no DPR cap** like tile board; FX backlog needs a **budget** before particles/bloom.
+**Finding:** **`graphicsQuality`**, **`boardBloomEnabled`**, **`boardScreenSpaceAA`** shipped in settings/contracts (**`PERF-001`**, **`PERF-002`**). OS `prefers-reduced-motion` only partially used; **no context-loss react** for `threeEnabled`; menu Pixi cap exists via **`getMenuPixiResolutionCap`**; remaining gaps below.
 
 **Cross-links:** `TASKS_CARDS_VFX_PARITY.md` (FX-005, FX-015, FX-016), `TASKS_CROSSCUTTING.md`.
 
@@ -14,8 +14,6 @@
 
 | ID | P | Title | Goal | Acceptance criteria | Deps |
 |----|---|--------|------|---------------------|------|
-| PERF-001 | P1 | Graphics quality preset | Low/med/high → DPR, SMAA, particles, bloom. | Persisted in settings; defaults sane. | contracts |
-| PERF-002 | P0 | Split motion vs GPU cost | `reduceMotion` ≠ sole switch for SMAA/MSAA; add `effectsQuality` or similar. | User can reduce motion with AA on if desired. | PERF-001 |
 | PERF-003 | P2 | Low-power / idle policy | Tab hidden: pause ticker; optional `powerPreference: default`. | Measurable CPU drop. | — |
 | PERF-004 | P2 | Match system reduced motion | Offer sync `prefers-reduced-motion` on first run or settings. | Document override. | — |
 | PERF-005 | P1 | WebGL context loss | Recover or fallback; don’t stick stale `threeEnabled`. | Handler + test/manual script. | — |
@@ -29,4 +27,4 @@
 
 ## CARD/FX coordination
 
-Ship **FX-016** (reduce-motion matrix) before heavy **FX-005** / **FX-015**. Gate new FX behind **PERF-001** tier when implemented.
+Gate new FX behind **`graphicsQuality`** and **`boardBloomEnabled`**; **FX-016** matrix in [`FX_REDUCE_MOTION_MATRIX.md`](../FX_REDUCE_MOTION_MATRIX.md).

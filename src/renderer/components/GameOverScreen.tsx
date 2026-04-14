@@ -78,7 +78,7 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
             />
             <div
                 aria-hidden="true"
-                className={styles.scenePlate}
+                className={styles.sceneLayer}
                 style={{ backgroundImage: `url(${UI_ART.menuScene})` }}
             />
             <div className={styles.scrim} />
@@ -86,8 +86,11 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
             <div className={styles.foreground}>
                 <div className={styles.layout}>
                     <Panel className={styles.heroPanel} padding="lg" variant="strong">
-                        <Eyebrow>Run Complete</Eyebrow>
-                        <ScreenTitle role="screenLg">Expedition Over</ScreenTitle>
+                        <div className={styles.heroLockup}>
+                            <img alt="" className={styles.brandCrest} src={UI_ART.brandCrest} />
+                            <Eyebrow>Run Complete</Eyebrow>
+                            <ScreenTitle role="screenLg">Expedition Over</ScreenTitle>
+                        </div>
                         <div aria-label={`Total score ${summary.totalScore.toLocaleString()}`} className={styles.scoreHero}>
                             <span className={styles.scoreHeroLabel}>Score</span>
                             <span className={styles.scoreHeroValue}>{summary.totalScore.toLocaleString()}</span>

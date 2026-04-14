@@ -11,6 +11,7 @@ const resetStore = (): void => {
         steamConnected: false,
         view: 'menu',
         settingsReturnView: 'menu',
+        subscreenReturnView: 'menu',
         saveData,
         settings: saveData.settings,
         run: null,
@@ -130,6 +131,52 @@ describe('useAppStore timers', () => {
         await vi.advanceTimersByTimeAsync(400);
         expect(useAppStore.getState().run?.status).toBe('gameOver');
         expect(useAppStore.getState().view).toBe('gameOver');
+    });
+
+    it('SIDE-013: inventory overlay and run settings modal use the same frozen run snapshot after memorize', async () => {
+        useAppStore.getState().startRun();
+        const memorizeDuration = useAppStore.getState().run?.timerState.memorizeRemainingMs ?? 0;
+        await vi.advanceTimersByTimeAsync(memorizeDuration + 1);
+        expect(useAppStore.getState().run?.status).toBe('playing');
+
+        useAppStore.getState().openInventoryFromPlaying();
+        const frozenForInventory = useAppStore.getState().run;
+        expect(useAppStore.getState().view).toBe('inventory');
+        expect(frozenForInventory?.status).toBe('paused');
+        expect(frozenForInventory?.timerState.pausedFromStatus).toBe('playing');
+
+        useAppStore.getState().closeSubscreen();
+        expect(useAppStore.getState().view).toBe('playing');
+        expect(useAppStore.getState().run?.status).toBe('playing');
+
+        useAppStore.getState().openSettings('playing');
+        const frozenForSettings = useAppStore.getState().run;
+        expect(useAppStore.getState().view).toBe('settings');
+        expect(frozenForSettings?.status).toBe('paused');
+        expect(frozenForSettings?.timerState.pausedFromStatus).toBe('playing');
+        expect(frozenForSettings?.timerState).toEqual(frozenForInventory?.timerState);
+    });
+
+    it('SIDE-014: closing in-run inventory when run was cleared routes to menu instead of a blank playing shell', () => {
+        useAppStore.getState().startRun();
+        useAppStore.getState().openInventoryFromPlaying();
+        expect(useAppStore.getState().view).toBe('inventory');
+        useAppStore.setState({ run: null });
+        useAppStore.getState().closeSubscreen();
+        expect(useAppStore.getState().view).toBe('menu');
+        expect(useAppStore.getState().run).toBeNull();
+        expect(useAppStore.getState().subscreenReturnView).toBe('menu');
+    });
+
+    it('SIDE-014: closing run settings when run was cleared routes to menu', () => {
+        useAppStore.getState().startRun();
+        useAppStore.getState().openSettings('playing');
+        expect(useAppStore.getState().view).toBe('settings');
+        useAppStore.setState({ run: null });
+        useAppStore.getState().closeSettings();
+        expect(useAppStore.getState().view).toBe('menu');
+        expect(useAppStore.getState().run).toBeNull();
+        expect(useAppStore.getState().settingsReturnView).toBe('menu');
     });
 });
 

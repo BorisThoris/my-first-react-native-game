@@ -7,9 +7,9 @@ import {
 } from './tileBoardGameFlow';
 
 /**
- * QA-004 — DOM tile “fingerprint”: asserts `tile-card-face` uses bundled `back.svg` (hidden) and `front.svg` (face-up)
- * with 100%×100% cover, centered, no-repeat. If `.cardBack` / face URLs or stacking change intentionally, update
- * expectations and note the rationale here (see `TASKS_ASSETS_QA.md` QA-004).
+ * QA-004 — DOM tile “fingerprint”: asserts `tile-card-face` uses authored card art (paths `authored-card-*.svg`
+ * or legacy `*back.svg` / `*front.svg`) or an inlined `data:image/svg+xml` bundle, with 100%×100% cover, centered,
+ * no-repeat. Update if `.cardBack` / face URLs or stacking change (see `TASKS_ASSETS_QA.md` QA-004).
  */
 test.use({
     launchOptions: {
@@ -41,7 +41,9 @@ test.describe('Tile card face (DOM fallback)', () => {
             });
 
         const hiddenStyle = await readBg(cardFace);
-        expect(hiddenStyle.backgroundImage, 'Hidden tile should use back.svg').toMatch(/back\.svg/i);
+        expect(hiddenStyle.backgroundImage, 'Hidden tile should use card back art').toMatch(
+            /back\.svg|authored-card-back|data:image\/svg\+xml/i
+        );
         expect(hiddenStyle.backgroundSize, 'Back SVG fills card frame').toMatch(/^100%\s+100%/);
         expect(hiddenStyle.backgroundRepeat).toMatch(/^no-repeat/);
         expect(hiddenStyle.backgroundPosition).toMatch(/50%/);
@@ -52,7 +54,9 @@ test.describe('Tile card face (DOM fallback)', () => {
         const tileShown11 = page.getByRole('button', { name: /tile .*, row 1, column 1/i });
         const shownStyle = await readBg(tileShown11.getByTestId('tile-card-face'));
 
-        expect(shownStyle.backgroundImage, 'Face-up tile should use front.svg').toMatch(/front\.svg/i);
+        expect(shownStyle.backgroundImage, 'Face-up tile should use card front art').toMatch(
+            /front\.svg|authored-card-front|data:image\/svg\+xml/i
+        );
         expect(shownStyle.backgroundImage).not.toBe(hiddenStyle.backgroundImage);
         expect(shownStyle.backgroundSize, 'Face SVG stretches to card frame').toMatch(/^100%\s+100%/);
         expect(shownStyle.backgroundPosition).toBe(hiddenStyle.backgroundPosition);

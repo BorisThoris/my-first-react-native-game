@@ -6,8 +6,9 @@ vi.mock('./components/MainMenuBackground', () => ({
     default: () => <div aria-hidden="true" data-testid="menu-background" />
 }));
 
-import App from './App';
-import { createNewRun } from '../shared/game';
+import App, { APP_MAIN_LANDMARK_ID } from './App';
+import type { RunState } from '../shared/contracts';
+import { createNewRun, pauseRun } from '../shared/game';
 import { createDefaultSaveData } from '../shared/save-data';
 import { desktopClient } from './desktop-client';
 import { PlatformTiltProvider } from './platformTilt/PlatformTiltProvider';
@@ -72,6 +73,20 @@ describe('desktop app flow', () => {
             value: originalVisualViewport
         });
         resetStore();
+    });
+
+    it('exposes a skip link to the main landmark (A11Y-002)', async () => {
+        const user = userEvent.setup();
+        renderApp();
+
+        const skip = screen.getByRole('link', { name: /skip to main content/i });
+        expect(skip).toHaveAttribute('href', `#${APP_MAIN_LANDMARK_ID}`);
+
+        const main = document.getElementById(APP_MAIN_LANDMARK_ID);
+        expect(main?.tagName.toLowerCase()).toBe('main');
+
+        await user.click(skip);
+        expect(document.activeElement).toBe(main);
     });
 
     it('gates menu interaction behind the startup intro and starts an arcade run after skip', async () => {
@@ -285,6 +300,93 @@ describe('desktop app flow', () => {
         expect(screen.queryByText(/first miss each floor is free/i)).not.toBeInTheDocument();
     });
 
+    it('suppresses the pause OverlayModal while run settings are open (OVR-009)', async () => {
+        const saveData = createDefaultSaveData();
+        const pausedRun = pauseRun(createNewRun(0));
+
+        act(() => {
+            useAppStore.setState({
+                hydrated: true,
+                hydrating: false,
+                steamConnected: false,
+                view: 'settings',
+                settingsReturnView: 'playing',
+                subscreenReturnView: 'menu',
+                saveData,
+                settings: saveData.settings,
+                run: pausedRun,
+                newlyUnlockedAchievements: [],
+                hydrate: async () => {}
+            });
+        });
+
+        renderApp();
+
+        expect(screen.queryByRole('dialog', { name: /run paused/i })).not.toBeInTheDocument();
+        expect(await screen.findByRole('dialog', { name: /run settings/i })).toBeInTheDocument();
+    });
+
+    it('suppresses the floor-cleared OverlayModal while in-run inventory is open (OVR-009)', async () => {
+        const saveData = createDefaultSaveData();
+        const baseRun = createNewRun(0);
+        const run: RunState = {
+            ...baseRun,
+            status: 'levelComplete' as const,
+            lives: 5,
+            stats: {
+                ...baseRun.stats,
+                totalScore: 120,
+                currentLevelScore: 120,
+                tries: 1,
+                rating: 'S' as const,
+                levelsCleared: 1,
+                matchesFound: 2,
+                highestLevel: 1,
+                currentStreak: 2,
+                bestStreak: 2,
+                comboShards: 1
+            },
+            timerState: {
+                memorizeRemainingMs: null,
+                resolveRemainingMs: null,
+                debugRevealRemainingMs: null,
+                pausedFromStatus: null
+            },
+            lastLevelResult: {
+                level: 1,
+                scoreGained: 120,
+                rating: 'S' as const,
+                livesRemaining: 5,
+                perfect: true,
+                mistakes: 0,
+                clearLifeReason: 'none' as const,
+                clearLifeGained: 0
+            },
+            relicOffer: null
+        };
+
+        act(() => {
+            useAppStore.setState({
+                hydrated: true,
+                hydrating: false,
+                steamConnected: false,
+                view: 'inventory',
+                settingsReturnView: 'menu',
+                subscreenReturnView: 'playing',
+                saveData,
+                settings: saveData.settings,
+                run,
+                newlyUnlockedAchievements: [],
+                hydrate: async () => {}
+            });
+        });
+
+        renderApp();
+
+        expect(screen.queryByRole('dialog', { name: /floor cleared/i })).not.toBeInTheDocument();
+        expect(await screen.findByRole('region', { name: /inventory/i })).toBeInTheDocument();
+    });
+
     it('pauses and resumes the run with the on-screen controls', async () => {
         const user = userEvent.setup();
 
@@ -297,6 +399,10 @@ describe('desktop app flow', () => {
         await user.click(screen.getByRole('button', { name: /pause/i }));
         const modalTitle = await screen.findByRole('heading', { name: /run paused/i });
         expect(modalTitle).toBeInTheDocument();
+
+        const inertScope = screen.getByTestId('game-shell').querySelector('[data-a11y-gameplay-inert="true"]');
+        expect(inertScope).not.toBeNull();
+        expect(inertScope).toHaveAttribute('inert', '');
 
         const modal = modalTitle.closest('section');
         expect(modal).not.toBeNull();
@@ -463,7 +569,14 @@ describe('desktop app flow', () => {
         });
 
         await user.click(screen.getByRole('button', { name: /^about/i }));
-        await user.click(screen.getByRole('button', { name: /reset to defaults/i }));
+        for (const closeBtn of screen.queryAllByRole('button', { name: /close notification/i })) {
+            await user.click(closeBtn);
+        }
+        const subsectionNav = screen.queryByTestId('settings-subsection-nav');
+        if (subsectionNav) {
+            await user.click(within(subsectionNav).getByRole('button', { name: /^reset$/i }));
+        }
+        await user.click(await screen.findByRole('button', { name: /reset to defaults/i }));
 
         await waitFor(() => {
             const raw = window.localStorage.getItem('memory-dungeon-save-data');

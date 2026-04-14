@@ -113,7 +113,7 @@ export const buildProgrammaticCardFaceSvg = (tile: Tile, variant: ProgrammaticOv
     fill="${frm.fill}" stroke="${frm.stroke}" stroke-width="3" />
   ${inner}
   <text x="${num.x}" y="${num.y}" text-anchor="middle" dominant-baseline="middle"
-    font-family="Segoe UI, Arial, sans-serif" font-weight="800" font-size="${num.fontSize}"
+    font-family="Source Sans 3, Trebuchet MS, Arial, sans-serif" font-weight="800" font-size="${num.fontSize}"
     fill="${rank.fill}" stroke="${rank.stroke}" stroke-width="2" paint-order="stroke">${rankText}</text>
 </svg>`;
 };
@@ -156,7 +156,7 @@ export const drawProgrammaticCardFaceOverlay = (
 
     context.textAlign = 'center';
     context.textBaseline = 'middle';
-    context.font = `800 ${num.fontSize}px "Segoe UI", "Arial", sans-serif`;
+    context.font = `800 ${num.fontSize}px "Source Sans 3", "Arial", sans-serif`;
     context.lineWidth = 2;
     context.strokeText(tile.symbol, num.x, num.y);
     context.fillText(tile.symbol, num.x, num.y);

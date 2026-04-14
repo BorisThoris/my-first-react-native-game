@@ -394,6 +394,15 @@ const freezeRun = (run: RunState): RunState => {
     };
 };
 
+/**
+ * SIDE-013 — In-run meta overlays (settings modal, inventory/codex shell, utility flyout entry points)
+ * share one freeze policy: snapshot timers into `paused` for resumable states; leave user-pause and
+ * floor-level overlays (`levelComplete`, `gameOver`) unchanged so `closeSubscreen` / `closeSettings`
+ * do not double-clobber `pausedFromStatus`.
+ */
+const freezeRunSnapshotForPlayingMetaOverlay = (run: RunState): RunState =>
+    run.status === 'paused' || run.status === 'levelComplete' || run.status === 'gameOver' ? run : freezeRun(run);
+
 const resumeRunWithTimers = (run: RunState): RunState => {
     const resumedRun = resumeRun(run);
 
@@ -703,6 +712,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         await persistSaveData(nextSave);
     },
 
+    /** Abandon confirm / NAV-004: clears the run and normalizes return pointers so meta overlays cannot strand `inventory|codex` without a run (SIDE-014). */
     goToMenu: () => {
         clearAllTimers();
         set({
@@ -738,10 +748,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (!run || view !== 'playing') {
             return;
         }
-        const nextRun =
-            run.status === 'paused' || run.status === 'levelComplete' || run.status === 'gameOver'
-                ? run
-                : freezeRun(run);
+        const nextRun = freezeRunSnapshotForPlayingMetaOverlay(run);
         clearAllTimers();
         set({
             view: 'inventory',
@@ -755,10 +762,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (!run || view !== 'playing') {
             return;
         }
-        const nextRun =
-            run.status === 'paused' || run.status === 'levelComplete' || run.status === 'gameOver'
-                ? run
-                : freezeRun(run);
+        const nextRun = freezeRunSnapshotForPlayingMetaOverlay(run);
         clearAllTimers();
         set({
             view: 'codex',
@@ -770,12 +774,26 @@ export const useAppStore = create<AppState>((set, get) => ({
     closeSubscreen: () => {
         const { subscreenReturnView, run, view } = get();
 
-        if (subscreenReturnView === 'playing' && run && (view === 'inventory' || view === 'codex')) {
+        if (subscreenReturnView === 'playing' && (view === 'inventory' || view === 'codex')) {
+            /*
+             * SIDE-014 — If `run` was cleared while inventory/codex stayed logical (should not happen in
+             * normal play), never set `view: 'playing'` with a null run (blank shell). `goToMenu`
+             * resets return pointers and matches abandon-exit cleanup.
+             */
+            if (!run) {
+                get().goToMenu();
+                return;
+            }
             const nextRun = run.status === 'paused' ? resumeRunWithTimers(run) : run;
             set({
                 view: 'playing',
                 run: nextRun
             });
+            return;
+        }
+
+        if (subscreenReturnView === 'playing' && !run) {
+            get().goToMenu();
             return;
         }
 
@@ -786,10 +804,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         const { run } = get();
 
         if (returnView === 'playing' && run) {
-            const nextRun =
-                run.status === 'paused' || run.status === 'levelComplete' || run.status === 'gameOver'
-                    ? run
-                    : freezeRun(run);
+            const nextRun = freezeRunSnapshotForPlayingMetaOverlay(run);
 
             clearAllTimers();
             set({
@@ -809,7 +824,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     closeSettings: () => {
         const { settingsReturnView, run } = get();
 
-        if (settingsReturnView === 'playing' && run) {
+        if (settingsReturnView === 'playing') {
+            if (!run) {
+                get().goToMenu();
+                return;
+            }
             const nextRun = run.status === 'paused' ? resumeRunWithTimers(run) : run;
 
             set({
@@ -1264,10 +1283,13 @@ export const useAppStore = create<AppState>((set, get) => ({
 
         if (screen === 'playing') {
             const run = patchRunFromUserSettings(buildSandboxRun(config.fixture, best), settings);
+            const seededAchievements =
+                config.unlockAchievements.length > 0 ? config.unlockAchievements : resetChrome.newlyUnlockedAchievements;
             set({
                 view: 'playing',
                 run,
                 ...resetChrome,
+                newlyUnlockedAchievements: seededAchievements,
                 subscreenReturnView: 'menu',
                 settingsReturnView: 'menu'
             });

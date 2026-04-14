@@ -1,6 +1,6 @@
-import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from 'react';
-import { getFocusableElements } from '../a11y/focusables';
-import { ScreenTitle, UiButton, type UiButtonVariant } from '../ui';
+import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { getFocusableElements, handleTabFocusTrapEvent } from '../a11y/focusables';
+import { MetaFrame, ScreenTitle, UiButton, type UiButtonVariant } from '../ui';
 import styles from './OverlayModal.module.css';
 
 interface ModalAction {
@@ -10,6 +10,9 @@ interface ModalAction {
     disabled?: boolean;
 }
 
+/** META-009: pause=blue-neutral, floor=gold+success well, relic=violet — only when `ornamentalHeaderPlate`. */
+export type OverlayModalHeaderPlateTone = 'neutral' | 'success' | 'pause' | 'relic';
+
 interface OverlayModalProps {
     title: string;
     subtitle?: string;
@@ -17,7 +20,31 @@ interface OverlayModalProps {
     actions: ModalAction[];
     /** Optional stable hook for e2e (applied to the dialog surface). */
     testId?: string;
+    /**
+     * OVR-002: forged-gold header band using {@link MetaFrame} (META-003). Static only — pairs with global
+     * `data-reduce-motion` (drops cornice glow, no motion hooks here). OVR-003: dialog surface enter animation is
+     * CSS-only under `[data-reduce-motion='false']` (see MOTION_AND_STATE_SPEC).
+     */
+    ornamentalHeaderPlate?: boolean;
+    /** When `ornamentalHeaderPlate` is set: chrome wash + MetaFrame glow (see {@link OverlayModalHeaderPlateTone}). */
+    headerPlateTone?: OverlayModalHeaderPlateTone;
 }
+
+const headerPlateToneClass = (tone: OverlayModalHeaderPlateTone): string => {
+    if (tone === 'success') {
+        return styles.headerPlateFrameSuccess;
+    }
+
+    if (tone === 'pause') {
+        return styles.headerPlateFramePause;
+    }
+
+    if (tone === 'relic') {
+        return styles.headerPlateFrameRelic;
+    }
+
+    return '';
+};
 
 const toUiVariant = (variant: ModalAction['variant']): UiButtonVariant => {
     if (variant === 'danger') {
@@ -31,7 +58,15 @@ const toUiVariant = (variant: ModalAction['variant']): UiButtonVariant => {
     return 'primary';
 };
 
-const OverlayModal = ({ title, subtitle, children, actions, testId }: OverlayModalProps) => {
+const OverlayModal = ({
+    title,
+    subtitle,
+    children,
+    actions,
+    testId,
+    ornamentalHeaderPlate = false,
+    headerPlateTone = 'neutral'
+}: OverlayModalProps) => {
     const modalRef = useRef<HTMLElement | null>(null);
     const previousFocusRef = useRef<HTMLElement | null>(null);
     const titleId = useId();
@@ -39,6 +74,7 @@ const OverlayModal = ({ title, subtitle, children, actions, testId }: OverlayMod
     const bodyId = useId();
     const describedBy = [subtitle ? subtitleId : null, children ? bodyId : null].filter(Boolean).join(' ') || undefined;
 
+    /* OVR-010: initial focus + restore — same lifecycle pattern as Settings modal (`presentation="modal"`). */
     useEffect(() => {
         previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
@@ -54,36 +90,17 @@ const OverlayModal = ({ title, subtitle, children, actions, testId }: OverlayMod
         };
     }, []);
 
-    const handleKeyDown = (event: KeyboardEvent<HTMLElement>): void => {
-        if (event.key !== 'Tab') {
-            return;
-        }
+    useEffect(() => {
+        const onDocumentKeyDown = (event: KeyboardEvent): void => {
+            handleTabFocusTrapEvent(event, modalRef.current);
+        };
 
-        const focusableElements = getFocusableElements(modalRef.current);
+        document.addEventListener('keydown', onDocumentKeyDown, true);
 
-        if (focusableElements.length === 0) {
-            event.preventDefault();
-            modalRef.current?.focus();
-            return;
-        }
-
-        const currentIndex = focusableElements.indexOf(document.activeElement as HTMLElement);
-        const lastIndex = focusableElements.length - 1;
-
-        if (event.shiftKey) {
-            if (currentIndex <= 0) {
-                event.preventDefault();
-                focusableElements[lastIndex]?.focus();
-            }
-
-            return;
-        }
-
-        if (currentIndex === -1 || currentIndex === lastIndex) {
-            event.preventDefault();
-            focusableElements[0]?.focus();
-        }
-    };
+        return () => {
+            document.removeEventListener('keydown', onDocumentKeyDown, true);
+        };
+    }, []);
 
     return (
         <div className={styles.backdrop}>
@@ -93,15 +110,26 @@ const OverlayModal = ({ title, subtitle, children, actions, testId }: OverlayMod
                 aria-modal="true"
                 className={styles.modal}
                 data-testid={testId}
-                onKeyDown={handleKeyDown}
                 ref={modalRef}
                 role="dialog"
                 tabIndex={-1}
             >
                 <div className={styles.mainColumn}>
-                    <ScreenTitle className={styles.title} id={titleId} role="modal">
-                        {title}
-                    </ScreenTitle>
+                    {ornamentalHeaderPlate ? (
+                        <MetaFrame
+                            className={`${styles.headerPlateFrame} ${headerPlateToneClass(headerPlateTone)}`.trim()}
+                        >
+                            <div className={styles.headerPlateWell}>
+                                <ScreenTitle as="h3" className={styles.title} id={titleId} role="modal">
+                                    {title}
+                                </ScreenTitle>
+                            </div>
+                        </MetaFrame>
+                    ) : (
+                        <ScreenTitle as="h3" className={styles.title} id={titleId} role="modal">
+                            {title}
+                        </ScreenTitle>
+                    )}
                     {subtitle && (
                         <p className={styles.subtitle} id={subtitleId}>
                             {subtitle}

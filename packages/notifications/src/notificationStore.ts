@@ -4,6 +4,16 @@ import { rafDelay } from './rafDelay.js';
 
 export type NotificationType = 'info' | 'success' | 'warning' | 'error';
 
+/** Visual + a11y grouping: generic info rail vs milestone vs powers FTUE chrome (OVR-004 / OVR-006). */
+export type NotificationSurface = 'generic' | 'achievement' | 'powers-ftue';
+
+export type NotificationMeta = {
+  stackKey?: string;
+  surface?: NotificationSurface;
+  /** Overrides default type-based `aria-live` on the toast root (OVR-004). */
+  ariaLive?: 'polite' | 'assertive' | 'off';
+};
+
 export type ConfirmHandlerBundle = {
   isSettled: () => boolean;
   onConfirm: (result: boolean) => void;
@@ -17,6 +27,15 @@ export type NotificationRecord = {
   onConfirm: ConfirmHandlerBundle | null;
   /** Called when this toast is removed (timeout, X, queue trim, clear). Ignored when `onConfirm` is set (confirm dialogs use confirm/cancel handlers only). */
   onDismiss?: (() => void) | null;
+  /**
+   * Optional coalescing key: adding another toast with the same key removes the previous one first
+   * (OVR-005 / score rail — avoids stacking many identical short toasts).
+   */
+  stackKey?: string;
+  /** Defaults to `generic` at render when omitted. */
+  surface?: NotificationSurface;
+  /** When set, overrides default `aria-live` derived from `type`. */
+  ariaLive?: 'polite' | 'assertive' | 'off';
   type: NotificationType;
 };
 
@@ -132,16 +151,22 @@ export type NotificationStoreState = {
     type?: NotificationType,
     duration?: number,
     onConfirm?: ConfirmInput | null,
-    onDismiss?: (() => void) | null
+    onDismiss?: (() => void) | null,
+    meta?: NotificationMeta | null
   ) => string;
   resolveNotification: (id: string, result?: boolean) => void;
   removeNotification: (id: string) => void;
   clearNotifications: () => void;
   setMaxNotifications: (value: number) => void;
-  showSuccess: (message: string, duration?: number) => string;
+  showSuccess: (
+    message: string,
+    duration?: number,
+    options?: { stackKey?: string; ariaLive?: 'polite' | 'assertive' | 'off' }
+  ) => string;
   showError: (message: string, duration?: number) => string;
   showWarning: (message: string, duration?: number) => string;
-  showInfo: (message: string, duration?: number) => string;
+  showInfo: (message: string, duration?: number, options?: NotificationMeta | null) => string;
+  showAchievement: (message: string, duration?: number, options?: Pick<NotificationMeta, 'stackKey'>) => string;
   confirm: (message: string) => Promise<boolean>;
 };
 
@@ -158,7 +183,23 @@ export const createNotificationStore = () =>
         return `notification_${nextValue}`;
       },
 
-      addNotification: (message, type = 'info', duration = 3000, onConfirm = null, onDismiss = null) => {
+      addNotification: (message, type = 'info', duration = 3000, onConfirm = null, onDismiss = null, meta = null) => {
+        const stackKey = meta?.stackKey;
+        const surface = meta?.surface;
+        const ariaLive = meta?.ariaLive;
+        if (stackKey) {
+          const stale = get().notifications.filter((n) => n.stackKey === stackKey);
+          for (const n of stale) {
+            settleConfirmation(n, false);
+            invokeNonConfirmDismiss(n);
+          }
+          if (stale.length > 0) {
+            set((state) => ({
+              notifications: state.notifications.filter((n) => n.stackKey !== stackKey)
+            }));
+          }
+        }
+
         const id = get().getNextNotificationId();
         const normalizedConfirmHandlers = resolveConfirmHandlers(onConfirm);
         const newNotification: NotificationRecord = {
@@ -167,6 +208,9 @@ export const createNotificationStore = () =>
           message,
           onConfirm: normalizedConfirmHandlers,
           onDismiss: onDismiss ?? undefined,
+          stackKey,
+          surface,
+          ariaLive,
           type
         };
 
@@ -240,8 +284,11 @@ export const createNotificationStore = () =>
         });
       },
 
-      showSuccess: (message, duration = 3000) => {
-        return get().addNotification(message, 'success', duration, null, null);
+      showSuccess: (message, duration = 3000, options) => {
+        return get().addNotification(message, 'success', duration, null, null, {
+          stackKey: options?.stackKey,
+          ariaLive: options?.ariaLive
+        });
       },
 
       showError: (message, duration = 5000) => {
@@ -252,8 +299,16 @@ export const createNotificationStore = () =>
         return get().addNotification(message, 'warning', duration, null, null);
       },
 
-      showInfo: (message, duration = 3000) => {
-        return get().addNotification(message, 'info', duration, null, null);
+      showInfo: (message, duration = 3000, options) => {
+        return get().addNotification(message, 'info', duration, null, null, options ?? null);
+      },
+
+      showAchievement: (message, duration = 3000, options) => {
+        return get().addNotification(message, 'info', duration, null, null, {
+          stackKey: options?.stackKey,
+          surface: 'achievement',
+          ariaLive: 'polite'
+        });
       },
 
       confirm: (message) => {

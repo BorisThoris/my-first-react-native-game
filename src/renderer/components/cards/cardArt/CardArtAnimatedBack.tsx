@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 
-import cardBackUrl from '../../../assets/textures/cards/back.svg?url';
+import cardBackUrl from '../../../assets/textures/cards/authored-card-back.svg?url';
 
 import { CARD_BACK_VIEWBOX } from './constants';
 import { CardArtDefs } from './CardArtDefs';

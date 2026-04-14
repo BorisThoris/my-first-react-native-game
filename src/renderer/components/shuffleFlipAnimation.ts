@@ -1,5 +1,5 @@
-const FLIP_DURATION_MS = 600;
-const STAGGER_MS = 32;
+export const FLIP_DURATION_MS = 600;
+export const STAGGER_MS = 32;
 
 /** Upper bound for 3D ease-out: matches worst-case staggered FLIP on this board. */
 export function computeShuffleMotionBudgetMs(tileCount: number): number {
@@ -9,6 +9,39 @@ export function computeShuffleMotionBudgetMs(tileCount: number): number {
     }
     return (n - 1) * STAGGER_MS + FLIP_DURATION_MS + 160;
 }
+
+/**
+ * FX-013: brief per-tile Z lift during the shuffle window, staggered like DOM FLIP (reading-order index).
+ * Returns world-units offset; 0 when outside the window or when `reduceMotion` would skip motion.
+ */
+export function computeStaggeredShuffleDealZ(
+    nowMs: number,
+    deadlineMs: number,
+    budgetMs: number,
+    boardOrderIndex: number,
+    tileCount: number
+): number {
+    if (budgetMs <= 0 || deadlineMs <= 0 || tileCount <= 0) {
+        return 0;
+    }
+
+    const startMs = deadlineMs - budgetMs;
+
+    if (nowMs < startMs || nowMs >= deadlineMs) {
+        return 0;
+    }
+
+    const elapsed = nowMs - startMs;
+    const n = Math.max(1, tileCount);
+    const clampedIndex = Math.min(Math.max(0, boardOrderIndex), Math.max(0, n - 1));
+    const tileStart = clampedIndex * STAGGER_MS;
+    const localT = Math.max(0, elapsed - tileStart);
+    const u = Math.min(1, localT / FLIP_DURATION_MS);
+    const envelope = Math.sin(u * Math.PI);
+
+    return envelope * 0.028;
+}
+
 const EASING = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
 export function captureTileRects(root: HTMLElement): Map<string, DOMRect> {

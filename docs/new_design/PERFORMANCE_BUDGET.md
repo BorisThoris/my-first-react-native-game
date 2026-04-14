@@ -15,7 +15,7 @@ Targets are **guidelines** for mid-range laptops and phones; actual headroom dep
 | Setting | Effect |
 |---------|--------|
 | **Graphics quality** | Caps **tile board DPR** (`getBoardDprCap`) and **menu Pixi renderer resolution** (`getMenuPixiResolutionCap`). |
-| **Board bloom** | Post-process pass; **off** by default; **forced off** on Low quality. |
+| **Board bloom** (**FX-015**) | Optional `@react-three/postprocessing` **Bloom** on the tile board (`TileBoardPostFx.tsx`). **Default: off** (`save-data` / Settings). **Forced off** on Low quality regardless of the toggle. **Medium / High** with the toggle on runs the bloom pass (intensity ~0.35, luminance threshold ~0.82). On **High** only, `GameScreen` adds a small extra **CSS** `box-shadow` rim under the board (`.boardStageCssBloom`) so the stage reads warmer without another GPU pass at Medium. |
 | **Board anti-aliasing** | SMAA vs MSAA vs off (`boardScreenSpaceAA`); see `FX_REDUCE_MOTION_MATRIX.md`. |
 
 ## FX caps (cross-reference)

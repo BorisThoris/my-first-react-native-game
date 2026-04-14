@@ -1,6 +1,6 @@
 import { useShallow } from 'zustand/react/shallow';
 import { GAME_MODE_CODEX, MUTATOR_CATALOG, RELIC_CATALOG } from '../../shared/game-catalog';
-import { Eyebrow, Panel, ScreenTitle, UiButton } from '../ui';
+import { Eyebrow, MetaFrame, Panel, ScreenTitle, UiButton } from '../ui';
 import { useAppStore } from '../store/useAppStore';
 import metaStyles from './MetaScreen.module.css';
 import styles from './InventoryScreen.module.css';
@@ -8,7 +8,12 @@ import styles from './InventoryScreen.module.css';
 const modeTitle = (gameMode: string): string =>
     GAME_MODE_CODEX.find((m) => m.id === gameMode)?.title ?? gameMode;
 
-const InventoryScreen = () => {
+export interface InventoryScreenProps {
+    /** When true, shell title is `h2` so `GameScreen`'s level `h1` stays the sole document `h1`. */
+    stackedOnGameplay?: boolean;
+}
+
+const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) => {
     const { closeSubscreen, run } = useAppStore(
         useShallow((state) => ({
             closeSubscreen: state.closeSubscreen,
@@ -16,13 +21,16 @@ const InventoryScreen = () => {
         }))
     );
 
+    const titleLevel = stackedOnGameplay ? 'h2' : 'h1';
+    const shellStageClass = stackedOnGameplay ? metaStyles.shellInRunModal : metaStyles.shellMetaStage;
+
     if (!run) {
         return (
-            <section aria-label="Inventory" className={`${metaStyles.shell} ${metaStyles.shellMetaStage}`} role="region">
+            <section aria-label="Inventory" className={`${metaStyles.shell} ${shellStageClass}`} role="region">
                 <header className={metaStyles.header}>
                     <div className={metaStyles.headerText}>
                         <Eyebrow tone="menu">Expedition</Eyebrow>
-                        <ScreenTitle as="h1" role="display">
+                        <ScreenTitle as={titleLevel} role="display">
                             Inventory
                         </ScreenTitle>
                         <p className={metaStyles.subtitle}>No active expedition. Start a run from the main menu.</p>
@@ -31,6 +39,16 @@ const InventoryScreen = () => {
                         Back
                     </UiButton>
                 </header>
+                <div className={metaStyles.body}>
+                    <MetaFrame data-testid="inventory-meta-frame-empty">
+                        <Panel padding="lg" variant="default">
+                            <p className={styles.emptyState}>
+                                Loadout appears here once a descent is in progress. Return to the hub, pick a mode, and
+                                jump in to see relics, mutators, and charges for that run.
+                            </p>
+                        </Panel>
+                    </MetaFrame>
+                </div>
             </section>
         );
     }
@@ -38,11 +56,11 @@ const InventoryScreen = () => {
     const contract = run.activeContract;
 
     return (
-        <section aria-label="Inventory" className={`${metaStyles.shell} ${metaStyles.shellMetaStage}`} role="region">
+        <section aria-label="Inventory" className={`${metaStyles.shell} ${shellStageClass}`} role="region">
             <header className={metaStyles.header}>
                 <div className={metaStyles.headerText}>
                     <Eyebrow tone="menu">Active run</Eyebrow>
-                    <ScreenTitle as="h1" role="display">
+                    <ScreenTitle as={titleLevel} role="display">
                         Inventory
                     </ScreenTitle>
                     <p className={metaStyles.subtitle}>Read-only snapshot of this descent (charges, relics, mutators).</p>
@@ -60,131 +78,129 @@ const InventoryScreen = () => {
                     <a href="#inventory-charges">Charges</a>
                     <a href="#inventory-contract">Contract</a>
                 </nav>
-                <Panel padding="lg" variant="strong">
-                    <div className={`${styles.kv} ${metaStyles.sectionAnchor}`} id="inventory-run">
-                        <div className={styles.kvRow}>
-                            <span>
-                                Mode<strong>{modeTitle(run.gameMode)}</strong>
-                            </span>
-                            <span>
-                                Floor<strong>{run.board?.level ?? run.stats.highestLevel}</strong>
-                            </span>
-                            <span>
-                                Lives<strong>{run.lives}</strong>
-                            </span>
+                <MetaFrame data-testid="inventory-meta-frame-run">
+                    <Panel padding="lg" variant="strong">
+                        <div className={`${styles.loadoutBoard} ${metaStyles.sectionAnchor}`} id="inventory-run">
+                            <h2 className={styles.sectionTitle}>Run snapshot</h2>
+                            <div className={styles.kv}>
+                                <div className={styles.kvRow}>
+                                    <span>
+                                        Mode<strong>{modeTitle(run.gameMode)}</strong>
+                                    </span>
+                                    <span>
+                                        Floor<strong>{run.board?.level ?? run.stats.highestLevel}</strong>
+                                    </span>
+                                    <span>
+                                        Lives<strong>{run.lives}</strong>
+                                    </span>
+                                </div>
+                                <div className={styles.kvRow}>
+                                    <span>
+                                        Practice<strong>{run.practiceMode ? 'Yes' : 'No'}</strong>
+                                    </span>
+                                    <span>
+                                        Achievements enabled<strong>{run.achievementsEnabled ? 'Yes' : 'No'}</strong>
+                                    </span>
+                                    <span>
+                                        Powers used this run<strong>{run.powersUsedThisRun ? 'Yes' : 'No'}</strong>
+                                    </span>
+                                </div>
+                                {run.dailyDateKeyUtc ? (
+                                    <div className={styles.kvRow}>
+                                        <span>
+                                            Daily key (UTC)<strong>{run.dailyDateKeyUtc}</strong>
+                                        </span>
+                                    </div>
+                                ) : null}
+                            </div>
                         </div>
-                        <div className={styles.kvRow}>
-                            <span>
-                                Practice<strong>{run.practiceMode ? 'Yes' : 'No'}</strong>
-                            </span>
-                            <span>
-                                Achievements enabled<strong>{run.achievementsEnabled ? 'Yes' : 'No'}</strong>
-                            </span>
-                            <span>
-                                Powers used this run<strong>{run.powersUsedThisRun ? 'Yes' : 'No'}</strong>
-                            </span>
-                        </div>
-                        {run.dailyDateKeyUtc ? (
+                    </Panel>
+                </MetaFrame>
+
+                <Panel padding="lg" variant="default">
+                    <div className={`${styles.loadoutSection} ${metaStyles.sectionAnchor}`} id="inventory-relics">
+                        <h2 className={styles.sectionTitle}>Relics</h2>
+                        {run.relicIds.length > 0 ? (
+                            <ul className={styles.list}>
+                                {run.relicIds.map((id) => (
+                                    <li key={id}>{RELIC_CATALOG[id]?.title ?? id}</li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className={styles.empty}>No relics claimed yet this run.</p>
+                        )}
+                    </div>
+                </Panel>
+
+                <Panel padding="lg" variant="default">
+                    <div className={`${styles.loadoutSection} ${metaStyles.sectionAnchor}`} id="inventory-mutators">
+                        <h2 className={styles.sectionTitle}>Mutators</h2>
+                        {run.activeMutators.length > 0 ? (
+                            <ul className={styles.list}>
+                                {run.activeMutators.map((id) => (
+                                    <li key={id}>{MUTATOR_CATALOG[id]?.title ?? id}</li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className={styles.empty}>No mutators on this run.</p>
+                        )}
+                    </div>
+                </Panel>
+
+                <Panel padding="lg" variant="default">
+                    <div className={`${styles.loadoutSection} ${metaStyles.sectionAnchor}`} id="inventory-charges">
+                        <h2 className={styles.sectionTitle}>Charges and tokens</h2>
+                        <div className={styles.kv}>
                             <div className={styles.kvRow}>
                                 <span>
-                                    Daily key (UTC)<strong>{run.dailyDateKeyUtc}</strong>
+                                    Shuffle charges<strong>{run.shuffleCharges}</strong>
+                                </span>
+                                <span>
+                                    Destroy charges<strong>{run.destroyPairCharges}</strong>
+                                </span>
+                                <span>
+                                    Peek charges<strong>{run.peekCharges}</strong>
                                 </span>
                             </div>
-                        ) : null}
-                    </div>
-                </Panel>
-
-                <Panel padding="lg" variant="default">
-                    <div className={metaStyles.sectionAnchor} id="inventory-relics">
-                    <h2 className={metaStyles.subtitle} style={{ margin: '0 0 0.5rem', fontWeight: 650 }}>
-                        Relics
-                    </h2>
-                    {run.relicIds.length > 0 ? (
-                        <ul className={styles.list}>
-                            {run.relicIds.map((id) => (
-                                <li key={id}>{RELIC_CATALOG[id]?.title ?? id}</li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <p className={styles.empty}>No relics claimed yet this run.</p>
-                    )}
-                    </div>
-                </Panel>
-
-                <Panel padding="lg" variant="default">
-                    <div className={metaStyles.sectionAnchor} id="inventory-mutators">
-                    <h2 className={metaStyles.subtitle} style={{ margin: '0 0 0.5rem', fontWeight: 650 }}>
-                        Mutators
-                    </h2>
-                    {run.activeMutators.length > 0 ? (
-                        <ul className={styles.list}>
-                            {run.activeMutators.map((id) => (
-                                <li key={id}>{MUTATOR_CATALOG[id]?.title ?? id}</li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <p className={styles.empty}>No mutators on this run.</p>
-                    )}
-                    </div>
-                </Panel>
-
-                <Panel padding="lg" variant="default">
-                    <div className={metaStyles.sectionAnchor} id="inventory-charges">
-                    <h2 className={metaStyles.subtitle} style={{ margin: '0 0 0.5rem', fontWeight: 650 }}>
-                        Charges and tokens
-                    </h2>
-                    <div className={styles.kv}>
-                        <div className={styles.kvRow}>
-                            <span>
-                                Shuffle charges<strong>{run.shuffleCharges}</strong>
-                            </span>
-                            <span>
-                                Destroy charges<strong>{run.destroyPairCharges}</strong>
-                            </span>
-                            <span>
-                                Peek charges<strong>{run.peekCharges}</strong>
-                            </span>
-                        </div>
-                        <div className={styles.kvRow}>
-                            <span>
-                                Stray remove<strong>{run.strayRemoveCharges}</strong>
-                            </span>
-                            <span>
-                                Guard tokens<strong>{run.stats.guardTokens}</strong>
-                            </span>
-                            <span>
-                                Combo shards<strong>{run.stats.comboShards}</strong>
-                            </span>
-                        </div>
-                        <div className={styles.kvRow}>
-                            <span>
-                                Undo this floor<strong>{run.undoUsesThisFloor}</strong>
-                            </span>
-                            <span>
-                                Free shuffle this floor<strong>{run.freeShuffleThisFloor ? 'Available' : 'Used / n/a'}</strong>
-                            </span>
-                            <span>
-                                Match score mult.<strong>{run.matchScoreMultiplier.toFixed(2)}×</strong>
-                            </span>
+                            <div className={styles.kvRow}>
+                                <span>
+                                    Stray remove<strong>{run.strayRemoveCharges}</strong>
+                                </span>
+                                <span>
+                                    Guard tokens<strong>{run.stats.guardTokens}</strong>
+                                </span>
+                                <span>
+                                    Combo shards<strong>{run.stats.comboShards}</strong>
+                                </span>
+                            </div>
+                            <div className={styles.kvRow}>
+                                <span>
+                                    Undo this floor<strong>{run.undoUsesThisFloor}</strong>
+                                </span>
+                                <span>
+                                    Free shuffle this floor
+                                    <strong>{run.freeShuffleThisFloor ? 'Available' : 'Used / n/a'}</strong>
+                                </span>
+                                <span>
+                                    Match score mult.<strong>{run.matchScoreMultiplier.toFixed(2)}×</strong>
+                                </span>
+                            </div>
                         </div>
                     </div>
-                    </div>
                 </Panel>
 
                 <Panel padding="lg" variant="default">
-                    <div className={metaStyles.sectionAnchor} id="inventory-contract">
-                    <h2 className={metaStyles.subtitle} style={{ margin: '0 0 0.5rem', fontWeight: 650 }}>
-                        Contract flags
-                    </h2>
-                    {contract ? (
-                        <ul className={styles.list}>
-                            <li>No shuffle: {contract.noShuffle ? 'Yes' : 'No'}</li>
-                            <li>No destroy: {contract.noDestroy ? 'Yes' : 'No'}</li>
-                            <li>Max mismatches: {contract.maxMismatches === null ? 'None' : contract.maxMismatches}</li>
-                        </ul>
-                    ) : (
-                        <p className={styles.empty}>No scholar contract on this run.</p>
-                    )}
+                    <div className={`${styles.loadoutSection} ${metaStyles.sectionAnchor}`} id="inventory-contract">
+                        <h2 className={styles.sectionTitle}>Contract flags</h2>
+                        {contract ? (
+                            <ul className={styles.list}>
+                                <li>No shuffle: {contract.noShuffle ? 'Yes' : 'No'}</li>
+                                <li>No destroy: {contract.noDestroy ? 'Yes' : 'No'}</li>
+                                <li>Max mismatches: {contract.maxMismatches === null ? 'None' : contract.maxMismatches}</li>
+                            </ul>
+                        ) : (
+                            <p className={styles.empty}>No scholar contract on this run.</p>
+                        )}
                     </div>
                 </Panel>
             </div>

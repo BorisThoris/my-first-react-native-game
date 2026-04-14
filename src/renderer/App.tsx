@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useShallow } from 'zustand/react/shallow';
 import ChooseYourPathScreen from './components/ChooseYourPathScreen';
@@ -18,6 +18,13 @@ import styles from './styles/App.module.css';
 import { buildRendererThemeStyle } from './styles/theme';
 import { readDevSandboxConfig } from './dev/devSandboxParams';
 import { useAppStore } from './store/useAppStore';
+
+/** Landmark id for A11Y-002 skip link (`href` / programmatic focus). */
+export const APP_MAIN_LANDMARK_ID = 'app-main';
+
+const focusAppMainLandmark = (): void => {
+    document.getElementById(APP_MAIN_LANDMARK_ID)?.focus({ preventScroll: true });
+};
 
 const App = () => {
     const { height, width } = useViewportSize();
@@ -84,11 +91,16 @@ const App = () => {
         : width <= VIEWPORT_TABLET_MAX
           ? Math.min(settings.uiScale, 1.08)
           : Math.min(settings.uiScale, 1.15);
-    const themeStyle = buildRendererThemeStyle(safeUiScale, isCompactViewport ? 'compact' : 'roomy');
+    const themeStyle = buildRendererThemeStyle(
+        safeUiScale,
+        isCompactViewport ? 'compact' : 'roomy',
+        settings.reduceMotion
+    );
     const activeView = hydrated ? view : 'boot';
     const [introPlayback, setIntroPlayback] = useState<Exclude<IntroPlaybackState, 'playing'>>('pending');
     const inGameSettingsOverlay =
         hydrated && view === 'settings' && settingsReturnView === 'playing' && Boolean(run);
+    /* SIDE-013/014 — logical `view` is inventory/codex but `data-view` stays `playing` so GameScreen stays mounted under the meta shell; store still owns `view` for Back/closeSubscreen. */
     const inGameShellOverlay =
         hydrated &&
         (view === 'inventory' || view === 'codex') &&
@@ -137,14 +149,23 @@ const App = () => {
     }, [hydrated]);
 
     /*
-     * OVR-008 — overlay z-index ladder (low → high within .content):
-     * 0–1: menu / game shells (App.module.css .menuLayer, .content).
-     * 6–8: StartupIntro layers (StartupIntro.module.css); intro is portaled to document.body
-     *     so fixed sizing is not distorted by `.content` zoom.
-     * 21: OverlayModal backdrop (pause, floor clear, abandon).
-     * 22: Meta in-run modal (inventory/codex over play) — MetaScreen.module.css .modalOverlay.
-     * 24: Settings shell modal — SettingsScreen.module.css.
-     * Game HUD/toolbar can sit at 3–8 under mobile camera (GameScreen.module.css).
+     * OVR-008 / HUD-013 — z-index ladder (single reference; low → high where applicable):
+     *
+     * App shell (.content / App.module.css):
+     *   0–1: menu / game shells (.menuLayer, .content).
+     *   6–8: StartupIntro (portaled to document.body — StartupIntro.module.css).
+     *   21: OverlayModal backdrop (pause, floor clear, abandon).
+     *   22: Meta in-run modal (inventory/codex) — MetaScreen.module.css .modalOverlay (+ META-010 .modalOverlayDesk / .modalInnerDesk).
+     *   24: Settings shell modal — SettingsScreen.module.css (in-run modal portaled to `document.body`).
+     *
+     * In-game column (GameScreen.module.css — SIDE-010 / safe-area QA):
+     *   `.gameForeground` 1 — frames the scrollport; children establish sub-stacks.
+     *   `gamePlayLayout` row: `.mainGameColumn` 0; `.leftToolbar` 3 (`.mobileCameraLeftToolbar` 8 so rail +
+     *       portaled flyout subtree stays above the main column on narrow viewports).
+     *   Within `.mainGameColumn`: `.hudRow` 2; `.boardStage` 1; board tiles `.boardStage > :global(*)` 1;
+     *       `.distractionHud` 4 (above tiles, still under the HUD row because `.boardStage` roots below `.hudRow`).
+     *   Toolbar flyout: `.flyoutScrim` fixed 1; `.utilityFlyout` 10 — both participate in the rail stacking
+     *       context, which sits above `.mainGameColumn` (0), so the panel is not occluded by the HUD/board.
      */
     return (
         <div
@@ -158,13 +179,26 @@ const App = () => {
             }
             style={themeStyle}
         >
+            <a
+                className={styles.skipLink}
+                href={`#${APP_MAIN_LANDMARK_ID}`}
+                onClick={(event: MouseEvent<HTMLAnchorElement>): void => {
+                    /* Fragment navigation alone does not always move focus in embedded runtimes (e.g. Vitest). */
+                    event.preventDefault();
+                    focusAppMainLandmark();
+                }}
+            >
+                Skip to main content
+            </a>
             <div className={styles.ambientGlow} />
-            <div className={styles.content} data-app-scrollport>
+            <main className={styles.content} data-app-scrollport id={APP_MAIN_LANDMARK_ID} tabIndex={-1}>
                 {showMenuShell && (
                     <div
                         aria-hidden={introOverlayVisible}
                         className={`${styles.menuLayer} ${menuShellBlurred ? styles.menuLayerIntro : ''}`}
                         data-e2e-menu-pointer={menuShellBlurred ? 'blocked' : 'interactive'}
+                        data-testid="main-menu-focus-root"
+                        tabIndex={-1}
                     >
                         {showMainMenu ? (
                             <MainMenu
@@ -222,18 +256,28 @@ const App = () => {
                     />
                 )}
 
-                {inGameSettingsOverlay && <SettingsScreen presentation="modal" />}
+                {/* Portal: `main` uses CSS `zoom` for UI scale; fixed overlays inside it become positioned
+                    relative to the zoomed box and can inflate `data-app-scrollport` scrollHeight (mobile-layout). */}
+                {inGameSettingsOverlay &&
+                    createPortal(<SettingsScreen presentation="modal" />, document.body)}
 
                 {inGameShellOverlay ? (
-                    <div className={metaScreenStyles.modalOverlay}>
-                        <div className={metaScreenStyles.modalInner}>
-                            {view === 'inventory' ? <InventoryScreen /> : <CodexScreen />}
+                    <div
+                        className={`${metaScreenStyles.modalOverlay} ${metaScreenStyles.modalOverlayDesk}`}
+                        data-in-run-meta-shell="desk"
+                    >
+                        <div className={`${metaScreenStyles.modalInner} ${metaScreenStyles.modalInnerDesk}`}>
+                            {view === 'inventory' ? (
+                                <InventoryScreen stackedOnGameplay />
+                            ) : (
+                                <CodexScreen stackedOnGameplay />
+                            )}
                         </div>
                     </div>
                 ) : null}
 
                 {hydrated && view === 'gameOver' && run?.lastRunSummary && <GameOverScreen run={run} />}
-            </div>
+            </main>
         </div>
     );
 };

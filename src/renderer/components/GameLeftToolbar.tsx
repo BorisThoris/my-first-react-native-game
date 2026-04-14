@@ -1,5 +1,14 @@
 import type { RunState, Settings } from '../../shared/contracts';
-import { useEffect, useLayoutEffect, useRef, type Dispatch, type RefObject, type SetStateAction } from 'react';
+import {
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useRef,
+    type Dispatch,
+    type KeyboardEvent as ReactKeyboardEvent,
+    type RefObject,
+    type SetStateAction
+} from 'react';
 import {
     handleVerticalToolbarKeyDown,
     syncVerticalToolbarTabIndices
@@ -52,6 +61,8 @@ export interface GameLeftToolbarProps {
     triggerDebugReveal: () => void;
 }
 
+const UTILITY_FLYOUT_DOM_ID = 'game-toolbar-utility-flyout';
+
 const GameLeftToolbar = ({
     cameraViewportMode,
     utilityFlyoutOpen,
@@ -103,8 +114,59 @@ const GameLeftToolbar = ({
 
     const railPauseLabel =
         run.status === 'paused' ? 'Resume gameplay (toolbar)' : 'Pause gameplay (toolbar)';
-    const flyoutPauseLabel =
-        run.status === 'paused' ? 'Resume from utility menu' : 'Pause from utility menu';
+
+    const closeUtilityFlyout = useCallback(
+        (returnFocus: boolean): void => {
+            setUtilityFlyoutOpen(false);
+            if (returnFocus) {
+                window.requestAnimationFrame(() => {
+                    menuButtonRef.current?.focus();
+                });
+            }
+        },
+        [setUtilityFlyoutOpen]
+    );
+
+    const getFlyoutFocusableButtons = (): HTMLButtonElement[] => {
+        const root = flyoutRef.current;
+        if (!root) {
+            return [];
+        }
+        return Array.from(root.querySelectorAll<HTMLButtonElement>('button:not([disabled])'));
+    };
+
+    const handleFlyoutKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>): void => {
+        if (event.key !== 'Tab' || event.defaultPrevented) {
+            return;
+        }
+        const buttons = getFlyoutFocusableButtons();
+        if (buttons.length === 0) {
+            return;
+        }
+        const first = buttons[0];
+        const last = buttons[buttons.length - 1];
+        const active = document.activeElement;
+        if (!event.shiftKey && active === last) {
+            event.preventDefault();
+            menuButtonRef.current?.focus();
+        } else if (event.shiftKey && active === first) {
+            event.preventDefault();
+            menuButtonRef.current?.focus();
+        }
+    };
+
+    const handleUtilityToggleKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>): void => {
+        if (!utilityFlyoutOpen || event.key !== 'Tab' || !event.shiftKey || event.defaultPrevented) {
+            return;
+        }
+        const buttons = getFlyoutFocusableButtons();
+        const last = buttons[buttons.length - 1];
+        if (!last) {
+            return;
+        }
+        event.preventDefault();
+        last.focus();
+    };
 
     useLayoutEffect(() => {
         syncVerticalToolbarTabIndices(controlsToolbarRef.current);
@@ -166,12 +228,6 @@ const GameLeftToolbar = ({
         if (!utilityFlyoutOpen) {
             return;
         }
-        const close = (returnFocus: boolean): void => {
-            setUtilityFlyoutOpen(false);
-            if (returnFocus) {
-                window.requestAnimationFrame(() => menuButtonRef.current?.focus());
-            }
-        };
         const onPointerDown = (event: PointerEvent): void => {
             const target = event.target as Node | null;
             if (!target) {
@@ -180,13 +236,13 @@ const GameLeftToolbar = ({
             if (flyoutRef.current?.contains(target) || menuButtonRef.current?.contains(target)) {
                 return;
             }
-            close(true);
+            closeUtilityFlyout(true);
         };
         const onKeyDown = (event: KeyboardEvent): void => {
             if (event.key === 'Escape') {
                 event.preventDefault();
                 event.stopPropagation();
-                close(true);
+                closeUtilityFlyout(true);
             }
         };
         document.addEventListener('pointerdown', onPointerDown, true);
@@ -195,7 +251,7 @@ const GameLeftToolbar = ({
             document.removeEventListener('pointerdown', onPointerDown, true);
             document.removeEventListener('keydown', onKeyDown, true);
         };
-    }, [utilityFlyoutOpen, setUtilityFlyoutOpen]);
+    }, [utilityFlyoutOpen, closeUtilityFlyout]);
 
     const openInventory = (): void => {
         setUtilityFlyoutOpen(false);
@@ -221,12 +277,10 @@ const GameLeftToolbar = ({
         >
             {utilityFlyoutOpen ? (
                 <button
-                    aria-hidden="true"
+                    aria-label="Dismiss utility menu"
                     className={styles.flyoutScrim}
-                    onClick={() => {
-                        setUtilityFlyoutOpen(false);
-                        menuButtonRef.current?.focus();
-                    }}
+                    data-testid="game-toolbar-flyout-scrim"
+                    onPointerDown={() => closeUtilityFlyout(true)}
                     tabIndex={-1}
                     type="button"
                 />
@@ -241,11 +295,14 @@ const GameLeftToolbar = ({
             >
                 <button
                     ref={menuButtonRef}
+                    aria-controls={utilityFlyoutOpen ? UTILITY_FLYOUT_DOM_ID : undefined}
                     aria-expanded={utilityFlyoutOpen}
+                    aria-haspopup="menu"
                     aria-label={utilityFlyoutOpen ? 'Hide utility menu' : 'Show utility menu'}
                     className={`${styles.iconAction} ${utilityFlyoutOpen ? styles.iconActionActive : ''}`}
                     data-testid="game-toolbar-utility-toggle"
                     onClick={() => setUtilityFlyoutOpen((open) => !open)}
+                    onKeyDown={handleUtilityToggleKeyDown}
                     title="Open utility menu"
                     type="button"
                 >
@@ -261,17 +318,9 @@ const GameLeftToolbar = ({
                     <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.fitBoard} />
                 </button>
                 <button
-                    aria-label="Return to main menu"
-                    className={styles.iconAction}
-                    onClick={onRequestAbandonRun}
-                    title="Main menu"
-                    type="button"
-                >
-                    <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.mainMenu} />
-                </button>
-                <button
                     aria-label={railPauseLabel}
                     className={styles.iconAction}
+                    data-testid="game-toolbar-pause"
                     onClick={run.status === 'paused' ? resume : pause}
                     title={pauseActionLabel}
                     type="button"
@@ -283,14 +332,13 @@ const GameLeftToolbar = ({
                     )}
                 </button>
                 <button
-                    aria-label="Open inventory"
+                    aria-label="Run settings (toolbar)"
                     className={styles.iconAction}
-                    data-testid="game-toolbar-inventory"
-                    onClick={openInventory}
-                    title="Inventory"
+                    onClick={() => openSettingsPlaying()}
+                    title="Settings"
                     type="button"
                 >
-                    <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.inventoryBag} />
+                    <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.settings} />
                 </button>
                 <button
                     aria-label="Open codex"
@@ -303,13 +351,23 @@ const GameLeftToolbar = ({
                     <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.codexBook} />
                 </button>
                 <button
-                    aria-label="Run settings (toolbar)"
+                    aria-label="Open inventory"
                     className={styles.iconAction}
-                    onClick={() => openSettingsPlaying()}
-                    title="Settings"
+                    data-testid="game-toolbar-inventory"
+                    onClick={openInventory}
+                    title="Inventory"
                     type="button"
                 >
-                    <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.settings} />
+                    <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.inventoryBag} />
+                </button>
+                <button
+                    aria-label="Return to main menu"
+                    className={styles.iconAction}
+                    onClick={onRequestAbandonRun}
+                    title="Main menu"
+                    type="button"
+                >
+                    <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.mainMenu} />
                 </button>
                 {import.meta.env.DEV && debugFlags.showDebugTools && debugFlags.allowBoardReveal ? (
                     <UiButton className={styles.toolbarDebugBtn} size="sm" variant="debug" onClick={triggerDebugReveal}>
@@ -321,9 +379,11 @@ const GameLeftToolbar = ({
                 <div
                     className={styles.utilityFlyout}
                     data-testid="game-toolbar-flyout"
+                    id={UTILITY_FLYOUT_DOM_ID}
                     ref={flyoutRef}
                     role="group"
                     aria-label="In-game menu"
+                    onKeyDown={handleFlyoutKeyDown}
                 >
                     <div className={styles.flyoutHeader}>
                         <span className={styles.flyoutHeaderTitle}>Menu</span>
@@ -331,24 +391,12 @@ const GameLeftToolbar = ({
                             aria-label="Close utility menu"
                             className={styles.flyoutClose}
                             data-testid="game-toolbar-flyout-close"
-                            onClick={() => {
-                                setUtilityFlyoutOpen(false);
-                                menuButtonRef.current?.focus();
-                            }}
+                            onClick={() => closeUtilityFlyout(true)}
                             type="button"
                         >
                             ×
                         </button>
                     </div>
-                    <button
-                        aria-label={flyoutPauseLabel}
-                        className={styles.flyoutAction}
-                        onClick={run.status === 'paused' ? resume : pause}
-                        type="button"
-                    >
-                        <strong>{pauseActionLabel}</strong>
-                        <span>{run.status === 'paused' ? 'Return to the board' : 'Freeze the run immediately'}</span>
-                    </button>
                     <button
                         aria-label="Inventory, active run loadout and charges"
                         className={styles.flyoutAction}
@@ -411,7 +459,13 @@ const GameLeftToolbar = ({
                         type="button"
                     >
                         <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.shuffle} />
-                        <span className={styles.powerBadge}>{run.shuffleCharges}</span>
+                        <span
+                            className={`${styles.powerBadge} ${
+                                run.shuffleCharges > 0 ? styles.powerBadgeCharged : styles.powerBadgeDepleted
+                            }`}
+                        >
+                            {run.shuffleCharges}
+                        </span>
                     </button>
                     <div
                         className={styles.regionShuffleCluster}
@@ -422,7 +476,20 @@ const GameLeftToolbar = ({
                                 : ''
                         }`}
                     >
-                        <span className={styles.regionShuffleLabel}>Rows</span>
+                        <div className={styles.regionShuffleHeader}>
+                            <span className={styles.regionShuffleLabel}>Rows</span>
+                            <span
+                                className={`${styles.powerBadge} ${styles.powerBadgeInline} ${
+                                    run.regionShuffleCharges > 0 ||
+                                    (run.regionShuffleFreeThisFloor &&
+                                        run.relicIds.includes('region_shuffle_free_first'))
+                                        ? styles.powerBadgeCharged
+                                        : styles.powerBadgeDepleted
+                                }`}
+                            >
+                                {run.regionShuffleCharges}
+                            </span>
+                        </div>
                         <div className={styles.regionShuffleRows}>
                             {run.board
                                 ? Array.from({ length: run.board.rows }, (_, row) => (
@@ -477,7 +544,13 @@ const GameLeftToolbar = ({
                         type="button"
                     >
                         <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.destroy} />
-                        <span className={styles.powerBadge}>{run.destroyPairCharges}</span>
+                        <span
+                            className={`${styles.powerBadge} ${
+                                run.destroyPairCharges > 0 ? styles.powerBadgeCharged : styles.powerBadgeDepleted
+                            }`}
+                        >
+                            {run.destroyPairCharges}
+                        </span>
                     </button>
                     <button
                         aria-label={`Peek one hidden tile. Charges: ${run.peekCharges}. ${peekModeArmed ? 'Tap a tile' : 'Arm peek then tap'}`}
@@ -495,7 +568,13 @@ const GameLeftToolbar = ({
                         type="button"
                     >
                         <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.peek} />
-                        <span className={styles.powerBadge}>{run.peekCharges}</span>
+                        <span
+                            className={`${styles.powerBadge} ${
+                                run.peekCharges > 0 ? styles.powerBadgeCharged : styles.powerBadgeDepleted
+                            }`}
+                        >
+                            {run.peekCharges}
+                        </span>
                     </button>
                     {showFlashPairPower ? (
                         <button
@@ -514,7 +593,13 @@ const GameLeftToolbar = ({
                             <span className={styles.toolbarFlashGlyph} aria-hidden="true">
                                 ⚡
                             </span>
-                            <span className={styles.powerBadge}>{run.flashPairCharges}</span>
+                            <span
+                                className={`${styles.powerBadge} ${
+                                    run.flashPairCharges > 0 ? styles.powerBadgeCharged : styles.powerBadgeDepleted
+                                }`}
+                            >
+                                {run.flashPairCharges}
+                            </span>
                         </button>
                     ) : null}
                     <button
@@ -533,7 +618,13 @@ const GameLeftToolbar = ({
                         type="button"
                     >
                         <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.stray} />
-                        <span className={styles.powerBadge}>{run.strayRemoveCharges}</span>
+                        <span
+                            className={`${styles.powerBadge} ${
+                                run.strayRemoveCharges > 0 ? styles.powerBadgeCharged : styles.powerBadgeDepleted
+                            }`}
+                        >
+                            {run.strayRemoveCharges}
+                        </span>
                     </button>
                 </div>
             ) : null}

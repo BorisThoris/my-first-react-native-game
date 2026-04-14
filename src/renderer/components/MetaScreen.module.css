@@ -127,6 +127,51 @@
     min-height: 0;
 }
 
+/*
+ * META-010 — in-run Codex/Inventory: “desk / grimoire” plate on the modal chrome (OVR-008: z-index stays on .modalOverlay only).
+ * Ornamental border + warm well; outer scrim uses .modalOverlayDesk so gameplay reads as paused study, not a flat blur sheet.
+ */
+.modalOverlayDesk {
+    background:
+        radial-gradient(ellipse 95% 72% at 50% 8%, rgba(242, 211, 157, 0.07), transparent 52%),
+        radial-gradient(ellipse 120% 90% at 50% 108%, rgba(107, 68, 27, 0.22), transparent 46%),
+        var(--theme-scrim-heavy);
+}
+
+.modalInnerDesk {
+    position: relative;
+    padding: max(0.55rem, calc(var(--ui-shell-screen-gap) * 0.45));
+    border-radius: calc(var(--ui-radius-modal) + 0.28rem);
+    background:
+        radial-gradient(ellipse 120% 48% at 50% 0%, rgba(242, 211, 157, 0.09), transparent 58%),
+        radial-gradient(ellipse 80% 55% at 18% 88%, rgba(140, 98, 223, 0.06), transparent 52%),
+        linear-gradient(168deg, rgba(26, 20, 16, 0.98), rgba(7, 6, 10, 0.99));
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 22%, transparent);
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--theme-gold-deep) 55%, transparent),
+        inset 0 1px 0 rgba(255, 236, 205, 0.11),
+        inset 0 0 0 1px rgba(0, 0, 0, 0.45),
+        0 26px 72px rgba(0, 0, 0, 0.52);
+}
+
+/* Corner hash — pointer-events none; no z-index so focus rings and children stay unaffected (OVR-008). */
+.modalInnerDesk::after {
+    content: '';
+    position: absolute;
+    inset: 0.42rem;
+    border-radius: calc(var(--ui-radius-modal) + 0.05rem);
+    pointer-events: none;
+    box-shadow:
+        inset 0 0 0 1px color-mix(in srgb, var(--theme-gold) 14%, transparent),
+        inset 0 0 0 2px rgba(0, 0, 0, 0.22);
+    opacity: 0.85;
+}
+
+/* In-run meta: skip META-001 full-viewport wash (redundant with modal scrim; keeps the desk plate legible). */
+.shellInRunModal {
+    background: transparent;
+}
+
 :global([data-density='compact']) .shell {
     padding:
         max(var(--theme-space-lg), env(safe-area-inset-top, 0px))
@@ -167,6 +212,7 @@
     }
 }
 
-:global([data-reduce-motion='true']) .modalOverlay {
+:global([data-reduce-motion='true']) .modalOverlay,
+:global([data-reduce-motion='true']) .modalOverlayDesk {
     backdrop-filter: none;
 }

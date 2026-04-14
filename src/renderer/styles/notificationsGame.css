@@ -10,7 +10,8 @@
     transform: translateX(-50%);
     bottom: calc(env(safe-area-inset-bottom, 0px) + 6.5rem);
     z-index: 9999;
-    flex-direction: column;
+    /* OVR-005: newest toward the top of the rail so short score bursts do not bury long achievement copy against the safe-area edge. */
+    flex-direction: column-reverse;
     align-items: center;
     gap: 0.35rem;
     width: min(calc(100% - 1rem), 960px);
@@ -41,13 +42,18 @@
 
 .crn-card {
     pointer-events: auto;
+    position: relative;
     border: 1px solid var(--theme-border-cyan);
     box-shadow:
         var(--crn-shadow),
         0 0 18px var(--theme-glow-gold-soft, rgba(242, 211, 157, 0.14));
 }
 
+/* FX-019: compact numeric score bursts (`showSuccess` + match-score stackKey); `aria-live="off"` in GameScreen (OVR-004). */
 .crn-card--success {
+    z-index: 1;
+    /* Package default `min-width: 300px` is too wide for compact score bursts on phones. */
+    min-width: 0;
     border-color: color-mix(in srgb, var(--theme-border-strong) 85%, transparent);
     box-shadow:
         0 0 22px var(--theme-glow-gold, rgba(195, 149, 79, 0.24)),
@@ -59,15 +65,107 @@
     --crn-message-font-size: clamp(0.95rem, 2.4vw, 1.15rem);
     --crn-text: var(--theme-gold-bright);
     text-shadow: 0 0 12px var(--theme-glow-gold, rgba(195, 149, 79, 0.24));
+    max-width: min(400px, calc(100vw - 1.25rem));
 }
 
-.crn-card--info .crn-message {
+@media (max-width: 520px) {
+    .crn-card--success {
+        max-width: min(11.5rem, calc(100vw - 1.25rem));
+        --crn-padding-x: 0.72rem;
+        --crn-message-font-size: clamp(0.88rem, 4.2vw, 1.05rem);
+    }
+
+    .crn-card--info:not([data-crn-surface]),
+    .crn-card--info[data-crn-surface='generic'] {
+        max-width: min(calc(100vw - 1rem), 22rem);
+    }
+
+    .crn-card--info[data-crn-surface='achievement'] {
+        max-width: min(calc(100vw - 1rem), 24rem);
+    }
+
+    .crn-card--info[data-crn-surface='powers-ftue'] {
+        max-width: min(calc(100vw - 1rem), 26rem);
+    }
+}
+
+/* Generic info rail (rule hints, incidental copy) — cyan rail; distinct from achievement / FTUE surfaces (OVR-004). */
+.crn-card--info:not([data-crn-surface]),
+.crn-card--info[data-crn-surface='generic'] {
+    z-index: 2;
+}
+
+.crn-card--info:not([data-crn-surface]) .crn-message,
+.crn-card--info[data-crn-surface='generic'] .crn-message {
     font-weight: 700;
     color: var(--theme-cyan-bright);
     letter-spacing: 0.04em;
 }
 
-.crn-card--info .crn-close {
+.crn-card--info:not([data-crn-surface]) .crn-close,
+.crn-card--info[data-crn-surface='generic'] .crn-close {
+    color: var(--theme-cyan-bright);
+}
+
+/* Achievement milestone: framed copy surface (not the compact FX-019 score pill). */
+.crn-card--info[data-crn-surface='achievement'] {
+    z-index: 3;
+    max-width: min(calc(100vw - 1rem), 26rem);
+    min-width: 0;
+    --crn-padding-y: 0.5rem;
+    --crn-padding-x: 0.95rem;
+    --crn-message-font-size: clamp(0.72rem, 2vw, 0.82rem);
+    --crn-text: color-mix(in srgb, var(--theme-text) 82%, var(--theme-gold-bright));
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 48%, var(--theme-border-strong));
+    box-shadow:
+        0 0 26px color-mix(in srgb, var(--theme-glow-gold) 30%, transparent),
+        0 10px 28px color-mix(in srgb, var(--theme-shadow) 40%, transparent);
+    font-family: var(--theme-display-font, 'Cinzel', serif);
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}
+
+.crn-card--info[data-crn-surface='achievement'] .crn-message {
+    color: var(--theme-gold-bright);
+    font-weight: 800;
+    text-shadow: 0 0 14px color-mix(in srgb, var(--theme-glow-gold-soft) 55%, transparent);
+}
+
+.crn-card--info[data-crn-surface='achievement'] .crn-close {
+    color: var(--theme-gold-bright);
+}
+
+/* OVR-006: powers FTUE — lifted from the board plane, above ephemeral stack items. */
+.crn-card--info[data-crn-surface='powers-ftue'] {
+    z-index: 4;
+    transform: translateY(calc(-1 * clamp(0.35rem, 2.5vmin, 0.85rem)));
+    margin-bottom: clamp(0.15rem, 1.2vmin, 0.5rem);
+    max-width: min(calc(100vw - 1rem), 28rem);
+    min-width: 0;
+    --crn-padding-y: 0.48rem;
+    --crn-padding-x: 0.92rem;
+    --crn-message-font-size: clamp(0.72rem, 2.2vw, 0.8rem);
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 42%, var(--theme-border-cyan));
+    box-shadow:
+        0 0 22px color-mix(in srgb, var(--theme-glow-gold-soft) 50%, transparent),
+        0 10px 28px color-mix(in srgb, var(--theme-shadow) 38%, transparent),
+        0 0 0 1px color-mix(in srgb, var(--theme-cyan-bright) 14%, transparent);
+    background: linear-gradient(
+            125deg,
+            color-mix(in srgb, var(--theme-panel-solid) 90%, var(--theme-gold) 6%),
+            color-mix(in srgb, var(--theme-panel-solid) 86%, var(--theme-cyan) 10%)
+        ),
+        var(--crn-info-bg);
+}
+
+.crn-card--info[data-crn-surface='powers-ftue'] .crn-message {
+    font-weight: 800;
+    letter-spacing: 0.035em;
+    color: var(--theme-text);
+    line-height: 1.42;
+}
+
+.crn-card--info[data-crn-surface='powers-ftue'] .crn-close {
     color: var(--theme-cyan-bright);
 }
 

@@ -8,20 +8,26 @@ import {
     VISUAL_ENDLESS_MODE_LOCKED
 } from '../../shared/game-catalog';
 import type { MutatorId, RelicId } from '../../shared/contracts';
-import { Eyebrow, Panel, ScreenTitle, UiButton } from '../ui';
+import { Eyebrow, MetaFrame, Panel, ScreenTitle, UiButton } from '../ui';
 import { useAppStore } from '../store/useAppStore';
 import metaStyles from './MetaScreen.module.css';
 import styles from './CodexScreen.module.css';
 
-const CodexScreen = () => {
+export interface CodexScreenProps {
+    /** When true, shell title is `h2` so `GameScreen`'s level `h1` stays the sole document `h1`. */
+    stackedOnGameplay?: boolean;
+}
+
+const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
     const closeSubscreen = useAppStore(useShallow((state) => state.closeSubscreen));
+    const shellStageClass = stackedOnGameplay ? metaStyles.shellInRunModal : metaStyles.shellMetaStage;
 
     return (
-        <section aria-label="Codex" className={`${metaStyles.shell} ${metaStyles.shellMetaStage}`} role="region">
+        <section aria-label="Codex" className={`${metaStyles.shell} ${shellStageClass}`} role="region">
             <header className={metaStyles.header}>
                 <div className={metaStyles.headerText}>
                     <Eyebrow tone="menu">Reference</Eyebrow>
-                    <ScreenTitle as="h1" role="display">
+                    <ScreenTitle as={stackedOnGameplay ? 'h2' : 'h1'} role="display">
                         Codex
                     </ScreenTitle>
                     <p className={metaStyles.subtitle}>
@@ -41,17 +47,19 @@ const CodexScreen = () => {
                     <a href="#codex-relics">Relics</a>
                     <a href="#codex-mutators">Mutators</a>
                 </nav>
-                <Panel padding="lg" variant="strong">
-                    <div className={`${styles.group} ${metaStyles.sectionAnchor}`} id="codex-core">
-                        <h2 className={styles.groupTitle}>Core systems</h2>
-                        {CODEX_CORE_TOPICS.map((topic) => (
-                            <div className={styles.entry} key={topic.id}>
-                                <strong>{topic.title}</strong>
-                                <p>{topic.description}</p>
-                            </div>
-                        ))}
-                    </div>
-                </Panel>
+                <MetaFrame data-testid="codex-meta-frame-core">
+                    <Panel padding="lg" variant="strong">
+                        <div className={`${styles.group} ${metaStyles.sectionAnchor}`} id="codex-core">
+                            <h2 className={styles.groupTitle}>Core systems</h2>
+                            {CODEX_CORE_TOPICS.map((topic) => (
+                                <div className={styles.entry} key={topic.id}>
+                                    <strong>{topic.title}</strong>
+                                    <p>{topic.description}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </Panel>
+                </MetaFrame>
 
                 <Panel padding="lg" variant="default">
                     <div className={`${styles.group} ${metaStyles.sectionAnchor}`} id="codex-modes">

@@ -143,3 +143,19 @@ h6 {
     font-weight: 700;
     letter-spacing: 0.02em;
 }
+
+/*
+ * OVR-003 — modal plate entry (MOTION_AND_STATE_SPEC: overlay motion).
+ * Applied only under `[data-reduce-motion='false']` from component CSS modules.
+ */
+@keyframes ovr-modal-plate-enter {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 8px, 0) scale(0.985);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+}

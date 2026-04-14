@@ -1,7 +1,9 @@
 # Task 011: Final Card Art and Texture Pipeline
 
 ## Status
-Partial (pipeline pointers documented; blocked on final card raster)
+**Shipped (SVG):** Runtime card faces use hand-authored **`authored-card-back.svg`** / **`authored-card-front.svg`** (leather + filigree + diamond / stone panel) wired through `tileTextures.ts`, DOM CSS, and WebGL URLs — see `ASSET_SOURCES.md`. Legacy multi-MB traced `back.svg` / `front.svg` remain on disk for tooling only.
+
+**Optional:** AI rasters per `CARD_TEXTURE_AI_BRIEF.md` if art direction wants photographic detail beyond vectors.
 
 ## Implementation notes
 - **Audit finding:** `tileTextures.ts` centers on `reference-back.png` and procedural layers; reference implies distinct premium backs and readable faces per pair theme.

@@ -1,15 +1,14 @@
-/** Authoring space for `src/renderer/assets/textures/cards/back.svg`. */
-export const CARD_BACK_VIEWBOX = { w: 850, h: 1317 } as const;
+/** Authoring space for `authored-card-back.svg` (legacy `back.svg` remains on disk for trace reference). */
+export const CARD_BACK_VIEWBOX = { w: 740, h: 1080 } as const;
 
-/** Authoring space for `src/renderer/assets/textures/cards/front.svg`. */
-export const CARD_FRONT_VIEWBOX = { w: 816, h: 1290 } as const;
+/** Authoring space for `authored-card-front.svg`. */
+export const CARD_FRONT_VIEWBOX = { w: 740, h: 1080 } as const;
 
 /**
- * Pivot for {@link CardCrystalMark} / {@link CardSigilOrbit} in **back.svg user space** (850×1317).
- * `back.svg` is an auto-traced mesh without semantic groups — tune this (and CSS `transform-origin`
- * percentages in `cardMotifMotion.module.css`: `x/w*100`, `y/h*100`) when the printed medallion shifts.
+ * Pivot for {@link CardCrystalMark} / {@link CardSigilOrbit} in **card back** user space (740×1080).
+ * Tune CSS `transform-origin` in `cardMotifMotion.module.css`: `x/w*100`, `y/h*100`.
  */
-export const CARD_BACK_EMBLEM_CENTER = { x: 425, y: 532 } as const;
+export const CARD_BACK_EMBLEM_CENTER = { x: 370, y: 540 } as const;
 
-/** Placeholder pivot for future face overlays (816×1290). */
-export const CARD_FRONT_EMBLEM_CENTER = { x: 408, y: 530 } as const;
+/** Center well for face overlays (740×1080). */
+export const CARD_FRONT_EMBLEM_CENTER = { x: 370, y: 520 } as const;

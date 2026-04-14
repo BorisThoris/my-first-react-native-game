@@ -172,6 +172,26 @@
     transform: none;
 }
 
+/* MetaFrame: cornice only — no duplicate button rim / elevation. */
+.root[data-meta-framed='true']::before {
+    content: none;
+}
+
+.root[data-meta-framed='true'] {
+    box-shadow: none !important;
+}
+
+.root[data-meta-framed='true']:hover:not(:disabled),
+.root[data-meta-framed='true']:active:not(:disabled) {
+    box-shadow: none !important;
+}
+
+.root[data-meta-framed='true'].primary:hover:not(:disabled),
+.root[data-meta-framed='true'].secondary:hover:not(:disabled),
+.root[data-meta-framed='true'].ghost:hover:not(:disabled) {
+    box-shadow: none !important;
+}
+
 @media (max-width: 760px) {
     .sm {
         padding: 0.58rem 0.9rem;

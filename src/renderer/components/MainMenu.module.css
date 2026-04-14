@@ -102,9 +102,19 @@
 }
 
 .metaRow {
+    position: relative;
+    z-index: 3;
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: var(--menu-meta-row-gap);
+}
+
+/* META-012 — hub stat plaques (MetaFrame cornice sizes to `.metaCard` via measured radius). */
+.metaPlaqueFrame {
+    width: 100%;
+    min-width: 0;
+    --theme-meta-frame-outset: -0.2rem;
+    --theme-meta-frame-drop: 0 0 8px color-mix(in srgb, var(--theme-glow-gold) 40%, transparent);
 }
 
 .metaCard {
@@ -115,10 +125,12 @@
     padding: var(--menu-meta-card-pad-block) var(--menu-meta-card-pad-inline);
     border-radius: var(--ui-radius-lg);
     background:
-        radial-gradient(circle at top left, rgba(195, 149, 79, 0.12), transparent 42%),
-        linear-gradient(160deg, rgba(15, 14, 21, 0.86), rgba(8, 8, 12, 0.84));
-    border: 1px solid var(--theme-border);
-    box-shadow: var(--theme-elevation-card);
+        radial-gradient(circle at top left, rgba(195, 149, 79, 0.16), transparent 44%),
+        linear-gradient(160deg, rgba(15, 14, 21, 0.9), rgba(8, 8, 12, 0.86));
+    border: 1px solid color-mix(in srgb, var(--theme-gold) 22%, var(--theme-border));
+    box-shadow:
+        var(--theme-elevation-card),
+        inset 0 1px 0 color-mix(in srgb, var(--theme-gold-bright) 12%, transparent);
 }
 
 .metaLabel {
@@ -136,6 +148,8 @@
 }
 
 .layout {
+    position: relative;
+    z-index: 1;
     display: grid;
     grid-template-columns: minmax(0, 1.18fr) minmax(min(360px, 100%), 0.82fr);
     gap: var(--menu-layout-gap);
@@ -196,8 +210,42 @@
     text-transform: uppercase;
 }
 
-.actionStack {
+/* META-004: hub CTA stack (MetaFrame measures `Panel` for cornice alignment). */
+.ctaMetaFrame {
     width: min(100%, 32rem);
+}
+
+.ctaPanel {
+    gap: var(--theme-space-sm);
+    min-width: 0;
+}
+
+.ctaIllustratedBand {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-md);
+    margin-bottom: 0.1rem;
+}
+
+.ctaBandSeal {
+    width: 2.35rem;
+    height: 2.35rem;
+    flex: 0 0 auto;
+    opacity: 0.9;
+}
+
+.ctaBandFlourish {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-height: 0.55rem;
+    width: auto;
+    object-fit: contain;
+    object-position: center left;
+    opacity: 0.72;
+}
+
+.actionStack {
+    width: 100%;
     display: grid;
     gap: var(--menu-action-stack-gap);
 }
@@ -460,9 +508,28 @@
     line-height: 1.35;
 }
 
+.touchCompactShell .ctaBandSeal {
+    width: 1.95rem;
+    height: 1.95rem;
+}
+
+.touchCompactShell .ctaIllustratedBand {
+    gap: var(--theme-space-sm);
+    margin-bottom: 0;
+}
+
+.touchCompactShell .ctaBandFlourish {
+    max-height: 0.42rem;
+    opacity: 0.62;
+}
+
 .touchCompactShell .actionStack,
 .touchCompactShell .bottomCards {
     width: 100%;
+}
+
+.touchCompactShell .actionStack {
+    padding-bottom: 0.35rem;
 }
 
 .touchCompactShell .bottomCards {
@@ -561,6 +628,10 @@
     display: none;
 }
 
+.shortTouchLandscapeShell .ctaIllustratedBand {
+    display: none;
+}
+
 .shortTouchLandscapeShell .actionStack {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: stretch;
@@ -643,8 +714,12 @@
 }
 
 .shortDesktopShell .actionStack {
-    width: min(100%, 31rem);
+    width: 100%;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.shortDesktopShell .ctaMetaFrame {
+    width: min(100%, 31rem);
 }
 
 .shortDesktopShell .actionStack > :first-child,

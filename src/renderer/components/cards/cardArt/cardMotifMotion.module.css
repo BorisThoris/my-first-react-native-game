@@ -9,8 +9,8 @@
     animation-name: card-art-orbit-spin;
     animation-timing-function: linear;
     animation-iteration-count: infinite;
-    /* Match CARD_BACK_EMBLEM_CENTER: x/w*100 , y/h*100 for 850×1317 */
-    transform-origin: 50% 40.39%;
+    /* Match CARD_BACK_EMBLEM_CENTER: x/w*100 , y/h*100 for 740×1080 */
+    transform-origin: 50% 50%;
     transform-box: fill-box;
 }
 
@@ -19,7 +19,7 @@
     animation-timing-function: ease-in-out;
     animation-iteration-count: infinite;
     animation-direction: alternate;
-    transform-origin: 50% 40.39%;
+    transform-origin: 50% 50%;
     transform-box: fill-box;
 }
 

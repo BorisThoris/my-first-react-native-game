@@ -1,6 +1,16 @@
 import { createElement, type HTMLAttributes, type ReactNode } from 'react';
 import styles from './ScreenTitle.module.css';
 
+/**
+ * Heading outline (A11Y-007):
+ * - One document-level `h1` per active route stack. Full meta routes use `role="display"` as `h1`; gameplay
+ *   uses an `h1` for the current level (see `GameScreen`).
+ * - Meta shells opened on top of gameplay (inventory/codex modal) demote the shell title to `h2` via props
+ *   on those screens so the level `h1` stays canonical.
+ * - `OverlayModal` uses `role="modal"` → default `h3` under the active route heading.
+ * - Settings: full page uses `h1` shell + `h2` pane title; in-run modal uses `h2` + `h3` under the level `h1`.
+ */
+
 export type ScreenTitleRole = 'display' | 'screen' | 'screenMd' | 'screenLg' | 'modal' | 'section';
 
 export type ScreenTitleTag = 'h1' | 'h2' | 'h3';

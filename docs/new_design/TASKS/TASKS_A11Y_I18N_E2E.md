@@ -2,9 +2,9 @@
 
 **Research pass:** `aria-*`, `role`, `OverlayModal` focus trap, `StartupIntro` dialog, `SettingsScreen` modal, toast rail, landmark structure; `i18n` packages (none); full `e2e/*.spec.ts` inventory vs parity docs; flake notes.
 
-**Finding:** Solid patterns on gameplay HUD, tiles, OverlayModal; **no `<main>` / skip link**; **StartupIntro** modal without Tab trap parity; **Settings** modal trap uncertain vs OverlayModal; **toasts** lack explicit `aria-live`; **single locale** English; **`ui-screenshots.spec.ts`** not in parity doc set.
+**Finding:** Solid patterns on gameplay HUD, tiles, OverlayModal; **`<main>`** scrollport in [`App.tsx`](../../../src/renderer/App.tsx); **no skip link**; **StartupIntro** + **Settings** / **OverlayModal** use shared **document-capture Tab trap** ([`focusables.ts`](../../../src/renderer/a11y/focusables.ts)); **toasts** use per-item **`aria-live`** in [`NotificationHost`](../../../packages/notifications/src/NotificationHost.tsx); **single locale** English; **`ui-screenshots.spec.ts`** not in parity doc set.
 
-**Cross-links:** `TASKS_OVERLAYS_FTUE.md` (OVR-010), `TASKS_NAVIGATION_STATE.md` (NAV-008).
+**Cross-links:** `TASKS_OVERLAYS_FTUE.md` (OVR-010), `TASKS_NAVIGATION_STATE.md` (NAV-008). **A11Y-008:** deferred i18n plan — [`I18N_FOUNDATION.md`](../I18N_FOUNDATION.md) (not Steam demo v1).
 
 ---
 
@@ -12,11 +12,7 @@
 
 | ID | P | Title | Goal | Acceptance criteria | Deps |
 |----|---|--------|------|---------------------|------|
-| A11Y-001 | P1 | Primary `<main>` landmark | One coherent main per active view. | axe / manual outline. | — |
-| A11Y-002 | P2 | Skip link | Focus-visible skip to main. | Keyboard-only pass. | A11Y-001 |
-| A11Y-003 | P1 | StartupIntro keyboard | Escape dismiss, focus trap, restore focus to menu. | Parity with OverlayModal patterns. | — |
-| A11Y-004 | P1 | Settings modal focus trap | Tab cycle + return focus; match OverlayModal. | Playwright (E2E-003). | — |
-| A11Y-005 | P1 | Toast live regions | `aria-live` / `aria-atomic` for achievements + score pops. | SR spot-check. | OVR-004 |
+| A11Y-002 | P2 | Skip link | Focus-visible skip to main. | Keyboard-only pass. | — |
 | A11Y-006 | P2 | Backdrop inert | `inert` or `aria-hidden` on shell behind dialogs. | Tab cannot reach board under pause. | — |
 | A11Y-007 | P2 | Heading outline audit | One `h1` policy; sr-only level vs meta titles. | Doc or fix list. | — |
 | A11Y-008 | P3 | i18n foundation | If shipping non-EN: choose stack + string extraction policy. | Deferred until product asks. | — |

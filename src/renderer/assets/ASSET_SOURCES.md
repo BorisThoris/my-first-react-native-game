@@ -18,14 +18,14 @@ Two files both export a constant named `UI_ART` — they are **not** interchange
 
 | Path | Role | Source / tool | Notes |
 |------|------|---------------|-------|
-| `ui/backgrounds/bg-main-menu-cathedral-v1.png` | Main menu hero layer | AI-generated (Cursor image tool, project batch) | Fantasy vault; central negative space for title |
+| `ui/backgrounds/bg-main-menu-cathedral-v1.png` | Main menu hero layer | AI-generated (Cursor image tool, project batch) | Fantasy vault; central negative space for title. **`GameOverScreen`** composites the same raster via `UI_ART.menuScene` behind the scrim (**META-002** shell parity). |
 | `ui/backgrounds/bg-gameplay-dungeon-ring-v1.png` | Gameplay stage under board | AI-generated | Memory ring / arena; board-safe center |
 | `ui/menu-scene.svg` | Legacy menu art | Authored SVG | **Not imported** in app code. Kept for reference or future swap; shipped menu uses `bg-main-menu-cathedral-v1.png`. |
 | `ui/gameplay-scene.svg` | Legacy gameplay art | Authored SVG | **Not imported**; shipped gameplay uses `bg-gameplay-dungeon-ring-v1.png`. |
 | `ui/backgrounds/bg-mode-classic-v1.png` | Mode card poster | AI-generated | Classic / blue-silver gate |
 | `ui/backgrounds/bg-mode-daily-v1.png` | Mode card poster | AI-generated | Daily / purple crystal featured |
 | `ui/backgrounds/bg-mode-endless-v1.png` | Mode card poster (locked) | AI-generated | Endless / ember gate, darker |
-| `ui/brand-crest.svg` | Menu crest | Authored SVG | Crystal sigil in gold frame |
+| `ui/brand-crest.svg` | Menu crest | Authored SVG | Crystal sigil in gold frame; reused on **GameOver** hero lockup (**META-002**). |
 | `ui/menu-emblem.svg` | Secondary emblem | Authored SVG | Ring + tome motif |
 | `ui/divider-ornament.svg` | Hero divider | Authored SVG | Gold gradient + center gem + side flourishes |
 | `ui/icons/icon-inventory-bag-v1.svg` | Gameplay left rail / flyout inventory glyph | Authored SVG | `currentColor` strokes; barrel in `ui/icons/index.ts` |
@@ -41,9 +41,12 @@ Two files both export a constant named `UI_ART` — they are **not** interchange
 | `ui/icons/icon-peek-v1.svg` | Board power: peek | Authored SVG | Same |
 | `ui/icons/icon-stray-v1.svg` | Board power: stray remove | Authored SVG | Same |
 | `ui/icons/icon-undo-v1.svg` | Resolving-phase undo | Authored SVG | Same |
+| `ui/icons/icon-score-parasite-crystal.svg` | HUD score parasite mutator crystal glyph | Authored SVG | **HUD-007:** arcane-violet / gold-rim crystal aligned to `VISUAL_SYSTEM_SPEC` + `theme.ts` `--theme-hud-parasite-*`; used in `GameplayHudBar.tsx` (`?url` import). |
 | `ui/frames/hud-segment-ornament.svg` | HUD score segment flourish | Authored SVG | Hex motif; used in `GameScreen.module.css` |
-| `textures/cards/back.svg` | Tile **hidden** side (DOM + WebGL back plane) | Authored SVG (`back.svg?url` in `tileTextures.ts`, `slots.ts`); WebGL uses merged mesh via [`cardSvgPlaneGeometry.ts`](../components/cardSvgPlaneGeometry.ts) | Raster fallback if mesh exceeds vertex cap. Optional PNG pipeline: [`CARD_TEXTURE_AI_BRIEF.md`](../../docs/new_design/CARD_TEXTURE_AI_BRIEF.md). |
-| `textures/cards/front.svg` | Tile **face-up** panel (DOM + WebGL front plane) | Same as back (`front.svg?url`, shared `loadSharedCardSvgPlaneGeometry`) | Vector face; raster fallback if SVG mesh fails. |
+| `textures/cards/authored-card-back.svg` | Tile **hidden** side (shipped) | Hand-authored vector: leather/walnut, gold filigree, center diamond (**PLAY-007** / **TASK-011**); wired from `tileTextures.ts`, `TileBoard.module.css`, `slots.ts`. WebGL merged mesh when under byte/vertex caps ([`cardSvgPlaneGeometry.ts`](../components/cardSvgPlaneGeometry.ts)). | Replaces multi-MB traced `back.svg` for perf + parity. |
+| `textures/cards/authored-card-front.svg` | Face-up panel (shipped) | Hand-authored stone frame + calm center well for glyph overlay | Pairs with `authored-card-back.svg`. |
+| `textures/cards/back.svg` | Legacy traced back | **Not** default import; kept for pipeline tools / reference | Huge path count — prefer authored SVG for runtime. |
+| `textures/cards/front.svg` | Legacy traced front | **Not** default import | Same. |
 | `textures/cards/edge.png` | Card edge map | `scripts/card-pipeline/generate-card-textures.ps1` | Pairs with `tileTextures.ts` |
 | `textures/cards/panel-roughness.png` | Panel roughness | `scripts/card-pipeline/generate-card-textures.ps1` | |
 | `textures/cards/edge-roughness.png` | Edge roughness | `scripts/card-pipeline/generate-card-textures.ps1` | |

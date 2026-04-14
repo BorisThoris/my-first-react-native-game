@@ -6,7 +6,6 @@ import {
     useRef,
     useState,
     type CSSProperties,
-    type KeyboardEvent as ReactKeyboardEvent,
     type MutableRefObject,
     type PointerEvent as ReactPointerEvent,
     type RefObject
@@ -32,7 +31,7 @@ import {
     resolveIntroVariant,
     type IntroPreset
 } from './startupIntroConfig';
-import { getFocusableElements } from '../a11y/focusables';
+import { handleTabFocusTrapEvent } from '../a11y/focusables';
 import { preloadTileTextureImages } from './tileTextures';
 import { hasWebGLSupport, loadRelicTextures, type RelicTextureSet } from './startupIntroTextures';
 import styles from './StartupIntro.module.css';
@@ -670,40 +669,24 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
 
         return () => {
             window.cancelAnimationFrame(frame);
-            previousFocusRef.current?.focus();
+            const menuRoot = document.querySelector<HTMLElement>('[data-testid="main-menu-focus-root"]');
+            const returnTarget = menuRoot ?? previousFocusRef.current;
+            window.requestAnimationFrame(() => {
+                returnTarget?.focus({ preventScroll: true });
+            });
         };
     }, []);
 
-    const handleOverlayKeyDown = useCallback((event: ReactKeyboardEvent<HTMLElement>): void => {
-        if (event.key !== 'Tab') {
-            return;
-        }
+    useEffect(() => {
+        const onDocumentKeyDown = (event: KeyboardEvent): void => {
+            handleTabFocusTrapEvent(event, overlayRef.current);
+        };
 
-        const shell = overlayRef.current;
-        const focusable = getFocusableElements(shell);
+        document.addEventListener('keydown', onDocumentKeyDown, true);
 
-        if (focusable.length === 0) {
-            event.preventDefault();
-            shell?.focus();
-            return;
-        }
-
-        const currentIndex = focusable.indexOf(document.activeElement as HTMLElement);
-        const lastIndex = focusable.length - 1;
-
-        if (event.shiftKey) {
-            if (currentIndex <= 0) {
-                event.preventDefault();
-                focusable[lastIndex]?.focus();
-            }
-
-            return;
-        }
-
-        if (currentIndex === -1 || currentIndex === lastIndex) {
-            event.preventDefault();
-            focusable[0]?.focus();
-        }
+        return () => {
+            document.removeEventListener('keydown', onDocumentKeyDown, true);
+        };
     }, []);
 
     useEffect(() => {
@@ -828,7 +811,7 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
             data-phase={phase}
             data-preset={variant.preset}
             data-render-mode={renderMode}
-            onKeyDown={handleOverlayKeyDown}
+            data-testid="startup-intro-overlay"
             onPointerDown={handlePointerDown}
             ref={overlayRef}
             role="dialog"

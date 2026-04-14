@@ -58,6 +58,40 @@
     align-items: stretch;
 }
 
+/* META-011: MetaFrame cornice wraps the interactive card (valid DOM: frame → button). */
+.cardShell {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+}
+
+.cardFrame {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+}
+
+.cardFrame > span:first-of-type {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.cardFrame .card {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0;
+}
+
+.cardFrameMuted svg {
+    opacity: 0.42;
+}
+
 .card {
     position: relative;
     overflow: hidden;
@@ -66,12 +100,14 @@
     gap: var(--path-card-inner-gap);
     padding: var(--path-card-pad-block) var(--path-card-pad-inline);
     border-radius: var(--ui-radius-lg);
-    border: 1px solid var(--theme-hud-chrome-border-soft);
+    border: 1px solid color-mix(in srgb, var(--theme-hud-chrome-border-soft) 82%, var(--theme-gold-deep) 18%);
     background:
-        linear-gradient(180deg, rgba(255, 243, 217, 0.06), transparent 28%),
-        linear-gradient(160deg, rgba(22, 24, 38, 0.92), rgba(10, 12, 20, 0.88)),
-        rgba(8, 10, 16, 0.6);
-    box-shadow: inset 0 1px 0 var(--theme-hud-chrome-inset);
+        linear-gradient(180deg, rgba(255, 243, 217, 0.08), transparent 32%),
+        linear-gradient(160deg, rgba(22, 24, 38, 0.94), rgba(10, 12, 20, 0.9)),
+        rgba(8, 10, 16, 0.68);
+    box-shadow:
+        inset 0 1px 0 var(--theme-hud-chrome-inset),
+        inset 0 0 0 1px color-mix(in srgb, var(--theme-gold-bright) 8%, transparent);
     text-align: left;
     color: inherit;
     cursor: pointer;
@@ -114,9 +150,13 @@
 }
 
 .card:hover:not(:disabled) {
-    border-color: var(--theme-border-strong);
+    border-color: color-mix(in srgb, var(--theme-border-strong) 55%, var(--theme-gold-bright) 45%);
     transform: translateY(-2px);
-    box-shadow: var(--theme-elevation-lift);
+    box-shadow:
+        var(--theme-elevation-lift),
+        0 0 0 1px color-mix(in srgb, var(--theme-gold-bright) 32%, transparent),
+        0 0 26px color-mix(in srgb, var(--theme-gold-bright) 16%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--theme-gold-bright) 22%, transparent);
 }
 
 .card:focus-visible {
@@ -161,6 +201,22 @@
     font-size: 0.76rem;
 }
 
+.compactPathShell .cardStatValue {
+    font-size: 1.12rem;
+}
+
+.compactPathShell .cardClassic .cardStatValue {
+    font-size: 1.22rem;
+}
+
+.compactPathShell .cardStatLabel {
+    font-size: 0.58rem;
+}
+
+.compactPathShell .cardClassic .cardFooter {
+    flex-wrap: wrap;
+}
+
 .shortTouchLandscapeShell .pathFitViewport {
     --path-stack-gap: var(--theme-space-sm);
     --path-card-grid-gap: var(--theme-space-sm);
@@ -195,10 +251,21 @@
     padding-top: 0.24rem;
 }
 
+.shortTouchLandscapeShell .cardClassic .cardFooter {
+    flex-wrap: wrap;
+}
+
+.shortTouchLandscapeShell .cardClassic .cardStatValue {
+    font-size: 1.12rem;
+}
+
 .cardTitle {
+    font-family: var(--ui-font-display-family);
     font-size: 1.15rem;
     font-weight: 650;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.03em;
+    color: color-mix(in srgb, var(--theme-text) 92%, var(--theme-gold-bright) 8%);
+    text-shadow: 0 1px 12px color-mix(in srgb, var(--theme-gold-bright) 12%, transparent);
 }
 
 .cardBody {
@@ -214,10 +281,92 @@
     color: var(--theme-text-subtle);
     padding-top: 0.35rem;
     border-top: 1px solid var(--theme-card-border-muted);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem 1rem;
+    align-items: baseline;
+}
+
+/* META-011: mirror endproduct “large numeral + label” stats row (Classic card). */
+.cardStatLine {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.12rem;
+    min-width: 0;
+}
+
+.cardStatValue {
+    font-family: var(--ui-font-display-family);
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: 0.02em;
+    color: var(--theme-text);
+    font-variant-numeric: tabular-nums;
+}
+
+.cardStatLabel {
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--theme-text-muted);
+}
+
+.cardClassic .cardFooter {
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 0.5rem 1rem;
+    padding-top: 0.42rem;
+}
+
+.cardClassic .cardStatLine {
+    flex: 1 1 0;
+    align-items: flex-start;
+}
+
+.cardClassic .cardStatLine:first-child {
+    position: relative;
+    padding-right: 0.75rem;
+    margin-right: 0.15rem;
+}
+
+.cardClassic .cardStatLine:first-child::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0.1rem;
+    bottom: 0.2rem;
+    width: 1px;
+    background: linear-gradient(
+        180deg,
+        transparent,
+        color-mix(in srgb, var(--theme-gold-bright) 45%, transparent) 22%,
+        color-mix(in srgb, var(--theme-gold-bright) 55%, transparent) 50%,
+        color-mix(in srgb, var(--theme-gold-bright) 38%, transparent) 78%,
+        transparent
+    );
+    box-shadow: 1px 0 0 color-mix(in srgb, var(--theme-shadow) 35%, transparent);
+}
+
+.cardClassic .cardStatValue {
+    font-size: 1.52rem;
+    letter-spacing: 0.03em;
+    color: color-mix(in srgb, var(--theme-text) 88%, var(--theme-gold-bright) 12%);
+    text-shadow: 0 0 20px color-mix(in srgb, var(--theme-gold-bright) 14%, transparent);
+}
+
+.cardClassic .cardStatLabel {
+    letter-spacing: 0.12em;
+    opacity: 0.95;
 }
 
 .cardClassic {
     border-color: var(--theme-border-cyan);
+}
+
+.cardClassic:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--theme-border-cyan) 45%, var(--theme-gold-bright) 55%);
 }
 
 .cardDaily {
@@ -226,6 +375,16 @@
         0 0 0 1px color-mix(in srgb, var(--theme-violet) 14%, transparent),
         0 0 32px color-mix(in srgb, var(--theme-violet) 28%, transparent),
         inset 0 1px 0 var(--theme-hud-chrome-inset);
+}
+
+.cardDaily:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--theme-violet) 58%, var(--theme-gold-bright) 42%);
+    box-shadow:
+        var(--theme-elevation-lift),
+        0 0 0 1px color-mix(in srgb, var(--theme-violet) 28%, transparent),
+        0 0 28px color-mix(in srgb, var(--theme-violet) 36%, transparent),
+        0 0 18px color-mix(in srgb, var(--theme-gold-bright) 12%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--theme-gold-bright) 14%, transparent);
 }
 
 .cardEndless {

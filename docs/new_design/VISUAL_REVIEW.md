@@ -32,9 +32,20 @@ Describe how to compare the live renderer to `ENDPRODUCTIMAGE.png` / `ENDPRODUCT
   `cross-env VISUAL_CAPTURE_ROOT=docs/reference-comparison/captures yarn test:e2e:visual:smoke`
 
   Commit those PNGs only when a change intentionally updates marketing or design-review baselines; otherwise keep them local or attach them to the PR as artifacts.
+- **Windows shells:** if `cross-env` is not found, use `npx cross-env …` (from repo root), `.\node_modules\.bin\cross-env.cmd …`, or PowerShell: `$env:VISUAL_CAPTURE_ROOT='docs/reference-comparison/captures'; yarn test:e2e:visual:smoke`. That folder is **not** gitignored when files are tracked—treat regenerated PNGs like optional baselines (commit or revert deliberately); see [`docs/reference-comparison/CURRENT_VS_ENDPRODUCT.md`](../reference-comparison/CURRENT_VS_ENDPRODUCT.md) §6.
 - Full named-device coverage: `yarn test:e2e:visual` is the acceptance gate. Use `test:e2e:visual:device-grid:shard1` through `:shard4` in CI to spread the work.
 
+## HUD-019 / release checklist (visual baseline refresh)
+
+Use this before release or after any epic that moves **HUD**, **GameScreen** chrome, **settings shell**, or **visual scenario steps** (`e2e/visualScenarioSteps.ts`).
+
+1. **Full grid:** Run `yarn test:e2e:visual` from repo root (named-device matrix + every visual scenario). If a scenario flakes, retry with `--workers=1`; for desktop-only marketing stills, `-g "desktop-landscape"` on `e2e/visual-screens.standard.spec.ts` is a narrower pass (may still differ from the full grid).
+2. **Stable local HUD/board gate (`PLAY-010` / `QA-001`):** `yarn playwright test e2e/hud-inspect.spec.ts e2e/visual-endproduct-parity.spec.ts --workers=1` → artifacts under `test-results/endproduct-parity/` (gitignored). Sync narrative rows in [`CURRENT_VS_ENDPRODUCT.md`](../reference-comparison/CURRENT_VS_ENDPRODUCT.md) §4–§6 when outputs or chrome change.
+3. **`mobile-layout` / `[data-app-scrollport]`:** Scrollport “no vertical overflow” uses a **10px** slack in [`expectAppScrollportHasNoVerticalOverflow`](../../e2e/visualScreenHelpers.ts) (`epsilon` default). “Fully in viewport” checks use **6px**. Board/HUD geometry tolerances and settings footer slack are documented in the header comment of [`e2e/mobile-layout.spec.ts`](../../e2e/mobile-layout.spec.ts) (**QA-002**). Re-read those values after layout or safe-area changes.
+4. **Committed PNGs:** Prefer CI/gitignored `test-results/visual-screens/`. Do **not** bulk-commit regenerated files under `docs/reference-comparison/captures/` unless intentionally refreshing design-review baselines—that path is **not** listed in root `.gitignore`, so refreshes show up as git changes (see [`CURRENT_VS_ENDPRODUCT.md`](../reference-comparison/CURRENT_VS_ENDPRODUCT.md) §6).
+
 ## Related tasks
+- [TASKS_HUD_PARITY.md — HUD-019](TASKS/TASKS_HUD_PARITY.md) (visual baselines before release)
 - [TASK-014](TASKS/TASK-014-visual-reference-captures-and-diff-process.md)
 - [TASK-019](TASKS/TASK-019-reference-stills-and-scenario-audit-matrix.md)
 - [TASK-008](TASKS/TASK-008-gap-surfaces-and-regression.md)

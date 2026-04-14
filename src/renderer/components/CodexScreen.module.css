@@ -1,5 +1,5 @@
 .entry {
-    padding: 0.75rem 0;
+    padding: var(--theme-space-sm) 0;
     border-bottom: 1px solid var(--theme-card-border-muted);
 }
 
@@ -22,13 +22,18 @@
 
 .group {
     display: grid;
-    gap: 0.25rem;
+    gap: var(--theme-space-sm);
 }
 
 .groupTitle {
-    margin: 0 0 0.35rem;
-    font-size: 1rem;
-    font-weight: 650;
+    margin: 0 0 var(--theme-space-xs);
+    padding-bottom: var(--theme-space-xs);
+    border-bottom: 1px solid var(--theme-divider-hairline);
+    font-size: 0.72rem;
+    font-weight: 750;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--theme-text-subtle);
 }
 
 @media (max-width: 760px) {

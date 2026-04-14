@@ -30,6 +30,21 @@ const gambitMatchPairIds = (tiles: [Tile, Tile, Tile]): { matchA: string; matchB
     return null;
 };
 
+/** Flipped tiles in flip-sequence order — must match `resolveGambitThree` / `flipTile` (`CARD-008`). */
+const flippedTilesInFlipOrder = (board: BoardState): Tile[] => {
+    const out: Tile[] = [];
+
+    for (const id of board.flippedTileIds) {
+        const tile = board.tiles.find((candidate) => candidate.id === id);
+
+        if (tile) {
+            out.push(tile);
+        }
+    }
+
+    return out;
+};
+
 export const getResolvingSelectionState = (
     board: BoardState,
     runStatus: RunStatus,
@@ -39,7 +54,7 @@ export const getResolvingSelectionState = (
         return null;
     }
 
-    const flippedTiles = board.tiles.filter((tile) => board.flippedTileIds.includes(tile.id));
+    const flippedTiles = flippedTilesInFlipOrder(board);
 
     if (flippedTiles.length === 2) {
         return classifyTwo(flippedTiles);
@@ -65,4 +80,28 @@ export const getResolvingSelectionState = (
     }
 
     return null;
+};
+
+/** FX-017: the two tiles currently in `match` resolving highlight (two flips or gambit pair). */
+export const getMatchResolvingPairTileIds = (
+    board: BoardState,
+    runStatus: RunStatus
+): readonly [string, string] | null => {
+    if (runStatus !== 'resolving') {
+        return null;
+    }
+
+    const matchIds: string[] = [];
+
+    for (const tile of board.tiles) {
+        if (getResolvingSelectionState(board, runStatus, tile.id) === 'match') {
+            matchIds.push(tile.id);
+        }
+    }
+
+    if (matchIds.length !== 2) {
+        return null;
+    }
+
+    return [matchIds[0], matchIds[1]] as const;
 };

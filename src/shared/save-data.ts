@@ -3,6 +3,7 @@ import {
     type AchievementId,
     type AchievementState,
     type BoardScreenSpaceAA,
+    type CameraViewportModePreference,
     type GraphicsQualityPreset,
     type PlayerStatsPersisted,
     type RelicId,
@@ -27,6 +28,7 @@ export const DEFAULT_SETTINGS: Settings = {
         disableAchievementsOnDebug: true
     },
     boardPresentation: 'standard',
+    cameraViewportModePreference: 'auto',
     tileFocusAssist: false,
     resolveDelayMultiplier: 1,
     weakerShuffleMode: 'full',
@@ -98,6 +100,11 @@ export const normalizeSaveData = (input?: Partial<SaveData> | null): SaveData =>
         typeof mergedSettingsBase.boardBloomEnabled === 'boolean'
             ? mergedSettingsBase.boardBloomEnabled
             : defaults.settings.boardBloomEnabled;
+    const cvRaw = mergedSettingsBase.cameraViewportModePreference as CameraViewportModePreference | undefined;
+    const cameraViewportModePreference: CameraViewportModePreference =
+        cvRaw === 'auto' || cvRaw === 'always' || cvRaw === 'never'
+            ? cvRaw
+            : defaults.settings.cameraViewportModePreference;
 
     return {
         schemaVersion: SAVE_SCHEMA_VERSION,
@@ -110,7 +117,8 @@ export const normalizeSaveData = (input?: Partial<SaveData> | null): SaveData =>
             ...mergedSettingsBase,
             boardScreenSpaceAA,
             boardBloomEnabled,
-            graphicsQuality
+            graphicsQuality,
+            cameraViewportModePreference
         },
         onboardingDismissed: typeof input.onboardingDismissed === 'boolean' ? input.onboardingDismissed : defaults.onboardingDismissed,
         lastRunSummary: input.lastRunSummary ?? defaults.lastRunSummary,

@@ -9,8 +9,8 @@
         max(clamp(1rem, 3vw, 1.6rem), env(safe-area-inset-right, 0px))
         max(clamp(1rem, 3vw, 1.6rem), env(safe-area-inset-bottom, 0px))
         max(clamp(1rem, 3vw, 1.6rem), env(safe-area-inset-left, 0px));
-    background: var(--theme-scrim-dialog);
-    backdrop-filter: blur(14px) saturate(130%);
+    background: var(--theme-modal-scrim-bg, var(--theme-scrim-dialog));
+    backdrop-filter: var(--theme-modal-scrim-backdrop-filter, blur(14px) saturate(130%));
     z-index: 21;
     overflow: hidden;
 }
@@ -22,7 +22,7 @@
     grid-template-columns: minmax(0, 1fr) minmax(180px, 0.28fr);
     align-items: start;
     gap: clamp(1rem, 3vw, 1.5rem);
-    padding: clamp(1rem, 2vw, 1.2rem);
+    padding: var(--theme-modal-plate-padding);
     overflow: hidden;
     min-height: 0;
     background: var(--theme-panel-surface-strong, var(--theme-panel-surface));
@@ -37,6 +37,72 @@
     display: flex;
     flex-direction: column;
     gap: 0;
+}
+
+/* OVR-002 — META-003 header band: shallow plate + forged cornice (motion-free; cornice filter gated in MetaFrame). */
+.headerPlateFrame {
+    width: 100%;
+    min-width: 0;
+    margin: 0 0 0.15rem;
+    /* Slightly tighter than full meta plates so the title band stays proportional inside the modal grid. */
+    --theme-meta-frame-outset: -0.26rem;
+    --theme-meta-frame-drop: 0 0 9px color-mix(in srgb, var(--theme-glow-gold) 52%, transparent);
+}
+
+.headerPlateWell {
+    padding: clamp(0.5rem, 1.6vw, 0.72rem) clamp(0.7rem, 2.2vw, 1rem);
+    text-align: center;
+    border-radius: calc(var(--ui-radius-md) + 0.12rem);
+    background:
+        linear-gradient(180deg, rgba(255, 243, 217, 0.055) 0%, transparent 44%),
+        linear-gradient(168deg, rgba(18, 14, 12, 0.94), rgba(8, 8, 11, 0.9));
+    box-shadow:
+        inset 0 1px 0 var(--theme-overlay-plate-inner-glow),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.38);
+}
+
+.headerPlateFrameSuccess .headerPlateWell {
+    /* SCREEN_SPEC_GAMEPLAY — floor cleared inherits success-state language under the same META-003 shell. */
+    background:
+        radial-gradient(ellipse 125% 85% at 50% 0%, color-mix(in srgb, var(--theme-success) 22%, transparent), transparent 58%),
+        linear-gradient(180deg, rgba(255, 243, 217, 0.045) 0%, transparent 42%),
+        linear-gradient(168deg, rgba(12, 16, 13, 0.94), rgba(8, 8, 11, 0.9));
+    box-shadow:
+        inset 0 1px 0 color-mix(in srgb, var(--theme-success) 16%, transparent),
+        inset 0 0 0 1px color-mix(in srgb, var(--theme-success) 14%, transparent),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.38);
+}
+
+/* META-009 — pause (reference 05 family): cool neutral plate; cornice stays forged-gold vector, glow reads cyan. */
+.headerPlateFramePause {
+    --theme-meta-frame-drop: 0 0 14px color-mix(in srgb, rgba(87, 220, 255, 0.5) 42%, transparent);
+}
+
+.headerPlateFramePause .headerPlateWell {
+    background:
+        radial-gradient(ellipse 125% 85% at 50% 0%, color-mix(in srgb, rgba(87, 220, 255, 1) 16%, transparent), transparent 58%),
+        linear-gradient(180deg, rgba(255, 243, 217, 0.04) 0%, transparent 42%),
+        linear-gradient(168deg, rgba(12, 14, 22, 0.94), rgba(8, 9, 14, 0.92));
+    box-shadow:
+        inset 0 1px 0 color-mix(in srgb, rgba(87, 220, 255, 1) 11%, transparent),
+        inset 0 0 0 1px color-mix(in srgb, rgba(87, 220, 255, 1) 9%, transparent),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.38);
+}
+
+/* META-009 / OVR-012 — relic milestone: arcane violet band (HUD parasite / theme-glow family). */
+.headerPlateFrameRelic {
+    --theme-meta-frame-drop: 0 0 16px color-mix(in srgb, var(--theme-glow-violet-drop) 72%, transparent);
+}
+
+.headerPlateFrameRelic .headerPlateWell {
+    background:
+        radial-gradient(ellipse 125% 85% at 50% 0%, color-mix(in srgb, #8c62df 24%, transparent), transparent 56%),
+        linear-gradient(180deg, rgba(255, 243, 217, 0.035) 0%, transparent 42%),
+        linear-gradient(168deg, rgba(18, 12, 28, 0.94), rgba(8, 8, 12, 0.9));
+    box-shadow:
+        inset 0 1px 0 rgba(217, 199, 255, 0.09),
+        inset 0 0 0 1px color-mix(in srgb, #8c62df 20%, transparent),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.38);
 }
 
 .title {
@@ -76,7 +142,7 @@
         grid-template-columns: 1fr;
         max-height: calc(100dvh - 1rem);
         gap: 0.85rem;
-        padding: 0.85rem;
+        padding: max(0.85rem, calc(var(--theme-modal-plate-padding) - 0.15rem));
     }
 }
 
@@ -95,7 +161,7 @@
         align-items: stretch;
         max-height: calc(100dvh - 1.2rem);
         gap: 0.9rem;
-        padding: 0.95rem;
+        padding: max(0.9rem, calc(var(--theme-modal-plate-padding) - 0.05rem));
     }
 
     .actions {
@@ -121,7 +187,13 @@
     }
 }
 
+:global([data-reduce-motion='false']) .modal {
+    animation: ovr-modal-plate-enter var(--theme-modal-plate-enter-duration, 220ms)
+        var(--theme-modal-plate-enter-ease, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+
 :global([data-reduce-motion='true']) .backdrop,
 :global([data-reduce-motion='true']) .modal {
     backdrop-filter: none;
+    animation: none;
 }

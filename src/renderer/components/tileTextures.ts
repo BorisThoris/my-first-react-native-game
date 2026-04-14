@@ -11,9 +11,9 @@ import {
 import type { Tile } from '../../shared/contracts';
 import { RENDERER_THEME } from '../styles/theme';
 import { CARD_PLANE_HEIGHT, CARD_PLANE_WIDTH } from './tileShatter';
-import referenceBackTextureUrl from '../assets/textures/cards/back.svg?url';
+import referenceBackTextureUrl from '../assets/textures/cards/authored-card-back.svg?url';
 import cardBackNormalTextureUrl from '../assets/textures/cards/back-normal.png';
-import cardFaceTextureUrl from '../assets/textures/cards/front.svg?url';
+import cardFaceTextureUrl from '../assets/textures/cards/authored-card-front.svg?url';
 import cardFaceNormalTextureUrl from '../assets/textures/cards/front-normal.png';
 import edgeTextureUrl from '../assets/textures/cards/edge.png';
 import panelRoughnessTextureUrl from '../assets/textures/cards/panel-roughness.png';
@@ -35,7 +35,7 @@ const TEXTURE_SIZE = 512;
 /** Taller canvas for WebGL static card PNGs so 1403×2048 sources aren’t over-downscaled (was 512 — felt cropped/soft). */
 const STATIC_CARD_TEXTURE_HEIGHT = 1024;
 const STATIC_CARD_TEXTURE_WIDTH = Math.max(2, Math.round(STATIC_CARD_TEXTURE_HEIGHT * (CARD_PLANE_WIDTH / CARD_PLANE_HEIGHT)));
-const TILE_TEXTURE_VERSION = 29;
+const TILE_TEXTURE_VERSION = 30;
 /** Bump when procedural card-surface maps change (independent of tile face caches). */
 const CARD_SURFACE_MAP_VERSION = 2;
 const textureCache = new Map<string, CanvasTexture>();
@@ -838,11 +838,11 @@ const drawCardFrontOverlay = (
     context.lineJoin = 'round';
 
     let symbolSize = symbolBaseSize;
-    context.font = `800 ${symbolSize}px "Segoe UI", "Segoe UI Symbol", "Segoe UI Emoji", "Arial", sans-serif`;
+    context.font = `800 ${symbolSize}px "Source Sans 3", "Segoe UI Symbol", "Segoe UI Emoji", "Arial", sans-serif`;
     const symbolMaxWidth = width * 0.38;
     while (symbolSize > 88 && context.measureText(symbolText).width > symbolMaxWidth) {
         symbolSize -= 6;
-        context.font = `800 ${symbolSize}px "Segoe UI", "Segoe UI Symbol", "Segoe UI Emoji", "Arial", sans-serif`;
+        context.font = `800 ${symbolSize}px "Source Sans 3", "Segoe UI Symbol", "Segoe UI Emoji", "Arial", sans-serif`;
     }
 
     const symbolY = height * 0.49;
@@ -856,7 +856,7 @@ const drawCardFrontOverlay = (
     if (hasDistinctLabel) {
         const labelFontSize = Math.max(16, Math.round(width * 0.032));
         const labelY = height * 0.78;
-        context.font = `800 ${labelFontSize}px "Segoe UI", "Arial", sans-serif`;
+        context.font = `800 ${labelFontSize}px "Source Sans 3", "Arial", sans-serif`;
         context.lineWidth = Math.max(3, Math.round(width * 0.005));
         context.strokeStyle = labelStroke;
         context.strokeText(labelText, width / 2, labelY);

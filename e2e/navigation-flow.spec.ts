@@ -1,9 +1,15 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { dismissStartupIntro } from './startupIntroHelpers';
 import { defaultE2eGameSaveJson, STORAGE_KEY } from './tileBoardGameFlow';
 import { openMainMenuFromSave, openLevel1Play, waitLevel1PlayReady } from './visualScreenHelpers';
 
-/** QA-003: expects `data-testid="game-hud"` on a single gameplay header root (`GameScreen.tsx`). Splitting the HUD requires migrating these assertions + `mobile-layout.spec.ts` in the same change. */
+/** HUD-018 / QA-003: `GameplayHudBar` exposes `game-hud` plus `hud-wing-left|center|right`. If the HUD splits, migrate these assertions + `mobile-layout.spec.ts` together. */
+async function expectGameplayHudWithWings(page: Page): Promise<void> {
+    await expect(page.getByTestId('game-hud')).toBeVisible();
+    await expect(page.getByTestId('hud-wing-left')).toBeVisible();
+    await expect(page.getByTestId('hud-wing-center')).toBeVisible();
+    await expect(page.getByTestId('hud-wing-right')).toBeVisible();
+}
 test.describe('Navigation shells', () => {
     test.describe.configure({ retries: 1 });
     test('Play opens Choose Your Path then Classic Run starts level 1', async ({ page }) => {
@@ -24,6 +30,7 @@ test.describe('Navigation shells', () => {
         await openMainMenuFromSave(page, true);
         await page.getByRole('button', { name: /^collection$/i }).click();
         await expect(page.getByRole('region', { name: /collection/i })).toBeVisible();
+        await expect(page.getByTestId('collection-meta-frame-achievements')).toBeVisible();
         await page.getByRole('button', { name: /^back$/i }).click();
         await expect(page.getByRole('button', { name: /^play$/i })).toBeVisible();
     });
@@ -52,7 +59,7 @@ test.describe('Navigation shells', () => {
             .getByRole('region', { name: /inventory/i })
             .getByRole('button', { name: /^back$/i })
             .evaluate((el) => (el as HTMLButtonElement).click());
-        await expect(page.getByTestId('game-hud')).toBeVisible();
+        await expectGameplayHudWithWings(page);
 
         await page
             .getByRole('button', { name: /show utility menu/i })
@@ -66,7 +73,24 @@ test.describe('Navigation shells', () => {
             .getByRole('region', { name: /codex/i })
             .getByRole('button', { name: /^back$/i })
             .evaluate((el) => (el as HTMLButtonElement).click());
-        await expect(page.getByTestId('game-hud')).toBeVisible();
+        await expectGameplayHudWithWings(page);
+    });
+
+    test('in-run inventory from toolbar keeps data-view=playing until Back (SIDE-013 shell parity)', async ({ page }) => {
+        test.setTimeout(120_000);
+        await openLevel1Play(page);
+        await waitLevel1PlayReady(page);
+        const root = page.locator('[data-view]').first();
+        await expect(root).toHaveAttribute('data-view', 'playing');
+        await page.getByTestId('game-toolbar-inventory').evaluate((el) => (el as HTMLButtonElement).click());
+        await expect(page.getByRole('region', { name: /inventory/i })).toBeVisible();
+        await expect(root).toHaveAttribute('data-view', 'playing');
+        await page
+            .getByRole('region', { name: /inventory/i })
+            .getByRole('button', { name: /^back$/i })
+            .evaluate((el) => (el as HTMLButtonElement).click());
+        await expect(root).toHaveAttribute('data-view', 'playing');
+        await expectGameplayHudWithWings(page);
     });
 
     test('Utility flyout closes via header Close control', async ({ page }) => {

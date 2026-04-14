@@ -4,7 +4,9 @@
 }
 
 .sectionTitle {
-    margin: 0;
+    margin: 0 0 var(--theme-space-2xs);
+    padding-bottom: var(--theme-space-xs);
+    border-bottom: 1px solid var(--theme-divider-hairline);
     font-size: 1.05rem;
     font-weight: 650;
 }
@@ -24,6 +26,24 @@
 
 .achievementLocked {
     opacity: 0.55;
+}
+
+.achievementUnlocked {
+    border-color: color-mix(in srgb, var(--theme-gold) 28%, var(--theme-divider-hairline));
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--theme-gold-bright) 12%, transparent);
+}
+
+.relicTierLatent {
+    border-color: var(--theme-card-border-muted);
+}
+
+.relicTierKnown {
+    border-color: color-mix(in srgb, var(--theme-gold) 32%, var(--theme-divider-hairline));
+}
+
+.relicTierForged {
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 42%, var(--theme-gold-deep));
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--theme-gold-bright) 10%, transparent);
 }
 
 .symbolGrid {

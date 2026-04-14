@@ -164,4 +164,37 @@ describe('notificationStore', () => {
     expect(useNotificationStore.getState().notifications).toHaveLength(5);
     expect(droppedDismiss).toHaveBeenCalledTimes(1);
   });
+
+  test('stackKey replaces prior toast with same key before enqueueing', () => {
+    const firstDismiss = vi.fn();
+    useNotificationStore.getState().addNotification('a', 'success', 0, null, firstDismiss, { stackKey: 'score' });
+    useNotificationStore.getState().addNotification('b', 'success', 0, null, null, { stackKey: 'score' });
+    expect(firstDismiss).toHaveBeenCalledTimes(1);
+    const { notifications } = useNotificationStore.getState();
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0]?.message).toBe('b');
+    expect(notifications[0]?.stackKey).toBe('score');
+  });
+
+  test('showSuccess forwards stackKey metadata', () => {
+    useNotificationStore.getState().showSuccess('+10', 0, { stackKey: 'match-score' });
+    useNotificationStore.getState().showSuccess('+22', 0, { stackKey: 'match-score' });
+    const { notifications } = useNotificationStore.getState();
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0]?.message).toBe('+22');
+  });
+
+  test('showSuccess forwards ariaLive metadata', () => {
+    useNotificationStore.getState().showSuccess('+5', 0, { ariaLive: 'off' });
+    const { notifications } = useNotificationStore.getState();
+    expect(notifications[0]?.ariaLive).toBe('off');
+  });
+
+  test('showAchievement sets achievement surface metadata', () => {
+    useNotificationStore.getState().showAchievement('Trophy — unlocked', 0, { stackKey: 'achievement:ACH_TEST' });
+    const { notifications } = useNotificationStore.getState();
+    expect(notifications[0]?.surface).toBe('achievement');
+    expect(notifications[0]?.ariaLive).toBe('polite');
+    expect(notifications[0]?.stackKey).toBe('achievement:ACH_TEST');
+  });
 });

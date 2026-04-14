@@ -4,7 +4,7 @@ import type { RelicId } from '../../shared/contracts';
 import { RELIC_CATALOG } from '../../shared/game-catalog';
 import { ACHIEVEMENT_IDS } from '../../shared/save-data';
 import { CALLSIGN_SYMBOLS, LETTER_SYMBOLS as LETTER_TILES, NUMBER_SYMBOLS } from '../../shared/tile-symbol-catalog';
-import { Eyebrow, Panel, ScreenTitle, UiButton } from '../ui';
+import { Eyebrow, MetaFrame, Panel, ScreenTitle, UiButton } from '../ui';
 import { useAppStore } from '../store/useAppStore';
 import metaStyles from './MetaScreen.module.css';
 import styles from './CollectionScreen.module.css';
@@ -45,46 +45,55 @@ const CollectionScreen = () => {
                     <a href="#collection-daily">Daily</a>
                     <a href="#collection-symbols">Symbols</a>
                 </nav>
-                <Panel padding="lg" variant="strong">
-                    <div className={`${styles.section} ${metaStyles.sectionAnchor}`} id="collection-achievements">
-                        <h2 className={styles.sectionTitle}>Achievements</h2>
-                        <div className={styles.grid}>
-                            {ACHIEVEMENT_IDS.map((id) => {
-                                const def = ACHIEVEMENT_BY_ID[id];
-                                const unlocked = saveData.achievements[id];
-                                return (
-                                    <div
-                                        className={`${styles.achievementCard} ${unlocked ? '' : styles.achievementLocked}`}
-                                        key={id}
-                                    >
-                                        <strong>{def.title}</strong>
-                                        <p className={metaStyles.subtitle}>{def.description}</p>
-                                        <span className={styles.symbolMeta}>{unlocked ? 'Unlocked' : 'Locked'}</span>
-                                    </div>
-                                );
-                            })}
+                <MetaFrame data-testid="collection-meta-frame-achievements">
+                    <Panel padding="lg" variant="strong">
+                        <div className={`${styles.section} ${metaStyles.sectionAnchor}`} id="collection-achievements">
+                            <h2 className={styles.sectionTitle}>Achievements</h2>
+                            <div className={styles.grid}>
+                                {ACHIEVEMENT_IDS.map((id) => {
+                                    const def = ACHIEVEMENT_BY_ID[id];
+                                    const unlocked = saveData.achievements[id];
+                                    return (
+                                        <div
+                                            className={`${styles.achievementCard} ${unlocked ? styles.achievementUnlocked : styles.achievementLocked}`}
+                                            key={id}
+                                        >
+                                            <strong>{def.title}</strong>
+                                            <p className={metaStyles.subtitle}>{def.description}</p>
+                                            <span className={styles.symbolMeta}>{unlocked ? 'Unlocked' : 'Locked'}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
-                    </div>
-                </Panel>
+                    </Panel>
+                </MetaFrame>
 
-                <Panel padding="lg" variant="default">
-                    <div className={`${styles.section} ${metaStyles.sectionAnchor}`} id="collection-relics">
-                        <h2 className={styles.sectionTitle}>Relic catalog</h2>
-                        <div className={styles.grid}>
-                            {(Object.keys(RELIC_CATALOG) as RelicId[]).map((id) => {
-                                const def = RELIC_CATALOG[id];
-                                const picks = ps?.relicPickCounts[id] ?? 0;
-                                return (
-                                    <div className={styles.achievementCard} key={id}>
-                                        <strong>{def.title}</strong>
-                                        <p className={metaStyles.subtitle}>{def.description}</p>
-                                        <span className={styles.symbolMeta}>Times picked: {picks}</span>
-                                    </div>
-                                );
-                            })}
+                <MetaFrame data-testid="collection-meta-frame-relics">
+                    <Panel padding="lg" variant="default">
+                        <div className={`${styles.section} ${metaStyles.sectionAnchor}`} id="collection-relics">
+                            <h2 className={styles.sectionTitle}>Relic catalog</h2>
+                            <p className={metaStyles.subtitle}>
+                                Tier tint reflects how often each relic has been picked across runs (cosmetic only).
+                            </p>
+                            <div className={styles.grid}>
+                                {(Object.keys(RELIC_CATALOG) as RelicId[]).map((id) => {
+                                    const def = RELIC_CATALOG[id];
+                                    const picks = ps?.relicPickCounts[id] ?? 0;
+                                    const tierClass =
+                                        picks >= 3 ? styles.relicTierForged : picks >= 1 ? styles.relicTierKnown : styles.relicTierLatent;
+                                    return (
+                                        <div className={`${styles.achievementCard} ${tierClass}`} key={id}>
+                                            <strong>{def.title}</strong>
+                                            <p className={metaStyles.subtitle}>{def.description}</p>
+                                            <span className={styles.symbolMeta}>Times picked: {picks}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
-                    </div>
-                </Panel>
+                    </Panel>
+                </MetaFrame>
 
                 <Panel padding="lg" variant="default">
                     <div className={`${styles.section} ${metaStyles.sectionAnchor}`} id="collection-bests">

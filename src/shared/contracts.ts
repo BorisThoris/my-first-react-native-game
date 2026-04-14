@@ -2,6 +2,7 @@ export const SAVE_SCHEMA_VERSION = 4;
 /** Bump when generation rules change (tile order, mutators, pair layout). */
 export const GAME_RULES_VERSION = 7;
 export const INITIAL_LIVES = 4;
+/** Hard cap on life total during a run; HUD renders this many heart slots (PLAY-004 — honest max, not mock’s three). */
 export const MAX_LIVES = 5;
 export const MATCH_DELAY_MS = 850;
 export const DEBUG_REVEAL_MS = 1500;
@@ -118,6 +119,13 @@ export interface DebugFlags {
 export type BoardPresentationMode = 'standard' | 'spaghetti' | 'breathing';
 
 /**
+ * HUD-012: Whether the playing shell uses full-bleed **mobile camera** layout (HUD overlays the board stage).
+ * `auto` follows the same compact-touch viewport signal as `GameScreen` / `TileBoard` breakpoints; `always` /
+ * `never` are explicit user overrides (Settings → Gameplay → Board).
+ */
+export type CameraViewportModePreference = 'auto' | 'always' | 'never';
+
+/**
  * WebGL board edge smoothing (PERF-002). `auto` preserves legacy: SMAA when motion is on, MSAA when Reduce Motion is on.
  * Override lets users decouple AA from the motion setting.
  */
@@ -136,10 +144,15 @@ export interface Settings {
     /** PERF-001: drives board DPR cap and menu Pixi resolution cap. */
     graphicsQuality: GraphicsQualityPreset;
     boardScreenSpaceAA: BoardScreenSpaceAA;
-    /** FX-015: subtle board bloom; ignored on `low` quality (PERF-001). */
+    /**
+     * FX-015: optional tile-board **Bloom** post-pass (`TileBoardPostFx`); default off in save data.
+     * Ignored on `low` quality (PERF-001). On `high` with this on, `GameScreen` adds a light CSS rim under the board.
+     */
     boardBloomEnabled: boolean;
     debugFlags: DebugFlags;
     boardPresentation: BoardPresentationMode;
+    /** HUD-012: `auto` = breakpoint-derived; see `deriveCameraViewportMode` in `cameraViewportMode.ts`. */
+    cameraViewportModePreference: CameraViewportModePreference;
     /** Dim hidden tiles that are not orthogonally adjacent to the lone flipped tile (fallback board / a11y experiment). */
     tileFocusAssist: boolean;
     /** Multiplier for mismatch/match resolve delay (playing phase). */

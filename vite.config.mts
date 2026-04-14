@@ -35,7 +35,12 @@ export default defineConfig({
     test: {
         environment: 'happy-dom',
         setupFiles: './vitest.setup.ts',
-        include: ['src/**/*.{test,spec}.{ts,tsx}']
+        /* Windows / sandbox: fork pool teardown can throw EPERM on process.kill; threads avoid it. */
+        pool: 'threads',
+        include: [
+            'src/**/*.{test,spec}.{ts,tsx}',
+            'packages/notifications/src/**/*.{test,spec}.{ts,tsx}'
+        ]
     },
     build: {
         outDir: 'dist',
