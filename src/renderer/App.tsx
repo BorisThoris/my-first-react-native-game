@@ -18,6 +18,7 @@ import styles from './styles/App.module.css';
 import { buildRendererThemeStyle } from './styles/theme';
 import MatchedCardRimFireSandbox from './dev/MatchedCardRimFireSandbox';
 import { readDevSandboxConfig } from './dev/devSandboxParams';
+import { setTelemetrySink } from '../shared/telemetry';
 import { useAppStore } from './store/useAppStore';
 
 /** Landmark id for A11Y-002 skip link (`href` / programmatic focus). */
@@ -51,6 +52,7 @@ const App = () => {
         startPinVowRun,
         startPracticeRun,
         startPuzzleRun,
+        startPuzzleRunFromImport,
         startScholarContractRun,
         startWildRun,
         view
@@ -77,6 +79,7 @@ const App = () => {
             startPinVowRun: state.startPinVowRun,
             startPracticeRun: state.startPracticeRun,
             startPuzzleRun: state.startPuzzleRun,
+            startPuzzleRunFromImport: state.startPuzzleRunFromImport,
             startScholarContractRun: state.startScholarContractRun,
             startWildRun: state.startWildRun,
             view: state.view
@@ -130,6 +133,19 @@ const App = () => {
         void hydrate();
     }, [hydrate]);
 
+    /** Dev-only: log telemetry to console so `trackEvent` calls are visible without a host sink. */
+    useEffect(() => {
+        if (!import.meta.env.DEV) {
+            return undefined;
+        }
+        setTelemetrySink((event, payload) => {
+            console.debug(`[telemetry] ${event}`, payload);
+        });
+        return () => {
+            setTelemetrySink(null);
+        };
+    }, []);
+
     useEffect(() => {
         if (!hydrated || devSandboxAppliedRef.current) {
             return;
@@ -165,12 +181,10 @@ const App = () => {
      *
      * In-game column (GameScreen.module.css — SIDE-010 / safe-area QA):
      *   `.gameForeground` 1 — frames the scrollport; children establish sub-stacks.
-     *   `gamePlayLayout` row: `.mainGameColumn` 0; `.leftToolbar` 3 (`.mobileCameraLeftToolbar` 8 so rail +
-     *       portaled flyout subtree stays above the main column on narrow viewports).
+     *   `gamePlayLayout` row: `.mainGameColumn` 0; `.leftToolbar` 3 (`.mobileCameraLeftToolbar` 8 on phones so the rail
+     *       stays above the main column / HUD stack).
      *   Within `.mainGameColumn`: `.hudRow` 2; `.boardStage` 1; board tiles `.boardStage > :global(*)` 1;
      *       `.distractionHud` 4 (above tiles, still under the HUD row because `.boardStage` roots below `.hudRow`).
-     *   Toolbar flyout: `.flyoutScrim` fixed 1; `.utilityFlyout` 10 — both participate in the rail stacking
-     *       context, which sits above `.mainGameColumn` (0), so the panel is not occluded by the HUD/board.
      */
     if (import.meta.env.DEV && readDevSandboxConfig().fxSandbox === 'matchedRimFire') {
         return <MatchedCardRimFireSandbox />;
@@ -224,6 +238,7 @@ const App = () => {
                                 onOpenInventory={openInventoryFromMenu}
                                 onPlay={openModeSelect}
                                 onGauntletRun={startGauntletRun}
+                                onImportPuzzleJson={startPuzzleRunFromImport}
                                 onPuzzleStarter={() => startPuzzleRun('starter_pairs')}
                                 onMirrorPuzzleRun={() => startPuzzleRun('mirror_craft')}
                                 onPracticeRun={startPracticeRun}

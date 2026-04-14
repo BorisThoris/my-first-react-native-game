@@ -1,7 +1,15 @@
+import { useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { ACHIEVEMENTS } from '../../shared/achievements';
 import {
     CODEX_CORE_TOPICS,
+    ENCYCLOPEDIA_CONTRACT_TOPICS,
+    ENCYCLOPEDIA_FEATURED_RUN_TOPICS,
+    ENCYCLOPEDIA_PICKUP_AND_BOARD_TOPICS,
+    ENCYCLOPEDIA_POWER_TOPICS,
+    ENCYCLOPEDIA_SCORING_AND_SURVIVAL_TOPICS,
+    ENCYCLOPEDIA_SETTINGS_AND_ASSISTS_TOPICS,
+    ENCYCLOPEDIA_VERSION,
     GAME_MODE_CODEX,
     MUTATOR_CATALOG,
     RELIC_CATALOG,
@@ -18,12 +26,147 @@ export interface CodexScreenProps {
     stackedOnGameplay?: boolean;
 }
 
+type TextTopic = { title: string; description: string };
+
+/** META-005: browse by article guides vs ID tables (rel/relic/mut/ach). */
+type CodexTab = 'all' | 'guides' | 'tables';
+
+type TocKind = 'guide' | 'table';
+
+const TOC: { href: string; label: string; kind: TocKind }[] = [
+    { href: '#codex-core', label: 'Core', kind: 'guide' },
+    { href: '#codex-powers', label: 'Powers', kind: 'guide' },
+    { href: '#codex-scoring', label: 'Scoring', kind: 'guide' },
+    { href: '#codex-settings', label: 'Settings', kind: 'guide' },
+    { href: '#codex-pickups', label: 'Pickups', kind: 'guide' },
+    { href: '#codex-contracts', label: 'Contracts', kind: 'guide' },
+    { href: '#codex-featured-runs', label: 'Featured', kind: 'guide' },
+    { href: '#codex-modes', label: 'Modes', kind: 'guide' },
+    { href: '#codex-achievements', label: 'Achievements', kind: 'table' },
+    { href: '#codex-relics', label: 'Relics', kind: 'table' },
+    { href: '#codex-mutators', label: 'Mutators', kind: 'table' }
+];
+
+function filterTopics<T extends TextTopic>(topics: readonly T[], query: string): T[] {
+    const q = query.trim().toLowerCase();
+    if (!q) {
+        return [...topics];
+    }
+    return topics.filter(
+        (t) => t.title.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)
+    );
+}
+
+function tocVisible(tab: CodexTab, kind: TocKind): boolean {
+    if (tab === 'all') {
+        return true;
+    }
+    if (tab === 'guides') {
+        return kind === 'guide';
+    }
+    return kind === 'table';
+}
+
 const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
     const closeSubscreen = useAppStore(useShallow((state) => state.closeSubscreen));
     const shellStageClass = stackedOnGameplay ? metaStyles.shellInRunModal : metaStyles.shellMetaStage;
+    const [filterQuery, setFilterQuery] = useState('');
+    const [codexTab, setCodexTab] = useState<CodexTab>('all');
+
+    const coreFiltered = filterTopics(CODEX_CORE_TOPICS, filterQuery);
+    const powersFiltered = filterTopics(ENCYCLOPEDIA_POWER_TOPICS, filterQuery);
+    const scoringFiltered = filterTopics(ENCYCLOPEDIA_SCORING_AND_SURVIVAL_TOPICS, filterQuery);
+    const settingsFiltered = filterTopics(ENCYCLOPEDIA_SETTINGS_AND_ASSISTS_TOPICS, filterQuery);
+    const pickupsFiltered = filterTopics(ENCYCLOPEDIA_PICKUP_AND_BOARD_TOPICS, filterQuery);
+    const contractsFiltered = filterTopics(ENCYCLOPEDIA_CONTRACT_TOPICS, filterQuery);
+    const featuredFiltered = filterTopics(ENCYCLOPEDIA_FEATURED_RUN_TOPICS, filterQuery);
+
+    const relicList = useMemo(
+        () => (Object.keys(RELIC_CATALOG) as RelicId[]).map((id) => RELIC_CATALOG[id]),
+        []
+    );
+    const mutatorList = useMemo(
+        () => (Object.keys(MUTATOR_CATALOG) as MutatorId[]).map((id) => MUTATOR_CATALOG[id]),
+        []
+    );
+
+    const filteredRelics = filterTopics(relicList, filterQuery);
+    const filteredMutators = filterTopics(mutatorList, filterQuery);
+    const filteredAchievements = filterTopics(ACHIEVEMENTS, filterQuery);
+
+    const modeRows = useMemo(
+        () => [
+            ...GAME_MODE_CODEX.map((m) => ({ id: m.id, title: m.title, description: m.description })),
+            {
+                id: 'visual_endless_locked',
+                title: VISUAL_ENDLESS_MODE_LOCKED.title,
+                description: VISUAL_ENDLESS_MODE_LOCKED.description
+            }
+        ],
+        []
+    );
+    const filteredModes = filterTopics(modeRows, filterQuery);
+
+    const tabAllows = (kind: 'guide' | 'table'): boolean => {
+        if (codexTab === 'all') {
+            return true;
+        }
+        if (codexTab === 'guides') {
+            return kind === 'guide';
+        }
+        return kind === 'table';
+    };
+
+    const anyFilterMatch = useMemo(() => {
+        const q = filterQuery.trim();
+        const row = [
+            tabAllows('guide') ? coreFiltered.length : 0,
+            tabAllows('guide') ? powersFiltered.length : 0,
+            tabAllows('guide') ? scoringFiltered.length : 0,
+            tabAllows('guide') ? settingsFiltered.length : 0,
+            tabAllows('guide') ? pickupsFiltered.length : 0,
+            tabAllows('guide') ? contractsFiltered.length : 0,
+            tabAllows('guide') ? featuredFiltered.length : 0,
+            tabAllows('guide') ? filteredModes.length : 0,
+            tabAllows('table') ? filteredAchievements.length : 0,
+            tabAllows('table') ? filteredRelics.length : 0,
+            tabAllows('table') ? filteredMutators.length : 0
+        ];
+        if (!q) {
+            return row.some((n) => n > 0);
+        }
+        return row.some((n) => n > 0);
+    }, [
+        codexTab,
+        contractsFiltered.length,
+        coreFiltered.length,
+        featuredFiltered.length,
+        filterQuery,
+        filteredAchievements.length,
+        filteredModes.length,
+        filteredMutators.length,
+        filteredRelics.length,
+        pickupsFiltered.length,
+        powersFiltered.length,
+        scoringFiltered.length,
+        settingsFiltered.length
+    ]);
+
+    const showWhenFiltered = (count: number): boolean => !filterQuery.trim() || count > 0;
+
+    const showGuidePanel = (count: number): boolean => tabAllows('guide') && showWhenFiltered(count);
+    const showTablePanel = (count: number): boolean => tabAllows('table') && showWhenFiltered(count);
 
     return (
-        <section aria-label="Codex" className={`${metaStyles.shell} ${shellStageClass}`} role="region">
+        <section
+            aria-label="Codex"
+            className={[metaStyles.shell, shellStageClass, stackedOnGameplay && styles.codexInRunShell]
+                .filter(Boolean)
+                .join(' ')}
+            data-codex-context={stackedOnGameplay ? 'in-run-desk' : 'menu'}
+            data-testid="codex-screen"
+            role="region"
+        >
             <header className={metaStyles.header}>
                 <div className={metaStyles.headerText}>
                     <Eyebrow tone="menu">Reference</Eyebrow>
@@ -31,7 +174,8 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
                         Codex
                     </ScreenTitle>
                     <p className={metaStyles.subtitle}>
-                        Read-only descriptions for achievements, relics, mutators, and modes. Does not change gameplay.
+                        Read-only mechanics encyclopedia (v{ENCYCLOPEDIA_VERSION}): achievements, relics, mutators, modes,
+                        powers, scoring, settings assists, pickups, and board rules. Does not change gameplay.
                     </p>
                 </div>
                 <UiButton size="md" variant="secondary" onClick={closeSubscreen} type="button">
@@ -40,84 +184,298 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
             </header>
 
             <div className={metaStyles.body}>
+                <div className={styles.tabRail} role="tablist" aria-label="Codex browse">
+                    {(
+                        [
+                            ['all', 'All'],
+                            ['guides', 'Guides'],
+                            ['tables', 'Tables']
+                        ] as const
+                    ).map(([id, label]) => (
+                        <button
+                            className={styles.tabButton}
+                            key={id}
+                            type="button"
+                            role="tab"
+                            aria-selected={codexTab === id}
+                            id={`codex-tab-${id}`}
+                            tabIndex={codexTab === id ? 0 : -1}
+                            onClick={() => setCodexTab(id)}
+                        >
+                            {label}
+                        </button>
+                    ))}
+                </div>
+
                 <nav aria-label="Codex sections" className={metaStyles.inPageToc}>
-                    <a href="#codex-core">Core</a>
-                    <a href="#codex-modes">Modes</a>
-                    <a href="#codex-achievements">Achievements</a>
-                    <a href="#codex-relics">Relics</a>
-                    <a href="#codex-mutators">Mutators</a>
+                    {TOC.filter((item) => tocVisible(codexTab, item.kind)).map((item) => (
+                        <a href={item.href} key={item.href}>
+                            {item.label}
+                        </a>
+                    ))}
                 </nav>
-                <MetaFrame data-testid="codex-meta-frame-core">
-                    <Panel padding="lg" variant="strong">
-                        <div className={`${styles.group} ${metaStyles.sectionAnchor}`} id="codex-core">
-                            <h2 className={styles.groupTitle}>Core systems</h2>
-                            {CODEX_CORE_TOPICS.map((topic) => (
-                                <div className={styles.entry} key={topic.id}>
-                                    <strong>{topic.title}</strong>
-                                    <p>{topic.description}</p>
+
+                <div className={styles.filterRow}>
+                    <label className={styles.filterLabel} htmlFor="codex-filter-query">
+                        Filter topics
+                    </label>
+                    <input
+                        aria-controls="codex-main-column"
+                        autoComplete="off"
+                        className={styles.filterInput}
+                        id="codex-filter-query"
+                        onChange={(e) => setFilterQuery(e.target.value)}
+                        placeholder="Filter by keyword…"
+                        type="search"
+                        value={filterQuery}
+                    />
+                </div>
+
+                {!anyFilterMatch ? (
+                    <p className={styles.filterEmpty}>No topics match this filter.</p>
+                ) : null}
+
+                <div id="codex-main-column">
+                    {showGuidePanel(coreFiltered.length) ? (
+                        <MetaFrame data-testid="codex-meta-frame-core">
+                            <Panel padding="lg" variant="strong">
+                                <details
+                                    className={`${styles.sectionFold} ${metaStyles.sectionAnchor}`}
+                                    id="codex-core"
+                                    open
+                                >
+                                    <summary className={`${styles.groupTitle} ${styles.foldSummary}`}>
+                                        Core systems
+                                    </summary>
+                                    <div className={styles.group}>
+                                        {coreFiltered.map((topic) => (
+                                            <div className={styles.entry} key={topic.id}>
+                                                <strong>{topic.title}</strong>
+                                                <p>{topic.description}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </details>
+                            </Panel>
+                        </MetaFrame>
+                    ) : null}
+
+                    {showGuidePanel(powersFiltered.length) ? (
+                        <Panel padding="lg" variant="default">
+                            <details
+                                className={`${styles.sectionFold} ${metaStyles.sectionAnchor}`}
+                                id="codex-powers"
+                                open
+                            >
+                                <summary className={`${styles.groupTitle} ${styles.foldSummary}`}>
+                                    Powers &amp; tools
+                                </summary>
+                                <div className={styles.group}>
+                                    {powersFiltered.map((topic) => (
+                                        <div className={styles.entry} key={topic.id}>
+                                            <strong>{topic.title}</strong>
+                                            <p>{topic.description}</p>
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
-                    </Panel>
-                </MetaFrame>
+                            </details>
+                        </Panel>
+                    ) : null}
 
-                <Panel padding="lg" variant="default">
-                    <div className={`${styles.group} ${metaStyles.sectionAnchor}`} id="codex-modes">
-                        <h2 className={styles.groupTitle}>Game modes</h2>
-                        {GAME_MODE_CODEX.map((m) => (
-                            <div className={styles.entry} key={m.id}>
-                                <strong>{m.title}</strong>
-                                <p>{m.description}</p>
-                            </div>
-                        ))}
-                        <div className={styles.entry}>
-                            <strong>{VISUAL_ENDLESS_MODE_LOCKED.title}</strong>
-                            <p>{VISUAL_ENDLESS_MODE_LOCKED.description}</p>
-                        </div>
-                    </div>
-                </Panel>
-
-                <Panel padding="lg" variant="default">
-                    <div className={`${styles.group} ${metaStyles.sectionAnchor}`} id="codex-achievements">
-                        <h2 className={styles.groupTitle}>Achievements</h2>
-                        {ACHIEVEMENTS.map((a) => (
-                            <div className={styles.entry} key={a.id}>
-                                <strong>{a.title}</strong>
-                                <p>{a.description}</p>
-                            </div>
-                        ))}
-                    </div>
-                </Panel>
-
-                <Panel padding="lg" variant="default">
-                    <div className={`${styles.group} ${metaStyles.sectionAnchor}`} id="codex-relics">
-                        <h2 className={styles.groupTitle}>Relics</h2>
-                        {(Object.keys(RELIC_CATALOG) as RelicId[]).map((id) => {
-                            const r = RELIC_CATALOG[id];
-                            return (
-                                <div className={styles.entry} key={id}>
-                                    <strong>{r.title}</strong>
-                                    <p>{r.description}</p>
+                    {showGuidePanel(scoringFiltered.length) ? (
+                        <Panel padding="lg" variant="default">
+                            <details
+                                className={`${styles.sectionFold} ${metaStyles.sectionAnchor}`}
+                                id="codex-scoring"
+                                open
+                            >
+                                <summary className={`${styles.groupTitle} ${styles.foldSummary}`}>
+                                    Scoring &amp; survival
+                                </summary>
+                                <div className={styles.group}>
+                                    {scoringFiltered.map((topic) => (
+                                        <div className={styles.entry} key={topic.id}>
+                                            <strong>{topic.title}</strong>
+                                            <p>{topic.description}</p>
+                                        </div>
+                                    ))}
                                 </div>
-                            );
-                        })}
-                    </div>
-                </Panel>
+                            </details>
+                        </Panel>
+                    ) : null}
 
-                <Panel padding="lg" variant="default">
-                    <div className={`${styles.group} ${metaStyles.sectionAnchor}`} id="codex-mutators">
-                        <h2 className={styles.groupTitle}>Mutators</h2>
-                        {(Object.keys(MUTATOR_CATALOG) as MutatorId[]).map((id) => {
-                            const m = MUTATOR_CATALOG[id];
-                            return (
-                                <div className={styles.entry} key={id}>
-                                    <strong>{m.title}</strong>
-                                    <p>{m.description}</p>
+                    {showGuidePanel(settingsFiltered.length) ? (
+                        <Panel padding="lg" variant="default">
+                            <details
+                                className={`${styles.sectionFold} ${metaStyles.sectionAnchor}`}
+                                id="codex-settings"
+                                open
+                            >
+                                <summary className={`${styles.groupTitle} ${styles.foldSummary}`}>
+                                    Settings &amp; assists
+                                </summary>
+                                <div className={styles.group}>
+                                    {settingsFiltered.map((topic) => (
+                                        <div className={styles.entry} key={topic.id}>
+                                            <strong>{topic.title}</strong>
+                                            <p>{topic.description}</p>
+                                        </div>
+                                    ))}
                                 </div>
-                            );
-                        })}
-                    </div>
-                </Panel>
+                            </details>
+                        </Panel>
+                    ) : null}
+
+                    {showGuidePanel(pickupsFiltered.length) ? (
+                        <Panel padding="lg" variant="default">
+                            <details
+                                className={`${styles.sectionFold} ${metaStyles.sectionAnchor}`}
+                                id="codex-pickups"
+                                open
+                            >
+                                <summary className={`${styles.groupTitle} ${styles.foldSummary}`}>
+                                    Pickups &amp; board
+                                </summary>
+                                <div className={styles.group}>
+                                    {pickupsFiltered.map((topic) => (
+                                        <div className={styles.entry} key={topic.id}>
+                                            <strong>{topic.title}</strong>
+                                            <p>{topic.description}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </details>
+                        </Panel>
+                    ) : null}
+
+                    {showGuidePanel(contractsFiltered.length) ? (
+                        <Panel padding="lg" variant="default">
+                            <details
+                                className={`${styles.sectionFold} ${metaStyles.sectionAnchor}`}
+                                id="codex-contracts"
+                                open
+                            >
+                                <summary className={`${styles.groupTitle} ${styles.foldSummary}`}>
+                                    Contracts &amp; vows
+                                </summary>
+                                <div className={styles.group}>
+                                    {contractsFiltered.map((topic) => (
+                                        <div className={styles.entry} key={topic.id}>
+                                            <strong>{topic.title}</strong>
+                                            <p>{topic.description}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </details>
+                        </Panel>
+                    ) : null}
+
+                    {showGuidePanel(featuredFiltered.length) ? (
+                        <Panel padding="lg" variant="default">
+                            <details
+                                className={`${styles.sectionFold} ${metaStyles.sectionAnchor}`}
+                                id="codex-featured-runs"
+                                open
+                            >
+                                <summary className={`${styles.groupTitle} ${styles.foldSummary}`}>
+                                    Featured runs
+                                </summary>
+                                <div className={styles.group}>
+                                    {featuredFiltered.map((topic) => (
+                                        <div className={styles.entry} key={topic.id}>
+                                            <strong>{topic.title}</strong>
+                                            <p>{topic.description}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </details>
+                        </Panel>
+                    ) : null}
+
+                    {showGuidePanel(filteredModes.length) ? (
+                        <Panel padding="lg" variant="default">
+                            <details
+                                className={`${styles.sectionFold} ${metaStyles.sectionAnchor}`}
+                                id="codex-modes"
+                                open
+                            >
+                                <summary className={`${styles.groupTitle} ${styles.foldSummary}`}>
+                                    Game modes
+                                </summary>
+                                <div className={styles.group}>
+                                    {filteredModes.map((m) => (
+                                        <div className={styles.entry} key={m.id}>
+                                            <strong>{m.title}</strong>
+                                            <p>{m.description}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </details>
+                        </Panel>
+                    ) : null}
+
+                    {showTablePanel(filteredAchievements.length) ? (
+                        <Panel padding="lg" variant="default">
+                            <details
+                                className={`${styles.sectionFold} ${metaStyles.sectionAnchor}`}
+                                id="codex-achievements"
+                                open
+                            >
+                                <summary className={`${styles.groupTitle} ${styles.foldSummary}`}>
+                                    Achievements
+                                </summary>
+                                <div className={styles.group}>
+                                    {filteredAchievements.map((a) => (
+                                        <div className={styles.entry} key={a.id}>
+                                            <strong>{a.title}</strong>
+                                            <p>{a.description}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </details>
+                        </Panel>
+                    ) : null}
+
+                    {showTablePanel(filteredRelics.length) ? (
+                        <Panel padding="lg" variant="default">
+                            <details
+                                className={`${styles.sectionFold} ${metaStyles.sectionAnchor}`}
+                                id="codex-relics"
+                                open
+                            >
+                                <summary className={`${styles.groupTitle} ${styles.foldSummary}`}>Relics</summary>
+                                <div className={styles.group}>
+                                    {filteredRelics.map((r) => (
+                                        <div className={styles.entry} key={r.id}>
+                                            <strong>{r.title}</strong>
+                                            <p>{r.description}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </details>
+                        </Panel>
+                    ) : null}
+
+                    {showTablePanel(filteredMutators.length) ? (
+                        <Panel padding="lg" variant="default">
+                            <details
+                                className={`${styles.sectionFold} ${metaStyles.sectionAnchor}`}
+                                id="codex-mutators"
+                                open
+                            >
+                                <summary className={`${styles.groupTitle} ${styles.foldSummary}`}>Mutators</summary>
+                                <div className={styles.group}>
+                                    {filteredMutators.map((m) => (
+                                        <div className={styles.entry} key={m.id}>
+                                            <strong>{m.title}</strong>
+                                            <p>{m.description}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </details>
+                        </Panel>
+                    ) : null}
+                </div>
             </div>
         </section>
     );

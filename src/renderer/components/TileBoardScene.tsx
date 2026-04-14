@@ -35,6 +35,7 @@ import {
     type MeshStandardMaterial
 } from 'three';
 import type { BoardState, GraphicsQualityPreset, RunStatus, Tile } from '../../shared/contracts';
+import { WILD_PAIR_KEY } from '../../shared/game';
 import { getPairProximityGridDistance } from '../../shared/pairProximityHint';
 import { getBoardAnisotropyCap } from '../../shared/graphicsQuality';
 import {
@@ -64,6 +65,7 @@ import { readTileStepLegacy } from '../dev/tileStepLegacy';
 import { getTileFieldAmplification } from './tileFieldTilt';
 import { isTilePickable, noopMeshRaycast, pickableMeshRaycast } from './tileBoardPick';
 import { PairProximityHintPlane } from './PairProximityHintPlane';
+import { TutorialPairMarkerPlane } from './TutorialPairMarkerPlane';
 import { getResolvingSelectionState, type ResolvingSelectionState } from './tileResolvingSelection';
 import cardBackSvgUrl from '../assets/textures/cards/back.svg?url';
 import cardFrontSvgUrl from '../assets/textures/cards/front.svg?url';
@@ -81,6 +83,8 @@ import { createMatchedCardRimFireMaterial } from './matchedCardRimFireMaterial';
 /** FX-006 / HOVER_DOM_WEBGL_TOKENS: border emphasis → warm tint lerp (~20% toward `#fff0d4` in sRGB mix space). */
 const HOVER_RIM_TINT = new Color('#fff0d4');
 const HOVER_RIM_TINT_LERP = 0.2;
+/** Glass decoy pair key — keep in sync with `game.ts`. */
+const DECOY_PAIR_KEY = '__decoy__';
 /** Emissive base (theme `goldBright`); intensity scaled by graphics quality when DOM-hover-parity applies. */
 const HOVER_GOLD_EMISSIVE = new Color('#f2d39d');
 /** Matched face tint on `low` only (no rim-fire pass); medium+ relies on flame + neutral card albedo. */
@@ -88,6 +92,10 @@ const MATCH_FACE_GLOW = new Color('#b8f0d0');
 const MATCH_VICTORY_EMISSIVE = new Color('#4fdc78');
 /** CARD-018: warm pin read blended on top of resolving face tints. */
 const PIN_STACK_TINT = new Color('#d4b870');
+/** `n_back_anchor` presentation mutator — forward-read cyan (matches theme `cyanBright`). */
+const PRESENTATION_N_BACK_TINT = new Color(RENDERER_THEME.colors.cyanBright);
+/** `wide_recall` — cooler, slightly desaturated face during play. */
+const PRESENTATION_WIDE_RECALL_TINT = new Color('#c5c0d8');
 const scratchCardTint = new Color();
 
 const getHoverGoldQualityScales = (
@@ -152,6 +160,13 @@ interface TileBoardSceneProps {
     focusedTileId?: string | null;
     /** Manhattan distance-to-pair badge on flipped tiles (assist). */
     pairProximityHintsEnabled?: boolean;
+    /** Early floors: show pair-index badge on hidden backs (matches DOM tutorial chrome). */
+    showTutorialPairMarkers?: boolean;
+    /** Presentation mutators: match `GameScreen` / `TileBoard` props (forwarded for WebGL parity). */
+    wideRecallInPlay?: boolean;
+    silhouetteDuringPlay?: boolean;
+    nBackAnchorPairKey?: string | null;
+    nBackMutatorActive?: boolean;
 }
 
 interface TileBezelProps {
@@ -194,6 +209,14 @@ interface TileBezelProps {
     keyboardFocused?: boolean;
     /** Grid steps to nearest legal pair partner; only when flipped + setting on. */
     pairProximityDistance?: number | null;
+    /** Pair ordinal for tutorial badge on hidden back; null = none. */
+    tutorialPairOrdinal?: number | null;
+    /** `wide_recall` — cooler, lower-contrast face tint while flipped in play. */
+    presentationWideRecall?: boolean;
+    /** `silhouette_twist` — darker face read during play. */
+    presentationSilhouette?: boolean;
+    /** `n_back_anchor` — anchor pair tiles get a cyan forward read. */
+    presentationNBackAnchor?: boolean;
 }
 
 export interface TileHoverTiltState {
@@ -501,6 +524,9 @@ interface TileBezelFramePropsSnapshot {
     fieldTiltRef: MutableRefObject<TiltVector>;
     hoverTiltRef: MutableRefObject<TileHoverTiltState>;
     keyboardFocused: boolean;
+    presentationWideRecall: boolean;
+    presentationSilhouette: boolean;
+    presentationNBackAnchor: boolean;
 }
 
 interface TileBezelPlaneGeometries {
@@ -795,6 +821,16 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
     } else if (hoverFaceUpPickable) {
         scratchCardTint.lerp(HOVER_RIM_TINT, HOVER_RIM_TINT_LERP * 0.38);
     }
+    /** Presentation mutators (WebGL parity with DOM/CSS assists). Order: anchor tint → wide recall → silhouette. */
+    if (p.presentationNBackAnchor) {
+        scratchCardTint.lerp(PRESENTATION_N_BACK_TINT, 0.14);
+    }
+    if (p.presentationWideRecall) {
+        scratchCardTint.lerp(PRESENTATION_WIDE_RECALL_TINT, 0.18);
+    }
+    if (p.presentationSilhouette) {
+        scratchCardTint.multiplyScalar(0.84);
+    }
     const { emissiveIntensity: hoverEmissiveMul, rimOpacity: hoverRimOpacity } = getHoverGoldQualityScales(
         p.graphicsQuality
     );
@@ -1033,7 +1069,11 @@ const TileBezelInner = ({
     focusDimmed = false,
     hostConsolidatesTileFrames = true,
     keyboardFocused = false,
-    pairProximityDistance = null
+    pairProximityDistance = null,
+    tutorialPairOrdinal = null,
+    presentationWideRecall = false,
+    presentationSilhouette = false,
+    presentationNBackAnchor = false
 }: TileBezelProps) => {
     const { gl } = useThree();
     const frameRegistry = useContext(TileBezelFrameRegistryContext);
@@ -1105,7 +1145,10 @@ const TileBezelInner = ({
         graphicsQuality,
         fieldTiltRef,
         hoverTiltRef,
-        keyboardFocused
+        keyboardFocused,
+        presentationWideRecall,
+        presentationSilhouette,
+        presentationNBackAnchor
     };
 
     const cardPanelNormalMap = useMemo(() => getCardPanelNormalTexture(), []);
@@ -1665,6 +1708,9 @@ const TileBezelInner = ({
                         />
                     </mesh>
                 ) : null}
+                {tutorialPairOrdinal != null ? (
+                    <TutorialPairMarkerPlane faceZ={faceZ} ordinal={tutorialPairOrdinal} />
+                ) : null}
                 {/*
                   FX-006: gold frame strips on the pickable hidden face (same transform stack as `.fallbackTile:hover` rim).
                   Opacity driven in `advanceTileBezelFrame`; shared geometry keeps perf sane across tiles.
@@ -2032,7 +2078,12 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
     allowGambitThirdFlip = false,
     graphicsQuality = 'medium',
     focusedTileId = null,
-    pairProximityHintsEnabled = true
+    pairProximityHintsEnabled = true,
+    wideRecallInPlay = false,
+    silhouetteDuringPlay = false,
+    nBackAnchorPairKey = null,
+    nBackMutatorActive = false,
+    showTutorialPairMarkers = true
 }: TileBoardSceneProps, ref) => {
     const { camera, gl, viewport } = useThree();
     const { colors } = RENDERER_THEME;
@@ -2045,6 +2096,23 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
     const flipLocked = flippedN >= 2 && !(allowGambitThirdFlip && flippedN === 2);
     const pinnedSet = useMemo(() => new Set(pinnedTileIds), [pinnedTileIds]);
     const peekSet = useMemo(() => new Set(peekRevealedTileIds), [peekRevealedTileIds]);
+    const tutorialPairOrdinalByKey = useMemo(() => {
+        if (!showTutorialPairMarkers) {
+            return null;
+        }
+        const keys = [
+            ...new Set(
+                board.tiles
+                    .map((t) => t.pairKey)
+                    .filter((k) => k !== DECOY_PAIR_KEY && k !== WILD_PAIR_KEY)
+            )
+        ].sort();
+        const m = new Map<string, number>();
+        for (let i = 0; i < keys.length; i += 1) {
+            m.set(keys[i]!, i + 1);
+        }
+        return m;
+    }, [board.tiles, showTutorialPairMarkers]);
     const tileStepLegacy = useMemo(() => readTileStepLegacy(), []);
     const hostConsolidatesTileFrames = !tileStepLegacy;
     const tileBezelRows = useMemo(() => {
@@ -2067,6 +2135,20 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                 tile.state === 'flipped'
                     ? getPairProximityGridDistance(board, tile.id)
                     : null;
+            const inPlayFlip =
+                runStatus === 'playing' && faceUp && tile.state === 'flipped';
+            const presentationWideRecall = Boolean(wideRecallInPlay && inPlayFlip);
+            const presentationSilhouette = Boolean(silhouetteDuringPlay && inPlayFlip);
+            const presentationNBackAnchor = Boolean(
+                nBackMutatorActive &&
+                    nBackAnchorPairKey != null &&
+                    tile.pairKey === nBackAnchorPairKey &&
+                    inPlayFlip
+            );
+            const tutorialPairOrdinal =
+                showTutorialPairMarkers && tile.state === 'hidden' && !faceUp
+                    ? tutorialPairOrdinalByKey?.get(tile.pairKey) ?? null
+                    : null;
             return {
                 faceUp,
                 fieldAmp: getTileFieldAmplification(index, totalColumns, totalRows),
@@ -2075,12 +2157,16 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                 isPinned: pinnedSet.has(tile.id),
                 memorizeCurseHighlight,
                 pairProximityDistance,
+                presentationNBackAnchor,
+                presentationSilhouette,
+                presentationWideRecall,
                 resolvingSelection: getResolvingSelectionState(board, runStatus, tile.id),
                 shuffleBoardOrderIndex: index,
                 spotlightBountyHighlight,
                 spotlightWardHighlight,
                 tile,
-                transform: getTileTransform(tile, index, totalColumns, totalRows, compact, faceUp)
+                transform: getTileTransform(tile, index, totalColumns, totalRows, compact, faceUp),
+                tutorialPairOrdinal
             };
         });
     }, [
@@ -2090,14 +2176,20 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
         cursedPairKey,
         debugPeekActive,
         dimmedTileIds,
+        nBackAnchorPairKey,
+        nBackMutatorActive,
         pairProximityHintsEnabled,
         peekSet,
         pinnedSet,
         previewActive,
         runStatus,
+        showTutorialPairMarkers,
+        silhouetteDuringPlay,
         totalColumns,
         totalRows,
-        wardPairKey
+        tutorialPairOrdinalByKey,
+        wardPairKey,
+        wideRecallInPlay
     ]);
     const boardGroupRef = useRef<Group | null>(null);
     const pickRaycasterRef = useRef<Raycaster>(new Raycaster());
@@ -2289,12 +2381,16 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                         isPinned,
                         memorizeCurseHighlight,
                         pairProximityDistance,
+                        presentationNBackAnchor,
+                        presentationSilhouette,
+                        presentationWideRecall,
                         resolvingSelection,
                         shuffleBoardOrderIndex,
                         spotlightBountyHighlight,
                         spotlightWardHighlight,
                         tile,
-                        transform
+                        transform,
+                        tutorialPairOrdinal: tileTutorialPairOrdinal
                     }) => (
                         <TileBezel
                             key={tile.id}
@@ -2308,6 +2404,10 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                             findableFaceHighlight={findableFaceHighlight}
                             keyboardFocused={focusedTileId === tile.id}
                             pairProximityDistance={pairProximityDistance}
+                            tutorialPairOrdinal={tileTutorialPairOrdinal}
+                            presentationNBackAnchor={presentationNBackAnchor}
+                            presentationSilhouette={presentationSilhouette}
+                            presentationWideRecall={presentationWideRecall}
                             spotlightBountyHighlight={spotlightBountyHighlight}
                             spotlightWardHighlight={spotlightWardHighlight}
                             interactionSuppressed={interactionSuppressed}

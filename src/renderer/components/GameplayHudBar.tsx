@@ -20,6 +20,13 @@ const MUTATOR_HUD_LABELS: Record<MutatorId, string> = {
     shifting_spotlight: 'Shifting spotlight'
 };
 
+const getMutatorChipTitle = (id: MutatorId): string => {
+    if (id === 'sticky_fingers') {
+        return 'Sticky fingers — your next opening flip must use a different slot than the tile you matched last.';
+    }
+    return MUTATOR_HUD_LABELS[id] ?? id;
+};
+
 const mutatorChipStyle = (id: MutatorId): string | undefined => {
     switch (id) {
         case 'short_memorize':
@@ -301,9 +308,15 @@ const GameplayHudBar = ({
                         ) : null}
                         {scoreParasiteActive ? (
                             <div
-                                aria-label={`Score parasite progress, floor ${run.parasiteFloors} of 4`}
+                                aria-label={`Score parasite: ${run.parasiteFloors} of 4 floors toward life drain.${
+                                    run.parasiteWardRemaining > 0
+                                        ? ` ${run.parasiteWardRemaining} parasite ward charge${
+                                              run.parasiteWardRemaining === 1 ? '' : 's'
+                                          }.`
+                                        : ''
+                                }`}
                                 className={styles.hudParasiteSegment}
-                                title="Every four floors with this mutator triggers a score penalty event"
+                                title="Every four floor advances with this mutator can drain a life. A Parasite ward charge absorbs one drain instead (relic: Parasite ward)."
                             >
                                 <div className={styles.hudParasiteRow}>
                                     <div className={styles.hudParasiteCrystalWrap} aria-hidden="true">
@@ -328,6 +341,14 @@ const GameplayHudBar = ({
                                         <span className={styles.hudParasiteCaption}>
                                             {run.parasiteFloors} / 4 floors
                                         </span>
+                                        {run.parasiteWardRemaining > 0 ? (
+                                            <span
+                                                className={styles.hudParasiteWard}
+                                                data-testid="hud-parasite-ward"
+                                            >
+                                                Ward ×{run.parasiteWardRemaining}
+                                            </span>
+                                        ) : null}
                                     </div>
                                 </div>
                             </div>
@@ -365,7 +386,7 @@ const GameplayHudBar = ({
                                                     .join(' ')}
                                                 data-testid={`hud-mutator-chip-${mutator}`}
                                                 key={mutator}
-                                                title={MUTATOR_HUD_LABELS[mutator] ?? mutator}
+                                                title={getMutatorChipTitle(mutator)}
                                             >
                                                 <MutatorChipGlyph mutator={mutator} />
                                                 <span className={styles.mutatorChipLabel}>

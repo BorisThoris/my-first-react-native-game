@@ -2,6 +2,10 @@
 
 Implementation backlog for **rules, mutators, objectives, powers, relics, and mode variants** — separate from visual/shell work under [`docs/new_design/TASKS/`](../new_design/TASKS/).
 
+| Resource | Purpose |
+|----------|---------|
+| [ENCYCLOPEDIA_FOLLOWUP_TASKS.md](./ENCYCLOPEDIA_FOLLOWUP_TASKS.md) | **Codex / mechanics encyclopedia** — doc drift, content gaps, UI IA, tests, workflow. |
+
 ## Specs and theory
 
 | Resource | Purpose |

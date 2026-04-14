@@ -209,7 +209,7 @@ test.describe('Mobile layout (renderer)', () => {
         await navigateToLevel1PlayPhase(page);
         const controls = page.getByRole('toolbar', { name: /game controls/i });
         await expect(controls).toBeVisible();
-        for (const name of [/fit board/i, /pause/i, /settings/i]) {
+        for (const name of [/fit board/i, /open codex/i, /settings/i]) {
             const btn = controls.getByRole('button', { name });
             const box = await btn.boundingBox();
             expect(box, `bounding box for ${name}`).toBeTruthy();
@@ -221,9 +221,7 @@ test.describe('Mobile layout (renderer)', () => {
     test('pause modal backdrop keeps minimum padding (safe-area aware layout)', async ({ page }) => {
         await page.setViewportSize({ width: 390, height: 844 });
         await navigateToLevel1PlayPhase(page);
-        await page
-            .getByRole('button', { name: /pause/i })
-            .evaluate((el) => (el as HTMLButtonElement).click());
+        await page.keyboard.press('p');
         await expect(page.getByRole('dialog', { name: /run paused/i })).toBeVisible();
         const backdrop = page.getByRole('dialog', { name: /run paused/i }).locator('..');
         const padding = await backdrop.evaluate((el) => {
@@ -453,112 +451,6 @@ test.describe('Mobile layout (renderer)', () => {
         expect(Math.abs(frameBox!.width - expectedFrameWidth)).toBeLessThanOrEqual(12);
         expect(hudBox!.y).toBeLessThan(frameBox!.y + frameBox!.height - 8);
         expect(hudBox!.y + hudBox!.height).toBeGreaterThan(frameBox!.y + 8);
-    });
-
-    test.describe('Utility flyout dismiss (SIDE-008)', () => {
-        test('Escape closes flyout, syncs aria-expanded, restores focus to menu toggle', async ({ page }) => {
-            await page.setViewportSize({ width: 390, height: 844 });
-            await navigateToLevel1PlayPhase(page);
-            const menu = page.getByTestId('game-toolbar-utility-toggle');
-            await menu.click();
-            await expect(page.getByTestId('game-toolbar-flyout')).toBeVisible();
-            await expect(menu).toHaveAttribute('aria-expanded', 'true');
-            await page.keyboard.press('Escape');
-            await expect(page.getByTestId('game-toolbar-flyout')).toHaveCount(0);
-            await expect(menu).toHaveAttribute('aria-expanded', 'false');
-            await expect(menu).toBeFocused();
-        });
-
-        test('scrim dismiss closes flyout and returns focus to menu toggle', async ({ page }) => {
-            await page.setViewportSize({ width: 390, height: 844 });
-            await navigateToLevel1PlayPhase(page);
-            const menu = page.getByTestId('game-toolbar-utility-toggle');
-            await menu.click();
-            await expect(page.getByTestId('game-toolbar-flyout-scrim')).toBeAttached();
-            await page.getByTestId('game-toolbar-flyout-scrim').click({ position: { x: 4, y: 4 } });
-            await expect(page.getByTestId('game-toolbar-flyout')).toHaveCount(0);
-            await expect(menu).toHaveAttribute('aria-expanded', 'false');
-            await expect(menu).toBeFocused();
-        });
-
-        test('outside pointer (past flyout panel) closes flyout and returns focus to menu toggle', async ({ page }) => {
-            await page.setViewportSize({ width: 390, height: 844 });
-            await navigateToLevel1PlayPhase(page);
-            const menu = page.getByTestId('game-toolbar-utility-toggle');
-            await menu.click();
-            await expect(page.getByTestId('game-toolbar-flyout')).toBeVisible();
-            /* Flyout overlaps the left/center board; use the right side of the viewport so Playwright does not hit flyout actions. */
-            await page.mouse.click(360, 520);
-            await expect(page.getByTestId('game-toolbar-flyout')).toHaveCount(0);
-            await expect(menu).toHaveAttribute('aria-expanded', 'false');
-            await expect(menu).toBeFocused();
-        });
-
-        test('Tab cycles from flyout back to menu toggle without leaving the shell', async ({ page }) => {
-            await page.setViewportSize({ width: 390, height: 844 });
-            await navigateToLevel1PlayPhase(page);
-            const menu = page.getByTestId('game-toolbar-utility-toggle');
-            await menu.click();
-            await expect(menu).toBeFocused();
-            await page.keyboard.press('Tab');
-            await expect(page.getByTestId('game-toolbar-flyout-close')).toBeFocused();
-            await page.keyboard.press('Tab');
-            await expect(
-                page.getByRole('group', { name: /in-game menu/i }).getByRole('button', { name: /active run loadout/i })
-            ).toBeFocused();
-            await page.keyboard.press('Tab');
-            await expect(
-                page.getByRole('group', { name: /in-game menu/i }).getByRole('button', { name: /read-only rules/i })
-            ).toBeFocused();
-            await page.keyboard.press('Tab');
-            await expect(menu).toBeFocused();
-        });
-
-        test('Shift+Tab from first flyout control returns focus to menu toggle', async ({ page }) => {
-            await page.setViewportSize({ width: 390, height: 844 });
-            await navigateToLevel1PlayPhase(page);
-            const menu = page.getByTestId('game-toolbar-utility-toggle');
-            await menu.click();
-            await page.keyboard.press('Tab');
-            await expect(page.getByTestId('game-toolbar-flyout-close')).toBeFocused();
-            await page.keyboard.press('Shift+Tab');
-            await expect(menu).toBeFocused();
-        });
-
-        test('Shift+Tab from menu toggle moves focus to last flyout action', async ({ page }) => {
-            await page.setViewportSize({ width: 390, height: 844 });
-            await navigateToLevel1PlayPhase(page);
-            const menu = page.getByTestId('game-toolbar-utility-toggle');
-            await menu.click();
-            await expect(menu).toBeFocused();
-            await page.keyboard.press('Shift+Tab');
-            await expect(
-                page.getByRole('group', { name: /in-game menu/i }).getByRole('button', { name: /read-only rules/i })
-            ).toBeFocused();
-        });
-    });
-
-    test.describe('Utility flyout layout (SIDE-010)', () => {
-        test('narrow viewport keeps flyout panel inside the window (no horizontal clip)', async ({ page }) => {
-            await page.setViewportSize({ width: 320, height: 640 });
-            await navigateToLevel1PlayPhase(page);
-            await page.getByTestId('game-toolbar-utility-toggle').click();
-            const flyout = page.getByTestId('game-toolbar-flyout');
-            await expect(flyout).toBeVisible();
-            await expectLocatorFullyInWindowViewport(page, flyout);
-        });
-
-        test('RTL document keeps flyout inside the window', async ({ page }) => {
-            await page.setViewportSize({ width: 390, height: 844 });
-            await page.addInitScript(() => {
-                document.documentElement.setAttribute('dir', 'rtl');
-            });
-            await navigateToLevel1PlayPhase(page);
-            await page.getByTestId('game-toolbar-utility-toggle').click();
-            const flyout = page.getByTestId('game-toolbar-flyout');
-            await expect(flyout).toBeVisible();
-            await expectLocatorFullyInWindowViewport(page, flyout);
-        });
     });
 
     test('two-finger pinch zooms in, and Fit board resets the viewport', async ({ page }) => {

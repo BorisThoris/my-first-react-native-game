@@ -20,10 +20,11 @@ describe('hudFixtures (HUD-016)', () => {
         expect(screen.getByTestId('game-hud')).toBeInTheDocument();
     });
 
-    it('daily fixture shows daily strip and parasite progress', () => {
+    it('daily fixture shows daily strip, parasite progress, and ward readout', () => {
         render(<GameplayHudBar {...hudFixturePropsDaily} />);
         expect(screen.getByText('20260414')).toBeInTheDocument();
         expect(screen.getByText('2 / 4 floors')).toBeInTheDocument();
+        expect(screen.getByTestId('hud-parasite-ward')).toHaveTextContent('Ward ×1');
     });
 
     it('gauntlet fixture shows timer rail', () => {

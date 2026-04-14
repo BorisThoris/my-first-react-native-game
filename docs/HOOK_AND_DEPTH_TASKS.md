@@ -32,7 +32,7 @@ Design context: [GAME_MECHANICS_IDEAS.md](./GAME_MECHANICS_IDEAS.md), [GAME_MECH
 - [x] `[P0]` **C2** — Run start: optional contract pick **or** random daily contract; multiplier or badge reward. *(Scholar menu + daily contract TBD; scholar shipped.)*
 - [x] `[P1]` **C3** — End-of-floor contract progress / partial credit UI. *(Level-complete copy / fail via `maxMismatches`.)*
 - [x] `[P1]` **C4** — Ascetic ladder: local stat or board for best floor without powers; ties to `powersUsedThisRun` / perfect achievements.
-- [x] `[P2]` **C5** — Speed gauntlet mode: timer per floor or run; fail condition clear; optional separate mode. *(10m run gauntlet + HUD.)*
+- [x] `[P2]` **C5** — Speed gauntlet mode: timer per floor or run; fail condition clear; optional separate mode. *(Run-wide gauntlet + HUD; menu presets **5 / 10 / 15** minutes.)*
 
 ---
 

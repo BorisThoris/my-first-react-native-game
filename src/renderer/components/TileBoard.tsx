@@ -73,8 +73,7 @@ interface TileBoardProps {
     bountyPairKey?: string | null;
     runStatus?: RunStatus;
     /**
-     * When false, hides early-tutorial **pair marker** chrome (inset pair-index ring on face-down DOM tiles).
-     * WebGL path has no equivalent overlay.
+     * When false, hides early-tutorial **pair marker** chrome (face-down tiles: DOM inset ring + WebGL back-face badge).
      */
     showTutorialPairMarkers?: boolean;
     /** Distance-to-pair badge on flipped tiles (Manhattan grid steps). */
@@ -236,15 +235,15 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         dimmedTileIds,
         peekRevealedTileIds = [],
         allowGambitThirdFlip = false,
-        wideRecallInPlay: _wideRecallInPlay = false,
-        silhouetteDuringPlay: _silhouetteDuringPlay = false,
-        nBackAnchorPairKey: _nBackAnchorPairKey = null,
-        nBackMutatorActive: _nBackMutatorActive = false,
+        wideRecallInPlay = false,
+        silhouetteDuringPlay = false,
+        nBackAnchorPairKey = null,
+        nBackMutatorActive = false,
         cursedPairKey = null,
         wardPairKey = null,
         bountyPairKey = null,
         runStatus = 'playing',
-        showTutorialPairMarkers: _showTutorialPairMarkers = true,
+        showTutorialPairMarkers = true,
         pairProximityHintsEnabled = true,
         onTileSelect
     },
@@ -1118,6 +1117,8 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                                         hoverTiltRef={hoverTiltRef}
                                         interactionSuppressed={selectionSuppressed}
                                         interactive={interactive}
+                                        nBackAnchorPairKey={nBackAnchorPairKey}
+                                        nBackMutatorActive={nBackMutatorActive}
                                         onTilePick={handleTileSelect}
                                         onViewportMetricsChange={handleStageViewportChange}
                                         pairProximityHintsEnabled={pairProximityHintsEnabled}
@@ -1130,6 +1131,9 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                                         shuffleMotionBudgetMs={shuffleMotionBudgetMs}
                                         shuffleMotionDeadlineMs={shuffleMotionDeadlineMs}
                                         shuffleStaggerTileCount={shuffleStaggerTileCount}
+                                        showTutorialPairMarkers={showTutorialPairMarkers}
+                                        silhouetteDuringPlay={silhouetteDuringPlay}
+                                        wideRecallInPlay={wideRecallInPlay}
                                     />
                                     <TileBoardPostFx
                                         bloomEnabled={bloomEffective}

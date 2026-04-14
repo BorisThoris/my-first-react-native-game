@@ -546,8 +546,24 @@ export const buildBoard = (level: number, options: BuildBoardOptions = {}): Boar
     return { ...baseBoard, wardPairKey, bountyPairKey };
 };
 
+/**
+ * Floor is complete when every tile is matched or removed.
+ * **Glass decoy** (`DECOY_PAIR_KEY`): singleton "?" — it never pairs; intent is to clear all **real** tiles
+ * and leave the decoy face-down for the glass-witness bonus. Completion when every **non-decoy** tile is
+ * matched or removed and the decoy (if present) is still **hidden** (unflipped).
+ */
 export const isBoardComplete = (board: BoardState): boolean =>
-    board.tiles.every((t) => t.state === 'matched' || t.state === 'removed');
+    board.tiles.every((t) => {
+        if (t.state === 'matched' || t.state === 'removed') {
+            return true;
+        }
+        if (t.pairKey === DECOY_PAIR_KEY && t.state === 'hidden') {
+            return board.tiles
+                .filter((x) => x.pairKey !== DECOY_PAIR_KEY)
+                .every((x) => x.state === 'matched' || x.state === 'removed');
+        }
+        return false;
+    });
 
 /** Pairs where both tiles are still hidden (eligible for shuffle / destroy targeting). */
 export const countFullyHiddenPairs = (board: BoardState): number => {
@@ -939,6 +955,7 @@ export const createNewRun = (bestScore: number, options: CreateRunOptions = {}):
         freeShuffleThisFloor: false,
         gauntletDeadlineMs:
             options.gauntletDurationMs != null ? Date.now() + options.gauntletDurationMs : null,
+        gauntletSessionDurationMs: options.gauntletDurationMs ?? null,
         dailyStreakCount: 0,
         flipHistory: [],
         peekCharges,
@@ -1019,10 +1036,10 @@ export const createDailyRun = (bestScore: number): RunState => {
     });
 };
 
-export const createGauntletRun = (bestScore: number): RunState =>
+export const createGauntletRun = (bestScore: number, gauntletDurationMs: number = 10 * 60 * 1000): RunState =>
     createNewRun(bestScore, {
         gameMode: 'gauntlet',
-        gauntletDurationMs: 10 * 60 * 1000
+        gauntletDurationMs
     });
 
 export const createRunFromExportPayload = (bestScore: number, payload: RunExportPayload): RunState => {

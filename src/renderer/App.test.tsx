@@ -387,7 +387,7 @@ describe('desktop app flow', () => {
         expect(await screen.findByRole('region', { name: /inventory/i })).toBeInTheDocument();
     });
 
-    it('pauses and resumes the run with the on-screen controls', async () => {
+    it('pauses and resumes the run via P and the pause modal', async () => {
         const user = userEvent.setup();
 
         renderApp();
@@ -396,7 +396,7 @@ describe('desktop app flow', () => {
         await chooseClassicRun(user);
         expect(await screen.findByRole('heading', { name: /level 1/i })).toBeInTheDocument();
 
-        await user.click(screen.getByRole('button', { name: /pause/i }));
+        await user.keyboard('p');
         const modalTitle = await screen.findByRole('heading', { name: /run paused/i });
         expect(modalTitle).toBeInTheDocument();
 
@@ -532,23 +532,18 @@ describe('desktop app flow', () => {
         });
     });
 
-    it('opens Inventory and Codex from the utility flyout and returns to playing', async () => {
+    it('opens Inventory and Codex from the in-run toolbar and returns to playing', async () => {
         const user = userEvent.setup();
         renderApp();
         await dismissStartupIntro(user);
         await chooseClassicRun(user);
 
-        await user.click(screen.getByRole('button', { name: /show utility menu/i }));
-        const inGameMenu = screen.getByRole('group', { name: /in-game menu/i });
-        await user.click(within(inGameMenu).getByRole('button', { name: /active run loadout/i }));
+        await user.click(screen.getByTestId('game-toolbar-inventory'));
         expect(await screen.findByRole('region', { name: /inventory/i })).toBeInTheDocument();
         await user.click(screen.getByRole('button', { name: /^back$/i }));
         expect(await screen.findByRole('heading', { name: /level 1/i })).toBeInTheDocument();
 
-        await user.click(screen.getByRole('button', { name: /show utility menu/i }));
-        await user.click(
-            within(screen.getByTestId('game-toolbar-flyout')).getByRole('button', { name: /read-only rules/i })
-        );
+        await user.click(screen.getByTestId('game-toolbar-codex'));
         expect(await screen.findByRole('region', { name: /codex/i })).toBeInTheDocument();
         await user.click(screen.getByRole('button', { name: /^back$/i }));
         expect(await screen.findByRole('heading', { name: /level 1/i })).toBeInTheDocument();

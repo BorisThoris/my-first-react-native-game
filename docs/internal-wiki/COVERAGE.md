@@ -1,0 +1,44 @@
+# Documentation coverage (how “90–100%” is meant)
+
+This page states **what is covered**, **how we measure it**, and **what is explicitly out of scope** so the “~90–100%” claim is honest.
+
+## Scope definition
+
+**In scope:** The **Memory Dungeon Windows / Electron desktop** product in this repo: `src/` (active paths), `e2e/`, `scripts/`, `packages/notifications`, and **all** markdown under `docs/` (including design backlog and audits).
+
+**Out of scope for line-by-line wiki coverage:**
+
+- **`legacy/expo-roguelike/`** — archived; not part of the supported desktop workflow.
+- **Binary assets** (PNGs, installers, Steam DLLs, most of `docs/ui-design-reference/`, capture PNGs) — indexed at **folder + workflow** level, not file-by-file.
+- **`GAME_TECHSTACK_ANALYSIS.md`** as *current* architecture — treated as **historical**; see [LEGACY_AND_CAVEATS.md](./LEGACY_AND_CAVEATS.md).
+
+## Coverage dimensions
+
+| Dimension | Target | Where satisfied |
+|-----------|--------|-----------------|
+| Gameplay rules + contracts | Complete for shipped mechanics | [GAMEPLAY_MECHANICS_CATALOG.md](../gameplay/GAMEPLAY_MECHANICS_CATALOG.md), epics, [GAMEPLAY_SYSTEMS_ANALYSIS.md](../GAMEPLAY_SYSTEMS_ANALYSIS.md) |
+| `src/shared/` modules | Named + role | [SOURCE_MAP.md](./SOURCE_MAP.md) |
+| Electron main / preload | Files + responsibilities | [SOURCE_MAP.md](./SOURCE_MAP.md), [ARCHITECTURE.md](./ARCHITECTURE.md) |
+| Renderer areas | Folders + purpose | [SOURCE_MAP.md](./SOURCE_MAP.md) |
+| Tooling | Scripts explained | [TOOLING.md](./TOOLING.md), root [README.md](../../README.md) |
+| E2E | Spec list | [E2E_AND_QA.md](./E2E_AND_QA.md) |
+| Every `docs/**/*.md` | Listed with summary | [DOCS_CATALOG.md](./DOCS_CATALOG.md) |
+| Multi-agent upkeep | Process | [multiple-agents.md](./multiple-agents.md) |
+
+## Score (interpreted)
+
+Against the **in-scope** definition above:
+
+- **Documentation inventory:** ~**100%** of markdown files under `docs/` appear in [DOCS_CATALOG.md](./DOCS_CATALOG.md) (last full pass: **~150** files; re-count with `Get-ChildItem docs -Recurse -Filter *.md` on Windows).
+- **Product + engineering orientation:** ~**95–100%** of active `src/` surface is mapped in [SOURCE_MAP.md](./SOURCE_MAP.md) at module/folder granularity (not every React component name).
+- **Overall “everything in the game”** if you include legacy + every asset byte: **not 100%** by design; use this page’s **out of scope** list.
+
+**Bottom line:** For **shipping and maintaining the desktop game**, treat internal coverage as **~95–100%** for *navigable* documentation and source orientation, with **legacy** and **raw binaries** as the main deliberate gaps.
+
+## When this file goes stale
+
+Update **COVERAGE.md** when:
+
+- New top-level `docs/` folders are added (add to catalog + dimension table).
+- A new major `src/` subtree appears (extend SOURCE_MAP).
+- The team changes what “in scope” means (e.g. if legacy is revived).

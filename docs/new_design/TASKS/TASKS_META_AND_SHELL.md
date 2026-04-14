@@ -17,12 +17,12 @@
 | META-002 | P0 | GameOver scene parity | Reuse or add defeat/archive plate like MainMenu depth. | Visual review vs ENDPRODUCT; `ASSET_SOURCES` if new file. | — |
 | META-003 | P0 | Meta frame system | SVG/9-slice or `MetaFrame` wrapper for “forged gold” meta surfaces without forking `Panel` forever. | Spec in COMPONENT_CATALOG; used on ≥1 screen. | — |
 | META-004 | P1 | MainMenu illustrated CTAs | Card/poster thumbnails for primary nav (Play, Collection, …) where IA allows. | Matches mode-card language; responsive. | META-001, art |
-| META-005 | P1 | Codex chrome + IA | Tabs/rail, row icons/thumbnails; less wall-of-text. | Keyboard navigable. | META-003 |
+| META-005 | P1 | Codex chrome + IA | **Done:** Tab rail (All / Guides / Tables) + filtered TOC + in-page anchors; filter + `<details>` sections (`CodexScreen`). | Keyboard: tab buttons + TOC links. | META-003 |
 | META-006 | P1 | Collection tier visuals | Locked/unlocked art, medallions beyond CSS boxes. | Performance OK on large lists. | META-003 |
 | META-007 | P1 | Inventory loadout board | Slot grid, relic icons, charge pips; empty state illustration from menu. | Menu + in-run paths. | META-003 |
 | META-008 | P1 | Settings page atmosphere | Sidebar/header ornament without hurting density. | Modal + page modes consistent. | META-003 |
 | META-009 | P1 | OverlayModal fantasy pass | Distinct treatments pause vs relic vs floor clear (see also OVR-002). | a11y preserved. | META-003, OVR-010 |
-| META-010 | P2 | In-game Codex/Inventory framing | “Desk/grimoire” shell in `App.tsx` modal wrapper vs generic blur. | Z-index with OVR-008. | META-001, META-003 |
+| META-010 | P2 | In-game Codex/Inventory framing | **Done:** “Desk/grimoire” shell — `App.tsx` wraps in-run Codex/Inventory in `modalOverlayDesk` + `modalInnerDesk` (`MetaScreen.module.css`); `shellInRunModal` clears redundant wash; Codex `data-codex-context` + `.codexInRunShell` cue. | Z-index 22 on overlay only (OVR-008). | META-001, META-003 |
 | META-011 | P2 | ChooseYourPath polish | Stronger card frames, hover gilt, typography lockup; **Classic** stats row (best score / best floor numerals vs reference). | Visual + mobile crop. | META-003 |
 | META-012 | P2 | MainMenu meta strip | **Done:** `MetaFrame` + gold-rim plate on Build / Best / Daily / Steam row (`MainMenu.module.css` `.metaPlaqueFrame`). | Copy + design sign-off. | META-003 |
 | META-013 | P2 | StartupIntro → menu handoff | Color/motion curve matches first MainMenu frame. | reduceMotion path. | META-004 opt |

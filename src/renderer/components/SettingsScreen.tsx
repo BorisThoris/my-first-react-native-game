@@ -609,8 +609,8 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                                                 <p className={styles.headerCopy}>
                                                     Primary control is pointer or touch: tap a hidden tile to flip it. When
                                                     only one tile is face-up, the next tap attempts a match. Board powers
-                                                    use the left rail or the in-game utility menu. Pause freezes timers;
-                                                    settings opened from a run opens the modal shell without ending the
+                                                    use the left rail. Press P to pause or resume; pause freezes timers.
+                                                    Settings opened from a run opens the modal shell without ending the
                                                     descent.
                                                 </p>
                                             </SettingsSection>

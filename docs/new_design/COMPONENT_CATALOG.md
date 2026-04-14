@@ -14,18 +14,17 @@ This catalog normalizes the reusable UI and presentation components implied by t
 
 | Surface | Purpose | Examples |
 |--------|---------|----------|
-| **Always-visible rail** | One-tap gameplay and shell actions | Utility toggle, Fit board, pause/resume, settings, codex, inventory, main menu (abandon confirm), power row (shuffle, pin, destroy, peek, stray), undo while resolving |
-| **Utility flyout** | Overflow-friendly labels for paths also on the rail | Inventory, codex (pause is rail-only); **Close** control (SIDE-009); dismissed by outside click, scrim, Escape |
-| **Modals only** | Run-scoped settings, inventory/codex overlays, pause/floor modals | `SettingsScreen` (playing), `OverlayModal`, meta `modalOverlay` for in-run codex/inventory |
+| **Always-visible rail** | One-tap gameplay and shell actions | Fit board, settings, codex, inventory, main menu (abandon confirm), power row (shuffle, pin, destroy, peek, stray), undo while resolving |
+| **Modals only** | Pause/resume, run-scoped settings, inventory/codex overlays, floor modals | **P** toggles pause when eligible; `SettingsScreen` (playing), `OverlayModal`, meta `modalOverlay` for in-run codex/inventory |
 
-Settings are **rail-only** (flyout no longer duplicates Settings). Inventory and codex appear on both rail and flyout so players can use either pattern.
+Pause is **not** on the rail (keyboard **P** + pause modal). Settings, codex, and inventory are **rail buttons** that open their overlays; there is no secondary flyout duplicating those entries.
 
 ## Meta surfaces IA (META-004 – META-007)
 
 | Screen | Primary job | Navigation | Notes |
 |--------|-------------|------------|-------|
 | **MainMenu** | Mode entry, collection, codex, inventory, settings | Poster cards + meta row | Hub screen; no long-form TOC. |
-| **CodexScreen** | Read-only rules reference | Header **Back** + in-page TOC → anchors | [`MetaScreen.module.css`](../../src/renderer/components/MetaScreen.module.css) `.inPageToc`, `.sectionAnchor`. |
+| **CodexScreen** | Read-only rules reference (encyclopedia v4+) | Header **Back**; **tab rail** (All / Guides / Tables) + **filtered TOC**; **filter** input; collapsible `<details>`; `data-codex-context` `menu` vs `in-run-desk` | [`CodexScreen.module.css`](../../src/renderer/components/CodexScreen.module.css) `.tabRail`; [`MetaScreen.module.css`](../../src/renderer/components/MetaScreen.module.css) `.inPageToc`; in-run **META-010** desk modal. |
 | **CollectionScreen** | Save progress / unlocks | Header **Back** + in-page TOC | Jumps to achievements, relics, bests, daily, symbols. |
 | **InventoryScreen** | Active run loadout | Header **Back** + in-page TOC | Run summary, relics, mutators, charges, contract. |
 | **GameOverScreen** | Run summary + export | Hero + side rail + details | **META-002:** same stack as main menu — Pixi atmosphere, **`sceneLayer`** (`UI_ART.menuScene`), dual-gradient **scrim** (`MainMenu` rim + radial), hero **crest lockup** (`UI_ART.brandCrest`) on the summary plate. |

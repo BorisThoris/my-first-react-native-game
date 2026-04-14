@@ -47,7 +47,7 @@ Use this whenever gameplay HUD, sidebar, or tile chrome changes, or before a rel
 | File | Scope | Primary IDs |
 |------|--------|-------------|
 | [TASKS_HUD_PARITY.md](./TASKS_HUD_PARITY.md) | Top status bar, mutator meters, layout centering | `HUD-*` |
-| [TASKS_SIDEBAR_PARITY.md](./TASKS_SIDEBAR_PARITY.md) | Left rail, flyout, icons, exit affordance | `SIDE-*` |
+| [TASKS_SIDEBAR_PARITY.md](./TASKS_SIDEBAR_PARITY.md) | Left rail, icons, exit affordance | `SIDE-*` |
 | [TASKS_CARDS_VFX_PARITY.md](./TASKS_CARDS_VFX_PARITY.md) | DOM/WebGL tiles, flip, match/mismatch FX | `CARD-*`, `FX-*` |
 | [TASKS_ASSETS_QA.md](./TASKS_ASSETS_QA.md) | Asset paths, manifests, e2e/visual regression | `AST-*`, `QA-*` |
 | [TASKS_PLAYING_ENDPRODUCT.md](./TASKS_PLAYING_ENDPRODUCT.md) | Playing screen vs `ENDPRODUCTIMAGE.png` (top-left): rail IA, HUD density, stage, cards, FX, evidence | `PLAY-*` |

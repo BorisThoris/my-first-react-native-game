@@ -275,7 +275,11 @@ export interface RunState {
     shuffleCharges: number;
     destroyPairCharges: number;
     pinnedTileIds: string[];
-    /** True after shuffle or destroy this run; gates ACH_PERFECT_CLEAR only. */
+    /**
+     * Set when the player uses a **meta power or assist** that disqualifies the perfect-clear achievement
+     * (`ACH_PERFECT_CLEAR`): full-board shuffle, row shuffle, destroy, peek, undo resolving, gambit third pick,
+     * stray remove, flash pair, wild match, etc. Pins do **not** set this flag.
+     */
     powersUsedThisRun: boolean;
     timerState: RunTimerState;
     lastLevelResult: LevelResult | null;
@@ -305,6 +309,8 @@ export interface RunState {
     freeShuffleThisFloor: boolean;
     /** Gauntlet: ms remaining for whole run; null = off. */
     gauntletDeadlineMs: number | null;
+    /** Gauntlet: configured session length (ms) at run start; used for restart and diagnostics. */
+    gauntletSessionDurationMs: number | null;
     /** Cosmetic daily streak count (low pressure). */
     dailyStreakCount: number;
     /** Last run flip tile ids (local ghost / export). */
@@ -317,7 +323,10 @@ export interface RunState {
     /** H3 Gambit: one third-flip attempt per floor. */
     gambitAvailableThisFloor: boolean;
     gambitThirdFlipUsed: boolean;
-    /** H4 Wild: one tile id with wild pairKey per run, or null. */
+    /**
+     * H4 Wild: reserved for a concrete wild tile id; **often null** in current rules because wild matching is driven
+     * by `pairKey` / `WILD_PAIR_KEY` without pinning a single `tile.id`. Treat as optional metadata, not required for sim.
+     */
     wildTileId: string | null;
     wildMatchesRemaining: number;
     /** Stray remover power charges (remove one hidden tile from play). */

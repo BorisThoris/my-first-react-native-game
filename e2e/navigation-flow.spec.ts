@@ -43,17 +43,11 @@ test.describe('Navigation shells', () => {
         await expect(page.getByRole('button', { name: /^play$/i })).toBeVisible();
     });
 
-    test('Utility flyout opens Inventory and Codex then returns to playing', async ({ page }) => {
+    test('In-run toolbar opens Inventory and Codex then returns to playing', async ({ page }) => {
         test.setTimeout(120_000);
         await openLevel1Play(page);
         await waitLevel1PlayReady(page);
-        await page
-            .getByRole('button', { name: /show utility menu/i })
-            .evaluate((el) => (el as HTMLButtonElement).click());
-        await page
-            .getByRole('group', { name: /in-game menu/i })
-            .getByRole('button', { name: /active run loadout/i })
-            .evaluate((el) => (el as HTMLButtonElement).click());
+        await page.getByTestId('game-toolbar-inventory').evaluate((el) => (el as HTMLButtonElement).click());
         await expect(page.getByRole('region', { name: /inventory/i })).toBeVisible();
         await page
             .getByRole('region', { name: /inventory/i })
@@ -61,13 +55,7 @@ test.describe('Navigation shells', () => {
             .evaluate((el) => (el as HTMLButtonElement).click());
         await expectGameplayHudWithWings(page);
 
-        await page
-            .getByRole('button', { name: /show utility menu/i })
-            .evaluate((el) => (el as HTMLButtonElement).click());
-        await page
-            .getByRole('group', { name: /in-game menu/i })
-            .getByRole('button', { name: /read-only rules/i })
-            .evaluate((el) => (el as HTMLButtonElement).click());
+        await page.getByTestId('game-toolbar-codex').evaluate((el) => (el as HTMLButtonElement).click());
         await expect(page.getByRole('region', { name: /codex/i })).toBeVisible();
         await page
             .getByRole('region', { name: /codex/i })
@@ -93,18 +81,6 @@ test.describe('Navigation shells', () => {
         await expectGameplayHudWithWings(page);
     });
 
-    test('Utility flyout closes via header Close control', async ({ page }) => {
-        test.setTimeout(120_000);
-        await openLevel1Play(page);
-        await waitLevel1PlayReady(page);
-        await page
-            .getByRole('button', { name: /show utility menu/i })
-            .evaluate((el) => (el as HTMLButtonElement).click());
-        await expect(page.getByRole('group', { name: /in-game menu/i })).toBeVisible();
-        await page.getByTestId('game-toolbar-flyout-close').click();
-        await expect(page.getByTestId('game-toolbar-flyout')).toHaveCount(0);
-    });
-
     test('Daily Challenge from Choose Your Path starts a run', async ({ page }) => {
         await page.addInitScript(
             ([key, json]) => {
@@ -121,7 +97,7 @@ test.describe('Navigation shells', () => {
 
     test('Import JSON modal shows inline error for invalid payload and starts run for valid export', async ({ page }) => {
         await openMainMenuFromSave(page, true);
-        await page.getByRole('button', { name: /import json/i }).click();
+        await page.getByRole('button', { name: /import run json/i }).click();
         const modal = page.getByTestId('run-import-modal');
         await expect(modal).toBeVisible();
         await expect(page.getByRole('button', { name: /^import$/i })).toBeDisabled();

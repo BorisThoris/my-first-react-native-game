@@ -19,7 +19,7 @@
 | HUD-010 | P2 | Floor module ornament | Hex / heavy gold frame variant for floor badge. | Matches COMPONENT_CATALOG direction; visual review. | TASK-013 / art, **PLAY-005** |
 | HUD-011 | P2 | Continuous rail chrome | Shared outer frame connecting segments. | Optional SVG/CSS; does not break responsive wrap fallback. | HUD-001 |
 | HUD-012 | P1 | `cameraViewportMode` derivation | Replace hard-coded or always-on behavior with viewport + setting or flag; document behavior. | Types + comment; e2e updated if default changes. | Product |
-| HUD-013 | P1 | Z-index / safe-area QA | After layout changes, flyout and HUD do not overlap incorrectly. | Manual + `mobile-layout` green. | HUD-001 |
+| HUD-013 | P1 | Z-index / safe-area QA | After layout changes, left rail and HUD do not overlap incorrectly. | Manual + `mobile-layout` green. | HUD-001 |
 | HUD-014 | P1 | Narrow breakpoint behavior | Symmetric layout degrades gracefully (scroll, stack, or compact wing). | No clipped stats at 390×844; screenshot spot-check. | HUD-001 |
 | HUD-015 | P2 | Live regions | Announce gauntlet / parasite threshold changes for SR users. | `aria-live` polite where appropriate. | HUD-005 |
 | HUD-016 | P2 | Storybook / fixtures | Static states: daily, gauntlet, scholar, multi-mutator. | Optional package; speeds design review. | HUD-003 |

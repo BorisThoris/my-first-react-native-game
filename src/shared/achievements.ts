@@ -1,38 +1,10 @@
 import type { AchievementId, RunState, SaveData } from './contracts';
+import { ACHIEVEMENT_CATALOG, type AchievementCodexEntry } from './mechanics-encyclopedia';
 
-export interface AchievementDefinition {
-    id: AchievementId;
-    title: string;
-    description: string;
-}
+export type AchievementDefinition = AchievementCodexEntry;
 
-export const ACHIEVEMENT_BY_ID: Record<AchievementId, AchievementDefinition> = {
-    ACH_FIRST_CLEAR: {
-        id: 'ACH_FIRST_CLEAR',
-        title: 'First Lantern',
-        description: 'Complete your first level.'
-    },
-    ACH_LEVEL_FIVE: {
-        id: 'ACH_LEVEL_FIVE',
-        title: 'Deep Delver',
-        description: 'Reach level five in a single run.'
-    },
-    ACH_SCORE_THOUSAND: {
-        id: 'ACH_SCORE_THOUSAND',
-        title: 'Gold Mind',
-        description: 'Score 1000 total points in one run.'
-    },
-    ACH_PERFECT_CLEAR: {
-        id: 'ACH_PERFECT_CLEAR',
-        title: 'Perfect Memory',
-        description: 'Clear a level with an S++ rating.'
-    },
-    ACH_LAST_LIFE: {
-        id: 'ACH_LAST_LIFE',
-        title: 'One Heart Wonder',
-        description: 'Finish a level with exactly one life remaining.'
-    }
-};
+/** Re-export encyclopedia copy (single source of truth). */
+export const ACHIEVEMENT_BY_ID: Record<AchievementId, AchievementDefinition> = ACHIEVEMENT_CATALOG;
 
 const ACHIEVEMENT_ORDER: AchievementId[] = [
     'ACH_FIRST_CLEAR',

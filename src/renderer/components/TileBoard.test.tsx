@@ -96,7 +96,7 @@ describe('TileBoard touch and click controls', () => {
         expect(screen.queryByTestId('tile-board-application')).toBeNull();
     });
 
-    it('announces keyboard focus in the live region', () => {
+    it('announces keyboard focus in the live region', async () => {
         renderBoard({
             board,
             debugPeekActive: false,
@@ -106,7 +106,10 @@ describe('TileBoard touch and click controls', () => {
             reduceMotion: false
         });
 
-        expect(screen.getByText(/Focus: Hidden tile, row 1, column 1/i)).toBeInTheDocument();
+        fireEvent.focus(screen.getByTestId('tile-board-application'));
+        await waitFor(() => {
+            expect(screen.getByText(/Focus: Hidden tile, row 1, column 1/i)).toBeInTheDocument();
+        });
     });
 
     it('exposes board grid dimensions on the frame for tests and assistive tech', () => {

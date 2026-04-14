@@ -1,7 +1,11 @@
 # Findables system
 
-**Status:** Design spec — implementation tracked as [`GP-FIN*` tasks](./gameplay-tasks/GP-FINDABLES.md).  
+**Status:** **Implemented** in `game.ts` (`findableKind` on tiles, `findables_floor` mutator, HUD counter). Task file [`GP-FINDABLES.md`](./gameplay-tasks/GP-FINDABLES.md) is **historical** (checkboxes may lag).  
 **Backlog id:** **FN-01** in [`gameplay-depth/05-app-specific-idea-backlog.md`](./gameplay-depth/05-app-specific-idea-backlog.md).
+
+## Not to be confused with the **“?” glass decoy**
+
+The **`glass_floor`** mutator adds a **singleton** tile with label **`?`** / `pairKey` **`__decoy__`**. It is **not** a findable pickup: it **never forms a pair** (by design), exists to tempt mis-flips, and supports the **glass witness** bonus when it stays face-down. **Findables** are optional **bonus score** markers on **normal pairs** (corner ring in WebGL when face-up). If you saw a “?” and could not finish the floor, that was a **completion-rule bug** (decoy could not be `matched` or `removed` under the old `isBoardComplete` check) — fixed so a **hidden** decoy clears once all **non-decoy** tiles are matched or removed (`game.ts` `isBoardComplete`).
 
 ## Purpose
 

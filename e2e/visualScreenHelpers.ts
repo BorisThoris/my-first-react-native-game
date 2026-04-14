@@ -487,14 +487,24 @@ async function completeLevel1ByTryingHiddenPairs(page: Page): Promise<void> {
         let clicked = false;
         for (let i = 0; i < positions.length && !clicked; i += 1) {
             for (let j = i + 1; j < positions.length; j += 1) {
-                const pk = pairKey(positions[i], positions[j]);
+                const pk = pairKey(positions[i]!, positions[j]!);
                 if (tried.has(pk)) {
                     continue;
                 }
+                await clickHiddenTile(page, positions[i]!.row, positions[i]!.col);
+                await clickHiddenTile(page, positions[j]!.row, positions[j]!.col);
+                let settled: PairClickSettlement;
+                try {
+                    settled = await settleAfterHiddenPairClick(page);
+                } catch {
+                    await page.waitForTimeout(MATCH_SETTLE_MS);
+                    clicked = true;
+                    break;
+                }
                 tried.add(pk);
-                await clickHiddenTile(page, positions[i].row, positions[i].col);
-                await clickHiddenTile(page, positions[j].row, positions[j].col);
-                await page.waitForTimeout(MATCH_SETTLE_MS);
+                if (settled === 'floor_cleared') {
+                    return;
+                }
                 clicked = true;
                 break;
             }

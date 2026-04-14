@@ -2,7 +2,7 @@ import type { MutatorId, RelicId, RunSummary, SaveData } from '../../shared/cont
 import { MUTATOR_CATALOG } from '../../shared/mutators';
 import { RELIC_CATALOG } from '../../shared/game-catalog';
 import { formatNextUtcReset } from '../../shared/utc-countdown';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useFitShellZoom } from '../hooks/useFitShellZoom';
 import { useShallow } from 'zustand/react/shallow';
 import { UI_ART } from '../assets/ui';
@@ -39,7 +39,7 @@ interface MainMenuProps {
     onOpenCodex: () => void;
     onOpenInventory: () => void;
     onOpenSettings: () => void;
-    onGauntletRun: () => void;
+    onGauntletRun: (durationMs: number) => void;
     onPuzzleStarter: () => void;
     onMirrorPuzzleRun: () => void;
     onPracticeRun: () => void;
@@ -48,6 +48,7 @@ interface MainMenuProps {
     onMeditationRunWithMutators: (mutators: MutatorId[]) => void;
     onPinVowRun: () => void;
     onWildRun: () => void;
+    onImportPuzzleJson: (rawJson: string) => boolean;
 }
 
 const MainMenu = ({
@@ -72,13 +73,15 @@ const MainMenu = ({
     onMeditationRun,
     onMeditationRunWithMutators,
     onPinVowRun,
-    onWildRun
+    onWildRun,
+    onImportPuzzleJson
 }: MainMenuProps) => {
     const { importRunFromClipboard } = useAppStore(
         useShallow((state) => ({
             importRunFromClipboard: state.importRunFromClipboard
         }))
     );
+    const puzzleImportInputRef = useRef<HTMLInputElement | null>(null);
     const shellRef = useRef<HTMLElement | null>(null);
     const menuFitMeasureRef = useRef<HTMLDivElement | null>(null); /* outer box; zoom applied on inner .content */
     const [meditationOpen, setMeditationOpen] = useState(false);
@@ -86,6 +89,7 @@ const MainMenu = ({
     const [importModalOpen, setImportModalOpen] = useState(false);
     const [importJsonText, setImportJsonText] = useState('');
     const [importError, setImportError] = useState<string | null>(null);
+    const [puzzleImportError, setPuzzleImportError] = useState<string | null>(null);
     const [nowMs, setNowMs] = useState(() => Date.now());
     const { tiltRef: menuFieldTiltRef } = usePlatformTiltField({
         enabled: true,
@@ -160,6 +164,33 @@ const MainMenu = ({
         setImportError('Could not import that payload. Check the JSON and try again.');
     };
 
+    const openPuzzleImportPicker = (): void => {
+        setPuzzleImportError(null);
+        puzzleImportInputRef.current?.click();
+    };
+
+    const onPuzzleImportSelected = (event: ChangeEvent<HTMLInputElement>): void => {
+        const file = event.target.files?.[0];
+        event.target.value = '';
+        if (!file) {
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (): void => {
+            const text = typeof reader.result === 'string' ? reader.result : '';
+            const ok = onImportPuzzleJson(text);
+            if (ok) {
+                setPuzzleImportError(null);
+            } else {
+                setPuzzleImportError('Invalid puzzle JSON. Expected a title (optional) and a tiles array with valid pairs.');
+            }
+        };
+        reader.onerror = (): void => {
+            setPuzzleImportError('Could not read that file.');
+        };
+        reader.readAsText(file);
+    };
+
     useEffect(() => {
         const id = window.setInterval(() => setNowMs(Date.now()), 1000);
         return () => window.clearInterval(id);
@@ -176,8 +207,29 @@ const MainMenu = ({
                 Alternate descents
             </ScreenTitle>
             <div className={styles.modeGrid} role="group" aria-label="More run types">
-                <UiButton className={styles.modeButton} size={modeButtonSize} variant="secondary" onClick={onGauntletRun}>
+                <UiButton
+                    className={styles.modeButton}
+                    size={modeButtonSize}
+                    variant="secondary"
+                    onClick={() => onGauntletRun(5 * 60 * 1000)}
+                >
+                    Gauntlet 5m
+                </UiButton>
+                <UiButton
+                    className={styles.modeButton}
+                    size={modeButtonSize}
+                    variant="secondary"
+                    onClick={() => onGauntletRun(10 * 60 * 1000)}
+                >
                     Gauntlet 10m
+                </UiButton>
+                <UiButton
+                    className={styles.modeButton}
+                    size={modeButtonSize}
+                    variant="secondary"
+                    onClick={() => onGauntletRun(15 * 60 * 1000)}
+                >
+                    Gauntlet 15m
                 </UiButton>
                 <UiButton className={styles.modeButton} size={modeButtonSize} variant="secondary" onClick={onPuzzleStarter}>
                     Puzzle
@@ -207,9 +259,26 @@ const MainMenu = ({
                     variant="ghost"
                     onClick={openImportModal}
                 >
-                    Import JSON
+                    Import run JSON
+                </UiButton>
+                <input
+                    accept="application/json,.json"
+                    aria-hidden
+                    ref={puzzleImportInputRef}
+                    style={{ display: 'none' }}
+                    tabIndex={-1}
+                    type="file"
+                    onChange={onPuzzleImportSelected}
+                />
+                <UiButton className={styles.modeButton} size={modeButtonSize} variant="ghost" onClick={openPuzzleImportPicker}>
+                    Import puzzle JSON
                 </UiButton>
             </div>
+            {puzzleImportError ? (
+                <p className={styles.importError} data-testid="puzzle-import-error" role="status">
+                    {puzzleImportError}
+                </p>
+            ) : null}
         </Panel>
     );
 

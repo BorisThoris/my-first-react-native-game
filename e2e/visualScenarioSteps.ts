@@ -112,10 +112,7 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
         timeoutMs: 90_000,
         run: async (page, capture) => {
             await openLevel1Play(page);
-            await page.getByRole('button', { name: /show utility menu/i }).click();
-            const flyout = page.getByRole('group', { name: /in-game menu/i });
-            await expect(flyout).toBeVisible({ timeout: 20_000 });
-            await flyout.getByRole('button', { name: /active run loadout/i }).click({ timeout: 20_000 });
+            await page.getByTestId('game-toolbar-inventory').click({ timeout: 20_000 });
             await expect(page.getByRole('region', { name: /inventory/i })).toBeVisible({ timeout: 20_000 });
             await expectNoHorizontalOverflow(page);
             await capture('01d-inventory-active');
@@ -127,10 +124,7 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
         timeoutMs: 90_000,
         run: async (page, capture) => {
             await openLevel1Play(page);
-            await page.getByRole('button', { name: /show utility menu/i }).click();
-            const flyout = page.getByRole('group', { name: /in-game menu/i });
-            await expect(flyout).toBeVisible({ timeout: 20_000 });
-            await flyout.getByRole('button', { name: /read-only rules/i }).click({ timeout: 20_000 });
+            await page.getByTestId('game-toolbar-codex').click({ timeout: 20_000 });
             await expect(page.getByRole('region', { name: /codex/i })).toBeVisible({ timeout: 20_000 });
             await expectNoHorizontalOverflow(page);
             await capture('01e-codex');
@@ -185,7 +179,7 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
         timeoutMs: 120_000,
         run: async (page, capture) => {
             await openLevel1Play(page);
-            await page.getByRole('button', { name: /pause/i }).click();
+            await page.keyboard.press('p');
             await expect(page.getByRole('dialog', { name: /run paused/i })).toBeVisible();
             await expectNoHorizontalOverflow(page);
             await capture('05-pause-modal');
@@ -219,7 +213,8 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
     {
         fileBase: '07-floor-cleared-modal',
         name: 'floor cleared modal',
-        timeoutMs: 90_000,
+        /** Must exceed `completeLevel1ByTryingHiddenPairs` worst case (120s) plus menu/load/setup. */
+        timeoutMs: 200_000,
         run: async (page, capture) => {
             await openLevel1Play(page);
             const pairs = await waitLevel1PlayReady(page);

@@ -127,6 +127,8 @@
 
 ![Codex](01e-codex.png)
 
+> **Expected (Apr 2026):** Menu Codex uses the full meta stage wash (`shellMetaStage`). In-run Codex opens in the desk/grimoire modal stack (`App.tsx` + `modalOverlayDesk` / `modalInnerDesk` in `MetaScreen.module.css`, META-010). Codex UI includes a topic filter, collapsible sections (`details`/`summary`), and mechanics encyclopedia v3. Re-capture scenario still **01e-codex** when Codex art or layout intentionally changes.
+
 #### Review checklist
 
 - [ ] No unintended horizontal overflow on the document root.

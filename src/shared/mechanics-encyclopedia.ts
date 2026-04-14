@@ -1,0 +1,527 @@
+/**
+ * Mechanics encyclopedia — **single source of truth** for player-facing reference copy tied to game IDs
+ * (relics, mutators, modes, achievements) plus explicit articles for powers, pickups, board specials, and contracts.
+ *
+ * **Version** bumps when entries are added, removed, or meaningfully rewritten (helps audits and saves).
+ * Gameplay rules remain in `game.ts`; this file is **labels + reference only**.
+ */
+import type { AchievementId, GameMode, MutatorId, RelicId } from './contracts';
+
+/** Monotonic reference doc version (increment when the encyclopedia meaningfully changes). */
+export const ENCYCLOPEDIA_VERSION = 4 as const;
+
+export interface RelicDefinition {
+    id: RelicId;
+    title: string;
+    description: string;
+}
+
+export interface MutatorDefinition {
+    id: MutatorId;
+    title: string;
+    description: string;
+}
+
+/** Steam + in-app achievement copy — must include **every** `AchievementId`. */
+export interface AchievementCodexEntry {
+    id: AchievementId;
+    title: string;
+    description: string;
+}
+
+export interface GameModeCodexEntry {
+    id: GameMode;
+    title: string;
+    description: string;
+}
+
+export interface CodexCoreTopic {
+    id: string;
+    title: string;
+    description: string;
+}
+
+/** Same shape as core topics — used for powers, pickups, board, contracts in Codex. */
+export type EncyclopediaTopic = CodexCoreTopic;
+
+/** Product “Endless Mode” card — not yet a live ruleset; distinct from internal classic/endless. */
+export const VISUAL_ENDLESS_MODE_LOCKED = {
+    title: 'Endless Mode',
+    description:
+        'A future ruleset for ultra-long descents. Not playable yet—balance and relic cadence are still in design.'
+} as const;
+
+/**
+ * Achievements — single source for `achievements.ts` blurbs and Codex “Achievements” section.
+ */
+export const ACHIEVEMENT_CATALOG: Record<AchievementId, AchievementCodexEntry> = {
+    ACH_FIRST_CLEAR: {
+        id: 'ACH_FIRST_CLEAR',
+        title: 'First Lantern',
+        description: 'Complete your first level.'
+    },
+    ACH_LEVEL_FIVE: {
+        id: 'ACH_LEVEL_FIVE',
+        title: 'Deep Delver',
+        description: 'Reach level five in a single run.'
+    },
+    ACH_SCORE_THOUSAND: {
+        id: 'ACH_SCORE_THOUSAND',
+        title: 'Gold Mind',
+        description: 'Score 1000 total points in one run.'
+    },
+    ACH_PERFECT_CLEAR: {
+        id: 'ACH_PERFECT_CLEAR',
+        title: 'Perfect Memory',
+        description:
+            'Unlocks when your last cleared level had zero mismatches and you never used disallowed powers that run: shuffle (full-board or row/region), destroy pair, peek, undo resolve, gambit, stray remove, flash pair, or wild match. Pins are allowed.'
+    },
+    ACH_LAST_LIFE: {
+        id: 'ACH_LAST_LIFE',
+        title: 'One Heart Wonder',
+        description: 'Finish a level with exactly one life remaining.'
+    }
+};
+
+/**
+ * Relics — floors 3 / 6 / 9 offers. Must include **every** `RelicId` (TypeScript enforces keys).
+ */
+export const RELIC_CATALOG: Record<RelicId, RelicDefinition> = {
+    extra_shuffle_charge: {
+        id: 'extra_shuffle_charge',
+        title: 'Extra shuffle charge',
+        description: 'Begin the run with one additional shuffle charge.'
+    },
+    first_shuffle_free_per_floor: {
+        id: 'first_shuffle_free_per_floor',
+        title: 'First shuffle free per floor',
+        description: 'The first shuffle each floor costs no charge (once per floor).'
+    },
+    memorize_bonus_ms: {
+        id: 'memorize_bonus_ms',
+        title: 'Longer memorize window',
+        description: 'Adds memorize study time before tiles hide.'
+    },
+    destroy_bank_plus_one: {
+        id: 'destroy_bank_plus_one',
+        title: 'Destroy bank +1',
+        description: 'Increases the destroy-pair charge bank capacity.'
+    },
+    combo_shard_plus_step: {
+        id: 'combo_shard_plus_step',
+        title: 'Combo shard head start',
+        description: 'Combo shard streak thresholds start slightly closer.'
+    },
+    memorize_under_short_memorize: {
+        id: 'memorize_under_short_memorize',
+        title: 'Study cushion',
+        description: 'Adds memorize time while Short memorize is active.'
+    },
+    parasite_ward_once: {
+        id: 'parasite_ward_once',
+        title: 'Parasite ward',
+        description: 'Ignore the next score-parasite life loss once.'
+    },
+    region_shuffle_free_first: {
+        id: 'region_shuffle_free_first',
+        title: 'Free row shuffle',
+        description: 'The first row shuffle each floor costs no charge.'
+    }
+};
+
+/**
+ * Mutators — must include **every** `MutatorId`.
+ */
+export const MUTATOR_CATALOG: Record<MutatorId, MutatorDefinition> = {
+    glass_floor: {
+        id: 'glass_floor',
+        title: 'Glass floor',
+        description:
+            'Adds a fragile **singleton “?” decoy** tile that never pairs; avoid flipping it for a glass-witness bonus. Distinct from findable bonus pickups on normal pairs.'
+    },
+    sticky_fingers: {
+        id: 'sticky_fingers',
+        title: 'Sticky fingers',
+        description:
+            'After a match, **one board slot** is reserved so your **next opening flip** must start elsewhere—flip-order pressure only (often highlighted in the HUD).'
+    },
+    score_parasite: {
+        id: 'score_parasite',
+        title: 'Score parasite',
+        description:
+            'While active, each **floor advance** counts toward parasite pressure; roughly every **fourth** advance, you lose **one life** unless a **Parasite ward** (relic charge) absorbs the hit—pace long runs accordingly.'
+    },
+    category_letters: {
+        id: 'category_letters',
+        title: 'Letters only',
+        description: 'Tile faces draw from the letter/number hybrid set instead of rotating symbol bands.'
+    },
+    short_memorize: {
+        id: 'short_memorize',
+        title: 'Short memorize',
+        description: 'Less time to study the board before pairs go hidden.'
+    },
+    wide_recall: {
+        id: 'wide_recall',
+        title: 'Wide recall',
+        description:
+            'Play phase de-emphasizes symbols vs labels on flipped tiles; each successful match scores slightly less.'
+    },
+    silhouette_twist: {
+        id: 'silhouette_twist',
+        title: 'Silhouette twist',
+        description: 'Silhouette-style face reads during play; each successful match scores slightly less.'
+    },
+    n_back_anchor: {
+        id: 'n_back_anchor',
+        title: 'N-back anchor',
+        description:
+            'Every second match updates an **anchor** pair key; later openings can reference that anchor for spaced-recall pressure.'
+    },
+    distraction_channel: {
+        id: 'distraction_channel',
+        title: 'Distraction channel',
+        description:
+            'Optional cycling digit HUD during play (settings; off by default; hidden when reduced motion). Cosmetic only—each successful match still scores slightly less while the mutator is active.'
+    },
+    findables_floor: {
+        id: 'findables_floor',
+        title: 'Findables floor',
+        description:
+            'Some pairs carry a bonus pickup (0–2 per floor). Match the pair to claim score; Destroy removes the pickup with no reward.'
+    },
+    shifting_spotlight: {
+        id: 'shifting_spotlight',
+        title: 'Shifting spotlight',
+        description:
+            'Each flip sequence (match, miss, gambit, or destroy) moves a Ward pair (lower match score) and a Bounty pair (bonus score) among remaining pairs. Distinct from the cursed “match last” pair.'
+    }
+};
+
+export const GAME_MODE_CODEX: GameModeCodexEntry[] = [
+    {
+        id: 'endless',
+        title: 'Classic Run',
+        description:
+            'Standard descent: procedural floors, relic offers, and escalating pair counts. (Internal mode id: endless.)'
+    },
+    {
+        id: 'daily',
+        title: 'Daily Challenge',
+        description:
+            'Everyone plays the **same seed** for the **UTC calendar day**. Daily mutators come from a **fixed rotation table** keyed off the date so the challenge is shared worldwide.'
+    },
+    {
+        id: 'puzzle',
+        title: 'Puzzle',
+        description: 'Fixed handcrafted boards from the built-in puzzle set; optional JSON import for local playtests.'
+    },
+    {
+        id: 'gauntlet',
+        title: 'Gauntlet',
+        description:
+            'A **run-wide wall-clock deadline** from the menu duration preset (commonly **5 / 10 / 15** minutes). When time runs out you hit **game over** even with lives left—pace your clears against the clock.'
+    },
+    {
+        id: 'meditation',
+        title: 'Meditation',
+        description: 'Longer memorize windows and calmer pacing for practice-style runs.'
+    }
+];
+
+/** High-level topics — see also granular `ENCYCLOPEDIA_POWER_TOPICS` etc. */
+export const CODEX_CORE_TOPICS: CodexCoreTopic[] = [
+    {
+        id: 'pairs',
+        title: 'Pairs and matching',
+        description:
+            'Flip two hidden tiles; a match clears the pair for score. Wild and contract rules can change what counts as a match.'
+    },
+    {
+        id: 'memorize',
+        title: 'Memorize phase',
+        description:
+            'Each floor begins with tiles face-up briefly, then play continues hidden. Mutators and relics can shorten or extend this window.'
+    },
+    {
+        id: 'lives',
+        title: 'Lives and clears',
+        description: 'Mismatches cost lives. Clears advance the floor and may trigger relic offers on milestone floors.'
+    },
+    {
+        id: 'scoring',
+        title: 'Score, flip par, and perfect clears',
+        description:
+            'Match score, floor clear bonuses, streak systems, and optional shuffle tax are summarized under **Scoring & survival** in this Codex. **Perfect Memory** (achievement) requires a flawless **floor** (zero tries) **and** no disallowed powers this **run**—see that section for the split between “perfect floor” and “no-assist run.”'
+    },
+    {
+        id: 'powers',
+        title: 'Powers and charges (overview)',
+        description:
+            'Board tools (shuffle, destroy, peek, pins, stray, region shuffle, flash) and meta-actions (undo resolve, gambit third flip) use charges or per-floor budgets. See **Powers & tools** in this Codex for each one. Scholar contracts can disable shuffle and destroy.'
+    },
+    {
+        id: 'relics',
+        title: 'Relics',
+        description:
+            'Offered at milestone floors **during the current run** (e.g. 3 / 6 / 9). Picks apply **for the rest of that run only**—they are not permanent meta upgrades between runs.'
+    },
+    {
+        id: 'mutators',
+        title: 'Mutators',
+        description: 'Daily and special runs can add mutators that change memorize timing, scoring pressure, or tile sets.'
+    }
+];
+
+/** Toolbar / store powers and related actions (one entry per major mechanic). */
+export const ENCYCLOPEDIA_POWER_TOPICS: readonly EncyclopediaTopic[] = [
+    {
+        id: 'power_full_shuffle',
+        title: 'Full-board shuffle',
+        description:
+            'Spends a shuffle charge to permute hidden tiles (rules may use weaker “rows only” shuffle). May incur shuffle score tax when enabled. Relics can grant extra charges or a free first shuffle per floor.'
+    },
+    {
+        id: 'power_region_shuffle',
+        title: 'Row / region shuffle',
+        description:
+            'Shuffles tiles within a single row (charges per run; relic may make the first row shuffle free). Distinct from full-board shuffle.'
+    },
+    {
+        id: 'power_destroy_pair',
+        title: 'Destroy pair',
+        description:
+            'Spends destroy charges to remove a fully hidden **pair** without match score—counts as a power for perfect-clear rules. Findable bonus pickups on that pair are **forfeited**. Cannot target the glass decoy tile.'
+    },
+    {
+        id: 'power_peek',
+        title: 'Peek',
+        description:
+            'Reveals a hidden tile briefly without committing a full flip sequence (charges). Useful for verification; still counts as a power where perfect-clear rules apply.'
+    },
+    {
+        id: 'power_pin',
+        title: 'Pin tiles',
+        description:
+            'Marks tiles to track mentally (pin budget per run; scholar contracts may cap total pins). Pins do **not** disqualify perfect clear by themselves.'
+    },
+    {
+        id: 'power_stray_remove',
+        title: 'Stray remove',
+        description:
+            'Arms removal of **one** hidden non-decoy tile—its partner becomes a singleton; does not score. Cannot remove the glass “?” decoy.'
+    },
+    {
+        id: 'power_flash_pair',
+        title: 'Flash pair',
+        description:
+            'Briefly reveals a pair (practice / wild-style paths). Treated as a power for perfect-clear and FTUE tracking where applicable.'
+    },
+    {
+        id: 'power_undo_resolve',
+        title: 'Undo (during resolve)',
+        description:
+            'Cancels the pending mismatch/match window before it resolves, restoring flips (limited undos per floor). Counts as a power for perfect clear.'
+    },
+    {
+        id: 'power_gambit',
+        title: 'Gambit (third flip)',
+        description:
+            'Once per floor, after two flips, you may try a third card to complete a pair; wrong gambit still counts against tries. Counts as a power for perfect clear when used.'
+    },
+    {
+        id: 'power_wild',
+        title: 'Wild / joker match',
+        description:
+            'Special wild tile can pair with a real symbol under rules shown on the board. Wild use counts as a power for perfect-clear tracking.'
+    }
+];
+
+/**
+ * Floor bonuses, streak rewards, and optional rules that affect score/lives — mirrors `finalizeLevel` / match resolution in `game.ts`.
+ */
+export const ENCYCLOPEDIA_SCORING_AND_SURVIVAL_TOPICS: readonly EncyclopediaTopic[] = [
+    {
+        id: 'sys_perfect_floor_vs_achievement',
+        title: 'Perfect floor vs Perfect Memory (achievement)',
+        description:
+            'A **perfect floor** means **zero tries** (no failed mismatches) on that level: you get the perfect-clear **score** bonus and a top **rating** tier. The **Perfect Memory** achievement additionally requires you **never used disallowed powers in that run**—no **shuffle** (full-board or row/region), destroy, peek, undo resolve, gambit, stray, flash, or wild match (pins are still fine). Do not confuse “perfect floor score” with the achievement gate.'
+    },
+    {
+        id: 'sys_scholar_style_floor',
+        title: 'Scholar-style floor bonus (not only the contract)',
+        description:
+            'On **any** run, if you clear a floor **without using full-board shuffle or destroy pair on that floor**, you earn a **scholar-style** stackable objective bonus (+40 in current rules). This is separate from picking a **Scholar** menu contract—it rewards clean play per floor whenever it happens.'
+    },
+    {
+        id: 'sys_flip_par_floor',
+        title: 'Flip par (match-resolution budget)',
+        description:
+            'If you finish the floor within a **match-resolution budget** based on pair count (roughly “pairs × 1.25, rounded up, plus a small buffer”), you earn the **flip par** objective bonus (+30). Counts **pair clears** (matches, gambit hits), not every tile flip.'
+    },
+    {
+        id: 'sys_glass_witness_and_cursed_last',
+        title: 'Glass witness & cursed last objectives',
+        description:
+            '**Glass witness** (+35): with a glass decoy on the board, you keep the bonus only if the decoy is **never involved in a mismatch** (including a **failed gambit** that touches it). **Cursed last** (+50): one pair is marked cursed—match it **last** among real pairs; matching it early forfeits this bonus.'
+    },
+    {
+        id: 'sys_boss_floor_multiplier',
+        title: 'Boss floors',
+        description:
+            'Floors tagged **boss** apply a **score multiplier** (~1.15×) to the pre-boss subtotal for that clear (level bonus, perfect bonus, and stacked objective bonuses included before the multiply).'
+    },
+    {
+        id: 'sys_combo_shards',
+        title: 'Combo shards → extra life',
+        description:
+            'Each **even-numbered** consecutive match adds a **combo shard** (bank capped low). At **three** shards, if you are below max lives, shards convert to **+1 life** (remainder stays in the bank). **Meditation** disables shard→life. The **Combo shard head start** relic shifts thresholds—it does not replace the base system.'
+    },
+    {
+        id: 'sys_chain_heal_and_guard',
+        title: 'Chain heal & combo guard tokens',
+        description:
+            'Long **match streaks** can **restore a life** (every 8th consecutive match in non-Meditation runs) and earn **guard tokens** (every 4th consecutive match, capped). The **first mismatch of a floor** is free (no life); after that, a **guard token** can absorb a mismatch instead of losing a life when available.'
+    },
+    {
+        id: 'sys_shuffle_score_tax',
+        title: 'Shuffle score tax (optional)',
+        description:
+            'When the **shuffle score tax** option is on in settings, each **full-board shuffle** multiplies your run’s **match-score multiplier** down by a modest factor—**additional shuffles compound** the penalty for that run. Distinct from floor objective bonuses.'
+    },
+    {
+        id: 'sys_encore_pairs',
+        title: 'Encore pairs',
+        description:
+            'Meta progression remembers which **pair keys** you cleared last run; matching one of those pairs again this run grants a small **flat encore bonus** on that match.'
+    },
+    {
+        id: 'sys_presentation_mutator_penalties',
+        title: 'Presentation mutators (match score)',
+        description:
+            '**Wide recall**, **Silhouette twist**, and **Distraction channel** apply a small **flat penalty to each successful match score** while active (rules stay consistent between logic and renderer).'
+    },
+    {
+        id: 'sys_clear_life_bonus',
+        title: 'Bonus life on level clear',
+        description:
+            'Clearing a floor with **zero tries** can grant **+1 life** when you are below the life cap (**perfect** clear path). A **single** mismatch clear may still grant a smaller **clean** life bonus—see the results summary for that floor.'
+    }
+];
+
+/**
+ * Settings, optional assists, pacing systems, and dev-only notes — do not duplicate full numeric tables from `contracts.ts`.
+ */
+export const ENCYCLOPEDIA_SETTINGS_AND_ASSISTS_TOPICS: readonly EncyclopediaTopic[] = [
+    {
+        id: 'assist_pair_proximity',
+        title: 'Pair proximity hints',
+        description:
+            'Optional setting: shows **distance-class** hints between paired tiles (Manhattan steps on the grid). **Informational only**—does not change score, streak math, or perfect / achievement rules.'
+    },
+    {
+        id: 'assist_focus_dim',
+        title: 'Focus dim',
+        description:
+            'Read-only **focus assist** may dim tiles outside the current attention set so the active tiles read more clearly. Does not change what you can flip or match.'
+    },
+    {
+        id: 'opt_weaker_shuffle',
+        title: 'Weaker shuffle (full vs rows-only)',
+        description:
+            'Settings can force **row-preserving** shuffles (only hidden tiles permute **within each row**) instead of a full hidden-tile Fisher–Yates. **Full-board shuffle** charges and relics that mention shuffle refer to the full-board tool; **row / region shuffle** stays a separate control.'
+    },
+    {
+        id: 'opt_resolve_echo',
+        title: 'Resolve timing & echo',
+        description:
+            'Adjust how long matches and mismatches **linger** before the board unlocks (`resolveDelayMultiplier`). **Echo** adds extra feedback time for accessibility. These change **feel**, not scoring formulas.'
+    },
+    {
+        id: 'meta_memorize_pacing',
+        title: 'Memorize pacing',
+        description:
+            'Study time starts from a **base**, adjusts in **steps** toward a **floor minimum**, and **relaxes** every few levels so memorize does not shrink every single floor. Losing a life **banks** a small memorize bonus for the **next** floor (capped).'
+    },
+    {
+        id: 'meta_floor_cycle_boss',
+        title: 'Endless floor cycle & boss tags',
+        description:
+            'In **Classic Run** with the modern floor schedule, each level draws **active mutators** and a **pacing tag** (normal, breather, or **boss**) from a **repeating cycle**. **Boss**-tagged clears apply the boss **score multiplier**; some boss steps may add presentation mutators for variation.'
+    },
+    {
+        id: 'dev_debug_peek',
+        title: 'Debug peek (development)',
+        description:
+            'Development builds may expose an extra **face-reveal** window for debugging. It is not part of shipped balance; turn it off when validating fair play.'
+    }
+];
+
+/** Bonus pickups and special tile types (not the same as relics). */
+export const ENCYCLOPEDIA_PICKUP_AND_BOARD_TOPICS: readonly EncyclopediaTopic[] = [
+    {
+        id: 'pickup_findables',
+        title: 'Findables (bonus pickups)',
+        description:
+            'With the **Findables floor** mutator, up to two **real** pairs per floor may carry a **shard spark** or **score glint** pickup. Matching that pair claims flat bonus score on top of the match; Destroy clears the pickup without reward. Shown as corner highlights when face-up.'
+    },
+    {
+        id: 'board_glass_decoy',
+        title: 'Glass “?” decoy (singleton)',
+        description:
+            'From **Glass floor**: one extra tile with **?** that **never** forms a pair. The **glass witness** payout requires the decoy to **never appear in a mismatch** (or a failed **gambit** that includes it). Any such flip marks the witness failed for the floor. Not a findable pickup.'
+    },
+    {
+        id: 'board_wild_tile',
+        title: 'Wild / joker tile',
+        description:
+            'Optional tile that can match a normal symbol per run rules. Typically one use per run; shown as Wild in copy.'
+    },
+    {
+        id: 'board_cursed_pair',
+        title: 'Cursed pair objective',
+        description:
+            'One **real** pair may be marked **cursed**. Match it **last** among normal pairs to earn the **cursed last** floor bonus; matching it while other real pairs remain forfeits that bonus.'
+    },
+    {
+        id: 'board_shifting_spotlight',
+        title: 'Ward & bounty (shifting spotlight)',
+        description:
+            'With **Shifting spotlight**, a Ward pair scores less if matched while highlighted; a Bounty pair grants extra score. Rotates on match, miss, gambit, or destroy.'
+    }
+];
+
+/** Challenge runs and contract flags (endless + flags, not separate `GameMode`). */
+export const ENCYCLOPEDIA_CONTRACT_TOPICS: readonly EncyclopediaTopic[] = [
+    {
+        id: 'contract_scholar',
+        title: 'Scholar contract',
+        description:
+            'Menu / run flag: **no full-board shuffle** and **no destroy pair** for the contract (row/region tools follow current rules). Separate from the **scholar-style per-floor bonus**, which any run can earn floor-by-floor by not using shuffle/destroy on that floor.'
+    },
+    {
+        id: 'contract_pin_vow',
+        title: 'Pin vow',
+        description: 'Caps how many pins you may place over the **whole run**—track pins carefully.'
+    },
+    {
+        id: 'contract_max_mismatches',
+        title: 'Max mismatches',
+        description:
+            'Optional hard cap on mismatch resolutions; exceeding it ends the run immediately (can combine with presentation mutators).'
+    }
+];
+
+/** Featured menu entries that are not separate `GameMode` ids — still encyclopedia entries. */
+export const ENCYCLOPEDIA_FEATURED_RUN_TOPICS: readonly EncyclopediaTopic[] = [
+    {
+        id: 'featured_practice',
+        title: 'Practice',
+        description: 'Endless-style run with achievements relaxed—good for learning flows.'
+    },
+    {
+        id: 'featured_wild',
+        title: 'Wild / joker run',
+        description: 'Endless run with wild-tile rules enabled from the menu for a different pairing puzzle.'
+    }
+];

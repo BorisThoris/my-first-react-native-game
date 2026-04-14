@@ -28,6 +28,7 @@ import {
     getMemorizeDuration,
     getMemorizeDurationForRun,
     getPresentationMutatorMatchPenalty,
+    isBoardComplete,
     isGauntletExpired,
     resolveBoardTurn,
     togglePinnedTile,
@@ -626,6 +627,25 @@ describe('board powers', () => {
         const cleared = applyDestroyPair(lastPairRun, 'b1');
         expect(cleared.status).toBe('levelComplete');
         expect(cleared.lastLevelResult?.level).toBe(1);
+    });
+
+    describe('glass_floor decoy and board completion', () => {
+        it('isBoardComplete when all real tiles are matched and the ? decoy stays hidden', () => {
+            const board = buildBoard(2, {
+                activeMutators: ['glass_floor'],
+                runSeed: 90210,
+                runRulesVersion: GAME_RULES_VERSION
+            });
+            const decoy = board.tiles.find((t) => t.pairKey === '__decoy__');
+            expect(decoy).toBeDefined();
+            const cleared: BoardState = {
+                ...board,
+                tiles: board.tiles.map((t) =>
+                    t.pairKey === '__decoy__' ? t : { ...t, state: 'matched' as const }
+                )
+            };
+            expect(isBoardComplete(cleared)).toBe(true);
+        });
     });
 
     describe('findables_floor', () => {

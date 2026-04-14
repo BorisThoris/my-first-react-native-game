@@ -1,3 +1,8 @@
+/**
+ * Hand-authored puzzle boards (`createPuzzleRun`). Tiles pin explicit `symbol` / `label` / `atomicVariant` — keep in sync
+ * with `tile-symbol-catalog.ts` when renaming bands. Optional run systems (cursed pair init, shifting spotlight keys, …)
+ * are only present when `buildBoard` / callers supply them for `fixedTiles`.
+ */
 import type { Tile } from './contracts';
 
 const t = (id: string, pairKey: string, symbol: string, atomicVariant?: number): Tile => ({
@@ -9,7 +14,6 @@ const t = (id: string, pairKey: string, symbol: string, atomicVariant?: number):
     ...(atomicVariant !== undefined ? { atomicVariant } : {})
 });
 
-/** Minimal hand-crafted layouts for puzzle mode (F1/F2). */
 export const BUILTIN_PUZZLES: Record<string, { id: string; title: string; tiles: Tile[] }> = {
     starter_pairs: {
         id: 'starter_pairs',

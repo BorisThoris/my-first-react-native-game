@@ -2,6 +2,10 @@
 
 Puzzles are **fixed layouts** keyed by id in `src/shared/builtin-puzzles.ts` (or future JSON loader with the same shape).
 
+## Quick playtest import (not a shipped puzzle)
+
+The main menu **Import puzzle JSON** action loads a file and runs `parsePuzzleImportJson` → `createPuzzleRun` with an ephemeral `import:…` id. Use the same **tile** shape as below; validation requires **4–64** tiles and **exactly two** tiles per non-decoy `pairKey`. This path is for **local iteration**; shipping puzzles still go through `BUILTIN_PUZZLES` and PR review.
+
 ## Data shape
 
 ```ts

@@ -73,9 +73,9 @@ From `e2e/visualScenarioSteps.ts`, the visual workflow captures:
 | Illustrated dungeon stage | Gameplay background exists but is abstract | Structurally mismatched existing surface | Stronger illustrated environment = asset pass |
 | Ornate segmented top HUD | HUD modules restyled toward reference | Restylable existing surface | Score dominance and segment ornament still tunable |
 | Score-centered hierarchy | Score emphasized in HUD | Restylable existing surface | Further typography/glow pass possible |
-| Left icon rail | Premium-styled rail + flyout | Restylable existing surface | Inventory/Codex in flyout |
-| Sidebar flyout with labels | Flyout with labeled actions | Restylable existing surface | Parity with reference sidebar |
-| Collection/inventory/codex entries | Live flyout + full-screen meta where routed | Restylable existing surface | Collection is menu-first per IA |
+| Left icon rail | Premium-styled rail (no duplicate flyout) | Restylable existing surface | Inventory/Codex from rail → overlay; pause via **P** |
+| Sidebar labeled actions | Reference shows expanded labels; live uses icon rail + overlays | Restylable existing surface | Parity is product choice, not a second flyout |
+| Collection/inventory/codex entries | Rail + full-screen meta where routed | Restylable existing surface | Collection is menu-first per IA |
 | Premium card back/front treatment | `tileTextures` + board CSS / WebGL | Structurally mismatched existing surface | Asset + state FX still main lever |
 | Hover, flip, matched, mismatch FX | Implemented; iteratively stronger | Restylable existing surface | See TASK-005 |
 | Score popup and celebratory burst | Partial feedback | Structurally mismatched existing surface | FX layer can deepen |
@@ -182,7 +182,7 @@ Mock or unsupported controls must stay labeled honestly in UI and tests.
 
 ## Final Gap Summary
 - Main menu: IA and routes aligned; illustration and logo assets remain the main gap.
-- Gameplay shell: structure and flyout landed; card FX and stage art are the main gap.
+- Gameplay shell: structure and rail/overlay IA landed; card FX and stage art are the main gap.
 - Settings: shell done; several reference controls remain model-future.
 - Game over/modals: functional; presentation can still move closer to reference.
 - Mode selection and meta screens: live; content depth follows catalog/save data.

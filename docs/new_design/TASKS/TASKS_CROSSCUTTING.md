@@ -33,7 +33,7 @@
 
 - **`data-testid="game-hud"`** — Used in `e2e/mobile-layout.spec.ts` and `e2e/navigation-flow.spec.ts`; splitting the header requires `QA-003` in the same PR as layout changes.
 - **`data-mobile-camera-mode="true"`** — Hard-coded `cameraViewportMode` in `GameScreen.tsx`; mobile layout tests assume full-bleed board + Fit board. Any change to camera strategy needs `HUD-012` + `QA-002`.
-- **Z-index stack** — `.mobileCameraLeftToolbar` is `z-index: 8` above `.mobileCameraHud` (`z-index: 3`) so the utility flyout stays clickable; new HUD layers must preserve ordering (`HUD-013`).
+- **Z-index stack** — `.mobileCameraLeftToolbar` is `z-index: 8` above `.mobileCameraHud` (`z-index: 3`) so rail controls stay above the HUD on mobile camera layout; new HUD layers must preserve ordering (`HUD-013`).
 - **Tile fingerprints** — `e2e/tile-card-face-dom.spec.ts` asserts `reference-back.png` when hidden and `front-face.png` when face-up (shared size/position/repeat); update spec if asset names or layout stack change (`QA-004`).
 
 ## Decision log (shipping defaults — P0–P2 parity)
@@ -42,7 +42,7 @@ These defaults unblock implementation without blocking future product reversals.
 
 | # | Topic | Decision | Affects |
 |---|--------|----------|---------|
-| 1 | **Exit / main menu (`SIDE-003`, `NAV-003`, `SIDE-014`)** | **Abandon run with confirmation** when a run is active and the user chooses main menu / exit from the gameplay rail or flyout. No silent drop to menu. Subscreen return (`closeSubscreen`, inventory/codex) stays non-destructive. | `GameLeftToolbar`, `useAppStore` abandon flow |
+| 1 | **Exit / main menu (`SIDE-003`, `NAV-003`, `SIDE-014`)** | **Abandon run with confirmation** when a run is active and the user chooses main menu / exit from the gameplay rail. No silent drop to menu. Subscreen return (`closeSubscreen`, inventory/codex) stays non-destructive. | `GameLeftToolbar`, `useAppStore` abandon flow |
 | 2 | **DOM flip arc (`CARD-002`)** | **Optional** CSS face-reveal: **on** when `data-reduce-motion='false'`; **instant / no arc** when `reduceMotion` or `prefers-reduced-motion` applies. No arc-only path required for SR beyond that. | `TileBoard.module.css`, `App` root `data-reduce-motion` |
 | 3 | **Bloom (`FX-015`) vs quality (`PERF-001`)** | **Bloom and heavy celebration post-FX** are gated by **graphics quality ≥ medium** (or dedicated “effects” tier once split). **Off** on low quality. Persisted setting wins over default. | settings schema, `TileBoard` / composer |
 | 4 | **Body font (`DS-001`)** | **Keep Source Sans 3** as the live body stack; **update `VISUAL_SYSTEM_SPEC.md`** if it still names Inter, so spec matches code. Inter migration is a separate design milestone. | theme CSS, spec doc |

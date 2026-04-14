@@ -1,7 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateAchievementUnlocks } from './achievements';
+import type { AchievementId } from './contracts';
+import { ACHIEVEMENT_BY_ID, ACHIEVEMENTS, evaluateAchievementUnlocks } from './achievements';
 import { createNewRun } from './game';
 import { createDefaultSaveData } from './save-data';
+
+describe('achievement catalog copy', () => {
+    it('every AchievementId has non-empty title and description', () => {
+        const ids = Object.keys(ACHIEVEMENT_BY_ID) as AchievementId[];
+        expect(ids.length).toBeGreaterThan(0);
+        for (const id of ids) {
+            const a = ACHIEVEMENT_BY_ID[id];
+            expect(a.id).toBe(id);
+            expect(a.title.trim().length).toBeGreaterThan(0);
+            expect(a.description.trim().length).toBeGreaterThan(0);
+        }
+        expect(ACHIEVEMENTS.length).toBe(ids.length);
+    });
+});
 
 describe('achievement rules', () => {
     it('unlocks the expected achievements from a strong run state', () => {

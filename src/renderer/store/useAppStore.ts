@@ -8,6 +8,7 @@ import type {
     SaveData,
     Settings,
     SubscreenReturnView,
+    Tile,
     ViewState
 } from '../../shared/contracts';
 import { BUILTIN_PUZZLES } from '../../shared/builtin-puzzles';
@@ -42,6 +43,7 @@ import {
     togglePinnedTile,
     toggleStrayRemoveArmed
 } from '../../shared/game';
+import { parsePuzzleImportJson } from '../../shared/puzzle-import';
 import { parseRunImport } from '../../shared/run-export';
 import { trackEvent } from '../../shared/telemetry';
 import {
@@ -56,6 +58,10 @@ import { desktopClient } from '../desktop-client';
 import type { DevSandboxConfig } from '../dev/devSandboxParams';
 import { buildSandboxRun } from '../dev/runFixtures';
 import { needsRelicPick } from '../../shared/relics';
+import { playFlipSfx, playResolveSfx, resumeAudioContext, sfxGainFromSettings } from '../audio/gameSfx';
+
+/** Session-only cache so imported puzzle boards survive in-run restart. */
+const importPuzzleTilesById = new Map<string, Tile[]>();
 
 interface ActiveTimer {
     deadline: number;
@@ -79,8 +85,9 @@ interface AppState {
     hydrate: () => Promise<void>;
     startRun: () => void;
     startDailyRun: () => void;
-    startGauntletRun: () => void;
+    startGauntletRun: (durationMs?: number) => void;
     startPuzzleRun: (puzzleId: string) => void;
+    startPuzzleRunFromImport: (rawJson: string) => boolean;
     startPracticeRun: () => void;
     startScholarContractRun: () => void;
     startMeditationRun: () => void;
@@ -218,6 +225,20 @@ const getRemainingMs = (timer: ActiveTimer | null, fallback: number | null): num
     return Math.max(timer.deadline - Date.now(), 0);
 };
 
+const sfxGainFromStore = (): number => {
+    const { settings } = useAppStore.getState();
+    return sfxGainFromSettings(settings.masterVolume, settings.sfxVolume);
+};
+
+const applyResolveBoardTurn = (run: RunState): void => {
+    const { saveData, settings } = useAppStore.getState();
+    const encore = saveData.playerStats?.encorePairKeysLastRun ?? [];
+    const next = resolveBoardTurn(run, encore);
+    void resumeAudioContext();
+    playResolveSfx(run, next, sfxGainFromSettings(settings.masterVolume, settings.sfxVolume));
+    applyResolvedRun(next);
+};
+
 const applyResolvedRun = (resolvedRun: RunState): void => {
     const state = useAppStore.getState();
     let nextRun = resolvedRun.status === 'playing' ? resolvedRun : disableDebugPeek(resolvedRun);
@@ -320,10 +341,10 @@ function scheduleResolveTimer(duration: number): void {
     clearResolveTimer();
 
     if (duration <= 0) {
-        const { run, saveData } = useAppStore.getState();
+        const { run } = useAppStore.getState();
 
         if (run && run.status === 'resolving') {
-            applyResolvedRun(resolveBoardTurn(run, saveData.playerStats?.encorePairKeysLastRun ?? []));
+            applyResolveBoardTurn(run);
         }
 
         return;
@@ -333,13 +354,13 @@ function scheduleResolveTimer(duration: number): void {
         deadline: Date.now() + duration,
         timeout: setTimeout(() => {
             resolveTimer = null;
-            const { run, saveData } = useAppStore.getState();
+            const { run } = useAppStore.getState();
 
             if (!run || run.status !== 'resolving') {
                 return;
             }
 
-            applyResolvedRun(resolveBoardTurn(run, saveData.playerStats?.encorePairKeysLastRun ?? []));
+            applyResolveBoardTurn(run);
         }, duration)
     };
 }
@@ -395,7 +416,7 @@ const freezeRun = (run: RunState): RunState => {
 };
 
 /**
- * SIDE-013 — In-run meta overlays (settings modal, inventory/codex shell, utility flyout entry points)
+ * SIDE-013 — In-run meta overlays (settings modal, inventory/codex shell)
  * share one freeze policy: snapshot timers into `paused` for resumable states; leave user-pause and
  * floor-level overlays (`levelComplete`, `gameOver`) unchanged so `closeSubscreen` / `closeSettings`
  * do not double-clobber `pausedFromStatus`.
@@ -494,9 +515,12 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
     },
 
-    startGauntletRun: () => {
+    startGauntletRun: (durationMs = 10 * 60 * 1000) => {
         clearAllTimers();
-        const run = patchRunFromUserSettings(createGauntletRun(get().saveData.bestScore), get().settings);
+        const run = patchRunFromUserSettings(
+            createGauntletRun(get().saveData.bestScore, durationMs),
+            get().settings
+        );
         trackEvent('run_start', { mode: run.gameMode, practice: run.practiceMode });
         set({
             view: 'playing',
@@ -509,6 +533,41 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (run.timerState.memorizeRemainingMs) {
             scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
         }
+    },
+
+    startPuzzleRunFromImport: (rawJson) => {
+        const parsed = parsePuzzleImportJson(rawJson);
+        if (!parsed) {
+            return false;
+        }
+        const puzzleId = `import:${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+        importPuzzleTilesById.set(
+            puzzleId,
+            parsed.tiles.map((t) => ({ ...t }))
+        );
+        clearAllTimers();
+        const run = patchRunFromUserSettings(
+            createPuzzleRun(get().saveData.bestScore, puzzleId, parsed.tiles),
+            get().settings
+        );
+        trackEvent('run_start', {
+            mode: run.gameMode,
+            practice: run.practiceMode,
+            puzzleId,
+            puzzleImport: true
+        });
+        set({
+            view: 'playing',
+            newlyUnlockedAchievements: [],
+            boardPinMode: false,
+            destroyPairArmed: false,
+            peekModeArmed: false,
+            run
+        });
+        if (run.timerState.memorizeRemainingMs) {
+            scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
+        }
+        return true;
     },
 
     startPuzzleRun: (puzzleId) => {
@@ -887,9 +946,15 @@ export const useAppStore = create<AppState>((set, get) => ({
                 applyResolvedRun({ ...run, status: 'gameOver', lives: 0 });
                 return;
             }
+            const flippedBefore = run.board?.flippedTileIds.length ?? 0;
             const nextRun = flipTile(run, tileId);
             if (nextRun === run) {
                 return;
+            }
+            const flippedAfter = nextRun.board?.flippedTileIds.length ?? 0;
+            if (flippedAfter > flippedBefore) {
+                void resumeAudioContext();
+                playFlipSfx(sfxGainFromStore());
             }
             set({ run: nextRun, peekModeArmed: false });
             if (nextRun.status === 'resolving' && nextRun.timerState.resolveRemainingMs !== null) {
@@ -945,10 +1010,17 @@ export const useAppStore = create<AppState>((set, get) => ({
             return;
         }
 
+        const flippedBefore = run.board?.flippedTileIds.length ?? 0;
         const nextRun = flipTile(run, tileId);
 
         if (nextRun === run) {
             return;
+        }
+
+        const flippedAfter = nextRun.board?.flippedTileIds.length ?? 0;
+        if (flippedAfter > flippedBefore) {
+            void resumeAudioContext();
+            playFlipSfx(sfxGainFromStore());
         }
 
         set({ run: nextRun, peekModeArmed: false });
@@ -1140,10 +1212,15 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (prev?.gameMode === 'daily') {
             run = createDailyRun(best);
         } else if (prev?.gameMode === 'gauntlet') {
-            run = createGauntletRun(best);
+            run = createGauntletRun(best, prev.gauntletSessionDurationMs ?? 10 * 60 * 1000);
         } else if (prev?.gameMode === 'puzzle' && prev.puzzleId) {
-            const puzzle = BUILTIN_PUZZLES[prev.puzzleId];
-            run = puzzle ? createPuzzleRun(best, puzzle.id, puzzle.tiles) : createNewRun(best);
+            const imported = importPuzzleTilesById.get(prev.puzzleId);
+            if (imported) {
+                run = createPuzzleRun(best, prev.puzzleId, imported);
+            } else {
+                const puzzle = BUILTIN_PUZZLES[prev.puzzleId];
+                run = puzzle ? createPuzzleRun(best, puzzle.id, puzzle.tiles) : createNewRun(best);
+            }
         } else if (prev?.gameMode === 'meditation') {
             run = createMeditationRun(best, prev.activeMutators.length > 0 ? prev.activeMutators : undefined);
         } else if (prev?.activeContract?.maxPinsTotalRun != null) {

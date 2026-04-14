@@ -24,7 +24,7 @@ const dailyRunBase = finishMemorizePhase(
 );
 
 export const hudFixturePropsDaily: GameplayHudBarProps = {
-    run: { ...dailyRunBase, parasiteFloors: 2 },
+    run: { ...dailyRunBase, parasiteFloors: 2, parasiteWardRemaining: 1 },
     cameraViewportMode: false,
     gauntletRemainingMs: null,
     politeHudAnnouncement: 'Daily challenge 20260414 — floor 3, score twelve thousand four hundred.'

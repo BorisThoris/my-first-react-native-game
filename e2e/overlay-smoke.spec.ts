@@ -28,7 +28,7 @@ test.describe('OVR-013 — overlay smoke', () => {
 
         const pairs = await waitLevel1PlayReady(page);
 
-        await page.getByTestId('game-toolbar-pause').click();
+        await page.keyboard.press('p');
         const pauseOverlay = page.getByTestId('game-pause-overlay');
         await expect(pauseOverlay).toBeVisible();
         await expect(page.getByRole('dialog', { name: /run paused/i })).toBeVisible();

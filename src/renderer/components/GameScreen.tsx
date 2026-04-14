@@ -119,7 +119,6 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const [viewportResetToken, setViewportResetToken] = useState(0);
     const [gauntletNowMs, setGauntletNowMs] = useState(() => Date.now());
     const [rulesHintsExpanded, setRulesHintsExpanded] = useState(() => !compactTouchChrome);
-    const [utilityFlyoutOpen, setUtilityFlyoutOpen] = useState(false);
     const [abandonRunConfirmOpen, setAbandonRunConfirmOpen] = useState(false);
     useEffect(() => {
         if (run.gauntletDeadlineMs === null) {
@@ -226,6 +225,58 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         triggerDebugReveal,
         undoResolvingFlip
     } = gameScreenActions;
+
+    /** Pause / resume: toolbar control removed — **P** toggles pause when gameplay is active (not when meta overlays suppress status). */
+    useEffect(() => {
+        if (suppressStatusOverlays) {
+            return;
+        }
+        const onKeyDown = (event: KeyboardEvent): void => {
+            if (event.defaultPrevented || event.repeat) {
+                return;
+            }
+            if (event.altKey || event.ctrlKey || event.metaKey) {
+                return;
+            }
+            if (event.code !== 'KeyP') {
+                return;
+            }
+            const target = event.target;
+            if (target instanceof HTMLElement) {
+                if (target.closest('input, textarea, select') || target.isContentEditable) {
+                    return;
+                }
+            }
+            if (abandonRunConfirmOpen) {
+                return;
+            }
+            if (run.relicOffer) {
+                return;
+            }
+            if (run.status === 'levelComplete' && run.lastLevelResult && !run.relicOffer) {
+                return;
+            }
+            if (run.status === 'paused') {
+                event.preventDefault();
+                resume();
+                return;
+            }
+            if (run.status === 'playing' || run.status === 'memorize' || run.status === 'resolving') {
+                event.preventDefault();
+                pause();
+            }
+        };
+        document.addEventListener('keydown', onKeyDown, true);
+        return () => document.removeEventListener('keydown', onKeyDown, true);
+    }, [
+        abandonRunConfirmOpen,
+        pause,
+        resume,
+        run.lastLevelResult,
+        run.relicOffer,
+        run.status,
+        suppressStatusOverlays
+    ]);
 
     useEffect(() => {
         const floorClearedModalBlocksToasts =
@@ -434,7 +485,6 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const nBackMutatorActive = run.activeMutators.includes('n_back_anchor');
     const viewportWantsMobileCamera = compactTouchChrome;
     const cameraViewportMode = deriveCameraViewportMode(settingsCameraViewportModePreference, viewportWantsMobileCamera);
-    const pauseActionLabel = run.status === 'paused' ? 'Resume' : 'Pause';
     const clearLifeBonusLabel = run.lastLevelResult ? getClearLifeBonusLabel(run.lastLevelResult) : null;
     const objectiveBonusLine =
         run.lastLevelResult && (run.lastLevelResult.objectiveBonusScore ?? 0) > 0
@@ -563,16 +613,12 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         openCodexFromPlaying={openCodexFromPlaying}
                         openInventoryFromPlaying={openInventoryFromPlaying}
                         openSettingsPlaying={() => openSettings('playing')}
-                        pause={pause}
-                        pauseActionLabel={pauseActionLabel}
                         peekModeArmed={peekModeArmed}
                         regionShuffleDisabled={regionShuffleDisabled}
                         regionShuffleTitle={regionShuffleTitle}
-                        resume={resume}
                         rulesHintsExpanded={rulesHintsExpanded}
                         run={run}
                         setRulesHintsExpanded={setRulesHintsExpanded}
-                        setUtilityFlyoutOpen={setUtilityFlyoutOpen}
                         debugFlags={toolbarDebugFlags}
                         showBoardPowerBar={showBoardPowerBar}
                         showFlashPairPower={showFlashPairPower}
@@ -588,7 +634,6 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         toggleStrayArm={toggleStrayArm}
                         triggerDebugReveal={triggerDebugReveal}
                         undoResolvingFlip={undoResolvingFlip}
-                        utilityFlyoutOpen={utilityFlyoutOpen}
                     />
                     <div
                         className={`${styles.mainGameColumn} ${cameraViewportMode ? styles.mobileCameraMainColumn : ''}`.trim()}
@@ -661,7 +706,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         ]}
                         headerPlateTone="pause"
                         ornamentalHeaderPlate
-                        subtitle="Game is paused. The board, memorize phase, and debug timers stay frozen until you resume or retreat."
+                        subtitle="Game is paused. The board, memorize phase, and debug timers stay frozen until you resume or retreat. Press P to resume."
                         testId="game-pause-overlay"
                         title="Run paused"
                     />

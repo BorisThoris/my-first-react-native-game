@@ -14,6 +14,8 @@ The active application lives under `src/`. The older Expo/roguelike implementati
 
 ## Development
 
+Use **Node 22.x** (see [`.node-version`](./.node-version) for the version this repo is tested with). [`.yarnrc`](./.yarnrc) sets `ignore-engines true` so transitive Electron tooling does not block `yarn install` / `yarn add` on slightly different patch releases.
+
 ```bash
 yarn install
 yarn dev
@@ -37,6 +39,8 @@ yarn package:dir
 yarn package:win
 ```
 
+See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for mechanics encyclopedia / Codex copy workflow when changing relics, mutators, or player-facing rules text.
+
 ## Dev: WebGL board profiling
 
 These flags are **dev builds only** (`import.meta.env.DEV`). After changing `localStorage`, **reload the page** so the renderer picks up the new value.
@@ -57,12 +61,12 @@ Clear the key or set it to anything other than `'1'` to turn a flag off, then re
 
 ## Product Scope
 
-This v1 desktop build is intentionally narrow on platform, but exposes several **run types** from the main menu (see `src/shared/game-catalog.ts` for codex copy):
+This v1 desktop build is intentionally narrow on platform, but exposes several **run types** from the main menu (player-facing reference copy lives in `src/shared/mechanics-encyclopedia.ts`; `src/shared/game-catalog.ts` re-exports it plus achievements for UI):
 
 - **Classic run** (internal mode: endless): procedural floors, relic offers, escalating pair counts
 - **Daily challenge**: shared UTC seed with a rotated daily mutator
-- **Gauntlet**: run-wide countdown
-- **Puzzle**: fixed handcrafted boards from the built-in set
+- **Gauntlet**: run-wide countdown (**5 / 10 / 15** minute presets from the main menu)
+- **Puzzle**: fixed handcrafted boards from the built-in set; optional **Import puzzle JSON** for local playtests
 - **Meditation**: calmer pacing / longer memorize windows
 - **Featured runs** from the menu include practice, scholar contract, pin vow, wild/joker, and puzzle shortcuts
 
@@ -73,6 +77,8 @@ Also:
 - Windows x64 only
 
 Design and mutator details: [docs/MUTATORS.md](docs/MUTATORS.md), [docs/GAMEPLAY_SYSTEMS_ANALYSIS.md](docs/GAMEPLAY_SYSTEMS_ANALYSIS.md).
+
+**Internal wiki (full doc map, multi-agent upkeep, coverage methodology):** [docs/internal-wiki/README.md](docs/internal-wiki/README.md) · [docs/internal-wiki/COVERAGE.md](docs/internal-wiki/COVERAGE.md).
 
 ## Archived Legacy Code
 

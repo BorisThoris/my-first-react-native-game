@@ -1,0 +1,37 @@
+/**
+ * Markdown appendix for `docs/gameplay/GAMEPLAY_MECHANICS_CATALOG.auto-appendix.md`.
+ * Emitted by `yarn docs:mechanics-appendix` — keeps machine-verifiable counts in sync with catalogs.
+ */
+import { GAME_RULES_VERSION } from './contracts';
+import {
+    ACHIEVEMENT_CATALOG,
+    ENCYCLOPEDIA_VERSION,
+    GAME_MODE_CODEX,
+    MUTATOR_CATALOG,
+    RELIC_CATALOG
+} from './mechanics-encyclopedia';
+
+export function buildMechanicsCatalogAppendixMarkdown(generatedAtIso = new Date().toISOString()): string {
+    const relicN = Object.keys(RELIC_CATALOG).length;
+    const mutN = Object.keys(MUTATOR_CATALOG).length;
+    const achN = Object.keys(ACHIEVEMENT_CATALOG).length;
+    const modes = GAME_MODE_CODEX.map((m) => m.id).join(', ');
+
+    return [
+        '# Gameplay mechanics — machine snapshot',
+        '',
+        `**Generated:** ${generatedAtIso}`,
+        '',
+        '> Regenerate with \`yarn docs:mechanics-appendix\`. Do not edit by hand.',
+        '',
+        '| Constant / count | Value |',
+        '| --- | --- |',
+        `| \`GAME_RULES_VERSION\` | ${GAME_RULES_VERSION} |`,
+        `| \`ENCYCLOPEDIA_VERSION\` | ${ENCYCLOPEDIA_VERSION} |`,
+        `| Relic entries (\`RELIC_CATALOG\`) | ${relicN} |`,
+        `| Mutator entries (\`MUTATOR_CATALOG\`) | ${mutN} |`,
+        `| Achievement entries (\`ACHIEVEMENT_CATALOG\`) | ${achN} |`,
+        `| \`GameMode\` codex ids | ${modes} |`,
+        ''
+    ].join('\n');
+}

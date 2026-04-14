@@ -1,3 +1,7 @@
+/**
+ * Relic **pool and milestone selection** (`RELIC_POOL`, `rollRelicOptions`, `needsRelicPick`).
+ * Per-relic gameplay lives in `game.ts` (`applyRelicImmediate`, memorize duration, shuffle/destroy economy, parasite ward, etc.).
+ */
 import { hashStringToSeed } from './rng';
 import type { RelicId, RunState } from './contracts';
 

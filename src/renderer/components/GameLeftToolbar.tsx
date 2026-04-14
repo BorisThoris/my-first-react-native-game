@@ -1,11 +1,9 @@
 import type { RunState, Settings } from '../../shared/contracts';
 import {
-    useCallback,
     useEffect,
     useLayoutEffect,
     useRef,
     type Dispatch,
-    type KeyboardEvent as ReactKeyboardEvent,
     type RefObject,
     type SetStateAction
 } from 'react';
@@ -20,11 +18,8 @@ import styles from './GameScreen.module.css';
 
 export interface GameLeftToolbarProps {
     cameraViewportMode: boolean;
-    utilityFlyoutOpen: boolean;
-    setUtilityFlyoutOpen: Dispatch<SetStateAction<boolean>>;
     run: RunState;
     debugFlags: Settings['debugFlags'];
-    pauseActionLabel: string;
     showForgivenessHint: boolean;
     rulesHintsExpanded: boolean;
     setRulesHintsExpanded: Dispatch<SetStateAction<boolean>>;
@@ -44,8 +39,6 @@ export interface GameLeftToolbarProps {
     tileBoardRef: RefObject<TileBoardHandle | null>;
     onViewportReset: () => void;
     onRequestAbandonRun: () => void;
-    resume: () => void;
-    pause: () => void;
     openSettingsPlaying: () => void;
     openInventoryFromPlaying: () => void;
     openCodexFromPlaying: () => void;
@@ -61,15 +54,10 @@ export interface GameLeftToolbarProps {
     triggerDebugReveal: () => void;
 }
 
-const UTILITY_FLYOUT_DOM_ID = 'game-toolbar-utility-flyout';
-
 const GameLeftToolbar = ({
     cameraViewportMode,
-    utilityFlyoutOpen,
-    setUtilityFlyoutOpen,
     run,
     debugFlags,
-    pauseActionLabel,
     showForgivenessHint,
     rulesHintsExpanded,
     setRulesHintsExpanded,
@@ -89,8 +77,6 @@ const GameLeftToolbar = ({
     tileBoardRef,
     onViewportReset,
     onRequestAbandonRun,
-    resume,
-    pause,
     openSettingsPlaying,
     openInventoryFromPlaying,
     openCodexFromPlaying,
@@ -106,67 +92,9 @@ const GameLeftToolbar = ({
     shuffleBoard
 }: GameLeftToolbarProps) => {
     const asideRef = useRef<HTMLElement | null>(null);
-    const menuButtonRef = useRef<HTMLButtonElement | null>(null);
-    const flyoutRef = useRef<HTMLDivElement | null>(null);
     const controlsToolbarRef = useRef<HTMLDivElement | null>(null);
     const powersToolbarRef = useRef<HTMLDivElement | null>(null);
     const resolveToolbarRef = useRef<HTMLDivElement | null>(null);
-
-    const railPauseLabel =
-        run.status === 'paused' ? 'Resume gameplay (toolbar)' : 'Pause gameplay (toolbar)';
-
-    const closeUtilityFlyout = useCallback(
-        (returnFocus: boolean): void => {
-            setUtilityFlyoutOpen(false);
-            if (returnFocus) {
-                window.requestAnimationFrame(() => {
-                    menuButtonRef.current?.focus();
-                });
-            }
-        },
-        [setUtilityFlyoutOpen]
-    );
-
-    const getFlyoutFocusableButtons = (): HTMLButtonElement[] => {
-        const root = flyoutRef.current;
-        if (!root) {
-            return [];
-        }
-        return Array.from(root.querySelectorAll<HTMLButtonElement>('button:not([disabled])'));
-    };
-
-    const handleFlyoutKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>): void => {
-        if (event.key !== 'Tab' || event.defaultPrevented) {
-            return;
-        }
-        const buttons = getFlyoutFocusableButtons();
-        if (buttons.length === 0) {
-            return;
-        }
-        const first = buttons[0];
-        const last = buttons[buttons.length - 1];
-        const active = document.activeElement;
-        if (!event.shiftKey && active === last) {
-            event.preventDefault();
-            menuButtonRef.current?.focus();
-        } else if (event.shiftKey && active === first) {
-            event.preventDefault();
-            menuButtonRef.current?.focus();
-        }
-    };
-
-    const handleUtilityToggleKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>): void => {
-        if (!utilityFlyoutOpen || event.key !== 'Tab' || !event.shiftKey || event.defaultPrevented) {
-            return;
-        }
-        const buttons = getFlyoutFocusableButtons();
-        const last = buttons[buttons.length - 1];
-        if (!last) {
-            return;
-        }
-        event.preventDefault();
-        last.focus();
-    };
 
     useLayoutEffect(() => {
         syncVerticalToolbarTabIndices(controlsToolbarRef.current);
@@ -174,8 +102,7 @@ const GameLeftToolbar = ({
         cameraViewportMode,
         run.status,
         debugFlags.allowBoardReveal,
-        debugFlags.showDebugTools,
-        utilityFlyoutOpen
+        debugFlags.showDebugTools
     ]);
 
     useLayoutEffect(() => {
@@ -224,45 +151,6 @@ const GameLeftToolbar = ({
         return () => aside.removeEventListener('focusin', onFocusIn);
     }, []);
 
-    useEffect(() => {
-        if (!utilityFlyoutOpen) {
-            return;
-        }
-        const onPointerDown = (event: PointerEvent): void => {
-            const target = event.target as Node | null;
-            if (!target) {
-                return;
-            }
-            if (flyoutRef.current?.contains(target) || menuButtonRef.current?.contains(target)) {
-                return;
-            }
-            closeUtilityFlyout(true);
-        };
-        const onKeyDown = (event: KeyboardEvent): void => {
-            if (event.key === 'Escape') {
-                event.preventDefault();
-                event.stopPropagation();
-                closeUtilityFlyout(true);
-            }
-        };
-        document.addEventListener('pointerdown', onPointerDown, true);
-        document.addEventListener('keydown', onKeyDown, true);
-        return () => {
-            document.removeEventListener('pointerdown', onPointerDown, true);
-            document.removeEventListener('keydown', onKeyDown, true);
-        };
-    }, [utilityFlyoutOpen, closeUtilityFlyout]);
-
-    const openInventory = (): void => {
-        setUtilityFlyoutOpen(false);
-        openInventoryFromPlaying();
-    };
-
-    const openCodex = (): void => {
-        setUtilityFlyoutOpen(false);
-        openCodexFromPlaying();
-    };
-
     const pinVowCap = run.activeContract?.maxPinsTotalRun;
     const pinTitle =
         pinVowCap != null
@@ -275,16 +163,6 @@ const GameLeftToolbar = ({
             className={`${styles.leftToolbar} ${cameraViewportMode ? styles.mobileCameraLeftToolbar : ''}`.trim()}
             ref={asideRef}
         >
-            {utilityFlyoutOpen ? (
-                <button
-                    aria-label="Dismiss utility menu"
-                    className={styles.flyoutScrim}
-                    data-testid="game-toolbar-flyout-scrim"
-                    onPointerDown={() => closeUtilityFlyout(true)}
-                    tabIndex={-1}
-                    type="button"
-                />
-            ) : null}
             <div
                 aria-label="Game controls"
                 aria-orientation="vertical"
@@ -294,21 +172,6 @@ const GameLeftToolbar = ({
                 role="toolbar"
             >
                 <button
-                    ref={menuButtonRef}
-                    aria-controls={utilityFlyoutOpen ? UTILITY_FLYOUT_DOM_ID : undefined}
-                    aria-expanded={utilityFlyoutOpen}
-                    aria-haspopup="menu"
-                    aria-label={utilityFlyoutOpen ? 'Hide utility menu' : 'Show utility menu'}
-                    className={`${styles.iconAction} ${utilityFlyoutOpen ? styles.iconActionActive : ''}`}
-                    data-testid="game-toolbar-utility-toggle"
-                    onClick={() => setUtilityFlyoutOpen((open) => !open)}
-                    onKeyDown={handleUtilityToggleKeyDown}
-                    title="Open utility menu"
-                    type="button"
-                >
-                    <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.menuHamburger} />
-                </button>
-                <button
                     aria-label="Fit board"
                     className={styles.iconAction}
                     onClick={onViewportReset}
@@ -316,20 +179,6 @@ const GameLeftToolbar = ({
                     type="button"
                 >
                     <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.fitBoard} />
-                </button>
-                <button
-                    aria-label={railPauseLabel}
-                    className={styles.iconAction}
-                    data-testid="game-toolbar-pause"
-                    onClick={run.status === 'paused' ? resume : pause}
-                    title={pauseActionLabel}
-                    type="button"
-                >
-                    {run.status === 'paused' ? (
-                        <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.play} />
-                    ) : (
-                        <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.pause} />
-                    )}
                 </button>
                 <button
                     aria-label="Run settings (toolbar)"
@@ -344,7 +193,7 @@ const GameLeftToolbar = ({
                     aria-label="Open codex"
                     className={styles.iconAction}
                     data-testid="game-toolbar-codex"
-                    onClick={openCodex}
+                    onClick={() => openCodexFromPlaying()}
                     title="Codex"
                     type="button"
                 >
@@ -354,7 +203,7 @@ const GameLeftToolbar = ({
                     aria-label="Open inventory"
                     className={styles.iconAction}
                     data-testid="game-toolbar-inventory"
-                    onClick={openInventory}
+                    onClick={() => openInventoryFromPlaying()}
                     title="Inventory"
                     type="button"
                 >
@@ -375,48 +224,6 @@ const GameLeftToolbar = ({
                     </UiButton>
                 ) : null}
             </div>
-            {utilityFlyoutOpen ? (
-                <div
-                    className={styles.utilityFlyout}
-                    data-testid="game-toolbar-flyout"
-                    id={UTILITY_FLYOUT_DOM_ID}
-                    ref={flyoutRef}
-                    role="group"
-                    aria-label="In-game menu"
-                    onKeyDown={handleFlyoutKeyDown}
-                >
-                    <div className={styles.flyoutHeader}>
-                        <span className={styles.flyoutHeaderTitle}>Menu</span>
-                        <button
-                            aria-label="Close utility menu"
-                            className={styles.flyoutClose}
-                            data-testid="game-toolbar-flyout-close"
-                            onClick={() => closeUtilityFlyout(true)}
-                            type="button"
-                        >
-                            ×
-                        </button>
-                    </div>
-                    <button
-                        aria-label="Inventory, active run loadout and charges"
-                        className={styles.flyoutAction}
-                        onClick={openInventory}
-                        type="button"
-                    >
-                        <strong>Inventory</strong>
-                        <span>Active run loadout and charges</span>
-                    </button>
-                    <button
-                        aria-label="Codex, read-only rules and reference"
-                        className={styles.flyoutAction}
-                        onClick={openCodex}
-                        type="button"
-                    >
-                        <strong>Codex</strong>
-                        <span>Read-only rules and reference</span>
-                    </button>
-                </div>
-            ) : null}
             {showForgivenessHint ? (
                 <div className={styles.toolbarSection}>
                     <button

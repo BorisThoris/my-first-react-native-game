@@ -51,7 +51,7 @@ test.describe('E2E-002 / E2E-003 — startup intro + pause modal a11y', () => {
         await openLevel1Play(page);
         await waitLevel1PlayReady(page);
 
-        await page.getByTestId('game-toolbar-pause').click();
+        await page.keyboard.press('p');
         const pause = page.getByTestId('game-pause-overlay');
         await expect(pause).toBeVisible();
 

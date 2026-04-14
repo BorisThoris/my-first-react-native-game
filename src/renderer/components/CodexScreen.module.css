@@ -36,6 +36,94 @@
     color: var(--theme-text-subtle);
 }
 
+.tabRail {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--theme-space-xs);
+    padding: 0 0 var(--theme-space-sm);
+    border-bottom: 1px solid var(--theme-divider-hairline);
+}
+
+.tabButton {
+    min-height: var(--ui-touch-target-min);
+    padding: 0.35rem 0.85rem;
+    border-radius: var(--ui-radius-pill);
+    border: 1px solid var(--theme-card-border-muted);
+    background: var(--theme-surface-raised-soft);
+    color: var(--theme-text-subtle);
+    font-size: 0.68rem;
+    font-weight: 750;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.tabButton[aria-selected='true'] {
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 45%, var(--theme-card-border-muted));
+    color: var(--theme-gold-bright);
+    background: color-mix(in srgb, var(--theme-gold-deep) 12%, var(--theme-surface-raised-soft));
+}
+
+.filterRow {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: var(--theme-space-md);
+}
+
+.filterLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.filterInput {
+    width: 100%;
+    max-width: 22rem;
+    padding: 0.5rem 0.65rem;
+    border-radius: var(--theme-radius-sm);
+    border: 1px solid var(--theme-card-border-muted);
+    background: var(--theme-surface-raised);
+    color: var(--theme-text-primary);
+    font-size: 0.9rem;
+}
+
+.filterInput::placeholder {
+    color: var(--theme-text-muted);
+}
+
+.filterEmpty {
+    margin: 0 0 var(--theme-space-md);
+    font-size: 0.88rem;
+    color: var(--theme-text-muted);
+}
+
+.sectionFold {
+    width: 100%;
+}
+
+.foldSummary {
+    cursor: pointer;
+    list-style: none;
+}
+
+.sectionFold .foldSummary::-webkit-details-marker {
+    display: none;
+}
+
+/* META-010: subtle “open tome” cue when nested inside in-run desk modal (outer plate is `modalInnerDesk`). */
+.codexInRunShell .filterRow {
+    padding-top: 0.15rem;
+    border-top: 1px solid color-mix(in srgb, var(--theme-gold) 12%, transparent);
+}
+
 @media (max-width: 760px) {
     .entry {
         padding: 0.62rem 0;
