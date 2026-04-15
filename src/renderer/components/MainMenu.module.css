@@ -155,6 +155,10 @@
     gap: var(--menu-layout-gap);
     flex: 1 1 auto;
     min-height: 0;
+    width: 100%;
+    max-width: min(1280px, 100%);
+    margin-inline: auto;
+    box-sizing: border-box;
 }
 
 .heroColumn,
@@ -338,17 +342,6 @@
 
 .supportHeading {
     margin-top: 0.18rem;
-}
-
-.modeGrid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--menu-mode-grid-gap);
-    margin-top: var(--menu-mode-grid-mt);
-}
-
-.modeButton {
-    justify-content: center;
 }
 
 .archiveStats {
@@ -561,10 +554,6 @@
     line-height: 1.38;
 }
 
-.touchCompactShell .modeGrid {
-    margin-top: var(--theme-space-sm);
-}
-
 .touchCompactShell .archiveStats {
     margin-top: var(--theme-space-sm);
 }
@@ -600,20 +589,9 @@
 }
 
 .shortTouchLandscapeShell .heroColumn {
-    display: grid;
-    grid-template-columns: minmax(0, 1.08fr) minmax(230px, 0.92fr);
-    align-items: start;
-}
-
-.shortTouchLandscapeShell .brandLockup,
-.shortTouchLandscapeShell .actionStack {
-    grid-column: 1;
-}
-
-.shortTouchLandscapeShell .inlineModesPanel {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .shortTouchLandscapeShell .heroTitle {
@@ -847,10 +825,6 @@
     display: none;
 }
 
-.ultraCompactPhoneShell .modeGrid {
-    margin-top: 0.45rem;
-}
-
 .ultraCompactPhoneShell .supportPanel {
     padding: 0.82rem;
 }
@@ -888,7 +862,6 @@
     }
 
     .bottomCards,
-    .modeGrid,
     .archiveStats {
         grid-template-columns: 1fr;
     }
@@ -1023,69 +996,4 @@
     .shell:not(.touchCompactShell) .metaRow {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-}
-
-.meditationMutatorList {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.35rem 0.55rem;
-    max-height: min(38vh, 260px);
-    overflow: hidden;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-
-@media (max-width: 520px) {
-    .meditationMutatorList {
-        grid-template-columns: 1fr;
-    }
-}
-
-.meditationMutatorRow {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.55rem;
-    font-size: 0.78rem;
-    line-height: 1.35;
-    color: var(--theme-text-subtle, rgba(232, 236, 244, 0.88));
-}
-
-.meditationMutatorLabel {
-    display: flex;
-    flex-direction: column;
-    gap: 0.12rem;
-    cursor: pointer;
-}
-
-.meditationMutatorLabel strong {
-    color: var(--theme-text, #e8ecf4);
-    font-size: 0.8rem;
-}
-
-.importJsonField {
-    width: 100%;
-    min-height: 9rem;
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0.65rem 0.75rem;
-    border-radius: var(--ui-radius-md, 10px);
-    border: 1px solid var(--theme-border, rgba(255, 214, 133, 0.14));
-    background: var(--theme-panel-solid);
-    color: var(--theme-text);
-    font-family: var(--theme-body-font, 'Segoe UI', sans-serif);
-    font-size: 0.82rem;
-    line-height: 1.4;
-    resize: vertical;
-}
-
-.importJsonField::placeholder {
-    color: var(--theme-text-subtle);
-}
-
-.importError {
-    margin: 0.35rem 0 0;
-    font-size: 0.82rem;
-    line-height: 1.35;
-    color: var(--theme-danger, #d86a58);
 }

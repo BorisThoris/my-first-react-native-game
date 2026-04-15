@@ -1,4 +1,5 @@
 import brandCrestUrl from './brand-crest.svg';
+import choosePathSceneUrl from './backgrounds/bg-choose-path-stage-ambient-v2.png';
 import gameplaySceneUrl from './backgrounds/bg-gameplay-dungeon-ring-v1.png';
 import dividerOrnamentUrl from './divider-ornament.svg';
 import menuEmblemUrl from './menu-emblem.svg';
@@ -8,6 +9,8 @@ import stageRingUrl from './stage-ring.svg';
 
 export const UI_ART = {
     brandCrest: brandCrestUrl,
+    /** Choose Your Path — soft-light texture layer over gameplay base (`sceneLayer` in `ChooseYourPathScreen`). */
+    choosePathScene: choosePathSceneUrl,
     dividerOrnament: dividerOrnamentUrl,
     gameplayScene: gameplaySceneUrl,
     menuEmblem: menuEmblemUrl,
@@ -18,4 +21,4 @@ export const UI_ART = {
 
 export type UiArtKey = keyof typeof UI_ART;
 
-export { MODE_CARD_ART } from './modeArt';
+export { MODE_CARD_ART, resolveModePosterUrl } from './modeArt';

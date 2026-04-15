@@ -17,6 +17,7 @@
  */
 
 import { createWriteStream, mkdirSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pipeline } from 'node:stream/promises';
@@ -109,6 +110,10 @@ function modelSupportsImageQuality(model) {
     return typeof model === 'string' && model.startsWith('gpt-image');
 }
 
+function modelUsesLegacyResponseFormat(model) {
+    return typeof model === 'string' && !model.startsWith('gpt-image');
+}
+
 function resolveEffectiveQuality(qualityArg, resolutionRaw) {
     if (qualityArg) {
         return qualityArg;
@@ -118,6 +123,29 @@ function resolveEffectiveQuality(qualityArg, resolutionRaw) {
         return 'high';
     }
     return undefined;
+}
+
+function readWindowsUserEnv(name) {
+    if (process.platform !== 'win32') {
+        return '';
+    }
+    try {
+        const output = execFileSync('reg', ['query', 'HKCU\\Environment', '/v', name], {
+            encoding: 'utf8',
+            stdio: ['ignore', 'pipe', 'ignore']
+        });
+        const line = output
+            .split(/\r?\n/)
+            .map((entry) => entry.trim())
+            .find((entry) => entry.toLowerCase().startsWith(name.toLowerCase()));
+        if (!line) {
+            return '';
+        }
+        const match = line.match(/^[^\s]+\s+REG_\w+\s+(.+)$/);
+        return match?.[1]?.trim() ?? '';
+    } catch {
+        return '';
+    }
 }
 
 async function main() {
@@ -157,7 +185,7 @@ Environment: OPENAI_API_KEY required.`);
         process.exit(1);
     }
 
-    const key = process.env.OPENAI_API_KEY?.trim();
+    const key = process.env.OPENAI_API_KEY?.trim() || readWindowsUserEnv('OPENAI_API_KEY');
     if (!key) {
         console.error('Missing OPENAI_API_KEY. Set it and re-run.');
         process.exit(1);
@@ -176,9 +204,11 @@ Environment: OPENAI_API_KEY required.`);
         model,
         prompt,
         n: 1,
-        size,
-        response_format: 'b64_json'
+        size
     };
+    if (modelUsesLegacyResponseFormat(model)) {
+        payload.response_format = 'b64_json';
+    }
     if (effectiveQuality && modelSupportsImageQuality(model)) {
         payload.quality = effectiveQuality;
     }

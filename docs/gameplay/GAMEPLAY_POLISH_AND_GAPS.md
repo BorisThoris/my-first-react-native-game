@@ -160,7 +160,20 @@
 
 ---
 
-## 15. Ongoing recommendations (from systems analysis)
+## 15. Choose Your Path (presentation shell)
+
+Technical + UX notes live in [epic-choose-your-path](./epic-choose-your-path.md) (layout/zoom pipeline, pager math, **cross-platform interaction**, QA matrix). Presentation + **drag-first library** (fourth pass, 2026-04) are reflected there; see epic **Tasks**.
+
+| Item | Status | Notes | Epic |
+|------|--------|-------|------|
+| Library vs hero visual density | **Shippable** | Scroller min/max + library card padding vs Featured; compact / short-landscape overrides. | [epic-choose-your-path](./epic-choose-your-path.md) |
+| Placeholder poster repetition | **Functional** | Shared placeholder raster; **per-`posterKey` CSS tint** on library cells until per-mode art lands. | [epic-choose-your-path](./epic-choose-your-path.md) |
+| Pager / search / affordances | **Shippable** | **Magnifier** toggles search; **no** Previous/Next buttons; dots + **drag / swipe** tray; edge fades. | [epic-choose-your-path](./epic-choose-your-path.md) |
+| Fit-zoom + nested horizontal scroll | **Functional** | `useFitShellZoom` on outer path stack + library `overflow-x`; re-verify on short viewports when layout changes. | [epic-choose-your-path](./epic-choose-your-path.md) |
+
+---
+
+## 16. Ongoing recommendations (from systems analysis)
 
 From [GAMEPLAY_SYSTEMS_ANALYSIS.md](../GAMEPLAY_SYSTEMS_ANALYSIS.md) §10:
 
@@ -192,6 +205,7 @@ From [GAMEPLAY_SYSTEMS_ANALYSIS.md](../GAMEPLAY_SYSTEMS_ANALYSIS.md) §10:
 | [epic-content-symbols-and-generation](./epic-content-symbols-and-generation.md) | Readability curve, puzzle sync |
 | [epic-relics](./epic-relics.md) | Pool size / discovery |
 | [epic-readonly-meta-ui](./epic-readonly-meta-ui.md) | Illustrative vs live data |
+| [epic-choose-your-path](./epic-choose-your-path.md) | CYP: drag-first library, magnifier search, touch + mouse; optional per-mode art later |
 
 ---
 

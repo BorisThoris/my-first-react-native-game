@@ -55,6 +55,8 @@ If a branch proves `FitScreen` superior (e.g. less blur with `transform` + their
 
 Desktop-short compaction for the main menu and choose-your-path screens uses **`@container`** on the same shell nodes that host fit-zoom (`container-type: size` + `container-name`), so rules track the **actual shell** width/height rather than only the global viewport (helpful inside window chrome and nested flex).
 
+**Choose Your Path — More modes:** the library uses a **horizontal** scroll-snap tray (`overflow-x` on the inner scroller). That is not a second vertical document scroll; navigation is **touch pan / mouse drag** plus optional dot jumps. Product + a11y notes: [epic-choose-your-path.md](./gameplay/epic-choose-your-path.md) (**Cross-platform interaction**).
+
 ## Spacing ladder (`--theme-space-*`)
 
 | Token | Role |

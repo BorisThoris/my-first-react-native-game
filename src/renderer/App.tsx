@@ -46,15 +46,6 @@ const App = () => {
         subscreenReturnView,
         settings,
         steamConnected,
-        startGauntletRun,
-        startMeditationRun,
-        startMeditationRunWithMutators,
-        startPinVowRun,
-        startPracticeRun,
-        startPuzzleRun,
-        startPuzzleRunFromImport,
-        startScholarContractRun,
-        startWildRun,
         view
     } = useAppStore(
         useShallow((state) => ({
@@ -73,15 +64,6 @@ const App = () => {
             subscreenReturnView: state.subscreenReturnView,
             settings: state.settings,
             steamConnected: state.steamConnected,
-            startGauntletRun: state.startGauntletRun,
-            startMeditationRun: state.startMeditationRun,
-            startMeditationRunWithMutators: state.startMeditationRunWithMutators,
-            startPinVowRun: state.startPinVowRun,
-            startPracticeRun: state.startPracticeRun,
-            startPuzzleRun: state.startPuzzleRun,
-            startPuzzleRunFromImport: state.startPuzzleRunFromImport,
-            startScholarContractRun: state.startScholarContractRun,
-            startWildRun: state.startWildRun,
             view: state.view
         }))
     );
@@ -237,16 +219,6 @@ const App = () => {
                                 onOpenCodex={openCodexFromMenu}
                                 onOpenInventory={openInventoryFromMenu}
                                 onPlay={openModeSelect}
-                                onGauntletRun={startGauntletRun}
-                                onImportPuzzleJson={startPuzzleRunFromImport}
-                                onPuzzleStarter={() => startPuzzleRun('starter_pairs')}
-                                onMirrorPuzzleRun={() => startPuzzleRun('mirror_craft')}
-                                onPracticeRun={startPracticeRun}
-                                onScholarContractRun={startScholarContractRun}
-                                onMeditationRun={startMeditationRun}
-                                onMeditationRunWithMutators={startMeditationRunWithMutators}
-                                onPinVowRun={startPinVowRun}
-                                onWildRun={startWildRun}
                                 showHowToPlay={!saveData.onboardingDismissed}
                             />
                         ) : null}

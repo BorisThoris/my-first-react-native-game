@@ -12,7 +12,7 @@ Two files both export a constant named `UI_ART` — they are **not** interchange
 | [`ui/slots.ts`](ui/slots.ts) | `UI_ART` | Slot-style chrome plus **card** texture URLs (`cardBackUrl`, `cardFaceUrl`) and a small set of flourishes. Prefer aliasing on import (e.g. `UI_ART as SLOT_UI_ART`) in new code so it is not confused with the shell barrel. |
 | [`ui/modeArt.ts`](ui/modeArt.ts) | `MODE_CARD_ART` | Choose Your Path mode posters; re-exported from `index.ts`. |
 
-**Authoritative menu / gameplay scenes:** `UI_ART.menuScene` and `UI_ART.gameplayScene` in `index.ts` point at **`ui/backgrounds/*.png`**. Legacy SVGs on disk (below) are not wired into the build.
+**Authoritative menu / gameplay scenes:** `UI_ART.menuScene`, `UI_ART.choosePathScene`, and `UI_ART.gameplayScene` in `index.ts` point at **`ui/backgrounds/*.png`**. Legacy SVGs on disk (below) are not wired into the build.
 
 ## Asset inventory
 
@@ -25,6 +25,8 @@ Two files both export a constant named `UI_ART` — they are **not** interchange
 | `ui/backgrounds/bg-mode-classic-v1.png` | Mode card poster | AI-generated | Classic / blue-silver gate |
 | `ui/backgrounds/bg-mode-daily-v1.png` | Mode card poster | AI-generated | Daily / purple crystal featured |
 | `ui/backgrounds/bg-mode-endless-v1.png` | Mode card poster (locked) | AI-generated | Endless / ember gate, darker |
+| `ui/backgrounds/bg-mode-placeholder-v1.png` | Mode card poster (fallback) | Copy of `bg-mode-endless-v1.png` until per-mode art ships | Wired in `modeArt.ts` for catalog keys (gauntlet, wild, imports, etc.). Replace the file or add keyed PNGs and point `MODE_CARD_ART` at them. |
+| `ui/backgrounds/bg-choose-path-stage-v1.png` | Choose Your Path hero layer | Procedural (`scripts/generate-choose-path-background.mjs`) or replace via `scripts/card-pipeline/image_gen.mjs` with `OPENAI_API_KEY` | Same stack as main menu: `sceneLayer` + scrim in `ChooseYourPathScreen`. Regenerate: `node scripts/generate-choose-path-background.mjs`. |
 | `ui/brand-crest.svg` | Menu crest | Authored SVG | Crystal sigil in gold frame; reused on **GameOver** hero lockup (**META-002**). |
 | `ui/menu-emblem.svg` | Secondary emblem | Authored SVG | Ring + tome motif |
 | `ui/divider-ornament.svg` | Hero divider | Authored SVG | Gold gradient + center gem + side flourishes |

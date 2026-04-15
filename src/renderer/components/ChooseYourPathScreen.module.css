@@ -1,4 +1,57 @@
+/* Hero raster + scrim — same layering idea as MainMenu `sceneLayer` / `scrim`. */
+.pathShell {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+}
+
+.sceneBaseLayer,
+.sceneLayer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+.sceneBaseLayer {
+    opacity: 0.58;
+    background-position: center 58%;
+}
+
+.sceneLayer {
+    opacity: 0.18;
+    background-position: center 42%;
+    mix-blend-mode: soft-light;
+}
+
+.scrim {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+        linear-gradient(
+            90deg,
+            rgba(4, 5, 10, 0.82) 0%,
+            rgba(4, 5, 10, 0.62) 22%,
+            rgba(4, 5, 10, 0.22) 42%,
+            rgba(4, 5, 10, 0) 62%
+        ),
+        radial-gradient(
+            ellipse 76% 70% at 58% 42%,
+            rgba(255, 255, 255, 0) 20%,
+            color-mix(in srgb, var(--theme-backdrop-body-shade-mid) 84%, transparent) 64%,
+            var(--theme-backdrop-body-shade-deep) 100%
+        ),
+        linear-gradient(180deg, rgba(6, 7, 12, 0.42) 0%, rgba(6, 7, 12, 0.08) 18%, rgba(6, 7, 12, 0.12) 42%, rgba(6, 7, 12, 0.7) 100%),
+        linear-gradient(180deg, var(--theme-backdrop-body-rim), transparent 13% 82%, var(--theme-backdrop-body-rim));
+}
+
 .pathFitViewport {
+    position: relative;
+    z-index: 1;
     flex: 1 1 auto;
     min-height: 0;
     width: 100%;
@@ -45,10 +98,86 @@
     gap: var(--path-stack-header-gap);
 }
 
+.pathHeaderText {
+    gap: 0.3rem;
+}
+
+.pathStackHeader .pathBackButton {
+    width: auto;
+}
+
+.pathBackButton {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    width: auto;
+    min-height: 44px;
+    margin: -0.2rem 0 0;
+    padding: 0.35rem 0.5rem 0.35rem 0.25rem;
+    border: none;
+    border-radius: 6px;
+    appearance: none;
+    background: transparent;
+    box-shadow: none;
+    color: color-mix(in srgb, var(--theme-text-subtle) 82%, var(--theme-gold-bright) 18%);
+    font-family: var(--theme-display-font);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition:
+        color 140ms ease,
+        opacity 140ms ease,
+        background-color 140ms ease;
+}
+
+.pathBackButton:hover {
+    color: color-mix(in srgb, var(--theme-text) 82%, var(--theme-gold-bright) 18%);
+}
+
+.pathBackButton:active {
+    opacity: 0.9;
+}
+
+.pathBackButton:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--theme-gold-bright) 42%, transparent);
+}
+
+.pathBackIcon {
+    width: 0.9rem;
+    height: 0.9rem;
+    flex: 0 0 auto;
+}
+
 .pathFitStack .pathBody {
     flex: 1 1 auto;
     min-height: 0;
     overflow: visible;
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-xl);
+}
+
+.heroSection,
+.librarySection {
+    display: flex;
+    flex-direction: column;
+    gap: var(--theme-space-md);
+    min-width: 0;
+}
+
+/* More modes: uniform compact tiles (fixed height); hero uses full-width thirds. */
+.librarySection {
+    --library-tile-max-width: 186px;
+    --library-tile-height: 196px;
+}
+
+.sectionEyebrow {
+    margin-bottom: 0.05rem;
 }
 
 .cardGrid {
@@ -56,6 +185,425 @@
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: var(--path-card-grid-gap);
     align-items: stretch;
+}
+
+.libraryToolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--theme-space-2xs) var(--theme-space-xs);
+    margin-bottom: var(--theme-space-2xs);
+}
+
+.libraryToolbarSearchOpen .libraryDotsWrap {
+    flex-basis: 100%;
+    justify-content: center;
+}
+
+.librarySearchRail {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-sm);
+    min-width: 0;
+}
+
+.librarySearchRailCollapsed {
+    flex: 0 0 auto;
+}
+
+.librarySearchRailOpen {
+    flex: 1 1 min(100%, 22rem);
+    min-width: 0;
+}
+
+.librarySearchRailWide {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+}
+
+.librarySearchFieldLead {
+    position: relative;
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+}
+
+.librarySearchLeadIcon {
+    position: absolute;
+    left: 0.65rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: color-mix(in srgb, var(--theme-text-muted) 90%, var(--theme-gold-bright) 10%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.libraryFilterInputInset {
+    padding-left: 2.45rem;
+}
+
+/* Icon-only control: no plate, border, or shadow (avoid UiButton chrome). */
+.librarySearchIconBtn {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 0.5rem;
+    min-width: var(--ui-touch-target-min);
+    min-height: var(--ui-touch-target-min);
+    border: none;
+    border-radius: var(--ui-radius-md);
+    background: transparent;
+    box-shadow: none;
+    color: color-mix(in srgb, var(--theme-text-muted) 88%, var(--theme-gold-bright) 12%);
+    cursor: pointer;
+    transition: color 140ms ease, opacity 140ms ease;
+}
+
+.librarySearchIconBtn:hover {
+    color: color-mix(in srgb, var(--theme-text) 78%, var(--theme-gold-bright) 22%);
+}
+
+.librarySearchIconBtn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--theme-gold-bright) 45%, transparent);
+}
+
+.librarySearchIconBtnFiltered {
+    color: var(--theme-gold-bright);
+}
+
+.librarySearchIconGlyph {
+    display: block;
+    width: 1.2rem;
+    height: 1.2rem;
+}
+
+.librarySearchExpand {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.libraryDotsWrap {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    flex: 1 1 10rem;
+    min-width: 0;
+}
+
+.libraryFilterLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.librarySearchExpand .libraryFilterInput {
+    max-width: none;
+}
+
+.libraryFilterInput {
+    width: 100%;
+    max-width: 22rem;
+    padding: 0.5rem 0.65rem;
+    border-radius: var(--theme-radius-sm, var(--ui-radius-md));
+    border: 1px solid var(--theme-card-border-muted);
+    background: var(--theme-surface-raised);
+    color: var(--theme-text-primary, var(--theme-text));
+    font-size: 0.9rem;
+}
+
+.libraryFilterInput::placeholder {
+    color: var(--theme-text-muted);
+}
+
+.libraryEmpty {
+    margin: 0;
+    font-size: 0.88rem;
+    color: var(--theme-text-muted);
+}
+
+.libraryDot {
+    width: 0.42rem;
+    height: 0.42rem;
+    padding: 0;
+    border: none;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--theme-text-subtle) 38%, transparent);
+    cursor: pointer;
+    transition:
+        background 120ms ease,
+        transform 120ms ease;
+}
+
+.libraryDot:hover,
+.libraryDot:focus-visible {
+    background: color-mix(in srgb, var(--theme-gold-bright) 50%, transparent);
+    outline: none;
+}
+
+.libraryDot:focus-visible {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--theme-gold-bright) 45%, transparent);
+}
+
+.libraryDotActive {
+    background: color-mix(in srgb, var(--theme-gold-bright) 74%, var(--theme-text-subtle) 26%);
+    transform: scale(1.12);
+}
+
+/* Edge fades over the tray; scrollbar strip stays visible below the fade area. */
+.libraryScrollerWrap {
+    --library-tray-fade: color-mix(in srgb, var(--theme-panel-solid, rgba(12, 14, 22)) 88%, transparent);
+
+    position: relative;
+    border-radius: var(--ui-radius-lg);
+}
+
+.libraryScrollerWrap::before,
+.libraryScrollerWrap::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 4px;
+    width: 1.35rem;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.libraryScrollerWrap::before {
+    left: 0;
+    border-radius: var(--ui-radius-lg) 0 0 var(--ui-radius-lg);
+    background: linear-gradient(to right, var(--library-tray-fade), transparent);
+}
+
+.libraryScrollerWrap::after {
+    right: 0;
+    border-radius: 0 var(--ui-radius-lg) var(--ui-radius-lg) 0;
+    background: linear-gradient(to left, var(--library-tray-fade), transparent);
+}
+
+.libraryScroller {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    min-height: 214px;
+    max-height: 244px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scrollbar-color: color-mix(in srgb, rgba(14, 16, 22, 0.88) 88%, var(--theme-gold-bright) 12%) transparent;
+    scrollbar-width: thin;
+    cursor: grab;
+    touch-action: pan-x;
+    -webkit-overflow-scrolling: touch;
+    border-radius: var(--ui-radius-lg);
+    border: 1px solid color-mix(in srgb, var(--theme-card-border-muted) 82%, transparent);
+    background:
+        linear-gradient(180deg, rgba(255, 243, 217, 0.02), transparent 15%),
+        color-mix(in srgb, var(--theme-panel-solid, rgba(12, 14, 22)) 90%, transparent);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.02),
+        0 8px 20px color-mix(in srgb, var(--theme-shadow) 24%, transparent);
+}
+
+.libraryScroller::-webkit-scrollbar {
+    height: 4px;
+}
+
+.libraryScroller::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.libraryScroller::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: color-mix(in srgb, rgba(14, 16, 22, 0.88) 88%, var(--theme-gold-bright) 12%);
+}
+
+.libraryScroller:active {
+    cursor: grabbing;
+}
+
+.libraryPage {
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: 0;
+    scroll-snap-align: start;
+    box-sizing: border-box;
+    padding: var(--theme-space-xs) var(--theme-space-sm) var(--theme-space-2xs);
+    display: grid;
+    grid-template-columns: repeat(var(--path-library-cols, 2), minmax(0, 1fr));
+    gap: var(--theme-space-xs);
+    align-items: start;
+    justify-content: center;
+}
+
+.libraryCardCell {
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: var(--library-tile-max-width);
+    justify-self: center;
+}
+
+.libraryCardCell .cardFrame {
+    flex: 1 1 auto;
+}
+
+/* Library grid tiles (tap opens detail modal): uniform box, text clamped. */
+.libraryCardCell .card.libraryTileCard {
+    gap: var(--theme-space-2xs);
+    padding: var(--theme-space-xs) var(--theme-space-xs);
+    width: 100%;
+    height: var(--library-tile-height);
+    min-height: var(--library-tile-height);
+    max-height: var(--library-tile-height);
+    border-color: color-mix(in srgb, var(--theme-border) 86%, var(--theme-gold-deep) 14%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.04),
+        0 8px 18px rgba(0, 0, 0, 0.26);
+    background:
+        linear-gradient(180deg, rgba(255, 243, 217, 0.06), rgba(255, 243, 217, 0.015) 18%, transparent 28%),
+        linear-gradient(160deg, rgba(20, 22, 34, 0.94), rgba(9, 11, 18, 0.93)),
+        rgba(7, 9, 15, 0.9);
+    overflow: hidden;
+}
+
+.libraryTileKicker {
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--theme-gold-bright) 64%, var(--theme-text-subtle) 36%);
+}
+
+.libraryTileTitle {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    line-height: 1.2;
+}
+
+.libraryTileBody {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+    margin: 0;
+    line-height: 1.32;
+}
+
+.libraryCardCell .card.libraryTileCard .cardBodyWrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    justify-content: flex-start;
+    gap: 0.28rem;
+    overflow: hidden;
+}
+
+.libraryDetailDescription {
+    margin: 0 0 var(--theme-space-sm);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: var(--theme-text-muted);
+}
+
+.libraryDetailMuted {
+    margin: 0 0 var(--theme-space-sm);
+    font-size: 0.88rem;
+    color: var(--theme-text-subtle);
+}
+
+.libraryDetailGauntlet {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--theme-space-sm);
+    margin-top: var(--theme-space-sm);
+}
+
+.libraryCardCell .card.libraryTileCard .cardPoster {
+    opacity: 0.18;
+}
+
+.libraryCardCell .card.libraryTileCard .cardPoster::after {
+    background: linear-gradient(180deg, rgba(6, 8, 14, 0.16) 0%, rgba(6, 8, 14, 0.7) 52%, rgba(6, 8, 14, 0.92) 100%);
+}
+
+/* Per-posterKey tint on shared placeholder art (library only). */
+.libraryCardCell[data-poster-key='gauntlet'] .cardPoster img {
+    filter: hue-rotate(18deg) saturate(1.12);
+}
+
+.libraryCardCell[data-poster-key='puzzle'] .cardPoster img {
+    filter: hue-rotate(-14deg) saturate(1.05);
+}
+
+.libraryCardCell[data-poster-key='mirror_puzzle'] .cardPoster img {
+    filter: hue-rotate(160deg) saturate(0.95) brightness(1.05);
+}
+
+.libraryCardCell[data-poster-key='wild'] .cardPoster img {
+    filter: hue-rotate(32deg) saturate(1.18);
+}
+
+.libraryCardCell[data-poster-key='practice'] .cardPoster img {
+    filter: hue-rotate(-6deg) saturate(0.92);
+}
+
+.libraryCardCell[data-poster-key='scholar'] .cardPoster img {
+    filter: hue-rotate(220deg) saturate(1.08);
+}
+
+.libraryCardCell[data-poster-key='pin_vow'] .cardPoster img {
+    filter: hue-rotate(8deg) saturate(1.2) contrast(1.03);
+}
+
+.libraryCardCell[data-poster-key='meditation'] .cardPoster img {
+    filter: hue-rotate(280deg) saturate(0.88) brightness(1.06);
+}
+
+.libraryCardCell[data-poster-key='import_run'] .cardPoster img {
+    filter: hue-rotate(-22deg) saturate(1.06);
+}
+
+.libraryCardCell[data-poster-key='import_puzzle'] .cardPoster img {
+    filter: hue-rotate(48deg) saturate(1.04);
+}
+
+.libraryCardCell[data-mode-group='time_attack'] .libraryTileKicker {
+    color: color-mix(in srgb, var(--theme-amber) 72%, var(--theme-text-subtle) 28%);
+}
+
+.libraryCardCell[data-mode-group='puzzle'] .libraryTileKicker {
+    color: color-mix(in srgb, var(--theme-violet-bright) 72%, var(--theme-text-subtle) 28%);
+}
+
+.libraryCardCell[data-mode-group='training'] .libraryTileKicker {
+    color: color-mix(in srgb, var(--theme-border-cyan) 72%, var(--theme-text-subtle) 28%);
+}
+
+.libraryCardCell[data-mode-group='utilities'] .libraryTileKicker {
+    color: color-mix(in srgb, var(--theme-text) 68%, var(--theme-text-subtle) 32%);
 }
 
 /* META-011: MetaFrame cornice wraps the interactive card (valid DOM: frame → button). */
@@ -159,6 +707,17 @@
         inset 0 1px 0 color-mix(in srgb, var(--theme-gold-bright) 22%, transparent);
 }
 
+/* Softer hover than Featured hero cards (must follow base `.card:hover` so it wins). */
+.libraryCardCell .card.libraryTileCard:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--theme-border-strong) 72%, var(--theme-gold-bright) 28%);
+    transform: translateY(-1px);
+    box-shadow:
+        0 8px 18px color-mix(in srgb, var(--theme-shadow) 42%, transparent),
+        0 0 0 1px color-mix(in srgb, var(--theme-gold-bright) 16%, transparent),
+        0 0 12px color-mix(in srgb, var(--theme-gold-bright) 8%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--theme-gold-bright) 12%, transparent);
+}
+
 .card:focus-visible {
     outline: 2px solid var(--theme-focus, #f1d4a0);
     outline-offset: 2px;
@@ -217,6 +776,16 @@
     flex-wrap: wrap;
 }
 
+.compactPathShell .librarySection {
+    --library-tile-max-width: 160px;
+    --library-tile-height: 176px;
+}
+
+.compactPathShell .libraryScroller {
+    min-height: 184px;
+    max-height: 228px;
+}
+
 .shortTouchLandscapeShell .pathFitViewport {
     --path-stack-gap: var(--theme-space-sm);
     --path-card-grid-gap: var(--theme-space-sm);
@@ -226,7 +795,7 @@
 }
 
 .shortTouchLandscapeShell .cardGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
 .shortTouchLandscapeShell .card {
@@ -242,8 +811,16 @@
     font-size: 0.94rem;
 }
 
+.shortTouchLandscapeShell .libraryCardCell .cardTitle {
+    font-size: 0.86rem;
+}
+
 .shortTouchLandscapeShell .cardBody {
     font-size: 0.78rem;
+}
+
+.shortTouchLandscapeShell .libraryCardCell .cardBody {
+    font-size: 0.72rem;
 }
 
 .shortTouchLandscapeShell .cardFooter {
@@ -257,6 +834,16 @@
 
 .shortTouchLandscapeShell .cardClassic .cardStatValue {
     font-size: 1.12rem;
+}
+
+.shortTouchLandscapeShell .librarySection {
+    --library-tile-max-width: 152px;
+    --library-tile-height: 164px;
+}
+
+.shortTouchLandscapeShell .libraryScroller {
+    min-height: 166px;
+    max-height: 210px;
 }
 
 .cardTitle {
@@ -274,6 +861,17 @@
     color: var(--theme-text-muted);
     line-height: 1.45;
     flex: 1;
+}
+
+/* After base .cardTitle / .cardBody so library tiles stay smaller than Featured. */
+.libraryCardCell .cardTitle {
+    font-size: 0.94rem;
+    letter-spacing: 0.02em;
+}
+
+.libraryCardCell .cardBody {
+    font-size: 0.76rem;
+    line-height: 1.34;
 }
 
 .cardFooter {
@@ -391,6 +989,39 @@
     border-color: color-mix(in srgb, var(--theme-amber) 22%, transparent);
 }
 
+.cardMode {
+    border-color: color-mix(in srgb, var(--theme-gold) 18%, var(--theme-border) 82%);
+}
+
+.cardGauntlet {
+    cursor: default;
+    text-align: left;
+}
+
+.cardGauntlet:hover {
+    transform: none;
+    box-shadow:
+        inset 0 1px 0 var(--theme-hud-chrome-inset),
+        inset 0 0 0 1px color-mix(in srgb, var(--theme-gold-bright) 8%, transparent);
+}
+
+.cardUtility {
+    border-color: color-mix(in srgb, var(--theme-text-subtle) 24%, var(--theme-border) 76%);
+    background:
+        linear-gradient(180deg, rgba(255, 243, 217, 0.05), transparent 40%),
+        linear-gradient(160deg, rgba(18, 20, 30, 0.92), rgba(8, 10, 16, 0.88));
+}
+
+.gauntletPresets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    padding-top: 0.4rem;
+    margin-top: auto;
+    border-top: 1px solid var(--theme-card-border-muted);
+    align-items: center;
+}
+
 .badge {
     display: inline-flex;
     align-self: flex-start;
@@ -410,6 +1041,75 @@
 
 :global([data-reduce-motion='true']) .card:hover:not(:disabled) {
     transform: none;
+}
+
+:global([data-reduce-motion='true']) .libraryCardCell .card.libraryTileCard:hover:not(:disabled) {
+    transform: none;
+}
+
+.meditationMutatorList {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem 0.55rem;
+    max-height: min(38vh, 260px);
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+@media (max-width: 520px) {
+    .meditationMutatorList {
+        grid-template-columns: 1fr;
+    }
+}
+
+.meditationMutatorRow {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    color: var(--theme-text-subtle, rgba(232, 236, 244, 0.88));
+}
+
+.meditationMutatorLabel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+    cursor: pointer;
+}
+
+.meditationMutatorLabel strong {
+    color: var(--theme-text, #e8ecf4);
+    font-size: 0.8rem;
+}
+
+.importJsonField {
+    width: 100%;
+    min-height: 9rem;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0.65rem 0.75rem;
+    border-radius: var(--ui-radius-md, 10px);
+    border: 1px solid var(--theme-border, rgba(255, 214, 133, 0.14));
+    background: var(--theme-panel-solid);
+    color: var(--theme-text);
+    font-family: var(--theme-body-font, 'Segoe UI', sans-serif);
+    font-size: 0.82rem;
+    line-height: 1.4;
+    resize: vertical;
+}
+
+.importJsonField::placeholder {
+    color: var(--theme-text-subtle);
+}
+
+.importError {
+    margin: 0.35rem 0 0;
+    font-size: 0.82rem;
+    line-height: 1.35;
+    color: var(--theme-danger, #d86a58);
 }
 
 @container path-shell (min-width: 1024px) and (max-height: 760px) {

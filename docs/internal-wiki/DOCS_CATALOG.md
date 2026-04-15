@@ -71,6 +71,7 @@
 | [epic-onboarding-codex-copy.md](../gameplay/epic-onboarding-codex-copy.md) | FTUE, Codex, copy |
 | [epic-audio-feedback.md](../gameplay/epic-audio-feedback.md) | Audio vs settings |
 | [epic-readonly-meta-ui.md](../gameplay/epic-readonly-meta-ui.md) | Codex, collection, inventory (read-only) |
+| [epic-choose-your-path.md](../gameplay/epic-choose-your-path.md) | Choose Your Path shell: layout/zoom, drag-first carousel, magnifier search, a11y, QA matrix |
 
 ---
 

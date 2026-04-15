@@ -32,6 +32,7 @@ Epics below are **narrative deep dives** + refinement notes; they must stay cons
 | [epic-onboarding-codex-copy](./epic-onboarding-codex-copy.md) | How-to, powers FTUE, Codex, tutorial **WebGL pair badges** |
 | [epic-audio-feedback](./epic-audio-feedback.md) | Volume settings + **procedural gameplay SFX** |
 | [epic-readonly-meta-ui](./epic-readonly-meta-ui.md) | Codex, Collection, Inventory (no rule changes) |
+| [epic-choose-your-path](./epic-choose-your-path.md) | Choose Your Path: layout/zoom, drag-first library, magnifier search, cross-platform interaction, catalog, a11y, QA |
 
 ---
 

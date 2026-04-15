@@ -11,10 +11,10 @@
 | Endless / “Classic” | **Shippable** | `startRun`; floor mutator schedule when rules version allows. |
 | Daily | **Shippable** | `createDailyRun`; UTC date key; one mutator from daily table; save merge on complete. |
 | Puzzle | **Functional** | `BUILTIN_PUZZLES` only (`starter_pairs`, `mirror_craft`); tiny set; see core epic for fixed-board objective gaps. |
-| Gauntlet | **Functional** | Run-wide deadline; **5 / 10 / 15** minute starts from main menu; `gauntletSessionDurationMs` preserves preset across **restart**; HUD integrated. |
-| Meditation | **Functional** | Longer memorize; calmer framing; optional mutators from menu. |
-| Practice / Scholar / Pin Vow / Wild | **Functional** | Use `endless` + flags; separate menu handlers in `App.tsx` / `MainMenu`. |
-| Choose Your Path | **Shippable** | Classic + Daily; **“Endless Mode” product card locked** — codex explains future ruleset (`VISUAL_ENDLESS_MODE_LOCKED` in `mechanics-encyclopedia.ts`, re-exported via `game-catalog.ts`). |
+| Gauntlet | **Functional** | Run-wide deadline; **5 / 10 / 15** minute presets from **Choose Your Path**; `gauntletSessionDurationMs` preserves preset across **restart**; HUD integrated. |
+| Meditation | **Functional** | Longer memorize; calmer framing; optional mutators from **Choose Your Path** setup modal. |
+| Practice / Scholar / Pin Vow / Wild | **Functional** | Use `endless` + flags; started from **Choose Your Path** (`useAppStore` handlers). |
+| Choose Your Path | **Shippable** | Mode-selection shell (hero + **drag-first** library, magnifier search, catalog, modals). **UI / interaction deep dive:** [epic-choose-your-path](./epic-choose-your-path.md). |
 | Run export / import | **Functional** | `run-export.ts` v1; Game Over copy; import modal; **restart from import** may not replay identical seed in all branches — edge case. |
 | Puzzle import | **Functional** | **Import puzzle JSON** (file picker) → `parsePuzzleImportJson` / `startPuzzleRunFromImport`; ids like `import:…`; in-memory tile cache for **restart** until page reload. Shipping puzzles still live in `builtin-puzzles` — see `docs/PUZZLE_CONTRIBUTING.md`. |
 
@@ -29,7 +29,9 @@
 - `src/shared/builtin-puzzles.ts`
 - `src/shared/run-export.ts`
 - `src/shared/puzzle-import.ts` — JSON validation for user puzzle files
+- `src/shared/run-mode-catalog.ts` — ordered mode definitions for Choose Your Path
 - `src/renderer/App.tsx`, `MainMenu.tsx`, `ChooseYourPathScreen.tsx`, `GameOverScreen.tsx`
+- **Choose Your Path** (presentation shell, catalog split, **touch / mouse** library UX): [epic-choose-your-path](./epic-choose-your-path.md)
 - `src/renderer/store/useAppStore.ts` — start/restart/import
 
 ## Refinement

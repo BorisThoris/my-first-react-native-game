@@ -44,6 +44,7 @@
         "docs:ui-audit": "node scripts/generate-visual-inventory-md.mjs",
         "docs:visual-inventory": "yarn docs:ui-audit",
         "docs:mechanics-appendix": "tsx scripts/run-mechanics-appendix.ts",
+        "assets:choose-path-bg": "node scripts/generate-choose-path-background.mjs",
         "wip:extract-endproduct": "node scripts/extract-endproduct-wip-assets.mjs",
         "wip:extract-endproduct:react": "node scripts/extract-endproduct-wip-assets.mjs --emit-react",
         "wip:extract-endproduct:png-only": "node scripts/extract-endproduct-wip-assets.mjs --no-svg",

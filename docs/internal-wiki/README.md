@@ -28,7 +28,7 @@
 |------|--------|
 | Full mechanics matrix + contract field appendices | [GAMEPLAY_MECHANICS_CATALOG.md](../gameplay/GAMEPLAY_MECHANICS_CATALOG.md) |
 | Polish / partial mechanics / risks (rollup) | [GAMEPLAY_POLISH_AND_GAPS.md](../gameplay/GAMEPLAY_POLISH_AND_GAPS.md) |
-| Epic deep dives (aligned with catalog) | [gameplay/README.md](../gameplay/README.md) |
+| Epic deep dives (aligned with catalog) | [gameplay/README.md](../gameplay/README.md) — [Choose Your Path](../gameplay/epic-choose-your-path.md) (mode select shell, touch- and pointer-first library) |
 | “Who owns what” in code (systems map) | [GAMEPLAY_SYSTEMS_ANALYSIS.md](../GAMEPLAY_SYSTEMS_ANALYSIS.md) |
 | Mutator reference | [MUTATORS.md](../MUTATORS.md) |
 | Stack, `yarn dev`, Steam, run types (short) | [README.md](../../README.md) (repo root) |

@@ -36,6 +36,21 @@ async function expectCoarsePointerTarget(page: Page, locator: Locator): Promise<
     }
 }
 
+async function expectChoosePathLibraryDensity(page: Page): Promise<void> {
+    const expectedCardsOnFirstPage = await page.evaluate(() => {
+        const width = window.innerWidth;
+        if (width < 640) {
+            return 2;
+        }
+        if (width < 1100) {
+            return 4;
+        }
+        return 5;
+    });
+    const firstPageCards = await page.locator('[data-library-page-index="0"] [data-library-card-cell]').count();
+    expect(firstPageCards).toBe(expectedCardsOnFirstPage);
+}
+
 export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
     {
         fileBase: '00-startup-intro',
@@ -55,14 +70,11 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
             await expectNoHorizontalOverflow(page);
             await expectAppScrollportHasNoVerticalOverflow(page);
             const play = mainMenuPlayButton(page);
-            const moreRuns = page.getByRole('group', { name: /more run types/i });
             await expect(play).toBeVisible();
-            await expect(moreRuns).toBeVisible();
             await expect(async () => {
                 await expect(play).toBeInViewport();
-                await expect(moreRuns).toBeInViewport();
             }).toPass({ timeout: 12_000 });
-            await expectLocatorFullyInWindowViewport(page, page.getByTestId('main-menu-low-cta'));
+            await expectLocatorFullyInWindowViewport(page, page.getByTestId('main-menu-primary-meta-frame'));
             await expectCoarsePointerTarget(page, play);
             await capture('01-main-menu');
         }
@@ -76,9 +88,39 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
             await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
             await expectNoHorizontalOverflow(page);
             await expectAppScrollportHasNoVerticalOverflow(page);
+            const sceneLayer = page.getByTestId('choose-path-scene-layer');
+            await expect(sceneLayer).toBeVisible();
+            const sceneBackground = await sceneLayer.evaluate((element) => getComputedStyle(element).backgroundImage);
+            expect(sceneBackground).toContain('url(');
+            const inlineBack = page.getByTestId('choose-path-inline-back');
+            await expect(inlineBack).toBeVisible();
+            await expect(inlineBack).toBeInViewport();
             const classicRun = page.getByRole('button', { name: /classic run/i });
             await expect(classicRun).toBeInViewport();
+            await page.getByTestId('choose-path-more-modes').scrollIntoViewIfNeeded();
+            const libraryScroller = page.getByLabel(/more modes library, swipe or drag sideways to browse pages/i);
+            await expectLocatorFullyInWindowViewport(
+                page,
+                libraryScroller
+            );
+            const libraryScrollMetrics = await libraryScroller.evaluate((element) => {
+                const style = getComputedStyle(element);
+                return {
+                    clientWidth: element.clientWidth,
+                    overflowX: style.overflowX,
+                    scrollWidth: element.scrollWidth,
+                    scrollbarWidth: style.getPropertyValue('scrollbar-width').trim()
+                };
+            });
+            expect(libraryScrollMetrics.overflowX).toBe('auto');
+            expect(libraryScrollMetrics.scrollWidth).toBeGreaterThan(libraryScrollMetrics.clientWidth);
+            if (libraryScrollMetrics.scrollbarWidth) {
+                expect(libraryScrollMetrics.scrollbarWidth).toBe('thin');
+            }
+            await expectChoosePathLibraryDensity(page);
+            await page.getByTestId('main-menu-low-cta').scrollIntoViewIfNeeded();
             await expectLocatorFullyInWindowViewport(page, page.getByTestId('choose-path-low-cta'));
+            await expectLocatorFullyInWindowViewport(page, page.getByTestId('main-menu-low-cta'));
             await expectCoarsePointerTarget(page, classicRun);
             await capture('01a-choose-your-path');
         }
@@ -138,7 +180,7 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
             await expect(page.getByText(/How To Play/i).first()).toBeVisible();
             await expectNoHorizontalOverflow(page);
             await expectAppScrollportHasNoVerticalOverflow(page);
-            await expectLocatorFullyInWindowViewport(page, page.getByTestId('main-menu-low-cta'));
+            await expectLocatorFullyInWindowViewport(page, mainMenuPlayButton(page));
             await capture('02-main-menu-howto');
         }
     },

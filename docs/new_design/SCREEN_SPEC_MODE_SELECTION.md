@@ -32,6 +32,10 @@ The mode-selection screen is a dedicated screen reached after the main menu's `P
 - Best score or best floor data
 - Timer badge where relevant
 
+### Zone D: More modes (shipped library row)
+
+Below Featured paths, the live shell adds a **secondary carousel** of additional run types. Interaction model (2026): **drag or swipe** the tray on desktop and mobile; **search** is progressive disclosure behind a **magnifier** control (not a permanent full-width field). Stepper-style “Previous / Next” labels are omitted in favor of **scroll-snap** and optional **page dots**. Authoritative detail: [epic-choose-your-path.md](../gameplay/epic-choose-your-path.md).
+
 ---
 
 ## Mode Card Anatomy

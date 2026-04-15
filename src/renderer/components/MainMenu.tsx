@@ -1,10 +1,8 @@
-import type { MutatorId, RelicId, RunSummary, SaveData } from '../../shared/contracts';
-import { MUTATOR_CATALOG } from '../../shared/mutators';
+import type { RelicId, RunSummary, SaveData } from '../../shared/contracts';
 import { RELIC_CATALOG } from '../../shared/game-catalog';
 import { formatNextUtcReset } from '../../shared/utc-countdown';
-import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFitShellZoom } from '../hooks/useFitShellZoom';
-import { useShallow } from 'zustand/react/shallow';
 import { UI_ART } from '../assets/ui';
 import { desktopClient } from '../desktop-client';
 import {
@@ -15,15 +13,9 @@ import {
 } from '../breakpoints';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
-import { useAppStore } from '../store/useAppStore';
 import { Eyebrow, MetaFrame, Panel, ScreenTitle, UiButton } from '../ui';
 import MainMenuBackground from './MainMenuBackground';
-import OverlayModal from './OverlayModal';
 import styles from './MainMenu.module.css';
-
-const MEDITATION_PICK_MUTATOR_IDS = (Object.keys(MUTATOR_CATALOG) as MutatorId[]).sort((a, b) =>
-    MUTATOR_CATALOG[a]!.title.localeCompare(MUTATOR_CATALOG[b]!.title)
-);
 
 interface MainMenuProps {
     bestScore: number;
@@ -39,16 +31,6 @@ interface MainMenuProps {
     onOpenCodex: () => void;
     onOpenInventory: () => void;
     onOpenSettings: () => void;
-    onGauntletRun: (durationMs: number) => void;
-    onPuzzleStarter: () => void;
-    onMirrorPuzzleRun: () => void;
-    onPracticeRun: () => void;
-    onScholarContractRun: () => void;
-    onMeditationRun: () => void;
-    onMeditationRunWithMutators: (mutators: MutatorId[]) => void;
-    onPinVowRun: () => void;
-    onWildRun: () => void;
-    onImportPuzzleJson: (rawJson: string) => boolean;
 }
 
 const MainMenu = ({
@@ -64,32 +46,10 @@ const MainMenu = ({
     onOpenCollection,
     onOpenCodex,
     onOpenInventory,
-    onOpenSettings,
-    onGauntletRun,
-    onPuzzleStarter,
-    onMirrorPuzzleRun,
-    onPracticeRun,
-    onScholarContractRun,
-    onMeditationRun,
-    onMeditationRunWithMutators,
-    onPinVowRun,
-    onWildRun,
-    onImportPuzzleJson
+    onOpenSettings
 }: MainMenuProps) => {
-    const { importRunFromClipboard } = useAppStore(
-        useShallow((state) => ({
-            importRunFromClipboard: state.importRunFromClipboard
-        }))
-    );
-    const puzzleImportInputRef = useRef<HTMLInputElement | null>(null);
     const shellRef = useRef<HTMLElement | null>(null);
     const menuFitMeasureRef = useRef<HTMLDivElement | null>(null); /* outer box; zoom applied on inner .content */
-    const [meditationOpen, setMeditationOpen] = useState(false);
-    const [meditationSelection, setMeditationSelection] = useState<Set<MutatorId>>(() => new Set());
-    const [importModalOpen, setImportModalOpen] = useState(false);
-    const [importJsonText, setImportJsonText] = useState('');
-    const [importError, setImportError] = useState<string | null>(null);
-    const [puzzleImportError, setPuzzleImportError] = useState<string | null>(null);
     const [nowMs, setNowMs] = useState(() => Date.now());
     const { tiltRef: menuFieldTiltRef } = usePlatformTiltField({
         enabled: true,
@@ -118,7 +78,6 @@ const MainMenu = ({
     });
     const shellFitZoom = rawFitZoom;
     const ctaSize = touchCompactLayout || shortDesktopShell ? 'md' : 'lg';
-    const modeButtonSize = touchCompactLayout || shortDesktopShell ? 'sm' : 'md';
     const showArchivePanel = !prioritizeModesInHero;
     const showBottomCards = !(ultraCompactPhone || ultraShortDesktopShell || (isShortLandscapeShell && height <= 720));
     const relicPickEntries = saveData.playerStats
@@ -131,156 +90,10 @@ const MainMenu = ({
         : 'No descent recorded yet.';
     const dailyCountdown = formatNextUtcReset(nowMs);
 
-    const toggleMeditationMutator = (id: MutatorId): void => {
-        setMeditationSelection((prev) => {
-            const next = new Set(prev);
-            if (next.has(id)) {
-                next.delete(id);
-            } else {
-                next.add(id);
-            }
-            return next;
-        });
-    };
-
-    const openImportModal = (): void => {
-        setImportModalOpen(true);
-        setImportJsonText('');
-        setImportError(null);
-    };
-
-    const closeImportModal = (): void => {
-        setImportModalOpen(false);
-        setImportJsonText('');
-        setImportError(null);
-    };
-
-    const submitImport = (): void => {
-        const ok = importRunFromClipboard(importJsonText);
-        if (ok) {
-            closeImportModal();
-            return;
-        }
-        setImportError('Could not import that payload. Check the JSON and try again.');
-    };
-
-    const openPuzzleImportPicker = (): void => {
-        setPuzzleImportError(null);
-        puzzleImportInputRef.current?.click();
-    };
-
-    const onPuzzleImportSelected = (event: ChangeEvent<HTMLInputElement>): void => {
-        const file = event.target.files?.[0];
-        event.target.value = '';
-        if (!file) {
-            return;
-        }
-        const reader = new FileReader();
-        reader.onload = (): void => {
-            const text = typeof reader.result === 'string' ? reader.result : '';
-            const ok = onImportPuzzleJson(text);
-            if (ok) {
-                setPuzzleImportError(null);
-            } else {
-                setPuzzleImportError('Invalid puzzle JSON. Expected a title (optional) and a tiles array with valid pairs.');
-            }
-        };
-        reader.onerror = (): void => {
-            setPuzzleImportError('Could not read that file.');
-        };
-        reader.readAsText(file);
-    };
-
     useEffect(() => {
         const id = window.setInterval(() => setNowMs(Date.now()), 1000);
         return () => window.clearInterval(id);
     }, []);
-
-    const moreModesPanel = (
-        <Panel
-            className={`${styles.supportPanel} ${prioritizeModesInHero ? styles.inlineModesPanel : ''}`.trim()}
-            padding="lg"
-            variant="strong"
-        >
-            <Eyebrow>More Modes</Eyebrow>
-            <ScreenTitle as="h2" className={styles.supportHeading} role="screen">
-                Alternate descents
-            </ScreenTitle>
-            <div className={styles.modeGrid} role="group" aria-label="More run types">
-                <UiButton
-                    className={styles.modeButton}
-                    size={modeButtonSize}
-                    variant="secondary"
-                    onClick={() => onGauntletRun(5 * 60 * 1000)}
-                >
-                    Gauntlet 5m
-                </UiButton>
-                <UiButton
-                    className={styles.modeButton}
-                    size={modeButtonSize}
-                    variant="secondary"
-                    onClick={() => onGauntletRun(10 * 60 * 1000)}
-                >
-                    Gauntlet 10m
-                </UiButton>
-                <UiButton
-                    className={styles.modeButton}
-                    size={modeButtonSize}
-                    variant="secondary"
-                    onClick={() => onGauntletRun(15 * 60 * 1000)}
-                >
-                    Gauntlet 15m
-                </UiButton>
-                <UiButton className={styles.modeButton} size={modeButtonSize} variant="secondary" onClick={onPuzzleStarter}>
-                    Puzzle
-                </UiButton>
-                <UiButton className={styles.modeButton} size={modeButtonSize} variant="secondary" onClick={onMirrorPuzzleRun}>
-                    Mirror Puzzle
-                </UiButton>
-                <UiButton className={styles.modeButton} size={modeButtonSize} variant="secondary" onClick={() => setMeditationOpen(true)}>
-                    Meditation
-                </UiButton>
-                <UiButton className={styles.modeButton} size={modeButtonSize} variant="secondary" onClick={onWildRun}>
-                    Wild Run
-                </UiButton>
-                <UiButton className={styles.modeButton} size={modeButtonSize} variant="secondary" onClick={onPracticeRun}>
-                    Practice
-                </UiButton>
-                <UiButton className={styles.modeButton} size={modeButtonSize} variant="secondary" onClick={onScholarContractRun}>
-                    Scholar
-                </UiButton>
-                <UiButton className={styles.modeButton} size={modeButtonSize} variant="secondary" onClick={onPinVowRun}>
-                    Pin vow
-                </UiButton>
-                <UiButton
-                    className={styles.modeButton}
-                    data-testid="main-menu-low-cta"
-                    size={modeButtonSize}
-                    variant="ghost"
-                    onClick={openImportModal}
-                >
-                    Import run JSON
-                </UiButton>
-                <input
-                    accept="application/json,.json"
-                    aria-hidden
-                    ref={puzzleImportInputRef}
-                    style={{ display: 'none' }}
-                    tabIndex={-1}
-                    type="file"
-                    onChange={onPuzzleImportSelected}
-                />
-                <UiButton className={styles.modeButton} size={modeButtonSize} variant="ghost" onClick={openPuzzleImportPicker}>
-                    Import puzzle JSON
-                </UiButton>
-            </div>
-            {puzzleImportError ? (
-                <p className={styles.importError} data-testid="puzzle-import-error" role="status">
-                    {puzzleImportError}
-                </p>
-            ) : null}
-        </Panel>
-    );
 
     const archivePanel = showArchivePanel ? (
         <Panel className={styles.supportPanel} padding="lg" variant="default">
@@ -356,278 +169,185 @@ const MainMenu = ({
             <div className={styles.fitViewport}>
                 <div ref={menuFitMeasureRef} className={styles.fitMeasureOuter}>
                     <div className={styles.content} style={{ zoom: shellFitZoom }}>
-                <header className={styles.metaRow} data-testid="main-menu-meta-strip">
-                    <MetaFrame className={styles.metaPlaqueFrame}>
-                        <div className={styles.metaCard}>
-                            <span className={styles.metaLabel}>Build</span>
-                            <strong className={styles.metaValue}>Steam Demo</strong>
-                        </div>
-                    </MetaFrame>
-                    <MetaFrame className={styles.metaPlaqueFrame}>
-                        <div className={styles.metaCard}>
-                            <span className={styles.metaLabel}>Best Score</span>
-                            <strong className={styles.metaValue}>
-                                {bestScore > 0 ? bestScore.toLocaleString() : 'Unranked'}
-                            </strong>
-                        </div>
-                    </MetaFrame>
-                    <MetaFrame className={styles.metaPlaqueFrame}>
-                        <div className={styles.metaCard}>
-                            <span className={styles.metaLabel}>Daily Streak</span>
-                            <strong className={styles.metaValue}>
-                                {saveData.playerStats?.dailyStreakCosmetic ?? 0}
-                            </strong>
-                        </div>
-                    </MetaFrame>
-                    <MetaFrame className={styles.metaPlaqueFrame}>
-                        <div className={styles.metaCard}>
-                            <span className={styles.metaLabel}>Steam</span>
-                            <strong className={styles.metaValue}>{steamConnected ? 'Connected' : 'Offline'}</strong>
-                        </div>
-                    </MetaFrame>
-                </header>
-
-                <div className={styles.layout}>
-                    <main className={styles.heroColumn}>
-                        <div className={styles.brandLockup}>
-                            <img alt="" className={styles.brandCrest} src={UI_ART.brandCrest} />
-                            <Eyebrow className={styles.heroEyebrow} tone="menu">
-                                Seeker of Shards
-                            </Eyebrow>
-                            <ScreenTitle className={styles.heroTitle} role="display">
-                                Memory Dungeon
-                            </ScreenTitle>
-                            <img alt="" className={styles.divider} src={UI_ART.dividerOrnament} />
-                            <p className={styles.tagline}>Test your mind. Conquer the depths.</p>
-                        </div>
-
-                        <MetaFrame className={styles.ctaMetaFrame} data-testid="main-menu-primary-meta-frame">
-                            <Panel className={styles.ctaPanel} padding="md" variant="strong">
-                                <div aria-hidden className={styles.ctaIllustratedBand}>
-                                    <img alt="" className={styles.ctaBandSeal} src={UI_ART.menuSeal} />
-                                    <img alt="" className={styles.ctaBandFlourish} src={UI_ART.dividerOrnament} />
+                        <header className={styles.metaRow} data-testid="main-menu-meta-strip">
+                            <MetaFrame className={styles.metaPlaqueFrame}>
+                                <div className={styles.metaCard}>
+                                    <span className={styles.metaLabel}>Build</span>
+                                    <strong className={styles.metaValue}>Steam Demo</strong>
                                 </div>
-                                <div className={styles.actionStack} role="group" aria-label="Primary actions">
-                                    <UiButton
-                                        aria-label="Play"
-                                        className={styles.ctaButton}
-                                        fullWidth
-                                        size="lg"
-                                        variant="primary"
-                                        onClick={onPlay}
-                                    >
-                                        <span className={styles.ctaContent}>
-                                            <span className={styles.ctaTitle}>Play</span>
-                                            <span className={styles.ctaHint}>Choose Classic, Daily, or future modes</span>
-                                        </span>
-                                    </UiButton>
-                                    <UiButton
-                                        aria-label="Collection"
-                                        className={styles.ctaButton}
-                                        fullWidth
-                                        size={ctaSize}
-                                        variant="secondary"
-                                        onClick={onOpenCollection}
-                                    >
-                                        <span className={styles.ctaContent}>
-                                            <span className={styles.ctaTitle}>Collection</span>
-                                            <span className={styles.ctaHint}>Achievements, relics, and run history</span>
-                                        </span>
-                                    </UiButton>
-                                    <UiButton
-                                        aria-label="Inventory"
-                                        className={styles.ctaButton}
-                                        fullWidth
-                                        size={ctaSize}
-                                        variant="ghost"
-                                        onClick={onOpenInventory}
-                                    >
-                                        <span className={styles.ctaContent}>
-                                            <span className={styles.ctaTitle}>Inventory</span>
-                                            <span className={styles.ctaHint}>Expedition loadout when you are in a run</span>
-                                        </span>
-                                    </UiButton>
-                                    <UiButton
-                                        aria-label="Codex"
-                                        className={styles.ctaButton}
-                                        fullWidth
-                                        size={ctaSize}
-                                        variant="ghost"
-                                        onClick={onOpenCodex}
-                                    >
-                                        <span className={styles.ctaContent}>
-                                            <span className={styles.ctaTitle}>Codex</span>
-                                            <span className={styles.ctaHint}>Rules, relics, mutators, and mode reference</span>
-                                        </span>
-                                    </UiButton>
-                                    <UiButton
-                                        aria-label="Settings"
-                                        className={styles.ctaButton}
-                                        fullWidth
-                                        size={ctaSize}
-                                        variant="secondary"
-                                        onClick={onOpenSettings}
-                                    >
-                                        <span className={styles.ctaContent}>
-                                            <span className={styles.ctaTitle}>Settings</span>
-                                            <span className={styles.ctaHint}>Video, audio, controls, accessibility</span>
-                                        </span>
-                                    </UiButton>
-                                    <UiButton
-                                        aria-label="Exit Game"
-                                        className={styles.ctaButton}
-                                        fullWidth
-                                        size={ctaSize}
-                                        variant="ghost"
-                                        onClick={() => void desktopClient.quitApp()}
-                                    >
-                                        <span className={styles.ctaContent}>
-                                            <span className={styles.ctaTitle}>Exit Game</span>
-                                            <span className={styles.ctaHint}>Close the desktop app</span>
-                                        </span>
-                                    </UiButton>
+                            </MetaFrame>
+                            <MetaFrame className={styles.metaPlaqueFrame}>
+                                <div className={styles.metaCard}>
+                                    <span className={styles.metaLabel}>Best Score</span>
+                                    <strong className={styles.metaValue}>
+                                        {bestScore > 0 ? bestScore.toLocaleString() : 'Unranked'}
+                                    </strong>
                                 </div>
-                            </Panel>
-                        </MetaFrame>
+                            </MetaFrame>
+                            <MetaFrame className={styles.metaPlaqueFrame}>
+                                <div className={styles.metaCard}>
+                                    <span className={styles.metaLabel}>Daily Streak</span>
+                                    <strong className={styles.metaValue}>
+                                        {saveData.playerStats?.dailyStreakCosmetic ?? 0}
+                                    </strong>
+                                </div>
+                            </MetaFrame>
+                            <MetaFrame className={styles.metaPlaqueFrame}>
+                                <div className={styles.metaCard}>
+                                    <span className={styles.metaLabel}>Steam</span>
+                                    <strong className={styles.metaValue}>{steamConnected ? 'Connected' : 'Offline'}</strong>
+                                </div>
+                            </MetaFrame>
+                        </header>
 
-                        {prioritizeModesInHero && ultraCompactPhone && showHowToPlay ? howToPanel : null}
-                        {prioritizeModesInHero ? moreModesPanel : null}
+                        <div className={styles.layout}>
+                            <main className={styles.heroColumn}>
+                                <div className={styles.brandLockup}>
+                                    <img alt="" className={styles.brandCrest} src={UI_ART.brandCrest} />
+                                    <Eyebrow className={styles.heroEyebrow} tone="menu">
+                                        Seeker of Shards
+                                    </Eyebrow>
+                                    <ScreenTitle className={styles.heroTitle} role="display">
+                                        Memory Dungeon
+                                    </ScreenTitle>
+                                    <img alt="" className={styles.divider} src={UI_ART.dividerOrnament} />
+                                    <p className={styles.tagline}>Test your mind. Conquer the depths.</p>
+                                </div>
 
-                        {showBottomCards ? (
-                        <div className={styles.bottomCards}>
-                            <Panel className={styles.bottomPanel} padding="md" variant="strong">
-                                <div className={styles.bottomPanelHeader}>
-                                    <img alt="" className={styles.panelSeal} src={UI_ART.menuSeal} />
-                                    <div>
-                                        <span className={styles.panelKicker}>Daily Challenge</span>
-                                        <strong className={styles.panelHeading}>New challenge in {dailyCountdown}</strong>
+                                <MetaFrame className={styles.ctaMetaFrame} data-testid="main-menu-primary-meta-frame">
+                                    <Panel className={styles.ctaPanel} padding="md" variant="strong">
+                                        <div aria-hidden className={styles.ctaIllustratedBand}>
+                                            <img alt="" className={styles.ctaBandSeal} src={UI_ART.menuSeal} />
+                                            <img alt="" className={styles.ctaBandFlourish} src={UI_ART.dividerOrnament} />
+                                        </div>
+                                        <div className={styles.actionStack} role="group" aria-label="Primary actions">
+                                            <UiButton
+                                                aria-label="Play"
+                                                className={styles.ctaButton}
+                                                fullWidth
+                                                size="lg"
+                                                variant="primary"
+                                                onClick={onPlay}
+                                            >
+                                                <span className={styles.ctaContent}>
+                                                    <span className={styles.ctaTitle}>Play</span>
+                                                    <span className={styles.ctaHint}>Gauntlet, puzzles, training modes, and more</span>
+                                                </span>
+                                            </UiButton>
+                                            <UiButton
+                                                aria-label="Collection"
+                                                className={styles.ctaButton}
+                                                fullWidth
+                                                size={ctaSize}
+                                                variant="secondary"
+                                                onClick={onOpenCollection}
+                                            >
+                                                <span className={styles.ctaContent}>
+                                                    <span className={styles.ctaTitle}>Collection</span>
+                                                    <span className={styles.ctaHint}>Achievements, relics, and run history</span>
+                                                </span>
+                                            </UiButton>
+                                            <UiButton
+                                                aria-label="Inventory"
+                                                className={styles.ctaButton}
+                                                fullWidth
+                                                size={ctaSize}
+                                                variant="ghost"
+                                                onClick={onOpenInventory}
+                                            >
+                                                <span className={styles.ctaContent}>
+                                                    <span className={styles.ctaTitle}>Inventory</span>
+                                                    <span className={styles.ctaHint}>Expedition loadout when you are in a run</span>
+                                                </span>
+                                            </UiButton>
+                                            <UiButton
+                                                aria-label="Codex"
+                                                className={styles.ctaButton}
+                                                fullWidth
+                                                size={ctaSize}
+                                                variant="ghost"
+                                                onClick={onOpenCodex}
+                                            >
+                                                <span className={styles.ctaContent}>
+                                                    <span className={styles.ctaTitle}>Codex</span>
+                                                    <span className={styles.ctaHint}>Rules, relics, mutators, and mode reference</span>
+                                                </span>
+                                            </UiButton>
+                                            <UiButton
+                                                aria-label="Settings"
+                                                className={styles.ctaButton}
+                                                fullWidth
+                                                size={ctaSize}
+                                                variant="secondary"
+                                                onClick={onOpenSettings}
+                                            >
+                                                <span className={styles.ctaContent}>
+                                                    <span className={styles.ctaTitle}>Settings</span>
+                                                    <span className={styles.ctaHint}>Video, audio, controls, accessibility</span>
+                                                </span>
+                                            </UiButton>
+                                            <UiButton
+                                                aria-label="Exit Game"
+                                                className={styles.ctaButton}
+                                                fullWidth
+                                                size={ctaSize}
+                                                variant="ghost"
+                                                onClick={() => void desktopClient.quitApp()}
+                                            >
+                                                <span className={styles.ctaContent}>
+                                                    <span className={styles.ctaTitle}>Exit Game</span>
+                                                    <span className={styles.ctaHint}>Close the desktop app</span>
+                                                </span>
+                                            </UiButton>
+                                        </div>
+                                    </Panel>
+                                </MetaFrame>
+
+                                {prioritizeModesInHero && ultraCompactPhone && showHowToPlay ? howToPanel : null}
+
+                                {showBottomCards ? (
+                                    <div className={styles.bottomCards}>
+                                        <Panel className={styles.bottomPanel} padding="md" variant="strong">
+                                            <div className={styles.bottomPanelHeader}>
+                                                <img alt="" className={styles.panelSeal} src={UI_ART.menuSeal} />
+                                                <div>
+                                                    <span className={styles.panelKicker}>Daily Challenge</span>
+                                                    <strong className={styles.panelHeading}>New challenge in {dailyCountdown}</strong>
+                                                </div>
+                                            </div>
+                                            <p className={styles.panelBodyCopy}>
+                                                UTC seed rotation. Mutators, relic pacing, and floor pressure shift with each day.
+                                            </p>
+                                        </Panel>
+
+                                        <Panel className={styles.bottomPanel} padding="md" variant="default">
+                                            <div className={styles.bottomPanelHeader}>
+                                                <img alt="" className={styles.panelSeal} src={UI_ART.menuSeal} />
+                                                <div>
+                                                    <span className={styles.panelKicker}>Recent Descent</span>
+                                                    <strong className={styles.panelHeading}>
+                                                        {lastRunSummary ? `Floor ${lastRunSummary.highestLevel}` : 'No active record'}
+                                                    </strong>
+                                                </div>
+                                            </div>
+                                            <p className={styles.panelBodyCopy}>{lastRunLabel}</p>
+                                        </Panel>
                                     </div>
-                                </div>
-                                <p className={styles.panelBodyCopy}>
-                                    UTC seed rotation. Mutators, relic pacing, and floor pressure shift with each day.
-                                </p>
-                            </Panel>
+                                ) : null}
 
-                            <Panel className={styles.bottomPanel} padding="md" variant="default">
-                                <div className={styles.bottomPanelHeader}>
-                                    <img alt="" className={styles.panelSeal} src={UI_ART.menuSeal} />
-                                    <div>
-                                        <span className={styles.panelKicker}>Recent Descent</span>
-                                        <strong className={styles.panelHeading}>
-                                            {lastRunSummary ? `Floor ${lastRunSummary.highestLevel}` : 'No active record'}
-                                        </strong>
-                                    </div>
-                                </div>
-                                <p className={styles.panelBodyCopy}>{lastRunLabel}</p>
-                            </Panel>
+                                {prioritizeModesInHero && !(ultraCompactPhone && showHowToPlay) ? howToPanel : null}
+                            </main>
+
+                            {!prioritizeModesInHero ? (
+                                <aside className={styles.supportColumn}>
+                                    {archivePanel}
+                                    {howToPanel}
+                                </aside>
+                            ) : null}
                         </div>
-                        ) : null}
-
-                        {prioritizeModesInHero && !(ultraCompactPhone && showHowToPlay) ? howToPanel : null}
-                    </main>
-
-                    {!prioritizeModesInHero || showArchivePanel || (!prioritizeModesInHero && showHowToPlay) ? (
-                        <aside className={styles.supportColumn}>
-                            {!prioritizeModesInHero ? moreModesPanel : null}
-                            {archivePanel}
-                            {!prioritizeModesInHero ? howToPanel : null}
-                        </aside>
-                    ) : null}
-                </div>
                     </div>
                 </div>
             </div>
-            {importModalOpen ? (
-                <OverlayModal
-                    actions={[
-                        {
-                            label: 'Cancel',
-                            onClick: closeImportModal,
-                            variant: 'secondary'
-                        },
-                        {
-                            label: 'Import',
-                            disabled: importJsonText.trim().length === 0,
-                            onClick: submitImport,
-                            variant: 'primary'
-                        }
-                    ]}
-                    subtitle="Paste a Memory Dungeon run JSON (from Copy run seed on game over)."
-                    testId="run-import-modal"
-                    title="Import run"
-                >
-                    <textarea
-                        aria-invalid={importError ? 'true' : undefined}
-                        aria-label="Run export JSON"
-                        className={styles.importJsonField}
-                        data-testid="run-import-json"
-                        onChange={(event) => {
-                            setImportJsonText(event.target.value);
-                            if (importError) {
-                                setImportError(null);
-                            }
-                        }}
-                        placeholder='Example: {"v":1,"seed":0,"rules":7,"mode":"endless","mutators":[]}'
-                        spellCheck={false}
-                        value={importJsonText}
-                    />
-                    {importError ? (
-                        <p className={styles.importError} data-testid="run-import-error" role="alert">
-                            {importError}
-                        </p>
-                    ) : null}
-                </OverlayModal>
-            ) : null}
-            {meditationOpen ? (
-                <OverlayModal
-                    actions={[
-                        {
-                            label: 'Cancel',
-                            onClick: () => setMeditationOpen(false),
-                            variant: 'secondary'
-                        },
-                        {
-                            label: 'Calm (no mutators)',
-                            onClick: () => {
-                                onMeditationRun();
-                                setMeditationOpen(false);
-                            },
-                            variant: 'secondary'
-                        },
-                        {
-                            label: 'Start with selection',
-                            onClick: () => {
-                                onMeditationRunWithMutators([...meditationSelection]);
-                                setMeditationOpen(false);
-                            },
-                            variant: 'primary'
-                        }
-                    ]}
-                    subtitle="Toggle mutators for a focused study run, or start calm with a clean ruleset."
-                    title="Meditation setup"
-                >
-                    <ul className={styles.meditationMutatorList}>
-                        {MEDITATION_PICK_MUTATOR_IDS.map((id) => {
-                            const def = MUTATOR_CATALOG[id]!;
-                            const inputId = `meditation-mutator-${id}`;
-                            return (
-                                <li className={styles.meditationMutatorRow} key={id}>
-                                    <input
-                                        checked={meditationSelection.has(id)}
-                                        id={inputId}
-                                        onChange={() => toggleMeditationMutator(id)}
-                                        type="checkbox"
-                                    />
-                                    <label className={styles.meditationMutatorLabel} htmlFor={inputId}>
-                                        <strong>{def.title}</strong>
-                                        <span>{def.description}</span>
-                                    </label>
-                                </li>
-                            );
-                        })}
-                    </ul>
-                </OverlayModal>
-            ) : null}
         </section>
     );
 };

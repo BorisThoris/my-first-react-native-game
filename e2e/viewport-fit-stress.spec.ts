@@ -21,24 +21,29 @@ for (const slot of stressSizes) {
             await page.setViewportSize({ height: slot.height, width: slot.width });
         });
 
-        test('main menu: no scrollport overflow, low CTA fully in viewport', async ({ page }) => {
+        test('main menu: no scrollport overflow, primary CTA frame fully in viewport', async ({ page }) => {
             await openMainMenuFromSave(page, true);
             await expectNoHorizontalOverflow(page);
             await expectAppScrollportHasNoVerticalOverflow(page);
-            const low = page.getByTestId('main-menu-low-cta');
-            await expect(low).toBeVisible({ timeout: 20_000 });
-            await expectLocatorFullyInWindowViewport(page, low);
+            const primary = page.getByTestId('main-menu-primary-meta-frame');
+            await expect(primary).toBeVisible({ timeout: 20_000 });
+            await expectLocatorFullyInWindowViewport(page, primary);
         });
 
-        test('choose your path: low CTA fully in viewport', async ({ page }) => {
+        test('choose your path: import + locked CTAs fully in viewport', async ({ page }) => {
             await openMainMenuFromSave(page, true);
             await mainMenuPlayButton(page).click();
             await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
             await expectNoHorizontalOverflow(page);
             await expectAppScrollportHasNoVerticalOverflow(page);
-            const low = page.getByTestId('choose-path-low-cta');
-            await expect(low).toBeVisible();
-            await expectLocatorFullyInWindowViewport(page, low);
+            const importRun = page.getByTestId('main-menu-low-cta');
+            const lockedEndless = page.getByTestId('choose-path-low-cta');
+            await expect(lockedEndless).toBeVisible();
+            await page.getByTestId('choose-path-more-modes').scrollIntoViewIfNeeded();
+            await importRun.scrollIntoViewIfNeeded();
+            await expect(importRun).toBeVisible();
+            await expectLocatorFullyInWindowViewport(page, lockedEndless);
+            await expectLocatorFullyInWindowViewport(page, importRun);
         });
     });
 }
@@ -49,12 +54,12 @@ test.describe('iphone-se portrait with How To Play (onboarding)', () => {
         await page.setViewportSize({ height: 667, width: 375 });
     });
 
-    test('main menu low CTA fully in viewport', async ({ page }) => {
+    test('main menu Play control fully in viewport', async ({ page }) => {
         await openMainMenuFromSave(page, false);
         await expect(page.getByText(/How To Play/i).first()).toBeVisible();
         await expectAppScrollportHasNoVerticalOverflow(page);
-        const low = page.getByTestId('main-menu-low-cta');
-        await expect(low).toBeVisible({ timeout: 20_000 });
-        await expectLocatorFullyInWindowViewport(page, low);
+        const play = mainMenuPlayButton(page);
+        await expect(play).toBeVisible({ timeout: 20_000 });
+        await expectLocatorFullyInWindowViewport(page, play);
     });
 });
