@@ -70,6 +70,8 @@ function tocVisible(tab: CodexTab, kind: TocKind): boolean {
 const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
     const closeSubscreen = useAppStore(useShallow((state) => state.closeSubscreen));
     const shellStageClass = stackedOnGameplay ? metaStyles.shellInRunModal : metaStyles.shellMetaStage;
+    const panelClassName = stackedOnGameplay ? styles.inRunPanel : '';
+    const heroPanelClassName = stackedOnGameplay ? styles.inRunHeroPanel : '';
     const [filterQuery, setFilterQuery] = useState('');
     const [codexTab, setCodexTab] = useState<CodexTab>('all');
 
@@ -117,7 +119,7 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
         return kind === 'table';
     };
 
-    const anyFilterMatch = useMemo(() => {
+    const anyFilterMatch = (() => {
         const q = filterQuery.trim();
         const row = [
             tabAllows('guide') ? coreFiltered.length : 0,
@@ -136,21 +138,7 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
             return row.some((n) => n > 0);
         }
         return row.some((n) => n > 0);
-    }, [
-        codexTab,
-        contractsFiltered.length,
-        coreFiltered.length,
-        featuredFiltered.length,
-        filterQuery,
-        filteredAchievements.length,
-        filteredModes.length,
-        filteredMutators.length,
-        filteredRelics.length,
-        pickupsFiltered.length,
-        powersFiltered.length,
-        scoringFiltered.length,
-        settingsFiltered.length
-    ]);
+    })();
 
     const showWhenFiltered = (count: number): boolean => !filterQuery.trim() || count > 0;
 
@@ -238,7 +226,7 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
                 <div id="codex-main-column">
                     {showGuidePanel(coreFiltered.length) ? (
                         <MetaFrame data-testid="codex-meta-frame-core">
-                            <Panel padding="lg" variant="strong">
+                            <Panel className={heroPanelClassName} padding="lg" variant="strong">
                                 <details
                                     className={`${styles.sectionFold} ${metaStyles.sectionAnchor}`}
                                     id="codex-core"
@@ -261,7 +249,7 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
                     ) : null}
 
                     {showGuidePanel(powersFiltered.length) ? (
-                        <Panel padding="lg" variant="default">
+                        <Panel className={panelClassName} padding="lg" variant="default">
                             <details
                                 className={`${styles.sectionFold} ${metaStyles.sectionAnchor}`}
                                 id="codex-powers"
@@ -283,7 +271,7 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
                     ) : null}
 
                     {showGuidePanel(scoringFiltered.length) ? (
-                        <Panel padding="lg" variant="default">
+                        <Panel className={panelClassName} padding="lg" variant="default">
                             <details
                                 className={`${styles.sectionFold} ${metaStyles.sectionAnchor}`}
                                 id="codex-scoring"
@@ -305,7 +293,7 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
                     ) : null}
 
                     {showGuidePanel(settingsFiltered.length) ? (
-                        <Panel padding="lg" variant="default">
+                        <Panel className={panelClassName} padding="lg" variant="default">
                             <details
                                 className={`${styles.sectionFold} ${metaStyles.sectionAnchor}`}
                                 id="codex-settings"
@@ -327,7 +315,7 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
                     ) : null}
 
                     {showGuidePanel(pickupsFiltered.length) ? (
-                        <Panel padding="lg" variant="default">
+                        <Panel className={panelClassName} padding="lg" variant="default">
                             <details
                                 className={`${styles.sectionFold} ${metaStyles.sectionAnchor}`}
                                 id="codex-pickups"
@@ -349,7 +337,7 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
                     ) : null}
 
                     {showGuidePanel(contractsFiltered.length) ? (
-                        <Panel padding="lg" variant="default">
+                        <Panel className={panelClassName} padding="lg" variant="default">
                             <details
                                 className={`${styles.sectionFold} ${metaStyles.sectionAnchor}`}
                                 id="codex-contracts"
@@ -371,7 +359,7 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
                     ) : null}
 
                     {showGuidePanel(featuredFiltered.length) ? (
-                        <Panel padding="lg" variant="default">
+                        <Panel className={panelClassName} padding="lg" variant="default">
                             <details
                                 className={`${styles.sectionFold} ${metaStyles.sectionAnchor}`}
                                 id="codex-featured-runs"
@@ -393,7 +381,7 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
                     ) : null}
 
                     {showGuidePanel(filteredModes.length) ? (
-                        <Panel padding="lg" variant="default">
+                        <Panel className={panelClassName} padding="lg" variant="default">
                             <details
                                 className={`${styles.sectionFold} ${metaStyles.sectionAnchor}`}
                                 id="codex-modes"
@@ -415,7 +403,7 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
                     ) : null}
 
                     {showTablePanel(filteredAchievements.length) ? (
-                        <Panel padding="lg" variant="default">
+                        <Panel className={panelClassName} padding="lg" variant="default">
                             <details
                                 className={`${styles.sectionFold} ${metaStyles.sectionAnchor}`}
                                 id="codex-achievements"
@@ -437,7 +425,7 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
                     ) : null}
 
                     {showTablePanel(filteredRelics.length) ? (
-                        <Panel padding="lg" variant="default">
+                        <Panel className={panelClassName} padding="lg" variant="default">
                             <details
                                 className={`${styles.sectionFold} ${metaStyles.sectionAnchor}`}
                                 id="codex-relics"
@@ -457,7 +445,7 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
                     ) : null}
 
                     {showTablePanel(filteredMutators.length) ? (
-                        <Panel padding="lg" variant="default">
+                        <Panel className={panelClassName} padding="lg" variant="default">
                             <details
                                 className={`${styles.sectionFold} ${metaStyles.sectionAnchor}`}
                                 id="codex-mutators"

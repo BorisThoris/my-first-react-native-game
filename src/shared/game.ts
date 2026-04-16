@@ -4,6 +4,7 @@ import {
     COMBO_GUARD_STREAK_STEP,
     CURSED_LAST_BONUS_SCORE,
     DEBUG_REVEAL_MS,
+    FINDABLE_MATCH_COMBO_SHARDS,
     FINDABLE_MATCH_SCORE,
     FLIP_PAR_BONUS_SCORE,
     GAME_RULES_VERSION,
@@ -72,6 +73,7 @@ const COMBO_SHARD_STREAK_STEP = 2;
 const COMBO_SHARDS_PER_LIFE = 3;
 const DECOY_PAIR_KEY = '__decoy__';
 export const WILD_PAIR_KEY = '__wild__';
+const PICKUP_BASELINE_RULES_VERSION = 8;
 
 export const boardHasGlassDecoy = (board: BoardState): boolean =>
     board.tiles.some((t) => t.pairKey === DECOY_PAIR_KEY);
@@ -234,18 +236,19 @@ const getClearLifeReason = (tries: number): ClearLifeReason => {
     return 'none';
 };
 
-const resolveComboShardReward = (
+const applyComboShardGain = (
     comboShards: number,
     lives: number,
-    currentStreak: number
+    shardGain: number,
+    allowLifeGain: boolean = true
 ): { comboShards: number; lifeGain: number } => {
-    if (currentStreak % COMBO_SHARD_STREAK_STEP !== 0) {
+    if (shardGain <= 0) {
         return { comboShards, lifeGain: 0 };
     }
 
-    const nextComboShards = comboShards + 1;
+    const nextComboShards = comboShards + shardGain;
 
-    if (lives < MAX_LIVES && nextComboShards >= COMBO_SHARDS_PER_LIFE) {
+    if (allowLifeGain && lives < MAX_LIVES && nextComboShards >= COMBO_SHARDS_PER_LIFE) {
         return {
             comboShards: nextComboShards - COMBO_SHARDS_PER_LIFE,
             lifeGain: 1
@@ -327,8 +330,8 @@ const createTiles = (
             id: `${level}-decoy`,
             pairKey: DECOY_PAIR_KEY,
             state: 'hidden' as const,
-            symbol: '؟',
-            label: '?',
+            symbol: 'X',
+            label: 'Decoy',
             atomicVariant: 0
         });
     }
@@ -347,6 +350,9 @@ const createTiles = (
     return shuffleWithRng(() => rng(), pairs);
 };
 
+const countFindablePairs = (tiles: readonly Tile[]): number =>
+    new Set(tiles.filter((tile) => tile.findableKind != null).map((tile) => tile.pairKey)).size;
+
 const assignFindableKindsToTiles = (
     tiles: Tile[],
     mutators: MutatorId[],
@@ -354,9 +360,6 @@ const assignFindableKindsToTiles = (
     rulesVersion: number,
     level: number
 ): Tile[] => {
-    if (!mutators.includes('findables_floor')) {
-        return tiles;
-    }
     const eligibleKeys = [
         ...new Set(
             tiles
@@ -367,9 +370,22 @@ const assignFindableKindsToTiles = (
     if (eligibleKeys.length === 0) {
         return tiles;
     }
+    const legacyFindables = rulesVersion < PICKUP_BASELINE_RULES_VERSION;
+    if (legacyFindables && !mutators.includes('findables_floor')) {
+        return tiles;
+    }
     const rng = createMulberry32(hashStringToSeed(`findables:${rulesVersion}:${runSeed}:${level}`));
-    const roll = rng();
-    const pairCountTarget = roll < 0.2 ? 0 : roll < 0.7 ? 1 : 2;
+    let pairCountTarget = 0;
+    if (legacyFindables) {
+        const roll = rng();
+        pairCountTarget = roll < 0.2 ? 0 : roll < 0.7 ? 1 : 2;
+    } else if (mutators.includes('findables_floor')) {
+        pairCountTarget = 2;
+    } else if (level <= 3) {
+        pairCountTarget = 1;
+    } else {
+        pairCountTarget = rng() < 0.5 ? 1 : 2;
+    }
     const n = Math.min(pairCountTarget, eligibleKeys.length);
     if (n === 0) {
         return tiles;
@@ -548,7 +564,7 @@ export const buildBoard = (level: number, options: BuildBoardOptions = {}): Boar
 
 /**
  * Floor is complete when every tile is matched or removed.
- * **Glass decoy** (`DECOY_PAIR_KEY`): singleton "?" — it never pairs; intent is to clear all **real** tiles
+ * **Glass decoy** (`DECOY_PAIR_KEY`): singleton decoy trap — it never pairs; intent is to clear all **real** tiles
  * and leave the decoy face-down for the glass-witness bonus. Completion when every **non-decoy** tile is
  * matched or removed and the decoy (if present) is still **hidden** (unflipped).
  */
@@ -991,6 +1007,7 @@ export const createNewRun = (bestScore: number, options: CreateRunOptions = {}):
         regionShuffleFreeThisFloor: false,
         pinsPlacedCountThisRun: 0,
         findablesClaimedThisFloor: 0,
+        findablesTotalThisFloor: countFindablePairs(board.tiles),
         shiftingSpotlightNonce: 0
     };
 
@@ -1433,8 +1450,10 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
         const tileMatchA = run.board.tiles.find((t) => t.id === matchA)!;
         const tileMatchB = run.board.tiles.find((t) => t.id === matchB)!;
         const claimedFindableKind = tileMatchA.findableKind ?? tileMatchB.findableKind ?? null;
-        const findableBonus =
+        const findableScoreBonus =
             claimedFindableKind != null ? FINDABLE_MATCH_SCORE[claimedFindableKind] : 0;
+        const findableComboShardGain =
+            claimedFindableKind != null ? FINDABLE_MATCH_COMBO_SHARDS[claimedFindableKind] : 0;
         const findablesClaimedDelta = claimedFindableKind != null ? 1 : 0;
 
         const board: BoardState = {
@@ -1457,8 +1476,12 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
             meditation || currentStreak % COMBO_GUARD_STREAK_STEP !== 0 ? 0 : 1;
         const guardTokens = Math.min(MAX_GUARD_TOKENS, run.stats.guardTokens + guardTokenGain);
         const comboShardReward = meditation
-            ? { comboShards: run.stats.comboShards, lifeGain: 0 }
-            : resolveComboShardReward(run.stats.comboShards, run.lives, currentStreak);
+            ? applyComboShardGain(run.stats.comboShards, run.lives, findableComboShardGain, false)
+            : applyComboShardGain(
+                  run.stats.comboShards,
+                  run.lives,
+                  (currentStreak % COMBO_SHARD_STREAK_STEP === 0 ? 1 : 0) + findableComboShardGain
+              );
         const chainHealLifeGain =
             meditation || currentStreak % CHAIN_HEAL_STREAK_STEP !== 0 ? 0 : 1;
         const lives = Math.min(MAX_LIVES, run.lives + chainHealLifeGain + comboShardReward.lifeGain);
@@ -1477,7 +1500,7 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
             0,
             calculateMatchScore(board.level, currentStreak, run.matchScoreMultiplier) +
                 encoreBonus +
-                findableBonus +
+                findableScoreBonus +
                 spotlightDelta -
                 presentationPenalty
         );
@@ -1596,8 +1619,10 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
 
     if (isMatch) {
         const claimedFindableKind = firstTile.findableKind ?? secondTile.findableKind ?? null;
-        const findableBonus =
+        const findableScoreBonus =
             claimedFindableKind != null ? FINDABLE_MATCH_SCORE[claimedFindableKind] : 0;
+        const findableComboShardGain =
+            claimedFindableKind != null ? FINDABLE_MATCH_COMBO_SHARDS[claimedFindableKind] : 0;
         const findablesClaimedDelta = claimedFindableKind != null ? 1 : 0;
 
         const board: BoardState = {
@@ -1616,8 +1641,12 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
             meditation || currentStreak % COMBO_GUARD_STREAK_STEP !== 0 ? 0 : 1;
         const guardTokens = Math.min(MAX_GUARD_TOKENS, run.stats.guardTokens + guardTokenGain);
         const comboShardReward = meditation
-            ? { comboShards: run.stats.comboShards, lifeGain: 0 }
-            : resolveComboShardReward(run.stats.comboShards, run.lives, currentStreak);
+            ? applyComboShardGain(run.stats.comboShards, run.lives, findableComboShardGain, false)
+            : applyComboShardGain(
+                  run.stats.comboShards,
+                  run.lives,
+                  (currentStreak % COMBO_SHARD_STREAK_STEP === 0 ? 1 : 0) + findableComboShardGain
+              );
         const chainHealLifeGain =
             meditation || currentStreak % CHAIN_HEAL_STREAK_STEP !== 0 ? 0 : 1;
         const lives = Math.min(MAX_LIVES, run.lives + chainHealLifeGain + comboShardReward.lifeGain);
@@ -1636,7 +1665,7 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
             0,
             calculateMatchScore(board.level, currentStreak, run.matchScoreMultiplier) +
                 encoreBonus +
-                findableBonus +
+                findableScoreBonus +
                 spotlightDelta -
                 presentationPenalty
         );
@@ -1828,6 +1857,7 @@ export const advanceToNextLevel = (run: RunState): RunState => {
         cursedMatchedEarlyThisFloor: false,
         matchResolutionsThisFloor: 0,
         findablesClaimedThisFloor: 0,
+        findablesTotalThisFloor: countFindablePairs(nextBoard.tiles),
         shiftingSpotlightNonce: 0,
         flashPairRevealedTileIds: [],
         regionShuffleRowArmed: null,

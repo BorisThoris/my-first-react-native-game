@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import type { FindableKind, Tile } from '../../shared/contracts';
 
 const GAUNTLET_WARN_SECS = [60, 30, 10, 5] as const;
 
@@ -22,6 +23,40 @@ const flushThenSet = (text: string, set: (value: string) => void): void => {
     });
 };
 
+export const detectClaimedFindableKind = (
+    previousTiles: readonly Tile[],
+    nextTiles: readonly Tile[]
+): FindableKind | null => {
+    const previousKinds = new Map<string, FindableKind>();
+    for (const tile of previousTiles) {
+        if (tile.findableKind != null) {
+            previousKinds.set(tile.pairKey, tile.findableKind);
+        }
+    }
+    for (const [pairKey, kind] of previousKinds) {
+        const nextPairTiles = nextTiles.filter((tile) => tile.pairKey === pairKey);
+        if (
+            nextPairTiles.length > 0 &&
+            nextPairTiles.every(
+                (tile) =>
+                    (tile.state === 'matched' || tile.state === 'removed') &&
+                    tile.findableKind == null
+            )
+        ) {
+            return kind;
+        }
+    }
+    return null;
+};
+
+export const getFindableAnnouncementText = (kind: FindableKind): string =>
+    kind === 'shard_spark'
+        ? 'Shard spark claimed: plus one combo shard.'
+        : 'Score glint claimed: plus twenty-five score.';
+
+export const getFindableToastText = (kind: FindableKind): string =>
+    kind === 'shard_spark' ? 'Shard spark +1 shard' : 'Score glint +25 score';
+
 export interface HudPoliteLiveAnnouncementInput {
     gauntletRemainingMs: number | null;
     gauntletActive: boolean;
@@ -30,6 +65,8 @@ export interface HudPoliteLiveAnnouncementInput {
     parasiteWardRemaining: number;
     lives: number;
     boardLevel: number | null;
+    boardTiles: readonly Tile[];
+    findablesClaimedThisFloor: number;
 }
 
 /**
@@ -44,6 +81,8 @@ export const useHudPoliteLiveAnnouncement = ({
     parasiteWardRemaining,
     lives,
     boardLevel,
+    boardTiles,
+    findablesClaimedThisFloor
 }: HudPoliteLiveAnnouncementInput): string => {
     const [message, setMessage] = useState('');
     const prevGauntletSecsRef = useRef<number | null>(null);
@@ -52,6 +91,11 @@ export const useHudPoliteLiveAnnouncement = ({
         parasiteFloors: number;
         lives: number;
         ward: number;
+    } | null>(null);
+    const pickupSnapRef = useRef<{
+        level: number;
+        claimed: number;
+        tiles: readonly Tile[];
     } | null>(null);
 
     useEffect(() => {
@@ -113,6 +157,34 @@ export const useHudPoliteLiveAnnouncement = ({
 
         parasiteSnapRef.current = nextSnap;
     }, [boardLevel, lives, parasiteFloors, parasiteWardRemaining, scoreParasiteActive]);
+
+    useEffect(() => {
+        if (boardLevel === null) {
+            pickupSnapRef.current = null;
+            return;
+        }
+
+        const snap = pickupSnapRef.current;
+        const nextSnap = {
+            level: boardLevel,
+            claimed: findablesClaimedThisFloor,
+            tiles: boardTiles
+        };
+
+        if (snap === null || boardLevel < snap.level) {
+            pickupSnapRef.current = nextSnap;
+            return;
+        }
+
+        if (boardLevel === snap.level && findablesClaimedThisFloor > snap.claimed) {
+            const claimedKind = detectClaimedFindableKind(snap.tiles, boardTiles);
+            if (claimedKind != null) {
+                flushThenSet(getFindableAnnouncementText(claimedKind), setMessage);
+            }
+        }
+
+        pickupSnapRef.current = nextSnap;
+    }, [boardLevel, boardTiles, findablesClaimedThisFloor]);
 
     return message;
 };

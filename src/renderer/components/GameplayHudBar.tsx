@@ -1,6 +1,5 @@
 import { useId, type ReactNode } from 'react';
 import { MAX_LIVES, type MutatorId, type RunState } from '../../shared/contracts';
-import { hasMutator } from '../../shared/mutators';
 import codexBookUrl from '../assets/ui/icons/icon-codex-book-v1.svg?url';
 import scoreParasiteCrystalUrl from '../assets/ui/icons/icon-score-parasite-crystal.svg?url';
 import shuffleIconUrl from '../assets/ui/icons/icon-shuffle-v1.svg?url';
@@ -16,13 +15,19 @@ const MUTATOR_HUD_LABELS: Record<MutatorId, string> = {
     silhouette_twist: 'Silhouette',
     n_back_anchor: 'N-back',
     distraction_channel: 'Distraction',
-    findables_floor: 'Findables',
+    findables_floor: 'Dense pickups',
     shifting_spotlight: 'Shifting spotlight'
 };
 
 const getMutatorChipTitle = (id: MutatorId): string => {
     if (id === 'sticky_fingers') {
         return 'Sticky fingers — your next opening flip must use a different slot than the tile you matched last.';
+    }
+    if (id === 'glass_floor') {
+        return 'Glass floor — adds one decoy trap tile that never pairs. Avoid dragging it into a mismatch for the glass-witness bonus.';
+    }
+    if (id === 'findables_floor') {
+        return 'Dense pickups — this floor guarantees two pickup pairs instead of the normal baseline spawn.';
     }
     return MUTATOR_HUD_LABELS[id] ?? id;
 };
@@ -407,14 +412,16 @@ const GameplayHudBar = ({
                                         <span className={styles.statVal}>{Math.ceil(gauntletRemainingMs / 1000)}s</span>
                                     </div>
                                 ) : null}
-                                {hasMutator(run, 'findables_floor') ? (
+                                {run.findablesTotalThisFloor > 0 ? (
                                     <div
                                         className={styles.statPillCompact}
                                         data-testid="hud-findables-claimed"
-                                        title="Bonus pickups claimed by matching pairs this floor"
+                                        title="Pickup progress this floor. Shard spark grants +1 combo shard; score glint grants +25 score."
                                     >
-                                        <span className={styles.statKey}>Findables</span>
-                                        <span className={styles.statVal}>{run.findablesClaimedThisFloor}</span>
+                                        <span className={styles.statKey}>Pickups</span>
+                                        <span className={styles.statVal}>
+                                            {run.findablesClaimedThisFloor}/{run.findablesTotalThisFloor}
+                                        </span>
                                     </div>
                                 ) : null}
                                 {run.activeContract?.noShuffle ? (

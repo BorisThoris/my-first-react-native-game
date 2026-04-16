@@ -1,60 +1,13 @@
 import {
     AdditiveBlending,
-    ClampToEdgeWrapping,
-    DataTexture,
     DoubleSide,
-    LinearFilter,
-    RGBAFormat,
     ShaderMaterial,
-    SRGBColorSpace,
-    Vector3,
-    Vector4
+    Vector2,
+    Vector3
 } from 'three';
+import { GAMEPLAY_BOARD_VISUALS } from './gameplayVisualConfig';
 import { MATCHED_RIM_FIRE_FRAGMENT_SHADER } from './matchedCardRimFireShaderGlsl';
-
-/**
- * Mattatz-style fire on the **actual bezel ring mesh** (`createRoundedRectBezelRingGeometry` via
- * `getResolvingRoundedRectRingGeometry` in-game) — same outline as resolving rim chrome, not a separate quad.
- * See `matchedCardRimFireShaderGlsl.ts`.
- */
-
-/** Vertical luminance ramp — stand-in for `assets/textures/firetex-darkblue.png` in the original demo. */
-let sharedFireRampTexture: DataTexture | null = null;
-
-const createFireRampDataTexture = (): DataTexture => {
-    const w = 64;
-    const h = 128;
-    const data = new Uint8Array(w * h * 4);
-    for (let y = 0; y < h; y += 1) {
-        const t = y / (h - 1);
-        for (let x = 0; x < w; x += 1) {
-            const i = (y * w + x) * 4;
-            const pulse = 0.08 * Math.sin((x / (w - 1)) * Math.PI * 6.0);
-            const r = Math.min(1, 0.05 + t * 1.15 + pulse);
-            const g = Math.min(1, t * t * 0.85 + pulse * 0.5);
-            const b = Math.min(1, (1.0 - t) * 0.45 + t * 0.12 + pulse * 0.2);
-            data[i] = Math.floor(r * 255);
-            data[i + 1] = Math.floor(g * 255);
-            data[i + 2] = Math.floor(b * 255);
-            data[i + 3] = 255;
-        }
-    }
-    const tex = new DataTexture(data, w, h, RGBAFormat);
-    tex.colorSpace = SRGBColorSpace;
-    tex.minFilter = LinearFilter;
-    tex.magFilter = LinearFilter;
-    tex.wrapS = ClampToEdgeWrapping;
-    tex.wrapT = ClampToEdgeWrapping;
-    tex.needsUpdate = true;
-    return tex;
-};
-
-export const getSharedFireRampTexture = (): DataTexture => {
-    if (!sharedFireRampTexture) {
-        sharedFireRampTexture = createFireRampDataTexture();
-    }
-    return sharedFireRampTexture;
-};
+import { CARD_PLANE_HEIGHT, CARD_PLANE_WIDTH } from './tileShatter';
 
 const vertexShader = /* glsl */ `
 varying vec2 vLocal;
@@ -65,35 +18,61 @@ void main() {
 }
 `;
 
+const matchedEdgeGeometry = GAMEPLAY_BOARD_VISUALS.matchedEdgeEffect.geometry;
+const matchedEdgeBand = GAMEPLAY_BOARD_VISUALS.matchedEdgeEffect.band;
+
+const outerHalfSize = new Vector2(
+    CARD_PLANE_WIDTH * 0.5 + matchedEdgeGeometry.outerPad,
+    CARD_PLANE_HEIGHT * 0.5 + matchedEdgeGeometry.outerPad
+);
+const innerHalfSize = new Vector2(
+    CARD_PLANE_WIDTH * 0.5 - matchedEdgeGeometry.innerPad,
+    CARD_PLANE_HEIGHT * 0.5 - matchedEdgeGeometry.innerPad
+);
+
 export interface MatchedCardRimFireUniforms {
-    uFireTex: { value: DataTexture };
     uTime: { value: number };
-    uIntensity: { value: number };
     uSeed: { value: number };
-    uReduceMotion: { value: number };
-    uColorMult: { value: Vector3 };
-    uMagnitude: { value: number };
-    uLacunarity: { value: number };
-    uGain: { value: number };
-    uNoiseScale: { value: Vector4 };
+    uIntensity: { value: number };
+    uBurst: { value: number };
+    uMotion: { value: number };
+    uSoftness: { value: number };
+    uInnerWidth: { value: number };
+    uOuterWidth: { value: number };
+    uEmberStrength: { value: number };
+    uOuterHalfSize: { value: Vector2 };
+    uInnerHalfSize: { value: Vector2 };
+    uOuterCorner: { value: number };
+    uInnerCorner: { value: number };
+    uCoreColor: { value: Vector3 };
+    uGlowColor: { value: Vector3 };
+    uEmberColor: { value: Vector3 };
 }
 
 /**
- * Defaults mirror `fire.js` controller: magnitude 1.3, lacunarity 2, gain 0.5,
- * noiseScale (1, 2, 1, 0.3). Base tint leans emerald to match matched-card art direction.
+ * Purpose-built additive ember rim for matched cards. The mesh still provides the rounded-rect
+ * silhouette, but the shader now derives its read from inner/outer edge distance instead of
+ * sampling a generic fire volume.
  */
 export const createMatchedCardRimFireMaterial = (seed: number): ShaderMaterial => {
+    const colors = GAMEPLAY_BOARD_VISUALS.matchedEdgeEffect.colors;
     const uniforms: MatchedCardRimFireUniforms = {
-        uFireTex: { value: getSharedFireRampTexture() },
         uTime: { value: 0 },
-        uIntensity: { value: 0 },
         uSeed: { value: (seed % 1000) * 0.001 },
-        uReduceMotion: { value: 0 },
-        uColorMult: { value: new Vector3(0.45, 1.0, 0.72) },
-        uMagnitude: { value: 1.3 },
-        uLacunarity: { value: 2.0 },
-        uGain: { value: 0.5 },
-        uNoiseScale: { value: new Vector4(1.0, 2.0, 1.0, 0.3) }
+        uIntensity: { value: 0 },
+        uBurst: { value: 0 },
+        uMotion: { value: 1 },
+        uSoftness: { value: matchedEdgeBand.softness },
+        uInnerWidth: { value: matchedEdgeBand.innerWidth },
+        uOuterWidth: { value: matchedEdgeBand.outerWidth },
+        uEmberStrength: { value: 1 },
+        uOuterHalfSize: { value: outerHalfSize.clone() },
+        uInnerHalfSize: { value: innerHalfSize.clone() },
+        uOuterCorner: { value: matchedEdgeGeometry.outerCorner },
+        uInnerCorner: { value: matchedEdgeGeometry.innerCorner },
+        uCoreColor: { value: new Vector3(...colors.core) },
+        uGlowColor: { value: new Vector3(...colors.glow) },
+        uEmberColor: { value: new Vector3(...colors.ember) }
     };
 
     return new ShaderMaterial({

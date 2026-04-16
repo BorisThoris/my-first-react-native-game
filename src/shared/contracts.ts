@@ -1,6 +1,6 @@
 export const SAVE_SCHEMA_VERSION = 4;
 /** Bump when generation rules change (tile order, mutators, pair layout). */
-export const GAME_RULES_VERSION = 7;
+export const GAME_RULES_VERSION = 8;
 export const INITIAL_LIVES = 4;
 /** Hard cap on life total during a run; HUD renders this many heart slots (PLAY-004 — honest max, not mock’s three). */
 export const MAX_LIVES = 5;
@@ -70,13 +70,18 @@ export type MutatorId =
     | 'findables_floor'
     | 'shifting_spotlight';
 
-/** Bonus pickups on some pairs when `findables_floor` mutator is active (flat score on match claim). */
+/** Bonus pickups attached to some pairs during eligible runs/floors. */
 export type FindableKind = 'shard_spark' | 'score_glint';
 
 /** Flat score added on top of normal match score when a findable pair is matched. */
 export const FINDABLE_MATCH_SCORE: Record<FindableKind, number> = {
-    shard_spark: 25,
-    score_glint: 12
+    shard_spark: 0,
+    score_glint: 25
+};
+/** Immediate combo-shard gain when a findable pair is matched. */
+export const FINDABLE_MATCH_COMBO_SHARDS: Record<FindableKind, number> = {
+    shard_spark: 1,
+    score_glint: 0
 };
 
 /** Hidden shuffle: full Fisher–Yates vs row-preserving permute. */
@@ -179,7 +184,7 @@ export interface Tile {
     state: TileState;
     /** Visual variant index for atomic-pairs styling (optional). */
     atomicVariant?: number;
-    /** If set, matching this pair claims a bonus when the `findables_floor` mutator is active. */
+    /** If set, matching this pair claims a pickup reward on eligible floors. */
     findableKind?: FindableKind;
 }
 
@@ -374,6 +379,8 @@ export interface RunState {
     pinsPlacedCountThisRun: number;
     /** Findables: successful match claims this floor (resets on advance). */
     findablesClaimedThisFloor: number;
+    /** Findables: total pickup pairs that spawned this floor (claimed or forfeited). */
+    findablesTotalThisFloor: number;
     /** `shifting_spotlight`: increments each time ward/bounty rotates this floor (seed step for next pick). */
     shiftingSpotlightNonce: number;
 }

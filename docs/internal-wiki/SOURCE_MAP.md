@@ -32,10 +32,10 @@ Quick orientation for navigation and code review. **Rules of thumb:** `shared/` 
 
 | File | Role |
 |------|------|
-| `index.ts` | App lifecycle, window, menus |
+| `index.ts` | App lifecycle, `BrowserWindow`, IPC registration, persistence + Steam services (no Electron **Menu** API) |
 | `ipc.ts` | IPC handlers: bridge to preload/renderer contracts |
 | `persistence.ts` | electron-store: saves, settings paths |
-| `steam.ts` | steamworks.js adapter; no-op when unavailable |
+| `steam.ts` | steamworks.js adapter; **mock** adapter when init fails (IPC still saves unlocks locally first) |
 
 ## `src/preload/`
 
@@ -45,10 +45,15 @@ Quick orientation for navigation and code review. **Rules of thumb:** `shared/` 
 
 ## `src/renderer/` (React + board)
 
+| File | Role |
+|------|------|
+| `main.tsx` | Theme CSS vars on `document.documentElement`, global CSS, provider stack (`NotificationHost`, etc.), mount `App` |
+| `App.tsx` | Routed shell from `useAppStore`: screens, portals (intro, in-run settings), `data-view` / overlay semantics |
+
 | Directory | Role |
 |-----------|------|
 | `components/` | Screens: `GameScreen`, `TileBoard`, menus, Codex, settings, HUD, modals, WebGL helpers |
-| `store/` | `useAppStore.ts` — orchestration, timers, calls into `game.ts` |
+| `store/` | `useAppStore.ts` — orchestration; `desktopClient` save/settings/Steam; memorize/resolve/gauntlet timers; `game.ts`; `gameSfx`; achievements/telemetry on run end |
 | `audio/` | `gameSfx.ts` — Web Audio procedural SFX (flip, match, mismatch) |
 | `hooks/` | Shell zoom, HUD a11y announcements, etc. |
 | `a11y/` | Focus order / focusable queries |

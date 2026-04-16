@@ -9,26 +9,58 @@
         max(clamp(1rem, 3vw, 1.6rem), env(safe-area-inset-right, 0px))
         max(clamp(1rem, 3vw, 1.6rem), env(safe-area-inset-bottom, 0px))
         max(clamp(1rem, 3vw, 1.6rem), env(safe-area-inset-left, 0px));
-    background: var(--theme-modal-scrim-bg, var(--theme-scrim-dialog));
-    backdrop-filter: var(--theme-modal-scrim-backdrop-filter, blur(14px) saturate(130%));
+    background: var(--gameplay-overlay-scrim-bg, var(--theme-modal-scrim-bg, var(--theme-scrim-dialog)));
+    backdrop-filter: var(
+        --gameplay-overlay-scrim-filter,
+        var(--theme-modal-scrim-backdrop-filter, blur(14px) saturate(130%))
+    );
     z-index: 21;
     overflow: hidden;
 }
 
 .modal {
+    --overlay-accent: color-mix(in srgb, var(--theme-gold-bright) 28%, transparent);
+    --overlay-accent-soft: color-mix(in srgb, var(--theme-gold-bright) 12%, transparent);
     width: min(820px, 100%);
     max-height: calc(100dvh - 2rem);
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(180px, 0.28fr);
+    grid-template-columns: minmax(0, 1fr) minmax(186px, 0.3fr);
     align-items: start;
-    gap: clamp(1rem, 3vw, 1.5rem);
+    gap: clamp(1rem, 3vw, 1.35rem);
     padding: var(--theme-modal-plate-padding);
     overflow: hidden;
     min-height: 0;
-    background: var(--theme-panel-surface-strong, var(--theme-panel-surface));
-    border: var(--theme-overlay-plate-border, 1px solid var(--theme-border-strong));
-    border-radius: var(--theme-overlay-plate-radius, calc(var(--ui-radius-modal) + 0.18rem));
-    box-shadow: var(--theme-overlay-plate-shadow);
+    position: relative;
+    isolation: isolate;
+    background: var(--gameplay-overlay-surface, var(--theme-panel-surface-strong, var(--theme-panel-surface)));
+    border: var(--gameplay-overlay-border, var(--theme-overlay-plate-border, 1px solid var(--theme-border-strong)));
+    border-radius: calc(var(--theme-overlay-plate-radius, calc(var(--ui-radius-modal) + 0.18rem)) + 0.08rem);
+    box-shadow: var(--gameplay-overlay-shadow, var(--theme-overlay-plate-shadow));
+}
+
+.modal::before,
+.modal::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.modal::before {
+    border-radius: inherit;
+    background:
+        radial-gradient(ellipse 90% 58% at 50% 0%, var(--overlay-accent-soft), transparent 58%),
+        linear-gradient(180deg, rgba(255, 243, 217, 0.05), transparent 26%);
+    opacity: 0.92;
+}
+
+.modal::after {
+    inset: 0.42rem;
+    border-radius: calc(var(--theme-overlay-plate-radius, calc(var(--ui-radius-modal) + 0.18rem)) - 0.02rem);
+    border: 1px solid color-mix(in srgb, var(--overlay-accent) 42%, transparent);
+    box-shadow:
+        inset 0 1px 0 color-mix(in srgb, rgba(255, 255, 255, 0.08) 80%, transparent),
+        inset 0 0 0 1px color-mix(in srgb, var(--theme-shadow) 16%, transparent);
 }
 
 .mainColumn {
@@ -36,7 +68,9 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 0;
+    gap: 0.18rem;
+    position: relative;
+    z-index: 1;
 }
 
 /* OVR-002 — META-003 header band: shallow plate + forged cornice (motion-free; cornice filter gated in MetaFrame). */
@@ -105,22 +139,67 @@
         inset 0 -1px 0 rgba(0, 0, 0, 0.38);
 }
 
+.headerPlateFrameDanger {
+    --theme-meta-frame-drop: 0 0 16px color-mix(in srgb, var(--theme-danger) 46%, transparent);
+}
+
+.headerPlateFrameDanger .headerPlateWell {
+    background:
+        radial-gradient(ellipse 125% 85% at 50% 0%, color-mix(in srgb, var(--theme-danger) 22%, transparent), transparent 56%),
+        linear-gradient(180deg, rgba(255, 243, 217, 0.03) 0%, transparent 42%),
+        linear-gradient(168deg, rgba(27, 13, 15, 0.96), rgba(12, 8, 10, 0.92));
+    box-shadow:
+        inset 0 1px 0 color-mix(in srgb, var(--theme-danger) 12%, transparent),
+        inset 0 0 0 1px color-mix(in srgb, var(--theme-danger) 18%, transparent),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.4);
+}
+
+.modalToneNeutral {
+    --overlay-accent: color-mix(in srgb, var(--theme-gold-bright) 28%, transparent);
+    --overlay-accent-soft: color-mix(in srgb, var(--theme-gold-bright) 12%, transparent);
+}
+
+.modalToneSuccess {
+    --overlay-accent: color-mix(in srgb, var(--theme-success) 42%, transparent);
+    --overlay-accent-soft: color-mix(in srgb, var(--theme-success) 16%, transparent);
+}
+
+.modalTonePause {
+    --overlay-accent: color-mix(in srgb, rgba(87, 220, 255, 0.9) 46%, transparent);
+    --overlay-accent-soft: color-mix(in srgb, rgba(87, 220, 255, 1) 14%, transparent);
+}
+
+.modalToneRelic {
+    --overlay-accent: color-mix(in srgb, #8c62df 52%, transparent);
+    --overlay-accent-soft: color-mix(in srgb, #8c62df 16%, transparent);
+}
+
+.modalToneDanger {
+    --overlay-accent: color-mix(in srgb, var(--theme-danger) 44%, transparent);
+    --overlay-accent-soft: color-mix(in srgb, var(--theme-danger) 15%, transparent);
+}
+
 .title {
     margin: 0;
 }
 
 .subtitle {
     margin: 0.5rem 0 0;
-    color: var(--theme-text-muted);
+    color: color-mix(in srgb, var(--theme-text-muted) 92%, white);
     font-size: var(--ui-font-body-sm);
     line-height: 1.55;
+    max-width: 42rem;
 }
 
 .body {
     margin-top: 0.9rem;
     flex: 1;
+    display: grid;
+    gap: 0.72rem;
     overflow: hidden;
     min-height: 0;
+    position: relative;
+    z-index: 1;
 }
 
 .actions {
@@ -130,11 +209,20 @@
     align-items: stretch;
     gap: 0.55rem;
     margin-top: 0.1rem;
+    padding: 0.42rem;
+    border-radius: calc(var(--ui-radius-lg) - 0.05rem);
+    border: 1px solid color-mix(in srgb, var(--overlay-accent) 26%, transparent);
+    background: var(--gameplay-overlay-actions-surface, color-mix(in srgb, var(--theme-void) 62%, transparent));
+    box-shadow:
+        inset 0 1px 0 color-mix(in srgb, rgba(255, 255, 255, 0.05) 80%, transparent),
+        inset 0 0 0 1px color-mix(in srgb, var(--theme-shadow) 10%, transparent);
+    position: relative;
+    z-index: 1;
 }
 
 .modalAction {
     flex: 0 0 auto;
-    min-width: min(100%, 10rem);
+    min-width: min(100%, 10.5rem);
 }
 
 @media (max-height: 720px) {
@@ -168,6 +256,7 @@
         flex-direction: row;
         flex-wrap: wrap;
         justify-content: flex-end;
+        padding: 0.35rem;
     }
 
     .modalAction {

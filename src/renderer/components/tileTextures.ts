@@ -22,6 +22,7 @@ import {
     drawProgrammaticCardFaceOverlay,
     tileUsesProgrammaticFaceMotif
 } from '../cardFace/programmaticCardFace';
+import { GAMEPLAY_CARD_VISUALS } from './gameplayVisualConfig';
 
 export type FaceVariant = 'hidden' | 'active' | 'matched' | 'mismatch';
 export type TileFace = 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom';
@@ -35,9 +36,9 @@ const TEXTURE_SIZE = 512;
 /** Taller canvas for WebGL static card PNGs so 1403×2048 sources aren’t over-downscaled (was 512 — felt cropped/soft). */
 const STATIC_CARD_TEXTURE_HEIGHT = 1024;
 const STATIC_CARD_TEXTURE_WIDTH = Math.max(2, Math.round(STATIC_CARD_TEXTURE_HEIGHT * (CARD_PLANE_WIDTH / CARD_PLANE_HEIGHT)));
-const TILE_TEXTURE_VERSION = 31;
+const TILE_TEXTURE_VERSION = GAMEPLAY_CARD_VISUALS.textureVersion;
 /** Bump when procedural card-surface maps change (independent of tile face caches). */
-const CARD_SURFACE_MAP_VERSION = 2;
+const CARD_SURFACE_MAP_VERSION = GAMEPLAY_CARD_VISUALS.surfaceMapVersion;
 const textureCache = new Map<string, CanvasTexture>();
 const textureImageUpdateListeners = new Set<() => void>();
 
@@ -518,68 +519,68 @@ const getPalette = (variant: FaceVariant, layer: LayerSlot): CardPalette => {
     if (variant === 'matched') {
         return bezel
             ? {
-                  accent: 'rgba(255, 214, 133, 0.24)',
-                  backBase: '#1a1c22',
-                  backPattern: 'rgba(255, 214, 133, 0.14)',
-                  edge: '#111317',
-                  faceBase: '#2a2317',
-                  faceEdge: '#151109',
-                  foil: colors.goldBright,
+                  accent: 'rgba(180, 235, 141, 0.24)',
+                  backBase: '#121a14',
+                  backPattern: 'rgba(180, 235, 141, 0.16)',
+                  edge: '#0a100b',
+                  faceBase: '#1b2b1a',
+                  faceEdge: '#0f170e',
+                  foil: colors.emeraldBright,
                   glow: colors.glowGold,
                   ink: colors.text,
-                  label: 'rgba(255, 242, 214, 0.95)',
-                  line: 'rgba(255, 214, 133, 0.48)',
-                  rim: 'rgba(255, 214, 133, 0.8)',
-                  rimSoft: 'rgba(194, 245, 255, 0.22)'
+                  label: 'rgba(236, 249, 224, 0.96)',
+                  line: 'rgba(180, 235, 141, 0.56)',
+                  rim: 'rgba(180, 235, 141, 0.84)',
+                  rimSoft: 'rgba(242, 211, 157, 0.24)'
               }
             : {
-                  accent: 'rgba(255, 214, 133, 0.16)',
-                  backBase: '#16202d',
-                  backPattern: 'rgba(87, 220, 255, 0.22)',
-                  edge: '#0b1320',
-                  faceBase: '#1d1a12',
-                  faceEdge: '#0c0a07',
-                  foil: colors.goldBright,
+                  accent: 'rgba(180, 235, 141, 0.18)',
+                  backBase: '#142015',
+                  backPattern: 'rgba(180, 235, 141, 0.22)',
+                  edge: '#0a140b',
+                  faceBase: '#1f2616',
+                  faceEdge: '#0d1008',
+                  foil: colors.emeraldBright,
                   glow: colors.glowGold,
-                  ink: '#fff6de',
-                  label: 'rgba(255, 242, 214, 0.92)',
-                  line: 'rgba(255, 214, 133, 0.52)',
-                  rim: 'rgba(255, 214, 133, 0.62)',
-                  rimSoft: 'rgba(87, 220, 255, 0.28)'
+                  ink: '#f3ffe5',
+                  label: 'rgba(236, 249, 224, 0.94)',
+                  line: 'rgba(180, 235, 141, 0.58)',
+                  rim: 'rgba(180, 235, 141, 0.7)',
+                  rimSoft: 'rgba(242, 211, 157, 0.22)'
               };
     }
 
     if (variant === 'active') {
         return bezel
             ? {
-                  accent: 'rgba(87, 220, 255, 0.22)',
-                  backBase: '#171b23',
-                  backPattern: 'rgba(87, 220, 255, 0.16)',
-                  edge: '#10141b',
-                  faceBase: '#142333',
-                  faceEdge: '#0b121a',
-                  foil: colors.cyanBright,
-                  glow: colors.glowCyan,
-                  ink: '#e8fbff',
-                  label: 'rgba(232, 251, 255, 0.92)',
-                  line: 'rgba(87, 220, 255, 0.48)',
-                  rim: 'rgba(87, 220, 255, 0.72)',
-                  rimSoft: 'rgba(255, 214, 133, 0.24)'
+                  accent: 'rgba(242, 211, 157, 0.16)',
+                  backBase: '#1d1714',
+                  backPattern: 'rgba(242, 211, 157, 0.16)',
+                  edge: '#120d0b',
+                  faceBase: '#1a2130',
+                  faceEdge: '#0f141d',
+                  foil: colors.goldBright,
+                  glow: colors.glowGoldSoft,
+                  ink: '#f8f4eb',
+                  label: 'rgba(244, 236, 220, 0.92)',
+                  line: 'rgba(242, 211, 157, 0.48)',
+                  rim: 'rgba(242, 211, 157, 0.74)',
+                  rimSoft: 'rgba(184, 217, 228, 0.2)'
               }
             : {
-                  accent: 'rgba(87, 220, 255, 0.18)',
-                  backBase: '#162333',
-                  backPattern: 'rgba(87, 220, 255, 0.26)',
-                  edge: '#0b1320',
-                  faceBase: '#13283a',
-                  faceEdge: '#0d1823',
-                  foil: colors.cyanBright,
-                  glow: colors.glowCyan,
-                  ink: '#ebfcff',
-                  label: 'rgba(227, 250, 255, 0.92)',
-                  line: 'rgba(87, 220, 255, 0.5)',
-                  rim: 'rgba(87, 220, 255, 0.58)',
-                  rimSoft: 'rgba(255, 214, 133, 0.2)'
+                  accent: 'rgba(242, 211, 157, 0.12)',
+                  backBase: '#251c17',
+                  backPattern: 'rgba(242, 211, 157, 0.22)',
+                  edge: '#140f0d',
+                  faceBase: '#202735',
+                  faceEdge: '#121925',
+                  foil: colors.goldBright,
+                  glow: colors.glowGoldSoft,
+                  ink: '#fffaf2',
+                  label: 'rgba(244, 236, 220, 0.92)',
+                  line: 'rgba(242, 211, 157, 0.48)',
+                  rim: 'rgba(242, 211, 157, 0.62)',
+                  rimSoft: 'rgba(184, 217, 228, 0.18)'
               };
     }
 
@@ -619,34 +620,34 @@ const getPalette = (variant: FaceVariant, layer: LayerSlot): CardPalette => {
 
     return bezel
         ? {
-              accent: 'rgba(255, 214, 133, 0.16)',
-              backBase: '#27364a',
-              backPattern: 'rgba(255, 214, 133, 0.2)',
-              edge: '#182436',
-              faceBase: '#314257',
-              faceEdge: '#223246',
-              foil: colors.gold,
+              accent: 'rgba(242, 211, 157, 0.18)',
+              backBase: '#2f2017',
+              backPattern: 'rgba(242, 211, 157, 0.24)',
+              edge: '#160f0d',
+              faceBase: '#3d2a1d',
+              faceEdge: '#26170f',
+              foil: colors.goldBright,
               glow: colors.glowGoldSoft,
-              ink: 'rgba(244, 241, 233, 0.9)',
-              label: 'rgba(232, 226, 214, 0.86)',
-              line: 'rgba(255, 214, 133, 0.44)',
-              rim: 'rgba(255, 214, 133, 0.58)',
-              rimSoft: 'rgba(194, 245, 255, 0.3)'
+              ink: 'rgba(244, 241, 233, 0.92)',
+              label: 'rgba(244, 236, 220, 0.9)',
+              line: 'rgba(242, 211, 157, 0.52)',
+              rim: 'rgba(242, 211, 157, 0.76)',
+              rimSoft: 'rgba(195, 149, 79, 0.32)'
           }
         : {
-              accent: 'rgba(255, 214, 133, 0.14)',
-              backBase: '#30435b',
-              backPattern: 'rgba(255, 214, 133, 0.28)',
-              edge: '#1f3045',
-              faceBase: '#3a4d67',
-              faceEdge: '#27384d',
-              foil: colors.gold,
+              accent: 'rgba(242, 211, 157, 0.14)',
+              backBase: '#3b291d',
+              backPattern: 'rgba(242, 211, 157, 0.28)',
+              edge: '#20140d',
+              faceBase: '#473122',
+              faceEdge: '#2a190f',
+              foil: colors.goldBright,
               glow: colors.glowGoldSoft,
-              ink: 'rgba(248, 244, 234, 0.92)',
-              label: 'rgba(241, 236, 222, 0.9)',
-              line: 'rgba(255, 214, 133, 0.44)',
-              rim: 'rgba(255, 214, 133, 0.56)',
-              rimSoft: 'rgba(87, 220, 255, 0.28)'
+              ink: 'rgba(248, 244, 234, 0.94)',
+              label: 'rgba(241, 236, 222, 0.92)',
+              line: 'rgba(242, 211, 157, 0.48)',
+              rim: 'rgba(242, 211, 157, 0.68)',
+              rimSoft: 'rgba(195, 149, 79, 0.28)'
           };
 };
 
@@ -718,13 +719,13 @@ const drawCardReferenceRoundPanel = (
     const hasCardTexture = drawTextureImage(context, canvas, 'cardReference', 1);
     if (hasCardTexture) {
         const tintOverlay = context.createLinearGradient(inset, inset, inset + cardWidth, inset + cardHeight);
-        tintOverlay.addColorStop(0, 'rgba(11, 19, 30, 0.06)');
-        tintOverlay.addColorStop(1, 'rgba(7, 12, 20, 0.1)');
+        tintOverlay.addColorStop(0, GAMEPLAY_CARD_VISUALS.texturedBackTint.start);
+        tintOverlay.addColorStop(1, GAMEPLAY_CARD_VISUALS.texturedBackTint.end);
         context.fillStyle = tintOverlay;
         context.fillRect(inset, inset, cardWidth, cardHeight);
     }
 
-    context.globalAlpha = hasCardTexture ? 0.12 : 0.66;
+    context.globalAlpha = hasCardTexture ? GAMEPLAY_CARD_VISUALS.texturedBackPatternOpacity : 0.66;
     context.strokeStyle = palette.backPattern;
     context.lineWidth = Math.max(1, Math.round(width * 0.0026));
 
@@ -749,17 +750,66 @@ const drawCardReferenceRoundPanel = (
     const emblem = context.createRadialGradient(centerX, centerY, ring * 0.15, centerX, centerY, ring);
     emblem.addColorStop(0, palette.foil);
     emblem.addColorStop(1, 'rgba(255, 255, 255, 0)');
-    context.globalAlpha = hasCardTexture ? 0.08 : 0.35;
+    context.globalAlpha = hasCardTexture ? GAMEPLAY_CARD_VISUALS.texturedBackEmblemOpacity : 0.35;
     context.fillStyle = emblem;
     context.beginPath();
     context.arc(centerX, centerY, ring, 0, Math.PI * 2);
     context.fill();
 
-    context.globalAlpha = hasCardTexture ? 0.28 : 0.72;
+    context.globalAlpha = hasCardTexture
+        ? GAMEPLAY_CARD_VISUALS.innerRingOpacity.textured
+        : GAMEPLAY_CARD_VISUALS.innerRingOpacity.fallback;
     context.strokeStyle = palette.rimSoft;
     context.lineWidth = Math.max(2, Math.round(width * 0.006));
     context.beginPath();
     context.arc(centerX, centerY, ring * 0.58, 0, Math.PI * 2);
+    context.stroke();
+
+    context.beginPath();
+    context.arc(centerX, centerY, ring * 0.34, 0, Math.PI * 2);
+    context.lineWidth = Math.max(1.5, Math.round(width * 0.0032));
+    context.strokeStyle = palette.line;
+    context.stroke();
+
+    const diamondSize = ring * 0.42;
+    const innerDiamondSize = diamondSize * 0.28;
+    const diamondGradient = context.createLinearGradient(centerX, centerY - diamondSize, centerX, centerY + diamondSize);
+    diamondGradient.addColorStop(0, palette.foil);
+    diamondGradient.addColorStop(1, palette.rimSoft);
+
+    context.globalAlpha = hasCardTexture
+        ? GAMEPLAY_CARD_VISUALS.centerDiamondOpacity.textured
+        : GAMEPLAY_CARD_VISUALS.centerDiamondOpacity.fallback;
+    context.strokeStyle = diamondGradient;
+    context.lineWidth = Math.max(2, Math.round(width * 0.0048));
+    context.beginPath();
+    context.moveTo(centerX, centerY - diamondSize);
+    context.lineTo(centerX + diamondSize, centerY);
+    context.lineTo(centerX, centerY + diamondSize);
+    context.lineTo(centerX - diamondSize, centerY);
+    context.closePath();
+    context.stroke();
+
+    context.fillStyle = diamondGradient;
+    context.beginPath();
+    context.moveTo(centerX, centerY - innerDiamondSize);
+    context.lineTo(centerX + innerDiamondSize, centerY);
+    context.lineTo(centerX, centerY + innerDiamondSize);
+    context.lineTo(centerX - innerDiamondSize, centerY);
+    context.closePath();
+    context.fill();
+
+    context.lineWidth = Math.max(1.2, Math.round(width * 0.0028));
+    context.strokeStyle = palette.rimSoft;
+    context.beginPath();
+    context.moveTo(centerX, centerY - diamondSize - ring * 0.12);
+    context.lineTo(centerX, centerY - diamondSize * 0.72);
+    context.moveTo(centerX, centerY + diamondSize * 0.72);
+    context.lineTo(centerX, centerY + diamondSize + ring * 0.12);
+    context.moveTo(centerX - diamondSize - ring * 0.12, centerY);
+    context.lineTo(centerX - diamondSize * 0.72, centerY);
+    context.moveTo(centerX + diamondSize * 0.72, centerY);
+    context.lineTo(centerX + diamondSize + ring * 0.12, centerY);
     context.stroke();
 
     context.restore();

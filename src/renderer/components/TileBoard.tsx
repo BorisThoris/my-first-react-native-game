@@ -112,6 +112,7 @@ interface MouseDragSnapshot {
 }
 
 const MOUSE_PAN_DRAG_THRESHOLD_PX = 8;
+const DECOY_PAIR_KEY = '__decoy__';
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
 
@@ -134,9 +135,17 @@ const getTilePosition = (index: number, columns: number): { row: number; column:
 });
 
 const getTileAriaLabel = (tile: Tile, faceUp: boolean, row: number, column: number): string => {
-    const base = faceUp ? `Tile ${tile.label}, row ${row}, column ${column}` : `Hidden tile, row ${row}, column ${column}`;
+    const base = faceUp
+        ? tile.pairKey === DECOY_PAIR_KEY
+            ? `Decoy trap tile, row ${row}, column ${column}. It never forms a pair.`
+            : `Tile ${tile.label}, row ${row}, column ${column}`
+        : `Hidden tile, row ${row}, column ${column}`;
     const findableNote =
-        tile.findableKind && faceUp && tile.state !== 'matched' ? ' Bonus pickup on this pair.' : '';
+        tile.findableKind && faceUp && tile.state !== 'matched'
+            ? tile.findableKind === 'shard_spark'
+                ? ' Shard spark pickup: matching this pair grants one combo shard.'
+                : ' Score glint pickup: matching this pair grants twenty-five score.'
+            : '';
     return `${base}${findableNote}`;
 };
 

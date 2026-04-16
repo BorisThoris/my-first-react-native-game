@@ -15,7 +15,7 @@ Only one track should **invent numbers or IDs**; others **link** to the catalog 
 
 ## Parallel agent workflow (suggested)
 
-1. **Assign scope up front** — e.g. Agent A: `docs/gameplay/` + `contracts.ts` references; Agent B: `docs/new_design/TASKS/` only; Agent C: `docs/internal-wiki/README.md` link fixes only.
+1. **Assign scope up front** — e.g. Agent A: `docs/gameplay/` + `contracts.ts` references; Agent B: `docs/new_design/TASKS/` only; Agent C: `docs/internal-wiki/README.md` link fixes only. For a **full-app orientation pass**, split into **many narrow slices** (entry + store + `game.ts` + main/preload + major screens + e2e + wiki cross-checks)—e.g. **50 scoped passes**—then merge into one rollup ([APP_ANALYSIS_SNAPSHOT_2026-04-17.md](./APP_ANALYSIS_SNAPSHOT_2026-04-17.md)) so indexes stay single-source-of-truth and agents do not each invent new narrative docs.
 2. **Single PR or sequential merge** — If two agents both edit [GAMEPLAY_MECHANICS_CATALOG.md](../gameplay/GAMEPLAY_MECHANICS_CATALOG.md), merge one branch first, then rebase the second and resolve conflicts **in favor of the catalog** as mechanics authority.
 3. **After mechanics change** — Order: update `src/shared/contracts.ts` + tests → catalog §14 / appendices → relevant epic → [gameplay/README.md](../gameplay/README.md) index if a new epic row is needed → [README.md](./README.md) quick links only if a new top-level doc was added.
 

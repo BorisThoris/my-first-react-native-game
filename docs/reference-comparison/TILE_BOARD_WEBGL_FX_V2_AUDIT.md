@@ -11,7 +11,7 @@
 | Resolving match | Dual rim + hue | Inner rounded rect vs halo | Halo > inner | Rims follow rounded card | Medium |
 | Resolving mismatch | Red/cyan stack | Same | Same | Same | Medium |
 | Resolving gambit | Neutral tint + rim | Same | Same | Same | Medium |
-| Matched | ✓ + glow plane | Check vector edges | Glow behind ✓ | N/A | Medium |
+| Matched | Ember rim + matched glow | Inner rim reads crisp, outer band stays edge-bound | Glow sits under the rim instead of washing the face | Rounded corners stay attached to card silhouette | Medium |
 | Keyboard focus | Gold ring pulse | Ring smooth | Optional bloom | N/A | Low–medium |
 | Bloom on/off (optional) | Post-FX | — | Bloom visible on rims/check | — | Compare two runs |
 

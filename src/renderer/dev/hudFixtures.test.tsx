@@ -43,7 +43,7 @@ describe('hudFixtures (HUD-016)', () => {
         expect(screen.getByTestId('hud-mutator-chip-short_memorize')).toBeInTheDocument();
         expect(screen.getByTestId('hud-mutator-chip-n_back_anchor')).toBeInTheDocument();
         expect(screen.getByTestId('hud-mutator-chip-findables_floor')).toBeInTheDocument();
-        expect(screen.getByTestId('hud-findables-claimed')).toHaveTextContent('2');
+        expect(screen.getByTestId('hud-findables-claimed')).toHaveTextContent('2/2');
         expect(screen.getByTestId('hud-chip-shuffle-tax')).toBeInTheDocument();
     });
 });

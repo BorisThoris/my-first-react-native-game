@@ -68,6 +68,7 @@ export const hudFixturePropsMultiMutator: GameplayHudBarProps = {
         ...multiMutatorBase,
         nBackAnchorPairKey: 'anchor-deadb33f',
         findablesClaimedThisFloor: 2,
+        findablesTotalThisFloor: 2,
         stats: {
             ...multiMutatorBase.stats,
             totalScore: 88_888,
@@ -77,7 +78,7 @@ export const hudFixturePropsMultiMutator: GameplayHudBarProps = {
     },
     cameraViewportMode: false,
     gauntletRemainingMs: null,
-    politeHudAnnouncement: 'Five mutators active — findables two claimed this floor.'
+    politeHudAnnouncement: 'Five mutators active — pickups two of two claimed this floor.'
 };
 
 export const gameplayHudBarFixturePropsById: Record<GameplayHudBarFixtureId, GameplayHudBarProps> = {

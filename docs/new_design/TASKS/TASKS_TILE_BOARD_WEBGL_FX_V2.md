@@ -45,6 +45,6 @@
 
 ## Implementation status (2026-04)
 
-**Shipped in renderer:** `tileBoardRimGeometry.ts` (rounded-rect rim + shared ring geoms); `TileBoardScene.tsx` (dual halo + crisp rim, burst v2 tiers, matched ✓ glow plane, focus pulse, face-up hover strips); `TileBoardPostFx.tsx` bloom tuning; docs: `FX_REDUCE_MOTION_MATRIX.md`, `HOVER_DOM_WEBGL_TOKENS.md`, `PERFORMANCE_BUDGET.md`, `docs/reference-comparison/TILE_BOARD_WEBGL_FX_V2_AUDIT.md`.
+**Shipped in renderer:** `tileBoardRimGeometry.ts` (rounded-rect rim + shared ring geoms); `TileBoardScene.tsx` (dual halo + crisp rim, burst v2 tiers, matched ember rim + glow plane, focus pulse, face-up hover strips); `TileBoardPostFx.tsx` bloom tuning; docs: `FX_REDUCE_MOTION_MATRIX.md`, `HOVER_DOM_WEBGL_TOKENS.md`, `PERFORMANCE_BUDGET.md`, `docs/reference-comparison/TILE_BOARD_WEBGL_FX_V2_AUDIT.md`.
 
 **TBF-001 / TBF-010:** `docs/reference-comparison/captures/tile-board-webgl-fx-v2/` is reserved for stills; `e2e/tile-card-face-webgl.spec.ts` green (keyboard flip + `data-board-run-status=playing` gate). Add PNGs under that folder during **PLAY-010** when locking baselines.

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { BoardState, MutatorId, RunState, Tile } from './contracts';
 import {
+    FINDABLE_MATCH_COMBO_SHARDS,
     FINDABLE_MATCH_SCORE,
     GAME_RULES_VERSION,
     MATCH_DELAY_MS,
@@ -54,9 +55,13 @@ const createBoard = (tiles: Tile[]): BoardState => ({
     matchedPairs: 0
 });
 
+const countFindablePairs = (tiles: readonly Tile[]): number =>
+    new Set(tiles.filter((tile) => tile.findableKind != null).map((tile) => tile.pairKey)).size;
+
 const createRun = (tiles: Tile[]): RunState => ({
     ...finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false, gameMode: 'puzzle' })),
-    board: createBoard(tiles)
+    board: createBoard(tiles),
+    findablesTotalThisFloor: countFindablePairs(tiles)
 });
 
 describe('createDailyRun', () => {
@@ -630,7 +635,7 @@ describe('board powers', () => {
     });
 
     describe('glass_floor decoy and board completion', () => {
-        it('isBoardComplete when all real tiles are matched and the ? decoy stays hidden', () => {
+        it('isBoardComplete when all real tiles are matched and the decoy trap stays hidden', () => {
             const board = buildBoard(2, {
                 activeMutators: ['glass_floor'],
                 runSeed: 90210,
@@ -649,7 +654,66 @@ describe('board powers', () => {
     });
 
     describe('findables_floor', () => {
-        it('assigns findables only to real pairs with even tile count and at most two pairs', () => {
+        it('spawns exactly one pickup pair on early procedural floors', () => {
+            const board = buildBoard(2, {
+                activeMutators: [],
+                runSeed: 90210,
+                runRulesVersion: GAME_RULES_VERSION
+            });
+            const tagged = board.tiles.filter((t) => t.findableKind != null);
+            expect(tagged).toHaveLength(2);
+            expect(new Set(tagged.map((t) => t.pairKey)).size).toBe(1);
+        });
+
+        it('spawns one or two pickup pairs on later procedural floors', () => {
+            const board = buildBoard(5, {
+                activeMutators: [],
+                runSeed: 1337,
+                runRulesVersion: GAME_RULES_VERSION
+            });
+            const tagged = board.tiles.filter((t) => t.findableKind != null);
+            expect([2, 4]).toContain(tagged.length);
+            expect(tagged.every((t) => t.pairKey !== '__decoy__' && t.pairKey !== '__wild__')).toBe(true);
+        });
+
+        it('dense-pickup mutator guarantees two pickup pairs on new rules', () => {
+            const board = buildBoard(5, {
+                activeMutators: ['findables_floor'],
+                runSeed: 90210,
+                runRulesVersion: GAME_RULES_VERSION
+            });
+            const tagged = board.tiles.filter((t) => t.findableKind != null);
+            expect(tagged).toHaveLength(4);
+            expect(new Set(tagged.map((t) => t.pairKey)).size).toBe(2);
+        });
+
+        it('keeps legacy mutator-gated pickup generation for older rules', () => {
+            const legacyRulesVersion = GAME_RULES_VERSION - 1;
+            let seededBoardWithMutator: BoardState | null = null;
+            let seededBoardWithoutMutator: BoardState | null = null;
+            for (let seed = 1; seed < 512; seed += 1) {
+                const withMutator = buildBoard(3, {
+                    activeMutators: ['findables_floor'],
+                    runSeed: seed,
+                    runRulesVersion: legacyRulesVersion
+                });
+                if (withMutator.tiles.some((tile) => tile.findableKind != null)) {
+                    seededBoardWithMutator = withMutator;
+                    seededBoardWithoutMutator = buildBoard(3, {
+                        activeMutators: [],
+                        runSeed: seed,
+                        runRulesVersion: legacyRulesVersion
+                    });
+                    break;
+                }
+            }
+
+            expect(seededBoardWithMutator).not.toBeNull();
+            expect(seededBoardWithMutator!.tiles.some((tile) => tile.findableKind != null)).toBe(true);
+            expect(seededBoardWithoutMutator!.tiles.some((tile) => tile.findableKind != null)).toBe(false);
+        });
+
+        it('tags only whole real pairs and never the decoy or wild singleton', () => {
             const board = buildBoard(2, {
                 activeMutators: ['findables_floor'],
                 runSeed: 90210,
@@ -674,21 +738,47 @@ describe('board powers', () => {
             expect(a.tiles.map((t) => [t.id, t.findableKind])).toEqual(b.tiles.map((t) => [t.id, t.findableKind]));
         });
 
-        it('claims findable score and counter on match and clears carrier flags', () => {
+        it('claims shard spark, converts through the shard-to-life path, and clears carrier flags', () => {
             const tiles: Tile[] = [
                 { ...createTile('a1', 'A', 'A'), findableKind: 'shard_spark' },
                 { ...createTile('a2', 'A', 'A'), findableKind: 'shard_spark' },
                 createTile('b1', 'B', 'B'),
                 createTile('b2', 'B', 'B')
             ];
-            const started = { ...createRun(tiles), findablesClaimedThisFloor: 0 };
+            const started = {
+                ...createRun(tiles),
+                lives: 3,
+                findablesClaimedThisFloor: 0,
+                findablesTotalThisFloor: 1,
+                stats: {
+                    ...createRun(tiles).stats,
+                    comboShards: 2
+                }
+            };
             const resolved = resolveBoardTurn(flipTile(flipTile(started, 'a1'), 'a2'));
             const base = calculateMatchScore(1, 1, 1);
+            expect(FINDABLE_MATCH_COMBO_SHARDS.shard_spark).toBe(1);
             expect(resolved.stats.totalScore).toBe(base + FINDABLE_MATCH_SCORE.shard_spark);
+            expect(resolved.lives).toBe(4);
+            expect(resolved.stats.comboShards).toBe(0);
             expect(resolved.findablesClaimedThisFloor).toBe(1);
             expect(
                 resolved.board?.tiles.filter((t) => t.pairKey === 'A').every((t) => t.findableKind === undefined)
             ).toBe(true);
+        });
+
+        it('claims score glint for flat score immediately', () => {
+            const tiles: Tile[] = [
+                { ...createTile('a1', 'A', 'A'), findableKind: 'score_glint' },
+                { ...createTile('a2', 'A', 'A'), findableKind: 'score_glint' },
+                createTile('b1', 'B', 'B'),
+                createTile('b2', 'B', 'B')
+            ];
+            const started = { ...createRun(tiles), findablesClaimedThisFloor: 0, findablesTotalThisFloor: 1 };
+            const resolved = resolveBoardTurn(flipTile(flipTile(started, 'a1'), 'a2'));
+            const base = calculateMatchScore(1, 1, 1);
+            expect(resolved.stats.totalScore).toBe(base + FINDABLE_MATCH_SCORE.score_glint);
+            expect(resolved.findablesClaimedThisFloor).toBe(1);
         });
 
         it('forfeits findable on destroy without score or claim counter', () => {
@@ -698,7 +788,12 @@ describe('board powers', () => {
                 createTile('b1', 'B', 'B'),
                 createTile('b2', 'B', 'B')
             ];
-            const run = { ...createRun(tiles), destroyPairCharges: 1, findablesClaimedThisFloor: 0 };
+            const run = {
+                ...createRun(tiles),
+                destroyPairCharges: 1,
+                findablesClaimedThisFloor: 0,
+                findablesTotalThisFloor: 1
+            };
             const after = applyDestroyPair(run, 'a1');
             expect(after.findablesClaimedThisFloor).toBe(0);
             expect(after.stats.totalScore).toBe(0);
@@ -726,6 +821,7 @@ describe('board powers', () => {
             const finishedLevel = {
                 ...createRun(tiles),
                 findablesClaimedThisFloor: 2,
+                findablesTotalThisFloor: 2,
                 status: 'levelComplete' as const,
                 board: {
                     ...createRun(tiles).board!,
@@ -736,6 +832,7 @@ describe('board powers', () => {
             };
             const next = advanceToNextLevel(finishedLevel);
             expect(next.findablesClaimedThisFloor).toBe(0);
+            expect(next.findablesTotalThisFloor).toBeGreaterThan(0);
         });
     });
 

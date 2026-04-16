@@ -1,5 +1,6 @@
 import { Path, RingGeometry, Shape, ShapeGeometry } from 'three';
 import type { GraphicsQualityPreset } from '../../shared/contracts';
+import { GAMEPLAY_BOARD_VISUALS } from './gameplayVisualConfig';
 import { CARD_PLANE_HEIGHT, CARD_PLANE_WIDTH } from './tileShatter';
 
 /**
@@ -84,6 +85,7 @@ export const createRoundedRectBezelRingGeometry = (
 /** Shared resolving rim: matches card silhouette better than a circle (medium+). */
 let resolvingRoundedSingleton: ShapeGeometry | null = null;
 let focusRoundedSingleton: ShapeGeometry | null = null;
+let matchedRoundedSingleton: ShapeGeometry | null = null;
 
 export const getResolvingRoundedRectRingGeometry = (): ShapeGeometry => {
     if (!resolvingRoundedSingleton) {
@@ -97,6 +99,19 @@ export const getFocusRoundedRectRingGeometry = (): ShapeGeometry => {
         focusRoundedSingleton = createRoundedRectBezelRingGeometry(0.045, 0.016, 0.095, 0.09);
     }
     return focusRoundedSingleton;
+};
+
+export const getMatchedRoundedRectRingGeometry = (): ShapeGeometry => {
+    if (!matchedRoundedSingleton) {
+        const geometry = GAMEPLAY_BOARD_VISUALS.matchedEdgeEffect.geometry;
+        matchedRoundedSingleton = createRoundedRectBezelRingGeometry(
+            geometry.outerPad,
+            geometry.innerPad,
+            geometry.outerCorner,
+            geometry.innerCorner
+        );
+    }
+    return matchedRoundedSingleton;
 };
 
 const crispRingByQuality = new Map<GraphicsQualityPreset, RingGeometry>();

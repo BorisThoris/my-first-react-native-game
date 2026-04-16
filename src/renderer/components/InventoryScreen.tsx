@@ -23,10 +23,13 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
 
     const titleLevel = stackedOnGameplay ? 'h2' : 'h1';
     const shellStageClass = stackedOnGameplay ? metaStyles.shellInRunModal : metaStyles.shellMetaStage;
+    const shellClassName = `${metaStyles.shell} ${shellStageClass} ${stackedOnGameplay ? styles.inRunInventoryShell : ''}`.trim();
+    const panelClassName = stackedOnGameplay ? styles.inRunPanel : '';
+    const heroPanelClassName = stackedOnGameplay ? styles.inRunHeroPanel : '';
 
     if (!run) {
         return (
-            <section aria-label="Inventory" className={`${metaStyles.shell} ${shellStageClass}`} role="region">
+            <section aria-label="Inventory" className={shellClassName} role="region">
                 <header className={metaStyles.header}>
                     <div className={metaStyles.headerText}>
                         <Eyebrow tone="menu">Expedition</Eyebrow>
@@ -41,7 +44,7 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                 </header>
                 <div className={metaStyles.body}>
                     <MetaFrame data-testid="inventory-meta-frame-empty">
-                        <Panel padding="lg" variant="default">
+                        <Panel className={panelClassName} padding="lg" variant="default">
                             <p className={styles.emptyState}>
                                 Loadout appears here once a descent is in progress. Return to the hub, pick a mode, and
                                 jump in to see relics, mutators, and charges for that run.
@@ -56,7 +59,7 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
     const contract = run.activeContract;
 
     return (
-        <section aria-label="Inventory" className={`${metaStyles.shell} ${shellStageClass}`} role="region">
+        <section aria-label="Inventory" className={shellClassName} role="region">
             <header className={metaStyles.header}>
                 <div className={metaStyles.headerText}>
                     <Eyebrow tone="menu">Active run</Eyebrow>
@@ -79,7 +82,7 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                     <a href="#inventory-contract">Contract</a>
                 </nav>
                 <MetaFrame data-testid="inventory-meta-frame-run">
-                    <Panel padding="lg" variant="strong">
+                    <Panel className={heroPanelClassName} padding="lg" variant="strong">
                         <div className={`${styles.loadoutBoard} ${metaStyles.sectionAnchor}`} id="inventory-run">
                             <h2 className={styles.sectionTitle}>Run snapshot</h2>
                             <div className={styles.kv}>
@@ -117,7 +120,7 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                     </Panel>
                 </MetaFrame>
 
-                <Panel padding="lg" variant="default">
+                <Panel className={panelClassName} padding="lg" variant="default">
                     <div className={`${styles.loadoutSection} ${metaStyles.sectionAnchor}`} id="inventory-relics">
                         <h2 className={styles.sectionTitle}>Relics</h2>
                         {run.relicIds.length > 0 ? (
@@ -132,7 +135,7 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                     </div>
                 </Panel>
 
-                <Panel padding="lg" variant="default">
+                <Panel className={panelClassName} padding="lg" variant="default">
                     <div className={`${styles.loadoutSection} ${metaStyles.sectionAnchor}`} id="inventory-mutators">
                         <h2 className={styles.sectionTitle}>Mutators</h2>
                         {run.activeMutators.length > 0 ? (
@@ -147,7 +150,7 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                     </div>
                 </Panel>
 
-                <Panel padding="lg" variant="default">
+                <Panel className={panelClassName} padding="lg" variant="default">
                     <div className={`${styles.loadoutSection} ${metaStyles.sectionAnchor}`} id="inventory-charges">
                         <h2 className={styles.sectionTitle}>Charges and tokens</h2>
                         <div className={styles.kv}>
@@ -189,7 +192,7 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                     </div>
                 </Panel>
 
-                <Panel padding="lg" variant="default">
+                <Panel className={panelClassName} padding="lg" variant="default">
                     <div className={`${styles.loadoutSection} ${metaStyles.sectionAnchor}`} id="inventory-contract">
                         <h2 className={styles.sectionTitle}>Contract flags</h2>
                         {contract ? (

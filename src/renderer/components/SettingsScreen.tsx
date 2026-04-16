@@ -22,6 +22,7 @@ import { useViewportSize } from '../hooks/useViewportSize';
 import { useAppStore } from '../store/useAppStore';
 import { Eyebrow, Panel, ScreenTitle, UiButton } from '../ui';
 import packageJson from '../../../package.json';
+import { GAMEPLAY_VISUAL_CSS_VARS } from './gameplayVisualConfig';
 import styles from './SettingsScreen.module.css';
 
 interface SettingsScreenProps {
@@ -398,6 +399,7 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
             data-testid={isModal ? 'settings-modal-shell' : undefined}
             ref={modalShellRef}
             role={isModal ? 'dialog' : undefined}
+            style={isModal ? GAMEPLAY_VISUAL_CSS_VARS : undefined}
             tabIndex={isModal ? -1 : undefined}
         >
             <div className={styles.fitViewport} ref={fitViewportRef}>

@@ -6,6 +6,8 @@ This page states **what is covered**, **how we measure it**, and **what is expli
 
 **In scope:** The **Memory Dungeon Windows / Electron desktop** product in this repo: `src/` (active paths), `e2e/`, `scripts/`, `packages/notifications`, and **all** markdown under `docs/` (including design backlog and audits).
 
+**Desktop UI surface (orientation):** The shipped shell follows `ViewState` in `contracts.ts` as wired by [`App.tsx`](../../src/renderer/App.tsx): boot → **MainMenu** (`menu`) → **ChooseYourPathScreen** (`modeSelect`) → **CollectionScreen** / full-page **Inventory** / **Codex** / **Settings** → primary **GameScreen** (`playing`) → **GameOverScreen** (`gameOver`). In-run **Settings** and **Inventory** / **Codex** can present as overlays while the session stays logically on gameplay (`subscreenReturnView` / modal patterns). Dev-only: `MatchedCardRimFireSandbox` can replace the tree when `?devSandbox=1&fx=matchedRimFire`. Refresh this blurb if `ViewState` or `App` routing changes.
+
 **Out of scope for line-by-line wiki coverage:**
 
 - **`legacy/expo-roguelike/`** — archived; not part of the supported desktop workflow.

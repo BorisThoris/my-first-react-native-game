@@ -54,6 +54,22 @@
     width: 100%;
 }
 
+.panel select {
+    width: 100%;
+    min-height: 32px;
+    padding: 0 8px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    background: rgba(10, 10, 16, 0.92);
+    color: inherit;
+}
+
+.checkbox {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
 .hint {
     grid-column: 1 / -1;
     margin: 0;

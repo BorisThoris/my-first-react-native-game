@@ -24,7 +24,6 @@ import {
     Raycaster,
     RingGeometry,
     SRGBColorSpace,
-    ShaderMaterial,
     Vector2,
     Vector3,
     type BufferAttribute,
@@ -32,7 +31,8 @@ import {
     type Group,
     type Mesh,
     type MeshBasicMaterial,
-    type MeshStandardMaterial
+    type MeshStandardMaterial,
+    type ShaderMaterial
 } from 'three';
 import type { BoardState, GraphicsQualityPreset, RunStatus, Tile } from '../../shared/contracts';
 import { WILD_PAIR_KEY } from '../../shared/game';
@@ -74,11 +74,13 @@ import type { TileBoardViewportState } from './tileBoardViewport';
 import { computeStaggeredShuffleDealZ } from './shuffleFlipAnimation';
 import {
     getFocusRoundedRectRingGeometry,
+    getMatchedRoundedRectRingGeometry,
     getResolvingRoundedRectRingGeometry,
     getSharedFocusRingGeometry,
     getSharedResolvingCrispRingGeometry
 } from './tileBoardRimGeometry';
 import { createMatchedCardRimFireMaterial } from './matchedCardRimFireMaterial';
+import { GAMEPLAY_BOARD_VISUALS } from './gameplayVisualConfig';
 
 /** FX-006 / HOVER_DOM_WEBGL_TOKENS: border emphasis → warm tint lerp (~20% toward `#fff0d4` in sRGB mix space). */
 const HOVER_RIM_TINT = new Color('#fff0d4');
@@ -87,11 +89,14 @@ const HOVER_RIM_TINT_LERP = 0.2;
 const DECOY_PAIR_KEY = '__decoy__';
 /** Emissive base (theme `goldBright`); intensity scaled by graphics quality when DOM-hover-parity applies. */
 const HOVER_GOLD_EMISSIVE = new Color('#f2d39d');
-/** Matched face tint on `low` only (no rim-fire pass); medium+ relies on flame + neutral card albedo. */
+/** Matched face tint on `low` only (no ember-rim shader); medium+ relies on the edge effect + neutral card albedo. */
 const MATCH_FACE_GLOW = new Color('#b8f0d0');
 const MATCH_VICTORY_EMISSIVE = new Color('#4fdc78');
+const MISMATCH_EMISSIVE = new Color(RENDERER_THEME.colors.emberSoft);
 /** CARD-018: warm pin read blended on top of resolving face tints. */
 const PIN_STACK_TINT = new Color('#d4b870');
+const FINDABLE_SHARD_TINT = new Color('#f1cf84');
+const FINDABLE_SCORE_TINT = new Color('#87d8ee');
 /** `n_back_anchor` presentation mutator — forward-read cyan (matches theme `cyanBright`). */
 const PRESENTATION_N_BACK_TINT = new Color(RENDERER_THEME.colors.cyanBright);
 /** `wide_recall` — cooler, slightly desaturated face during play. */
@@ -101,28 +106,26 @@ const scratchCardTint = new Color();
 const getHoverGoldQualityScales = (
     quality: GraphicsQualityPreset
 ): { emissiveIntensity: number; rimOpacity: number } => {
-    switch (quality) {
-        case 'low':
-            return { emissiveIntensity: 0.09, rimOpacity: 0.4 };
-        case 'high':
-            return { emissiveIntensity: 0.22, rimOpacity: 0.74 };
-        case 'medium':
-        default:
-            return { emissiveIntensity: 0.15, rimOpacity: 0.58 };
-    }
+    return GAMEPLAY_BOARD_VISUALS.hoverGoldQualityScales[quality];
 };
 
 /** TBF-008: face-up pickable hover strips vs hidden-back parity (`getHoverGoldQualityScales.rimOpacity`). */
 const getFaceUpHoverRimOpacityMul = (quality: GraphicsQualityPreset): number => {
-    switch (quality) {
-        case 'low':
-            return 0.32;
-        case 'high':
-            return 0.48;
-        case 'medium':
-        default:
-            return 0.4;
+    return GAMEPLAY_BOARD_VISUALS.faceUpHoverRimOpacityMul[quality];
+};
+
+type MatchedEdgeEffectTier =
+    (typeof GAMEPLAY_BOARD_VISUALS.matchedEdgeEffect.tiers)[keyof typeof GAMEPLAY_BOARD_VISUALS.matchedEdgeEffect.tiers];
+
+const getMatchedEdgeEffectTier = (
+    quality: GraphicsQualityPreset,
+    reduceMotion: boolean
+): MatchedEdgeEffectTier => {
+    const tiers = GAMEPLAY_BOARD_VISUALS.matchedEdgeEffect.tiers;
+    if (reduceMotion) {
+        return tiers.reduceMotion;
     }
+    return quality === 'high' ? tiers.high : tiers.medium;
 };
 
 interface TileBoardSceneProps {
@@ -254,7 +257,7 @@ const HOVER_GOLD_RIM_STRIP = 0.0036;
 const hoverGoldRimGeomH = new PlaneGeometry(CARD_WIDTH, HOVER_GOLD_RIM_STRIP, 1, 1);
 const hoverGoldRimGeomV = new PlaneGeometry(HOVER_GOLD_RIM_STRIP, CARD_HEIGHT, 1, 1);
 
-/** GPU tile chrome (replaces DOM `.hitButton*` resolving / focus). ✓ on `low` only when fire pass is off. */
+/** GPU tile chrome (replaces DOM `.hitButton*` resolving / focus). ✓ on `low` only when the ember shader is off. */
 const MATCH_CHECK_GEOM = new PlaneGeometry(CARD_WIDTH * 0.3, CARD_HEIGHT * 0.3, 1, 1);
 /** TBF-006 + end-product: soft emerald bloom plane behind ✓. */
 const MATCH_CHECK_GLOW_GEOM = new PlaneGeometry(CARD_WIDTH * 0.4, CARD_HEIGHT * 0.4, 1, 1);
@@ -578,6 +581,7 @@ interface TileBezelFrameBag {
     matchedCheckMeshRef: MutableRefObject<Mesh | null>;
     matchedVictoryFlameMatRef: MutableRefObject<ShaderMaterial | null>;
     matchedVictoryFlameMeshRef: MutableRefObject<Mesh | null>;
+    matchedVictoryBurstT0Ref: MutableRefObject<number | null>;
     matchedCheckPopT0Ref: MutableRefObject<number | null>;
     prevTileMatchedRef: MutableRefObject<boolean>;
 }
@@ -637,12 +641,29 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
     bag.prevResolvingRef.current = p.resolvingSelection;
 
     const wasMatched = bag.prevTileMatchedRef.current;
-    if (p.tile.state === 'matched' && !wasMatched && !p.reduceMotion) {
-        bag.matchedCheckPopT0Ref.current = clock.elapsedTime;
+    if (p.tile.state === 'matched' && !wasMatched) {
+        bag.matchedVictoryBurstT0Ref.current = clock.elapsedTime;
+        if (!p.reduceMotion) {
+            bag.matchedCheckPopT0Ref.current = clock.elapsedTime;
+        }
+    } else if (p.tile.state !== 'matched') {
+        bag.matchedVictoryBurstT0Ref.current = null;
     }
     bag.prevTileMatchedRef.current = p.tile.state === 'matched';
     bag.matchPulseRef.current = Math.max(0, bag.matchPulseRef.current - delta * 2.8);
     const matchPulse = bag.matchPulseRef.current;
+    let matchedVictoryBurst = 0;
+    const matchedBurstT0 = bag.matchedVictoryBurstT0Ref.current;
+    if (p.tile.state === 'matched' && matchedBurstT0 != null) {
+        const burstDuration = p.reduceMotion
+            ? GAMEPLAY_BOARD_VISUALS.matchedEdgeEffect.burstDuration.reduceMotion
+            : GAMEPLAY_BOARD_VISUALS.matchedEdgeEffect.burstDuration.default;
+        const burstProgress = Math.min(1, (clock.elapsedTime - matchedBurstT0) / burstDuration);
+        matchedVictoryBurst = 1 - MathUtils.smoothstep(burstProgress, 0, 1);
+        if (burstProgress >= 1) {
+            bag.matchedVictoryBurstT0Ref.current = null;
+        }
+    }
 
     let flipPopMul = 1;
     let flipPopZ = 0;
@@ -727,10 +748,14 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
     const hoverDomParity = hovered && !p.faceUp && p.tile.state !== 'matched';
     /** TBF-008: gambit / face-up pickable — lighter rim on front without full DOM lift stack. */
     const hoverFaceUpPickable = hovered && p.faceUp && p.pickable && p.tile.state !== 'matched';
-    const hoverTiltX = hoverDomParity ? MathUtils.clamp(-hoverTilt.y, -1, 1) * (isMatched ? 0.046 : 0.1) : 0;
-    const hoverTiltZ = hoverDomParity ? MathUtils.clamp(hoverTilt.x, -1, 1) * (isMatched ? 0.042 : 0.092) : 0;
-    const hoverLift = hoverDomParity ? (isMatched ? 0.001 : 0.00265) : 0;
-    const hoverDepth = hoverDomParity ? (isMatched ? 0.0014 : 0.00385) : 0;
+    const hoverTiltX = hoverDomParity
+        ? MathUtils.clamp(-hoverTilt.y, -1, 1) * (isMatched ? 0.05 : GAMEPLAY_BOARD_VISUALS.hoverHiddenTiltX)
+        : 0;
+    const hoverTiltZ = hoverDomParity
+        ? MathUtils.clamp(hoverTilt.x, -1, 1) * (isMatched ? 0.046 : GAMEPLAY_BOARD_VISUALS.hoverHiddenTiltZ)
+        : 0;
+    const hoverLift = hoverDomParity ? (isMatched ? 0.0012 : GAMEPLAY_BOARD_VISUALS.hoverHiddenLift) : 0;
+    const hoverDepth = hoverDomParity ? (isMatched ? 0.0018 : GAMEPLAY_BOARD_VISUALS.hoverHiddenDepth) : 0;
     const structBlend = bag.faceUpStructBlendRef.current;
     const baseLiftFull = isMatched ? 0.0024 : p.faceUp ? 0.0012 : 0;
     const baseDepthFull = isMatched ? 0.0036 : p.faceUp ? 0.0018 : 0;
@@ -775,9 +800,13 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
     const targetZ = structDepth + hoverDepth + fieldDepth + shuffleDealZ;
     const wobbleT = clock.elapsedTime;
     const mismatchShakeX =
-        !p.reduceMotion && p.resolvingSelection === 'mismatch' ? Math.sin(wobbleT * 36) * 0.017 : 0;
+        !p.reduceMotion && p.resolvingSelection === 'mismatch'
+            ? Math.sin(wobbleT * 36) * GAMEPLAY_BOARD_VISUALS.mismatchShakeX
+            : 0;
     const mismatchShakeY =
-        !p.reduceMotion && p.resolvingSelection === 'mismatch' ? Math.cos(wobbleT * 29) * 0.014 : 0;
+        !p.reduceMotion && p.resolvingSelection === 'mismatch'
+            ? Math.cos(wobbleT * 29) * GAMEPLAY_BOARD_VISUALS.mismatchShakeY
+            : 0;
     const posX = targetX + mismatchShakeX;
     const posY = targetY + mismatchShakeY;
     const posLambda = shuffleLayoutActive ? 9 : 200;
@@ -801,7 +830,7 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
     if (hiddenPinned) {
         scratchCardTint.set('#d4b870');
     } else if (p.tile.state === 'matched' && p.faceUp) {
-        /** No face tint when rim fire shows (medium+); low quality uses checkmark instead of fire. */
+        /** No face tint when the ember rim shows (medium+); low quality uses static matched chrome instead. */
         if (p.graphicsQuality === 'low') {
             scratchCardTint.lerp(MATCH_FACE_GLOW, 0.32);
         }
@@ -809,6 +838,11 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
         scratchCardTint.set('#ffb4a6');
     } else if (p.resolvingSelection === 'gambitNeutral' && p.faceUp) {
         scratchCardTint.set('#cfe8f2');
+    } else if (p.tile.findableKind && p.faceUp && p.tile.state !== 'matched') {
+        scratchCardTint.lerp(
+            p.tile.findableKind === 'score_glint' ? FINDABLE_SCORE_TINT : FINDABLE_SHARD_TINT,
+            0.12
+        );
     }
     const pinnedFaceResolving = p.isPinned && p.faceUp && p.resolvingSelection !== null;
     if (pinnedFaceResolving) {
@@ -819,7 +853,7 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
     if (hoverDomParity) {
         scratchCardTint.lerp(HOVER_RIM_TINT, HOVER_RIM_TINT_LERP);
     } else if (hoverFaceUpPickable) {
-        scratchCardTint.lerp(HOVER_RIM_TINT, HOVER_RIM_TINT_LERP * 0.38);
+        scratchCardTint.lerp(HOVER_RIM_TINT, GAMEPLAY_BOARD_VISUALS.hoverFaceUpTintLerp);
     }
     /** Presentation mutators (WebGL parity with DOM/CSS assists). Order: anchor tint → wide recall → silhouette. */
     if (p.presentationNBackAnchor) {
@@ -837,7 +871,7 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
     const hoverEmissiveIntensity = hoverDomParity
         ? hoverEmissiveMul
         : hoverFaceUpPickable
-          ? hoverEmissiveMul * 0.34
+          ? hoverEmissiveMul * 0.42
           : 0;
     const hoverRimOpacityTarget = hoverDomParity ? hoverRimOpacity : 0;
     const faceUpHoverMul = getFaceUpHoverRimOpacityMul(p.graphicsQuality);
@@ -872,16 +906,26 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
     const checkGlowMesh = bag.matchedCheckGlowMeshRef.current;
     const checkMat = bag.matchedCheckMatRef.current;
     const checkMesh = bag.matchedCheckMeshRef.current;
+    const matchedEdgeEffect = GAMEPLAY_BOARD_VISUALS.matchedEdgeEffect;
 
     const resolvingActive = p.resolvingSelection !== null && p.faceUp;
-    /** Matched, post-resolve: show rim fire + check — hide the crisp resolving bezel so it does not stack over the flame. */
+    /** Matched, post-resolve: show ember rim — hide the crisp resolving bezel so it does not stack over the shader. */
     const matchedVictoryPersistent = p.tile.state === 'matched' && p.faceUp && !resolvingActive;
     const pinnedFaceResolvingFx = p.isPinned && p.faceUp && p.resolvingSelection !== null;
     let resolvingCrispOpacity = 0;
 
     if (matchedVictoryPersistent) {
         if (resolvingRim) {
-            resolvingRim.opacity = 0;
+            resolvingRim.color.set(colors.emeraldBright);
+            resolvingRim.opacity =
+                p.graphicsQuality === 'low'
+                    ? MathUtils.clamp(
+                          matchedEdgeEffect.low.rimOpacity +
+                              matchedVictoryBurst * matchedEdgeEffect.low.burstBoost,
+                          0,
+                          1
+                      )
+                    : 0;
         }
     } else if (resolvingActive) {
         if (resolvingRim) {
@@ -913,13 +957,18 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
     if (matchedFlame && matchedFlameMesh && matchedFlame.uniforms) {
         const u = matchedFlame.uniforms;
         if (matchedVictoryPersistent && p.graphicsQuality !== 'low') {
+            const matchedEdgeTier = getMatchedEdgeEffectTier(p.graphicsQuality, p.reduceMotion);
             matchedFlameMesh.visible = true;
             const ft = clock.elapsedTime;
             u.uTime.value = ft;
-            u.uReduceMotion.value = p.reduceMotion ? 1 : 0;
-            const flick =
-                p.reduceMotion ? 0.28 : 0.38 + 0.42 * (0.5 + 0.5 * Math.sin(ft * 8.6 + p.transform.seed * 0.01));
-            u.uIntensity.value = flick * (p.graphicsQuality === 'high' ? 0.62 : 0.48);
+            u.uBurst.value = matchedVictoryBurst;
+            u.uMotion.value = matchedEdgeTier.motion;
+            u.uSoftness.value = matchedEdgeEffect.band.softness;
+            u.uInnerWidth.value = matchedEdgeEffect.band.innerWidth * matchedEdgeTier.innerWidthMul;
+            u.uOuterWidth.value = matchedEdgeEffect.band.outerWidth * matchedEdgeTier.outerWidthMul;
+            u.uEmberStrength.value = matchedEdgeTier.emberStrength;
+            u.uIntensity.value =
+                matchedEdgeTier.baseIntensity + matchedVictoryBurst * matchedEdgeTier.burstIntensity;
         } else {
             matchedFlameMesh.visible = false;
         }
@@ -941,16 +990,22 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
         }
     }
 
-    /** Checkmark only when fire pass is off (`low`); otherwise flames-only read on matched pairs. */
+    const showMatchedAura = p.tile.state === 'matched';
+    /** Checkmark only when the matched ember shader is off (`low`). */
     const showCheck = p.tile.state === 'matched' && p.graphicsQuality === 'low';
     if (checkGlowMat && checkGlowMesh) {
-        checkGlowMesh.visible = showCheck;
-        if (showCheck) {
+        checkGlowMesh.visible = showMatchedAura;
+        if (showMatchedAura) {
             const glowPulse = p.reduceMotion
                 ? 0.42
                 : 0.32 + 0.22 * (0.5 + 0.5 * Math.sin(clock.elapsedTime * 2.85));
-            checkGlowMat.opacity = glowPulse;
-            checkGlowMat.color.set('#7cff9a');
+            const burstBoost = showCheck ? matchedVictoryBurst * 0.12 : matchedVictoryBurst * 0.18;
+            checkGlowMat.opacity = MathUtils.clamp(
+                (showCheck ? glowPulse : glowPulse * 0.72) + burstBoost,
+                0,
+                1
+            );
+            checkGlowMat.color.set(showCheck ? '#7cff9a' : '#74f49c');
         }
     }
     if (checkMat && checkMesh) {
@@ -991,14 +1046,24 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
         if (p.tile.state === 'matched') {
             if (p.graphicsQuality === 'low') {
                 const mp = p.reduceMotion
-                    ? 0.26
-                    : 0.18 + 0.16 * (0.5 + 0.5 * Math.sin(clock.elapsedTime * 3.05));
+                    ? GAMEPLAY_BOARD_VISUALS.lowQualityMatchedFrontEmissive.base
+                    : GAMEPLAY_BOARD_VISUALS.lowQualityMatchedFrontEmissive.base +
+                      GAMEPLAY_BOARD_VISUALS.lowQualityMatchedFrontEmissive.pulse *
+                          (0.5 + 0.5 * Math.sin(clock.elapsedTime * 3.05));
                 bag.frontCardMatRef.current.emissive.copy(MATCH_VICTORY_EMISSIVE);
                 bag.frontCardMatRef.current.emissiveIntensity = mp;
             } else {
                 bag.frontCardMatRef.current.emissive.setRGB(0, 0, 0);
                 bag.frontCardMatRef.current.emissiveIntensity = 0;
             }
+        } else if (p.resolvingSelection === 'mismatch' && p.faceUp) {
+            const mismatchPulse = p.reduceMotion
+                ? GAMEPLAY_BOARD_VISUALS.mismatchEmissive.base
+                : GAMEPLAY_BOARD_VISUALS.mismatchEmissive.base +
+                  GAMEPLAY_BOARD_VISUALS.mismatchEmissive.pulse *
+                      (0.5 + 0.5 * Math.sin(clock.elapsedTime * 4.2));
+            bag.frontCardMatRef.current.emissive.copy(MISMATCH_EMISSIVE);
+            bag.frontCardMatRef.current.emissiveIntensity = mismatchPulse;
         } else {
             bag.frontCardMatRef.current.emissive.copy(HOVER_GOLD_EMISSIVE);
             bag.frontCardMatRef.current.emissiveIntensity = hoverEmissiveIntensity;
@@ -1008,7 +1073,11 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
         bag.backCardMatRef.current.opacity = dimOpacity;
         if (p.tile.state === 'matched') {
             if (p.graphicsQuality === 'low') {
-                const mp = p.reduceMotion ? 0.12 : 0.08 + 0.07 * (0.5 + 0.5 * Math.sin(clock.elapsedTime * 3.05));
+                const mp = p.reduceMotion
+                    ? GAMEPLAY_BOARD_VISUALS.lowQualityMatchedBackEmissive.base
+                    : GAMEPLAY_BOARD_VISUALS.lowQualityMatchedBackEmissive.base +
+                      GAMEPLAY_BOARD_VISUALS.lowQualityMatchedBackEmissive.pulse *
+                          (0.5 + 0.5 * Math.sin(clock.elapsedTime * 3.05));
                 bag.backCardMatRef.current.emissive.copy(MATCH_VICTORY_EMISSIVE);
                 bag.backCardMatRef.current.emissiveIntensity = mp;
             } else {
@@ -1104,7 +1173,11 @@ const TileBezelInner = ({
         const maxR = Math.max(CARD_WIDTH, CARD_HEIGHT) * 0.48;
         return new RingGeometry(maxR * 0.86, maxR, 36);
     }, []);
+    const findableCornerHaloGeometry = useMemo(() => new RingGeometry(0.032, 0.048, 24), []);
     const findableCornerRingGeometry = useMemo(() => new RingGeometry(0.02, 0.032, 22), []);
+    const findableShardGlyphGeometry = useMemo(() => new RingGeometry(0.006, 0.016, 4), []);
+    const findableScoreGlyphGeometry = useMemo(() => new RingGeometry(0.008, 0.016, 18), []);
+    const matchedEdgeGeometry = useMemo(() => getMatchedRoundedRectRingGeometry(), []);
     const resolvingInnerGeometry = useMemo(
         () =>
             graphicsQuality === 'low'
@@ -1211,6 +1284,7 @@ const TileBezelInner = ({
     const matchedCheckMeshRef = useRef<Mesh | null>(null);
     const matchedVictoryFlameMatRef = useRef<ShaderMaterial | null>(null);
     const matchedVictoryFlameMeshRef = useRef<Mesh | null>(null);
+    const matchedVictoryBurstT0Ref = useRef<number | null>(null);
     const matchedRimFireMaterial = useMemo(
         () => createMatchedCardRimFireMaterial(transform.seed),
         [transform.seed]
@@ -1267,6 +1341,7 @@ const TileBezelInner = ({
                 matchedCheckMeshRef,
                 matchedVictoryFlameMatRef,
                 matchedVictoryFlameMeshRef,
+                matchedVictoryBurstT0Ref,
                 matchedCheckPopT0Ref,
                 prevTileMatchedRef
             };
@@ -1888,22 +1963,50 @@ const TileBezelInner = ({
                     </mesh>
                 ) : null}
                 {findableFaceHighlight ? (
-                    <mesh
-                        geometry={findableCornerRingGeometry}
-                        position={[CARD_WIDTH * 0.36, CARD_HEIGHT * 0.4, faceZ + 0.017]}
-                        raycast={noopMeshRaycast}
-                        renderOrder={9}
-                    >
-                        <meshBasicMaterial
-                            color={tile.findableKind === 'score_glint' ? '#7ec8e8' : '#e8c058'}
-                            depthTest
-                            depthWrite={false}
-                            opacity={0.92}
-                            side={DoubleSide}
-                            toneMapped={false}
-                            transparent
-                        />
-                    </mesh>
+                    <group position={[CARD_WIDTH * 0.36, CARD_HEIGHT * 0.4, faceZ + 0.017]}>
+                        <mesh geometry={findableCornerHaloGeometry} raycast={noopMeshRaycast} renderOrder={9}>
+                            <meshBasicMaterial
+                                color={tile.findableKind === 'score_glint' ? '#7ec8e8' : '#e8c058'}
+                                depthTest
+                                depthWrite={false}
+                                opacity={0.24}
+                                side={DoubleSide}
+                                toneMapped={false}
+                                transparent
+                            />
+                        </mesh>
+                        <mesh geometry={findableCornerRingGeometry} raycast={noopMeshRaycast} renderOrder={10}>
+                            <meshBasicMaterial
+                                color={tile.findableKind === 'score_glint' ? '#7ec8e8' : '#e8c058'}
+                                depthTest
+                                depthWrite={false}
+                                opacity={0.94}
+                                side={DoubleSide}
+                                toneMapped={false}
+                                transparent
+                            />
+                        </mesh>
+                        <mesh
+                            geometry={
+                                tile.findableKind === 'score_glint'
+                                    ? findableScoreGlyphGeometry
+                                    : findableShardGlyphGeometry
+                            }
+                            raycast={noopMeshRaycast}
+                            renderOrder={11}
+                            rotation={[0, 0, tile.findableKind === 'score_glint' ? 0 : Math.PI / 4]}
+                        >
+                            <meshBasicMaterial
+                                color="#fff8d8"
+                                depthTest
+                                depthWrite={false}
+                                opacity={0.96}
+                                side={DoubleSide}
+                                toneMapped={false}
+                                transparent
+                            />
+                        </mesh>
+                    </group>
                 ) : null}
                 {spotlightWardHighlight ? (
                     <mesh
@@ -1958,7 +2061,7 @@ const TileBezelInner = ({
                 ) : null}
                 <mesh
                     ref={matchedVictoryFlameMeshRef}
-                    geometry={resolvingInnerGeometry}
+                    geometry={matchedEdgeGeometry}
                     position={[0, 0, faceZ + 0.024]}
                     raycast={noopMeshRaycast}
                     renderOrder={18}

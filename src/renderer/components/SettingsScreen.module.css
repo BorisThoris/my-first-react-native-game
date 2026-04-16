@@ -16,8 +16,11 @@
         max(var(--ui-shell-screen-pad-inline), env(safe-area-inset-right, 0px))
         max(var(--ui-shell-screen-pad-block), env(safe-area-inset-bottom, 0px))
         max(var(--ui-shell-screen-pad-inline), env(safe-area-inset-left, 0px));
-    background: var(--theme-modal-scrim-bg, var(--theme-scrim-dialog));
-    backdrop-filter: var(--theme-modal-scrim-backdrop-filter, blur(14px) saturate(130%));
+    background: var(--gameplay-overlay-scrim-bg, var(--theme-modal-scrim-bg, var(--theme-scrim-dialog)));
+    backdrop-filter: var(
+        --gameplay-overlay-scrim-filter,
+        var(--theme-modal-scrim-backdrop-filter, blur(14px) saturate(130%))
+    );
     z-index: 24;
 }
 
@@ -102,9 +105,17 @@
 /* OVR-001 — align in-run settings plate with OverlayModal shared frame tokens (Panel `strong` + layout unchanged). */
 .shellModal .panel.panelModal {
     border-radius: var(--theme-overlay-plate-radius);
-    border: var(--theme-overlay-plate-border);
-    box-shadow: var(--theme-overlay-plate-shadow);
+    border: var(--gameplay-overlay-border, var(--theme-overlay-plate-border));
+    box-shadow: var(--gameplay-overlay-shadow, var(--theme-overlay-plate-shadow));
+    background: var(--gameplay-settings-shell-surface);
     padding: var(--theme-modal-plate-padding);
+}
+
+.shellModal .panel.panelModal::before {
+    background:
+        radial-gradient(ellipse 92% 62% at 50% 0%, rgba(255, 232, 190, 0.06), transparent 56%),
+        linear-gradient(180deg, rgba(255, 243, 217, 0.04), transparent 22%);
+    opacity: 0.92;
 }
 
 /* Short-stacked run settings: modal plate + gameplay chrome eat vertical space; cap the plate and scroll content so bounds stay within `window.innerHeight` (mobile-layout). */
@@ -133,6 +144,7 @@
 
 .shellModal .panel.panelModal::after {
     border-radius: calc(var(--theme-overlay-plate-radius) - 2px);
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 14%, transparent);
 }
 
 .frame {
@@ -162,6 +174,14 @@
             color-mix(in srgb, var(--theme-stone) 78%, transparent),
             color-mix(in srgb, var(--theme-void-soft) 78%, transparent)
         );
+}
+
+.shellModal .sidebar {
+    border-right-color: color-mix(in srgb, var(--theme-gold-bright) 12%, transparent);
+    background: var(--gameplay-settings-sidebar-surface);
+    box-shadow:
+        inset -1px 0 0 color-mix(in srgb, var(--theme-shadow) 18%, transparent),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 .sidebarHeader {
@@ -229,6 +249,30 @@
     box-shadow:
         0 18px 28px color-mix(in srgb, var(--theme-shadow) 20%, transparent),
         inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.shellModal .categoryButton {
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 10%, transparent);
+    background:
+        linear-gradient(180deg, rgba(255, 243, 217, 0.03), transparent 54%),
+        color-mix(in srgb, var(--theme-void) 46%, transparent);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.shellModal .categoryButton:hover {
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 20%, transparent);
+    color: var(--theme-rune);
+}
+
+.shellModal .categoryButtonActive {
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 34%, transparent);
+    background:
+        radial-gradient(circle at top left, color-mix(in srgb, var(--theme-glow-gold) 82%, transparent), transparent 54%),
+        linear-gradient(180deg, color-mix(in srgb, var(--theme-gold-deep) 62%, transparent), rgba(11, 9, 13, 0.92));
+    box-shadow:
+        0 16px 28px color-mix(in srgb, var(--theme-shadow) 22%, transparent),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        inset 0 0 0 1px color-mix(in srgb, var(--theme-gold-bright) 8%, transparent);
 }
 
 .categoryLabel {
@@ -300,6 +344,18 @@
     color: var(--theme-gold-bright);
 }
 
+.shellModal .subsectionButton {
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 10%, transparent);
+    background:
+        linear-gradient(180deg, rgba(255, 243, 217, 0.025), transparent 54%),
+        color-mix(in srgb, var(--theme-void) 44%, transparent);
+}
+
+.shellModal .subsectionButtonActive {
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 26%, transparent);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
 .contentScroll {
     display: grid;
     gap: var(--settings-section-gap);
@@ -325,6 +381,23 @@
     border-radius: var(--ui-radius-lg);
     border: 1px solid var(--theme-card-border-muted);
     background: var(--theme-surface-well);
+}
+
+.shellModal .contentPane {
+    background:
+        radial-gradient(ellipse 115% 62% at 50% 0%, rgba(255, 232, 190, 0.04), transparent 60%),
+        linear-gradient(180deg, rgba(255, 243, 217, 0.02), transparent 16%);
+}
+
+.shellModal .fieldCard,
+.shellModal .toggleRow {
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 10%, transparent);
+    background:
+        linear-gradient(180deg, rgba(255, 243, 217, 0.03), transparent 54%),
+        color-mix(in srgb, var(--theme-void) 36%, transparent);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.03),
+        0 10px 18px color-mix(in srgb, var(--theme-shadow) 10%, transparent);
 }
 
 .placeholderField {
@@ -511,6 +584,13 @@
     padding-top: var(--settings-footer-pad-top);
     border-top: 1px solid var(--theme-divider-hairline);
     background: linear-gradient(180deg, rgba(7, 8, 12, 0), rgba(7, 8, 12, 0.94) 40%);
+}
+
+.shellModal .footer {
+    border-top-color: color-mix(in srgb, var(--theme-gold-bright) 10%, transparent);
+    background:
+        linear-gradient(180deg, rgba(7, 8, 12, 0), rgba(7, 8, 12, 0.92) 42%),
+        linear-gradient(90deg, rgba(255, 243, 217, 0.02), transparent 28%);
 }
 
 .footerActions {

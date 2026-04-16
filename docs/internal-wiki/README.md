@@ -19,6 +19,7 @@
 | **Every `docs/*.md` file** (catalog) | [DOCS_CATALOG.md](./DOCS_CATALOG.md) |
 | **Legacy code & doc caveats** | [LEGACY_AND_CAVEATS.md](./LEGACY_AND_CAVEATS.md) |
 | **Parallel agents / drift control** | [multiple-agents.md](./multiple-agents.md) |
+| **App analysis snapshot (point-in-time)** | [APP_ANALYSIS_SNAPSHOT_2026-04-17.md](./APP_ANALYSIS_SNAPSHOT_2026-04-17.md) |
 
 ---
 

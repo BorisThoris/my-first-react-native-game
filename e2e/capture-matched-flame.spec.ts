@@ -5,7 +5,7 @@ import { buildMatchedFlameCaptureSaveJson, gotoWithSaveAndQuery, waitLevel1PlayR
 import { flipTileAtGridCellKeyboard, readFrameHiddenTileCount, waitForBoardPlayPhase } from './tileBoardGameFlow';
 
 /**
- * PNGs for reviewing matched-card rim fire (isolated shader + in-game board after one match).
+ * PNGs for reviewing the matched-card ember rim (isolated shader + in-game board after one match).
  *
  * Run: `yarn capture:matched-flame`
  * Output: `test-results/matched-flame-capture/` (or `<VISUAL_CAPTURE_ROOT>/matched-flame-capture/`).
@@ -38,6 +38,18 @@ async function screenshotStageShell(page: Page, outName: string): Promise<void> 
         clip: { x, y, width, height },
         animations: 'disabled'
     });
+}
+
+async function setRangeControl(page: Page, label: string, value: number): Promise<void> {
+    await page.getByLabel(label).evaluate(
+        (node, nextValue) => {
+            const input = node as HTMLInputElement;
+            input.value = String(nextValue);
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        },
+        value
+    );
 }
 
 /**
@@ -109,7 +121,16 @@ test.describe('Matched flame capture (dev)', () => {
         const dir = getMatchedFlameCaptureDir();
         await page.waitForTimeout(400);
         await page.screenshot({
-            path: join(dir, '01-isolated-sandbox-960x720.png'),
+            path: join(dir, '01-isolated-burst-high-960x720.png'),
+            fullPage: true,
+            animations: 'disabled'
+        });
+
+        await setRangeControl(page, 'Burst', 0);
+        await page.getByLabel('Reduce motion').check();
+        await page.waitForTimeout(250);
+        await page.screenshot({
+            path: join(dir, '02-isolated-settled-reduced-960x720.png'),
             fullPage: true,
             animations: 'disabled'
         });
@@ -149,17 +170,20 @@ test.describe('Matched flame capture (dev)', () => {
 
         await flipFirstMatchingPairWebGl(page);
         await expect.poll(async () => readFrameHiddenTileCount(page), { timeout: 15_000 }).toBe(2);
-        /** Match resolve + rim fire visibility (TileBoardScene advances shader each frame). */
-        await page.waitForTimeout(1800);
+        /** Match resolve + ember rim burst visibility (TileBoardScene advances shader each frame). */
+        await page.waitForTimeout(650);
+        await screenshotStageShell(page, '03-ingame-match-burst-stage-1280x720.png');
+
+        await page.waitForTimeout(1150);
         /** Drop keyboard focus so the gold focus ring does not dominate the capture vs additive rim fire. */
         await page.getByTestId('tile-board-application').evaluate((el) => {
             (el as HTMLElement).blur();
         });
 
-        await screenshotStageShell(page, '02-ingame-after-first-match-stage-1280x720.png');
+        await screenshotStageShell(page, '04-ingame-settled-stage-1280x720.png');
 
         await page.screenshot({
-            path: join(getMatchedFlameCaptureDir(), '03-ingame-after-first-match-fullpage-1280x720.png'),
+            path: join(getMatchedFlameCaptureDir(), '05-ingame-settled-fullpage-1280x720.png'),
             fullPage: true,
             animations: 'disabled'
         });

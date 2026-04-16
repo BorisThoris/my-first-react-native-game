@@ -2,7 +2,7 @@
 
 **Purpose:** Every `.md` under `docs/` is listed so nothing is “orphaned” from the internal wiki. **One-line summaries** are for navigation; authoritative detail stays in each file.
 
-**Count:** ~150 markdown files under `docs/` (exact count drifts as files are added).
+**Count:** ~151 markdown files under `docs/` (exact count drifts as files are added).
 
 ---
 
@@ -234,6 +234,7 @@
 | [DOCS_CATALOG.md](./DOCS_CATALOG.md) | This file |
 | [LEGACY_AND_CAVEATS.md](./LEGACY_AND_CAVEATS.md) | Legacy + doc caveats |
 | [COVERAGE.md](./COVERAGE.md) | Coverage methodology |
+| [APP_ANALYSIS_SNAPSHOT_2026-04-17.md](./APP_ANALYSIS_SNAPSHOT_2026-04-17.md) | Point-in-time merged analysis (50 parallel scoped passes; orientation only) |
 
 ---
 

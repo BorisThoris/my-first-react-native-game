@@ -26,6 +26,7 @@ Runtime **`settings.reduceMotion`** is mirrored on the app root as **`data-reduc
 | **TBF-002 / TBF-004 resolving rim stack** | Crisp inner rim + soft halo ring; rounded-rect inner on medium+ (`tileBoardRimGeometry`), circular on `low` | Same static opacities as non-reduced branch (no sine pulse on rim) | Halo segment count follows `graphicsQuality` |
 | **TBF-005 match burst v2** | Up to 3 staggered hue rings (`emeraldBright` / `goldBright` / `cyanBright`); `low` = 1 ring, `medium` = 2, `high` = 3 | Off (timers cleared; meshes hidden) | `advanceTileBezelFrame` |
 | **TBF-006 matched ✓ glow plane** | Soft emerald plane behind ✓; subtle sine opacity | Static mid opacity | Same |
+| **Matched ember rim** | Rounded-rect edge shader: brief burst on first `matched`, then quieter persistent ember outline on medium/high | Burst still visible, but ember motion is nearly static; `low` keeps static rim + existing matched chrome | `matchedCardRimFireMaterial.ts`, `TileBoardScene.tsx` |
 | **TBF-007 keyboard focus ring** | Gold ring + slow sine opacity pulse when focused + pickable | Flat opacity (~0.68) | `advanceTileBezelFrame` |
 | **Gambit 3-flip resolving (CARD-012)** | `resolvingGambitSpare` vs match/mismatch | Tint `gambitNeutral` | `tileResolvingSelection.ts` |
 | **DOM fallback: focus ring transition** | Transition on | Transition off | Same |

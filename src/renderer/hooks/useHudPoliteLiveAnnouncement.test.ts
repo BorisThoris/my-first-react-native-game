@@ -1,5 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import type { Tile } from '../../shared/contracts';
 import { useHudPoliteLiveAnnouncement } from './useHudPoliteLiveAnnouncement';
 
 const base = {
@@ -9,7 +10,9 @@ const base = {
     parasiteFloors: 0,
     parasiteWardRemaining: 0,
     lives: 3,
-    boardLevel: 1 as number | null
+    boardLevel: 1 as number | null,
+    boardTiles: [] as Tile[],
+    findablesClaimedThisFloor: 0
 };
 
 describe('useHudPoliteLiveAnnouncement', () => {
@@ -81,5 +84,33 @@ describe('useHudPoliteLiveAnnouncement', () => {
             rerender({ level: 5, pf: 0, ward: 0, lives: 3 });
         });
         expect(result.current).toBe('Score parasite drain absorbed by ward.');
+    });
+
+    it('announces pickup claims with reward-specific copy', async () => {
+        const beforeTiles: Tile[] = [
+            { id: 'a1', pairKey: 'A', symbol: 'A', label: 'A', state: 'hidden', findableKind: 'shard_spark' },
+            { id: 'a2', pairKey: 'A', symbol: 'A', label: 'A', state: 'hidden', findableKind: 'shard_spark' }
+        ];
+        const afterTiles: Tile[] = [
+            { id: 'a1', pairKey: 'A', symbol: 'A', label: 'A', state: 'matched' },
+            { id: 'a2', pairKey: 'A', symbol: 'A', label: 'A', state: 'matched' }
+        ];
+
+        const { result, rerender } = renderHook(
+            (p: { tiles: Tile[]; claimed: number }) =>
+                useHudPoliteLiveAnnouncement({
+                    ...base,
+                    boardLevel: 2,
+                    boardTiles: p.tiles,
+                    findablesClaimedThisFloor: p.claimed
+                }),
+            { initialProps: { tiles: beforeTiles, claimed: 0 } }
+        );
+
+        await act(async () => {
+            rerender({ tiles: afterTiles, claimed: 1 });
+        });
+
+        expect(result.current).toBe('Shard spark claimed: plus one combo shard.');
     });
 });

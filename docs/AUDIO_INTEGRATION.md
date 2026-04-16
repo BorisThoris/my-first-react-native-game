@@ -9,7 +9,7 @@
 | Flip | After a successful `flipTile` in `pressTile` | `src/renderer/audio/gameSfx.ts` → `playFlipSfx` |
 | Match / mismatch | When `resolveBoardTurn` runs (timer or immediate) | `playResolveSfx` (compares stat deltas on the run) |
 
-`resumeAudioContext()` is called on user interaction so browsers that suspend `AudioContext` until a gesture still play sounds.
+`resumeAudioContext()` is called after tile presses (gesture) and again when **`applyResolveBoardTurn`** runs (immediate or timer-driven resolve) so a still-suspended context can resume before match/mismatch tones—not every resolve follows a fresh user gesture.
 
 ## Files
 

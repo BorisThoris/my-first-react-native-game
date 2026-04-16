@@ -9,6 +9,7 @@ import GameScreen from './components/GameScreen';
 import InventoryScreen from './components/InventoryScreen';
 import MainMenu from './components/MainMenu';
 import SettingsScreen from './components/SettingsScreen';
+import { GAMEPLAY_VISUAL_CSS_VARS } from './components/gameplayVisualConfig';
 import metaScreenStyles from './components/MetaScreen.module.css';
 import StartupIntro from './components/StartupIntro';
 import type { IntroPlaybackState } from './components/startupIntroConfig';
@@ -261,6 +262,7 @@ const App = () => {
                     <div
                         className={`${metaScreenStyles.modalOverlay} ${metaScreenStyles.modalOverlayDesk}`}
                         data-in-run-meta-shell="desk"
+                        style={GAMEPLAY_VISUAL_CSS_VARS}
                     >
                         <div className={`${metaScreenStyles.modalInner} ${metaScreenStyles.modalInnerDesk}`}>
                             {view === 'inventory' ? (

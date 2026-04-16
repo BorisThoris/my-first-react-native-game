@@ -1,6 +1,6 @@
 # E2E specs and QA matrix
 
-**Runner:** Playwright (`yarn test:e2e`). **Config:** `playwright.config.ts` at repo root.
+**Runner:** Playwright (`yarn test:e2e`). **Config:** `playwright.config.ts` at repo root (`use.baseURL` is `http://127.0.0.1:5173` against the Vite dev server).
 
 **Curated gate (recommended for CI):** `yarn test:e2e:renderer-qa` — see root `package.json` for exact file list.
 

@@ -24,6 +24,8 @@ vi.mock('../hooks/useDistractionChannelTick', () => ({
     useDistractionChannelTick: () => 0
 }));
 vi.mock('../hooks/useHudPoliteLiveAnnouncement', () => ({
+    detectClaimedFindableKind: () => null,
+    getFindableToastText: () => '',
     useHudPoliteLiveAnnouncement: () => ''
 }));
 vi.mock('../platformTilt/usePlatformTiltField', () => ({

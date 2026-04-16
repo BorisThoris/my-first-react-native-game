@@ -8,7 +8,7 @@
 import type { AchievementId, GameMode, MutatorId, RelicId } from './contracts';
 
 /** Monotonic reference doc version (increment when the encyclopedia meaningfully changes). */
-export const ENCYCLOPEDIA_VERSION = 4 as const;
+export const ENCYCLOPEDIA_VERSION = 5 as const;
 
 export interface RelicDefinition {
     id: RelicId;
@@ -137,7 +137,7 @@ export const MUTATOR_CATALOG: Record<MutatorId, MutatorDefinition> = {
         id: 'glass_floor',
         title: 'Glass floor',
         description:
-            'Adds a fragile **singleton “?” decoy** tile that never pairs; avoid flipping it for a glass-witness bonus. Distinct from findable bonus pickups on normal pairs.'
+            'Adds a fragile **singleton decoy trap** tile that never pairs; avoid dragging it into a mismatch for the glass-witness bonus. Distinct from reward pickups on normal pairs.'
     },
     sticky_fingers: {
         id: 'sticky_fingers',
@@ -186,9 +186,9 @@ export const MUTATOR_CATALOG: Record<MutatorId, MutatorDefinition> = {
     },
     findables_floor: {
         id: 'findables_floor',
-        title: 'Findables floor',
+        title: 'Dense pickups',
         description:
-            'Some pairs carry a bonus pickup (0–2 per floor). Match the pair to claim score; Destroy removes the pickup with no reward.'
+            'Baseline procedural floors already spawn pickups. This mutator makes the floor denser by guaranteeing **two** pickup pairs; Destroy still forfeits the reward.'
     },
     shifting_spotlight: {
         id: 'shifting_spotlight',
@@ -309,7 +309,7 @@ export const ENCYCLOPEDIA_POWER_TOPICS: readonly EncyclopediaTopic[] = [
         id: 'power_stray_remove',
         title: 'Stray remove',
         description:
-            'Arms removal of **one** hidden non-decoy tile—its partner becomes a singleton; does not score. Cannot remove the glass “?” decoy.'
+            'Arms removal of **one** hidden non-decoy tile—its partner becomes a singleton; does not score. Cannot remove the glass decoy trap tile.'
     },
     {
         id: 'power_flash_pair',
@@ -463,13 +463,13 @@ export const ENCYCLOPEDIA_PICKUP_AND_BOARD_TOPICS: readonly EncyclopediaTopic[] 
         id: 'pickup_findables',
         title: 'Findables (bonus pickups)',
         description:
-            'With the **Findables floor** mutator, up to two **real** pairs per floor may carry a **shard spark** or **score glint** pickup. Matching that pair claims flat bonus score on top of the match; Destroy clears the pickup without reward. Shown as corner highlights when face-up.'
+            'Procedural floors spawn **real** pickup pairs by default: floors 1–3 have one pair, later floors have one or two, and **Dense pickups** guarantees two. **Shard spark** grants +1 combo shard; **score glint** grants +25 score. Matching the carrier pair claims it, Destroy forfeits it, and Peek only reveals it.'
     },
     {
         id: 'board_glass_decoy',
-        title: 'Glass “?” decoy (singleton)',
+        title: 'Glass decoy trap (singleton)',
         description:
-            'From **Glass floor**: one extra tile with **?** that **never** forms a pair. The **glass witness** payout requires the decoy to **never appear in a mismatch** (or a failed **gambit** that includes it). Any such flip marks the witness failed for the floor. Not a findable pickup.'
+            'From **Glass floor**: one extra decoy tile that **never** forms a pair. The **glass witness** payout requires the decoy to **never appear in a mismatch** (or a failed **gambit** that includes it). Any such flip marks the witness failed for the floor. It is a trap, not a pickup.'
     },
     {
         id: 'board_wild_tile',

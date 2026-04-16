@@ -16,7 +16,11 @@ import { UI_ART } from '../assets/ui';
 import { isNarrowShortLandscapeForMenuStack, VIEWPORT_MOBILE_MAX } from '../breakpoints';
 import { deriveCameraViewportMode } from '../../shared/cameraViewportMode';
 import { useDistractionChannelTick } from '../hooks/useDistractionChannelTick';
-import { useHudPoliteLiveAnnouncement } from '../hooks/useHudPoliteLiveAnnouncement';
+import {
+    detectClaimedFindableKind,
+    getFindableToastText,
+    useHudPoliteLiveAnnouncement
+} from '../hooks/useHudPoliteLiveAnnouncement';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
 import { StatTile } from '../ui';
@@ -26,6 +30,7 @@ import GameplayHudBar from './GameplayHudBar';
 import MainMenuBackground from './MainMenuBackground';
 import OverlayModal from './OverlayModal';
 import TileBoard, { type TileBoardHandle } from './TileBoard';
+import { GAMEPLAY_VISUAL_CSS_VARS } from './gameplayVisualConfig';
 import styles from './GameScreen.module.css';
 
 /** OVR-007 / HUD-020: decoy readout for `distraction_channel` — not gameplay state; hidden when reduce motion or assist toggle is off. */
@@ -165,6 +170,11 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     );
     const settingsReduceMotion = useAppStore((state) => state.settings.reduceMotion);
     const seenAchievementToastIdsRef = useRef<Set<string>>(new Set());
+    const pickupToastSnapshotRef = useRef<{
+        level: number;
+        claimed: number;
+        tiles: NonNullable<RunState['board']>['tiles'];
+    } | null>(null);
     /** OVR-014: queue unlock toasts while the floor-cleared dialog is up; `continueToNextLevel` clears `newlyUnlockedAchievements` before the next paint. */
     const pendingAchievementToastIdsRef = useRef<AchievementId[]>([]);
     const settingsDistractionChannelEnabled = useAppStore((state) => state.settings.distractionChannelEnabled);
@@ -323,6 +333,37 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         suppressStatusOverlays
     ]);
 
+    useEffect(() => {
+        if (!run.board) {
+            pickupToastSnapshotRef.current = null;
+            return;
+        }
+
+        const nextSnapshot = {
+            level: run.board.level,
+            claimed: run.findablesClaimedThisFloor,
+            tiles: run.board.tiles
+        };
+        const previousSnapshot = pickupToastSnapshotRef.current;
+
+        if (
+            previousSnapshot &&
+            previousSnapshot.level === run.board.level &&
+            run.findablesClaimedThisFloor > previousSnapshot.claimed
+        ) {
+            const claimedKind = detectClaimedFindableKind(previousSnapshot.tiles, run.board.tiles);
+            if (claimedKind != null) {
+                const { showInfo } = useNotificationStore.getState();
+                const infoDuration = settingsReduceMotion ? 2200 : 3200;
+                showInfo(getFindableToastText(claimedKind), infoDuration, {
+                    stackKey: `pickup:${run.board.level}:${run.findablesClaimedThisFloor}`
+                });
+            }
+        }
+
+        pickupToastSnapshotRef.current = nextSnapshot;
+    }, [run.board, run.findablesClaimedThisFloor, settingsReduceMotion]);
+
     /** Persist `powersFtueSeen` once the player leaves tutorial floors (pair markers no longer needed). */
     useEffect(() => {
         const level = run.board?.level;
@@ -373,6 +414,8 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const gauntletActive = run.gameMode === 'gauntlet' && run.gauntletDeadlineMs !== null;
     const politeHudAnnouncement = useHudPoliteLiveAnnouncement({
         boardLevel: run.board?.level ?? null,
+        boardTiles: run.board?.tiles ?? [],
+        findablesClaimedThisFloor: run.findablesClaimedThisFloor,
         gauntletActive,
         gauntletRemainingMs,
         lives: run.lives,
@@ -450,6 +493,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
             data-mobile-camera-mode={cameraViewportMode ? 'true' : 'false'}
             data-testid="game-shell"
             ref={shellRef}
+            style={GAMEPLAY_VISUAL_CSS_VARS}
         >
             <MainMenuBackground
                 fieldTiltRef={gameFieldTiltRef}
@@ -671,6 +715,8 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                 variant: 'danger'
                             }
                         ]}
+                        headerPlateTone="danger"
+                        ornamentalHeaderPlate
                         subtitle="You will lose this run and return to the main menu. This cannot be undone."
                         title="Abandon run?"
                     />

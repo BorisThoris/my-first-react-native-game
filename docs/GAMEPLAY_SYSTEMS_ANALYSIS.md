@@ -55,7 +55,7 @@ The **desktop renderer** (`GameScreen`, `TileBoard`, Zustand `useAppStore`) is *
 - **Floor clear:** all tiles `matched` or `removed`.
 - **Lose:** `lives` to 0 (mismatches, parasite drain on advance, etc.), or contract `maxMismatches` forcing loss.
 
-**Gauntlet time limit:** `isGauntletExpired` in `game.ts` is used by the store on **`pressTile`** and by a **`useAppStore` subscription** that runs a **~300ms interval** while a gauntlet run is active: when `Date.now()` passes `gauntletDeadlineMs`, **`applyResolvedRun`** sets **`gameOver`** (same path as tile expiry). The HUD still updates from `GameScreen` local timer for display.
+**Gauntlet time limit:** `isGauntletExpired` in `game.ts` is used by the store on **`pressTile`** and by a **`useAppStore` subscription** that (while an active gauntlet run is in gameplay view) starts a **`setInterval` ~every 300ms**—the subscription itself runs on **every** state change; the interval callback checks `Date.now()` vs `gauntletDeadlineMs` and then **`applyResolvedRun`** can set **`gameOver`** (same path as tile expiry). The HUD still updates from `GameScreen` local timer for display.
 
 ---
 
@@ -94,8 +94,8 @@ Wired through **`useAppStore`** and **`GameScreen`** / toolbar:
 | `shifting_spotlight` | Catalog / modes | Yes (ward/bounty rotation) | Tests + logic |
 | `score_parasite` | Cycle | Yes (life drain on advance) | Run stats |
 | `n_back_anchor` | Cycle | Yes (`nBackAnchorPairKey` updates) | Optional HUD |
-| `wide_recall` | Endless cycle | Yes: **flat per-match penalty** (`getPresentationMutatorMatchPenalty`) | **CSS:** de-emphasizes symbol when flipped (`wideRecallInPlay`); not a wider grid in `buildBoard` |
-| `silhouette_twist` | Endless cycle | Yes: **flat per-match penalty** | **CSS** `silhouetteFace` on faces during play |
+| `wide_recall` | Endless cycle | Yes: **flat per-match penalty** (`getPresentationMutatorMatchPenalty`) | **CSS + WebGL:** de-emphasizes symbol when flipped (`wideRecallInPlay`); `TileBoardScene` face tints parity; not a wider grid in `buildBoard` |
+| `silhouette_twist` | Endless cycle | Yes: **flat per-match penalty** | **CSS + WebGL** `silhouetteFace` / material parity on faces during play |
 | `distraction_channel` | Sometimes appended on boss floors | Yes: **flat per-match penalty** while mutator active | **Local React HUD** in `GameScreen` (numeric overlay; gated by settings / reduced motion) |
 
 **Takeaway:** Those three IDs combine **rules-level match score pressure** with **presentation**; see `MUTATORS.md` and `GAME_RULES_VERSION` in `contracts.ts` for semantics.
@@ -110,7 +110,7 @@ Wired through **`useAppStore`** and **`GameScreen`** / toolbar:
 
 **Healthy connections:**
 
-- **`pressTile`** gates on `view === 'playing'` and `run.status === 'playing'`, gauntlet expiry, then delegates to the correct `game.ts` API.
+- **`pressTile`** gates on `view === 'playing'`, gauntlet expiry, then delegates to the correct `game.ts` API. Normal flips require `run.status === 'playing'`; the **gambit third pick** path can call `flipTile` while `run.status === 'resolving'` (two tiles already flipped).
 - **Terminal states** funnel through **`applyResolvedRun`** (achievements, save, flow to level complete / game over).
 - **3D path:** R3F `Canvas` + `TileBoardScene` + `tileTextures` (programmatic faces for digit motifs, canvas overlays).
 - **2D fallback:** DOM grid buttons; same store actions.

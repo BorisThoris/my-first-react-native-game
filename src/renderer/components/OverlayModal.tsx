@@ -11,7 +11,7 @@ interface ModalAction {
 }
 
 /** META-009: pause=blue-neutral, floor=gold+success well, relic=violet — only when `ornamentalHeaderPlate`. */
-export type OverlayModalHeaderPlateTone = 'neutral' | 'success' | 'pause' | 'relic';
+export type OverlayModalHeaderPlateTone = 'neutral' | 'success' | 'pause' | 'relic' | 'danger';
 
 interface OverlayModalProps {
     title: string;
@@ -43,7 +43,31 @@ const headerPlateToneClass = (tone: OverlayModalHeaderPlateTone): string => {
         return styles.headerPlateFrameRelic;
     }
 
+    if (tone === 'danger') {
+        return styles.headerPlateFrameDanger;
+    }
+
     return '';
+};
+
+const overlayToneClass = (tone: OverlayModalHeaderPlateTone): string => {
+    if (tone === 'success') {
+        return styles.modalToneSuccess;
+    }
+
+    if (tone === 'pause') {
+        return styles.modalTonePause;
+    }
+
+    if (tone === 'relic') {
+        return styles.modalToneRelic;
+    }
+
+    if (tone === 'danger') {
+        return styles.modalToneDanger;
+    }
+
+    return styles.modalToneNeutral;
 };
 
 const toUiVariant = (variant: ModalAction['variant']): UiButtonVariant => {
@@ -103,12 +127,12 @@ const OverlayModal = ({
     }, []);
 
     return (
-        <div className={styles.backdrop}>
+        <div className={`${styles.backdrop} ${overlayToneClass(headerPlateTone)}`.trim()}>
             <section
                 aria-describedby={describedBy}
                 aria-labelledby={titleId}
                 aria-modal="true"
-                className={styles.modal}
+                className={`${styles.modal} ${overlayToneClass(headerPlateTone)}`.trim()}
                 data-testid={testId}
                 ref={modalRef}
                 role="dialog"
