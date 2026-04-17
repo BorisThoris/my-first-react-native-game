@@ -46,3 +46,35 @@ yarn generate:card-plates
 ```
 
 Optionally set `COMFY_OUTPUT_DIR` when extending the script to harvest local Comfy exports. Output: `src/renderer/assets/generated/card-plates/manifest.json`.
+
+## Procedural center illustration (runtime)
+
+Face-up overlays draw a deterministic **loot-table-style** procedural panel in the illustration safe zone (`CARD_ILLUSTRATION_INSET`, `src/renderer/cardFace/cardIllustrationRect.ts`): seeds from `tile.pairKey`, rolls in `src/renderer/cardFace/proceduralIllustration/`, rasterized with Canvas2D (`drawProceduralTarotIllustration`). Bump `ILLUSTRATION_GEN_SCHEMA_VERSION` or `GAMEPLAY_CARD_VISUALS.textureVersion` when changing generation rules.
+
+## Illustration hash + contact-sheet regression
+
+Run the browser-real regression harness to hash the fixed `24 x 3` seed matrix at shipped overlay size, compare it against the committed fixture, and attach the structured regression stamps plus contact sheet:
+
+```bash
+yarn test:e2e:illustration-regression
+```
+
+Intentional illustration-rule changes must bump `ILLUSTRATION_GEN_SCHEMA_VERSION` or `GAMEPLAY_CARD_VISUALS.textureVersion` before fixture updates are accepted. Regenerate the committed hash fixture and contact-sheet artifact with:
+
+```bash
+yarn regenerate:illustration-regression
+```
+
+Manual perf sampling for `32` unique overlays stays out of normal CI:
+
+```bash
+yarn benchmark:illustration-regression
+```
+
+## Optional shipped illustration assets (legacy folder)
+
+The `src/renderer/assets/cards/illustrations/` folder may still hold SVG/PNG references for tooling or future hybrid loot rolls; the live overlay no longer depends on `cardIllustrationRegistry` for default gameplay.
+
+1. Export new art as **WebP or PNG** (or small **SVG**) into `src/renderer/assets/cards/illustrations/` if you extend hybrid pipelines.
+2. Optional registry keys live in `src/renderer/cardFace/cardIllustrationRegistry.ts` for offline workflows only.
+3. If you maintain the registry, run `yarn build:card-illustration-manifest` to ensure every file in the folder is referenced.

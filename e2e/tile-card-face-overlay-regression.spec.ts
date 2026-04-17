@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer';
 import { expect, test, type Page } from '@playwright/test';
 import { countPngPixelDiffs } from './pngDiff';
 import {
@@ -85,5 +86,63 @@ test.describe('Card face overlay tiers (WebGL)', () => {
         await testInfo.attach('overlay-high-hidden.png', { body: hidden, contentType: 'image/png' });
         await testInfo.attach('overlay-high-flipped.png', { body: flipped, contentType: 'image/png' });
         expect(ratio, 'high-tier overlay should still swap face art').toBeLessThan(0.18);
+    });
+
+    test('warmed board stops growing caches after the first reveal settles', async ({ page }, testInfo) => {
+        test.setTimeout(120_000);
+        await page.setViewportSize({ width: 1280, height: 720 });
+        await navigateToLevel1PlayPhase(page, e2eSaveWithGraphicsQuality('high'));
+
+        await expect
+            .poll(
+                async () =>
+                    page.evaluate(async () => {
+                        const texturesMod = await import('/src/renderer/components/tileTextures.ts');
+                        return texturesMod.getOverlayPrewarmDebugState().pendingCount;
+                    }),
+                { timeout: 15_000 }
+            )
+            .toBe(0);
+
+        const beforeFlip = await page.evaluate(async () => {
+            const texturesMod = await import('/src/renderer/components/tileTextures.ts');
+            return texturesMod.getIllustrationPipelineDebugState();
+        });
+
+        const hiddenCount = await readFrameHiddenTileCount(page);
+        await clickHiddenTileRowCol(page, 1, 1, hiddenCount);
+        await expect.poll(async () => readFrameHiddenTileCount(page), { timeout: 4000 }).toBeLessThan(hiddenCount);
+        await page.waitForTimeout(500);
+
+        const afterFlip = await page.evaluate(async () => {
+            const texturesMod = await import('/src/renderer/components/tileTextures.ts');
+            return texturesMod.getIllustrationPipelineDebugState();
+        });
+
+        await page.waitForTimeout(750);
+
+        const afterSettle = await page.evaluate(async () => {
+            const texturesMod = await import('/src/renderer/components/tileTextures.ts');
+            return texturesMod.getIllustrationPipelineDebugState();
+        });
+
+        await testInfo.attach('overlay-cache-debug-before.json', {
+            body: Buffer.from(JSON.stringify(beforeFlip, null, 2)),
+            contentType: 'application/json'
+        });
+        await testInfo.attach('overlay-cache-debug-after-flip.json', {
+            body: Buffer.from(JSON.stringify(afterFlip, null, 2)),
+            contentType: 'application/json'
+        });
+        await testInfo.attach('overlay-cache-debug-after-settle.json', {
+            body: Buffer.from(JSON.stringify(afterSettle, null, 2)),
+            contentType: 'application/json'
+        });
+
+        expect(beforeFlip.illustrationBitmap.entryCount).toBeGreaterThan(0);
+        expect(afterFlip.illustrationBitmap.entryCount).toBe(beforeFlip.illustrationBitmap.entryCount);
+        expect(afterSettle.illustrationBitmap.createdCount).toBe(afterFlip.illustrationBitmap.createdCount);
+        expect(afterSettle.overlayTexture.createdCount).toBe(afterFlip.overlayTexture.createdCount);
+        expect(afterSettle.overlayTexture.overlayKeyCount).toBe(afterFlip.overlayTexture.overlayKeyCount);
     });
 });

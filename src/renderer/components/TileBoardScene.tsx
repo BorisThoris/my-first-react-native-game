@@ -48,6 +48,7 @@ import {
     getCardPanelDisplacementTexture,
     getCardPanelNormalTexture,
     getTileFaceOverlayTexture,
+    prewarmTileFaceOverlayTextures,
     subscribeTextureImageUpdates,
     type FaceVariant
 } from './tileTextures';
@@ -2275,6 +2276,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
         }
         return m;
     }, [board.tiles, showTutorialPairMarkers]);
+
     const tileStepLegacy = useMemo(() => readTileStepLegacy(), []);
     const hostConsolidatesTileFrames = !tileStepLegacy;
     const tileBezelRows = useMemo(() => {
@@ -2371,27 +2373,10 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
 
     useEffect(() => subscribeTextureImageUpdates(() => setTextureRevision((current) => current + 1)), []);
 
-    const overlayPrewarmKey = `${board.level}:${board.tiles.map((tile) => tile.id).join(',')}`;
+    const overlayPrewarmKey = `${board.level}:${board.tiles.map((tile) => `${tile.id}:${tile.pairKey}`).join(',')}`;
     useEffect(() => {
-        let cancelled = false;
-        const tiles = board.tiles;
         /** Only `active`: prewarming all variants was 3× canvas allocations per tile on every board. */
-        let index = 0;
-        const pump = (): void => {
-            if (cancelled) {
-                return;
-            }
-            if (index >= tiles.length) {
-                return;
-            }
-            getTileFaceOverlayTexture(tiles[index], 'active', graphicsQuality);
-            index += 1;
-            requestAnimationFrame(pump);
-        };
-        requestAnimationFrame(pump);
-        return () => {
-            cancelled = true;
-        };
+        return prewarmTileFaceOverlayTextures(board.tiles, graphicsQuality, 'active');
     }, [overlayPrewarmKey, graphicsQuality]); // eslint-disable-line react-hooks/exhaustive-deps -- overlayPrewarmKey encodes level + tile ids
 
     /** Chain front → back so two huge SVGLoader.parse passes never run in parallel (main-thread + memory). */

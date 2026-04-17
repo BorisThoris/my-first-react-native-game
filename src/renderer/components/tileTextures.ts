@@ -26,11 +26,66 @@ import {
     drawProgrammaticCardFaceOverlay,
     tileUsesProgrammaticFaceMotif
 } from '../cardFace/programmaticCardFace';
+import {
+    clearProceduralIllustrationBitmapCache,
+    drawProceduralIllustrationInCanvasOverlay,
+    forceProceduralIllustrationBitmapCacheVersion,
+    getProceduralIllustrationBitmapCacheDebugState,
+    prewarmProceduralIllustrationBitmap
+} from '../cardFace/cardIllustrationDraw';
+import { computeIllustrationPixelRect } from '../cardFace/cardIllustrationRect';
+import {
+    getIllustrationVersionStamp,
+    getProceduralIllustrationRegressionStamp
+} from '../cardFace/proceduralIllustration/illustrationCacheKey';
+import { ILLUSTRATION_GEN_SCHEMA_VERSION } from '../cardFace/proceduralIllustration/illustrationSchemaVersion';
 import { GAMEPLAY_CARD_VISUALS } from './gameplayVisualConfig';
 
 export type FaceVariant = 'hidden' | 'active' | 'matched' | 'mismatch';
 export type TileFace = 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom';
 export type TileLayer = 'bezel' | 'panel' | 'shell' | 'core';
+type IdleWindow = Window &
+    typeof globalThis & {
+        cancelIdleCallback?: (handle: number) => void;
+        requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
+    };
+type PrewarmScheduleHandle =
+    | { id: number; type: 'idle' }
+    | { id: number; type: 'timeout' };
+
+type OverlayTextureCacheDebugState = {
+    createdCount: number;
+    hitCount: number;
+    keys: string[];
+    lastPurgeReason: string | null;
+    overlayKeyCount: number;
+    overlayKeys: string[];
+    purgeCount: number;
+    versionToken: string;
+};
+
+export type TileFaceOverlayRegressionStamp = {
+    graphicsQuality: GraphicsQualityPreset;
+    illustration: ReturnType<typeof getProceduralIllustrationRegressionStamp>;
+    overlayCacheKey: string;
+    pairKey: string;
+    tier: OverlayDrawTier;
+    tileId: string;
+    variant: Exclude<FaceVariant, 'hidden'>;
+};
+
+export type OverlayPrewarmDebugState = {
+    boardKey: string | null;
+    completedCount: number;
+    pendingCount: number;
+    scheduled: boolean;
+    targetCount: number;
+    targetKeys: string[];
+    tier: OverlayDrawTier | null;
+    variant: Exclude<FaceVariant, 'hidden'> | null;
+};
+
+const OVERLAY_PREWARM_BATCH_SIZE = 4;
 
 // Backward-compatible aliases for untouched imports.
 export type CubeFace = TileFace;
@@ -92,6 +147,28 @@ const TILE_TEXTURE_VERSION = GAMEPLAY_CARD_VISUALS.textureVersion;
 const CARD_SURFACE_MAP_VERSION = GAMEPLAY_CARD_VISUALS.surfaceMapVersion;
 const textureCache = new Map<string, CanvasTexture>();
 const textureImageUpdateListeners = new Set<() => void>();
+const OVERLAY_TEXTURE_CACHE_VERSION = getIllustrationVersionStamp(TILE_TEXTURE_VERSION).versionToken;
+
+let overlayTextureCacheVersionToken = OVERLAY_TEXTURE_CACHE_VERSION;
+
+const overlayTextureCacheStats = {
+    createdCount: 0,
+    hitCount: 0,
+    lastPurgeReason: null as string | null,
+    purgeCount: 0,
+    versionToken: OVERLAY_TEXTURE_CACHE_VERSION
+};
+
+let overlayPrewarmDebugState: OverlayPrewarmDebugState = {
+    boardKey: null,
+    completedCount: 0,
+    pendingCount: 0,
+    scheduled: false,
+    targetCount: 0,
+    targetKeys: [],
+    tier: null,
+    variant: null
+};
 
 let cachedRasterFaceNormalTexture: Texture | null = null;
 let cachedRasterFaceNormalSource: HTMLImageElement | null = null;
@@ -117,6 +194,55 @@ const disposeCachedTexture = (key: string): void => {
         texture.dispose();
         textureCache.delete(key);
     }
+};
+
+const disposeAllCachedTextures = (): void => {
+    for (const key of [...textureCache.keys()]) {
+        disposeCachedTexture(key);
+    }
+};
+
+const isOverlayTextureCacheKey = (key: string): boolean => key.includes(':overlay:');
+
+const resetOverlayTextureCacheStats = (): void => {
+    overlayTextureCacheStats.createdCount = 0;
+    overlayTextureCacheStats.hitCount = 0;
+    overlayTextureCacheStats.lastPurgeReason = null;
+    overlayTextureCacheStats.purgeCount = 0;
+    overlayTextureCacheStats.versionToken = overlayTextureCacheVersionToken;
+};
+
+const resetOverlayPrewarmDebugState = (): void => {
+    overlayPrewarmDebugState = {
+        boardKey: null,
+        completedCount: 0,
+        pendingCount: 0,
+        scheduled: false,
+        targetCount: 0,
+        targetKeys: [],
+        tier: null,
+        variant: null
+    };
+};
+
+const purgeOverlayTextureCache = (reason: string, nextVersionToken: string = overlayTextureCacheVersionToken): void => {
+    overlayTextureCacheVersionToken = nextVersionToken;
+    overlayTextureCacheStats.lastPurgeReason = reason;
+    overlayTextureCacheStats.purgeCount += 1;
+    overlayTextureCacheStats.versionToken = nextVersionToken;
+    for (const key of [...textureCache.keys()]) {
+        if (isOverlayTextureCacheKey(key)) {
+            disposeCachedTexture(key);
+        }
+    }
+};
+
+const syncIllustrationOverlayCacheVersion = (versionToken: string = OVERLAY_TEXTURE_CACHE_VERSION): void => {
+    if (overlayTextureCacheVersionToken === versionToken) {
+        return;
+    }
+    purgeOverlayTextureCache('version-change', versionToken);
+    forceProceduralIllustrationBitmapCacheVersion(versionToken);
 };
 
 const invalidateStaticCardBackTexture = (): void => {
@@ -342,6 +468,9 @@ const createTexture = (
     const cached = textureCache.get(key);
 
     if (cached) {
+        if (isOverlayTextureCacheKey(key)) {
+            overlayTextureCacheStats.hitCount += 1;
+        }
         return cached;
     }
 
@@ -368,8 +497,40 @@ const createTexture = (
     texture.colorSpace = colorSpace;
     applyCanvasTileTextureSampling(texture, tileTextureSamplingQuality);
     textureCache.set(key, texture);
+    if (isOverlayTextureCacheKey(key)) {
+        overlayTextureCacheStats.createdCount += 1;
+    }
 
     return texture;
+};
+
+const getIdleWindow = (): IdleWindow | null => (typeof window === 'undefined' ? null : (window as IdleWindow));
+
+const schedulePrewarmStep = (callback: IdleRequestCallback): PrewarmScheduleHandle => {
+    const idleWindow = getIdleWindow();
+    if (idleWindow?.requestIdleCallback) {
+        return { id: idleWindow.requestIdleCallback(callback, { timeout: 120 }), type: 'idle' };
+    }
+    return {
+        id: window.setTimeout(() => {
+            callback({
+                didTimeout: false,
+                timeRemaining: () => 0
+            } as IdleDeadline);
+        }, 0),
+        type: 'timeout'
+    };
+};
+
+const cancelPrewarmStep = (handle: PrewarmScheduleHandle | null): void => {
+    if (!handle) {
+        return;
+    }
+    if (handle.type === 'idle') {
+        getIdleWindow()?.cancelIdleCallback?.(handle.id);
+        return;
+    }
+    window.clearTimeout(handle.id);
 };
 
 /** Sharper sampling on tilted quads; call once per WebGL context with device cap. */
@@ -933,12 +1094,18 @@ const drawCardFrontOverlay = (
         drawNoise(context, width, height, outerGrain, `rgba(${c.grainRgb},${c.grainAlpha * 0.65})`, rng);
     }
 
+    drawProceduralIllustrationInCanvasOverlay(context, canvas, tile.pairKey, tier, c, {
+        matFeatherStrength: 0.92
+    });
+    const plateAlpha = 0.52;
+
     const cx = width * 0.5;
     const symbolY = height * symbolYFrac;
     const plateR = Math.min(width, height) * 0.34;
     const plateOuter = plateR * 1.12;
 
     context.save();
+    context.globalAlpha = plateAlpha;
     context.lineJoin = 'round';
     const glow = context.createRadialGradient(cx, symbolY, plateR * 0.12, cx, symbolY, plateOuter);
     glow.addColorStop(0, c.plateGlow);
@@ -983,6 +1150,7 @@ const drawCardFrontOverlay = (
     context.textAlign = 'center';
     context.textBaseline = 'middle';
     context.lineJoin = 'round';
+    context.globalAlpha = 1;
 
     let symbolSize = symbolBaseSize;
     context.font = `800 ${symbolSize}px "Source Sans 3", "Segoe UI Symbol", "Segoe UI Emoji", "Arial", sans-serif`;
@@ -1127,6 +1295,36 @@ const drawCardBase = (
 
 const buildKey = (tile: Tile, face: TileFace, variant: FaceVariant, layer: TileLayer): string =>
     `${TILE_TEXTURE_VERSION}:${layer}:${variant}:${face}:${tile.id}:${tile.pairKey}:${tile.symbol}:${tile.label}`;
+
+export const getTileFaceOverlayTextureCacheKey = (
+    tile: Tile,
+    variant: Exclude<FaceVariant, 'hidden'>,
+    graphicsQuality: GraphicsQualityPreset
+): string => `${buildKey(tile, 'front', variant, 'panel')}:overlay:${graphicsQuality}:illustrationSchema=${ILLUSTRATION_GEN_SCHEMA_VERSION}`;
+
+export const getTileFaceOverlayRegressionStamp = (
+    tile: Tile,
+    variant: Exclude<FaceVariant, 'hidden'>,
+    graphicsQuality: GraphicsQualityPreset
+): TileFaceOverlayRegressionStamp => {
+    const tier = overlayDrawTierFromGraphicsQuality(graphicsQuality);
+    const illustration = getProceduralIllustrationRegressionStamp(tile.pairKey, tier, TILE_TEXTURE_VERSION);
+    return {
+        graphicsQuality,
+        illustration,
+        overlayCacheKey: getTileFaceOverlayTextureCacheKey(tile, variant, graphicsQuality),
+        pairKey: tile.pairKey,
+        tier,
+        tileId: tile.id,
+        variant
+    };
+};
+
+export const formatTileFaceOverlayRegressionLogLine = (
+    tile: Tile,
+    variant: Exclude<FaceVariant, 'hidden'>,
+    graphicsQuality: GraphicsQualityPreset
+): string => JSON.stringify(getTileFaceOverlayRegressionStamp(tile, variant, graphicsQuality));
 
 /** Panel art is only authored for the back face; geometry uses the same pixels on both sides. */
 const drawFace = (
@@ -1273,14 +1471,140 @@ export const getTileFaceOverlayTexture = (
     variant: Exclude<FaceVariant, 'hidden'>,
     graphicsQuality: GraphicsQualityPreset
 ): CanvasTexture | null => {
+    syncIllustrationOverlayCacheVersion();
     const tier = overlayDrawTierFromGraphicsQuality(graphicsQuality);
     return createTexture(
-        `${buildKey(tile, 'front', variant, 'panel')}:overlay:${graphicsQuality}`,
+        getTileFaceOverlayTextureCacheKey(tile, variant, graphicsQuality),
         (context, canvas) => drawCardFrontOverlay(context, canvas, tile, variant, tier),
         SRGBColorSpace,
         STATIC_CARD_TEXTURE_WIDTH,
         STATIC_CARD_TEXTURE_HEIGHT
     );
+};
+
+type IllustrationPrewarmTarget = {
+    key: string;
+    pairKey: string;
+    palette: ReturnType<typeof getCardFaceOverlayColors>;
+    sourcePixelHeight: number;
+    sourcePixelWidth: number;
+    tier: OverlayDrawTier;
+};
+
+const buildIllustrationPrewarmTargetKey = (pairKey: string, tier: OverlayDrawTier): string => `${pairKey}|tier=${tier}`;
+
+const getIllustrationPrewarmTargets = (
+    tiles: readonly Tile[],
+    graphicsQuality: GraphicsQualityPreset,
+    variant: Exclude<FaceVariant, 'hidden'>
+): IllustrationPrewarmTarget[] => {
+    if (variant !== 'active') {
+        return [];
+    }
+
+    const tier = overlayDrawTierFromGraphicsQuality(graphicsQuality);
+    const palette = getCardFaceOverlayColors(variant);
+    const illustrationRect = computeIllustrationPixelRect(STATIC_CARD_TEXTURE_WIDTH, STATIC_CARD_TEXTURE_HEIGHT);
+    const targets: IllustrationPrewarmTarget[] = [];
+    const seen = new Set<string>();
+
+    for (const tile of tiles) {
+        const key = buildIllustrationPrewarmTargetKey(tile.pairKey, tier);
+        if (seen.has(key)) {
+            continue;
+        }
+        seen.add(key);
+        targets.push({
+            key,
+            pairKey: tile.pairKey,
+            palette,
+            sourcePixelHeight: illustrationRect.height,
+            sourcePixelWidth: illustrationRect.width,
+            tier
+        });
+    }
+
+    return targets;
+};
+
+export const prewarmTileFaceOverlayTextures = (
+    tiles: readonly Tile[],
+    graphicsQuality: GraphicsQualityPreset,
+    variant: Exclude<FaceVariant, 'hidden'> = 'active'
+): (() => void) => {
+    if (!canDraw() || tiles.length === 0) {
+        resetOverlayPrewarmDebugState();
+        return () => undefined;
+    }
+
+    syncIllustrationOverlayCacheVersion();
+    const targets = getIllustrationPrewarmTargets(tiles, graphicsQuality, variant);
+    if (targets.length === 0) {
+        resetOverlayPrewarmDebugState();
+        return () => undefined;
+    }
+
+    let cancelled = false;
+    let handle: PrewarmScheduleHandle | null = null;
+    let index = 0;
+    const boardKey = `${variant}|${overlayDrawTierFromGraphicsQuality(graphicsQuality)}|${targets.map((target) => target.key).join(',')}`;
+
+    overlayPrewarmDebugState = {
+        boardKey,
+        completedCount: 0,
+        pendingCount: targets.length,
+        scheduled: true,
+        targetCount: targets.length,
+        targetKeys: targets.map((target) => target.key),
+        tier: targets[0]?.tier ?? null,
+        variant
+    };
+
+    const pump = (deadline?: IdleDeadline): void => {
+        if (cancelled) {
+            return;
+        }
+
+        let processed = 0;
+        do {
+            const target = targets[index]!;
+            prewarmProceduralIllustrationBitmap(
+                target.pairKey,
+                target.tier,
+                target.palette,
+                target.sourcePixelWidth,
+                target.sourcePixelHeight
+            );
+            index += 1;
+            processed += 1;
+            overlayPrewarmDebugState.completedCount = index;
+            overlayPrewarmDebugState.pendingCount = targets.length - index;
+        } while (
+            index < targets.length &&
+            processed < OVERLAY_PREWARM_BATCH_SIZE &&
+            deadline != null &&
+            (deadline.didTimeout || deadline.timeRemaining() > 2)
+        );
+
+        overlayPrewarmDebugState.scheduled = false;
+        if (index < targets.length) {
+            overlayPrewarmDebugState.scheduled = true;
+            handle = schedulePrewarmStep(pump);
+        }
+    };
+
+    handle = schedulePrewarmStep(pump);
+    return () => {
+        cancelled = true;
+        cancelPrewarmStep(handle);
+        if (overlayPrewarmDebugState.boardKey === boardKey) {
+            overlayPrewarmDebugState = {
+                ...overlayPrewarmDebugState,
+                pendingCount: Math.max(0, targets.length - index),
+                scheduled: false
+            };
+        }
+    };
 };
 
 export const getCardBackStaticTexture = (): CanvasTexture | null =>
@@ -1328,3 +1652,48 @@ export const subscribeTextureImageUpdates = (listener: () => void): (() => void)
         textureImageUpdateListeners.delete(listener);
     };
 };
+
+export const getOverlayTextureCacheDebugState = (): OverlayTextureCacheDebugState => {
+    const keys = [...textureCache.keys()].sort();
+    const overlayKeys = keys.filter((key) => isOverlayTextureCacheKey(key));
+    return {
+        createdCount: overlayTextureCacheStats.createdCount,
+        hitCount: overlayTextureCacheStats.hitCount,
+        keys,
+        lastPurgeReason: overlayTextureCacheStats.lastPurgeReason,
+        overlayKeyCount: overlayKeys.length,
+        overlayKeys,
+        purgeCount: overlayTextureCacheStats.purgeCount,
+        versionToken: overlayTextureCacheStats.versionToken
+    };
+};
+
+export const getOverlayPrewarmDebugState = (): OverlayPrewarmDebugState => ({
+    ...overlayPrewarmDebugState,
+    targetKeys: [...overlayPrewarmDebugState.targetKeys]
+});
+
+export const clearTileTextureCachesForDebug = (): void => {
+    disposeAllCachedTextures();
+    overlayTextureCacheVersionToken = OVERLAY_TEXTURE_CACHE_VERSION;
+    forceProceduralIllustrationBitmapCacheVersion(OVERLAY_TEXTURE_CACHE_VERSION);
+    clearProceduralIllustrationBitmapCache();
+    resetOverlayTextureCacheStats();
+    resetOverlayPrewarmDebugState();
+};
+
+export const getCachedTileTextureKeysForDebug = (): string[] => [...textureCache.keys()].sort();
+
+export const forceIllustrationOverlayCacheVersionForTest = (versionToken: string): void => {
+    syncIllustrationOverlayCacheVersion(versionToken);
+};
+
+export const getIllustrationPipelineDebugState = (): {
+    illustrationBitmap: ReturnType<typeof getProceduralIllustrationBitmapCacheDebugState>;
+    overlayPrewarm: OverlayPrewarmDebugState;
+    overlayTexture: OverlayTextureCacheDebugState;
+} => ({
+    illustrationBitmap: getProceduralIllustrationBitmapCacheDebugState(),
+    overlayPrewarm: getOverlayPrewarmDebugState(),
+    overlayTexture: getOverlayTextureCacheDebugState()
+});

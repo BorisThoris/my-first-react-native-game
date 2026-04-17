@@ -3,11 +3,13 @@
  * SVG output is the canonical spec; canvas overlay in tileTextures mirrors the same layout.
  */
 import type { Tile } from '../../shared/contracts';
+import { hashPairKey } from '../../shared/hashPairKey';
 import { getCardFaceOverlayColors, type ProgrammaticOverlayVariant } from './cardFaceOverlayPalette';
 import type { OverlayDrawTier } from './overlayDrawTier';
 import { FEATURE_CARD_OPENTYPE_GLYPHS } from '../../shared/feature-flags';
 import { tryDrawOpentypeCenteredText } from './opentypeCardRankFont';
 import { escapeXml } from './svgMarkup';
+import { drawProceduralIllustrationCoverInViewBox } from './cardIllustrationDraw';
 
 export type { ProgrammaticOverlayVariant };
 
@@ -30,16 +32,8 @@ const shapeKind = (tile: Tile): number => {
     if (tile.atomicVariant != null) {
         return tile.atomicVariant % SHAPE_COUNT;
     }
-    return Math.abs(hashPairKey(tile.pairKey)) % SHAPE_COUNT;
+    return hashPairKey(tile.pairKey) % SHAPE_COUNT;
 };
-
-function hashPairKey(pairKey: string): number {
-    let h = 0;
-    for (let i = 0; i < pairKey.length; i++) {
-        h = (h * 31 + pairKey.charCodeAt(i)) | 0;
-    }
-    return Math.abs(h);
-}
 
 function noiseSeed(tile: Tile, variant: ProgrammaticOverlayVariant): number {
     return Math.abs(hashPairKey(`${tile.id}|${tile.pairKey}|${variant}`)) % 500;
@@ -247,7 +241,6 @@ export const drawProgrammaticCardFaceOverlay = (
     const { w: vbW, h: vbH } = PROGRAMMATIC_CARD_VIEWBOX;
     const { frame, shape, number: num } = LAYOUT;
     const c = getCardFaceOverlayColors(variant);
-    const k = shapeKind(tile);
     const rng = createOverlayRng(tile, variant);
     const grainMul = tier === 'full' ? 1 : tier === 'standard' ? 0.55 : 0;
 
@@ -279,31 +272,22 @@ export const drawProgrammaticCardFaceOverlay = (
         context.restore();
     }
 
-    const sx1 = shape.cx - 96;
-    const sy1 = shape.cy - 96;
-    const sx2 = shape.cx + 96;
-    const sy2 = shape.cy + 96;
-    const sigilGrad = context.createLinearGradient(sx1, sy1, sx2, sy2);
-    sigilGrad.addColorStop(0, c.sigilFillDark);
-    sigilGrad.addColorStop(0.5, c.sigilFillLight);
-    sigilGrad.addColorStop(1, c.sigilFillDark);
+    drawProceduralIllustrationCoverInViewBox(
+        context,
+        width,
+        height,
+        vbW,
+        vbH,
+        tile.pairKey,
+        tier,
+        c,
+        {
+            matFeatherStrength: tier === 'minimal' ? 0.55 : 1
+        }
+    );
 
-    context.fillStyle = sigilGrad;
-    context.strokeStyle = c.sigilStroke;
-    context.lineWidth = 3.2;
-    drawShapeKind(context, k, shape.cx, shape.cy, shape.scale);
-    context.fill();
-    context.stroke();
-
-    if (tier !== 'minimal') {
-        context.strokeStyle = c.sigilHighlight;
-        context.lineWidth = 1.35;
-        context.globalAlpha = 0.9;
-        drawShapeKind(context, k, shape.cx, shape.cy, shape.scale);
-        context.stroke();
-        context.globalAlpha = 1;
-    }
-
+    context.save();
+    context.globalAlpha = 0.74;
     const vin = context.createRadialGradient(shape.cx, shape.cy * 0.92, 40, shape.cx, shape.cy * 0.92, 260);
     vin.addColorStop(0.25, 'rgba(0,0,0,0)');
     vin.addColorStop(1, c.vignette);
@@ -311,6 +295,7 @@ export const drawProgrammaticCardFaceOverlay = (
     context.beginPath();
     context.rect(0, 0, vbW, vbH);
     context.fill();
+    context.restore();
 
     if (grainMul > 0) {
         drawFilmGrain(context, vbW, vbH, Math.round(110 * grainMul), c.grainRgb, c.grainAlpha * 0.55, rng);
@@ -378,56 +363,4 @@ function roundRectPath(
     ctx.lineTo(x, y + r);
     ctx.quadraticCurveTo(x, y, x + r, y);
     ctx.closePath();
-}
-
-function drawShapeKind(ctx: CanvasRenderingContext2D, kind: number, cx: number, cy: number, s: number): void {
-    const k = ((kind % SHAPE_COUNT) + SHAPE_COUNT) % SHAPE_COUNT;
-    ctx.beginPath();
-    switch (k) {
-        case 0:
-            ctx.arc(cx, cy, 62 * s, 0, Math.PI * 2);
-            break;
-        case 1: {
-            const w = 112 * s;
-            const h = 112 * s;
-            const x = cx - w / 2;
-            const y = cy - h / 2;
-            const r = 14 * s;
-            roundRectPath(ctx, x, y, w, h, r);
-            break;
-        }
-        case 2: {
-            const r = 74 * s;
-            ctx.moveTo(cx, cy - r);
-            ctx.lineTo(cx + r * 0.866, cy + r * 0.5);
-            ctx.lineTo(cx - r * 0.866, cy + r * 0.5);
-            ctx.closePath();
-            break;
-        }
-        case 3: {
-            const r = 52 * s;
-            ctx.moveTo(cx, cy - r * 1.35);
-            ctx.lineTo(cx + r * 1.35, cy);
-            ctx.lineTo(cx, cy + r * 1.35);
-            ctx.lineTo(cx - r * 1.35, cy);
-            ctx.closePath();
-            break;
-        }
-        default: {
-            const n = 6;
-            const r = 64 * s;
-            for (let i = 0; i < n; i++) {
-                const a = Math.PI / 6 + (i * 2 * Math.PI) / n - Math.PI / 2;
-                const px = cx + r * Math.cos(a);
-                const py = cy + r * Math.sin(a);
-                if (i === 0) {
-                    ctx.moveTo(px, py);
-                } else {
-                    ctx.lineTo(px, py);
-                }
-            }
-            ctx.closePath();
-            break;
-        }
-    }
 }
