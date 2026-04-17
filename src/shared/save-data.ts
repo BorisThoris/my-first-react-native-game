@@ -46,7 +46,9 @@ export const ACHIEVEMENT_IDS: AchievementId[] = [
     'ACH_LEVEL_FIVE',
     'ACH_SCORE_THOUSAND',
     'ACH_PERFECT_CLEAR',
-    'ACH_LAST_LIFE'
+    'ACH_LAST_LIFE',
+    'ACH_ENDLESS_TEN',
+    'ACH_SEVEN_DAILIES'
 ];
 
 export const createAchievementState = (): AchievementState =>
@@ -64,8 +66,13 @@ const defaultPlayerStats = (): PlayerStatsPersisted => ({
     lastDailyDateKeyUtc: null,
     dailyStreakCosmetic: 0,
     relicPickCounts: {},
-    encorePairKeysLastRun: []
+    encorePairKeysLastRun: [],
+    relicShrineExtraPickUnlocked: false
 });
+
+/** +1 relic pick at each milestone when meta unlock is active (copied into `RunState.metaRelicDraftExtraPerMilestone`). */
+export const metaRelicDraftExtraPerMilestoneFromSave = (save: SaveData): number =>
+    save.playerStats?.relicShrineExtraPickUnlocked === true ? 1 : 0;
 
 export const createDefaultSaveData = (): SaveData => ({
     schemaVersion: SAVE_SCHEMA_VERSION,
@@ -129,13 +136,22 @@ export const normalizeSaveData = (input?: Partial<SaveData> | null): SaveData =>
             ? boardPresentationRaw
             : defaults.settings.boardPresentation;
 
+    const mergedAchievements = {
+        ...defaults.achievements,
+        ...(input.achievements ?? {})
+    };
+    const psIn: Partial<PlayerStatsPersisted> = input.playerStats ?? {};
+    const dailiesCount =
+        typeof psIn.dailiesCompleted === 'number' ? psIn.dailiesCompleted : defaultPlayerStats().dailiesCompleted;
+    const relicShrineExtraPickUnlocked =
+        psIn.relicShrineExtraPickUnlocked === true ||
+        mergedAchievements.ACH_SEVEN_DAILIES === true ||
+        dailiesCount >= 7;
+
     return {
         schemaVersion: SAVE_SCHEMA_VERSION,
         bestScore: typeof input.bestScore === 'number' ? input.bestScore : defaults.bestScore,
-        achievements: {
-            ...defaults.achievements,
-            ...(input.achievements ?? {})
-        },
+        achievements: mergedAchievements,
         settings: {
             ...mergedSettingsBase,
             boardScreenSpaceAA,
@@ -154,7 +170,8 @@ export const normalizeSaveData = (input?: Partial<SaveData> | null): SaveData =>
             ...(input.playerStats ?? {}),
             encorePairKeysLastRun: Array.isArray(input.playerStats?.encorePairKeysLastRun)
                 ? input.playerStats.encorePairKeysLastRun
-                : defaultPlayerStats().encorePairKeysLastRun
+                : defaultPlayerStats().encorePairKeysLastRun,
+            relicShrineExtraPickUnlocked
         },
         unlocks: Array.isArray(input.unlocks) ? input.unlocks : defaults.unlocks ?? [],
         powersFtueSeen: typeof input.powersFtueSeen === 'boolean' ? input.powersFtueSeen : defaults.powersFtueSeen ?? false
@@ -169,14 +186,16 @@ export const mergeDailyComplete = (save: SaveData, completedDateKeyUtc: string):
     const prev = ps.lastDailyDateKeyUtc;
     const streak =
         prev === utcDateKeyMinusOneDay(completedDateKeyUtc) ? ps.dailyStreakCosmetic + 1 : 1;
+    const newDailies = ps.dailiesCompleted + 1;
 
     return normalizeSaveData({
         ...save,
         playerStats: {
             ...ps,
-            dailiesCompleted: ps.dailiesCompleted + 1,
+            dailiesCompleted: newDailies,
             lastDailyDateKeyUtc: completedDateKeyUtc,
-            dailyStreakCosmetic: streak
+            dailyStreakCosmetic: streak,
+            relicShrineExtraPickUnlocked: newDailies >= 7 || ps.relicShrineExtraPickUnlocked === true
         }
     });
 };

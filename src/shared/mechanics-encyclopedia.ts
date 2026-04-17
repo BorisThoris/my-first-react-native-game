@@ -80,11 +80,21 @@ export const ACHIEVEMENT_CATALOG: Record<AchievementId, AchievementCodexEntry> =
         id: 'ACH_LAST_LIFE',
         title: 'One Heart Wonder',
         description: 'Finish a level with exactly one life remaining.'
+    },
+    ACH_ENDLESS_TEN: {
+        id: 'ACH_ENDLESS_TEN',
+        title: 'Abyssal Ten',
+        description: 'Reach floor 10 in a single Endless run.'
+    },
+    ACH_SEVEN_DAILIES: {
+        id: 'ACH_SEVEN_DAILIES',
+        title: 'Week of Archives',
+        description: 'Complete seven Daily runs (UTC calendar days, cumulative).'
     }
 };
 
 /**
- * Relics — floors 3 / 6 / 9 offers. Must include **every** `RelicId` (TypeScript enforces keys).
+ * Relics — milestone drafts every 3 floors from floor 3 (see `relics.ts`). Must include **every** `RelicId`.
  */
 export const RELIC_CATALOG: Record<RelicId, RelicDefinition> = {
     extra_shuffle_charge: {
@@ -126,6 +136,31 @@ export const RELIC_CATALOG: Record<RelicId, RelicDefinition> = {
         id: 'region_shuffle_free_first',
         title: 'Free row shuffle',
         description: 'The first row shuffle each floor costs no charge.'
+    },
+    peek_charge_plus_one: {
+        id: 'peek_charge_plus_one',
+        title: 'Peek charge',
+        description: 'Gain one additional peek charge for this run.'
+    },
+    stray_charge_plus_one: {
+        id: 'stray_charge_plus_one',
+        title: 'Stray remover charge',
+        description: 'Gain one additional stray-remover charge for this run.'
+    },
+    pin_cap_plus_one: {
+        id: 'pin_cap_plus_one',
+        title: 'Pin capacity',
+        description: 'Place one extra pinned tile at a time (run-wide).'
+    },
+    guard_token_plus_one: {
+        id: 'guard_token_plus_one',
+        title: 'Guard token',
+        description: 'Gain one guard token toward mismatch protection (capped like normal play).'
+    },
+    shrine_echo: {
+        id: 'shrine_echo',
+        title: 'Shrine echo',
+        description: 'The **next** relic milestone offers **one extra selection** (reroll after each pick until spent).'
     }
 };
 
@@ -195,6 +230,12 @@ export const MUTATOR_CATALOG: Record<MutatorId, MutatorDefinition> = {
         title: 'Shifting spotlight',
         description:
             'Each flip sequence (match, miss, gambit, or destroy) moves a Ward pair (lower match score) and a Bounty pair (bonus score) among remaining pairs. Distinct from the cursed “match last” pair.'
+    },
+    generous_shrine: {
+        id: 'generous_shrine',
+        title: 'Generous shrine',
+        description:
+            'While active, each **relic milestone draft** grants **one extra selection** (same visit; stacks with other bonuses).'
     }
 };
 

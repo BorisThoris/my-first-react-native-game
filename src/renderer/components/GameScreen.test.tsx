@@ -130,7 +130,12 @@ describe('GameScreen (OVR-014)', () => {
         const run: RunState = {
             ...playing,
             status: 'playing',
-            relicOffer: { tier: 1, options: ['extra_shuffle_charge'] }
+            relicOffer: {
+                tier: 1,
+                options: ['extra_shuffle_charge'],
+                picksRemaining: 1,
+                pickRound: 0
+            }
         };
 
         render(
@@ -165,5 +170,75 @@ describe('GameScreen (OVR-014)', () => {
         );
         expect(pauseSpy).not.toHaveBeenCalled();
         pauseSpy.mockRestore();
+    });
+
+    it('shows relic draft title, progress, and Scholar footnote for a multi-pick offer', () => {
+        const base = createNewRun(0, { echoFeedbackEnabled: false, gameMode: 'puzzle' });
+        const playing = finishMemorizePhase(base);
+        const run: RunState = {
+            ...playing,
+            status: 'playing',
+            lastLevelResult: {
+                level: 3,
+                scoreGained: 100,
+                rating: 'S',
+                livesRemaining: 5,
+                perfect: true,
+                mistakes: 0,
+                clearLifeReason: 'none',
+                clearLifeGained: 0
+            },
+            activeContract: {
+                noShuffle: false,
+                noDestroy: false,
+                maxMismatches: null,
+                bonusRelicDraftPick: true
+            },
+            relicOffer: {
+                tier: 1,
+                options: ['extra_shuffle_charge', 'memorize_bonus_ms', 'destroy_bank_plus_one'],
+                picksRemaining: 2,
+                pickRound: 0
+            }
+        };
+
+        const { getByTestId, getByText } = render(
+            <PlatformTiltProvider>
+                <NotificationHost>
+                    <GameScreen achievements={[]} run={run} />
+                </NotificationHost>
+            </PlatformTiltProvider>
+        );
+
+        expect(getByTestId('game-relic-offer-overlay')).toBeTruthy();
+        expect(getByText('Relic draft · tier 1')).toBeTruthy();
+        expect(getByText('Pick 1 of 2 this visit')).toBeTruthy();
+        expect(getByText(/Scholar contract/)).toBeTruthy();
+    });
+
+    it('does not show progress line for a single-pick relic offer', () => {
+        const base = createNewRun(0, { echoFeedbackEnabled: false, gameMode: 'puzzle' });
+        const playing = finishMemorizePhase(base);
+        const run: RunState = {
+            ...playing,
+            status: 'playing',
+            relicOffer: {
+                tier: 1,
+                options: ['extra_shuffle_charge'],
+                picksRemaining: 1,
+                pickRound: 0
+            }
+        };
+
+        const { getByTestId, queryByText } = render(
+            <PlatformTiltProvider>
+                <NotificationHost>
+                    <GameScreen achievements={[]} run={run} />
+                </NotificationHost>
+            </PlatformTiltProvider>
+        );
+
+        expect(getByTestId('game-relic-offer-overlay')).toBeTruthy();
+        expect(queryByText(/this visit/)).toBeNull();
     });
 });

@@ -18,6 +18,7 @@ import { useViewportSize } from './hooks/useViewportSize';
 import styles from './styles/App.module.css';
 import { buildRendererThemeStyle } from './styles/theme';
 import MatchedCardRimFireSandbox from './dev/MatchedCardRimFireSandbox';
+import ProceduralIllustrationGallerySandbox from './dev/ProceduralIllustrationGallerySandbox';
 import { readDevSandboxConfig } from './dev/devSandboxParams';
 import { setTelemetrySink } from '../shared/telemetry';
 import { useAppStore } from './store/useAppStore';
@@ -169,8 +170,14 @@ const App = () => {
      *   Within `.mainGameColumn`: `.hudRow` 2; `.boardStage` 1; board tiles `.boardStage > :global(*)` 1;
      *       `.distractionHud` 4 (above tiles, still under the HUD row because `.boardStage` roots below `.hudRow`).
      */
-    if (import.meta.env.DEV && readDevSandboxConfig().fxSandbox === 'matchedRimFire') {
-        return <MatchedCardRimFireSandbox />;
+    if (import.meta.env.DEV) {
+        const fx = readDevSandboxConfig().fxSandbox;
+        if (fx === 'matchedRimFire') {
+            return <MatchedCardRimFireSandbox />;
+        }
+        if (fx === 'proceduralGallery') {
+            return <ProceduralIllustrationGallerySandbox />;
+        }
     }
 
     return (

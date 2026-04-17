@@ -6,6 +6,10 @@ Puzzles are **fixed layouts** keyed by id in `src/shared/builtin-puzzles.ts` (or
 
 The main menu **Import puzzle JSON** action loads a file and runs `parsePuzzleImportJson` → `createPuzzleRun` with an ephemeral `import:…` id. Use the same **tile** shape as below; validation requires **4–64** tiles and **exactly two** tiles per non-decoy `pairKey`. This path is for **local iteration**; shipping puzzles still go through `BUILTIN_PUZZLES` and PR review.
 
+## Optional systems (`fixedTiles`)
+
+Procedural-only mechanics (**cursed pair** seeding, **shifting_spotlight** ward/bounty keys, etc.) are **not** implied by a bare tile list. They run when `createPuzzleRun` / `buildBoard` callers attach them—same as endless boards. Shipped **builtin** ids are summarized in the table at the top of [`src/shared/builtin-puzzles.ts`](../src/shared/builtin-puzzles.ts) (currently layout-only). **Import JSON** validates pair structure only; authors who need special objectives must use code paths that supply those fields.
+
 ## Data shape
 
 ```ts

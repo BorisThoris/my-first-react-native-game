@@ -65,6 +65,7 @@
         "generate:card-plates": "tsx scripts/generate-card-plates.ts",
         "build:card-illustration-manifest": "node scripts/build-card-illustration-manifest.mjs",
         "regenerate:illustration-regression": "cross-env UPDATE_ILLUSTRATION_FIXTURES=1 playwright test e2e/tile-card-face-illustration-regression.spec.ts --workers=1",
+        "bake:procedural-set": "tsx scripts/bake-procedural-illustration-set.ts",
         "test:e2e:ui": "playwright test --ui",
         "package:dir": "yarn build && electron-builder --dir",
         "package:win": "yarn build && electron-builder --win nsis",

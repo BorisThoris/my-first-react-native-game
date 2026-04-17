@@ -17,6 +17,7 @@ Quick orientation for navigation and code review. **Rules of thumb:** `shared/` 
 | `tile-symbol-catalog.ts` | Symbol bands / generation curve |
 | `save-data.ts` | Save schema merge, migration hooks |
 | `achievements.ts` | Achievement IDs and evaluation helpers |
+| `honorUnlocks.ts` | Local-only honor/title unlocks (`honor:*` tags in `saveData.unlocks`; no Steam slot) |
 | `telemetry.ts` | Local telemetry payloads / consent gates |
 | `rng.ts` | Seeded RNG utilities |
 | `utc-countdown.ts` | Daily window / UTC helpers |
@@ -26,6 +27,9 @@ Quick orientation for navigation and code review. **Rules of thumb:** `shared/` 
 | `cameraViewportMode.ts` | Breakpoint-derived camera / shell mode |
 | `pairProximityHint.ts` | Pair-distance hint math (shared with renderer) |
 | `focusDimmedTileIds.ts` | Focus-assist dimming set |
+| `ipc-channels.ts` | Canonical Electron `ipcMain.handle` channel names (`save:*`, `steam:*`, `window:*`) plus `DESKTOP_IPC_CHANNELS` mapping to `DesktopApi`; legacy `desktop:*` aliases for backward compatibility |
+| `feature-flags.ts` | Product gates (`FEATURE_CLOUD_SAVE`, `FEATURE_CARD_OPENTYPE_GLYPHS`, …) consumed by UI |
+| `hashPairKey.ts` | Stable string hash for deterministic visuals (tiles, illustration pools / caches) |
 | `*.test.ts` | Vitest coverage beside modules above |
 
 ## `src/main/` (Electron main)
@@ -33,9 +37,9 @@ Quick orientation for navigation and code review. **Rules of thumb:** `shared/` 
 | File | Role |
 |------|------|
 | `index.ts` | App lifecycle, `BrowserWindow`, IPC registration, persistence + Steam services (no Electron **Menu** API) |
-| `ipc.ts` | IPC handlers: bridge to preload/renderer contracts |
+| `ipc.ts` | IPC handlers: registers [`ipc-channels`](../../src/shared/ipc-channels.ts) canonical names **and** legacy `desktop:*` aliases (same handlers) |
 | `persistence.ts` | electron-store: saves, settings paths |
-| `steam.ts` | steamworks.js adapter; **mock** adapter when init fails (IPC still saves unlocks locally first). `STEAM_ACHIEVEMENT_API_NAME`: **5** entries, 1:1 with `AchievementId` in `contracts.ts` |
+| `steam.ts` | steamworks.js adapter; **mock** adapter when init fails (IPC still saves unlocks locally first). `STEAM_ACHIEVEMENT_API_NAME`: **7** entries, 1:1 with `AchievementId` in `contracts.ts` |
 
 ## `src/preload/`
 
@@ -47,20 +51,23 @@ Quick orientation for navigation and code review. **Rules of thumb:** `shared/` 
 
 | File | Role |
 |------|------|
-| `main.tsx` | Theme CSS vars on `document.documentElement`, global CSS, provider stack (`NotificationHost`, etc.), mount `App` |
+| `main.tsx` | Delegates to `bootstrapWebRenderer()` in [`initRendererShell.tsx`](../../src/renderer/initRendererShell.tsx) |
+| `initRendererShell.tsx` | Web bootstrap: `applyRendererThemeToDocument()`, global CSS imports, `PlatformTiltProvider` → `NotificationHost` → `App` |
 | `App.tsx` | Routed shell from `useAppStore`: screens, portals (intro, in-run settings), `data-view` / overlay semantics |
 
 | Directory | Role |
 |-----------|------|
 | `components/` | Screens: `GameScreen`, `TileBoard`, menus, Codex, settings, HUD, modals, WebGL helpers |
-| `store/` | `useAppStore.ts` — orchestration; `desktopClient` save/settings/Steam; memorize/resolve/gauntlet timers; `game.ts`; `gameSfx`; achievements/telemetry on run end |
+| `store/` | `useAppStore.ts` — orchestration; `desktopClient`; `persistBridge.ts` (`persistSaveData` / `persistSaveSettings`, write-failure UX hook); `achievementPersistence.ts` (save-then-unlock sequencing); memorize/resolve/gauntlet timers; `game.ts`; `gameSfx`; achievements/telemetry on run end |
 | `audio/` | `gameSfx.ts` — Web Audio procedural SFX (flip, match, mismatch) |
-| `hooks/` | Shell zoom, HUD a11y announcements, etc. |
-| `a11y/` | Focus order / focusable queries |
+| `hooks/` | Shell zoom (`hubShellFit`), HUD a11y announcements, drag scroll, etc. |
+| `keyboard/` | `gameplayShortcuts.ts` — `GAMEPLAY_SHORTCUT_ROWS` for in-run keyboard help overlay |
+| `a11y/` | Focus order / focusable queries, modal focus return stack |
 | `styles/` | Theme tokens, global CSS, app shell styles |
-| `ui/` | Shared UI primitives (`MetaFrame`, buttons, titles) |
+| `ui/` | Shared UI primitives (`MetaFrame`, buttons, titles); `ui/strings/` — extracted copy (e.g. pair proximity) |
+| `copy/` | Screen-level user-visible bundles (e.g. [`gameOverScreen.ts`](../../src/renderer/copy/gameOverScreen.ts) `gameOverScreenCopy`) for a11y review / future i18n |
 | `assets/` | Static assets; see [ASSET_SOURCES.md](../../src/renderer/assets/ASSET_SOURCES.md) |
-| `cardFace/` | Programmatic card face helpers |
+| `cardFace/` | Card faces: SVG/programmatic drawing, [`proceduralIllustration/`](../../src/renderer/cardFace/proceduralIllustration/) (seeded roll tables → `drawProceduralTarotIllustration`), manifest/cache keys, integration with `tileTextures` / `TileBoardScene` |
 | `dev/` | **Dev sandbox** — URL harness, canned runs, HUD fixtures, perf toggles ([section below](#renderer-dev-sandbox)) |
 | `sandbox/` | Dev route sandboxes (e.g. logo intro) — **not** the same folder as `dev/` |
 | `platformTilt/` | Device tilt integration for presentation |
@@ -112,8 +119,11 @@ Defined in [`runFixtures.ts`](../../src/renderer/dev/runFixtures.ts) (`SANDBOX_F
 | [`fitScreenSpike.test.tsx`](../../src/renderer/dev/fitScreenSpike.test.tsx) | Keeps `@fit-screen/react` imported for typecheck; not the shipped shell ([`VIEWPORT_FIT_UI.md`](../VIEWPORT_FIT_UI.md)) |
 | [`boardWebglPerfSample.ts`](../../src/renderer/dev/boardWebglPerfSample.ts) | DEV: `localStorage.perfBoard = '1'` → logs average ms per consolidated tile-step frame |
 | [`boardWebglPerfSample.test.ts`](../../src/renderer/dev/boardWebglPerfSample.test.ts) | Unit tests for perf sampler |
-| [`tileStepLegacy.ts`](../../src/renderer/dev/tileStepLegacy.ts) | DEV: `localStorage.tileStepLegacy = '1'` → per-tile `useFrame` path for A/B vs scene loop |
-| [`tileStepLegacy.test.ts`](../../src/renderer/dev/tileStepLegacy.test.ts) | Tests for legacy toggle reader |
+| [`legacy/tileStepLegacy.ts`](../../src/renderer/dev/legacy/tileStepLegacy.ts) | DEV: `localStorage.tileStepLegacy = '1'` → per-tile `useFrame` path for A/B vs consolidated scene loop (`TileBoardScene` imports this) |
+| [`legacy/tileStepLegacy.test.ts`](../../src/renderer/dev/legacy/tileStepLegacy.test.ts) | Tests for legacy toggle reader |
+| [`legacy/README.md`](../../src/renderer/dev/legacy/README.md) | Notes on dev-only legacy toggles |
+| [`ProceduralIllustrationGallerySandbox.tsx`](../../src/renderer/dev/ProceduralIllustrationGallerySandbox.tsx) (`.module.css`) | DEV `?devSandbox=1&fx=proceduralGallery` — Canvas2D procedural illustration grid ([`visualization-work/README.md`](../visualization-work/README.md)) |
+| [`illustrationRegressionPairKeys.ts`](../../src/renderer/dev/illustrationRegressionPairKeys.ts) | Regression `pairKeys` mirror of [`e2e/fixtures/tile-card-face-illustration-regression.json`](../../e2e/fixtures/tile-card-face-illustration-regression.json); guarded by [`illustrationRegressionPairKeys.test.ts`](../../src/renderer/dev/illustrationRegressionPairKeys.test.ts) |
 
 ### Captures and E2E helpers
 
@@ -125,6 +135,8 @@ Defined in [`runFixtures.ts`](../../src/renderer/dev/runFixtures.ts) (`SANDBOX_F
 - [VIEWPORT_FIT_UI.md](../VIEWPORT_FIT_UI.md) — `@fit-screen/react` spike (`fitScreenSpike.test.tsx`)
 - [COMPONENT_CATALOG.md](../new_design/COMPONENT_CATALOG.md) — HUD-016 references `hudFixtures.ts`
 - [reference-comparison/CURRENT_VS_ENDPRODUCT.md](../reference-comparison/CURRENT_VS_ENDPRODUCT.md) — Playwright gates tied to dev-sandbox playing fixture
+- [visualization-work/README.md](../visualization-work/README.md) — procedural illustration backlog, bake/E2E hooks (`cardFace/proceduralIllustration`)
+- [visualization-work/INDEX.md](../visualization-work/INDEX.md) — per-task list (VIZ-001–006)
 
 ## `packages/notifications/`
 

@@ -1,4 +1,5 @@
 import type { RelicId, RunSummary, SaveData } from '../../shared/contracts';
+import { countEligibleHonors, totalHonorUnlocks } from '../../shared/honorUnlocks';
 import { RELIC_CATALOG } from '../../shared/game-catalog';
 import { formatNextUtcReset } from '../../shared/utc-countdown';
 import { useEffect, useRef, useState } from 'react';
@@ -201,6 +202,14 @@ const MainMenu = ({
                                     <span className={styles.metaLabel}>Daily Streak</span>
                                     <strong className={styles.metaValue}>
                                         {saveData.playerStats?.dailyStreakCosmetic ?? 0}
+                                    </strong>
+                                </div>
+                            </MetaFrame>
+                            <MetaFrame className={styles.metaPlaqueFrame}>
+                                <div className={styles.metaCard}>
+                                    <span className={styles.metaLabel}>Honors</span>
+                                    <strong className={styles.metaValue}>
+                                        {countEligibleHonors(saveData)} / {totalHonorUnlocks}
                                     </strong>
                                 </div>
                             </MetaFrame>

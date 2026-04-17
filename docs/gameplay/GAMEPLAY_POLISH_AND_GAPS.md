@@ -40,8 +40,8 @@
 
 | Item | Status | Notes | Epic |
 |------|--------|-------|------|
-| `wildTileId` on `RunState` | **Partial** | Contract suggests a concrete tile id; `game.ts` may leave it `null` while logic uses `pairKey`—narrow comment or implement assignment. | [epic-core-memory-loop](./epic-core-memory-loop.md) |
-| Fixed / puzzle `fixedTiles` boards | **Partial** | Path can omit cursed-pair init and shifting-spotlight keys unless callers supply—scripted boards may skip those systems by design; document per puzzle. | [epic-core-memory-loop](./epic-core-memory-loop.md) |
+| `wildTileId` on `RunState` | **Functional** | Set from the board whenever a wild tile is spawned (`getWildTileIdFromBoard`); null when absent. Simulation still keys off `pairKey` / `WILD_PAIR_KEY`. | [epic-core-memory-loop](./epic-core-memory-loop.md) |
+| Fixed / puzzle `fixedTiles` boards | **Functional** | Built-in puzzles are layout-only tile lists unless a caller wires extra init (cursed pair, shifting spotlight seeds, etc.); see [`builtin-puzzles.ts`](../../src/shared/builtin-puzzles.ts) header and [PUZZLE_CONTRIBUTING.md](../PUZZLE_CONTRIBUTING.md). User JSON import validates pairs only. | [epic-core-memory-loop](./epic-core-memory-loop.md) |
 | Gambit vs echo timing | **Functional** | Mismatch **resolve delay** differs 2-flip vs 3-flip (echo-aware vs not)—no bug flagged; revisit if balance changes. | [epic-core-memory-loop](./epic-core-memory-loop.md) |
 
 ---
@@ -51,7 +51,7 @@
 | Item | Status | Notes | Epic |
 |------|--------|-------|------|
 | `powersUsedThisRun` vs contract comment | **Functional** | Authoritative list lives on [`RunState.powersUsedThisRun`](../../src/shared/contracts.ts) JSDoc (shuffle / row shuffle / destroy / peek / undo / gambit / stray / flash / wild match, etc.; pins excluded). **`ACH_PERFECT_CLEAR`** reads this flag—treat UI copy as separate from the type contract. | [epic-powers-and-interactions](./epic-powers-and-interactions.md), [epic-meta-progression](./epic-meta-progression.md) |
-| Flash pair | **Partial** | Rules gated to practice/wild menu paths—if UI exposes elsewhere, **guard mismatch**. | [epic-powers-and-interactions](./epic-powers-and-interactions.md) |
+| Flash pair | **Functional** | `applyFlashPair` in `game.ts` and `applyFlashPairPower` in `useAppStore` both require practice or wild menu run; toolbar only shows the control in those modes. | [epic-powers-and-interactions](./epic-powers-and-interactions.md) |
 | Perfect clear discoverability | **Functional** | Players may not realize undo/peek/gambit disqualify perfect—**UI hint or rename** worth considering. | [epic-meta-progression](./epic-meta-progression.md) |
 
 ---
@@ -181,7 +181,7 @@ From [GAMEPLAY_SYSTEMS_ANALYSIS.md](../GAMEPLAY_SYSTEMS_ANALYSIS.md) §10:
 2. **Optional:** Additional e2e for board flows; **balance** follow-ups per [BALANCE_NOTES.md](../BALANCE_NOTES.md) and `tile-symbol-catalog` curves.
 3. **`mutators.ts`** — light coverage in **`src/shared/mutators.test.ts`** (catalog/daily table + `hasMutator`); full behavior remains in **`game.test.ts`** and integration/e2e.
 
-**Floor mutator schedule (test gap):** `src/shared/floor-mutator-schedule.ts` drives endless per-floor mutator lists and `floorTag` pacing (`pickFloorScheduleEntry`, `usesEndlessFloorSchedule`, `FLOOR_SCHEDULE_RULES_VERSION`) but has **no** dedicated unit file—unlike `mutators.test.ts`, which only covers `mutators.ts` metadata. Consider a focused suite (e.g. `floor-mutator-schedule.test.ts`) for rules-version / mode gates, deterministic `(runSeed, level)` outputs, cycle wrap, and the boss-floor branch that sometimes appends `distraction_channel` without duplicating mutators. Track with [epic-mutators](./epic-mutators.md) **Tasks** if you add tests.
+**Floor mutator schedule (tests):** `src/shared/floor-mutator-schedule.ts` drives endless per-floor mutator lists and `floorTag` pacing (`pickFloorScheduleEntry`, `usesEndlessFloorSchedule`, `FLOOR_SCHEDULE_RULES_VERSION`). **`src/shared/floor-mutator-schedule.test.ts`** already covers mode gates, cycle wrap, the boss-floor branch that sometimes appends `distraction_channel` without duplicating mutators, and the [BALANCE_NOTES.md](../BALANCE_NOTES.md) seed smoke. When you change schedule rules, bump **`FLOOR_SCHEDULE_RULES_VERSION`** in `floor-mutator-schedule.ts` and extend the suite per the header checklist there (and keep [epic-mutators](./epic-mutators.md) **Schedules** in sync).
 
 **Where tracked as tasks:** (1) and (3) → [epic-mutators](./epic-mutators.md) **Tasks**; (2) e2e → [epic-board-rendering-assists](./epic-board-rendering-assists.md) optional task; balance / symbol bands → [epic-content-symbols-and-generation](./epic-content-symbols-and-generation.md) **Tasks**.
 

@@ -230,7 +230,7 @@ Source: [`RunState`](../../src/shared/contracts.ts) interface.
 | `shuffleNonce` | Increments per shuffle for deterministic order | [epic-powers-and-interactions](./epic-powers-and-interactions.md) |
 | `activeMutators` | Active mutator ids | [epic-mutators](./epic-mutators.md) |
 | `relicIds` | Relics taken this run | [epic-relics](./epic-relics.md) |
-| `relicTiersClaimed` | Milestone picks used (floors 3/6/9) | [epic-relics](./epic-relics.md) |
+| `relicTiersClaimed` | Milestone picks used (every 3 floors from 3, max 12/run) | [epic-relics](./epic-relics.md) |
 | `relicOffer` | Pending pick options before advance | [epic-relics](./epic-relics.md) |
 | `activeContract` | Scholar / pin vow constraints | [epic-contracts-challenge-runs](./epic-contracts-challenge-runs.md) |
 | `practiceMode` | Practice run flag | [epic-modes-and-runs](./epic-modes-and-runs.md) |

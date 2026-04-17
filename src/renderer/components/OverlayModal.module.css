@@ -39,6 +39,11 @@
     box-shadow: var(--gameplay-overlay-shadow, var(--theme-overlay-plate-shadow));
 }
 
+/* Body-only layouts (e.g. relic draft cards) — drop empty action column. */
+.modalNoActions {
+    grid-template-columns: 1fr;
+}
+
 .modal::before,
 .modal::after {
     content: '';

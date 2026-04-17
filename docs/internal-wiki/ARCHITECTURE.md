@@ -27,13 +27,13 @@ flowchart TB
 
 - **Turns and scoring** are decided in **`game.ts`**, not in IPC or the main process.
 - **IPC** carries settings, save/load, achievements unlock requests, display/window, quit, Steam status—not live board protocol. **Persistence** (`electron-store` in `main/persistence.ts`, JSON under the app `userData` dir) runs **only in main**; preload forwards `invoke` calls and does not touch the filesystem.
-- **Steam:** `steamworks.js` when init succeeds; otherwise a **mock adapter** (`isConnected` false). `desktop:unlock-achievement` still **persists** the unlock locally before attempting Steam activation.
+- **Steam:** `steamworks.js` when init succeeds; otherwise a **mock adapter** (`isConnected` false). Unlock uses the **canonical** channel `steam:unlock-achievement` (legacy alias `desktop:unlock-achievement` is still registered; see [`ipc-channels.ts`](../../src/shared/ipc-channels.ts)). The handler still **persists** the unlock locally before attempting Steam activation.
 
 ## Entry points
 
 | Area | Entry | Notes |
 |------|--------|------|
-| Renderer | `src/renderer/main.tsx` → `App.tsx` | Vite root |
+| Renderer | `src/renderer/main.tsx` → `initRendererShell.tsx` (`bootstrapWebRenderer`) → `App.tsx` | Vite root; theme + `NotificationHost` + `PlatformTiltProvider` live in `initRendererShell` |
 | Main | `src/main/index.ts` | `BrowserWindow`, app lifecycle, IPC registration, `PersistenceService`, Steam adapter (no Electron **Menu** API—the in-app main menu is renderer/React) |
 | Preload | `src/preload/index.ts` | Exposes safe APIs to renderer |
 | Rules | `src/shared/game.ts` | Pure transitions on `RunState` |
@@ -66,9 +66,9 @@ flowchart TB
 
 #### Renderer integration
 
-1. **`src/renderer/main.tsx`** — Root render wraps `<App />` in **`<NotificationHost>`** (custom `labels` for close button and live region). Imports **`@cross-repo-libs/notifications/styles.css`** (built `notification-host.css`) and global theme vars are applied on `document.documentElement` before mount.
+1. **`src/renderer/initRendererShell.tsx`** — Root render wraps `<App />` in **`<NotificationHost>`** (custom `labels` for close button and live region). Imports **`@cross-repo-libs/notifications/styles.css`** (built `notification-host.css`) and global theme vars are applied on `document.documentElement` via `applyRendererThemeToDocument()` before mount. `main.tsx` only invokes `bootstrapWebRenderer()`.
 2. **`App.tsx`** — No direct notification imports; toasts are app-wide via the host + shared store.
-3. **Styling** — `src/renderer/styles/notificationsGame.css` overrides `.crn-host` / `.crn-card*` using theme CSS variables (position, colors, achievement-specific info styling). Loaded after package styles in `main.tsx`.
+3. **Styling** — `src/renderer/styles/notificationsGame.css` overrides `.crn-host` / `.crn-card*` using theme CSS variables (position, colors, achievement-specific info styling). Loaded after package styles in `initRendererShell.tsx`.
 4. **Call sites** — Example: `GameScreen.tsx` uses **`useNotificationStore.getState()`** for imperative **`showAchievement`** / **`showInfo`** inside effects/handlers (no `notify*` in current `src/` grep; bridge is available for modules that must not import React).
 
 #### Tests

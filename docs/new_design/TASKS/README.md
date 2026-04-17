@@ -77,6 +77,7 @@ Use this whenever gameplay HUD, sidebar, or tile chrome changes, or before a rel
 | File | Purpose |
 |------|---------|
 | [TASKS_CROSSCUTTING.md](./TASKS_CROSSCUTTING.md) | Epic order, shared risks, duplicate-task matrix, **decision log** |
+| [ULTRA_REFINE_OPEN_QUEUE.md](./ULTRA_REFINE_OPEN_QUEUE.md) | Compact **P0/P1** index + **PLAY-010** capture commands for focused visual refinement |
 | [TASKS_COMPLETION_LOG.md](./TASKS_COMPLETION_LOG.md) | P0–P2 IDs closed in milestone pushes (rows removed from active tables) |
 | [NAVIGATION_MODEL.md](../NAVIGATION_MODEL.md) | `NAV-001` view + pointer model (`App.tsx` / store) |
 

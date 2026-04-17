@@ -8,7 +8,7 @@ Steam-style achievements, anonymous telemetry hooks, save schema, and how they i
 
 | System | Status | Notes |
 |--------|--------|--------|
-| Achievements (5) | **Shippable** | `achievements.ts` — first clear, level 5, 1000 score, perfect clear, last-life finish. |
+| Achievements (7 + Steam) | **Shippable** | `achievements.ts` — first clear, level 5, 1000 score, perfect clear, last-life; plus endless floor 10, seven dailies. **Honors:** local-only titles in [`honorUnlocks.ts`](../../src/shared/honorUnlocks.ts) (`honor:*` tags in `saveData.unlocks`, Collection + main menu). |
 | Perfect clear rule | **Functional** | Gated on `!powersUsedThisRun`; see `RunState.powersUsedThisRun` JSDoc in [`contracts.ts`](../../src/shared/contracts.ts) for the full disqualifier list. |
 | Unlock delivery | **Shippable** | `evaluateAchievementUnlocks` from `applyResolvedRun`; `desktopClient.unlockAchievement` when available. |
 | Telemetry | **Partial** | `telemetry.ts` — `trackEvent` / `setTelemetrySink`; **no in-repo sink wired**; events include `run_start` / `run_complete` from store. |
@@ -23,6 +23,7 @@ Steam-style achievements, anonymous telemetry hooks, save schema, and how they i
 ## Primary code
 
 - `src/shared/achievements.ts`, `achievements.test.ts`
+- `src/shared/honorUnlocks.ts`, `honorUnlocks.test.ts`
 - `src/shared/telemetry.ts`
 - `src/shared/save-data.ts`
 - `src/renderer/store/useAppStore.ts` — `applyResolvedRun`, `trackEvent` payloads

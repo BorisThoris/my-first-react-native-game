@@ -11,8 +11,8 @@ import { ILLUSTRATION_GEN_SCHEMA_VERSION } from './illustrationSchemaVersion';
 
 describe('illustrationCacheKey', () => {
     it('builds the procedural cache key from pairKey, tier, schema, and texture version', () => {
-        expect(buildProceduralIllustrationCacheKey('pair-7', 'standard', 38)).toBe(
-            `pair-7|mode=procedural|tier=standard|illustrationSchemaVersion=${ILLUSTRATION_GEN_SCHEMA_VERSION}|textureVersion=38`
+        expect(buildProceduralIllustrationCacheKey('pair-7', 'standard', 40)).toBe(
+            `pair-7|mode=procedural|tier=standard|illustrationSchemaVersion=${ILLUSTRATION_GEN_SCHEMA_VERSION}|textureVersion=40`
         );
     });
 
@@ -62,10 +62,10 @@ describe('illustrationCacheKey', () => {
     });
 
     it('builds one stable version token for cache invalidation hooks', () => {
-        expect(getIllustrationVersionStamp(38)).toEqual({
+        expect(getIllustrationVersionStamp(40)).toEqual({
             illustrationSchemaVersion: ILLUSTRATION_GEN_SCHEMA_VERSION,
-            textureVersion: 38,
-            versionToken: `illustrationSchemaVersion=${ILLUSTRATION_GEN_SCHEMA_VERSION}|textureVersion=38`
+            textureVersion: 40,
+            versionToken: `illustrationSchemaVersion=${ILLUSTRATION_GEN_SCHEMA_VERSION}|textureVersion=40`
         });
     });
 });

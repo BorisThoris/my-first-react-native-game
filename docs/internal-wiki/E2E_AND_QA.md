@@ -16,6 +16,9 @@
 | `wild-run.spec.ts` | Wild / joker style run |
 | `tile-card-face-dom.spec.ts` | Card faces DOM path |
 | `tile-card-face-webgl.spec.ts` | Card faces WebGL path |
+| `tile-card-face-illustration-regression.spec.ts` | Procedural illustration tiles vs golden fixtures (`yarn test:e2e:illustration-regression`, `yarn regenerate:illustration-regression`) |
+| `tile-card-face-illustration-benchmark.spec.ts` | Illustration perf / timing (`yarn benchmark:illustration-regression`) |
+| `tile-card-face-overlay-regression.spec.ts` | Overlay tier / illustration overlay path |
 | `tile-board-raycast.spec.ts` | Board raycast / input |
 | `visual-inventory-capture.spec.ts` | Full device-grid visual inventory |
 | `visual-screens.mobile.spec.ts` | Mobile visual baselines |
@@ -28,9 +31,11 @@
 | `viewport-fit-stress.spec.ts` | Viewport fit stress |
 | `overlay-smoke.spec.ts` | Overlays smoke |
 | `a11y-intro-pause.spec.ts` | Intro / pause a11y |
+| `a11y-scoped-routes.spec.ts` | Route-scoped a11y smoke (`yarn test:e2e:a11y`) |
 | `a11y-toast-gameover.spec.ts` | Toast + game over a11y |
 | `hud-inspect.spec.ts` | HUD inspection |
 | `logo-intro-sandbox.spec.ts` | Logo intro sandbox |
+| `cyp-review-capture.spec.ts` | Choose Your Path “review” layout metrics (inline back, scroller height bounds) |
 | `ui-screenshots.spec.ts` | Local UI screenshots → `tmp/` (see [e2e/README](../../e2e/README.md)) |
 
 ## Helpers (not specs)

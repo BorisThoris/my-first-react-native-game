@@ -3,10 +3,31 @@ import { createIllustrationRng } from './illustrationRng';
 import { deriveIllustrationSeed } from './illustrationSeed';
 
 /** Background treatment (loot-pool roll). */
-export type ArchetypeId = 'solarDisk' | 'voidVault' | 'parchmentBloom' | 'auroraSlash' | 'twinOrbs';
+export type ArchetypeId =
+    | 'solarDisk'
+    | 'voidVault'
+    | 'parchmentBloom'
+    | 'auroraSlash'
+    | 'twinOrbs'
+    | 'emberVeil'
+    | 'mistFold'
+    | 'cinderDrift';
 
 /** Central motif geometry family. */
-export type MotifFamily = 'polygonCore' | 'ringStack' | 'starBurst' | 'orbitShards';
+export type MotifFamily =
+    | 'polygonCore'
+    | 'ringStack'
+    | 'starBurst'
+    | 'orbitShards'
+    | 'mandalaWeave'
+    | 'pillarGate'
+    | 'thornCrown';
+
+/** Procedural grain overlay (tier may clamp). */
+export type IllustrationNoiseStrength = 0 | 1 | 2;
+
+/** Vertical mirror duplicate for symmetric tarot read. */
+export type IllustrationSymmetry = 'none' | 'mirrorV';
 
 export type ProceduralIllustrationSpec = {
     archetype: ArchetypeId;
@@ -21,21 +42,31 @@ export type ProceduralIllustrationSpec = {
     motifScaleMul: number;
     /** Cosmetic rarity affects ornament density */
     rarityTier: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+    /** Grid noise blended over backgrounds (0 = off). */
+    noiseStrength: IllustrationNoiseStrength;
+    /** Duplicate motif across vertical axis through center. */
+    symmetry: IllustrationSymmetry;
 };
 
 const ARCHETYPE_POOL: { value: ArchetypeId; weight: number }[] = [
-    { value: 'solarDisk', weight: 22 },
-    { value: 'voidVault', weight: 22 },
-    { value: 'parchmentBloom', weight: 18 },
-    { value: 'auroraSlash', weight: 22 },
-    { value: 'twinOrbs', weight: 16 }
+    { value: 'solarDisk', weight: 17 },
+    { value: 'voidVault', weight: 17 },
+    { value: 'parchmentBloom', weight: 14 },
+    { value: 'auroraSlash', weight: 16 },
+    { value: 'twinOrbs', weight: 12 },
+    { value: 'emberVeil', weight: 11 },
+    { value: 'mistFold', weight: 11 },
+    { value: 'cinderDrift', weight: 10 }
 ];
 
 const MOTIF_POOL: { value: MotifFamily; weight: number }[] = [
-    { value: 'polygonCore', weight: 28 },
-    { value: 'ringStack', weight: 26 },
-    { value: 'starBurst', weight: 24 },
-    { value: 'orbitShards', weight: 22 }
+    { value: 'polygonCore', weight: 21 },
+    { value: 'ringStack', weight: 19 },
+    { value: 'starBurst', weight: 17 },
+    { value: 'orbitShards', weight: 17 },
+    { value: 'mandalaWeave', weight: 11 },
+    { value: 'pillarGate', weight: 9 },
+    { value: 'thornCrown', weight: 9 }
 ];
 
 const RARITY_POOL: { value: ProceduralIllustrationSpec['rarityTier']; weight: number }[] = [
@@ -65,8 +96,28 @@ export const rollProceduralIllustrationSpec = (
     const motif = rng.pickWeighted(MOTIF_POOL);
     const rarityTier = rng.pickWeighted(RARITY_POOL);
 
-    const sidesMin = motif === 'starBurst' ? 5 : 3;
-    const sidesMax = motif === 'polygonCore' ? 8 : motif === 'starBurst' ? 12 : 8;
+    const sidesMin =
+        motif === 'starBurst'
+            ? 5
+            : motif === 'mandalaWeave'
+              ? 6
+              : motif === 'pillarGate'
+                ? 4
+                : motif === 'thornCrown'
+                  ? 5
+                  : 3;
+    const sidesMax =
+        motif === 'polygonCore'
+            ? 8
+            : motif === 'starBurst'
+              ? 12
+              : motif === 'mandalaWeave'
+                ? 14
+                : motif === 'pillarGate'
+                  ? 12
+                  : motif === 'thornCrown'
+                    ? 12
+                    : 8;
     const motifSides = rng.nextIntInclusive(sidesMin, sidesMax);
 
     const maxRings = tierCapRingLayers(tier);
@@ -83,6 +134,19 @@ export const rollProceduralIllustrationSpec = (
     const hueAccent = rng.nextInt(360);
     const motifScaleMul = 0.85 + rng.nextFloat01() * 0.3;
 
+    const noiseRoll = rng.pickWeighted([
+        { value: 0 as const, weight: tier === 'minimal' ? 40 : 22 },
+        { value: 1 as const, weight: tier === 'minimal' ? 48 : 52 },
+        { value: 2 as const, weight: tier === 'minimal' ? 12 : 26 }
+    ]);
+    const noiseStrength: IllustrationNoiseStrength =
+        tier === 'minimal' && noiseRoll === 2 ? 1 : noiseRoll;
+
+    const symmetry = rng.pickWeighted([
+        { value: 'none' as const, weight: 74 },
+        { value: 'mirrorV' as const, weight: 26 }
+    ]);
+
     return {
         archetype,
         motif,
@@ -90,6 +154,8 @@ export const rollProceduralIllustrationSpec = (
         ringLayers,
         hueAccent,
         motifScaleMul,
-        rarityTier
+        rarityTier,
+        noiseStrength,
+        symmetry
     };
 };

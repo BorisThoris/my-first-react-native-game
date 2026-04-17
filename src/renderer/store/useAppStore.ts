@@ -1,5 +1,6 @@
 import { create } from 'zustand/react';
 import { evaluateAchievementUnlocks } from '../../shared/achievements';
+import { mergeHonorUnlockTags } from '../../shared/honorUnlocks';
 import type {
     AchievementId,
     MutatorId,
@@ -56,6 +57,7 @@ import {
     mergeDailyComplete,
     mergeEncoreFromRun,
     mergeRelicPickStat,
+    metaRelicDraftExtraPerMilestoneFromSave,
     normalizeSaveData
 } from '../../shared/save-data';
 import { desktopClient } from '../desktop-client';
@@ -73,6 +75,10 @@ import { playFlipSfx, playResolveSfx, resumeAudioContext, sfxGainFromSettings } 
 
 /** Session-only cache so imported puzzle boards survive in-run restart. */
 const importPuzzleTilesById = new Map<string, Tile[]>();
+
+const metaRelicOpts = (save: SaveData) => ({
+    metaRelicDraftExtraPerMilestone: metaRelicDraftExtraPerMilestoneFromSave(save)
+});
 
 interface ActiveTimer {
     deadline: number;
@@ -259,7 +265,20 @@ const applyResolveBoardTurn = (run: RunState): void => {
 const applyResolvedRun = (resolvedRun: RunState): void => {
     const state = useAppStore.getState();
     let nextRun = resolvedRun.status === 'playing' ? resolvedRun : disableDebugPeek(resolvedRun);
-    const unlockedAchievements = evaluateAchievementUnlocks(nextRun, state.saveData);
+
+    let saveForAchievements = state.saveData;
+    if (nextRun.status === 'gameOver') {
+        let projected = mergeEncoreFromRun(state.saveData, nextRun.matchedPairKeysThisRun);
+        if (nextRun.gameMode === 'daily' && nextRun.dailyDateKeyUtc) {
+            projected = mergeDailyComplete(projected, nextRun.dailyDateKeyUtc);
+        }
+        if (!nextRun.powersUsedThisRun) {
+            projected = mergeBestFloorNoPowers(projected, nextRun.stats.highestLevel);
+        }
+        saveForAchievements = projected;
+    }
+
+    const unlockedAchievements = evaluateAchievementUnlocks(nextRun, saveForAchievements);
     let nextSave = normalizeSaveData({
         ...state.saveData,
         bestScore: Math.max(state.saveData.bestScore, nextRun.stats.bestScore)
@@ -291,6 +310,7 @@ const applyResolvedRun = (resolvedRun: RunState): void => {
             onboardingDismissed: true,
             lastRunSummary: nextRun.lastRunSummary
         });
+        nextSave = mergeHonorUnlockTags(nextSave);
 
         const s = nextRun.lastRunSummary;
         if (s) {
@@ -312,6 +332,7 @@ const applyResolvedRun = (resolvedRun: RunState): void => {
             newlyUnlockedAchievements: unlockedAchievements
         });
     } else {
+        nextSave = mergeHonorUnlockTags(nextSave);
         useAppStore.setState({
             run: nextRun,
             view: 'playing',
@@ -498,10 +519,15 @@ export const useAppStore = create<AppState>((set, get) => ({
 
         set({ hydrating: true });
 
-        const [saveData, steamConnected] = await Promise.all([
+        const [rawSave, steamConnected] = await Promise.all([
             desktopClient.getSaveData().then(normalizeSaveData).catch(() => createDefaultSaveData()),
             desktopClient.isSteamConnected().catch(() => false)
         ]);
+
+        const saveData = mergeHonorUnlockTags(rawSave);
+        if (saveData !== rawSave) {
+            void persistSaveData(saveData);
+        }
 
         set({
             hydrating: false,
@@ -515,7 +541,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     startRun: () => {
         clearAllTimers();
-        const run = patchRunFromUserSettings(createNewRun(get().saveData.bestScore), get().settings);
+        const run = patchRunFromUserSettings(
+            createNewRun(get().saveData.bestScore, metaRelicOpts(get().saveData)),
+            get().settings
+        );
         trackEvent('run_start', { mode: run.gameMode, practice: run.practiceMode });
 
         set({
@@ -534,7 +563,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     startDailyRun: () => {
         clearAllTimers();
-        const run = patchRunFromUserSettings(createDailyRun(get().saveData.bestScore), get().settings);
+        const run = patchRunFromUserSettings(
+            createDailyRun(get().saveData.bestScore, metaRelicOpts(get().saveData)),
+            get().settings
+        );
         trackEvent('run_start', { mode: run.gameMode, practice: run.practiceMode });
         set({
             view: 'playing',
@@ -552,7 +584,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     startGauntletRun: (durationMs = 10 * 60 * 1000) => {
         clearAllTimers();
         const run = patchRunFromUserSettings(
-            createGauntletRun(get().saveData.bestScore, durationMs),
+            createGauntletRun(get().saveData.bestScore, durationMs, metaRelicOpts(get().saveData)),
             get().settings
         );
         trackEvent('run_start', { mode: run.gameMode, practice: run.practiceMode });
@@ -581,7 +613,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         );
         clearAllTimers();
         const run = patchRunFromUserSettings(
-            createPuzzleRun(get().saveData.bestScore, puzzleId, parsed.tiles),
+            createPuzzleRun(get().saveData.bestScore, puzzleId, parsed.tiles, 1, metaRelicOpts(get().saveData)),
             get().settings
         );
         trackEvent('run_start', {
@@ -611,7 +643,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
         clearAllTimers();
         const run = patchRunFromUserSettings(
-            createPuzzleRun(get().saveData.bestScore, puzzle.id, puzzle.tiles),
+            createPuzzleRun(get().saveData.bestScore, puzzle.id, puzzle.tiles, 1, metaRelicOpts(get().saveData)),
             get().settings
         );
         trackEvent('run_start', { mode: run.gameMode, practice: run.practiceMode, puzzleId: puzzle.id });
@@ -631,7 +663,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     startPracticeRun: () => {
         clearAllTimers();
         const run = patchRunFromUserSettings(
-            createNewRun(get().saveData.bestScore, { practiceMode: true }),
+            createNewRun(get().saveData.bestScore, { practiceMode: true, ...metaRelicOpts(get().saveData) }),
             get().settings
         );
         trackEvent('run_start', { mode: run.gameMode, practice: run.practiceMode });
@@ -652,7 +684,13 @@ export const useAppStore = create<AppState>((set, get) => ({
         clearAllTimers();
         const run = patchRunFromUserSettings(
             createNewRun(get().saveData.bestScore, {
-                activeContract: { noShuffle: true, noDestroy: true, maxMismatches: null }
+                ...metaRelicOpts(get().saveData),
+                activeContract: {
+                    noShuffle: true,
+                    noDestroy: true,
+                    maxMismatches: null,
+                    bonusRelicDraftPick: true
+                }
             }),
             get().settings
         );
@@ -672,7 +710,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     startMeditationRun: () => {
         clearAllTimers();
-        const run = patchRunFromUserSettings(createMeditationRun(get().saveData.bestScore), get().settings);
+        const run = patchRunFromUserSettings(
+            createMeditationRun(get().saveData.bestScore, undefined, metaRelicOpts(get().saveData)),
+            get().settings
+        );
         trackEvent('run_start', { mode: run.gameMode, practice: run.practiceMode });
         set({
             view: 'playing',
@@ -690,7 +731,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     startMeditationRunWithMutators: (mutators) => {
         clearAllTimers();
         const run = patchRunFromUserSettings(
-            createMeditationRun(get().saveData.bestScore, mutators),
+            createMeditationRun(get().saveData.bestScore, mutators, metaRelicOpts(get().saveData)),
             get().settings
         );
         trackEvent('run_start', {
@@ -716,6 +757,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         clearAllTimers();
         const run = patchRunFromUserSettings(
             createNewRun(get().saveData.bestScore, {
+                ...metaRelicOpts(get().saveData),
                 activeContract: { noShuffle: false, noDestroy: false, maxMismatches: null, maxPinsTotalRun: 10 }
             }),
             get().settings
@@ -736,7 +778,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     startWildRun: () => {
         clearAllTimers();
-        const run = patchRunFromUserSettings(createWildRun(get().saveData.bestScore), get().settings);
+        const run = patchRunFromUserSettings(
+            createWildRun(get().saveData.bestScore, metaRelicOpts(get().saveData)),
+            get().settings
+        );
         trackEvent('run_start', { mode: run.gameMode, practice: run.practiceMode, wild: true });
         set({
             view: 'playing',
@@ -757,7 +802,10 @@ export const useAppStore = create<AppState>((set, get) => ({
             return false;
         }
         clearAllTimers();
-        const run = patchRunFromUserSettings(createRunFromExportPayload(get().saveData.bestScore, payload), get().settings);
+        const run = patchRunFromUserSettings(
+            createRunFromExportPayload(get().saveData.bestScore, payload, metaRelicOpts(get().saveData)),
+            get().settings
+        );
         trackEvent('run_start', { mode: run.gameMode, practice: run.practiceMode, imported: true });
         set({
             view: 'playing',
@@ -782,6 +830,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         const nextRun = completeRelicPickAndAdvance(run, relicId);
         let nextSave = mergeRelicPickStat(get().saveData, relicId);
         nextSave = normalizeSaveData(nextSave);
+        nextSave = mergeHonorUnlockTags(nextSave);
         set({
             run: nextRun,
             saveData: nextSave,
@@ -1157,6 +1206,9 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (!run || view !== 'playing' || run.status !== 'playing') {
             return;
         }
+        if (!run.practiceMode && !run.wildMenuRun) {
+            return;
+        }
         const nextRun = applyFlashPair(run);
         if (nextRun !== run) {
             set({ run: nextRun });
@@ -1251,34 +1303,41 @@ export const useAppStore = create<AppState>((set, get) => ({
         clearAllTimers();
         const prev = get().run;
         const best = get().saveData.bestScore;
+        const save = get().saveData;
+        const meta = metaRelicOpts(save);
         const settings = get().settings;
         let run: RunState;
         if (prev?.gameMode === 'daily') {
-            run = createDailyRun(best);
+            run = createDailyRun(best, meta);
         } else if (prev?.gameMode === 'gauntlet') {
-            run = createGauntletRun(best, prev.gauntletSessionDurationMs ?? 10 * 60 * 1000);
+            run = createGauntletRun(best, prev.gauntletSessionDurationMs ?? 10 * 60 * 1000, meta);
         } else if (prev?.gameMode === 'puzzle' && prev.puzzleId) {
             const imported = importPuzzleTilesById.get(prev.puzzleId);
             if (imported) {
-                run = createPuzzleRun(best, prev.puzzleId, imported);
+                run = createPuzzleRun(best, prev.puzzleId, imported, 1, meta);
             } else {
                 const puzzle = BUILTIN_PUZZLES[prev.puzzleId];
-                run = puzzle ? createPuzzleRun(best, puzzle.id, puzzle.tiles) : createNewRun(best);
+                run = puzzle ? createPuzzleRun(best, puzzle.id, puzzle.tiles, 1, meta) : createNewRun(best, meta);
             }
         } else if (prev?.gameMode === 'meditation') {
-            run = createMeditationRun(best, prev.activeMutators.length > 0 ? prev.activeMutators : undefined);
+            run = createMeditationRun(
+                best,
+                prev.activeMutators.length > 0 ? prev.activeMutators : undefined,
+                meta
+            );
         } else if (prev?.activeContract?.maxPinsTotalRun != null) {
-            run = createNewRun(best, { activeContract: prev.activeContract });
+            run = createNewRun(best, { ...meta, activeContract: prev.activeContract });
         } else if (prev?.wildMenuRun) {
-            run = createWildRun(best);
+            run = createWildRun(best, meta);
         } else if (prev?.practiceMode) {
-            run = createNewRun(best, { practiceMode: true });
+            run = createNewRun(best, { practiceMode: true, ...meta });
         } else if (prev?.activeContract?.noShuffle && prev.activeContract.noDestroy) {
             run = createNewRun(best, {
-                activeContract: { noShuffle: true, noDestroy: true, maxMismatches: null }
+                ...meta,
+                activeContract: prev.activeContract
             });
         } else {
-            run = createNewRun(best);
+            run = createNewRun(best, meta);
         }
         run = patchRunFromUserSettings(run, settings);
 

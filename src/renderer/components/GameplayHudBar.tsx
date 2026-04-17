@@ -16,7 +16,8 @@ const MUTATOR_HUD_LABELS: Record<MutatorId, string> = {
     n_back_anchor: 'N-back',
     distraction_channel: 'Distraction',
     findables_floor: 'Dense pickups',
-    shifting_spotlight: 'Shifting spotlight'
+    shifting_spotlight: 'Shifting spotlight',
+    generous_shrine: 'Generous shrine'
 };
 
 const getMutatorChipTitle = (id: MutatorId): string => {

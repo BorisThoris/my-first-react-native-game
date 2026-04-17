@@ -2,6 +2,10 @@
 
 Specs live in this directory and run against the Vite dev server (`playwright.config.ts`).
 
+## Relic draft overlay (manual QA)
+
+The milestone relic draft (`data-testid="game-relic-offer-overlay"`) is covered by a **manual** checklist in [`docs/epics/relic-draft-fluid-system/05-ui-ultra-refinement.md`](../docs/epics/relic-draft-fluid-system/05-ui-ultra-refinement.md) (QA section). Optional Playwright smoke on that test id is not CI-gated.
+
 ## Traces and videos on failure
 
 Config uses `trace: 'retain-on-failure'` and `video: 'retain-on-failure'` so passing runs stay light while failed attempts still upload Playwright traces/videos. Download artifacts from the CI job (or open `test-results/` after a local failure) and run `npx playwright show-trace path/to/trace.zip` to inspect.

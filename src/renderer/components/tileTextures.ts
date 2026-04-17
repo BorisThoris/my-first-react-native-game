@@ -9,7 +9,6 @@ import {
     Texture
 } from 'three';
 import type { GraphicsQualityPreset, Tile } from '../../shared/contracts';
-import { FEATURE_CARD_OPENTYPE_GLYPHS } from '../../shared/feature-flags';
 import { RENDERER_THEME } from '../styles/theme';
 import { CARD_PLANE_HEIGHT, CARD_PLANE_WIDTH } from './tileShatter';
 import referenceBackTextureUrl from '../assets/textures/cards/back.svg?url';
@@ -20,7 +19,6 @@ import edgeTextureUrl from '../assets/textures/cards/edge.png';
 import panelRoughnessTextureUrl from '../assets/textures/cards/panel-roughness.png';
 import edgeRoughnessTextureUrl from '../assets/textures/cards/edge-roughness.png';
 import { getCardFaceOverlayColors } from '../cardFace/cardFaceOverlayPalette';
-import { tryDrawOpentypeCenteredText } from '../cardFace/opentypeCardRankFont';
 import { overlayDrawTierFromGraphicsQuality, type OverlayDrawTier } from '../cardFace/overlayDrawTier';
 import {
     drawProgrammaticCardFaceOverlay,
@@ -33,6 +31,7 @@ import {
     getProceduralIllustrationBitmapCacheDebugState,
     prewarmProceduralIllustrationBitmap
 } from '../cardFace/cardIllustrationDraw';
+import { drawRasterDeckComposedOverlay, isCardRasterDeckEnabled } from '../cardFace/cardRasterDeck';
 import { computeIllustrationPixelRect } from '../cardFace/cardIllustrationRect';
 import {
     getIllustrationVersionStamp,
@@ -1079,151 +1078,24 @@ const drawCardFrontOverlay = (
 
     const { width, height } = canvas;
     const c = getCardFaceOverlayColors(variant);
-    const symbolText = tile.symbol;
-    const labelText = tile.label.toUpperCase();
-    const symbolBaseSize = tile.symbol.length > 2 ? 104 : tile.symbol.length > 1 ? 122 : 142;
-    const hasDistinctLabel = labelText !== symbolText.toUpperCase();
     const rng = createRng(hashString(`${tile.id}|${tile.pairKey}|${variant}|sym`));
     const outerGrain = tier === 'full' ? 52 : tier === 'standard' ? 28 : 0;
-    const innerGrain = tier === 'full' ? 36 : tier === 'standard' ? 18 : 0;
-    const symbolYFrac = tier === 'full' ? 0.472 : tier === 'standard' ? 0.478 : 0.485;
-    const labelYFrac = tier === 'full' ? 0.764 : 0.772;
 
     context.clearRect(0, 0, width, height);
     if (outerGrain > 0) {
         drawNoise(context, width, height, outerGrain, `rgba(${c.grainRgb},${c.grainAlpha * 0.65})`, rng);
     }
 
+    if (isCardRasterDeckEnabled()) {
+        drawRasterDeckComposedOverlay(context, canvas, tile.pairKey, tier, c, {
+            matFeatherStrength: 0.92
+        });
+        return;
+    }
+
     drawProceduralIllustrationInCanvasOverlay(context, canvas, tile.pairKey, tier, c, {
         matFeatherStrength: 0.92
     });
-    const plateAlpha = 0.52;
-
-    const cx = width * 0.5;
-    const symbolY = height * symbolYFrac;
-    const plateR = Math.min(width, height) * 0.34;
-    const plateOuter = plateR * 1.12;
-
-    context.save();
-    context.globalAlpha = plateAlpha;
-    context.lineJoin = 'round';
-    const glow = context.createRadialGradient(cx, symbolY, plateR * 0.12, cx, symbolY, plateOuter);
-    glow.addColorStop(0, c.plateGlow);
-    glow.addColorStop(0.55, 'rgba(0,0,0,0)');
-    glow.addColorStop(1, 'rgba(0,0,0,0)');
-    context.fillStyle = glow;
-    context.beginPath();
-    context.arc(cx, symbolY, plateOuter, 0, Math.PI * 2);
-    context.fill();
-
-    const plateGrad = context.createRadialGradient(cx, symbolY - plateR * 0.22, plateR * 0.08, cx, symbolY, plateR);
-    plateGrad.addColorStop(0, c.plateFill);
-    plateGrad.addColorStop(0.65, c.plateFillOuter);
-    plateGrad.addColorStop(1, 'rgba(0,0,0,0)');
-    context.fillStyle = plateGrad;
-    context.beginPath();
-    context.arc(cx, symbolY, plateR, 0, Math.PI * 2);
-    context.fill();
-
-    context.strokeStyle = c.plateStroke;
-    context.lineWidth = Math.max(2, Math.round(width * 0.0042));
-    context.beginPath();
-    context.arc(cx, symbolY, plateR, 0, Math.PI * 2);
-    context.stroke();
-
-    context.strokeStyle = c.frameInnerRim;
-    context.lineWidth = Math.max(1, Math.round(width * 0.0024));
-    context.globalAlpha = 0.88;
-    context.beginPath();
-    context.arc(cx, symbolY, plateR * 0.9, 0, Math.PI * 2);
-    context.stroke();
-    context.globalAlpha = 1;
-
-    context.beginPath();
-    context.arc(cx, symbolY, plateR * 0.97, 0, Math.PI * 2);
-    context.clip();
-    if (innerGrain > 0) {
-        drawNoise(context, width, height, innerGrain, `rgba(${c.grainRgb},${c.grainAlpha * 0.9})`, rng);
-    }
-    context.restore();
-
-    context.textAlign = 'center';
-    context.textBaseline = 'middle';
-    context.lineJoin = 'round';
-    context.globalAlpha = 1;
-
-    let symbolSize = symbolBaseSize;
-    context.font = `800 ${symbolSize}px "Source Sans 3", "Segoe UI Symbol", "Segoe UI Emoji", "Arial", sans-serif`;
-    const symbolMaxWidth = Math.min(width * 0.56, plateR * 2.15);
-    while (symbolSize > 72 && context.measureText(symbolText).width > symbolMaxWidth) {
-        symbolSize -= 6;
-        context.font = `800 ${symbolSize}px "Source Sans 3", "Segoe UI Symbol", "Segoe UI Emoji", "Arial", sans-serif`;
-    }
-
-    const ctxLs = context as CanvasRenderingContext2D & { letterSpacing?: string };
-    const prevLs = ctxLs.letterSpacing;
-    if ('letterSpacing' in context) {
-        ctxLs.letterSpacing = symbolText.length >= 3 ? '0.05em' : '0.02em';
-    }
-
-    const sw = Math.max(5, Math.round(width * 0.009));
-    const otOk =
-        tier === 'full' &&
-        FEATURE_CARD_OPENTYPE_GLYPHS &&
-        tryDrawOpentypeCenteredText(context, symbolText, cx, symbolY, symbolSize, c.symbolFill, c.symbolStroke, sw);
-    if (!otOk) {
-        if (tier === 'full') {
-            context.fillStyle = c.rankShadow;
-            context.globalAlpha = 0.5;
-            context.fillText(symbolText, cx + 1.4, symbolY + 2.2);
-            context.globalAlpha = 1;
-        }
-
-        context.lineWidth = sw;
-        context.strokeStyle = c.symbolStroke;
-        context.strokeText(symbolText, cx, symbolY);
-        context.fillStyle = c.symbolFill;
-        context.fillText(symbolText, cx, symbolY);
-    }
-
-    if ('letterSpacing' in context) {
-        ctxLs.letterSpacing = prevLs ?? '0px';
-    }
-
-    if (hasDistinctLabel) {
-        const labelY = height * labelYFrac;
-        const labelW = Math.min(width * 0.72, context.measureText(labelText).width + width * 0.08);
-        const labelH = Math.max(22, Math.round(height * 0.048));
-        const rx = labelH * 0.5;
-
-        context.save();
-        const pillGrad = context.createLinearGradient(cx - labelW * 0.5, labelY, cx + labelW * 0.5, labelY);
-        pillGrad.addColorStop(0, c.plateFillOuter);
-        pillGrad.addColorStop(0.5, c.plateFill);
-        pillGrad.addColorStop(1, c.plateFillOuter);
-        context.fillStyle = pillGrad;
-        context.strokeStyle = c.plateStroke;
-        context.lineWidth = Math.max(1.5, Math.round(width * 0.0028));
-        context.beginPath();
-        context.roundRect(cx - labelW * 0.5, labelY - labelH * 0.5, labelW, labelH, rx);
-        context.fill();
-        context.stroke();
-        context.restore();
-
-        const labelFontSize = Math.max(16, Math.round(width * 0.032));
-        context.font = `800 ${labelFontSize}px "Source Sans 3", "Arial", sans-serif`;
-        context.lineWidth = Math.max(3, Math.round(width * 0.005));
-        if (tier === 'full') {
-            context.fillStyle = c.rankShadow;
-            context.globalAlpha = 0.45;
-            context.fillText(labelText, cx + 0.8, labelY + 1.4);
-            context.globalAlpha = 1;
-        }
-        context.strokeStyle = c.labelStroke;
-        context.strokeText(labelText, cx, labelY);
-        context.fillStyle = c.labelFill;
-        context.fillText(labelText, cx, labelY);
-    }
 };
 
 const drawEdgeFace = (context: CanvasRenderingContext2D, canvas: HTMLCanvasElement, palette: CardPalette, face: TileFace): void => {

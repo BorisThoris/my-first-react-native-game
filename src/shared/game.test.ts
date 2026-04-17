@@ -12,6 +12,7 @@ import {
 import {
     advanceToNextLevel,
     applyDestroyPair,
+    applyFlashPair,
     applyRegionShuffle,
     applyShuffle,
     buildBoard,
@@ -19,6 +20,8 @@ import {
     canRegionShuffle,
     canRegionShuffleRow,
     canShuffleBoard,
+    computeRelicOfferPickBudget,
+    completeRelicPickAndAdvance,
     countFullyHiddenPairs,
     createDailyRun,
     createNewRun,
@@ -29,8 +32,11 @@ import {
     getMemorizeDuration,
     getMemorizeDurationForRun,
     getPresentationMutatorMatchPenalty,
+    getWildTileIdFromBoard,
+    grantBonusRelicPickNextOffer,
     isBoardComplete,
     isGauntletExpired,
+    openRelicOffer,
     resolveBoardTurn,
     tilesArePairMatch,
     togglePinnedTile,
@@ -717,7 +723,8 @@ describe('board powers', () => {
         });
 
         it('keeps legacy mutator-gated pickup generation for older rules', () => {
-            const legacyRulesVersion = GAME_RULES_VERSION - 1;
+            /** Rules before v8 use legacy findable assignment (`legacyFindables` in `assignFindableKindsToTiles`). */
+            const legacyRulesVersion = 7;
             let seededBoardWithMutator: BoardState | null = null;
             let seededBoardWithoutMutator: BoardState | null = null;
             for (let seed = 1; seed < 512; seed += 1) {
@@ -1026,6 +1033,62 @@ describe('gambit third flip', () => {
         expect(resolved.gambitThirdFlipUsed).toBe(true);
         expect(resolved.status).toBe('gameOver');
         expect(resolved.stats.tries).toBe(1);
+    });
+});
+
+describe('applyFlashPair', () => {
+    it('is a no-op outside practice and wild menu runs even if charges are present', () => {
+        let run = finishMemorizePhase(createNewRun(0, { gameMode: 'endless' }));
+        run = { ...run, status: 'playing', flashPairCharges: 1 };
+        expect(applyFlashPair(run)).toBe(run);
+    });
+});
+
+describe('wildTileId bookkeeping', () => {
+    it('sets wildTileId to the wild tile id in createWildRun', () => {
+        const run = createWildRun(0);
+        expect(run.board).not.toBeNull();
+        const board = run.board!;
+        const wild = board.tiles.find((t) => t.pairKey === WILD_PAIR_KEY);
+        expect(wild).toBeDefined();
+        expect(run.wildTileId).toBe(wild!.id);
+        expect(getWildTileIdFromBoard(board)).toBe(wild!.id);
+    });
+
+    it('leaves wildTileId null when no wild tile is on the board', () => {
+        const run = createNewRun(0, { gameMode: 'endless' });
+        expect(run.board).not.toBeNull();
+        expect(run.wildTileId).toBeNull();
+        expect(getWildTileIdFromBoard(run.board!)).toBeNull();
+    });
+
+    it('keeps wildTileId aligned with the board after advanceToNextLevel', () => {
+        const start = finishMemorizePhase(createWildRun(0));
+        expect(start.wildTileId).not.toBeNull();
+        const b = start.board!;
+        const cleared = {
+            ...start,
+            status: 'levelComplete' as const,
+            lastLevelResult: {
+                level: b.level,
+                scoreGained: 100,
+                rating: 'S' as const,
+                livesRemaining: start.lives,
+                perfect: true,
+                mistakes: 0,
+                clearLifeReason: 'perfect' as const,
+                clearLifeGained: 0
+            },
+            board: {
+                ...b,
+                matchedPairs: b.pairCount,
+                flippedTileIds: [],
+                tiles: b.tiles.map((t) => ({ ...t, state: 'matched' as const }))
+            }
+        };
+        const next = advanceToNextLevel(cleared);
+        expect(next.board).not.toBeNull();
+        expect(next.wildTileId).toBe(getWildTileIdFromBoard(next.board!));
     });
 });
 
@@ -1362,6 +1425,68 @@ describe('relic and mutator stacking', () => {
             initialRelicIds: ['memorize_bonus_ms']
         });
         expect(getMemorizeDurationForRun(run, 1)).toBe(getMemorizeDuration(1) - 350 + 280);
+    });
+});
+
+describe('computeRelicOfferPickBudget', () => {
+    it('is 1 for vanilla endless', () => {
+        const run = createNewRun(0, { gameMode: 'endless' });
+        expect(computeRelicOfferPickBudget(run)).toBe(1);
+    });
+
+    it('stacks daily mode and generous_shrine mutator', () => {
+        const run = createNewRun(0, { gameMode: 'daily', activeMutators: ['generous_shrine'] });
+        expect(computeRelicOfferPickBudget(run)).toBe(3);
+    });
+
+    it('stacks meta relic draft flag and scholar contract', () => {
+        const run = createNewRun(0, {
+            metaRelicDraftExtraPerMilestone: 1,
+            activeContract: {
+                noShuffle: true,
+                noDestroy: true,
+                maxMismatches: null,
+                bonusRelicDraftPick: true
+            }
+        });
+        expect(computeRelicOfferPickBudget(run)).toBe(3);
+    });
+});
+
+describe('relic draft multi-pick', () => {
+    it('consumes bonus and completes one milestone tier after two picks', () => {
+        let run = createNewRun(999, { gameMode: 'endless' });
+        run = {
+            ...run,
+            status: 'levelComplete',
+            relicTiersClaimed: 0,
+            relicOffer: null,
+            lastLevelResult: {
+                level: 3,
+                scoreGained: 1,
+                rating: 'S',
+                livesRemaining: 3,
+                perfect: false,
+                mistakes: 0,
+                clearLifeReason: 'none',
+                clearLifeGained: 0
+            }
+        };
+        run = grantBonusRelicPickNextOffer(run, 1);
+        run = openRelicOffer(run);
+        expect(run.relicOffer?.picksRemaining).toBe(2);
+        expect(run.bonusRelicPicksNextOffer).toBe(0);
+
+        const first = run.relicOffer!.options[0]!;
+        run = completeRelicPickAndAdvance(run, first);
+        expect(run.relicOffer).not.toBeNull();
+        expect(run.relicOffer!.picksRemaining).toBe(1);
+
+        const second = run.relicOffer!.options[0]!;
+        run = completeRelicPickAndAdvance(run, second);
+        expect(run.relicOffer).toBeNull();
+        expect(run.relicTiersClaimed).toBe(1);
+        expect(run.relicIds).toEqual(expect.arrayContaining([first, second]));
     });
 });
 

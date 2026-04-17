@@ -23,7 +23,7 @@ Run modifiers that change generation, scoring, timers, or objectives. Sources: e
 ## Schedules
 
 - **`DAILY_MUTATOR_TABLE`** (`mutators.ts`) — rotating daily mutator list.
-- **`floor-mutator-schedule.ts`** — endless cycle entries (boss floors can append `distraction_channel` sometimes).
+- **`floor-mutator-schedule.ts`** — endless cycle entries (boss floors can append `distraction_channel` sometimes). Unit coverage: [`floor-mutator-schedule.test.ts`](../../src/shared/floor-mutator-schedule.test.ts) (extend when **`FLOOR_SCHEDULE_RULES_VERSION`** or schedule rules change).
 - Not every mutator appears on the endless cycle (e.g. `findables_floor`, `shifting_spotlight` may enter via other run constructors or tests).
 
 ## Rough edges

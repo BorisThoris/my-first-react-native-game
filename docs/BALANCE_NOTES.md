@@ -8,10 +8,15 @@ Post-relic / post-mutator tuning. Constants live in `src/shared/contracts.ts` un
 - **Lives:** `INITIAL_LIVES` / `MAX_LIVES` — `score_parasite` drain must not kill from full health in a single floor transition without telegraph (floors advanced counter).  
 - **Powers:** `INITIAL_SHUFFLE_CHARGES`, `MAX_DESTROY_PAIR_BANK` — relics that add charges should not trivialize **Scholar** contract runs; contract still hard-disables shuffle/destroy where set.  
 - **Gauntlet:** Menu presets **5 / 10 / 15** minutes; default factory still **10m** when unspecified. If expiry feels harsh, add +30s per floor cleared (future).
+- **Wild joker metadata:** `RunState.wildTileId` is set to the wild tile’s `id` whenever the board includes `WILD_PAIR_KEY` (`getWildTileIdFromBoard` on run start and after each level advance). Matching logic is unchanged (`pairKey`-driven).
 
 ## Process
 
 After meaningful mutator/relic changes: run three scripted seeds (arcade, daily, scholar) to floor 6 and record score, lives, powers used. Adjust one constant at a time.
+
+## Automated sanity (REF-098 / schedule)
+
+- `yarn sim:endless --floors=1000 --seed=42001` — CSV summary of `floorTag` and mutator counts over a long endless slice; use after edits to `floor-mutator-schedule.ts` or `FLOOR_SCHEDULE_RULES_VERSION`. Spot-check that `breather` / `boss` tags appear at expected cadence for the cycle.
 
 ## Release playtest script (quick bar)
 
@@ -31,9 +36,9 @@ Current defaults (floor level = run floor):
 
 ## Relic roster (cross-check `src/shared/relics.ts` + `game.ts`)
 
-Shipped pool ids: `extra_shuffle_charge`, `first_shuffle_free_per_floor`, `memorize_bonus_ms`, `destroy_bank_plus_one`, `combo_shard_plus_step`, `memorize_under_short_memorize`, `parasite_ward_once`, `region_shuffle_free_first`.
+Shipped pool ids: `extra_shuffle_charge`, `first_shuffle_free_per_floor`, `memorize_bonus_ms`, `destroy_bank_plus_one`, `combo_shard_plus_step`, `memorize_under_short_memorize`, `parasite_ward_once`, `region_shuffle_free_first`, `peek_charge_plus_one`, `stray_charge_plus_one`, `pin_cap_plus_one`, `guard_token_plus_one`, `shrine_echo`.
 
-Milestone offer floors: **3, 6, 9** (`RELIC_MILESTONE_FLOORS`).
+Milestone offers: first at floor **3**, then every **3** floors (**3, 6, 9, 12, …**); max **12** milestone **visits** per run (`RELIC_FIRST_MILESTONE_FLOOR`, `RELIC_MILESTONE_STEP`, `MAX_RELIC_PICKS_PER_RUN` in `relics.ts`). **Puzzle** runs skip relic drafts. Each offer rolls **three** distinct relics using `RELIC_DRAFT` weights (common / uncommon / rare) with **tier scaling** so later drafts relatively favor higher rarities (`effectiveRelicDraftWeight`, `rollRelicOptions`, `weightedPick.ts`). **Pick budget** per visit stacks: `shrine_echo` relic (bank for next shrine), **Daily** mode (+1), **generous_shrine** mutator (+1), meta unlock **after 7 dailies** (`relicShrineExtraPickUnlocked` → `metaRelicDraftExtraPerMilestone`), Scholar contract (`bonusRelicDraftPick`) — see `computeRelicOfferPickBudget` in `game.ts`.
 
 Memorize modifiers (see `getMemorizeDurationForRun` in `game.ts`): **`+280ms`** with `memorize_bonus_ms`; **`+220ms`** when `memorize_under_short_memorize` and `short_memorize` mutator are both active.
 

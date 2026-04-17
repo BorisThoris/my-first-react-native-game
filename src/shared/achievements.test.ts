@@ -91,4 +91,24 @@ describe('achievement rules', () => {
 
         expect(evaluateAchievementUnlocks(run, saveData)).toEqual([]);
     });
+
+    it('unlocks ACH_ENDLESS_TEN when endless run reaches floor 10', () => {
+        const base = createNewRun(0);
+        const run = {
+            ...base,
+            gameMode: 'endless' as const,
+            stats: {
+                ...base.stats,
+                highestLevel: 10
+            }
+        };
+        expect(evaluateAchievementUnlocks(run, createDefaultSaveData())).toContain('ACH_ENDLESS_TEN');
+    });
+
+    it('unlocks ACH_SEVEN_DAILIES from save progress', () => {
+        const run = createNewRun(0);
+        const saveData = createDefaultSaveData();
+        saveData.playerStats = { ...saveData.playerStats!, dailiesCompleted: 7 };
+        expect(evaluateAchievementUnlocks(run, saveData)).toContain('ACH_SEVEN_DAILIES');
+    });
 });

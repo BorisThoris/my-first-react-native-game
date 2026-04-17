@@ -18,6 +18,9 @@
  *   http://127.0.0.1:5173/?devSandbox=1&fx=matchedRimFire
  *   Playwright: `yarn capture:matched-flame` → `test-results/matched-flame-capture/` (or set `VISUAL_CAPTURE_ROOT`).
  *
+ * Procedural illustration gallery (Canvas2D regression pair keys × tier; DEV only):
+ *   http://127.0.0.1:5173/?devSandbox=1&fx=proceduralGallery
+ *
  * Screenshot workflow (compare to `docs/ENDPRODUCTIMAGE.png`):
  * - `yarn capture:endproduct-parity` — Playwright writes element crops to `docs/visual-capture/endproduct-parity/`
  *   (`hud-*.png`, `tile-board-*.png`). Without the script, the same spec defaults to `test-results/endproduct-parity/`.
@@ -46,7 +49,7 @@ const parseUnlockAchievementsParam = (params: URLSearchParams): AchievementId[] 
 export type DevSandboxScreen = Exclude<ViewState, 'boot'>;
 
 /** Isolated FX previews (replace app chrome; `devSandbox=1` required). */
-export type FxSandboxId = 'matchedRimFire';
+export type FxSandboxId = 'matchedRimFire' | 'proceduralGallery';
 
 export interface DevSandboxConfig {
     enabled: boolean;
@@ -104,6 +107,9 @@ const parseFxSandboxParam = (raw: string | null): FxSandboxId | null => {
     const key = raw.trim().toLowerCase().replace(/-/g, '');
     if (key === 'matchedrimfire') {
         return 'matchedRimFire';
+    }
+    if (key === 'proceduralgallery') {
+        return 'proceduralGallery';
     }
     return null;
 };

@@ -11,7 +11,9 @@ const ACHIEVEMENT_ORDER: AchievementId[] = [
     'ACH_LEVEL_FIVE',
     'ACH_SCORE_THOUSAND',
     'ACH_PERFECT_CLEAR',
-    'ACH_LAST_LIFE'
+    'ACH_LAST_LIFE',
+    'ACH_ENDLESS_TEN',
+    'ACH_SEVEN_DAILIES'
 ];
 
 export const ACHIEVEMENTS: AchievementDefinition[] = ACHIEVEMENT_ORDER.map((id) => ACHIEVEMENT_BY_ID[id]);
@@ -45,6 +47,18 @@ export const evaluateAchievementUnlocks = (run: RunState, saveData: SaveData): A
 
     if (run.lastLevelResult?.livesRemaining === 1 && !saveData.achievements.ACH_LAST_LIFE) {
         unlocked.push('ACH_LAST_LIFE');
+    }
+
+    if (
+        run.gameMode === 'endless' &&
+        run.stats.highestLevel >= 10 &&
+        !saveData.achievements.ACH_ENDLESS_TEN
+    ) {
+        unlocked.push('ACH_ENDLESS_TEN');
+    }
+
+    if ((saveData.playerStats?.dailiesCompleted ?? 0) >= 7 && !saveData.achievements.ACH_SEVEN_DAILIES) {
+        unlocked.push('ACH_SEVEN_DAILIES');
     }
 
     return unlocked;

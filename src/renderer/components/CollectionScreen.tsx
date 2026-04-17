@@ -1,6 +1,11 @@
 import { useShallow } from 'zustand/react/shallow';
 import { ACHIEVEMENT_BY_ID } from '../../shared/achievements';
 import type { RelicId } from '../../shared/contracts';
+import {
+    eligibleHonorUnlockIds,
+    HONOR_UNLOCK_CATALOG,
+    HONOR_UNLOCK_ORDER
+} from '../../shared/honorUnlocks';
 import { RELIC_CATALOG } from '../../shared/game-catalog';
 import { ACHIEVEMENT_IDS } from '../../shared/save-data';
 import { CALLSIGN_SYMBOLS, LETTER_SYMBOLS as LETTER_TILES, NUMBER_SYMBOLS } from '../../shared/tile-symbol-catalog';
@@ -18,6 +23,7 @@ const CollectionScreen = () => {
     );
     const ps = saveData.playerStats;
     const summary = saveData.lastRunSummary;
+    const honorEarned = new Set(eligibleHonorUnlockIds(saveData));
 
     return (
         <section aria-label="Collection" className={`${metaStyles.shell} ${metaStyles.shellMetaStage}`} role="region">
@@ -40,6 +46,7 @@ const CollectionScreen = () => {
             <div className={metaStyles.body}>
                 <nav aria-label="Collection sections" className={metaStyles.inPageToc}>
                     <a href="#collection-achievements">Achievements</a>
+                    <a href="#collection-honors">Honors</a>
                     <a href="#collection-relics">Relics</a>
                     <a href="#collection-bests">Bests</a>
                     <a href="#collection-daily">Daily</a>
@@ -61,6 +68,34 @@ const CollectionScreen = () => {
                                             <strong>{def.title}</strong>
                                             <p className={metaStyles.subtitle}>{def.description}</p>
                                             <span className={styles.symbolMeta}>{unlocked ? 'Unlocked' : 'Locked'}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </Panel>
+                </MetaFrame>
+
+                <MetaFrame data-testid="collection-meta-frame-honors">
+                    <Panel padding="lg" variant="default">
+                        <div className={`${styles.section} ${metaStyles.sectionAnchor}`} id="collection-honors">
+                            <h2 className={styles.sectionTitle}>Honors</h2>
+                            <p className={metaStyles.subtitle}>
+                                Local archive titles — no Steam slot required. Earned from dailies, no-powers floors,
+                                score, relic picks, and gauntlet clears.
+                            </p>
+                            <div className={`${styles.grid} ${metaStyles.metaLongList}`}>
+                                {HONOR_UNLOCK_ORDER.map((id) => {
+                                    const def = HONOR_UNLOCK_CATALOG[id];
+                                    const unlocked = honorEarned.has(id);
+                                    return (
+                                        <div
+                                            className={`${styles.achievementCard} ${unlocked ? styles.achievementUnlocked : styles.achievementLocked}`}
+                                            key={id}
+                                        >
+                                            <strong>{def.title}</strong>
+                                            <p className={metaStyles.subtitle}>{def.description}</p>
+                                            <span className={styles.symbolMeta}>{unlocked ? 'Earned' : 'Locked'}</span>
                                         </div>
                                     );
                                 })}

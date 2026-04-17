@@ -147,7 +147,9 @@ const OverlayModal = ({
                 aria-describedby={describedBy}
                 aria-labelledby={titleId}
                 aria-modal="true"
-                className={`${styles.modal} ${overlayToneClass(headerPlateTone)}`.trim()}
+                className={`${styles.modal} ${overlayToneClass(headerPlateTone)} ${
+                    actions.length === 0 ? styles.modalNoActions : ''
+                }`.trim()}
                 data-testid={testId}
                 ref={modalRef}
                 role="dialog"
@@ -181,20 +183,22 @@ const OverlayModal = ({
                     )}
                 </div>
 
-                <div className={styles.actions}>
-                    {actions.map((action) => (
-                        <UiButton
-                            className={styles.modalAction}
-                            disabled={action.disabled}
-                            key={action.label}
-                            onClick={action.onClick}
-                            size="md"
-                            variant={toUiVariant(action.variant)}
-                        >
-                            {action.label}
-                        </UiButton>
-                    ))}
-                </div>
+                {actions.length > 0 ? (
+                    <div className={styles.actions}>
+                        {actions.map((action) => (
+                            <UiButton
+                                className={styles.modalAction}
+                                disabled={action.disabled}
+                                key={action.label}
+                                onClick={action.onClick}
+                                size="md"
+                                variant={toUiVariant(action.variant)}
+                            >
+                                {action.label}
+                            </UiButton>
+                        ))}
+                    </div>
+                ) : null}
             </section>
         </div>
     );

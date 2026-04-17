@@ -2,6 +2,8 @@
 
 Each **Agent N** (1–100) maps **1:1** to **`REF-NNN.md`** with the same number (Agent 17 → `REF-017.md`). This is the canonical mapping for Cursor Background Agents, Composer, or any external runner that can queue parallel jobs.
 
+**See also:** [EXPLICIT_50_AGENTS.md](./EXPLICIT_50_AGENTS.md) — run only **REF-051–REF-100** (agents 51–100) with controllers **C06–C10**.
+
 ## Execution model (100 workload units)
 
 | Layer | Meaning |

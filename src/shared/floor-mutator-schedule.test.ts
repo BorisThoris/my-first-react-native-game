@@ -80,6 +80,13 @@ describe('pickFloorScheduleEntry', () => {
         expect(foundWithout, 'expected a boss seed where distraction_channel not appended').not.toBeNull();
     });
 
+    it('uses the same boss-floor shape for BALANCE_NOTES sim default seed (42001) at level 7', () => {
+        const e = pickFloorScheduleEntry(42_001, rv, 7, 'endless');
+        expect(e.floorTag).toBe('boss');
+        expect(e.mutators).toContain('glass_floor');
+        expect(e.mutators).toContain('sticky_fingers');
+    });
+
     it('does not add duplicate distraction_channel or exceed three mutators', () => {
         for (let runSeed = 0; runSeed < 2000; runSeed += 1) {
             const e = pickFloorScheduleEntry(runSeed, rv, 7, 'endless');

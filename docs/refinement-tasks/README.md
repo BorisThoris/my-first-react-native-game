@@ -18,4 +18,6 @@
 
 **Last hygiene snapshot:** 2026-04-17 — [COMPLETION.md](./COMPLETION.md) rollup; per-card `Rollup:` / **Status** aligned with shipped code; INDEX unchanged. **`yarn ci`** / **`yarn verify`** green (see [TOOLING.md](../internal-wiki/TOOLING.md)).
 
-**Related:** [APP_ANALYSIS_SNAPSHOT_2026-04-17.md](../internal-wiki/APP_ANALYSIS_SNAPSHOT_2026-04-17.md), [GAMEPLAY_POLISH_AND_GAPS.md](../gameplay/GAMEPLAY_POLISH_AND_GAPS.md).
+**Parallel runs:** [EXPLICIT_100_AGENTS.md](./EXPLICIT_100_AGENTS.md) (full REF-001–100). To continue with **only the back 50** (REF-051–100, agents 51–100), see [EXPLICIT_50_AGENTS.md](./EXPLICIT_50_AGENTS.md).
+
+**Related:** [APP_ANALYSIS.md](../internal-wiki/APP_ANALYSIS.md), [GAMEPLAY_POLISH_AND_GAPS.md](../gameplay/GAMEPLAY_POLISH_AND_GAPS.md).

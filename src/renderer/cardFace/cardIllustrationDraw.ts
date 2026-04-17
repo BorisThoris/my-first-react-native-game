@@ -345,7 +345,8 @@ export const drawIllustrationInCanvasOverlay = (
     return true;
 };
 
-const drawProceduralTarotIllustrationPanel = (
+/** Lower-level panel draw for bitmap caching and raster-deck composition (same clip + mat feather as overlay path). */
+export const drawProceduralTarotIllustrationPanel = (
     ctx: CanvasRenderingContext2D,
     panelX: number,
     panelY: number,

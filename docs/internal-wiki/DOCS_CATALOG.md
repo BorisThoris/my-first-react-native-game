@@ -2,7 +2,7 @@
 
 **Purpose:** Every `.md` under `docs/` is listed so nothing is “orphaned” from the internal wiki. **One-line summaries** are for navigation; authoritative detail stays in each file.
 
-**Count:** ~157 markdown files under `docs/` (exact count drifts as files are added; re-count when the catalog is audited).
+**Count:** ~263 markdown files under `docs/` (exact count drifts as files are added; re-count when the catalog is audited — PowerShell: `(Get-ChildItem -Path docs -Recurse -Filter *.md).Count`).
 
 ---
 
@@ -162,6 +162,7 @@
 | [TASKS_CARDS_VFX_PARITY.md](../new_design/TASKS/TASKS_CARDS_VFX_PARITY.md) | Cards VFX parity |
 | [TASKS_COMPLETION_LOG.md](../new_design/TASKS/TASKS_COMPLETION_LOG.md) | Completion log |
 | [TASKS_CROSSCUTTING.md](../new_design/TASKS/TASKS_CROSSCUTTING.md) | Crosscutting tasks |
+| [ULTRA_REFINE_OPEN_QUEUE.md](../new_design/TASKS/ULTRA_REFINE_OPEN_QUEUE.md) | Open P0/P1 ultra-refine queue + PLAY-010 commands |
 | [TASKS_DESIGN_SYSTEM.md](../new_design/TASKS/TASKS_DESIGN_SYSTEM.md) | Design system |
 | [TASKS_HUD_PARITY.md](../new_design/TASKS/TASKS_HUD_PARITY.md) | HUD parity |
 | [TASKS_META_AND_SHELL.md](../new_design/TASKS/TASKS_META_AND_SHELL.md) | Meta + shell |
@@ -171,6 +172,19 @@
 | [TASKS_PLAYING_ENDPRODUCT.md](../new_design/TASKS/TASKS_PLAYING_ENDPRODUCT.md) | Playing vs end product |
 | [TASKS_SIDEBAR_PARITY.md](../new_design/TASKS/TASKS_SIDEBAR_PARITY.md) | Sidebar parity |
 | [TASKS_TILE_BOARD_WEBGL_FX_V2.md](../new_design/TASKS/TASKS_TILE_BOARD_WEBGL_FX_V2.md) | Tile board WebGL FX v2 |
+
+---
+
+## `docs/visualization-work/`
+
+| File | Summary |
+|------|---------|
+| [README.md](../visualization-work/README.md) | Procedural illustration backlog portal + dev gallery URL (`fx=proceduralGallery`) |
+| [INDEX.md](../visualization-work/INDEX.md) | VIZ-001–006 task index |
+| [TASKS.md](../visualization-work/TASKS.md) | Rollup linking individual `VIZ-NNN` files |
+| [ARCHITECTURE.md](../visualization-work/ARCHITECTURE.md) | Canvas procedural pipeline + cache/version knobs |
+| [EXPLICIT_50_AGENTS.md](../visualization-work/EXPLICIT_50_AGENTS.md) | Fifty scoped parallel-agent prompts mapped to VIZ phases |
+| [VIZ-001.md](../visualization-work/VIZ-001.md) … [VIZ-006.md](../visualization-work/VIZ-006.md) | Individual phased tasks |
 
 ---
 
@@ -235,7 +249,9 @@
 | [DOCS_CATALOG.md](./DOCS_CATALOG.md) | This file |
 | [LEGACY_AND_CAVEATS.md](./LEGACY_AND_CAVEATS.md) | Legacy + doc caveats |
 | [COVERAGE.md](./COVERAGE.md) | Coverage methodology |
-| [APP_ANALYSIS_SNAPSHOT_2026-04-17.md](./APP_ANALYSIS_SNAPSHOT_2026-04-17.md) | Point-in-time merged analysis (50 parallel scoped passes; orientation only) |
+| [APP_ANALYSIS.md](./APP_ANALYSIS.md) | Living app analysis: stamps, authority chain, multi-pass rollup findings, parity notes; dated filenames stub-link here |
+| [APP_ANALYSIS_SNAPSHOT_2026-04-17.md](./APP_ANALYSIS_SNAPSHOT_2026-04-17.md) | Redirect stub → [APP_ANALYSIS.md](./APP_ANALYSIS.md) |
+| [APP_ANALYSIS_TURBO_2026-04-18.md](./APP_ANALYSIS_TURBO_2026-04-18.md) | Redirect stub → [APP_ANALYSIS.md](./APP_ANALYSIS.md) |
 
 ---
 

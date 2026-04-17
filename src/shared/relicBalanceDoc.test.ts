@@ -2,7 +2,12 @@ import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { describe, expect, it } from 'vitest';
-import { RELIC_MILESTONE_FLOORS, RELIC_POOL } from './relics';
+import {
+    MAX_RELIC_PICKS_PER_RUN,
+    RELIC_FIRST_MILESTONE_FLOOR,
+    RELIC_MILESTONE_STEP,
+    RELIC_POOL
+} from './relics';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -17,11 +22,11 @@ describe('relic balance vs BALANCE_NOTES.md', () => {
         }
     });
 
-    it('documents milestone floors matching RELIC_MILESTONE_FLOORS', () => {
+    it('documents milestone cadence constants from relics.ts', () => {
         const doc = readBalanceNotes();
-        expect(doc).toContain(String(RELIC_MILESTONE_FLOORS[0]));
-        expect(doc).toContain(String(RELIC_MILESTONE_FLOORS[1]));
-        expect(doc).toContain(String(RELIC_MILESTONE_FLOORS[2]));
+        expect(doc).toContain(String(RELIC_FIRST_MILESTONE_FLOOR));
+        expect(doc).toContain(String(RELIC_MILESTONE_STEP));
+        expect(doc).toContain(String(MAX_RELIC_PICKS_PER_RUN));
     });
 
     it('documents memorize bonus ms aligned with game.ts', () => {

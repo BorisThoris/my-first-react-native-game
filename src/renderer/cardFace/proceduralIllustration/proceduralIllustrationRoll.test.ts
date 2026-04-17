@@ -13,4 +13,19 @@ describe('rollProceduralIllustrationSpec', () => {
             rollProceduralIllustrationSpec('pair-beta', 'standard')
         );
     });
+
+    it('rolls bounded noise strength and symmetry flags', () => {
+        const spec = rollProceduralIllustrationSpec('pair-inv-1', 'full');
+        expect([0, 1, 2]).toContain(spec.noiseStrength);
+        expect(['none', 'mirrorV']).toContain(spec.symmetry);
+        expect(spec.ringLayers).toBeGreaterThanOrEqual(1);
+        expect(spec.ringLayers).toBeLessThanOrEqual(5);
+        expect(spec.motifSides).toBeGreaterThanOrEqual(3);
+        expect(spec.motifSides).toBeLessThanOrEqual(14);
+    });
+
+    it('clamps maximal noise on minimal tier', () => {
+        const spec = rollProceduralIllustrationSpec('pair-min-noise', 'minimal');
+        expect(spec.noiseStrength).not.toBe(2);
+    });
 });

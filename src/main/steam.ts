@@ -3,7 +3,7 @@
  *
  * - **Init failure** (missing DLL, wrong `STEAM_APP_ID`, API unavailable): `createSteamAdapter` catches and returns
  *   {@link createMockSteamAdapter} — the app keeps running; renderer sees `isSteamConnected() === false`.
- * - **Achievement unlock**: never throws to IPC callers; returns structured {@link AchievementUnlockResult}.
+ * - **Achievement unlock**: never throws to IPC callers; returns structured {@link AchievementUnlockResult}. Partner must define matching API Names for every `AchievementId` (see `STEAM_ACHIEVEMENT_API_NAME`).
  * - **Overlay**: `electronEnableSteamOverlay` is best-effort when the API exists.
  *
  * Non-Steam dev builds and web renderer use the mock adapter via preload (`desktopClient`); no Steam install required.
@@ -26,7 +26,9 @@ const STEAM_ACHIEVEMENT_API_NAME = {
     ACH_LAST_LIFE: 'ACH_LAST_LIFE',
     ACH_LEVEL_FIVE: 'ACH_LEVEL_FIVE',
     ACH_PERFECT_CLEAR: 'ACH_PERFECT_CLEAR',
-    ACH_SCORE_THOUSAND: 'ACH_SCORE_THOUSAND'
+    ACH_SCORE_THOUSAND: 'ACH_SCORE_THOUSAND',
+    ACH_ENDLESS_TEN: 'ACH_ENDLESS_TEN',
+    ACH_SEVEN_DAILIES: 'ACH_SEVEN_DAILIES'
 } as const satisfies Record<AchievementId, string>;
 
 const createMockSteamAdapter = (): SteamAdapter => ({

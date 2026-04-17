@@ -8,8 +8,9 @@ Meta-upgrades offered at milestone floors; deterministic options from the relic 
 
 | Area | Status | Notes |
 |------|--------|--------|
-| Pool & milestones | **Shippable** | `RELIC_POOL`, floors `[3,6,9]`, `needsRelicPick`, `rollRelicOptions` (deterministic RNG from run seed + tier). |
-| Offer flow | **Shippable** | On `continueToNextLevel`, may open `relicOffer` instead of advancing; `pickRelic` → `applyRelicImmediate` → `advanceToNextLevel`. |
+| Pool & milestones | **Shippable** | `RELIC_DRAFT` weights + rarity tier scaling (`effectiveRelicDraftWeight`), `RELIC_POOL`, milestones every 3 floors from 3 (cap **12 milestone visits**/run), `needsRelicPick` (puzzle off), `rollRelicOptions` (deterministic RNG: run seed + tier + floor + `pickRound`; weighted without replacement via `weightedPick.ts`). |
+| Offer flow | **Shippable** | `computeRelicOfferPickBudget` stacks Daily (+1), `generous_shrine`, meta (`relicShrineExtraPickUnlocked` → `metaRelicDraftExtraPerMilestone`), Scholar `bonusRelicDraftPick`, and banked `shrine_echo` / `grantBonusRelicPickNextOffer`. On `continueToNextLevel`, may open `relicOffer`; `pickRelic` applies relic; if `picksRemaining > 1`, rerolls; else `relicTiersClaimed++` once and `advanceToNextLevel`. See [relic-draft-fluid-system](../epics/relic-draft-fluid-system/README.md). |
+| Draft UI | **Shippable** | Rarity via card chrome (color/glow); effect text only; a11y `aria-label` / `sr-only`. `RelicDraftOfferPanel` + `GameScreen`. |
 | Per-relic behavior | **Shippable** | Implemented in `game.ts` (`applyRelicImmediate`), not only in `relics.ts`. |
 | Player-facing copy | **Shippable** | `RELIC_CATALOG` in `mechanics-encyclopedia.ts` (blurbs; re-exported through `game-catalog.ts`). |
 | Persistence | **Shippable** | `mergeRelicPickStat` on pick. |

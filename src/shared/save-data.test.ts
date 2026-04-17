@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SAVE_SCHEMA_VERSION } from './contracts';
-import { DEFAULT_SETTINGS, normalizeSaveData } from './save-data';
+import { createAchievementState, DEFAULT_SETTINGS, normalizeSaveData } from './save-data';
 import type { SaveData } from './contracts';
 
 const assertNoUndefinedDeep = (value: unknown, path: string): void => {
@@ -94,6 +94,25 @@ describe('save normalization', () => {
             }
         });
         expect(saveData.settings.boardPresentation).toBe(DEFAULT_SETTINGS.boardPresentation);
+    });
+
+    it('sets relicShrineExtraPickUnlocked when seven-dailies achievement is present or dailies count is 7+', () => {
+        const fromAchievement = normalizeSaveData({
+            achievements: { ...createAchievementState(), ACH_SEVEN_DAILIES: true }
+        });
+        expect(fromAchievement.playerStats?.relicShrineExtraPickUnlocked).toBe(true);
+
+        const fromCount = normalizeSaveData({
+            playerStats: {
+                bestFloorNoPowers: 0,
+                dailiesCompleted: 7,
+                lastDailyDateKeyUtc: null,
+                dailyStreakCosmetic: 0,
+                relicPickCounts: {},
+                encorePairKeysLastRun: []
+            }
+        });
+        expect(fromCount.playerStats?.relicShrineExtraPickUnlocked).toBe(true);
     });
 
     it('table-driven legacy / partial fixtures normalize without undefined leaks (REF-065)', () => {

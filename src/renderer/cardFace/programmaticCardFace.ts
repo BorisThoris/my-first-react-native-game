@@ -1,14 +1,11 @@
 /**
- * Deterministic card-face motif: geometric shape + numeric rank.
- * SVG output is the canonical spec; canvas overlay in tileTextures mirrors the same layout.
+ * Deterministic card-face shell: framed procedural illustration only (no rank/symbol glyphs).
+ * SVG retains vector sigil geometry for exports; canvas matches illustration + frame + vignette.
  */
 import type { Tile } from '../../shared/contracts';
 import { hashPairKey } from '../../shared/hashPairKey';
 import { getCardFaceOverlayColors, type ProgrammaticOverlayVariant } from './cardFaceOverlayPalette';
 import type { OverlayDrawTier } from './overlayDrawTier';
-import { FEATURE_CARD_OPENTYPE_GLYPHS } from '../../shared/feature-flags';
-import { tryDrawOpentypeCenteredText } from './opentypeCardRankFont';
-import { escapeXml } from './svgMarkup';
 import { drawProceduralIllustrationCoverInViewBox } from './cardIllustrationDraw';
 
 export type { ProgrammaticOverlayVariant };
@@ -18,14 +15,12 @@ export const PROGRAMMATIC_CARD_VIEWBOX = { w: 400, h: 560 } as const;
 /** Layout tuned to sit in the authored `front.svg` inner panel (safe zone). */
 const LAYOUT = {
     frame: { x: 24, y: 28, w: 352, h: 504, rx: 28 },
-    shape: { cx: 200, cy: 196, scale: 1 },
-    /** Rank text baseline area */
-    number: { x: 200, y: 432, fontSize: 56 }
+    shape: { cx: 200, cy: 196, scale: 1 }
 } as const;
 
 const SHAPE_COUNT = 5;
 
-/** True when we draw shape+number motif (digits-only symbols like "01".."30"). */
+/** True when we use the programmatic frame shell (digits-only symbols like "01".."30"). */
 export const tileUsesProgrammaticFaceMotif = (tile: Tile): boolean => /^\d{1,4}$/.test(tile.symbol.trim());
 
 const shapeKind = (tile: Tile): number => {
@@ -106,7 +101,7 @@ export const buildProgrammaticCardFaceSvg = (
     tier: OverlayDrawTier = 'full'
 ): string => {
     const { w, h } = PROGRAMMATIC_CARD_VIEWBOX;
-    const { frame, shape, number: num } = LAYOUT;
+    const { frame, shape } = LAYOUT;
     const c = getCardFaceOverlayColors(variant);
     const k = shapeKind(tile);
     const inner = shapeSvgElements(
@@ -118,7 +113,6 @@ export const buildProgrammaticCardFaceSvg = (
         c.sigilHighlight,
         tier !== 'minimal'
     );
-    const rankText = escapeXml(tile.symbol);
     const grainSeed = noiseSeed(tile, variant);
     const fx = frame.x;
     const fy = frame.y;
@@ -133,12 +127,6 @@ export const buildProgrammaticCardFaceSvg = (
         values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.09 0" result="g"/>
     </filter>`
             : '';
-    const rankFilterDef =
-        tier === 'full' || tier === 'standard'
-            ? `<filter id="pgRank" x="-8%" y="-8%" width="116%" height="116%" color-interpolation-filters="sRGB">
-      <feDropShadow dx="0" dy="2.2" stdDeviation="1.4" flood-color="${c.rankShadow}" flood-opacity="1"/>
-    </filter>`
-            : '';
     const innerRim =
         tier === 'minimal'
             ? ''
@@ -148,24 +136,6 @@ export const buildProgrammaticCardFaceSvg = (
     const grainRect =
         tier === 'full'
             ? `  <rect x="0" y="0" width="${w}" height="${h}" fill="#ffffff" filter="url(#pgGrain)" opacity="${Math.min(0.22, c.grainAlpha * 4)}" pointer-events="none"/>
-`
-            : '';
-    const rankShadowText =
-        tier === 'full'
-            ? `  <text x="${num.x + 1.2}" y="${num.y + 2}" text-anchor="middle" dominant-baseline="middle"
-    font-family="Source Sans 3, Trebuchet MS, Arial, sans-serif" font-weight="800" font-size="${num.fontSize}"
-    fill="${c.rankShadow}" opacity="0.55">${rankText}</text>
-`
-            : '';
-    const rankMainAttrs =
-        tier === 'full' || tier === 'standard'
-            ? ` filter="url(#pgRank)"`
-            : '';
-    const rankHighlightText =
-        tier === 'full'
-            ? `  <text x="${num.x}" y="${num.y - 0.6}" text-anchor="middle" dominant-baseline="middle"
-    font-family="Source Sans 3, Trebuchet MS, Arial, sans-serif" font-weight="800" font-size="${num.fontSize}"
-    fill="${c.rankFill}" opacity="0.42">${rankText}</text>
 `
             : '';
 
@@ -187,17 +157,13 @@ export const buildProgrammaticCardFaceSvg = (
       <stop offset="1" stop-color="${c.vignette}"/>
     </radialGradient>
 ${grainDef}
-${rankFilterDef}
   </defs>
   <rect x="${fx}" y="${fy}" width="${fw}" height="${fh}" rx="${frame.rx}" ry="${frame.rx}"
     fill="url(#pgFrame)" stroke="${c.frameStroke}" stroke-width="3"/>
 ${innerRim}
   ${inner}
   <rect x="0" y="0" width="${w}" height="${h}" fill="url(#pgVin)" pointer-events="none"/>
-${grainRect}${rankShadowText}  <text x="${num.x}" y="${num.y}" text-anchor="middle" dominant-baseline="middle"${rankMainAttrs}
-    font-family="Source Sans 3, Trebuchet MS, Arial, sans-serif" font-weight="800" font-size="${num.fontSize}"
-    fill="${c.rankFillMid}" stroke="${c.rankStroke}" stroke-width="2.4" paint-order="stroke fill">${rankText}</text>
-${rankHighlightText}</svg>`;
+${grainRect}</svg>`;
 };
 
 const createOverlayRng = (tile: Tile, variant: ProgrammaticOverlayVariant): (() => number) => {
@@ -239,7 +205,7 @@ export const drawProgrammaticCardFaceOverlay = (
 ): void => {
     const { width, height } = canvas;
     const { w: vbW, h: vbH } = PROGRAMMATIC_CARD_VIEWBOX;
-    const { frame, shape, number: num } = LAYOUT;
+    const { frame, shape } = LAYOUT;
     const c = getCardFaceOverlayColors(variant);
     const rng = createOverlayRng(tile, variant);
     const grainMul = tier === 'full' ? 1 : tier === 'standard' ? 0.55 : 0;
@@ -299,46 +265,6 @@ export const drawProgrammaticCardFaceOverlay = (
 
     if (grainMul > 0) {
         drawFilmGrain(context, vbW, vbH, Math.round(110 * grainMul), c.grainRgb, c.grainAlpha * 0.55, rng);
-    }
-
-    context.textAlign = 'center';
-    context.textBaseline = 'middle';
-    const ctxLs = context as CanvasRenderingContext2D & { letterSpacing?: string };
-    const prevLs = ctxLs.letterSpacing;
-    if ('letterSpacing' in context) {
-        ctxLs.letterSpacing = tile.symbol.length >= 3 ? '0.07em' : '0.028em';
-    }
-    context.font = `800 ${num.fontSize}px "Source Sans 3", "Arial", sans-serif`;
-
-    const useOt =
-        tier === 'full' &&
-        FEATURE_CARD_OPENTYPE_GLYPHS &&
-        tryDrawOpentypeCenteredText(context, tile.symbol, num.x, num.y, num.fontSize, c.rankFillMid, c.rankStroke, 2.4);
-
-    if (!useOt) {
-        if (tier === 'full') {
-            context.fillStyle = c.rankShadow;
-            context.globalAlpha = 0.55;
-            context.fillText(tile.symbol, num.x + 1.2, num.y + 2);
-            context.globalAlpha = 1;
-        }
-
-        context.fillStyle = c.rankFillMid;
-        context.strokeStyle = c.rankStroke;
-        context.lineWidth = 2.4;
-        context.strokeText(tile.symbol, num.x, num.y);
-        context.fillText(tile.symbol, num.x, num.y);
-
-        if (tier === 'full') {
-            context.fillStyle = c.rankFill;
-            context.globalAlpha = 0.42;
-            context.fillText(tile.symbol, num.x, num.y - 0.6);
-            context.globalAlpha = 1;
-        }
-    }
-
-    if ('letterSpacing' in context) {
-        ctxLs.letterSpacing = prevLs ?? '0px';
     }
 
     context.restore();

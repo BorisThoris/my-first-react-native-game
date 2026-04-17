@@ -39,6 +39,8 @@ yarn package:win
 
 `yarn ci` runs **`yarn fullcheck`** (`eslint` + the `.test.ts`/JSX guard + `tsc --noEmit` + `vitest run`). Use **`yarn verify`** for typecheck + tests only when iterating without lint. **`yarn lint`** runs ESLint + the guard only.
 
+Abridged scripts above; full matrix (Playwright bundles, illustration regression/benchmark, captures, card pipeline): [`docs/internal-wiki/TOOLING.md`](docs/internal-wiki/TOOLING.md).
+
 See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for mechanics encyclopedia / Codex copy workflow when changing relics, mutators, or player-facing rules text.
 
 ## Dev: WebGL board profiling
@@ -48,7 +50,7 @@ These flags are **dev builds only** (`import.meta.env.DEV`). After changing `loc
 | Flag | Effect |
 | --- | --- |
 | `localStorage.perfBoard = '1'` | Logs `[perfBoard]` average milliseconds per frame for the consolidated tile-stepping slice in the board scene (see `src/renderer/dev/boardWebglPerfSample.ts`). |
-| `localStorage.tileStepLegacy = '1'` | Uses per-tile `useFrame` stepping instead of the scene-level consolidated loop (see `src/renderer/dev/tileStepLegacy.ts`). |
+| `localStorage.tileStepLegacy = '1'` | Uses per-tile `useFrame` stepping instead of the scene-level consolidated loop (see `src/renderer/dev/legacy/tileStepLegacy.ts`). |
 
 Clear the key or set it to anything other than `'1'` to turn a flag off, then reload.
 

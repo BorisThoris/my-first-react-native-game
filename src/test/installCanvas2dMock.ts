@@ -62,20 +62,20 @@ const createCanvasContextStub = (canvas: HTMLCanvasElement): CanvasRenderingCont
 export const installCanvas2dMock = (): (() => void) => {
     const contexts = new WeakMap<HTMLCanvasElement, CanvasRenderingContext2D>();
     const getContextMock = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(function (
+        this: HTMLCanvasElement,
         contextId: string
-    ) {
+    ): RenderingContext | null {
         if (contextId !== '2d') {
             return null;
         }
-        const canvas = this as HTMLCanvasElement;
-        const existing = contexts.get(canvas);
+        const existing = contexts.get(this);
         if (existing) {
             return existing;
         }
-        const context = createCanvasContextStub(canvas);
-        contexts.set(canvas, context);
+        const context = createCanvasContextStub(this);
+        contexts.set(this, context);
         return context;
-    });
+    } as typeof HTMLCanvasElement.prototype.getContext);
 
     return () => {
         getContextMock.mockRestore();

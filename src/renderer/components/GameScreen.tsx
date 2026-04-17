@@ -2,13 +2,11 @@ import { ACHIEVEMENTS } from '../../shared/achievements';
 import {
     MAX_PINNED_TILES,
     type AchievementId,
-    type RelicId,
     type RunState,
     type Settings
 } from '../../shared/contracts';
 import { computeFocusDimmedTileIds } from '../../shared/focusDimmedTileIds';
 import { canRegionShuffle, canRegionShuffleRow, canShuffleBoard } from '../../shared/game';
-import { RELIC_MILESTONE_FLOORS } from '../../shared/relics';
 import { useNotificationStore } from '@cross-repo-libs/notifications';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
@@ -22,6 +20,13 @@ import {
     useHudPoliteLiveAnnouncement
 } from '../hooks/useHudPoliteLiveAnnouncement';
 import { useViewportSize } from '../hooks/useViewportSize';
+import {
+    buildRelicDraftBonusFootnoteLines,
+    getRelicOfferSubtitle,
+    getRelicOfferTitle,
+    relicDraftProgressLine,
+    relicEffectLabels
+} from '../copy/relicDraftOffer';
 import { GAMEPLAY_SHORTCUT_ROWS } from '../keyboard/gameplayShortcuts';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
 import { StatTile } from '../ui';
@@ -30,6 +35,7 @@ import GameLeftToolbar from './GameLeftToolbar';
 import GameplayHudBar from './GameplayHudBar';
 import MainMenuBackground from './MainMenuBackground';
 import OverlayModal from './OverlayModal';
+import RelicDraftOfferPanel from './RelicDraftOfferPanel';
 import TileBoard, { type TileBoardHandle } from './TileBoard';
 import { GAMEPLAY_VISUAL_CSS_VARS } from './gameplayVisualConfig';
 import styles from './GameScreen.module.css';
@@ -45,29 +51,6 @@ interface GameScreenProps {
 
 /** PLAY-009: pair-index rings on face-down DOM tiles only for very early floors + until FTUE flag clears after tutorial floors. */
 const TUTORIAL_PAIR_MARKER_MAX_LEVEL = 2;
-
-const RELIC_LABELS: Record<RelicId, string> = {
-    extra_shuffle_charge: '+1 shuffle charge (now)',
-    first_shuffle_free_per_floor: 'First shuffle each floor is free',
-    memorize_bonus_ms: 'Longer memorize phases',
-    destroy_bank_plus_one: '+1 destroy charge (now)',
-    combo_shard_plus_step: '+1 combo shard (now)',
-    memorize_under_short_memorize: '+220ms memorize when Short memorize is active',
-    parasite_ward_once: 'Ignore next parasite life loss once',
-    region_shuffle_free_first: 'First row shuffle each floor is free'
-};
-
-/** OVR-012 — relic-offer tiers 1–3 match {@link RELIC_MILESTONE_FLOORS} (floors 3, 6, 9). */
-const getRelicOfferTitle = (tier: number): string =>
-    `Relic offer (${tier} of ${RELIC_MILESTONE_FLOORS.length})`;
-
-const getRelicOfferSubtitle = (tier: number): string => {
-    const idx = Math.max(0, Math.min(tier - 1, RELIC_MILESTONE_FLOORS.length - 1));
-    const floor = RELIC_MILESTONE_FLOORS[idx];
-    const which = ['First', 'Second', 'Third'][idx] ?? 'Milestone';
-
-    return `${which} milestone relic after clearing floor ${floor}. Choose one relic; it applies immediately and lasts the rest of the run.`;
-};
 
 const BONUS_TAG_LABELS: Record<string, string> = {
     scholar_style: 'Scholar style',
@@ -235,6 +218,9 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         triggerDebugReveal,
         undoResolvingFlip
     } = gameScreenActions;
+
+    const relicDraftProgressText = run.relicOffer ? relicDraftProgressLine(run.relicOffer) : null;
+    const relicBonusFootnoteLines = run.relicOffer ? buildRelicDraftBonusFootnoteLines(run) : [];
 
     /** Pause / resume: toolbar control removed — **P** toggles pause when gameplay is active (not when meta overlays suppress status). */
     useEffect(() => {
@@ -701,17 +687,33 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
 
                 {!suppressStatusOverlays && run.relicOffer ? (
                     <OverlayModal
-                        actions={run.relicOffer.options.map((id) => ({
-                            label: RELIC_LABELS[id] ?? id,
-                            onClick: () => pickRelic(id),
-                            variant: 'primary' as const
-                        }))}
+                        actions={[]}
                         headerPlateTone="relic"
                         ornamentalHeaderPlate
-                        subtitle={getRelicOfferSubtitle(run.relicOffer.tier)}
+                        subtitle={getRelicOfferSubtitle(
+                            run.lastLevelResult?.level ?? 0,
+                            run.relicOffer.picksRemaining
+                        )}
                         testId="game-relic-offer-overlay"
                         title={getRelicOfferTitle(run.relicOffer.tier)}
-                    />
+                    >
+                        {relicDraftProgressText ? (
+                            <p className={styles.relicDraftProgress}>{relicDraftProgressText}</p>
+                        ) : null}
+                        {relicBonusFootnoteLines.length > 0 ? (
+                            <ul className={styles.relicDraftBonusList}>
+                                {relicBonusFootnoteLines.map((line) => (
+                                    <li key={line}>{line}</li>
+                                ))}
+                            </ul>
+                        ) : null}
+                        <RelicDraftOfferPanel
+                            descriptionById={relicEffectLabels}
+                            onPick={pickRelic}
+                            optionIds={run.relicOffer.options}
+                            pickRound={run.relicOffer.pickRound}
+                        />
+                    </OverlayModal>
                 ) : null}
 
                 {!suppressStatusOverlays &&

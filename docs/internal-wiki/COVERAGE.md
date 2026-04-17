@@ -31,13 +31,13 @@ This page states **what is covered**, **how we measure it**, and **what is expli
 
 Against the **in-scope** definition above:
 
-- **Documentation inventory:** ~**100%** of markdown files under `docs/` appear in [DOCS_CATALOG.md](./DOCS_CATALOG.md) (last full pass: **~157** files; re-count with `Get-ChildItem docs -Recurse -Filter *.md` on Windows).
+- **Documentation inventory:** ~**100%** of markdown files under `docs/` appear in [DOCS_CATALOG.md](./DOCS_CATALOG.md) (last full pass: **~263** files; re-count with `Get-ChildItem docs -Recurse -Filter *.md` on Windows).
 - **Product + engineering orientation:** ~**95–100%** of active `src/` surface is mapped in [SOURCE_MAP.md](./SOURCE_MAP.md) at module/folder granularity (not every React component name).
 - **Overall “everything in the game”** if you include legacy + every asset byte: **not 100%** by design; use this page’s **out of scope** list.
 
 **Bottom line:** For **shipping and maintaining the desktop game**, treat internal coverage as **~95–100%** for *navigable* documentation and source orientation, with **legacy** and **raw binaries** as the main deliberate gaps.
 
-**Multi-pass agent audits** (see [multiple-agents.md](./multiple-agents.md), [APP_ANALYSIS_SNAPSHOT_2026-04-17.md](./APP_ANALYSIS_SNAPSHOT_2026-04-17.md)) are iterative inventory passes over maps and markdown; they improve orientation and catch doc drift but **do not** replace running the app, tests, or Playwright for behavioral truth.
+**Multi-pass agent audits** (see [multiple-agents.md](./multiple-agents.md), [APP_ANALYSIS.md](./APP_ANALYSIS.md)) are iterative inventory passes over maps and markdown; they improve orientation and catch doc drift but **do not** replace running the app, tests, or Playwright for behavioral truth.
 
 ## When this file goes stale
 

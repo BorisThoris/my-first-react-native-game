@@ -32,7 +32,7 @@
 
 ## If something regresses
 
-1. Run `yarn verify`.
+1. Run `yarn fullcheck` (CI parity: lint + `yarn verify`) or `yarn verify` for a faster loop.
 2. Open the relevant `REF-NNN.md` for the intended behavior.
 3. Fix in **authoritative** modules (`contracts`, `game.ts`, renderer feature folders) — avoid duplicating rules in task files.
 

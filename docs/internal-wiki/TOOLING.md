@@ -22,12 +22,15 @@
 | `yarn typecheck:shared` | `tsc -p tsconfig.shared.json --noEmit` — optional narrow check for `src/shared` only (no `composite` split; see TypeScript note below) |
 | `yarn lint` | ESLint + `scripts/check-test-file-extensions.mjs` (REF-093: no JSX in `.test.ts`) |
 | `yarn test` | Vitest run |
-
-**Refinement backlog (REF-100):** [REF-100](../refinement-tasks/REF-100.md) is **Done** (INDEX acceptance met). Notes live in [refinement-tasks/README.md](../refinement-tasks/README.md) and [COMPLETION.md](../refinement-tasks/COMPLETION.md) (2026-04-17); optional INDEX re-triage is process only.
 | `yarn test:watch` | Vitest watch |
 | `yarn test:e2e` | Full Playwright suite |
+| `yarn test:e2e:illustration-regression` | Golden comparison for procedural card illustration (`e2e/tile-card-face-illustration-regression.spec.ts`, `--workers=1`) |
+| `yarn regenerate:illustration-regression` | Updates illustration fixtures (`UPDATE_ILLUSTRATION_FIXTURES`) — use intentionally |
+| `yarn benchmark:illustration-regression` | Illustration perf sample (`RUN_ILLUSTRATION_BENCHMARK`) |
 | `yarn test:e2e:a11y` | Scoped axe on main menu, settings, in-run shell (`e2e/a11y-scoped-routes.spec.ts`) |
 | `yarn sim:endless` | `tsx scripts/sim-endless.ts` — endless schedule CSV sampler (REF-098) |
+
+**Refinement backlog (REF-100):** [REF-100](../refinement-tasks/REF-100.md) is **Done** (INDEX acceptance met). Notes live in [refinement-tasks/README.md](../refinement-tasks/README.md) and [COMPLETION.md](../refinement-tasks/COMPLETION.md) (2026-04-17); optional INDEX re-triage is process only.
 
 ### TypeScript: shared vs renderer
 
@@ -137,6 +140,6 @@ Package script: `yarn --cwd packages/notifications build` (or `npm run build` in
 
 That keeps a single React/Zustand instance and lets you edit notification source without pre-building `dist/`.
 
-**Runtime imports** (example from `src/renderer/main.tsx`): `NotificationHost` from `@cross-repo-libs/notifications` and `@cross-repo-libs/notifications/styles.css`, plus app-level overrides in `src/renderer/styles/notificationsGame.css`.
+**Runtime imports** (example from `src/renderer/initRendererShell.tsx`): `NotificationHost` from `@cross-repo-libs/notifications` and `@cross-repo-libs/notifications/styles.css`, plus app-level overrides in `src/renderer/styles/notificationsGame.css`.
 
 **If you consumed the package only as a built dependency** (no monorepo aliases), you would use the package exports: `@cross-repo-libs/notifications` and `@cross-repo-libs/notifications/styles.css`, which resolve to `dist/` as above.

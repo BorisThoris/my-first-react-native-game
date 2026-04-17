@@ -20,7 +20,7 @@
 | **Legacy code & doc caveats** | [LEGACY_AND_CAVEATS.md](./LEGACY_AND_CAVEATS.md) |
 | **Parallel agents / drift control** | [multiple-agents.md](./multiple-agents.md) |
 | **Refinement backlog (REF-*) triage cadence** | [refinement-tasks/README.md](../refinement-tasks/README.md) — quarterly hygiene per REF-100 |
-| **App analysis snapshot (point-in-time)** | [APP_ANALYSIS_SNAPSHOT_2026-04-17.md](./APP_ANALYSIS_SNAPSHOT_2026-04-17.md) |
+| **App analysis (living)** | [APP_ANALYSIS.md](./APP_ANALYSIS.md) — maintained rollup: version stamps, authority chain, consolidated findings, QA/doc counts; [snapshot](./APP_ANALYSIS_SNAPSHOT_2026-04-17.md) / [turbo](./APP_ANALYSIS_TURBO_2026-04-18.md) redirect here |
 
 ---
 

@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react';
 import { MATCH_DELAY_MS, RESOLVE_DELAY_MULTIPLIER_MIN } from '../../shared/contracts';
 
 export const GAMEPLAY_VISUAL_CSS_VARS = {
-    ['--gameplay-chrome-blur' as string]: '18px',
+    ['--gameplay-chrome-blur' as string]: '19px',
     ['--gameplay-chrome-border' as string]: 'color-mix(in srgb, var(--theme-hud-chrome-border) 94%, transparent)',
     ['--gameplay-chrome-border-soft' as string]:
         'color-mix(in srgb, var(--theme-hud-chrome-border-soft) 88%, transparent)',
@@ -63,7 +63,7 @@ export const GAMEPLAY_VISUAL_CSS_VARS = {
     ['--gameplay-stage-dais-height' as string]: '48%',
     ['--gameplay-stage-dais-width' as string]: 'min(110%, 58rem)',
     ['--gameplay-stage-ring-bottom' as string]: '-11%',
-    ['--gameplay-stage-ring-opacity' as string]: '0.38',
+    ['--gameplay-stage-ring-opacity' as string]: '0.41',
     ['--gameplay-stage-ring-size' as string]: 'min(116%, 60rem)'
 } as CSSProperties;
 
@@ -77,7 +77,7 @@ export const GAMEPLAY_BOARD_VISUALS = {
     hoverGoldQualityScales: {
         high: { emissiveIntensity: 0.26, rimOpacity: 0.82 },
         low: { emissiveIntensity: 0.12, rimOpacity: 0.46 },
-        medium: { emissiveIntensity: 0.18, rimOpacity: 0.64 }
+        medium: { emissiveIntensity: 0.19, rimOpacity: 0.66 }
     },
     hoverHiddenDepth: 0.0048,
     hoverHiddenLift: 0.00315,
@@ -162,7 +162,7 @@ export const GAMEPLAY_CARD_VISUALS = {
         textured: 0.42
     },
     surfaceMapVersion: 3,
-    textureVersion: 38,
+    textureVersion: 40,
     texturedBackEmblemOpacity: 0.14,
     texturedBackPatternOpacity: 0.18,
     texturedBackTint: {

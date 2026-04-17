@@ -2,6 +2,13 @@
  * Hand-authored puzzle boards (`createPuzzleRun`). Tiles pin explicit `symbol` / `label` / `atomicVariant` — keep in sync
  * with `tile-symbol-catalog.ts` when renaming bands. Optional run systems (cursed pair init, shifting spotlight keys, …)
  * are only present when `buildBoard` / callers supply them for `fixedTiles`.
+ *
+ * Shipped builtins (layout-only unless the puzzle pipeline wires extra state):
+ *
+ * | id            | Cursed pair init | Shifting spotlight |
+ * |---------------|------------------|--------------------|
+ * | starter_pairs | no               | no                 |
+ * | mirror_craft  | no               | no                 |
  */
 import type { Tile } from './contracts';
 import { isValidPuzzleImportTileSet } from './puzzle-import';

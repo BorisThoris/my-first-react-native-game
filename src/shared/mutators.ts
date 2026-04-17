@@ -13,7 +13,8 @@ export const DAILY_MUTATOR_TABLE: MutatorId[] = [
     'silhouette_twist',
     'n_back_anchor',
     'category_letters',
-    'glass_floor'
+    'glass_floor',
+    'generous_shrine'
 ];
 
 export const hasMutator = (run: RunState, id: MutatorId): boolean => run.activeMutators.includes(id);

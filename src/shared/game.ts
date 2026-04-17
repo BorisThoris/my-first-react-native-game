@@ -50,7 +50,7 @@ import {
     usesEndlessFloorSchedule
 } from './floor-mutator-schedule';
 import { DAILY_MUTATOR_TABLE, hasMutator } from './mutators';
-import { needsRelicPick, RELIC_MILESTONE_FLOORS, rollRelicOptions } from './relics';
+import { needsRelicPick, relicMilestoneIndexForFloor, rollRelicOptions } from './relics';
 import type { RunExportPayload } from './run-export';
 import {
     createMulberry32,
@@ -74,6 +74,10 @@ const COMBO_SHARDS_PER_LIFE = 3;
 const DECOY_PAIR_KEY = '__decoy__';
 export const WILD_PAIR_KEY = '__wild__';
 const PICKUP_BASELINE_RULES_VERSION = 8;
+
+/** When the board includes a wild joker, returns its tile id (for `RunState.wildTileId`); otherwise null. */
+export const getWildTileIdFromBoard = (board: BoardState): string | null =>
+    board.tiles.find((t) => t.pairKey === WILD_PAIR_KEY)?.id ?? null;
 
 export const boardHasGlassDecoy = (board: BoardState): boolean =>
     board.tiles.some((t) => t.pairKey === DECOY_PAIR_KEY);
@@ -820,6 +824,9 @@ export const applyFlashPair = (run: RunState): RunState => {
     };
 };
 
+const maxPinnedTilesForRun = (run: RunState): number =>
+    MAX_PINNED_TILES + (run.relicIds.includes('pin_cap_plus_one') ? 1 : 0);
+
 export const togglePinnedTile = (run: RunState, tileId: string): RunState => {
     if (run.status !== 'playing' || !run.board) {
         return run;
@@ -835,7 +842,7 @@ export const togglePinnedTile = (run: RunState, tileId: string): RunState => {
 
     if (isPinned) {
         pinnedTileIds = run.pinnedTileIds.filter((id) => id !== tileId);
-    } else if (run.pinnedTileIds.length < MAX_PINNED_TILES) {
+    } else if (run.pinnedTileIds.length < maxPinnedTilesForRun(run)) {
         const cap = run.activeContract?.maxPinsTotalRun;
         if (cap != null && run.pinsPlacedCountThisRun >= cap) {
             return run;
@@ -879,6 +886,8 @@ export interface CreateRunOptions {
     resolveDelayMultiplier?: number;
     echoFeedbackEnabled?: boolean;
     wildMenuRun?: boolean;
+    /** Copied from save: +1 relic pick at each milestone when meta unlock is active. */
+    metaRelicDraftExtraPerMilestone?: number;
 }
 
 const randomRunSeed = (): number => Math.floor(Math.random() * 0x7fffffff);
@@ -905,6 +914,22 @@ const applyRelicImmediate = (run: RunState, relicId: RelicId): RunState => {
             return { ...run, parasiteWardRemaining: run.parasiteWardRemaining + 1 };
         case 'region_shuffle_free_first':
             return run;
+        case 'peek_charge_plus_one':
+            return { ...run, peekCharges: run.peekCharges + 1 };
+        case 'stray_charge_plus_one':
+            return { ...run, strayRemoveCharges: run.strayRemoveCharges + 1 };
+        case 'pin_cap_plus_one':
+            return run;
+        case 'guard_token_plus_one':
+            return {
+                ...run,
+                stats: {
+                    ...run.stats,
+                    guardTokens: Math.min(MAX_GUARD_TOKENS, run.stats.guardTokens + 1)
+                }
+            };
+        case 'shrine_echo':
+            return grantBonusRelicPickNextOffer(run, 1);
         default:
             return run;
     }
@@ -963,6 +988,8 @@ export const createNewRun = (bestScore: number, options: CreateRunOptions = {}):
         activeMutators,
         relicIds: [...(options.initialRelicIds ?? [])],
         relicTiersClaimed: 0,
+        bonusRelicPicksNextOffer: 0,
+        metaRelicDraftExtraPerMilestone: options.metaRelicDraftExtraPerMilestone ?? 0,
         relicOffer: null,
         activeContract: options.activeContract ?? null,
         practiceMode: options.practiceMode ?? false,
@@ -981,7 +1008,7 @@ export const createNewRun = (bestScore: number, options: CreateRunOptions = {}):
         undoUsesThisFloor: 1,
         gambitAvailableThisFloor: true,
         gambitThirdFlipUsed: false,
-        wildTileId: null,
+        wildTileId: getWildTileIdFromBoard(board),
         wildMatchesRemaining: enableWildJoker ? 1 : 0,
         strayRemoveCharges: options.initialStrayRemoveCharges ?? 0,
         strayRemoveArmed: false,
@@ -1028,21 +1055,27 @@ export const createNewRun = (bestScore: number, options: CreateRunOptions = {}):
     };
 };
 
-export const createMeditationRun = (bestScore: number, focusMutators?: MutatorId[]): RunState =>
+export const createMeditationRun = (
+    bestScore: number,
+    focusMutators?: MutatorId[],
+    extra: Partial<CreateRunOptions> = {}
+): RunState =>
     createNewRun(bestScore, {
         gameMode: 'meditation',
-        activeMutators: focusMutators && focusMutators.length > 0 ? focusMutators : undefined
+        activeMutators: focusMutators && focusMutators.length > 0 ? focusMutators : undefined,
+        ...extra
     });
 
-export const createWildRun = (bestScore: number): RunState =>
+export const createWildRun = (bestScore: number, extra: Partial<CreateRunOptions> = {}): RunState =>
     createNewRun(bestScore, {
         enableWildJoker: true,
         initialStrayRemoveCharges: 1,
         wildMenuRun: true,
-        activeMutators: ['sticky_fingers', 'short_memorize', 'findables_floor']
+        activeMutators: ['sticky_fingers', 'short_memorize', 'findables_floor'],
+        ...extra
     });
 
-export const createDailyRun = (bestScore: number): RunState => {
+export const createDailyRun = (bestScore: number, extra: Partial<CreateRunOptions> = {}): RunState => {
     const runSeed = deriveDailyRunSeed(GAME_RULES_VERSION);
     const mutIndex = deriveDailyMutatorIndex(runSeed, DAILY_MUTATOR_TABLE.length);
     const activeMutators = [DAILY_MUTATOR_TABLE[mutIndex]!];
@@ -1051,17 +1084,27 @@ export const createDailyRun = (bestScore: number): RunState => {
         runSeed,
         gameMode: 'daily',
         activeMutators,
-        dailyDateKeyUtc: formatDailyDateKeyUtc()
+        dailyDateKeyUtc: formatDailyDateKeyUtc(),
+        ...extra
     });
 };
 
-export const createGauntletRun = (bestScore: number, gauntletDurationMs: number = 10 * 60 * 1000): RunState =>
+export const createGauntletRun = (
+    bestScore: number,
+    gauntletDurationMs: number = 10 * 60 * 1000,
+    extra: Partial<CreateRunOptions> = {}
+): RunState =>
     createNewRun(bestScore, {
         gameMode: 'gauntlet',
-        gauntletDurationMs
+        gauntletDurationMs,
+        ...extra
     });
 
-export const createRunFromExportPayload = (bestScore: number, payload: RunExportPayload): RunState => {
+export const createRunFromExportPayload = (
+    bestScore: number,
+    payload: RunExportPayload,
+    extra: Partial<CreateRunOptions> = {}
+): RunState => {
     let activeMutators = payload.mutators;
     if (payload.mode === 'endless' && payload.rules >= FLOOR_SCHEDULE_RULES_VERSION) {
         activeMutators = pickFloorScheduleEntry(payload.seed, payload.rules, 1, 'endless').mutators;
@@ -1071,11 +1114,18 @@ export const createRunFromExportPayload = (bestScore: number, payload: RunExport
         gameMode: payload.mode,
         activeMutators,
         initialRelicIds: payload.relics ?? [],
-        runRulesVersionOverride: payload.rules
+        runRulesVersionOverride: payload.rules,
+        ...extra
     });
 };
 
-export const createPuzzleRun = (bestScore: number, puzzleId: string, tiles: Tile[], level = 1): RunState => {
+export const createPuzzleRun = (
+    bestScore: number,
+    puzzleId: string,
+    tiles: Tile[],
+    level = 1,
+    extra: Partial<CreateRunOptions> = {}
+): RunState => {
     const columns = clamp(Math.ceil(Math.sqrt(tiles.length)), 2, 8);
     const rows = Math.ceil(tiles.length / columns);
     const pairCount = new Set(tiles.map((t) => t.pairKey).filter((k) => k !== DECOY_PAIR_KEY)).size;
@@ -1091,39 +1141,101 @@ export const createPuzzleRun = (bestScore: number, puzzleId: string, tiles: Tile
             tiles: tiles.map((t) => ({ ...t })),
             flippedTileIds: [],
             matchedPairs: 0
-        }
+        },
+        ...extra
     });
 };
 
 export const isGauntletExpired = (run: RunState): boolean =>
     run.gauntletDeadlineMs !== null && Date.now() > run.gauntletDeadlineMs;
 
+/** Total relic selections this milestone visit (minimum 1). See `openRelicOffer`. */
+export const computeRelicOfferPickBudget = (run: RunState): number => {
+    let n = 1 + run.bonusRelicPicksNextOffer;
+    if (hasMutator(run, 'generous_shrine')) {
+        n += 1;
+    }
+    if (run.gameMode === 'daily') {
+        n += 1;
+    }
+    n += run.metaRelicDraftExtraPerMilestone ?? 0;
+    if (run.activeContract?.bonusRelicDraftPick) {
+        n += 1;
+    }
+    return Math.max(1, n);
+};
+
 export const openRelicOffer = (run: RunState): RunState => {
     if (!needsRelicPick(run) || run.relicOffer) {
         return run;
     }
     const cleared = run.lastLevelResult!.level;
-    const tierIndex = RELIC_MILESTONE_FLOORS.indexOf(cleared as (typeof RELIC_MILESTONE_FLOORS)[number]);
-    const options = rollRelicOptions(run, tierIndex);
+    const tierIndex = relicMilestoneIndexForFloor(cleared);
+    if (tierIndex === null) {
+        return run;
+    }
+    const picksRemaining = computeRelicOfferPickBudget(run);
+    const options = rollRelicOptions(run, tierIndex, cleared, 0);
 
     return {
         ...run,
-        relicOffer: { tier: tierIndex + 1, options }
+        bonusRelicPicksNextOffer: 0,
+        relicOffer: { tier: tierIndex + 1, options, picksRemaining, pickRound: 0 }
     };
 };
 
+/** Increment extra selections for the next milestone draft (consumed in `openRelicOffer`). */
+export const grantBonusRelicPickNextOffer = (run: RunState, amount: number = 1): RunState => ({
+    ...run,
+    bonusRelicPicksNextOffer: run.bonusRelicPicksNextOffer + amount
+});
+
 export const completeRelicPickAndAdvance = (run: RunState, relicId: RelicId): RunState => {
-    if (!run.relicOffer?.options.includes(relicId)) {
+    const offer = run.relicOffer;
+    if (!offer?.options.includes(relicId)) {
         return run;
     }
 
     let next: RunState = {
         ...run,
-        relicIds: [...run.relicIds, relicId],
+        relicIds: [...run.relicIds, relicId]
+    };
+    next = applyRelicImmediate(next, relicId);
+
+    const remainingAfter = offer.picksRemaining - 1;
+
+    if (remainingAfter > 0) {
+        const cleared = run.lastLevelResult!.level;
+        const tierIndex = relicMilestoneIndexForFloor(cleared);
+        if (tierIndex === null) {
+            return run;
+        }
+        const newPickRound = offer.pickRound + 1;
+        const newOptions = rollRelicOptions(next, tierIndex, cleared, newPickRound);
+        if (newOptions.length === 0) {
+            next = {
+                ...next,
+                relicTiersClaimed: run.relicTiersClaimed + 1,
+                relicOffer: null
+            };
+            return advanceToNextLevel(next);
+        }
+        return {
+            ...next,
+            relicOffer: {
+                tier: offer.tier,
+                options: newOptions,
+                picksRemaining: remainingAfter,
+                pickRound: newPickRound
+            }
+        };
+    }
+
+    next = {
+        ...next,
         relicTiersClaimed: run.relicTiersClaimed + 1,
         relicOffer: null
     };
-    next = applyRelicImmediate(next, relicId);
     return advanceToNextLevel(next);
 };
 
@@ -1864,6 +1976,7 @@ export const advanceToNextLevel = (run: RunState): RunState => {
         flashPairRevealedTileIds: [],
         regionShuffleRowArmed: null,
         regionShuffleCharges: INITIAL_REGION_SHUFFLE_CHARGES,
+        wildTileId: getWildTileIdFromBoard(nextBoard),
         timerState: createTimerState({ memorizeRemainingMs: status === 'memorize' ? memorizeWithBonus : null }),
         lastLevelResult: null,
         stats: {

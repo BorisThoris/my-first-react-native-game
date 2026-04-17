@@ -12,17 +12,17 @@ The heart of the game: hidden tiles flip to reveal symbols; two (or three with g
 | Resolve delay | **Shippable** | `computeFlipResolveDelayMs`; user `resolveDelayMultiplier`; echo adds `ECHO_EXTRA_RESOLVE_MS` for two-flip mismatch path. |
 | Gambit (third flip) | **Functional** | Allowed while `resolving` with two flips; `resolveGambitThree`; fail path adds extra tries (`GAMBIT_FAIL_EXTRA_TRIES`). Third-flip delay does not add echo — asymmetry vs two-flip (may be intentional; undocumented). |
 | Wild joker | **Functional** | `WILD_PAIR_KEY` matching rules; `wildMatchesRemaining` across floors in wild-style runs. |
-| `wildTileId` on `RunState` | **Partial** | Contract mentions a concrete tile id; `game.ts` leaves it `null` after `createNewRun` — logic uses `pairKey` only. |
+| `wildTileId` on `RunState` | **Shippable** | Populated from the wild tile’s `id` when present (`getWildTileIdFromBoard` in `createNewRun` / `advanceToNextLevel`); `null` when no wild tile. Matching remains `pairKey`-driven. |
 | Glass decoy | **Shippable** | `DECOY_PAIR_KEY` never matches; `glass_floor` mutator; `decoyFlippedThisFloor` tracking. |
 | Board generation | **Shippable** | `createTiles`, `buildBoard`; weaker shuffle modes, cursed pair pick, shifting spotlight init. |
-| Fixed / puzzle boards | **Partial** | `fixedTiles` path omits cursed pair init and shifting spotlight keys unless callers supply them — scripted boards can skip those systems. |
+| Fixed / puzzle boards | **Functional** | `fixedTiles` supplies layout; cursed pair init and shifting spotlight keys are added only when the puzzle / run pipeline wires them. Shipped builtins are documented per id in `builtin-puzzles.ts` (layout-only). |
 | Timer fields | **Functional** | `RunTimerState` in `game.ts` (`pauseRun` / `resumeRun`); tick driving is primarily store/renderer. |
 
 ## Rough edges
 
 - **Gambit vs echo:** Mismatch timing differs between 2-flip (echo-aware) and 3-flip resolving — no in-file TODO; worth a design note if balance changes.
-- **Wild tile id:** Either implement assignment when a wild tile is spawned or narrow the contract comment to avoid confusion.
-- **Puzzle boards:** Document which objectives (cursed, spotlight) are intentionally absent for `builtin-puzzles`.
+- **Wild tile id:** Resolved — `wildTileId` tracks the spawned wild tile id when present; see `getWildTileIdFromBoard`.
+- **Puzzle boards:** Builtins table in `builtin-puzzles.ts` lists which optional systems apply; defaults are layout-only.
 
 ## Primary code
 
@@ -38,6 +38,6 @@ The heart of the game: hidden tiles flip to reveal symbols; two (or three with g
 
 Tracked in rollup: [GAMEPLAY_POLISH_AND_GAPS.md](./GAMEPLAY_POLISH_AND_GAPS.md) §2.
 
-- [x] **Either** assign `wildTileId` in `game.ts` when a wild tile is in play **or** narrow `RunState` / contract comments to reflect `pairKey`-only logic (no misleading “concrete tile id”).
+- [x] Assign `wildTileId` when a wild tile is in play (`getWildTileIdFromBoard`); contract documents metadata vs `pairKey` matching.
 - [x] Document per `builtin-puzzles` entry which systems are intentionally skipped (`fixedTiles` without cursed init, spotlight keys, etc.).
 - [x] If balance review requires it: document or adjust gambit three-flip vs two-flip echo mismatch timing asymmetry. — *Documented:* intentional asymmetry in `game.ts` / resolve paths; revisit only on balance ticket.

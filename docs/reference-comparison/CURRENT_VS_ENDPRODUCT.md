@@ -12,7 +12,7 @@ This document compares **Playwright full-page captures** of the live Vite render
 - **Web server:** Vite on `127.0.0.1:5173` (same as [`playwright.config.ts`](../../playwright.config.ts)).
 - **Screenshot:** `page.screenshot({ fullPage: true })` per scenario.
 
-Recent parity work (toolbar illustrated icons, optional board bloom, Game Over scene plate, meta-screen TOCs, graphics quality defaults) can shift captures slightly versus older baselines — regenerate desktop/mobile sets when diffing against this doc.
+Recent parity work (toolbar illustrated icons, optional board bloom, Game Over scene plate, meta-screen TOCs, graphics quality defaults) can shift captures slightly versus older baselines — regenerate desktop/mobile sets when diffing against this doc. **Open P0/P1 visual queue** (PLAY-010, HUD, board FX): [`docs/new_design/TASKS/ULTRA_REFINE_OPEN_QUEUE.md`](../new_design/TASKS/ULTRA_REFINE_OPEN_QUEUE.md).
 
 ### Viewports on disk
 

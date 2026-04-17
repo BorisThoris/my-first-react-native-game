@@ -1,5 +1,6 @@
 import { useShallow } from 'zustand/react/shallow';
 import { GAME_MODE_CODEX, MUTATOR_CATALOG, RELIC_CATALOG } from '../../shared/game-catalog';
+import { inventoryScreenCopy } from '../copy/inventoryScreen';
 import { Eyebrow, MetaFrame, Panel, ScreenTitle, UiButton } from '../ui';
 import { useAppStore } from '../store/useAppStore';
 import metaStyles from './MetaScreen.module.css';
@@ -116,6 +117,12 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                                     </div>
                                 ) : null}
                             </div>
+                            <p className={metaStyles.subtitle}>
+                                {inventoryScreenCopy.perfectMemoryPowersHint(
+                                    run.achievementsEnabled,
+                                    run.powersUsedThisRun
+                                )}
+                            </p>
                         </div>
                     </Panel>
                 </MetaFrame>

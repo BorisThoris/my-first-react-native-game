@@ -6,9 +6,9 @@
  * (`.github/pull_request_template.md`). See docs/refinement-tasks REF-066. For optional payloads, consider aligning
  * with TypeScript `exactOptionalPropertyTypes` when feasible.
  */
-export const SAVE_SCHEMA_VERSION = 4;
+export const SAVE_SCHEMA_VERSION = 5;
 /** Bump when generation rules change (tile order, mutators, pair layout). */
-export const GAME_RULES_VERSION = 8;
+export const GAME_RULES_VERSION = 10;
 export const INITIAL_LIVES = 4;
 /** Hard cap on life total during a run; HUD renders this many heart slots (PLAY-004 — honest max, not mock’s three). */
 export const MAX_LIVES = 5;
@@ -78,7 +78,8 @@ export type MutatorId =
     | 'n_back_anchor'
     | 'distraction_channel'
     | 'findables_floor'
-    | 'shifting_spotlight';
+    | 'shifting_spotlight'
+    | 'generous_shrine';
 
 /** Bonus pickups attached to some pairs during eligible runs/floors. */
 export type FindableKind = 'shard_spark' | 'score_glint';
@@ -105,7 +106,23 @@ export type RelicId =
     | 'combo_shard_plus_step'
     | 'memorize_under_short_memorize'
     | 'parasite_ward_once'
-    | 'region_shuffle_free_first';
+    | 'region_shuffle_free_first'
+    | 'peek_charge_plus_one'
+    | 'stray_charge_plus_one'
+    | 'pin_cap_plus_one'
+    | 'guard_token_plus_one'
+    | 'shrine_echo';
+
+/** Active milestone relic draft (one visit may allow multiple picks). */
+export interface RelicOfferState {
+    /** 1-based display index for this milestone. */
+    tier: number;
+    options: RelicId[];
+    /** Selections remaining including the next pick. */
+    picksRemaining: number;
+    /** Reroll counter for deterministic `rollRelicOptions` within this visit. */
+    pickRound: number;
+}
 
 export interface ContractFlags {
     noShuffle: boolean;
@@ -113,6 +130,8 @@ export interface ContractFlags {
     maxMismatches: number | null;
     /** GP-C01: max pins allowed this run (null = default cap). */
     maxPinsTotalRun?: number | null;
+    /** Scholar / menu contract: +1 relic choice at each milestone draft. */
+    bonusRelicDraftPick?: boolean;
 }
 export type ResumableRunStatus = 'memorize' | 'playing' | 'resolving';
 export type RunStatus = ResumableRunStatus | 'paused' | 'levelComplete' | 'gameOver';
@@ -122,7 +141,9 @@ export type AchievementId =
     | 'ACH_LEVEL_FIVE'
     | 'ACH_SCORE_THOUSAND'
     | 'ACH_PERFECT_CLEAR'
-    | 'ACH_LAST_LIFE';
+    | 'ACH_LAST_LIFE'
+    | 'ACH_ENDLESS_TEN'
+    | 'ACH_SEVEN_DAILIES';
 
 export interface DebugFlags {
     showDebugTools: boolean;
@@ -307,10 +328,19 @@ export interface RunState {
     shuffleNonce: number;
     activeMutators: MutatorId[];
     relicIds: RelicId[];
-    /** How many relic milestones (floors 3/6/9) have been claimed. */
+    /** How many relic milestone visits have been completed this run (every 3 floors from floor 3, capped). One visit may grant multiple relics. */
     relicTiersClaimed: number;
-    /** Floors 3 / 6 / 9: offer pick before advancing. */
-    relicOffer: null | { tier: number; options: RelicId[] };
+    /**
+     * Extra relic selections for the **next** milestone draft only (consumed when `openRelicOffer` runs).
+     * Sources: `grantBonusRelicPickNextOffer` (future relics/meta/mutators).
+     */
+    bonusRelicPicksNextOffer: number;
+    /**
+     * Copied from save at run start: meta unlock grants +1 relic pick at **each** milestone (`relicShrineExtraPickUnlocked`).
+     */
+    metaRelicDraftExtraPerMilestone: number;
+    /** Milestone relic draft before advancing (see `relics.ts` cadence). */
+    relicOffer: null | RelicOfferState;
     activeContract: ContractFlags | null;
     /** Practice runs disable achievements (optional ranked split). */
     practiceMode: boolean;
@@ -339,8 +369,8 @@ export interface RunState {
     gambitAvailableThisFloor: boolean;
     gambitThirdFlipUsed: boolean;
     /**
-     * H4 Wild: reserved for a concrete wild tile id; **often null** in current rules because wild matching is driven
-     * by `pairKey` / `WILD_PAIR_KEY` without pinning a single `tile.id`. Treat as optional metadata, not required for sim.
+     * H4 Wild: tile id of the wild joker when `board` includes `WILD_PAIR_KEY`; null if no wild tile is in play.
+     * Matching logic still uses `pairKey`; this field is metadata (HUD, export, diagnostics).
      */
     wildTileId: string | null;
     wildMatchesRemaining: number;
@@ -406,6 +436,8 @@ export interface PlayerStatsPersisted {
     relicPickCounts: Partial<Record<RelicId, number>>;
     /** Spaced encore: pairKeys seen on previous completed run (no PII). */
     encorePairKeysLastRun: string[];
+    /** Meta: +1 relic pick at each milestone draft (unlocked after 7 dailies or migration from achievement). */
+    relicShrineExtraPickUnlocked?: boolean;
 }
 
 export interface SaveData {

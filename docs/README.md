@@ -6,6 +6,6 @@
 
 **Full markdown index (every file under `docs/`):** [internal-wiki/DOCS_CATALOG.md](./internal-wiki/DOCS_CATALOG.md).
 
-**Point-in-time engineering rollup (merged parallel analysis):** [internal-wiki/APP_ANALYSIS_SNAPSHOT_2026-04-17.md](./internal-wiki/APP_ANALYSIS_SNAPSHOT_2026-04-17.md).
+**Engineering rollup (merged parallel analysis, maintained):** [internal-wiki/APP_ANALYSIS.md](./internal-wiki/APP_ANALYSIS.md).
 
 This folder is **developer-facing** (not player copy). Gameplay **authoritative** coverage is the [gameplay mechanics catalog](./gameplay/GAMEPLAY_MECHANICS_CATALOG.md) plus epics under [gameplay/](./gameplay/README.md). **Polish / partial / risk rollup:** [gameplay/GAMEPLAY_POLISH_AND_GAPS.md](./gameplay/GAMEPLAY_POLISH_AND_GAPS.md).

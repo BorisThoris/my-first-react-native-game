@@ -197,7 +197,12 @@ describe('useAppStore scholar contract', () => {
     it('startScholarContractRun leaves shuffle and region shuffle as no-ops from store', async () => {
         useAppStore.getState().startScholarContractRun();
         const started = useAppStore.getState().run;
-        expect(started?.activeContract).toEqual({ noShuffle: true, noDestroy: true, maxMismatches: null });
+        expect(started?.activeContract).toEqual({
+            noShuffle: true,
+            noDestroy: true,
+            maxMismatches: null,
+            bonusRelicDraftPick: true
+        });
 
         const memorizeDuration = started?.timerState.memorizeRemainingMs ?? 0;
         await vi.advanceTimersByTimeAsync(memorizeDuration + 1);
@@ -252,7 +257,8 @@ describe('useAppStore scholar contract', () => {
         expect(useAppStore.getState().run?.activeContract).toEqual({
             noShuffle: true,
             noDestroy: true,
-            maxMismatches: null
+            maxMismatches: null,
+            bonusRelicDraftPick: true
         });
 
         useAppStore.getState().restartRun();
@@ -260,7 +266,8 @@ describe('useAppStore scholar contract', () => {
         expect(useAppStore.getState().run?.activeContract).toEqual({
             noShuffle: true,
             noDestroy: true,
-            maxMismatches: null
+            maxMismatches: null,
+            bonusRelicDraftPick: true
         });
     });
 });
