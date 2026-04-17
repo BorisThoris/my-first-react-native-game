@@ -273,43 +273,6 @@ const HOVER_GOLD_RIM_STRIP = 0.0036;
 const hoverGoldRimGeomH = new PlaneGeometry(CARD_WIDTH, HOVER_GOLD_RIM_STRIP, 1, 1);
 const hoverGoldRimGeomV = new PlaneGeometry(HOVER_GOLD_RIM_STRIP, CARD_HEIGHT, 1, 1);
 
-/** GPU tile chrome (replaces DOM `.hitButton*` resolving / focus). ✓ on `low` only when the ember shader is off. */
-const MATCH_CHECK_GEOM = new PlaneGeometry(CARD_WIDTH * 0.3, CARD_HEIGHT * 0.3, 1, 1);
-/** TBF-006 + end-product: soft emerald bloom plane behind ✓. */
-const MATCH_CHECK_GLOW_GEOM = new PlaneGeometry(CARD_WIDTH * 0.4, CARD_HEIGHT * 0.4, 1, 1);
-
-let matchedCheckTextureSingleton: CanvasTexture | null = null;
-
-const getMatchedCheckTexture = (): CanvasTexture | null => {
-    if (typeof document === 'undefined') {
-        return null;
-    }
-    if (!matchedCheckTextureSingleton) {
-        const canvas = document.createElement('canvas');
-        canvas.width = 256;
-        canvas.height = 256;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-            return null;
-        }
-        ctx.clearRect(0, 0, 256, 256);
-        ctx.shadowColor = 'rgba(120, 255, 160, 0.55)';
-        ctx.shadowBlur = 28;
-        ctx.fillStyle = '#e8fff0';
-        ctx.font = '900 200px system-ui, "Segoe UI", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('✓', 128, 118);
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = RENDERER_THEME.colors.emeraldBright;
-        ctx.fillText('✓', 128, 118);
-        matchedCheckTextureSingleton = new CanvasTexture(canvas);
-        matchedCheckTextureSingleton.colorSpace = SRGBColorSpace;
-        matchedCheckTextureSingleton.needsUpdate = true;
-    }
-    return matchedCheckTextureSingleton;
-};
-
 /**
  * Segments per card face: bend deformation + enough tessellation for
  * `displacementMap` (real height — needs dense grid or ridges look blocky).
@@ -595,14 +558,9 @@ interface TileBezelFrameBag {
     hoverFrontRimLeftMatRef: MutableRefObject<MeshBasicMaterial | null>;
     resolvingRimMatRef: MutableRefObject<MeshBasicMaterial | null>;
     focusRimMatRef: MutableRefObject<MeshBasicMaterial | null>;
-    matchedCheckGlowMatRef: MutableRefObject<MeshBasicMaterial | null>;
-    matchedCheckGlowMeshRef: MutableRefObject<Mesh | null>;
-    matchedCheckMatRef: MutableRefObject<MeshBasicMaterial | null>;
-    matchedCheckMeshRef: MutableRefObject<Mesh | null>;
     matchedVictoryFlameMatRef: MutableRefObject<ShaderMaterial | null>;
     matchedVictoryFlameMeshRef: MutableRefObject<Mesh | null>;
     matchedVictoryBurstT0Ref: MutableRefObject<number | null>;
-    matchedCheckPopT0Ref: MutableRefObject<number | null>;
     prevTileMatchedRef: MutableRefObject<boolean>;
 }
 
@@ -671,9 +629,6 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
     const wasMatched = bag.prevTileMatchedRef.current;
     if (p.tile.state === 'matched' && !wasMatched) {
         bag.matchedVictoryBurstT0Ref.current = clock.elapsedTime;
-        if (!p.reduceMotion) {
-            bag.matchedCheckPopT0Ref.current = clock.elapsedTime;
-        }
     } else if (p.tile.state !== 'matched') {
         bag.matchedVictoryBurstT0Ref.current = null;
     }
@@ -931,10 +886,6 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
     const { colors } = RENDERER_THEME;
     const resolvingRim = bag.resolvingRimMatRef.current;
     const focusRim = bag.focusRimMatRef.current;
-    const checkGlowMat = bag.matchedCheckGlowMatRef.current;
-    const checkGlowMesh = bag.matchedCheckGlowMeshRef.current;
-    const checkMat = bag.matchedCheckMatRef.current;
-    const checkMesh = bag.matchedCheckMeshRef.current;
     const matchedEdgeEffect = GAMEPLAY_BOARD_VISUALS.matchedEdgeEffect;
 
     const resolvingActive = p.resolvingSelection !== null && p.faceUp;
@@ -1017,45 +968,6 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
                 const pulse = 0.11 * (0.5 + 0.5 * Math.sin(clock.elapsedTime * 2.35));
                 focusRim.opacity = MathUtils.clamp(0.76 + pulse, 0.72, 0.94);
             }
-        }
-    }
-
-    const showMatchedAura = p.tile.state === 'matched';
-    /** Checkmark only when the matched ember shader is off (`low`). */
-    const showCheck = p.tile.state === 'matched' && p.graphicsQuality === 'low';
-    if (checkGlowMat && checkGlowMesh) {
-        checkGlowMesh.visible = showMatchedAura;
-        if (showMatchedAura) {
-            const glowPulse = p.reduceMotion
-                ? 0.42
-                : 0.32 + 0.22 * (0.5 + 0.5 * Math.sin(clock.elapsedTime * 2.85));
-            const burstBoost = showCheck ? matchedVictoryBurst * 0.12 : matchedVictoryBurst * 0.18;
-            checkGlowMat.opacity = MathUtils.clamp(
-                (showCheck ? glowPulse : glowPulse * 0.72) + burstBoost,
-                0,
-                1
-            );
-            checkGlowMat.color.set(showCheck ? '#7cff9a' : '#74f49c');
-        }
-    }
-    if (checkMat && checkMesh) {
-        checkMesh.visible = showCheck;
-        const popT0 = bag.matchedCheckPopT0Ref.current;
-        if (showCheck && popT0 != null && !p.reduceMotion) {
-            const t = clock.elapsedTime - popT0;
-            if (t <= 0.42) {
-                const u = t / 0.42;
-                const scale = u < 0.58 ? 0.35 + (1.12 - 0.35) * (u / 0.58) : 1 - ((u - 0.58) / 0.42) * 0.1;
-                checkMesh.scale.setScalar(MathUtils.clamp(scale, 0.35, 1.08));
-                checkMat.opacity = 1;
-            } else {
-                checkMesh.scale.setScalar(1);
-                checkMat.opacity = 1;
-                bag.matchedCheckPopT0Ref.current = null;
-            }
-        } else if (showCheck) {
-            checkMesh.scale.setScalar(1);
-            checkMat.opacity = 1;
         }
     }
 
@@ -1310,10 +1222,6 @@ const TileBezelInner = ({
     const hoverFrontRimLeftMatRef = useRef<MeshBasicMaterial | null>(null);
     const resolvingRimMatRef = useRef<MeshBasicMaterial | null>(null);
     const focusRimMatRef = useRef<MeshBasicMaterial | null>(null);
-    const matchedCheckGlowMatRef = useRef<MeshBasicMaterial | null>(null);
-    const matchedCheckGlowMeshRef = useRef<Mesh | null>(null);
-    const matchedCheckMatRef = useRef<MeshBasicMaterial | null>(null);
-    const matchedCheckMeshRef = useRef<Mesh | null>(null);
     const matchedVictoryFlameMatRef = useRef<ShaderMaterial | null>(null);
     const matchedVictoryFlameMeshRef = useRef<Mesh | null>(null);
     const matchedVictoryBurstT0Ref = useRef<number | null>(null);
@@ -1326,7 +1234,6 @@ const TileBezelInner = ({
             matchedRimFireMaterial.dispose();
         };
     }, [matchedRimFireMaterial]);
-    const matchedCheckPopT0Ref = useRef<number | null>(null);
     const prevTileMatchedRef = useRef(false);
 
     useLayoutEffect(() => {
@@ -1368,14 +1275,9 @@ const TileBezelInner = ({
                 hoverFrontRimLeftMatRef,
                 resolvingRimMatRef,
                 focusRimMatRef,
-                matchedCheckGlowMatRef,
-                matchedCheckGlowMeshRef,
-                matchedCheckMatRef,
-                matchedCheckMeshRef,
                 matchedVictoryFlameMatRef,
                 matchedVictoryFlameMeshRef,
                 matchedVictoryBurstT0Ref,
-                matchedCheckPopT0Ref,
                 prevTileMatchedRef
             };
         } else {
@@ -1669,7 +1571,6 @@ const TileBezelInner = ({
     const cardFrontArtTexture = useSvgMeshFront ? null : getCardFaceStaticTexture();
     const overlayTexture =
         surfaceVariant === 'hidden' ? null : getTileFaceOverlayTexture(tile, surfaceVariant, graphicsQuality);
-    const matchedCheckMap = useMemo(() => getMatchedCheckTexture(), []);
     const forceTextureRefreshKey = textureRevision;
 
     const halfDepth = TILE_DEPTH * 0.5;
@@ -2155,48 +2056,6 @@ const TileBezelInner = ({
                         transparent
                     />
                 </mesh>
-                {matchedCheckMap ? (
-                    <mesh
-                        ref={matchedCheckGlowMeshRef}
-                        geometry={MATCH_CHECK_GLOW_GEOM}
-                        position={[0, CARD_HEIGHT * 0.06, faceZ + 0.0275]}
-                        raycast={noopMeshRaycast}
-                        renderOrder={14}
-                        visible={false}
-                    >
-                        <meshBasicMaterial
-                            ref={matchedCheckGlowMatRef}
-                            color={RENDERER_THEME.colors.emeraldBright}
-                            depthTest
-                            depthWrite={false}
-                            opacity={0}
-                            side={DoubleSide}
-                            toneMapped={false}
-                            transparent
-                        />
-                    </mesh>
-                ) : null}
-                {matchedCheckMap ? (
-                    <mesh
-                        ref={matchedCheckMeshRef}
-                        geometry={MATCH_CHECK_GEOM}
-                        position={[0, CARD_HEIGHT * 0.06, faceZ + 0.03]}
-                        raycast={noopMeshRaycast}
-                        renderOrder={16}
-                        visible={false}
-                    >
-                        <meshBasicMaterial
-                            ref={matchedCheckMatRef}
-                            depthTest
-                            depthWrite={false}
-                            map={matchedCheckMap}
-                            opacity={0}
-                            side={DoubleSide}
-                            toneMapped={false}
-                            transparent
-                        />
-                    </mesh>
-                ) : null}
             </group>
         </group>
         </>
