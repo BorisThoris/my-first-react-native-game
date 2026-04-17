@@ -21,7 +21,7 @@ Player actions beyond flipping: peek, shuffles, destroy pair, pinning, stray rem
 
 ## Rough edges
 
-- **`powersUsedThisRun`:** Contract comment says shuffle/destroy; **implementation** also sets flag for peek, undo, gambit, stray, flash, wild match, etc. Only **ACH_PERFECT_CLEAR** uses the flag in `achievements.ts` — comment drift (**Risky** for designers reading contracts).
+- **`powersUsedThisRun`:** Authoritative enumeration is on `RunState.powersUsedThisRun` in [`contracts.ts`](../../src/shared/contracts.ts). Only **ACH_PERFECT_CLEAR** consumes the flag in `achievements.ts` — keep player-facing copy aligned separately.
 - **Flash pair:** Verify all UI entry points respect practice/wild-only rule.
 
 ## Primary code
@@ -31,7 +31,7 @@ Player actions beyond flipping: peek, shuffles, destroy pair, pinning, stray rem
 
 ## Refinement
 
-**Shippable** for the main power bar loop. **Risky** for documentation of what counts as a “power” for achievements vs player mental model.
+**Shippable** for the main power bar loop. Type contract enumerates achievement disqualifiers; residual risk is **UX copy** (players conflating “power” with achievement text).
 
 ## Tasks (polish backlog)
 

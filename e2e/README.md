@@ -2,6 +2,10 @@
 
 Specs live in this directory and run against the Vite dev server (`playwright.config.ts`).
 
+## Traces and videos on failure
+
+Config uses `trace: 'retain-on-failure'` and `video: 'retain-on-failure'` so passing runs stay light while failed attempts still upload Playwright traces/videos. Download artifacts from the CI job (or open `test-results/` after a local failure) and run `npx playwright show-trace path/to/trace.zip` to inspect.
+
 ## `visual-screens.standard.spec.ts` — game over (`08-game-over`)
 
 The default path drives level 1 and burns lives with intentional mismatches (`forceGameOverWithMismatches` in `visualScreenHelpers.ts`). That harness can flake on slow machines when flip animations lag behind Playwright’s hidden-tile queries.

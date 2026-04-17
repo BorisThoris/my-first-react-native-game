@@ -9,7 +9,7 @@ Steam-style achievements, anonymous telemetry hooks, save schema, and how they i
 | System | Status | Notes |
 |--------|--------|--------|
 | Achievements (5) | **Shippable** | `achievements.ts` — first clear, level 5, 1000 score, perfect clear, last-life finish. |
-| Perfect clear rule | **Functional** | Gated on `!powersUsedThisRun` — but **powersUsedThisRun** is set by many actions (see powers epic); contract comment understates this (**Risky**). |
+| Perfect clear rule | **Functional** | Gated on `!powersUsedThisRun`; see `RunState.powersUsedThisRun` JSDoc in [`contracts.ts`](../../src/shared/contracts.ts) for the full disqualifier list. |
 | Unlock delivery | **Shippable** | `evaluateAchievementUnlocks` from `applyResolvedRun`; `desktopClient.unlockAchievement` when available. |
 | Telemetry | **Partial** | `telemetry.ts` — `trackEvent` / `setTelemetrySink`; **no in-repo sink wired**; events include `run_start` / `run_complete` from store. |
 | Save data | **Shippable** | `save-data.ts`, schema version, `normalizeSaveData` merging new settings keys. |
@@ -29,7 +29,7 @@ Steam-style achievements, anonymous telemetry hooks, save schema, and how they i
 
 ## Refinement
 
-**Shippable** for achievements + save. **Partial** for telemetry (no default sink). **Risky** for perfect-clear expectations vs `powersUsedThisRun` breadth.
+**Shippable** for achievements + save. **Partial** for telemetry (no default sink). Perfect-clear **rules** are documented on `RunState`; **player expectations** may still need UI polish (tooltip / achievement copy).
 
 ## Tasks (polish backlog)
 

@@ -1,8 +1,14 @@
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
+import { GAMEPLAY_BOARD_VISUALS } from '../src/renderer/components/gameplayVisualConfig';
 import { buildMatchedFlameCaptureSaveJson, gotoWithSaveAndQuery, waitLevel1PlayReady } from './visualScreenHelpers';
 import { flipTileAtGridCellKeyboard, readFrameHiddenTileCount, waitForBoardPlayPhase } from './tileBoardGameFlow';
+
+/** Aligned with `GAMEPLAY_BOARD_VISUALS.matchedEdgeEffect.burstDuration` + small buffer for GPU/frame jitter. */
+const MATCHED_RIM_BURST_WAIT_MS = Math.ceil(GAMEPLAY_BOARD_VISUALS.matchedEdgeEffect.burstDuration.default * 1000) + 220;
+/** Extra wall time after burst before “settled” captures (focus ring / rim decay); keep stable vs arbitrary 650+1150 splits. */
+const MATCHED_RIM_POST_BURST_SETTLE_MS = 1150;
 
 /**
  * PNGs for reviewing the matched-card ember rim (isolated shader + in-game board after one match).
@@ -116,10 +122,21 @@ test.describe('Matched flame capture (dev)', () => {
         await page.setViewportSize({ width: 960, height: 720 });
         await page.goto('/?devSandbox=1&fx=matchedRimFire');
         await expect(page.getByTestId('matched-rim-fire-sandbox')).toBeVisible();
-        await expect(page.locator('canvas')).toBeVisible();
+        const canvas = page.locator('canvas');
+        await expect(canvas).toBeVisible();
+        await expect
+            .poll(
+                async () =>
+                    canvas.evaluate((c) => {
+                        const el = c as HTMLCanvasElement;
+                        return el.width > 8 && el.height > 8;
+                    }),
+                { timeout: 15_000 }
+            )
+            .toBeTruthy();
 
         const dir = getMatchedFlameCaptureDir();
-        await page.waitForTimeout(400);
+        await page.waitForTimeout(120);
         await page.screenshot({
             path: join(dir, '01-isolated-burst-high-960x720.png'),
             fullPage: true,
@@ -128,7 +145,8 @@ test.describe('Matched flame capture (dev)', () => {
 
         await setRangeControl(page, 'Burst', 0);
         await page.getByLabel('Reduce motion').check();
-        await page.waitForTimeout(250);
+        await expect(page.getByLabel('Reduce motion')).toBeChecked();
+        await page.waitForTimeout(120);
         await page.screenshot({
             path: join(dir, '02-isolated-settled-reduced-960x720.png'),
             fullPage: true,
@@ -171,10 +189,10 @@ test.describe('Matched flame capture (dev)', () => {
         await flipFirstMatchingPairWebGl(page);
         await expect.poll(async () => readFrameHiddenTileCount(page), { timeout: 15_000 }).toBe(2);
         /** Match resolve + ember rim burst visibility (TileBoardScene advances shader each frame). */
-        await page.waitForTimeout(650);
+        await page.waitForTimeout(MATCHED_RIM_BURST_WAIT_MS);
         await screenshotStageShell(page, '03-ingame-match-burst-stage-1280x720.png');
 
-        await page.waitForTimeout(1150);
+        await page.waitForTimeout(MATCHED_RIM_POST_BURST_SETTLE_MS);
         /** Drop keyboard focus so the gold focus ring does not dominate the capture vs additive rim fire. */
         await page.getByTestId('tile-board-application').evaluate((el) => {
             (el as HTMLElement).blur();

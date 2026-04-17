@@ -105,3 +105,16 @@ export const getMatchResolvingPairTileIds = (
 
     return [matchIds[0], matchIds[1]] as const;
 };
+
+/**
+ * Stable id for the current resolving-phase match pair (or null when not in a match highlight).
+ * Used to reset in-flight match pulses when a new pair enters resolving without an idle frame between.
+ */
+export const getResolvingMatchWaveKey = (board: BoardState, runStatus: RunStatus): string | null => {
+    const pair = getMatchResolvingPairTileIds(board, runStatus);
+    if (!pair) {
+        return null;
+    }
+    const [a, b] = pair[0] <= pair[1] ? pair : [pair[1], pair[0]];
+    return `${a}:${b}`;
+};

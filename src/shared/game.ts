@@ -106,21 +106,23 @@ const GAMBIT_FAIL_EXTRA_TRIES = 1;
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
 
-/** Flat penalty per successful match for mutators that are also expressed in the renderer (rules integrity). */
-const PRESENTATION_MUTATOR_PENALTY_WIDE_RECALL = 3;
-const PRESENTATION_MUTATOR_PENALTY_SILHOUETTE = 3;
-const PRESENTATION_MUTATOR_PENALTY_DISTRACTION = 2;
+/** Documented in `docs/BALANCE_NOTES.md` (presentation mutator match penalties). */
+export const PRESENTATION_MUTATOR_MATCH_PENALTIES = {
+    wide_recall: 3,
+    silhouette_twist: 3,
+    distraction_channel: 2
+} as const;
 
 export const getPresentationMutatorMatchPenalty = (run: RunState): number => {
     let penalty = 0;
     if (hasMutator(run, 'wide_recall')) {
-        penalty += PRESENTATION_MUTATOR_PENALTY_WIDE_RECALL;
+        penalty += PRESENTATION_MUTATOR_MATCH_PENALTIES.wide_recall;
     }
     if (hasMutator(run, 'silhouette_twist')) {
-        penalty += PRESENTATION_MUTATOR_PENALTY_SILHOUETTE;
+        penalty += PRESENTATION_MUTATOR_MATCH_PENALTIES.silhouette_twist;
     }
     if (hasMutator(run, 'distraction_channel')) {
-        penalty += PRESENTATION_MUTATOR_PENALTY_DISTRACTION;
+        penalty += PRESENTATION_MUTATOR_MATCH_PENALTIES.distraction_channel;
     }
     return penalty;
 };

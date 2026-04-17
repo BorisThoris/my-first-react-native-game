@@ -27,10 +27,10 @@
     text-decoration: none;
     font: inherit;
     font-weight: 600;
-    color: var(--theme-void, #0b0d12);
-    background: var(--theme-glow-gold-soft, #f3e7c8);
+    color: var(--theme-void, #05050a);
+    background: var(--theme-glow-gold-soft, rgba(242, 211, 157, 0.14));
     box-shadow: 0 2px 16px rgba(0, 0, 0, 0.35);
-    outline: 2px solid var(--theme-glow-cyan-soft, #7fe8ff);
+    outline: 2px solid var(--theme-glow-cyan-soft, rgba(184, 217, 228, 0.12));
     outline-offset: 2px;
 }
 
@@ -62,7 +62,7 @@
     background:
         linear-gradient(var(--theme-glow-stone) 1px, transparent 1px),
         linear-gradient(90deg, var(--theme-glow-stone) 1px, transparent 1px),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 22%);
+        linear-gradient(180deg, var(--theme-ambient-grid-fade), transparent 22%);
     background-size: 128px 128px, 128px 128px, 100% 100%;
     mask-image: radial-gradient(circle at center, black, rgba(0, 0, 0, 0.92) 66%, transparent 88%);
     pointer-events: none;

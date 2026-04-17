@@ -15,6 +15,8 @@ import {
     RELIC_CATALOG
 } from './mechanics-encyclopedia';
 
+const TOPIC_ID = /^[a-z][a-z0-9_]*$/;
+
 const ALL_GAME_MODES: GameMode[] = ['endless', 'daily', 'puzzle', 'gauntlet', 'meditation'];
 
 function assertCatalogEntry<T extends { id: string; title: string; description: string }>(
@@ -73,5 +75,20 @@ describe('mechanics-encyclopedia', () => {
         ];
         const ids = all.map((t) => t.id);
         expect(new Set(ids).size).toBe(ids.length);
+    });
+
+    it('encyclopedia topic ids are stable slugs (anchors / cross-refs)', () => {
+        const all = [
+            ...CODEX_CORE_TOPICS,
+            ...ENCYCLOPEDIA_POWER_TOPICS,
+            ...ENCYCLOPEDIA_PICKUP_AND_BOARD_TOPICS,
+            ...ENCYCLOPEDIA_SCORING_AND_SURVIVAL_TOPICS,
+            ...ENCYCLOPEDIA_SETTINGS_AND_ASSISTS_TOPICS,
+            ...ENCYCLOPEDIA_CONTRACT_TOPICS,
+            ...ENCYCLOPEDIA_FEATURED_RUN_TOPICS
+        ];
+        for (const t of all) {
+            expect(t.id, t.title).toMatch(TOPIC_ID);
+        }
     });
 });

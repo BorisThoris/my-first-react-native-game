@@ -35,7 +35,7 @@ Quick orientation for navigation and code review. **Rules of thumb:** `shared/` 
 | `index.ts` | App lifecycle, `BrowserWindow`, IPC registration, persistence + Steam services (no Electron **Menu** API) |
 | `ipc.ts` | IPC handlers: bridge to preload/renderer contracts |
 | `persistence.ts` | electron-store: saves, settings paths |
-| `steam.ts` | steamworks.js adapter; **mock** adapter when init fails (IPC still saves unlocks locally first) |
+| `steam.ts` | steamworks.js adapter; **mock** adapter when init fails (IPC still saves unlocks locally first). `STEAM_ACHIEVEMENT_API_NAME`: **5** entries, 1:1 with `AchievementId` in `contracts.ts` |
 
 ## `src/preload/`
 
@@ -61,9 +61,70 @@ Quick orientation for navigation and code review. **Rules of thumb:** `shared/` 
 | `ui/` | Shared UI primitives (`MetaFrame`, buttons, titles) |
 | `assets/` | Static assets; see [ASSET_SOURCES.md](../../src/renderer/assets/ASSET_SOURCES.md) |
 | `cardFace/` | Programmatic card face helpers |
-| `dev/` | Dev-only fixtures, sandboxes, HUD test harnesses |
-| `sandbox/` | Dev route sandboxes (e.g. logo intro) |
+| `dev/` | **Dev sandbox** — URL harness, canned runs, HUD fixtures, perf toggles ([section below](#renderer-dev-sandbox)) |
+| `sandbox/` | Dev route sandboxes (e.g. logo intro) — **not** the same folder as `dev/` |
 | `platformTilt/` | Device tilt integration for presentation |
+
+## Renderer dev sandbox
+
+**Folder:** [`src/renderer/dev/`](../../src/renderer/dev/). **Contrast:** [`src/renderer/sandbox/`](../../src/renderer/sandbox/) holds separate **route** sandboxes (for example logo intro); this section is only the `dev/` harness.
+
+**Gate:** [`devSandboxParams.ts`](../../src/renderer/dev/devSandboxParams.ts) `readDevSandboxConfig()` enables the harness only when `import.meta.env.DEV` **and** the URL contains `devSandbox=1`. Without that gate, other query keys are ignored; production builds never apply sandbox config.
+
+**Wiring:** After hydration, [`App.tsx`](../../src/renderer/App.tsx) reads the config once. If `fx` is set, the full shell is replaced by the matching preview component (today: `matchedRimFire` → [`MatchedCardRimFireSandbox.tsx`](../../src/renderer/dev/MatchedCardRimFireSandbox.tsx)). Otherwise [`useAppStore`](../../src/renderer/store/useAppStore.ts) `__devApplySandbox` navigates to `screen`, builds a run from [`runFixtures.ts`](../../src/renderer/dev/runFixtures.ts) when `screen` is `playing` or `gameOver`, and applies `skipIntro` / `unlockAchievements` as documented in `devSandboxParams.ts`.
+
+### URL query parameters (summary)
+
+| Param | Role |
+|--------|------|
+| `devSandbox=1` | Required for any other key to take effect |
+| `screen` | Target `ViewState` excluding `boot`: `menu`, `settings`, `playing`, `gameOver`, `modeSelect`, `collection`, `inventory`, `codex` (aliases such as `game-over` / `modeselect` are accepted — see `parseScreenParam`) |
+| `fixture` | Canned run preset when `screen` is `playing` or `gameOver` (default `arcade` if missing or unknown) |
+| `skipIntro=1` | Skip startup intro when landing on `menu` |
+| `unlockAchievements` | Comma-separated [`AchievementId`](../../src/shared/contracts.ts) values; seeds `newlyUnlockedAchievements` on `playing` for toast / E2E harness |
+| `fx=matchedRimFire` | Isolated WebGL rim-fire preview; ignores normal `screen` navigation |
+
+Authoritative comments and example URLs live at the top of [`devSandboxParams.ts`](../../src/renderer/dev/devSandboxParams.ts).
+
+### Canned fixtures (`fixture=`)
+
+Defined in [`runFixtures.ts`](../../src/renderer/dev/runFixtures.ts) (`SANDBOX_FIXTURE_IDS`). Default when absent or invalid: **`arcade`**.
+
+| ID | Intent |
+|----|--------|
+| `arcade` | Practice run, post-memorize |
+| `memorize` | Practice run still in memorize phase |
+| `daily` | Daily run after memorize (live daily mutator table) |
+| `dailyParasite` | Daily-style run with score parasite + fixed seed |
+| `gauntlet` | Gauntlet run after memorize |
+| `paused` | Paused practice run |
+| `gameOver` | Game-over summary state |
+
+### Files in `src/renderer/dev/`
+
+| File | Role |
+|------|------|
+| [`devSandboxParams.ts`](../../src/renderer/dev/devSandboxParams.ts) | Parse URL → `DevSandboxConfig` |
+| [`runFixtures.ts`](../../src/renderer/dev/runFixtures.ts) | `buildSandboxRun` / fixture IDs for canned runs |
+| [`MatchedCardRimFireSandbox.tsx`](../../src/renderer/dev/MatchedCardRimFireSandbox.tsx) (+ `.module.css`) | Full-app replacement for `fx=matchedRimFire` |
+| [`hudFixtures.ts`](../../src/renderer/dev/hudFixtures.ts) | Static `GameplayHudBar` props for four HUD states (no Storybook); `gameplayHudBarFixturePropsById` |
+| [`hudFixtures.test.tsx`](../../src/renderer/dev/hudFixtures.test.tsx) | Vitest smoke for fixture renders |
+| [`fitScreenSpike.test.tsx`](../../src/renderer/dev/fitScreenSpike.test.tsx) | Keeps `@fit-screen/react` imported for typecheck; not the shipped shell ([`VIEWPORT_FIT_UI.md`](../VIEWPORT_FIT_UI.md)) |
+| [`boardWebglPerfSample.ts`](../../src/renderer/dev/boardWebglPerfSample.ts) | DEV: `localStorage.perfBoard = '1'` → logs average ms per consolidated tile-step frame |
+| [`boardWebglPerfSample.test.ts`](../../src/renderer/dev/boardWebglPerfSample.test.ts) | Unit tests for perf sampler |
+| [`tileStepLegacy.ts`](../../src/renderer/dev/tileStepLegacy.ts) | DEV: `localStorage.tileStepLegacy = '1'` → per-tile `useFrame` path for A/B vs scene loop |
+| [`tileStepLegacy.test.ts`](../../src/renderer/dev/tileStepLegacy.test.ts) | Tests for legacy toggle reader |
+
+### Captures and E2E helpers
+
+- **End-product HUD/board crops:** `yarn capture:endproduct-parity` (paths and defaults described in `devSandboxParams.ts`; Playwright specs such as [`e2e/hud-inspect.spec.ts`](../../e2e/hud-inspect.spec.ts) / [`e2e/visual-endproduct-parity.spec.ts`](../../e2e/visual-endproduct-parity.spec.ts); helpers in [`e2e/visualScreenHelpers.ts`](../../e2e/visualScreenHelpers.ts)).
+- **Matched flame stills:** `yarn capture:matched-flame` → `test-results/matched-flame-capture/` (or `VISUAL_CAPTURE_ROOT`).
+
+### Related wiki / design docs
+
+- [VIEWPORT_FIT_UI.md](../VIEWPORT_FIT_UI.md) — `@fit-screen/react` spike (`fitScreenSpike.test.tsx`)
+- [COMPONENT_CATALOG.md](../new_design/COMPONENT_CATALOG.md) — HUD-016 references `hudFixtures.ts`
+- [reference-comparison/CURRENT_VS_ENDPRODUCT.md](../reference-comparison/CURRENT_VS_ENDPRODUCT.md) — Playwright gates tied to dev-sandbox playing fixture
 
 ## `packages/notifications/`
 

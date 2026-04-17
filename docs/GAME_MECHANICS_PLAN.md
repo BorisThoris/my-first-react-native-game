@@ -193,11 +193,11 @@ Pure functions in `game.ts`:
 
 ## 6. UI / UX checklist
 
-- [ ] Shuffle button: disabled states + tooltip (“No charges”, “Finish flip”, “Not during memorize”).
-- [ ] Destroy: two-step **confirm** optional for v1 (mobile: confirm modal) — **recommend**: **no modal** if charges are scarce; **yes modal** if we add life-cost later.
-- [ ] Pin mode: visible **active** state on chrome; ESC / tap outside cancels mode.
-- [ ] **Reduce motion**: pin and shuffle animations respect `settings.reduceMotion`.
-- [ ] Screen reader: `aria-label` on actions; live region when charge spent.
+- [x] Shuffle button: disabled states + tooltip (“No charges”, “Finish flip”, “Not during memorize”). — **Shipped** in `GameLeftToolbar` / board chrome (`useAppStore` guards).
+- [x] Destroy: two-step **confirm** optional for v1 (mobile: confirm modal) — **recommend**: **no modal** if charges are scarce; **yes modal** if we add life-cost later. — **Resolved:** no confirm modal in v1 per plan; revisit if life-cost added.
+- [x] Pin mode: visible **active** state on chrome; ESC / tap outside cancels mode. — **Shipped** in toolbar + tile input paths.
+- [x] **Reduce motion**: pin and shuffle animations respect `settings.reduceMotion`. — **Shipped** in board / motion hooks.
+- [x] Screen reader: `aria-label` on actions; live region when charge spent. — **Shipped** on power controls + HUD patterns; extend labels if new actions added.
 
 ---
 

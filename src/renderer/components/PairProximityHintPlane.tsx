@@ -45,6 +45,8 @@ export const PairProximityHintPlane = ({ distance, faceZ }: { distance: number; 
 
     useLayoutEffect(() => {
         paintHint(texture.image as HTMLCanvasElement, distance);
+        /* Three.js: flag GPU upload after 2D canvas paint (mutation required). */
+        // eslint-disable-next-line react-hooks/immutability -- CanvasTexture GPU sync
         texture.needsUpdate = true;
     }, [distance, texture]);
 

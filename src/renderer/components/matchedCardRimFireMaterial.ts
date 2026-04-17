@@ -1,6 +1,7 @@
 import {
     AdditiveBlending,
     DoubleSide,
+    MathUtils,
     ShaderMaterial,
     Vector2,
     Vector3
@@ -50,12 +51,36 @@ export interface MatchedCardRimFireUniforms {
 }
 
 /**
- * Purpose-built additive ember rim for matched cards. The mesh still provides the rounded-rect
- * silhouette, but the shader now derives its read from inner/outer edge distance instead of
- * sampling a generic fire volume.
+ * Purpose-built additive ember rim for matched cards. Fully procedural: **no** env map or external
+ * texture assets; color comes from {@link GAMEPLAY_BOARD_VISUALS}. Production builds always get
+ * valid sRGB triples; if a theme entry were ever invalid, uniforms fall back to warm ember tones.
  */
+/** JS-side clamp before GPU (pairs with fragment clamps for Intel/ANGLE edge uniforms). */
+export const clampMatchedCardRimFireDriverUniforms = (
+    u: Pick<MatchedCardRimFireUniforms, 'uIntensity' | 'uBurst'>
+): void => {
+    u.uIntensity.value = MathUtils.clamp(u.uIntensity.value, 0, 4);
+    u.uBurst.value = MathUtils.clamp(u.uBurst.value, 0, 2);
+};
+
 export const createMatchedCardRimFireMaterial = (seed: number): ShaderMaterial => {
     const colors = GAMEPLAY_BOARD_VISUALS.matchedEdgeEffect.colors;
+    const safeRgb = (
+        tuple: readonly [number, number, number],
+        fallback: readonly [number, number, number],
+        label: string
+    ): readonly [number, number, number] => {
+        if (tuple.every((n) => Number.isFinite(n))) {
+            return tuple;
+        }
+        if (import.meta.env.DEV) {
+            console.warn(`matchedCardRimFireMaterial: invalid ${label} rgb; using fallback`, tuple);
+        }
+        return fallback;
+    };
+    const core = safeRgb(colors.core, [0.96, 0.55, 0.28], 'core');
+    const glow = safeRgb(colors.glow, [1.0, 0.78, 0.42], 'glow');
+    const ember = safeRgb(colors.ember, [1.0, 0.45, 0.12], 'ember');
     const uniforms: MatchedCardRimFireUniforms = {
         uTime: { value: 0 },
         uSeed: { value: (seed % 1000) * 0.001 },
@@ -70,9 +95,9 @@ export const createMatchedCardRimFireMaterial = (seed: number): ShaderMaterial =
         uInnerHalfSize: { value: innerHalfSize.clone() },
         uOuterCorner: { value: matchedEdgeGeometry.outerCorner },
         uInnerCorner: { value: matchedEdgeGeometry.innerCorner },
-        uCoreColor: { value: new Vector3(...colors.core) },
-        uGlowColor: { value: new Vector3(...colors.glow) },
-        uEmberColor: { value: new Vector3(...colors.ember) }
+        uCoreColor: { value: new Vector3(...core) },
+        uGlowColor: { value: new Vector3(...glow) },
+        uEmberColor: { value: new Vector3(...ember) }
     };
 
     return new ShaderMaterial({

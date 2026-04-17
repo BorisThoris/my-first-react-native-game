@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
-import { getFocusableElements, handleTabFocusTrapEvent } from '../a11y/focusables';
+import { focusFirstTabbableOrContainer, handleTabFocusTrapEvent } from '../a11y/focusables';
+import { popModalFocusSnapshot, pushModalFocusSnapshot } from '../a11y/modalFocusReturnStack';
+import { popVerticalToolbarRovingPause, pushVerticalToolbarRovingPause } from '../a11y/toolbarRoving';
 import { MetaFrame, ScreenTitle, UiButton, type UiButtonVariant } from '../ui';
 import styles from './OverlayModal.module.css';
 
@@ -92,7 +94,6 @@ const OverlayModal = ({
     headerPlateTone = 'neutral'
 }: OverlayModalProps) => {
     const modalRef = useRef<HTMLElement | null>(null);
-    const previousFocusRef = useRef<HTMLElement | null>(null);
     const titleId = useId();
     const subtitleId = useId();
     const bodyId = useId();
@@ -100,17 +101,17 @@ const OverlayModal = ({
 
     /* OVR-010: initial focus + restore — same lifecycle pattern as Settings modal (`presentation="modal"`). */
     useEffect(() => {
-        previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        pushModalFocusSnapshot();
+        pushVerticalToolbarRovingPause();
 
         const focusInitialElement = window.requestAnimationFrame(() => {
-            const focusableElements = getFocusableElements(modalRef.current);
-            const initialFocusTarget = focusableElements[0] ?? modalRef.current;
-            initialFocusTarget?.focus();
+            focusFirstTabbableOrContainer(modalRef.current);
         });
 
         return () => {
             window.cancelAnimationFrame(focusInitialElement);
-            previousFocusRef.current?.focus();
+            popVerticalToolbarRovingPause();
+            popModalFocusSnapshot();
         };
     }, []);
 
@@ -126,8 +127,22 @@ const OverlayModal = ({
         };
     }, []);
 
+    useEffect(() => {
+        document.body.dataset.overlayModalOpen = 'true';
+        return () => {
+            delete document.body.dataset.overlayModalOpen;
+        };
+    }, []);
+
     return (
-        <div className={`${styles.backdrop} ${overlayToneClass(headerPlateTone)}`.trim()}>
+        <div
+            className={`${styles.backdrop} ${overlayToneClass(headerPlateTone)}`.trim()}
+            onWheel={(event) => {
+                if (event.target === event.currentTarget) {
+                    event.preventDefault();
+                }
+            }}
+        >
             <section
                 aria-describedby={describedBy}
                 aria-labelledby={titleId}

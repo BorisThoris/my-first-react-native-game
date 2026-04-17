@@ -10,7 +10,7 @@ When you change gameplay in a way players should see in the Codex:
 
 1. Add or update entries in **`mechanics-encyclopedia.ts`** (including new **`RelicId`** / **`MutatorId`** keys in the catalogs — TypeScript enforces completeness).
 2. Bump **`ENCYCLOPEDIA_VERSION`** when the text set meaningfully changes (adds, removals, rewrites).
-3. Run **`yarn typecheck`** and **`yarn test`**.
+3. Run **`yarn ci`** (same as **`yarn fullcheck`**: ESLint + test-file naming guard + typecheck + tests), or **`yarn verify`** when iterating without lint.
 
 4. Regenerate the mechanics catalog machine snapshot: **`yarn docs:mechanics-appendix`** (updates `docs/gameplay/GAMEPLAY_MECHANICS_CATALOG.auto-appendix.md`).
 

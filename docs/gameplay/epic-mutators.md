@@ -47,6 +47,6 @@ Run modifiers that change generation, scoring, timers, or objectives. Sources: e
 Tracked in rollup: [GAMEPLAY_POLISH_AND_GAPS.md](./GAMEPLAY_POLISH_AND_GAPS.md) §1, §9, §15.
 
 - [x] Add clearer on-board affordance for `sticky_fingers` (blocked “next open” slot), beyond HUD chip alone.
-- [ ] Keep [MUTATORS.md](../MUTATORS.md), `MUTATOR_CATALOG`, and `game.ts` + renderer in sync when presentation mutators gain 3D support ([GAMEPLAY_SYSTEMS_ANALYSIS.md](../GAMEPLAY_SYSTEMS_ANALYSIS.md) §10).
-- [ ] Until board epic ships 3D parity, track catalog vs renderer for `wide_recall` / `silhouette_twist` / `n_back_anchor` (score tax vs visual promise).
-- [ ] (Optional) Add `src/shared/mutators.test.ts` for `DAILY_MUTATOR_TABLE`, `hasMutator`, and catalog completeness if release bar requires it beyond `game.test.ts`.
+- [x] Keep [MUTATORS.md](../MUTATORS.md), `MUTATOR_CATALOG`, and `game.ts` + renderer in sync when presentation mutators gain 3D support ([GAMEPLAY_SYSTEMS_ANALYSIS.md](../GAMEPLAY_SYSTEMS_ANALYSIS.md) §10). — *Ongoing:* MUTATORS.md + drift tests; bump when adding mutators.
+- [x] Until board epic ships 3D parity, track catalog vs renderer for `wide_recall` / `silhouette_twist` / `n_back_anchor` (score tax vs visual promise). — *Current:* [GAMEPLAY_POLISH_AND_GAPS.md](./GAMEPLAY_POLISH_AND_GAPS.md) §1; 3D tints shipped; parity tracked there.
+- [x] (Optional) Add `src/shared/mutators.test.ts` for `DAILY_MUTATOR_TABLE`, `hasMutator`, and catalog completeness if release bar requires it beyond `game.test.ts`. — **Done:** [`mutators.test.ts`](../../src/shared/mutators.test.ts) exists.

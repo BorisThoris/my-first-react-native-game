@@ -138,6 +138,11 @@ export const RENDERER_THEME = {
         '--theme-backdrop-body-rim': 'rgba(255, 244, 218, 0.03)',
         '--theme-app-ember-bloom': 'rgba(243, 155, 78, 0.12)',
         '--theme-app-mist-top': 'rgba(255, 255, 255, 0.02)',
+        /** App.module.css ambient grid — third gradient line (DS-009); keep off-token rgba minimal. */
+        '--theme-ambient-grid-fade': 'rgba(255, 255, 255, 0.015)',
+        /** META-005 sticky TOC bar — replaces raw rgba stacks in MetaScreen.module.css */
+        '--theme-meta-toc-sticky-bg':
+            'linear-gradient(180deg, color-mix(in srgb, var(--theme-void) 96%, transparent), color-mix(in srgb, var(--theme-void) 84%, transparent))',
 
         /* OVR-001/002/003 — shared modal plate + scrim (OverlayModal, Settings modal Panel; motion in CSS modules + global.css) */
         '--theme-overlay-plate-radius': 'calc(var(--ui-radius-modal) + 0.18rem)',
@@ -312,6 +317,9 @@ export const RENDERER_THEME = {
         '--ui-touch-target-min': '2.75rem',
         '--ui-shell-screen-pad-inline': 'clamp(0.85rem, 1.8vw, 1.35rem)',
         '--ui-shell-screen-pad-block': 'clamp(0.78rem, 1.6vw, 1.1rem)',
+        /* Safe-area-inclusive shorthand; references pad-* so compact density overrides still apply. */
+        '--ui-shell-screen-pad-safe':
+            'max(var(--ui-shell-screen-pad-block), env(safe-area-inset-top, 0px)) max(var(--ui-shell-screen-pad-inline), env(safe-area-inset-right, 0px)) max(var(--ui-shell-screen-pad-block), env(safe-area-inset-bottom, 0px)) max(var(--ui-shell-screen-pad-inline), env(safe-area-inset-left, 0px))',
         '--ui-shell-screen-gap': 'var(--theme-space-xl)',
         '--ui-card-pad-md': 'clamp(0.95rem, 2vw, 1.2rem)',
         '--ui-card-pad-lg': 'clamp(1.05rem, 2.2vw, 1.45rem)',

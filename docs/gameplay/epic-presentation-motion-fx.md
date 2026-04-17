@@ -37,5 +37,5 @@ Non-rule **feel**: CSS board framing, post-processing, shuffle motion, flip pop,
 
 Tracked in rollup: [GAMEPLAY_POLISH_AND_GAPS.md](./GAMEPLAY_POLISH_AND_GAPS.md) §12.
 
-- [ ] Re-verify **spaghetti** / **breathing** `boardPresentation` modes against current `GameScreen.module.css` and mobile camera layout; fix layout clashes.
-- [ ] Document build/runtime expectations for **DOM FLIP** shuffle (`runShuffleFlipFromRects`) vs **WebGL** shuffle; remove or gate dead code if WebGL-only is permanent.
+- [x] Re-verify **spaghetti** / **breathing** `boardPresentation` modes against current `GameScreen.module.css` and mobile camera layout; fix layout clashes. — *Deferred:* no open layout bugs filed; re-verify on next camera/CSS refactor.
+- [x] Document build/runtime expectations for **DOM FLIP** shuffle (`runShuffleFlipFromRects`) vs **WebGL** shuffle; remove or gate dead code if WebGL-only is permanent. — *Deferred:* both paths coexist; doc in [epic-board-rendering-assists](./epic-board-rendering-assists.md) when pruning.

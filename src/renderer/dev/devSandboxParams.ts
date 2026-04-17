@@ -61,6 +61,21 @@ export interface DevSandboxConfig {
     unlockAchievements: AchievementId[];
 }
 
+/** Default when dev sandbox is off or unavailable — use `resetDevSandboxConfig()` for a fresh object in tests / dev UI. */
+export const DEV_SANDBOX_DEFAULT_CONFIG: DevSandboxConfig = {
+    enabled: false,
+    fxSandbox: null,
+    screen: null,
+    fixture: null,
+    skipIntro: false,
+    unlockAchievements: []
+};
+
+export const resetDevSandboxConfig = (): DevSandboxConfig => ({
+    ...DEV_SANDBOX_DEFAULT_CONFIG,
+    unlockAchievements: [...DEV_SANDBOX_DEFAULT_CONFIG.unlockAchievements]
+});
+
 const SCREEN_MAP: Record<string, DevSandboxScreen> = {
     menu: 'menu',
     settings: 'settings',
@@ -95,26 +110,12 @@ const parseFxSandboxParam = (raw: string | null): FxSandboxId | null => {
 
 export const readDevSandboxConfig = (): DevSandboxConfig => {
     if (!import.meta.env.DEV || typeof window === 'undefined') {
-        return {
-            enabled: false,
-            fxSandbox: null,
-            screen: null,
-            fixture: null,
-            skipIntro: false,
-            unlockAchievements: []
-        };
+        return resetDevSandboxConfig();
     }
 
     const params = new URLSearchParams(window.location.search);
     if (params.get('devSandbox') !== '1') {
-        return {
-            enabled: false,
-            fxSandbox: null,
-            screen: null,
-            fixture: null,
-            skipIntro: false,
-            unlockAchievements: []
-        };
+        return resetDevSandboxConfig();
     }
 
     const fxSandbox = parseFxSandboxParam(params.get('fx'));

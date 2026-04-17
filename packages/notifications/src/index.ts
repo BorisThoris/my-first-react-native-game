@@ -11,6 +11,7 @@ export {
 } from './notificationStore.js';
 export {
   configureNotificationFallbackLog,
+  notifyAchievement,
   notifyError,
   notifyInfo,
   notifySuccess,
@@ -21,11 +22,10 @@ export {
 } from './notificationBridge.js';
 export {
   NotificationHost,
-  NotificationProvider,
-  useNotification,
-  useNotificationActions,
-  useNotifications,
   type NotificationHostProps,
   type NotificationLabels
 } from './NotificationHost.js';
+/** Alias matching the MusicalAppReactConcept provider name. */
+export { NotificationHost as NotificationProvider } from './NotificationHost.js';
+export { useNotification, useNotificationActions, useNotifications } from './notificationClientHooks.js';
 export { rafDelay } from './rafDelay.js';

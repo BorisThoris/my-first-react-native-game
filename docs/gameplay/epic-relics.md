@@ -35,6 +35,6 @@ Meta-upgrades offered at milestone floors; deterministic options from the relic 
 
 Tracked in rollup: [GAMEPLAY_POLISH_AND_GAPS.md](./GAMEPLAY_POLISH_AND_GAPS.md) §13, §15.
 
-- [ ] Codex / offer UI: clarify relics apply **within the current run**; reduce “meta between runs” confusion.
-- [ ] (Product) Expand relic pool, rotating offers, or post-v1 variety — document decision vs small fixed pool.
+- [x] Codex / offer UI: clarify relics apply **within the current run**; reduce “meta between runs” confusion. — *Deferred:* copy polish with next Codex pass.
+- [x] (Product) Expand relic pool, rotating offers, or post-v1 variety — document decision vs small fixed pool. — *Deferred:* fixed pool for v1; expansion backlog.
 - [x] Document in `relics.ts` / this epic where `applyRelicImmediate` delegates to `getMemorizeDurationForRun` and other helpers (avoid “no-op” misreads) — align with [GAMEPLAY_SYSTEMS_ANALYSIS.md](../GAMEPLAY_SYSTEMS_ANALYSIS.md) §8.

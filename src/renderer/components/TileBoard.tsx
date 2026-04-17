@@ -18,8 +18,11 @@ import { getBoardDprCap } from '../../shared/graphicsQuality';
 import { isNarrowShortLandscapeForMenuStack, VIEWPORT_MOBILE_MAX } from '../breakpoints';
 import { useCoarsePointer } from '../hooks/useCoarsePointer';
 import { useViewportSize } from '../hooks/useViewportSize';
+import { getMotionPermissionButtonLabels, shouldOfferDeviceMotionPermission } from '../platformTilt/platformTiltPermissionUi';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
 import styles from './TileBoard.module.css';
+import { getPairProximityGridDistance } from '../../shared/pairProximityHint';
+import { pairProximityUiStrings } from '../ui/strings/pairProximityUi';
 import { isTilePickable } from './tileBoardPick';
 import TileBoardPostFx from './TileBoardPostFx';
 import TileBoardScene, { type TileBoardSceneHandle, type TileHoverTiltState } from './TileBoardScene';
@@ -114,8 +117,6 @@ interface MouseDragSnapshot {
 const MOUSE_PAN_DRAG_THRESHOLD_PX = 8;
 const DECOY_PAIR_KEY = '__decoy__';
 
-const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
-
 const canUseWebGL = (): boolean => {
     if (typeof document === 'undefined') {
         return false;
@@ -197,8 +198,8 @@ const moveFocusInGrid = (
         const firstPickable = board.tiles.find((t) => pickable.has(t.id));
         startIdx = firstPickable ? gridIndexFromTileId(board, firstPickable.id) : 0;
     }
-    let r = Math.floor(startIdx / cols);
-    let c = startIdx % cols;
+    const r = Math.floor(startIdx / cols);
+    const c = startIdx % cols;
     const dr = dir === 'up' ? -1 : dir === 'down' ? 1 : 0;
     const dc = dir === 'left' ? -1 : dir === 'right' ? 1 : 0;
     let nr = r + dr;
@@ -265,6 +266,9 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
     const touchPrimary = useCoarsePointer();
     const baselineWebGl = useMemo(() => canUseWebGL(), []);
     const [gpuSurfaceLost, setGpuSurfaceLost] = useState(false);
+    /** Bumped after `webglcontextrestored` so Canvas/scene remounts with a fresh GL context (REF-078). */
+    const [webglCanvasRemountKey, setWebglCanvasRemountKey] = useState(0);
+    const webglContextListenersCleanupRef = useRef<(() => void) | null>(null);
     const boardGraphicsOk = baselineWebGl && !gpuSurfaceLost;
     const cameraViewportMode = mobileCameraMode && boardGraphicsOk;
     const touchGestureMode = cameraViewportMode && touchPrimary;
@@ -300,7 +304,15 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
     /** When false, no tile should show the keyboard focus ring (avoids a permanent “hover” on first pickable tile). */
     const [boardApplicationFocused, setBoardApplicationFocused] = useState(false);
     const [boardLiveMessage, setBoardLiveMessage] = useState('');
-    const { tiltRef: fieldTiltRef, permission, requestMotionPermission } = usePlatformTiltField({
+
+    useEffect(
+        () => () => {
+            webglContextListenersCleanupRef.current?.();
+            webglContextListenersCleanupRef.current = null;
+        },
+        []
+    );
+    const { tiltRef: fieldTiltRef, motionParallaxSuppressed, permission, requestMotionPermission } = usePlatformTiltField({
         enabled: true,
         reduceMotion,
         surfaceRef: frameRef,
@@ -331,16 +343,47 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         [board.columns, board.tiles]
     );
 
+    /**
+     * DEV-only: pairKey → two grid positions for Playwright (WebGL has no memorize-phase button aria-labels).
+     * Omitted in production builds — see `e2e/memorizeSnapshot.ts` `readDevPairPositionsFromFrame`.
+     */
+    const devE2ePairPositionsJson = useMemo(() => {
+        if (!import.meta.env.DEV) {
+            return undefined;
+        }
+        const byKey: Record<string, { row: number; col: number }[]> = {};
+        board.tiles.forEach((tile, index) => {
+            const row = Math.floor(index / board.columns) + 1;
+            const col = (index % board.columns) + 1;
+            const k = tile.pairKey;
+            if (!byKey[k]) {
+                byKey[k] = [];
+            }
+            byKey[k]!.push({ row, col });
+        });
+        const keys = Object.keys(byKey).filter((k) => byKey[k]!.length === 2);
+        if (keys.length < 2) {
+            return undefined;
+        }
+        const slim: Record<string, { row: number; col: number }[]> = {};
+        for (const k of keys) {
+            slim[k] = byKey[k]!;
+        }
+        return JSON.stringify(slim);
+    }, [board.columns, board.tiles]);
+
     useEffect(() => {
         const pickable = getPickableTileIds(board, interactive, allowGambitThirdFlip);
-        setFocusedTileId((cur) => {
-            if (pickable.length === 0) {
+        queueMicrotask(() => {
+            setFocusedTileId((cur) => {
+                if (pickable.length === 0) {
+                    return null;
+                }
+                if (cur && pickable.includes(cur)) {
+                    return cur;
+                }
                 return null;
-            }
-            if (cur && pickable.includes(cur)) {
-                return cur;
-            }
-            return null;
+            });
         });
     }, [board, interactive, allowGambitThirdFlip]);
 
@@ -356,15 +399,28 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         const faceUp =
             tile.state !== 'hidden' || debugPeekActive || previewActive || peekSet.has(tile.id);
         const { row, column } = getTilePosition(idx, board.columns);
-        return getTileAriaLabel(tile, faceUp, row, column);
-    }, [board.tiles, board.columns, focusedTileId, debugPeekActive, previewActive, peekSet]);
+        let label = getTileAriaLabel(tile, faceUp, row, column);
+        if (
+            pairProximityHintsEnabled &&
+            (runStatus === 'playing' || runStatus === 'resolving') &&
+            tile.state === 'flipped'
+        ) {
+            const d = getPairProximityGridDistance(board, tile.id);
+            if (d != null) {
+                label += pairProximityUiStrings.focusPairSteps(d);
+            }
+        }
+        return label;
+    }, [board, debugPeekActive, focusedTileId, pairProximityHintsEnabled, peekSet, previewActive, runStatus]);
 
     useEffect(() => {
-        if (!focusedTileLabel) {
-            setBoardLiveMessage('');
-            return;
-        }
-        setBoardLiveMessage(`Focus: ${focusedTileLabel}`);
+        queueMicrotask(() => {
+            if (!focusedTileLabel) {
+                setBoardLiveMessage('');
+                return;
+            }
+            setBoardLiveMessage(`Focus: ${focusedTileLabel}`);
+        });
     }, [focusedTileLabel]);
 
     useImperativeHandle(ref, () => ({
@@ -516,7 +572,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
             }
             return pickable[0];
         });
-    }, [board, interactive, allowGambitThirdFlip]);
+    }, [board, interactive, allowGambitThirdFlip, setBoardApplicationFocused, setFocusedTileId]);
 
     const handleBoardApplicationBlur = useCallback((event: FocusEvent<HTMLDivElement>): void => {
         const related = event.relatedTarget;
@@ -525,7 +581,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         }
         setBoardApplicationFocused(false);
         setFocusedTileId(null);
-    }, []);
+    }, [setBoardApplicationFocused, setFocusedTileId]);
 
     const handleBoardApplicationKeyDown = useCallback(
         (event: React.KeyboardEvent<HTMLDivElement>): void => {
@@ -556,8 +612,33 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                 }
             }
         },
-        [allowGambitThirdFlip, board, boardGraphicsOk, focusedTileId, handleTileSelect, interactive]
+        [allowGambitThirdFlip, board, boardGraphicsOk, focusedTileId, handleTileSelect, interactive, setFocusedTileId]
     );
+
+    /**
+     * DEV-only: absolute 1-based grid picks for Playwright. Keyboard nav skips non-pickable cells, so row/col offsets
+     * from “first pickable” do not match memorize coordinates after the first match — see `e2e/tileBoardGameFlow.ts`.
+     */
+    useEffect(() => {
+        if (!import.meta.env.DEV) {
+            return undefined;
+        }
+        const w = window as Window & { __e2ePickTileAtGrid1?: (row: number, col: number) => void };
+        w.__e2ePickTileAtGrid1 = (row: number, col: number): void => {
+            const r = row - 1;
+            const c = col - 1;
+            if (r < 0 || c < 0 || r >= board.rows || c >= board.columns) {
+                return;
+            }
+            const tile = board.tiles[r * board.columns + c];
+            if (tile) {
+                handleTileSelect(tile.id);
+            }
+        };
+        return () => {
+            delete w.__e2ePickTileAtGrid1;
+        };
+    }, [board.columns, board.rows, board.tiles, handleTileSelect]);
 
     const handleStageViewportChange = useCallback((nextViewport: StageWorldViewport): void => {
         setStageWorldViewport((current) =>
@@ -1030,7 +1111,12 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         syncSelectionSuppressed
     ]);
 
-    const showMotionChip = touchPrimary && !reduceMotion && (permission === 'prompt' || permission === 'denied');
+    const showMotionChip = shouldOfferDeviceMotionPermission({
+        motionParallaxSuppressed,
+        permission,
+        touchPrimary
+    });
+    const motionChipLabels = getMotionPermissionButtonLabels(permission, 'board');
 
     const sceneErrorFallback = (
         <div className={styles.webglSceneError} data-testid="tile-board-scene-error" role="alert">
@@ -1048,6 +1134,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
             data-board-run-status={runStatus}
             data-hidden-tile-count={hiddenTileCount}
             data-hidden-slots={hiddenSlotsAttr}
+            {...(devE2ePairPositionsJson ? { 'data-e2e-pair-positions': devE2ePairPositionsJson } : {})}
             data-shuffle-animating={shuffleAnimating ? 'true' : 'false'}
             data-board-pan-x={renderedViewportState.panX.toFixed(4)}
             data-board-pan-y={renderedViewportState.panY.toFixed(4)}
@@ -1067,8 +1154,9 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                     This game requires WebGL. Enable hardware acceleration or update your browser, then reload.
                 </div>
             ) : gpuSurfaceLost ? (
-                <div className={styles.webglSceneError} data-testid="tile-board-gpu-lost" role="status">
-                    Graphics surface was lost. If this persists, reload the page or update your GPU drivers.
+                <div className={styles.webglSceneError} data-testid="tile-board-gpu-lost" role="alert">
+                    WebGL context was lost — the board will try to rebuild when the GPU restores it. If you still see
+                    this, reload the page or update GPU drivers.
                 </div>
             ) : (
                 <div
@@ -1086,9 +1174,10 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                         <TileBoardErrorBoundary fallback={sceneErrorFallback}>
                             <div className={styles.scene} data-testid="tile-board-stage">
                                 <Canvas
+                                    aria-hidden
                                     className={styles.canvas}
                                     dpr={dpr}
-                                    key={`tile-board-aa-${resolvedBoardAa}`}
+                                    key={`tile-board-${webglCanvasRemountKey}-${resolvedBoardAa}`}
                                     gl={{
                                         alpha: true,
                                         antialias: glAntialias,
@@ -1096,6 +1185,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                                         premultipliedAlpha: false
                                     }}
                                     onCreated={({ gl }) => {
+                                        webglContextListenersCleanupRef.current?.();
                                         const canvas = gl.domElement as HTMLCanvasElement;
                                         const onLost = (event: Event): void => {
                                             event.preventDefault();
@@ -1103,9 +1193,16 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                                         };
                                         const onRestored = (): void => {
                                             setGpuSurfaceLost(false);
+                                            setWebglCanvasRemountKey((key) => key + 1);
+                                            setBoardLiveMessage('Graphics context restored. Board rebuilt.');
+                                            window.setTimeout(() => setBoardLiveMessage(''), 3200);
                                         };
                                         canvas.addEventListener('webglcontextlost', onLost);
                                         canvas.addEventListener('webglcontextrestored', onRestored);
+                                        webglContextListenersCleanupRef.current = (): void => {
+                                            canvas.removeEventListener('webglcontextlost', onLost);
+                                            canvas.removeEventListener('webglcontextrestored', onRestored);
+                                        };
                                     }}
                                     shadows={false}
                                     camera={{ fov: 42, near: 0.1, far: 100, position: [0, 0, 10.5] }}
@@ -1136,6 +1233,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                                         previewActive={previewActive}
                                         ref={sceneHandleRef}
                                         reduceMotion={reduceMotion}
+                                        motionParallaxSuppressed={motionParallaxSuppressed}
                                         runStatus={runStatus}
                                         shuffleMotionBudgetMs={shuffleMotionBudgetMs}
                                         shuffleMotionDeadlineMs={shuffleMotionDeadlineMs}
@@ -1153,6 +1251,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                         </TileBoardErrorBoundary>
                         {showMotionChip ? (
                             <button
+                                aria-label={motionChipLabels.ariaLabel}
                                 className={styles.motionChip}
                                 onClick={(event) => {
                                     event.stopPropagation();
@@ -1163,7 +1262,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                                 }}
                                 type="button"
                             >
-                                Enable motion
+                                {motionChipLabels.buttonText}
                             </button>
                         ) : null}
                     </div>

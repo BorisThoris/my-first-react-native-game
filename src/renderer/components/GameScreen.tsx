@@ -13,8 +13,8 @@ import { useNotificationStore } from '@cross-repo-libs/notifications';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { UI_ART } from '../assets/ui';
-import { isNarrowShortLandscapeForMenuStack, VIEWPORT_MOBILE_MAX } from '../breakpoints';
-import { deriveCameraViewportMode } from '../../shared/cameraViewportMode';
+import { isNarrowShortLandscapeForMenuStack } from '../breakpoints';
+import { deriveCameraViewportMode, latchPhoneWidthForMobileCamera } from '../../shared/cameraViewportMode';
 import { useDistractionChannelTick } from '../hooks/useDistractionChannelTick';
 import {
     detectClaimedFindableKind,
@@ -22,6 +22,7 @@ import {
     useHudPoliteLiveAnnouncement
 } from '../hooks/useHudPoliteLiveAnnouncement';
 import { useViewportSize } from '../hooks/useViewportSize';
+import { GAMEPLAY_SHORTCUT_ROWS } from '../keyboard/gameplayShortcuts';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
 import { StatTile } from '../ui';
 import { useAppStore } from '../store/useAppStore';
@@ -56,7 +57,7 @@ const RELIC_LABELS: Record<RelicId, string> = {
     region_shuffle_free_first: 'First row shuffle each floor is free'
 };
 
-/** OVR-012 — milestone tiers 1–3 align with floors in {@link RELIC_MILESTONE_FLOORS} (reference 05–07 modal family). */
+/** OVR-012 — relic-offer tiers 1–3 match {@link RELIC_MILESTONE_FLOORS} (floors 3, 6, 9). */
 const getRelicOfferTitle = (tier: number): string =>
     `Relic offer (${tier} of ${RELIC_MILESTONE_FLOORS.length})`;
 
@@ -103,12 +104,21 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const shellRef = useRef<HTMLElement | null>(null);
     const tileBoardRef = useRef<TileBoardHandle>(null);
     const { height, width } = useViewportSize();
-    const isPhoneViewport = width <= VIEWPORT_MOBILE_MAX;
+    const [phoneViewportLatched, setPhoneViewportLatched] = useState(() =>
+        latchPhoneWidthForMobileCamera(width, false)
+    );
+    useEffect(() => {
+        queueMicrotask(() => {
+            setPhoneViewportLatched((prev) => latchPhoneWidthForMobileCamera(width, prev));
+        });
+    }, [width]);
+    const isPhoneViewport = phoneViewportLatched;
     const compactTouchChrome = isPhoneViewport || isNarrowShortLandscapeForMenuStack(width, height);
     const [viewportResetToken, setViewportResetToken] = useState(0);
     const [gauntletNowMs, setGauntletNowMs] = useState(() => Date.now());
     const [rulesHintsExpanded, setRulesHintsExpanded] = useState(() => !compactTouchChrome);
     const [abandonRunConfirmOpen, setAbandonRunConfirmOpen] = useState(false);
+    const [shortcutsHelpOpen, setShortcutsHelpOpen] = useState(false);
     useEffect(() => {
         if (run.gauntletDeadlineMs === null) {
             return;
@@ -166,6 +176,12 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
             boardPinMode: state.boardPinMode,
             destroyPairArmed: state.destroyPairArmed,
             peekModeArmed: state.peekModeArmed
+        }))
+    );
+    const { persistenceWriteNotice, clearPersistenceWriteNotice } = useAppStore(
+        useShallow((state) => ({
+            persistenceWriteNotice: state.persistenceWriteNotice,
+            clearPersistenceWriteNotice: state.clearPersistenceWriteNotice
         }))
     );
     const settingsReduceMotion = useAppStore((state) => state.settings.reduceMotion);
@@ -241,6 +257,9 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                     return;
                 }
             }
+            if (shortcutsHelpOpen) {
+                return;
+            }
             if (abandonRunConfirmOpen) {
                 return;
             }
@@ -266,11 +285,47 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         abandonRunConfirmOpen,
         pause,
         resume,
+        shortcutsHelpOpen,
         run.lastLevelResult,
         run.relicOffer,
         run.status,
         suppressStatusOverlays
     ]);
+
+    /** ? / F1: shortcuts overlay; Escape closes (REF-096). */
+    useEffect(() => {
+        if (suppressStatusOverlays) {
+            return;
+        }
+        const onKeyDown = (event: KeyboardEvent): void => {
+            if (event.defaultPrevented || event.repeat) {
+                return;
+            }
+            if (event.altKey || event.ctrlKey || event.metaKey) {
+                return;
+            }
+            const target = event.target;
+            if (target instanceof HTMLElement) {
+                if (target.closest('input, textarea, select') || target.isContentEditable) {
+                    return;
+                }
+            }
+            if (event.key === 'Escape' && shortcutsHelpOpen) {
+                event.preventDefault();
+                setShortcutsHelpOpen(false);
+                return;
+            }
+            if (shortcutsHelpOpen) {
+                return;
+            }
+            if (event.code === 'F1' || event.key === '?') {
+                event.preventDefault();
+                setShortcutsHelpOpen(true);
+            }
+        };
+        document.addEventListener('keydown', onKeyDown, true);
+        return () => document.removeEventListener('keydown', onKeyDown, true);
+    }, [shortcutsHelpOpen, suppressStatusOverlays]);
 
     useEffect(() => {
         const floorClearedModalBlocksToasts =
@@ -412,7 +467,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const gauntletRemainingMs =
         run.gauntletDeadlineMs !== null ? Math.max(0, run.gauntletDeadlineMs - gauntletNowMs) : null;
     const gauntletActive = run.gameMode === 'gauntlet' && run.gauntletDeadlineMs !== null;
-    const politeHudAnnouncement = useHudPoliteLiveAnnouncement({
+    const { message: politeHudAnnouncement } = useHudPoliteLiveAnnouncement({
         boardLevel: run.board?.level ?? null,
         boardTiles: run.board?.tiles ?? [],
         findablesClaimedThisFloor: run.findablesClaimedThisFloor,
@@ -515,6 +570,18 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                     inert={gameplayShellInert ? true : undefined}
                 >
                     <h1 className={styles.srOnly}>Level {run.board.level}</h1>
+                    {persistenceWriteNotice ? (
+                        <div className={styles.persistWriteBanner} role="alert">
+                            <span>{persistenceWriteNotice}</span>
+                            <button
+                                type="button"
+                                className={styles.persistWriteBannerDismiss}
+                                onClick={clearPersistenceWriteNotice}
+                            >
+                                Dismiss
+                            </button>
+                        </div>
+                    ) : null}
                     <div
                         className={`${styles.gamePlayLayout} ${cameraViewportMode ? styles.mobileCameraGamePlayLayout : ''}`.trim()}
                     >
@@ -697,6 +764,31 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         </div>
                     </OverlayModal>
                 )}
+
+                {!suppressStatusOverlays && shortcutsHelpOpen ? (
+                    <OverlayModal
+                        actions={[
+                            {
+                                label: 'Close',
+                                onClick: () => setShortcutsHelpOpen(false),
+                                variant: 'secondary'
+                            }
+                        ]}
+                        subtitle="These shortcuts work while a run is active and when focus is not in a text field."
+                        testId="game-shortcuts-help-overlay"
+                        title="Keyboard shortcuts"
+                    >
+                        <ul aria-label="Gameplay keyboard shortcuts" className={styles.shortcutsHelpList}>
+                            {GAMEPLAY_SHORTCUT_ROWS.map((row) => (
+                                <li key={row.id}>
+                                    <span className={styles.shortcutsHelpKeys}>{row.keys}</span>
+                                    {' — '}
+                                    {row.description}
+                                </li>
+                            ))}
+                        </ul>
+                    </OverlayModal>
+                ) : null}
 
                 {!suppressStatusOverlays && abandonRunConfirmOpen ? (
                     <OverlayModal

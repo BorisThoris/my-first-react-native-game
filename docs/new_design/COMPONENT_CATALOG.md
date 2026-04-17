@@ -172,19 +172,19 @@ Pause is **not** on the rail (keyboard **P** + pause modal). Settings, codex, an
   - Mutator
 - Current mapping:
   - [`GameplayHudBar`](../../src/renderer/components/GameplayHudBar.tsx) segments (floor hex badge, lives row, shards pill, centered score, daily strip when applicable, score-parasite module, mode/meta block with mutator chips, compact `statRail` pills)
-  - Presentation tokens and layout live in [`GameScreen.module.css`](../../src/renderer/components/GameScreen.module.css) (HUD-011 rail: `.hudStatsStrip::before` gold-trim inset frame; `.hudDeck.floatingDeck` glass deck)
+  - Presentation tokens and layout live in [`GameScreen.module.css`](../../src/renderer/components/GameScreen.module.css) (HUD-011: `.hudDeckDualRow::before` gold-trim inset frame; PLAY-003 dual-row deck; `.hudDeck.floatingDeck` glass deck)
 
 ### 12. Gameplay HUD Bar
 - Type: Composite
 - Purpose: assembled top status strip with score in the visual center
 - Current mapping:
   - [`GameplayHudBar`](../../src/renderer/components/GameplayHudBar.tsx) — mounted from [`GameScreen`](../../src/renderer/components/GameScreen.tsx) (`data-testid="game-hud"`)
-  - Outer chrome: `.hudRow` → `.floatingDeck.statsDeck.hudDeck` → `.hudStatsStrip` (CSS grid: **left wing** | divider | **score** | divider | **right wing**)
+  - Outer chrome: `.hudRow` → `.floatingDeck.statsDeck.hudDeck` → **`.hudDeckDualRow`** wrapping **`.hudPrimaryStatsRow`** (CSS grid: **left wing** | divider | **score** | divider | **right wing**) plus **`.hudContextSecondaryStrip`** for context/meta row when needed
   - **Left wing** (`.hudStripLeftModule`): SVG-framed floor hex (`.floorBadgeHexFrame`), lives hearts, shards + guard subline
   - **Center** (`.hudStripScoreModule`): score segment (`.hudScoreSegment`, `.statValScore`)
   - **Right wing** (`.hudStripRightModule`): optional daily date, score-parasite progress when active, then column with mode label / mutator chip row (including gauntlet, scholar, shuffle-tax context chips) and `.statRail` compact pills (gauntlet time, findables, contract, pins, meditation, wild)
   - **HUD-015:** screen-reader status: `.srOnly` region with `aria-live="polite"` (`politeHudAnnouncement` prop)
-  - **HUD-016:** there is no Storybook package in this repo; static review props for four HUD states (daily, gauntlet, scholar, multi-mutator) live in [`hudFixtures.ts`](../../src/renderer/dev/hudFixtures.ts) as `GameplayHudBar` props (`hudFixturePropsDaily`, `…Gauntlet`, `…Scholar`, `…MultiMutator`, plus `gameplayHudBarFixturePropsById`).
+  - **HUD-016:** there is no Storybook package in this repo; static review props for four HUD states (daily, gauntlet, scholar, multi-mutator) live in [`hudFixtures.ts`](../../src/renderer/dev/hudFixtures.ts) as `GameplayHudBar` props (`hudFixturePropsDaily`, `…Gauntlet`, `…Scholar`, `…MultiMutator`, plus `gameplayHudBarFixturePropsById`). Full `src/renderer/dev/` index (URL params, other fixtures): [internal-wiki/SOURCE_MAP — Renderer dev sandbox](../internal-wiki/SOURCE_MAP.md#renderer-dev-sandbox).
 
 ### 13. In-Game Sidebar Rail
 - Type: Composite

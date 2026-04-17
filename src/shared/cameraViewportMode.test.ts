@@ -1,5 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { deriveCameraViewportMode } from './cameraViewportMode';
+import {
+    deriveCameraViewportMode,
+    latchPhoneWidthForMobileCamera,
+    MOBILE_CAMERA_WIDTH_BREAKPOINT,
+    MOBILE_CAMERA_WIDTH_HYSTERESIS_PX
+} from './cameraViewportMode';
+
+describe('latchPhoneWidthForMobileCamera', () => {
+    it('uses hysteresis when leaving the narrow bucket', () => {
+        let latched = latchPhoneWidthForMobileCamera(MOBILE_CAMERA_WIDTH_BREAKPOINT, false);
+        expect(latched).toBe(true);
+        latched = latchPhoneWidthForMobileCamera(MOBILE_CAMERA_WIDTH_BREAKPOINT + 10, latched);
+        expect(latched).toBe(true);
+        latched = latchPhoneWidthForMobileCamera(
+            MOBILE_CAMERA_WIDTH_BREAKPOINT + MOBILE_CAMERA_WIDTH_HYSTERESIS_PX + 1,
+            latched
+        );
+        expect(latched).toBe(false);
+    });
+});
 
 describe('deriveCameraViewportMode', () => {
     it('auto follows viewport flag', () => {

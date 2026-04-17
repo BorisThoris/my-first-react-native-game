@@ -26,6 +26,44 @@
     box-sizing: border-box;
 }
 
+/* REF-034 — in-run save failure strip (parity with MainMenu `.steamBridgeNotice`) */
+.persistWriteBanner {
+    position: relative;
+    z-index: 4;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--theme-space-md);
+    width: 100%;
+    max-width: min(100%, 52rem);
+    margin: 0 auto var(--theme-space-sm);
+    padding: var(--theme-space-sm) var(--theme-space-md);
+    border-radius: var(--ui-radius-md);
+    background: color-mix(in srgb, var(--theme-ember) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--theme-ember-soft) 35%, transparent);
+    font-size: 0.85rem;
+    line-height: 1.35;
+    color: color-mix(in srgb, var(--theme-rune) 92%, white);
+    box-sizing: border-box;
+}
+
+.persistWriteBannerDismiss {
+    flex-shrink: 0;
+    margin: 0;
+    padding: 0.15rem 0.5rem;
+    border-radius: var(--ui-radius-sm);
+    border: 1px solid color-mix(in srgb, var(--theme-gold) 28%, transparent);
+    background: color-mix(in srgb, var(--theme-backdrop-body-shade-mid) 40%, transparent);
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.persistWriteBannerDismiss:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--theme-gold-bright) 70%, transparent);
+    outline-offset: 2px;
+}
+
 .stageBackdrop {
     position: absolute;
     inset: 0;
@@ -2141,4 +2179,20 @@
     .statVal {
         font-size: 0.88rem;
     }
+}
+
+/* REF-096 — keyboard shortcuts help */
+.shortcutsHelpList {
+    margin: 0;
+    padding-left: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    font-size: 0.95rem;
+    line-height: 1.45;
+}
+
+.shortcutsHelpKeys {
+    font-weight: 600;
+    letter-spacing: 0.02em;
 }

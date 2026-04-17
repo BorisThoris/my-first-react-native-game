@@ -61,6 +61,11 @@ float fbm(vec2 p) {
 }
 
 void main() {
+  float intensity = clamp(uIntensity, 0.0, 4.0);
+  float burst = clamp(uBurst, 0.0, 2.0);
+  float motion = clamp(uMotion, 0.0, 2.0);
+  float emberStrength = clamp(uEmberStrength, 0.0, 2.0);
+
   float outerSdf = sdRoundedRect(vLocal, uOuterHalfSize, uOuterCorner);
   float innerSdf = sdRoundedRect(vLocal, uInnerHalfSize, uInnerCorner);
 
@@ -81,27 +86,27 @@ void main() {
   float cornerness = smoothstep(0.42, 0.92, min(abs(outerNorm.x), abs(outerNorm.y)));
   float phase = atan(outerNorm.y, outerNorm.x);
 
-  float motionTime = uTime * mix(0.12, 1.0, uMotion);
+  float motionTime = uTime * mix(0.12, 1.0, motion);
   vec2 emberUv = vec2(phase * 2.6 + uSeed * 17.0, bandT * 5.2 - motionTime * 2.25);
   float emberNoise = fbm(emberUv + vec2(0.0, fbm(vec2(phase * 1.4 - motionTime * 0.6, bandT * 2.6 + uSeed * 13.0)) * 0.65));
-  float emberTravel = 0.5 + 0.5 * sin(phase * 8.0 - motionTime * (2.3 + uMotion * 2.0) + uSeed * 31.0);
+  float emberTravel = 0.5 + 0.5 * sin(phase * 8.0 - motionTime * (2.3 + motion * 2.0) + uSeed * 31.0);
   float cornerSpark = cornerness * pow(clamp(noise(vec2(phase * 5.2 + uSeed * 47.0 - motionTime * 3.0, bandT * 9.0)), 0.0, 1.0), 3.4);
   float innerSpark = pow(clamp(noise(vec2(phase * 7.0 + uSeed * 23.0, motionTime * 1.1 + bandT * 6.0)), 0.0, 1.0), 4.5);
 
-  float coreWidth = max(0.04, uInnerWidth + uBurst * 0.075);
-  float outerStart = clamp(1.0 - (uOuterWidth + uBurst * 0.12), 0.18, 0.9);
+  float coreWidth = max(0.04, uInnerWidth + burst * 0.075);
+  float outerStart = clamp(1.0 - (uOuterWidth + burst * 0.12), 0.18, 0.9);
 
   float core = (1.0 - smoothstep(0.02, coreWidth, bandT)) * (0.9 + 0.1 * (1.0 - bandT));
-  float glow = smoothstep(0.0, 0.34 + uBurst * 0.12, centerBand) * (0.45 + 0.18 * cornerness);
+  float glow = smoothstep(0.0, 0.34 + burst * 0.12, centerBand) * (0.45 + 0.18 * cornerness);
   float ember = smoothstep(outerStart, 1.0, bandT) *
-    pow(clamp(emberNoise * 0.82 + emberTravel * 0.34 + cornerSpark * 0.72, 0.0, 1.0), mix(2.25, 1.35, uBurst)) *
-    (0.3 + 0.44 * uEmberStrength) *
+    pow(clamp(emberNoise * 0.82 + emberTravel * 0.34 + cornerSpark * 0.72, 0.0, 1.0), mix(2.25, 1.35, burst)) *
+    (0.3 + 0.44 * emberStrength) *
     (0.78 + 0.34 * cornerness);
   float innerAccent = smoothstep(0.0, coreWidth * 0.9, bandT) * innerSpark * 0.18;
 
   vec3 color = uCoreColor * (core + innerAccent) + uGlowColor * glow + uEmberColor * ember;
-  float alpha = ringMask * uIntensity * (core * 0.94 + glow * 0.34 + ember);
-  alpha *= 0.88 + uBurst * 0.34;
+  float alpha = ringMask * intensity * (core * 0.94 + glow * 0.34 + ember);
+  alpha *= 0.88 + burst * 0.34;
   alpha = clamp(alpha, 0.0, 1.0);
   if (alpha < 0.01) {
     discard;

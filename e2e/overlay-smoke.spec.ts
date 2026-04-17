@@ -2,7 +2,7 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { navigateToLevel1PlayPhase } from './tileBoardGameFlow';
-import { completeLevel1Play, waitLevel1PlayReady } from './visualScreenHelpers';
+import { completeLevel1Play } from './visualScreenHelpers';
 
 /**
  * OVR-013 — CI-friendly overlay smoke (not full visual-inventory):
@@ -17,7 +17,7 @@ test.describe('OVR-013 — overlay smoke', () => {
         test.setTimeout(180_000);
 
         await page.setViewportSize({ width: 390, height: 844 });
-        await navigateToLevel1PlayPhase(page);
+        const pairs = await navigateToLevel1PlayPhase(page);
 
         /* Toast host stays in DOM while `visibility`/a11y hidden when empty — assert structure, not pixels. */
         const tipsRegion = page.getByRole('region', { name: /memory dungeon tips/i });
@@ -25,8 +25,6 @@ test.describe('OVR-013 — overlay smoke', () => {
 
         const frame = page.getByTestId('tile-board-frame');
         await expect(frame).toHaveAttribute('data-mobile-camera-mode', 'true');
-
-        const pairs = await waitLevel1PlayReady(page);
 
         await page.keyboard.press('p');
         const pauseOverlay = page.getByTestId('game-pause-overlay');

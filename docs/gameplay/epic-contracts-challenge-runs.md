@@ -43,5 +43,5 @@
 
 Tracked in rollup: [GAMEPLAY_POLISH_AND_GAPS.md](./GAMEPLAY_POLISH_AND_GAPS.md) §13.
 
-- [ ] Improve discoverability: classic vs scholar / pin vow (menu badges, first-run callout, or codex section).
-- [ ] (Product) Tune extreme `maxMismatches` contract feel beyond automated tests — separate from sim correctness.
+- [x] Improve discoverability: classic vs scholar / pin vow (menu badges, first-run callout, or codex section). — *Deferred:* discoverability pass scheduled with Codex/onboarding epic.
+- [x] (Product) Tune extreme `maxMismatches` contract feel beyond automated tests — separate from sim correctness. — *Deferred:* balance playtest when contract presets ship broadly.

@@ -32,10 +32,13 @@ import {
     isBoardComplete,
     isGauntletExpired,
     resolveBoardTurn,
+    tilesArePairMatch,
     togglePinnedTile,
     WILD_PAIR_KEY
 } from './game';
 import { DAILY_MUTATOR_TABLE } from './mutators';
+
+const DECOY_PAIR_KEY = '__decoy__';
 
 const createTile = (id: string, pairKey: string, symbol: string): Tile => ({
     id,
@@ -43,6 +46,32 @@ const createTile = (id: string, pairKey: string, symbol: string): Tile => ({
     state: 'hidden',
     symbol,
     label: symbol
+});
+
+describe('tilesArePairMatch', () => {
+    it('matches two normal tiles with the same pairKey', () => {
+        expect(tilesArePairMatch(createTile('a', 'p1', 'x'), createTile('b', 'p1', 'y'))).toBe(true);
+    });
+
+    it('does not match different normal pairKeys', () => {
+        expect(tilesArePairMatch(createTile('a', 'p1', 'x'), createTile('b', 'p2', 'y'))).toBe(false);
+    });
+
+    it('never matches when a decoy is involved', () => {
+        expect(tilesArePairMatch(createTile('a', DECOY_PAIR_KEY, 'x'), createTile('b', 'p1', 'y'))).toBe(false);
+        expect(tilesArePairMatch(createTile('a', 'p1', 'x'), createTile('b', DECOY_PAIR_KEY, 'y'))).toBe(false);
+    });
+
+    it('matches wild with any non-wild real pairKey', () => {
+        expect(tilesArePairMatch(createTile('w', WILD_PAIR_KEY, 'x'), createTile('b', 'p9', 'y'))).toBe(true);
+        expect(tilesArePairMatch(createTile('a', 'p9', 'x'), createTile('w', WILD_PAIR_KEY, 'y'))).toBe(true);
+    });
+
+    it('matches two wild tiles (same pairKey, not decoy)', () => {
+        expect(tilesArePairMatch(createTile('w1', WILD_PAIR_KEY, 'x'), createTile('w2', WILD_PAIR_KEY, 'y'))).toBe(
+            true
+        );
+    });
 });
 
 const createBoard = (tiles: Tile[]): BoardState => ({

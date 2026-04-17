@@ -1,3 +1,43 @@
+/* REF-034 — save write failure (above settings shell; fixed so modal presentation still shows it) */
+.persistWriteBanner {
+    position: fixed;
+    top: max(10px, env(safe-area-inset-top, 0px));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 26;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--theme-space-md);
+    width: min(calc(100% - 24px), 48rem);
+    padding: var(--theme-space-sm) var(--theme-space-md);
+    border-radius: var(--ui-radius-md);
+    background: color-mix(in srgb, var(--theme-ember) 16%, var(--theme-backdrop-body-shade-deep));
+    border: 1px solid color-mix(in srgb, var(--theme-ember-soft) 40%, transparent);
+    font-size: 0.85rem;
+    line-height: 1.35;
+    color: color-mix(in srgb, var(--theme-rune) 92%, white);
+    box-sizing: border-box;
+    box-shadow: 0 4px 18px color-mix(in srgb, black 35%, transparent);
+}
+
+.persistWriteBannerDismiss {
+    flex-shrink: 0;
+    margin: 0;
+    padding: 0.15rem 0.5rem;
+    border-radius: var(--ui-radius-sm);
+    border: 1px solid color-mix(in srgb, var(--theme-gold) 28%, transparent);
+    background: color-mix(in srgb, var(--theme-backdrop-body-shade-mid) 40%, transparent);
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.persistWriteBannerDismiss:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--theme-gold-bright) 70%, transparent);
+    outline-offset: 2px;
+}
+
 .shell {
     min-height: 100dvh;
     max-height: 100dvh;
@@ -943,4 +983,23 @@
 :global([data-reduce-motion='true']) .categoryButton:hover,
 :global([data-reduce-motion='true']) .segmentButton:hover {
     transform: none;
+}
+
+.visuallyHidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.saveTransferActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--theme-space-md);
+    margin-top: var(--theme-space-sm);
 }

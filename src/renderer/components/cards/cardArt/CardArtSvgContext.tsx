@@ -1,23 +1,14 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 
-import { useSvgInstancePrefix } from './svgIds';
+import { buildCardArtFilterDomIds, useSvgInstancePrefix, type CardArtFilterIds } from './svgIds';
 
-export type CardArtFilterIds = {
-    bloomId: string;
-    glowId: string;
-};
+export type { CardArtFilterIds };
 
 const CardArtSvgContext = createContext<CardArtFilterIds | null>(null);
 
 export function CardArtSvgFilterProvider({ children }: { children: ReactNode }) {
     const p = useSvgInstancePrefix('cardArt');
-    const value = useMemo(
-        () => ({
-            bloomId: `${p}-bloom`,
-            glowId: `${p}-glow`,
-        }),
-        [p],
-    );
+    const value = useMemo(() => buildCardArtFilterDomIds(p), [p]);
     return <CardArtSvgContext.Provider value={value}>{children}</CardArtSvgContext.Provider>;
 }
 

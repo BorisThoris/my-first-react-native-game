@@ -1,10 +1,11 @@
-import { useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ACHIEVEMENTS } from '../../shared/achievements';
 import { MUTATOR_CATALOG, RELIC_CATALOG } from '../../shared/game-catalog';
 import type { MutatorId, RelicId, RunState } from '../../shared/contracts';
 import { serializeRunPayloadFromSummary } from '../../shared/run-export';
 import { useShallow } from 'zustand/react/shallow';
 import { UI_ART } from '../assets/ui';
+import { gameOverScreenCopy } from '../copy/gameOverScreen';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
 import { Eyebrow, Panel, ScreenTitle, StatTile, UiButton } from '../ui';
@@ -39,6 +40,22 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
     });
     const summary = run.lastRunSummary;
 
+    const politeRunSummaryText = useMemo(
+        () =>
+            summary
+                ? gameOverScreenCopy.politeRunSummary(summary.totalScore, summary.highestLevel)
+                : '',
+        [summary]
+    );
+
+    useEffect(() => {
+        if (copyHint !== gameOverScreenCopy.runExportSuccess) return;
+        const id = window.setTimeout(() => {
+            setCopyHint((current) => (current === gameOverScreenCopy.runExportSuccess ? null : current));
+        }, 4500);
+        return () => window.clearTimeout(id);
+    }, [copyHint]);
+
     if (!summary) {
         return null;
     }
@@ -54,16 +71,16 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
         ...(summary.relicIds?.map((id) => relicLabel(id)) ?? [])
     ];
 
-    const copyRunSeed = async (): Promise<void> => {
+    const copyRunExport = async (): Promise<void> => {
         if (!sharePayload) {
-            setCopyHint('No run export is available for this summary.');
+            setCopyHint(gameOverScreenCopy.runExportUnavailable);
             return;
         }
         try {
             await navigator.clipboard.writeText(sharePayload);
-            setCopyHint('Copied run JSON to clipboard.');
+            setCopyHint(gameOverScreenCopy.runExportSuccess);
         } catch {
-            setCopyHint('Clipboard access failed. Use the text block below.');
+            setCopyHint(gameOverScreenCopy.runExportClipboardFail);
         }
     };
 
@@ -84,21 +101,33 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
             <div className={styles.scrim} />
 
             <div className={styles.foreground}>
+                <p
+                    aria-atomic="true"
+                    aria-label="Run summary announcement"
+                    aria-live="polite"
+                    className={styles.visuallyHidden}
+                    role="status"
+                >
+                    {politeRunSummaryText}
+                </p>
                 <div className={styles.layout}>
                     <Panel className={styles.heroPanel} padding="lg" variant="strong">
                         <div className={styles.heroLockup}>
                             <img alt="" className={styles.brandCrest} src={UI_ART.brandCrest} />
-                            <Eyebrow>Run Complete</Eyebrow>
-                            <ScreenTitle role="screenLg">Expedition Over</ScreenTitle>
+                            <Eyebrow>{gameOverScreenCopy.heroEyebrow}</Eyebrow>
+                            <ScreenTitle as="h1" role="screenLg">
+                                {gameOverScreenCopy.heroTitle}
+                            </ScreenTitle>
                         </div>
-                        <div aria-label={`Total score ${summary.totalScore.toLocaleString()}`} className={styles.scoreHero}>
-                            <span className={styles.scoreHeroLabel}>Score</span>
+                        <div
+                            aria-label={`Total score ${summary.totalScore.toLocaleString()}`}
+                            className={styles.scoreHero}
+                        >
+                            <span className={styles.scoreHeroLabel}>{gameOverScreenCopy.scoreLabel}</span>
                             <span className={styles.scoreHeroValue}>{summary.totalScore.toLocaleString()}</span>
                         </div>
                         <img alt="" className={styles.divider} src={UI_ART.dividerOrnament} />
-                        <p className={styles.copy}>
-                            Floor {summary.highestLevel} reached before the archive sealed — details below.
-                        </p>
+                        <p className={styles.copy}>{gameOverScreenCopy.floorCaption(summary.highestLevel)}</p>
 
                         {metaItems.length > 0 ? (
                             <div className={styles.metaStrip}>
@@ -111,17 +140,37 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
                         ) : null}
 
                         <div className={styles.summaryGrid}>
-                            <StatTile density="minimal" label="Highest Floor" value={summary.highestLevel} />
-                            <StatTile density="minimal" label="Best Streak" value={summary.bestStreak} />
-                            <StatTile density="minimal" label="Perfect Floors" value={summary.perfectClears} />
-                            <StatTile density="minimal" label="Floors Cleared" value={summary.levelsCleared} />
-                            <StatTile density="minimal" label="Best Score" value={summary.bestScore.toLocaleString()} />
+                            <StatTile
+                                density="minimal"
+                                label={gameOverScreenCopy.statLabels.highestFloor}
+                                value={summary.highestLevel}
+                            />
+                            <StatTile
+                                density="minimal"
+                                label={gameOverScreenCopy.statLabels.bestStreak}
+                                value={summary.bestStreak}
+                            />
+                            <StatTile
+                                density="minimal"
+                                label={gameOverScreenCopy.statLabels.perfectFloors}
+                                value={summary.perfectClears}
+                            />
+                            <StatTile
+                                density="minimal"
+                                label={gameOverScreenCopy.statLabels.floorsCleared}
+                                value={summary.levelsCleared}
+                            />
+                            <StatTile
+                                density="minimal"
+                                label={gameOverScreenCopy.statLabels.bestScore}
+                                value={summary.bestScore.toLocaleString()}
+                            />
                         </div>
 
                         <p className={styles.note}>
                             {summary.achievementsEnabled
-                                ? 'Achievements counted for this run.'
-                                : 'Achievements were off (debug tools used).'}
+                                ? gameOverScreenCopy.achievementsNoteOn
+                                : gameOverScreenCopy.achievementsNoteOff}
                         </p>
                     </Panel>
 
@@ -130,47 +179,55 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
                             <div className={styles.actionHeader}>
                                 <img alt="" className={styles.actionSeal} src={UI_ART.menuSeal} />
                                 <div>
-                                    <span className={styles.panelKicker}>Next Move</span>
-                                    <strong className={styles.panelHeading}>Continue the archive</strong>
+                                    <span className={styles.panelKicker}>{gameOverScreenCopy.actionKicker}</span>
+                                    <h2 className={styles.panelHeading}>{gameOverScreenCopy.actionHeading}</h2>
                                 </div>
                             </div>
                             <div className={styles.actionButtons}>
-                                <UiButton fullWidth size="lg" variant="primary" onClick={restartRun}>
-                                    Play Again
+                                <UiButton
+                                    fullWidth
+                                    aria-label={gameOverScreenCopy.playAgainAriaLabel}
+                                    size="lg"
+                                    variant="primary"
+                                    onClick={restartRun}
+                                >
+                                    {gameOverScreenCopy.playAgainLabel}
                                 </UiButton>
-                                <UiButton fullWidth size="lg" variant="secondary" onClick={goToMenu}>
-                                    Main Menu
+                                <UiButton
+                                    fullWidth
+                                    aria-label={gameOverScreenCopy.mainMenuAriaLabel}
+                                    size="lg"
+                                    variant="secondary"
+                                    onClick={goToMenu}
+                                >
+                                    {gameOverScreenCopy.mainMenuLabel}
                                 </UiButton>
                             </div>
                         </Panel>
 
                         <Panel className={styles.actionPanel} padding="lg" variant="muted">
-                            <span className={styles.panelKicker}>Run Snapshot</span>
+                            <span className={styles.panelKicker}>{gameOverScreenCopy.runSnapshotKicker}</span>
                             <strong className={styles.panelHeading}>
                                 {summary.gameMode === 'daily' && summary.dailyDateKeyUtc
-                                    ? `Daily ${summary.dailyDateKeyUtc}`
+                                    ? gameOverScreenCopy.runModeHeadings.daily(summary.dailyDateKeyUtc)
                                     : summary.gameMode === 'gauntlet'
-                                      ? 'Gauntlet descent'
+                                      ? gameOverScreenCopy.runModeHeadings.gauntlet
                                       : summary.gameMode === 'meditation'
-                                        ? 'Meditation descent'
+                                        ? gameOverScreenCopy.runModeHeadings.meditation
                                         : summary.gameMode === 'puzzle'
-                                          ? 'Puzzle descent'
-                                          : 'Classic descent'}
+                                          ? gameOverScreenCopy.runModeHeadings.puzzle
+                                          : gameOverScreenCopy.runModeHeadings.classic}
                             </strong>
-                            <p className={styles.panelCopy}>
-                                {flipCount > 0
-                                    ? `${flipCount} flips recorded locally for this session.`
-                                    : 'No flip history stored for this run.'}
-                            </p>
+                            <p className={styles.panelCopy}>{gameOverScreenCopy.flipHistoryCopy(flipCount)}</p>
                         </Panel>
                     </aside>
                 </div>
 
                 {unlockedAchievements.length > 0 ? (
                     <Panel className={styles.achievementPanel} padding="lg" variant="default">
-                        <Eyebrow>Unlocked</Eyebrow>
+                        <Eyebrow>{gameOverScreenCopy.achievementEyebrow}</Eyebrow>
                         <ScreenTitle as="h2" className={styles.achievementHeading} role="screen">
-                            New archive entries
+                            {gameOverScreenCopy.achievementHeading}
                         </ScreenTitle>
                         <ul className={styles.achievementList}>
                             {unlockedAchievements.map((achievement) => (
@@ -185,23 +242,33 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
 
                 <Panel className={styles.detailsPanel} padding="md" variant="muted">
                     <details className={styles.exportDetails}>
-                        <summary>Advanced — export and replay</summary>
+                        <summary>{gameOverScreenCopy.runExportDetailsSummary}</summary>
                         <div className={styles.exportBody}>
-                            <UiButton size="md" variant="secondary" onClick={() => void copyRunSeed()}>
-                                Copy run seed (JSON)
+                            <UiButton
+                                disabled={!sharePayload}
+                                size="md"
+                                title={!sharePayload ? gameOverScreenCopy.runExportUnavailable : undefined}
+                                variant="secondary"
+                                onClick={() => void copyRunExport()}
+                            >
+                                {gameOverScreenCopy.runExportCopyButton}
                             </UiButton>
-                            {copyHint ? <p className={styles.copyHint}>{copyHint}</p> : null}
+                            {copyHint ? (
+                                <p className={styles.copyHint} role="status" aria-live="polite">
+                                    {copyHint}
+                                </p>
+                            ) : null}
                             {sharePayload ? (
                                 <pre className={styles.sharePre} tabIndex={0}>
                                     {sharePayload}
                                 </pre>
                             ) : (
-                                <p className={styles.copyHint}>Seed export is unavailable for this legacy summary.</p>
+                                <p className={styles.copyHint}>{gameOverScreenCopy.runExportUnavailable}</p>
                             )}
 
-                            {run.flipHistory.length > 0 ? (
+                            {(run.flipHistory?.length ?? 0) > 0 ? (
                                 <details className={styles.timelineDetails}>
-                                    <summary>Flip timeline</summary>
+                                    <summary>{gameOverScreenCopy.flipTimelineSummary}</summary>
                                     <ol className={styles.ghostSteps}>
                                         {run.flipHistory.map((id, index) => (
                                             <li key={`${id}-${index}`}>

@@ -1,28 +1,34 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import type {
-    BoardPresentationMode,
-    BoardScreenSpaceAA,
-    CameraViewportModePreference,
-    DisplayMode,
-    GraphicsQualityPreset,
-    Settings,
-    WeakerShuffleMode
+import {
+    SAVE_SCHEMA_VERSION,
+    type BoardPresentationMode,
+    type BoardScreenSpaceAA,
+    type CameraViewportModePreference,
+    type DisplayMode,
+    type GraphicsQualityPreset,
+    type SaveData,
+    type Settings,
+    type WeakerShuffleMode
 } from '../../shared/contracts';
-import { DEFAULT_SETTINGS } from '../../shared/save-data';
+import { FEATURE_CLOUD_SAVE } from '../../shared/feature-flags';
+import { DEFAULT_SETTINGS, normalizeSaveData } from '../../shared/save-data';
 import {
     isNarrowShortLandscapeForMenuStack,
     isShortLandscapeViewport,
     VIEWPORT_LANDSCAPE_STACK_MAX_WIDTH,
     VIEWPORT_MOBILE_MAX
 } from '../breakpoints';
-import { getFocusableElements, handleTabFocusTrapEvent } from '../a11y/focusables';
+import { focusFirstTabbableOrContainer, handleTabFocusTrapEvent } from '../a11y/focusables';
+import { popModalFocusSnapshot, pushModalFocusSnapshot } from '../a11y/modalFocusReturnStack';
 import { useFitShellZoom } from '../hooks/useFitShellZoom';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { useAppStore } from '../store/useAppStore';
 import { Eyebrow, Panel, ScreenTitle, UiButton } from '../ui';
+import { pairProximityUiStrings } from '../ui/strings/pairProximityUi';
 import packageJson from '../../../package.json';
 import { GAMEPLAY_VISUAL_CSS_VARS } from './gameplayVisualConfig';
+import OverlayModal from './OverlayModal';
 import styles from './SettingsScreen.module.css';
 
 interface SettingsScreenProps {
@@ -247,14 +253,28 @@ const SettingsSection = ({ title, children }: SettingsSectionProps) => (
 );
 
 const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
-    const { closeSettings, settings, updateSettings } = useAppStore(
+    const {
+        clearPersistenceWriteNotice,
+        closeSettings,
+        persistenceWriteNotice,
+        replaceSaveData,
+        saveData,
+        settings,
+        updateSettings
+    } = useAppStore(
         useShallow((state) => ({
+            clearPersistenceWriteNotice: state.clearPersistenceWriteNotice,
             closeSettings: state.closeSettings,
+            persistenceWriteNotice: state.persistenceWriteNotice,
+            replaceSaveData: state.replaceSaveData,
+            saveData: state.saveData,
             settings: state.settings,
             updateSettings: state.updateSettings
         }))
     );
     const [draft, setDraft] = useState<Settings>(settings);
+    const saveImportInputRef = useRef<HTMLInputElement | null>(null);
+    const [saveTransferMessage, setSaveTransferMessage] = useState<string | null>(null);
     const [activeCategory, setActiveCategory] = useState<SettingsCategory>('gameplay');
     const [activeSubsection, setActiveSubsection] = useState<SettingsSubsection>(
         DEFAULT_SUBSECTION_BY_CATEGORY.gameplay
@@ -263,7 +283,6 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
     const modalShellRef = useRef<HTMLElement | null>(null);
     const fitViewportRef = useRef<HTMLDivElement | null>(null);
     const settingsFitMeasureRef = useRef<HTMLDivElement | null>(null);
-    const previousFocusRef = useRef<HTMLElement | null>(null);
     /** Inner box inside shell padding; useFitShellZoom must use this, not raw window size, or the panel clips top/bottom on modals. */
     const [fitShellAvail, setFitShellAvail] = useState<{ height: number; width: number } | null>(null);
     const { height: viewportHeight, width: viewportWidth } = useViewportSize();
@@ -271,6 +290,7 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
     const title = isModal ? 'Run Settings' : 'Settings';
     const eyebrow = isModal ? 'Paused' : 'Preferences';
     const isDirty = JSON.stringify(draft) !== JSON.stringify(settings);
+    const [unsavedBackOpen, setUnsavedBackOpen] = useState(false);
     const isPhoneViewport = viewportWidth <= VIEWPORT_MOBILE_MAX;
     const isShortLandscapeShell = isShortLandscapeViewport(viewportWidth, viewportHeight);
     const stackedSettingsShell = isPhoneViewport || isNarrowShortLandscapeForMenuStack(viewportWidth, viewportHeight);
@@ -340,15 +360,14 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
             return;
         }
 
-        previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        pushModalFocusSnapshot();
         const frame = window.requestAnimationFrame(() => {
-            const list = getFocusableElements(modalShellRef.current);
-            (list[0] ?? modalShellRef.current)?.focus();
+            focusFirstTabbableOrContainer(modalShellRef.current);
         });
 
         return () => {
             window.cancelAnimationFrame(frame);
-            previousFocusRef.current?.focus();
+            popModalFocusSnapshot();
         };
     }, [isModal]);
 
@@ -379,6 +398,14 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
         void updateSettings(draft);
     };
 
+    const handleBack = (): void => {
+        if (isDirty) {
+            setUnsavedBackOpen(true);
+            return;
+        }
+        closeSettings();
+    };
+
     const handleResetToDefaults = (): void => {
         const next: Settings = {
             ...DEFAULT_SETTINGS,
@@ -388,7 +415,63 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
         void updateSettings(next);
     };
 
+    const handleExportSaveJson = (): void => {
+        const payload = JSON.stringify(saveData, null, 2);
+        const blob = new Blob([payload], { type: 'application/json;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `memory-dungeon-save-v${saveData.schemaVersion}.json`;
+        anchor.click();
+        URL.revokeObjectURL(url);
+        setSaveTransferMessage('Save exported. Store the file somewhere safe.');
+    };
+
+    const handlePickSaveImport = (): void => {
+        saveImportInputRef.current?.click();
+    };
+
+    const handleSaveImportSelected = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
+        const file = event.target.files?.[0];
+        event.target.value = '';
+        if (!file) {
+            return;
+        }
+        try {
+            const text = await file.text();
+            const parsed = JSON.parse(text) as unknown;
+            if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+                setSaveTransferMessage('Import failed: file is not a JSON object.');
+                return;
+            }
+            const raw = parsed as Partial<SaveData>;
+            const versionNote =
+                raw.schemaVersion != null && raw.schemaVersion !== SAVE_SCHEMA_VERSION
+                    ? `Schema v${String(raw.schemaVersion)} → normalized as v${SAVE_SCHEMA_VERSION}. `
+                    : '';
+            const normalized = normalizeSaveData(raw as SaveData);
+            await replaceSaveData(normalized);
+            setDraft(normalized.settings);
+            setSaveTransferMessage(`${versionNote}Save imported and stored.`);
+        } catch {
+            setSaveTransferMessage('Import failed: could not read or parse the file.');
+        }
+    };
+
     return (
+        <>
+            {persistenceWriteNotice ? (
+                <div className={styles.persistWriteBanner} role="alert">
+                    <span>{persistenceWriteNotice}</span>
+                    <button
+                        type="button"
+                        className={styles.persistWriteBannerDismiss}
+                        onClick={clearPersistenceWriteNotice}
+                    >
+                        Dismiss
+                    </button>
+                </div>
+            ) : null}
         <section
             aria-labelledby={isModal ? titleId : undefined}
             aria-modal={isModal ? 'true' : undefined}
@@ -551,8 +634,8 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                                                     />
                                                     <ToggleRow
                                                         checked={draft.pairProximityHintsEnabled}
-                                                        hint="On a flip, shows grid steps (Manhattan) to the nearest tile that can complete the pair. Off for a purer memory read."
-                                                        label="Pair distance hints"
+                                                        hint={pairProximityUiStrings.settingsHint}
+                                                        label={pairProximityUiStrings.settingsLabel}
                                                         onChange={(next) => patchSettings('pairProximityHintsEnabled', next)}
                                                     />
                                                     <ToggleRow
@@ -759,6 +842,53 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                                                     Built with React, Pixi/Three render paths, and Electron for the desktop
                                                     shell.
                                                 </p>
+                                                <p className={styles.headerCopy}>
+                                                    Analytics-style events are privacy-first: the default build does not send
+                                                    them, and the dev console hook scrubs paths and long strings before any
+                                                    optional sink runs.
+                                                </p>
+                                                {!FEATURE_CLOUD_SAVE ? (
+                                                    <p className={styles.headerCopy}>
+                                                        Saves stay on this device; there is no cloud sync in this build. Use
+                                                        export/import below for backups.
+                                                    </p>
+                                                ) : null}
+                                                <p className={styles.headerCopy}>
+                                                    Backup or restore progress as JSON (settings, achievements, and stats).
+                                                    Files from other builds are normalized on import; schema mismatches are
+                                                    called out below.
+                                                </p>
+                                                <input
+                                                    accept="application/json,.json"
+                                                    className={styles.visuallyHidden}
+                                                    onChange={handleSaveImportSelected}
+                                                    ref={saveImportInputRef}
+                                                    tabIndex={-1}
+                                                    type="file"
+                                                />
+                                                <div className={styles.saveTransferActions}>
+                                                    <UiButton
+                                                        onClick={handleExportSaveJson}
+                                                        size={footerButtonSize}
+                                                        type="button"
+                                                        variant="secondary"
+                                                    >
+                                                        Export save…
+                                                    </UiButton>
+                                                    <UiButton
+                                                        onClick={handlePickSaveImport}
+                                                        size={footerButtonSize}
+                                                        type="button"
+                                                        variant="secondary"
+                                                    >
+                                                        Import save…
+                                                    </UiButton>
+                                                </div>
+                                                {saveTransferMessage ? (
+                                                    <p className={styles.headerCopy} role="status">
+                                                        {saveTransferMessage}
+                                                    </p>
+                                                ) : null}
                                             </SettingsSection>
                                         ) : null}
 
@@ -778,7 +908,7 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                                     <footer className={styles.footer}>
                                         <div className={styles.footerActions}>
                                             <UiButton
-                                                onClick={closeSettings}
+                                                onClick={handleBack}
                                                 size={footerButtonSize}
                                                 variant="secondary"
                                             >
@@ -801,6 +931,38 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                 </div>
             </div>
         </section>
+            {unsavedBackOpen ? (
+                <OverlayModal
+                    actions={[
+                        {
+                            label: 'Save',
+                            onClick: () => {
+                                void updateSettings(draft);
+                                setUnsavedBackOpen(false);
+                                closeSettings();
+                            },
+                            variant: 'primary'
+                        },
+                        {
+                            label: 'Discard',
+                            onClick: () => {
+                                setUnsavedBackOpen(false);
+                                closeSettings();
+                            },
+                            variant: 'danger'
+                        },
+                        {
+                            label: 'Cancel',
+                            onClick: () => setUnsavedBackOpen(false),
+                            variant: 'secondary'
+                        }
+                    ]}
+                    subtitle="Save your changes, discard them, or keep editing."
+                    testId="settings-unsaved-back-modal"
+                    title="Unsaved settings"
+                />
+            ) : null}
+        </>
     );
 };
 

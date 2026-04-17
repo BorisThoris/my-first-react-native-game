@@ -140,7 +140,8 @@ export const NotificationHost = ({ children, labels: labelsProp }: NotificationH
       showSuccess: store.showSuccess,
       showError: store.showError,
       showWarning: store.showWarning,
-      showInfo: store.showInfo
+      showInfo: store.showInfo,
+      showAchievement: store.showAchievement
     });
     return () => setGlobalNotificationHandler(null);
   }, []);
@@ -178,43 +179,4 @@ export const NotificationHost = ({ children, labels: labelsProp }: NotificationH
       </div>
     </>
   );
-};
-
-/** Alias matching the MusicalAppReactConcept provider name. */
-export const NotificationProvider = NotificationHost;
-
-export const useNotificationActions = () => {
-  const addNotification = useNotificationStore((state) => state.addNotification);
-  const removeNotification = useNotificationStore((state) => state.removeNotification);
-  const resolveNotification = useNotificationStore((state) => state.resolveNotification);
-  const showSuccess = useNotificationStore((state) => state.showSuccess);
-  const showError = useNotificationStore((state) => state.showError);
-  const showWarning = useNotificationStore((state) => state.showWarning);
-  const showInfo = useNotificationStore((state) => state.showInfo);
-  const showAchievement = useNotificationStore((state) => state.showAchievement);
-  const confirm = useNotificationStore((state) => state.confirm);
-
-  return {
-    addNotification,
-    removeNotification,
-    resolveNotification,
-    showSuccess,
-    showError,
-    showWarning,
-    showInfo,
-    showAchievement,
-    confirm
-  };
-};
-
-export const useNotifications = () => useNotificationStore((state) => state.notifications);
-
-export const useNotification = () => {
-  const notifications = useNotifications();
-  const actions = useNotificationActions();
-
-  return {
-    notifications,
-    ...actions
-  };
 };

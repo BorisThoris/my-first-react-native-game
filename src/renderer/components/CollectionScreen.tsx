@@ -49,7 +49,7 @@ const CollectionScreen = () => {
                     <Panel padding="lg" variant="strong">
                         <div className={`${styles.section} ${metaStyles.sectionAnchor}`} id="collection-achievements">
                             <h2 className={styles.sectionTitle}>Achievements</h2>
-                            <div className={styles.grid}>
+                            <div className={`${styles.grid} ${metaStyles.metaLongList}`}>
                                 {ACHIEVEMENT_IDS.map((id) => {
                                     const def = ACHIEVEMENT_BY_ID[id];
                                     const unlocked = saveData.achievements[id];
@@ -76,7 +76,7 @@ const CollectionScreen = () => {
                             <p className={metaStyles.subtitle}>
                                 Tier tint reflects how often each relic has been picked across runs (cosmetic only).
                             </p>
-                            <div className={styles.grid}>
+                            <div className={`${styles.grid} ${metaStyles.metaLongList}`}>
                                 {(Object.keys(RELIC_CATALOG) as RelicId[]).map((id) => {
                                     const def = RELIC_CATALOG[id];
                                     const picks = ps?.relicPickCounts[id] ?? 0;

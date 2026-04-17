@@ -1,7 +1,16 @@
 import type { FloorTag, GameMode, MutatorId } from './contracts';
 import { createMulberry32, hashStringToSeed } from './rng';
 
-/** Rules version that introduced per-floor endless mutators (keep in sync with contracts bump). */
+/**
+ * Rules version that introduced per-floor endless mutators (keep in sync with contracts bump).
+ *
+ * **Bump checklist (do all before merging):**
+ * 1. Increment this constant; note `GAME_RULES_VERSION` / save compatibility if players see different floors.
+ * 2. Extend `floor-mutator-schedule.test.ts` for new cycle entries (ref: docs/refinement-tasks REF-003).
+ * 3. Cross-link: [GAMEPLAY_POLISH_AND_GAPS.md](../../docs/gameplay/GAMEPLAY_POLISH_AND_GAPS.md), internal wiki
+ *    [SOURCE_MAP.md](../../docs/internal-wiki/SOURCE_MAP.md) if schedule behavior is summarized there.
+ * 4. Player-facing changelog: mention whether endless uses the scripted floor schedule (`usesEndlessFloorSchedule`).
+ */
 export const FLOOR_SCHEDULE_RULES_VERSION = 2;
 
 /**

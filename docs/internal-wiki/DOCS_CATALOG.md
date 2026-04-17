@@ -2,7 +2,7 @@
 
 **Purpose:** Every `.md` under `docs/` is listed so nothing is “orphaned” from the internal wiki. **One-line summaries** are for navigation; authoritative detail stays in each file.
 
-**Count:** ~151 markdown files under `docs/` (exact count drifts as files are added).
+**Count:** ~157 markdown files under `docs/` (exact count drifts as files are added; re-count when the catalog is audited).
 
 ---
 
@@ -21,6 +21,7 @@
 |------|---------|
 | [BALANCE_NOTES.md](../BALANCE_NOTES.md) | Numeric balance notes |
 | [COLLECTIBLE_SYSTEM.md](../COLLECTIBLE_SYSTEM.md) | Collectibles design |
+| [DOC_CHECKBOX_INVENTORY.md](../DOC_CHECKBOX_INVENTORY.md) | Doc checkbox audit counts (maintenance) |
 | [FINDABLES.md](../FINDABLES.md) | Findables mechanic |
 | [GAMEPLAY_SYSTEMS_ANALYSIS.md](../GAMEPLAY_SYSTEMS_ANALYSIS.md) | **Desktop** systems map: who owns what |
 | [GAME_FORGIVENESS_CODE_AUDIT.md](../GAME_FORGIVENESS_CODE_AUDIT.md) | Forgiveness: code audit |
@@ -207,7 +208,7 @@
 
 | File | Summary |
 |------|---------|
-| [README.md](../visual-capture/README.md) | Capture workflow + matrix |
+| [README.md](../visual-capture/README.md) | Capture workflow + AUDIT checklist completion policy |
 | [INVENTORY.md](../visual-capture/INVENTORY.md) | Generated inventory |
 | `*/landscape/AUDIT.md`, `*/portrait/AUDIT.md` | Per-device/orientation audit notes (desktop-1280, desktop-1440, ipad-11, iphone-14-pro, iphone-se, laptop-1366, phone-large, pixel-7) |
 
@@ -228,7 +229,7 @@
 | [README.md](./README.md) | Wiki home |
 | [multiple-agents.md](./multiple-agents.md) | Parallel agent workflow |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Layer diagram + entry points |
-| [SOURCE_MAP.md](./SOURCE_MAP.md) | `src/` module map |
+| [SOURCE_MAP.md](./SOURCE_MAP.md) | `src/` module map; [renderer dev sandbox](SOURCE_MAP.md#renderer-dev-sandbox) (`src/renderer/dev/`) |
 | [TOOLING.md](./TOOLING.md) | Scripts and tooling |
 | [E2E_AND_QA.md](./E2E_AND_QA.md) | Playwright spec matrix |
 | [DOCS_CATALOG.md](./DOCS_CATALOG.md) | This file |

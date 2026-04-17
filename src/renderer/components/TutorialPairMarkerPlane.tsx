@@ -53,6 +53,8 @@ export const TutorialPairMarkerPlane = ({
 
     useLayoutEffect(() => {
         paintOrdinal(texture.image as HTMLCanvasElement, ordinal);
+        /* Three.js: flag GPU upload after 2D canvas paint (mutation required). */
+        // eslint-disable-next-line react-hooks/immutability -- CanvasTexture GPU sync
         texture.needsUpdate = true;
     }, [ordinal, texture]);
 

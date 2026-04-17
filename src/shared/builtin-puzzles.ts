@@ -4,6 +4,7 @@
  * are only present when `buildBoard` / callers supply them for `fixedTiles`.
  */
 import type { Tile } from './contracts';
+import { isValidPuzzleImportTileSet } from './puzzle-import';
 
 const t = (id: string, pairKey: string, symbol: string, atomicVariant?: number): Tile => ({
     id,
@@ -33,5 +34,11 @@ export const BUILTIN_PUZZLES: Record<string, { id: string; title: string; tiles:
         ]
     }
 };
+
+for (const [key, puzzle] of Object.entries(BUILTIN_PUZZLES)) {
+    if (!isValidPuzzleImportTileSet(puzzle.tiles)) {
+        throw new Error(`BUILTIN_PUZZLES["${key}"] tiles violate puzzle-import rules`);
+    }
+}
 
 export const listBuiltinPuzzleIds = (): string[] => Object.keys(BUILTIN_PUZZLES);

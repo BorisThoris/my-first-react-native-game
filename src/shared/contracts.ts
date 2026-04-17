@@ -1,3 +1,11 @@
+/**
+ * Cross-cutting types and constants for save payloads, runs, and UI contracts.
+ *
+ * **Breaking changes:** run `yarn typecheck` (or `yarn verify`), grep for renamed exports under `docs/`, extend
+ * `normalizeSaveData` + `save-data.test.ts` fixtures when save shape changes, and check the PR checklist
+ * (`.github/pull_request_template.md`). See docs/refinement-tasks REF-066. For optional payloads, consider aligning
+ * with TypeScript `exactOptionalPropertyTypes` when feasible.
+ */
 export const SAVE_SCHEMA_VERSION = 4;
 /** Bump when generation rules change (tile order, mutators, pair layout). */
 export const GAME_RULES_VERSION = 8;
@@ -5,6 +13,8 @@ export const INITIAL_LIVES = 4;
 /** Hard cap on life total during a run; HUD renders this many heart slots (PLAY-004 — honest max, not mock’s three). */
 export const MAX_LIVES = 5;
 export const MATCH_DELAY_MS = 850;
+/** Minimum value for Settings → Gameplay → Resolve Delay — keep in sync with `SettingsScreen` slider `min`. */
+export const RESOLVE_DELAY_MULTIPLIER_MIN = 0.5;
 export const DEBUG_REVEAL_MS = 1500;
 export const MEMORIZE_BASE_MS = 1300;
 export const MEMORIZE_STEP_MS = 50;
@@ -411,12 +421,17 @@ export interface SaveData {
     powersFtueSeen?: boolean;
 }
 
+/** Result of a Steam achievement activation attempt (renderer + main). */
+export type AchievementUnlockResult =
+    | { ok: true }
+    | { ok: false; reason: 'not_connected' | 'steam_rejected' | 'persistence_error'; detail?: string };
+
 export interface DesktopApi {
     getSettings: () => Promise<Settings>;
     saveSettings: (settings: Settings) => Promise<Settings>;
     getSaveData: () => Promise<SaveData>;
     saveGame: (data: SaveData) => Promise<SaveData>;
-    unlockAchievement: (id: AchievementId) => Promise<boolean>;
+    unlockAchievement: (id: AchievementId) => Promise<AchievementUnlockResult>;
     isSteamConnected: () => Promise<boolean>;
     setDisplayMode: (mode: DisplayMode) => Promise<void>;
     quitApp: () => Promise<void>;

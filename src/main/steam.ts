@@ -1,9 +1,19 @@
+/**
+ * Steamworks bridge (optional).
+ *
+ * - **Init failure** (missing DLL, wrong `STEAM_APP_ID`, API unavailable): `createSteamAdapter` catches and returns
+ *   {@link createMockSteamAdapter} — the app keeps running; renderer sees `isSteamConnected() === false`.
+ * - **Achievement unlock**: never throws to IPC callers; returns structured {@link AchievementUnlockResult}.
+ * - **Overlay**: `electronEnableSteamOverlay` is best-effort when the API exists.
+ *
+ * Non-Steam dev builds and web renderer use the mock adapter via preload (`desktopClient`); no Steam install required.
+ */
 import * as steamworks from 'steamworks.js';
-import type { AchievementId } from '../shared/contracts';
+import type { AchievementId, AchievementUnlockResult } from '../shared/contracts';
 
 export interface SteamAdapter {
     isConnected(): boolean;
-    unlockAchievement(achievementId: AchievementId): boolean;
+    unlockAchievement(achievementId: AchievementId): AchievementUnlockResult;
 }
 
 /**
@@ -12,7 +22,7 @@ export interface SteamAdapter {
  * update this map only — keep `AchievementId` / save data unchanged.
  */
 const STEAM_ACHIEVEMENT_API_NAME = {
-    ACH_FIRST_CLEAR: 'ACH_FIRST_CLEAR',
+    ACH_FIRST_CLEAR: 'ACH_FIRST_CLEAR', // Partner API Name (identity unless dashboard differs)
     ACH_LAST_LIFE: 'ACH_LAST_LIFE',
     ACH_LEVEL_FIVE: 'ACH_LEVEL_FIVE',
     ACH_PERFECT_CLEAR: 'ACH_PERFECT_CLEAR',
@@ -21,7 +31,7 @@ const STEAM_ACHIEVEMENT_API_NAME = {
 
 const createMockSteamAdapter = (): SteamAdapter => ({
     isConnected: () => false,
-    unlockAchievement: () => false
+    unlockAchievement: () => ({ ok: false, reason: 'not_connected' })
 });
 
 export const createSteamAdapter = (): SteamAdapter => {
@@ -36,13 +46,22 @@ export const createSteamAdapter = (): SteamAdapter => {
 
         return {
             isConnected: () => true,
-            unlockAchievement: (achievementId) => {
+            unlockAchievement: (achievementId): AchievementUnlockResult => {
                 try {
                     const apiName = STEAM_ACHIEVEMENT_API_NAME[achievementId];
-                    return client.achievement.activate(apiName);
+                    const activated = client.achievement.activate(apiName);
+                    if (!activated) {
+                        console.warn('[steam] achievement.activate returned false', achievementId);
+                        return { ok: false, reason: 'steam_rejected', detail: 'activate_returned_false' };
+                    }
+                    return { ok: true };
                 } catch (error) {
                     console.warn('[steam] achievement unlock failed', achievementId, error);
-                    return false;
+                    return {
+                        ok: false,
+                        reason: 'steam_rejected',
+                        detail: error instanceof Error ? error.message : String(error)
+                    };
                 }
             }
         };

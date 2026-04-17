@@ -1,4 +1,6 @@
 import { expect, type Page } from '@playwright/test';
+import { SAVE_SCHEMA_VERSION, type GraphicsQualityPreset } from '../src/shared/contracts';
+import { readDevPairPositionsFromFrame, readMemorizeSnapshot, type MemorizePairPositions } from './memorizeSnapshot';
 import { dismissStartupIntro } from './startupIntroHelpers';
 
 export const STORAGE_KEY = 'memory-dungeon-save-data';
@@ -20,7 +22,7 @@ export async function waitForBoardPlayPhase(page: Page): Promise<void> {
 
 /** Menu + level 1 play without onboarding or powers FTUE chrome (used by gesture/layout harnesses). */
 export const defaultE2eGameSaveJson = JSON.stringify({
-    schemaVersion: 2,
+    schemaVersion: SAVE_SCHEMA_VERSION,
     bestScore: 0,
     achievements: {
         ACH_FIRST_CLEAR: false,
@@ -48,7 +50,7 @@ export const defaultE2eGameSaveJson = JSON.stringify({
 });
 
 export const reduceMotionSaveJson = JSON.stringify({
-    schemaVersion: 2,
+    schemaVersion: SAVE_SCHEMA_VERSION,
     bestScore: 0,
     achievements: {
         ACH_FIRST_CLEAR: false,
@@ -75,7 +77,20 @@ export const reduceMotionSaveJson = JSON.stringify({
     powersFtueSeen: true
 });
 
-export async function navigateToLevel1PlayPhase(page: Page, saveJson: string = defaultE2eGameSaveJson): Promise<void> {
+/** Clone default E2E save with a specific board renderer tier (card overlay draw path). */
+export const e2eSaveWithGraphicsQuality = (graphicsQuality: GraphicsQualityPreset): string => {
+    const parsed: unknown = JSON.parse(defaultE2eGameSaveJson);
+    if (typeof parsed !== 'object' || parsed === null || !('settings' in parsed)) {
+        return defaultE2eGameSaveJson;
+    }
+    const next = { ...parsed, settings: { ...(parsed as { settings: object }).settings, graphicsQuality } };
+    return JSON.stringify(next);
+};
+
+export async function navigateToLevel1PlayPhase(
+    page: Page,
+    saveJson: string = defaultE2eGameSaveJson
+): Promise<MemorizePairPositions | null> {
     await page.addInitScript(
         ([key, json]) => {
             localStorage.setItem(key, json);
@@ -97,25 +112,49 @@ export async function navigateToLevel1PlayPhase(page: Page, saveJson: string = d
         })
         .toBeGreaterThan(0);
     await expect(page.getByTestId('tile-board-application')).toBeVisible({ timeout: 25_000 });
+
+    /** Capture memorize-phase pair map before `waitForBoardPlayPhase` — afterward aria labels are hidden-tile text. */
+    let memorizePairs: MemorizePairPositions | null = null;
+    const captureDeadline = Date.now() + 45_000;
+    while (Date.now() < captureDeadline) {
+        const status = await page.getByTestId('tile-board-frame').getAttribute('data-board-run-status');
+        const snap = await readMemorizeSnapshot(page);
+        if (snap) {
+            memorizePairs = snap;
+            break;
+        }
+        if (status === 'playing') {
+            break;
+        }
+        await page.waitForTimeout(20);
+    }
+
     await waitForBoardPlayPhase(page);
+    if (!memorizePairs) {
+        memorizePairs = await readDevPairPositionsFromFrame(page);
+    }
+    return memorizePairs;
 }
 
 /**
- * Flip the tile at (row, column) using the same path as keyboard users: `role="application"` focus +
- * Arrow keys + Enter. More reliable in Playwright than synthesizing canvas pointer picks (stage vs GL rect).
- * Row/column are 1-based; after `focus()` the board seeds keyboard focus to the first pickable tile (reading order).
+ * Flip the tile at (row, column) (1-based, matching memorize / `Hidden tile, row R, column C`).
+ * Under WebGL, arrow-key roving skips removed tiles, so “N× ArrowRight” is not the same as column N after a match.
+ * Playwright runs against Vite dev — we call `window.__e2ePickTileAtGrid1` (see `TileBoard.tsx`) for stable grid picks.
  */
 export async function flipTileAtGridCellKeyboard(page: Page, row: number, column: number): Promise<void> {
-    await page.getByTestId('tile-board-application').focus();
-    const tr = row - 1;
-    const tc = column - 1;
-    for (let i = 0; i < tc; i += 1) {
-        await page.keyboard.press('ArrowRight');
-    }
-    for (let i = 0; i < tr; i += 1) {
-        await page.keyboard.press('ArrowDown');
-    }
-    await page.keyboard.press('Enter');
+    await page.evaluate(
+        ([r, c]) => {
+            const w = window as Window & { __e2ePickTileAtGrid1?: (row: number, col: number) => void };
+            const pick = w.__e2ePickTileAtGrid1;
+            if (!pick) {
+                throw new Error(
+                    'window.__e2ePickTileAtGrid1 missing — e2e expects Vite dev (import.meta.env.DEV) so TileBoard registers the hook.'
+                );
+            }
+            pick(r, c);
+        },
+        [row, column] as const
+    );
 }
 
 /**

@@ -40,4 +40,4 @@ Tracked in rollup: [GAMEPLAY_POLISH_AND_GAPS.md](./GAMEPLAY_POLISH_AND_GAPS.md) 
 
 - [x] **Either** assign `wildTileId` in `game.ts` when a wild tile is in play **or** narrow `RunState` / contract comments to reflect `pairKey`-only logic (no misleading “concrete tile id”).
 - [x] Document per `builtin-puzzles` entry which systems are intentionally skipped (`fixedTiles` without cursed init, spotlight keys, etc.).
-- [ ] If balance review requires it: document or adjust gambit three-flip vs two-flip echo mismatch timing asymmetry.
+- [x] If balance review requires it: document or adjust gambit three-flip vs two-flip echo mismatch timing asymmetry. — *Documented:* intentional asymmetry in `game.ts` / resolve paths; revisit only on balance ticket.

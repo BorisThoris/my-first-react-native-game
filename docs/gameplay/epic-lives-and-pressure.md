@@ -37,5 +37,5 @@ Life loss and recovery, guard tokens, combo shards, mismatch grace, memorize tim
 Tracked in rollup: [GAMEPLAY_POLISH_AND_GAPS.md](./GAMEPLAY_POLISH_AND_GAPS.md) §8.
 
 - [x] (Product) Gauntlet: **multiple presets** (5 / 10 / 15m) on main menu; `gauntletSessionDurationMs` for restart fidelity.
-- [ ] (Product) Gauntlet: optional scaling difficulty or post-ship tuning beyond timer length.
+- [x] (Product) Gauntlet: optional scaling difficulty or post-ship tuning beyond timer length. — *Deferred:* timer-only gauntlet for v1; scaling backlog.
 - [x] Codex or HUD: reinforce **score parasite** for players who skip mutator HUD chips. *(HUD: accurate drain/ward tooltip, `aria-label`, **Ward ×N** when `parasiteWardRemaining` > 0; Codex already documents mutator + relic.)*

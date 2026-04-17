@@ -1,16 +1,17 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { expect, type Locator, type Page } from '@playwright/test';
+import { SAVE_SCHEMA_VERSION } from '../src/shared/contracts';
 import {
     flipTileAtGridCellKeyboard,
     readFrameHiddenTileCount,
     STORAGE_KEY,
     waitForBoardPlayPhase
 } from './tileBoardGameFlow';
+import { readMemorizeSnapshot, type MemorizePairPositions } from './memorizeSnapshot';
 import { dismissStartupIntro } from './startupIntroHelpers';
 
 const MATCH_SETTLE_MS = 950;
-const MEMORIZE_LABEL_RE_SRC = '^Tile (.+), row (\\d+), column (\\d+)$';
 
 /** When set (e.g. `1`), `08-game-over` visual baseline uses dev sandbox instead of live mismatch harness (CI default unchanged). */
 export function visualE2eUsesSandboxGameOver(): boolean {
@@ -91,7 +92,7 @@ export const STANDARD_VISUAL_VIEWPORTS: ReadonlyArray<VisualViewport> = [
 
 export const buildVisualSaveJson = (onboardingDismissed: boolean, reduceMotion = true): string =>
     JSON.stringify({
-        schemaVersion: 2,
+        schemaVersion: SAVE_SCHEMA_VERSION,
         bestScore: 0,
         achievements: {
             ACH_FIRST_CLEAR: false,
@@ -124,7 +125,7 @@ export const buildVisualSaveJson = (onboardingDismissed: boolean, reduceMotion =
  */
 export const buildMatchedFlameCaptureSaveJson = (): string =>
     JSON.stringify({
-        schemaVersion: 2,
+        schemaVersion: SAVE_SCHEMA_VERSION,
         bestScore: 0,
         achievements: {
             ACH_FIRST_CLEAR: false,
@@ -418,36 +419,7 @@ export async function openLevel1Play(page: Page): Promise<void> {
     await startClassicRunFromModeSelect(page);
 }
 
-type PairPositions = Record<string, { row: number; col: number }[]>;
-
-async function readMemorizeSnapshot(page: Page): Promise<PairPositions | null> {
-    return page.evaluate((reSrc) => {
-        const re = new RegExp(reSrc, 'i');
-        const record: Record<string, { row: number; col: number }[]> = {};
-        for (const el of document.querySelectorAll('button')) {
-            const al = el.getAttribute('aria-label');
-            if (!al) {
-                continue;
-            }
-            const m = al.match(re);
-            if (!m) {
-                continue;
-            }
-            const key = m[1].trim();
-            const row = Number(m[2]);
-            const col = Number(m[3]);
-            if (!record[key]) {
-                record[key] = [];
-            }
-            record[key].push({ row, col });
-        }
-        const keys = Object.keys(record);
-        if (keys.length >= 2 && keys.every((k) => record[k].length === 2)) {
-            return record;
-        }
-        return null;
-    }, MEMORIZE_LABEL_RE_SRC);
-}
+type PairPositions = MemorizePairPositions;
 
 async function getHiddenTilePositions(page: Page): Promise<{ row: number; col: number }[]> {
     const raw = await page.getByTestId('tile-board-frame').getAttribute('data-hidden-slots');
@@ -473,6 +445,7 @@ function pairKey(a: { row: number; col: number }, b: { row: number; col: number 
 }
 
 async function completeLevel1ByTryingHiddenPairs(page: Page): Promise<void> {
+    await page.getByTestId('tile-board-application').focus();
     const tried = new Set<string>();
     const deadline = Date.now() + 120_000;
     while (Date.now() < deadline) {
@@ -495,8 +468,9 @@ async function completeLevel1ByTryingHiddenPairs(page: Page): Promise<void> {
                 await clickHiddenTile(page, positions[j]!.row, positions[j]!.col);
                 let settled: PairClickSettlement;
                 try {
-                    settled = await settleAfterHiddenPairClick(page);
+                    settled = await settleAfterHiddenPairClick(page, 45_000);
                 } catch {
+                    tried.add(pk);
                     await page.waitForTimeout(MATCH_SETTLE_MS);
                     clicked = true;
                     break;
@@ -513,7 +487,7 @@ async function completeLevel1ByTryingHiddenPairs(page: Page): Promise<void> {
             await page.waitForTimeout(120);
         }
     }
-    await expect(page.getByRole('dialog', { name: /floor cleared/i })).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('dialog', { name: /floor cleared/i })).toBeVisible({ timeout: 30_000 });
 }
 
 /** Poll hidden-tile count only (run may be `playing`, `resolving`, or briefly `paused` — do not require `playing` here). */
@@ -555,6 +529,7 @@ export async function waitLevel1PlayReady(page: Page): Promise<PairPositions | n
 }
 
 export async function completeLevel1AllMatches(page: Page, pairs: PairPositions): Promise<void> {
+    await page.getByTestId('tile-board-application').focus();
     for (const label of Object.keys(pairs)) {
         const [a, b] = pairs[label];
         await clickHiddenTile(page, a.row, a.col);

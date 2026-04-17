@@ -1,8 +1,15 @@
+import type { NotificationMeta, NotificationSurface } from './notificationStore.js';
+
 export type GlobalNotificationHandler = {
-  showSuccess: (message: string, duration?: number) => string;
+  showSuccess: (
+    message: string,
+    duration?: number,
+    options?: { stackKey?: string; ariaLive?: 'polite' | 'assertive' | 'off'; surface?: NotificationSurface }
+  ) => string;
   showError: (message: string, duration?: number) => string;
   showWarning: (message: string, duration?: number) => string;
-  showInfo: (message: string, duration?: number) => string;
+  showInfo: (message: string, duration?: number, options?: NotificationMeta | null) => string;
+  showAchievement: (message: string, duration?: number, options?: Pick<NotificationMeta, 'stackKey'>) => string;
 };
 
 export type FallbackLogLevel = 'error' | 'warn' | 'log' | 'info';
@@ -54,18 +61,46 @@ export const notifyWarning = (message: string, duration = 4000) => {
   }
 };
 
-export const notifySuccess = (message: string, duration = 3000) => {
+export const notifySuccess = (
+  message: string,
+  duration = 3000,
+  options?: { stackKey?: string; ariaLive?: 'polite' | 'assertive' | 'off'; surface?: NotificationSurface }
+) => {
   if (globalNotificationHandler) {
-    globalNotificationHandler.showSuccess(message, duration);
+    if (options === undefined) {
+      globalNotificationHandler.showSuccess(message, duration);
+    } else {
+      globalNotificationHandler.showSuccess(message, duration, options);
+    }
   } else {
     fallback('log', message);
   }
 };
 
-export const notifyInfo = (message: string, duration = 3000) => {
+export const notifyInfo = (message: string, duration = 3000, options?: NotificationMeta | null) => {
   if (globalNotificationHandler) {
-    globalNotificationHandler.showInfo(message, duration);
+    if (options === undefined || options === null) {
+      globalNotificationHandler.showInfo(message, duration);
+    } else {
+      globalNotificationHandler.showInfo(message, duration, options);
+    }
   } else {
     fallback('info', message);
+  }
+};
+
+export const notifyAchievement = (
+  message: string,
+  duration = 4000,
+  options?: Pick<NotificationMeta, 'stackKey'>
+) => {
+  if (globalNotificationHandler) {
+    if (options === undefined) {
+      globalNotificationHandler.showAchievement(message, duration);
+    } else {
+      globalNotificationHandler.showAchievement(message, duration, options);
+    }
+  } else {
+    fallback('log', message);
   }
 };

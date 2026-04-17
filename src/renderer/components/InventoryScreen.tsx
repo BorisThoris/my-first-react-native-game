@@ -120,35 +120,55 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                     </Panel>
                 </MetaFrame>
 
-                <Panel className={panelClassName} padding="lg" variant="default">
-                    <div className={`${styles.loadoutSection} ${metaStyles.sectionAnchor}`} id="inventory-relics">
-                        <h2 className={styles.sectionTitle}>Relics</h2>
-                        {run.relicIds.length > 0 ? (
-                            <ul className={styles.list}>
-                                {run.relicIds.map((id) => (
-                                    <li key={id}>{RELIC_CATALOG[id]?.title ?? id}</li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className={styles.empty}>No relics claimed yet this run.</p>
-                        )}
-                    </div>
-                </Panel>
+                <MetaFrame data-testid="inventory-meta-frame-relics">
+                    <Panel className={panelClassName} padding="lg" variant="default">
+                        <div className={`${styles.loadoutSection} ${metaStyles.sectionAnchor}`} id="inventory-relics">
+                            <h2 className={styles.sectionTitle}>Relics</h2>
+                            {run.relicIds.length > 0 ? (
+                                <div className={metaStyles.archiveCatalogGrid}>
+                                    {run.relicIds.map((id) => {
+                                        const def = RELIC_CATALOG[id];
+                                        return (
+                                            <div className={metaStyles.archiveCatalogRow} key={id}>
+                                                <p className={metaStyles.archiveCatalogRowTitle}>{def?.title ?? id}</p>
+                                                {def?.description ? (
+                                                    <p className={metaStyles.subtitle}>{def.description}</p>
+                                                ) : null}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <p className={styles.empty}>No relics claimed yet this run.</p>
+                            )}
+                        </div>
+                    </Panel>
+                </MetaFrame>
 
-                <Panel className={panelClassName} padding="lg" variant="default">
-                    <div className={`${styles.loadoutSection} ${metaStyles.sectionAnchor}`} id="inventory-mutators">
-                        <h2 className={styles.sectionTitle}>Mutators</h2>
-                        {run.activeMutators.length > 0 ? (
-                            <ul className={styles.list}>
-                                {run.activeMutators.map((id) => (
-                                    <li key={id}>{MUTATOR_CATALOG[id]?.title ?? id}</li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className={styles.empty}>No mutators on this run.</p>
-                        )}
-                    </div>
-                </Panel>
+                <MetaFrame data-testid="inventory-meta-frame-mutators">
+                    <Panel className={panelClassName} padding="lg" variant="default">
+                        <div className={`${styles.loadoutSection} ${metaStyles.sectionAnchor}`} id="inventory-mutators">
+                            <h2 className={styles.sectionTitle}>Mutators</h2>
+                            {run.activeMutators.length > 0 ? (
+                                <div className={metaStyles.archiveCatalogGrid}>
+                                    {run.activeMutators.map((id) => {
+                                        const def = MUTATOR_CATALOG[id];
+                                        return (
+                                            <div className={metaStyles.archiveCatalogRow} key={id}>
+                                                <p className={metaStyles.archiveCatalogRowTitle}>{def?.title ?? id}</p>
+                                                {def?.description ? (
+                                                    <p className={metaStyles.subtitle}>{def.description}</p>
+                                                ) : null}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <p className={styles.empty}>No mutators on this run.</p>
+                            )}
+                        </div>
+                    </Panel>
+                </MetaFrame>
 
                 <Panel className={panelClassName} padding="lg" variant="default">
                     <div className={`${styles.loadoutSection} ${metaStyles.sectionAnchor}`} id="inventory-charges">

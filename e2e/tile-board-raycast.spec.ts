@@ -3,11 +3,12 @@ import { dismissStartupIntro } from './startupIntroHelpers';
 import {
     clickCanvasTile,
     defaultE2eGameSaveJson,
+    navigateToLevel1PlayPhase,
     readFrameHiddenTileCount,
     STORAGE_KEY,
     waitForBoardPlayPhase
 } from './tileBoardGameFlow';
-import { completeLevel1Play, waitLevel1PlayReady } from './visualScreenHelpers';
+import { completeLevel1Play } from './visualScreenHelpers';
 
 async function readBoardViewport(page: Page): Promise<{ panX: number; panY: number; zoom: number }> {
     return page.getByTestId('tile-board-frame').evaluate((element) => ({
@@ -169,44 +170,38 @@ test.describe('Tile board interaction', () => {
 
     test('continuing to the next level preserves the chosen zoom framing', async ({ page }) => {
         test.setTimeout(180_000);
-        await page.addInitScript(
-            ([key, json]) => {
-                localStorage.setItem(key, json);
-            },
-            [STORAGE_KEY, defaultE2eGameSaveJson]
-        );
-        await page.goto('/');
-
-        await dismissStartupIntro(page);
-
         await page.setViewportSize({ width: 1440, height: 900 });
-        await page.getByRole('button', { name: /^play$/i }).click();
-        await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
-        const classicRunNext = page.getByRole('button', { name: /classic run/i });
-        await expect(classicRunNext).toBeVisible();
-        await classicRunNext.evaluate((el) => (el as HTMLButtonElement).click());
-        await expect(page.getByRole('heading', { name: /level 1/i })).toBeAttached({ timeout: 15_000 });
-        await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible({ timeout: 15_000 });
+        const pairs = await navigateToLevel1PlayPhase(page);
 
         const stageShell = page.getByTestId('tile-board-stage-shell');
         await expect(stageShell).toBeVisible();
 
-        // Synthetic positive deltaY (zoom-out) is unreliable in Chromium headless; zoom-in framing is enough to assert
-        // the viewport survives the floor transition without resetting to 1.0.
+        await expect.poll(async () => readFrameHiddenTileCount(page), { timeout: 20_000 }).toBe(4);
+
+        // After navigate captures memorize pairs: zoom in, then clear the floor. (Synthetic zoom-out is unreliable in
+        // Chromium — negative deltaY zooms in for this handler.)
         await dispatchStageWheel(page, stageShell, -1200);
         await dispatchStageWheel(page, stageShell, -800);
         await expect.poll(async () => (await readBoardViewport(page)).zoom, { timeout: 15_000 }).toBeGreaterThan(1.05);
         const beforeContinue = await readBoardViewport(page);
 
-        const pairs = await waitLevel1PlayReady(page);
-        await expect.poll(async () => readFrameHiddenTileCount(page), { timeout: 20_000 }).toBe(4);
+        await expect
+            .poll(async () => page.getByTestId('tile-board-frame').getAttribute('data-selection-suppressed'), {
+                timeout: 15_000
+            })
+            .toBe('false');
+        await expect
+            .poll(async () => page.getByTestId('tile-board-frame').getAttribute('data-gesture-active'), {
+                timeout: 15_000
+            })
+            .toBe('false');
+
         await completeLevel1Play(page, pairs);
         await page.getByRole('dialog', { name: /floor cleared/i }).getByRole('button', { name: /^continue$/i }).click();
 
         await expect(page.getByRole('heading', { name: /level 2/i })).toBeVisible({ timeout: 15000 });
         await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible();
 
-        // New floor geometry can nudge fitZoom; allow small zoom drift while still checking we did not reset to 1.0.
         await expect(async () => {
             const z = (await readBoardViewport(page)).zoom;
             expect(z).toBeCloseTo(beforeContinue.zoom, 1);

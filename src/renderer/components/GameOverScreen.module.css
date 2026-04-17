@@ -187,9 +187,10 @@
 
 .panelHeading {
     display: block;
-    margin-top: 0.2rem;
+    margin: 0.2rem 0 0;
     font-family: var(--theme-display-font);
     font-size: 1.05rem;
+    font-weight: 600;
     color: var(--theme-rune);
 }
 
@@ -384,4 +385,17 @@
     .actionButtons {
         gap: var(--theme-space-sm);
     }
+}
+
+/* A11Y-031: polite summary for SR without duplicating the hero visually. */
+.visuallyHidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }

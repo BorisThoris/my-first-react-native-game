@@ -15,7 +15,17 @@ const base = {
     findablesClaimedThisFloor: 0
 };
 
+const flushRaf = async (): Promise<void> => {
+    await act(async () => {
+        await new Promise<void>((resolve) => {
+            requestAnimationFrame(() => resolve());
+        });
+        await Promise.resolve();
+    });
+};
+
 describe('useHudPoliteLiveAnnouncement', () => {
+
     it('announces when gauntlet crosses the sixty-second bucket', async () => {
         const { result, rerender } = renderHook(
             (p: { ms: number }) =>
@@ -26,13 +36,14 @@ describe('useHudPoliteLiveAnnouncement', () => {
                 }),
             { initialProps: { ms: 90_000 } }
         );
-        expect(result.current).toBe('');
+        expect(result.current.message).toBe('');
         rerender({ ms: 90_000 });
-        expect(result.current).toBe('');
+        expect(result.current.message).toBe('');
         await act(async () => {
             rerender({ ms: 59_000 });
         });
-        expect(result.current).toBe('Gauntlet: one minute or less remaining.');
+        await flushRaf();
+        expect(result.current.message).toBe('Gauntlet: one minute or less remaining.');
     });
 
     it('announces score parasite one-floor-before-drain', async () => {
@@ -48,7 +59,10 @@ describe('useHudPoliteLiveAnnouncement', () => {
         await act(async () => {
             rerender({ level: 4, pf: 3 });
         });
-        expect(result.current).toBe('Score parasite: next cleared floor triggers the drain unless warded.');
+        await flushRaf();
+        expect(result.current.message).toBe(
+            'Score parasite: next cleared floor triggers the drain unless warded.'
+        );
     });
 
     it('announces score parasite life drain', async () => {
@@ -65,7 +79,8 @@ describe('useHudPoliteLiveAnnouncement', () => {
         await act(async () => {
             rerender({ level: 5, pf: 0, lives: 2 });
         });
-        expect(result.current).toBe('Score parasite drained one life.');
+        await flushRaf();
+        expect(result.current.message).toBe('Score parasite drained one life.');
     });
 
     it('announces ward absorbing parasite drain', async () => {
@@ -83,7 +98,8 @@ describe('useHudPoliteLiveAnnouncement', () => {
         await act(async () => {
             rerender({ level: 5, pf: 0, ward: 0, lives: 3 });
         });
-        expect(result.current).toBe('Score parasite drain absorbed by ward.');
+        await flushRaf();
+        expect(result.current.message).toBe('Score parasite drain absorbed by ward.');
     });
 
     it('announces pickup claims with reward-specific copy', async () => {
@@ -110,7 +126,89 @@ describe('useHudPoliteLiveAnnouncement', () => {
         await act(async () => {
             rerender({ tiles: afterTiles, claimed: 1 });
         });
+        await flushRaf();
 
-        expect(result.current).toBe('Shard spark claimed: plus one combo shard.');
+        expect(result.current.message).toBe('Shard spark claimed: plus one combo shard.');
     });
+
+    it('dedupes announcements with the same key in one rAF flush', async () => {
+        const { result } = renderHook(() =>
+            useHudPoliteLiveAnnouncement({
+                ...base,
+                boardLevel: null
+            })
+        );
+
+        await act(async () => {
+            result.current.queuePoliteAnnouncement('a', { dedupeKey: 'k', priority: 'info' });
+            result.current.queuePoliteAnnouncement('b', { dedupeKey: 'k', priority: 'info' });
+        });
+        await flushRaf();
+
+        expect(result.current.message).toBe('b');
+    });
+
+    it('prefers higher priority when dedupe key matches', async () => {
+        const { result } = renderHook(() =>
+            useHudPoliteLiveAnnouncement({
+                ...base,
+                boardLevel: null
+            })
+        );
+
+        await act(async () => {
+            result.current.queuePoliteAnnouncement('info-text', { dedupeKey: 'x', priority: 'info' });
+            result.current.queuePoliteAnnouncement('error-text', { dedupeKey: 'x', priority: 'error' });
+        });
+        await flushRaf();
+
+        expect(result.current.message).toBe('error-text');
+    });
+
+    it('does not downgrade priority when a lower priority shares a dedupe key', async () => {
+        const { result } = renderHook(() =>
+            useHudPoliteLiveAnnouncement({
+                ...base,
+                boardLevel: null
+            })
+        );
+
+        await act(async () => {
+            result.current.queuePoliteAnnouncement('error-text', { dedupeKey: 'x', priority: 'error' });
+            result.current.queuePoliteAnnouncement('info-text', { dedupeKey: 'x', priority: 'info' });
+        });
+        await flushRaf();
+
+        expect(result.current.message).toBe('error-text');
+    });
+
+    it(
+        'throttles rapid successive deliveries (min gap between live-region updates)',
+        async () => {
+            const { result } = renderHook(() =>
+                useHudPoliteLiveAnnouncement({
+                    ...base,
+                    boardLevel: null
+                })
+            );
+
+            await act(async () => {
+                result.current.queuePoliteAnnouncement('first', { dedupeKey: 'a' });
+            });
+            await flushRaf();
+            expect(result.current.message).toBe('first');
+
+            await act(async () => {
+                result.current.queuePoliteAnnouncement('second', { dedupeKey: 'b' });
+            });
+            await flushRaf();
+            expect(result.current.message).toBe('first');
+
+            await act(async () => {
+                await new Promise<void>((r) => setTimeout(r, 420));
+            });
+            expect(result.current.message).toBe('second');
+        },
+        10_000
+    );
 });

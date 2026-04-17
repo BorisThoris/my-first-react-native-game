@@ -3,7 +3,7 @@ import { act, render } from '@testing-library/react';
 import { forwardRef } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RunState } from '../../shared/contracts';
-import { createNewRun } from '../../shared/game';
+import { createNewRun, finishMemorizePhase } from '../../shared/game';
 import { createDefaultSaveData } from '../../shared/save-data';
 import { PlatformTiltProvider } from '../platformTilt/PlatformTiltProvider';
 import { useAppStore } from '../store/useAppStore';
@@ -121,5 +121,49 @@ describe('GameScreen (OVR-014)', () => {
         );
 
         expect(achievementNotifications()).toBe(1);
+    });
+
+    it('does not call pause when KeyP is pressed during a relic offer', () => {
+        const pauseSpy = vi.spyOn(useAppStore.getState(), 'pause');
+        const base = createNewRun(0, { echoFeedbackEnabled: false, gameMode: 'puzzle' });
+        const playing = finishMemorizePhase(base);
+        const run: RunState = {
+            ...playing,
+            status: 'playing',
+            relicOffer: { tier: 1, options: ['extra_shuffle_charge'] }
+        };
+
+        render(
+            <PlatformTiltProvider>
+                <NotificationHost>
+                    <GameScreen achievements={[]} run={run} />
+                </NotificationHost>
+            </PlatformTiltProvider>
+        );
+
+        document.dispatchEvent(
+            new KeyboardEvent('keydown', { code: 'KeyP', bubbles: true, cancelable: true })
+        );
+        expect(pauseSpy).not.toHaveBeenCalled();
+        pauseSpy.mockRestore();
+    });
+
+    it('does not call pause when KeyP is pressed on the floor-cleared overlay (levelComplete + lastLevelResult)', () => {
+        const pauseSpy = vi.spyOn(useAppStore.getState(), 'pause');
+        const runFixture = levelCompleteRunFixture();
+
+        render(
+            <PlatformTiltProvider>
+                <NotificationHost>
+                    <GameScreen achievements={[]} run={runFixture} />
+                </NotificationHost>
+            </PlatformTiltProvider>
+        );
+
+        document.dispatchEvent(
+            new KeyboardEvent('keydown', { code: 'KeyP', bubbles: true, cancelable: true })
+        );
+        expect(pauseSpy).not.toHaveBeenCalled();
+        pauseSpy.mockRestore();
     });
 });

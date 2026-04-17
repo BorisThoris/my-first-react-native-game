@@ -60,7 +60,18 @@ test.describe('Tile card face (WebGL)', () => {
         await clickHiddenTileRowCol(page, 1, 1, hiddenCount);
 
         await expect.poll(async () => readFrameHiddenTileCount(page), { timeout: 4000 }).toBeLessThan(hiddenCount);
-        await page.waitForTimeout(2200);
+        /** Wait until two consecutive stage screenshots match (WebGL buffer settled) instead of a fixed post-flip sleep. */
+        await expect
+            .poll(
+                async () => {
+                    const a = await screenshotStageShellPng(page, stageLocator);
+                    await page.waitForTimeout(100);
+                    const b = await screenshotStageShellPng(page, stageLocator);
+                    return a.equals(b);
+                },
+                { timeout: 25_000 }
+            )
+            .toBe(true);
 
         const shotFlipped = await screenshotStageShellPng(page, stageLocator);
 

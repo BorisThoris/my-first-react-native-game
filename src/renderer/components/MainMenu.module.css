@@ -109,6 +109,42 @@
     gap: var(--menu-meta-row-gap);
 }
 
+.steamBridgeNotice {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--theme-space-md);
+    width: 100%;
+    margin-top: var(--theme-space-sm);
+    padding: var(--theme-space-sm) var(--theme-space-md);
+    border-radius: var(--ui-radius-md);
+    background: color-mix(in srgb, var(--theme-ember) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--theme-ember-soft) 35%, transparent);
+    font-size: 0.85rem;
+    line-height: 1.35;
+    color: color-mix(in srgb, var(--theme-rune) 92%, white);
+    box-sizing: border-box;
+}
+
+.steamBridgeNoticeDismiss {
+    flex-shrink: 0;
+    margin: 0;
+    padding: 0.15rem 0.5rem;
+    border-radius: var(--ui-radius-sm);
+    border: 1px solid color-mix(in srgb, var(--theme-gold) 28%, transparent);
+    background: color-mix(in srgb, var(--theme-backdrop-body-shade-mid) 40%, transparent);
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.steamBridgeNoticeDismiss:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--theme-gold-bright) 70%, transparent);
+    outline-offset: 2px;
+}
+
 /* META-012 — hub stat plaques (MetaFrame cornice sizes to `.metaCard` via measured radius). */
 .metaPlaqueFrame {
     width: 100%;

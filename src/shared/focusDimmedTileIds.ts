@@ -19,6 +19,9 @@ export const computeFocusDimmedTileIds = (
     if (idx < 0) {
         return undefined;
     }
+    if (board.tiles[idx]?.state !== 'flipped') {
+        return undefined;
+    }
     const c = board.columns;
     const row = Math.floor(idx / c);
     const col = idx % c;
@@ -42,5 +45,5 @@ export const computeFocusDimmedTileIds = (
             dim.add(t.id);
         }
     });
-    return dim;
+    return dim.size > 0 ? dim : undefined;
 };

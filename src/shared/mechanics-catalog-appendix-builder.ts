@@ -15,14 +15,14 @@ export function buildMechanicsCatalogAppendixMarkdown(generatedAtIso = new Date(
     const relicN = Object.keys(RELIC_CATALOG).length;
     const mutN = Object.keys(MUTATOR_CATALOG).length;
     const achN = Object.keys(ACHIEVEMENT_CATALOG).length;
-    const modes = GAME_MODE_CODEX.map((m) => m.id).join(', ');
+    const modes = [...GAME_MODE_CODEX.map((m) => m.id)].sort((a, b) => a.localeCompare(b, 'en')).join(', ');
 
     return [
         '# Gameplay mechanics — machine snapshot',
         '',
         `**Generated:** ${generatedAtIso}`,
         '',
-        '> Regenerate with \`yarn docs:mechanics-appendix\`. Do not edit by hand.',
+        '> Regenerate with ' + '`yarn docs:mechanics-appendix`' + '. Do not edit by hand.',
         '',
         '| Constant / count | Value |',
         '| --- | --- |',

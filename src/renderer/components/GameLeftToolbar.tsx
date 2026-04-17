@@ -174,6 +174,7 @@ const GameLeftToolbar = ({
                 <button
                     aria-label="Fit board"
                     className={styles.iconAction}
+                    data-testid="game-toolbar-fit"
                     onClick={onViewportReset}
                     title="Fit board"
                     type="button"
@@ -183,6 +184,7 @@ const GameLeftToolbar = ({
                 <button
                     aria-label="Run settings (toolbar)"
                     className={styles.iconAction}
+                    data-testid="game-toolbar-settings"
                     onClick={() => openSettingsPlaying()}
                     title="Settings"
                     type="button"
@@ -212,6 +214,7 @@ const GameLeftToolbar = ({
                 <button
                     aria-label="Return to main menu"
                     className={styles.iconAction}
+                    data-testid="game-toolbar-main-menu"
                     onClick={onRequestAbandonRun}
                     title="Main menu"
                     type="button"

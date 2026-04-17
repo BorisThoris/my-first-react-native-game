@@ -44,6 +44,8 @@ const resetStore = (): void => {
             settings: saveData.settings,
             run: null,
             newlyUnlockedAchievements: [],
+            achievementBridgeNotice: null,
+            persistenceWriteNotice: null,
             hydrate: originalHydrate
         });
     });

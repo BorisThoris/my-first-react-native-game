@@ -3,6 +3,49 @@ import type { GraphicsQualityPreset } from '../../shared/contracts';
 import { GAMEPLAY_BOARD_VISUALS } from './gameplayVisualConfig';
 import { CARD_PLANE_HEIGHT, CARD_PLANE_WIDTH } from './tileShatter';
 
+let curseRingSingleton: RingGeometry | null = null;
+let findableCornerHaloSingleton: RingGeometry | null = null;
+let findableCornerRingSingleton: RingGeometry | null = null;
+let findableShardGlyphSingleton: RingGeometry | null = null;
+let findableScoreGlyphSingleton: RingGeometry | null = null;
+
+/** Shared curse ring — identical for every tile (`TileBoardScene`). */
+export const getSharedCurseRingGeometry = (): RingGeometry => {
+    if (!curseRingSingleton) {
+        const maxR = Math.max(CARD_PLANE_WIDTH, CARD_PLANE_HEIGHT) * 0.48;
+        curseRingSingleton = new RingGeometry(maxR * 0.86, maxR, 36);
+    }
+    return curseRingSingleton;
+};
+
+export const getSharedFindableCornerHaloGeometry = (): RingGeometry => {
+    if (!findableCornerHaloSingleton) {
+        findableCornerHaloSingleton = new RingGeometry(0.032, 0.048, 24);
+    }
+    return findableCornerHaloSingleton;
+};
+
+export const getSharedFindableCornerRingGeometry = (): RingGeometry => {
+    if (!findableCornerRingSingleton) {
+        findableCornerRingSingleton = new RingGeometry(0.02, 0.032, 22);
+    }
+    return findableCornerRingSingleton;
+};
+
+export const getSharedFindableShardGlyphGeometry = (): RingGeometry => {
+    if (!findableShardGlyphSingleton) {
+        findableShardGlyphSingleton = new RingGeometry(0.006, 0.016, 4);
+    }
+    return findableShardGlyphSingleton;
+};
+
+export const getSharedFindableScoreGlyphGeometry = (): RingGeometry => {
+    if (!findableScoreGlyphSingleton) {
+        findableScoreGlyphSingleton = new RingGeometry(0.008, 0.016, 18);
+    }
+    return findableScoreGlyphSingleton;
+};
+
 /**
  * TBF-009: segment counts for circular rings (low = cheaper mesh).
  */

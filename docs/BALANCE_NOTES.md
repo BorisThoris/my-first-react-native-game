@@ -29,6 +29,14 @@ Current defaults (floor level = run floor):
 
 `category_letters` mutator still forces the letter hybrid set regardless of level. Changing the two `SYMBOL_BAND_*` constants requires updating [`tile-symbol-catalog.test.ts`](../src/shared/tile-symbol-catalog.test.ts) bracket expectations and bumping `GAME_RULES_VERSION` if pair generation semantics change.
 
+## Relic roster (cross-check `src/shared/relics.ts` + `game.ts`)
+
+Shipped pool ids: `extra_shuffle_charge`, `first_shuffle_free_per_floor`, `memorize_bonus_ms`, `destroy_bank_plus_one`, `combo_shard_plus_step`, `memorize_under_short_memorize`, `parasite_ward_once`, `region_shuffle_free_first`.
+
+Milestone offer floors: **3, 6, 9** (`RELIC_MILESTONE_FLOORS`).
+
+Memorize modifiers (see `getMemorizeDurationForRun` in `game.ts`): **`+280ms`** with `memorize_bonus_ms`; **`+220ms`** when `memorize_under_short_memorize` and `short_memorize` mutator are both active.
+
 ## Presentation mutator match penalties (`game.ts`)
 
 Flat per-match score subtractions from `getPresentationMutatorMatchPenalty` (stack additively when multiple are active):

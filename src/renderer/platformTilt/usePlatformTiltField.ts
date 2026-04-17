@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, type MutableRefObject, type RefObject } fro
 import { applyDeadzoneTilt, dampTilt, zeroTilt } from './platformTiltMotion';
 import { usePlatformTiltContext } from './PlatformTiltProvider';
 import type { MotionPermissionState, TiltSource, TiltVector } from './platformTiltTypes';
+import { useParallaxMotionSuppressed } from './useParallaxMotionSuppressed';
 
 const FIELD_DAMP = 18;
 
@@ -32,6 +33,8 @@ export interface UsePlatformTiltFieldOptions {
 export interface UsePlatformTiltFieldResult {
     tiltRef: MutableRefObject<TiltVector>;
     sourceRef: MutableRefObject<TiltSource>;
+    /** In-app reduce motion and/or `prefers-reduced-motion` — use for permission chip visibility. */
+    motionParallaxSuppressed: boolean;
     permission: MotionPermissionState;
     requestMotionPermission: () => Promise<void>;
 }
@@ -44,6 +47,7 @@ export const usePlatformTiltField = ({
     strength: strengthProp = 1
 }: UsePlatformTiltFieldOptions): UsePlatformTiltFieldResult => {
     const { gyroTiltRef, permission, requestMotionPermission } = usePlatformTiltContext();
+    const motionParallaxSuppressed = useParallaxMotionSuppressed(reduceMotion);
     const tiltRef = useRef<TiltVector>(zeroTilt());
     const sourceRef = useRef<TiltSource>('none');
     const pointerActiveRef = useRef(false);
@@ -142,7 +146,7 @@ export const usePlatformTiltField = ({
     useEffect(() => {
         const surfaceNode = surfaceRef.current;
 
-        if (!enabled || reduceMotion || suspended) {
+        if (!enabled || motionParallaxSuppressed || suspended) {
             tiltRef.current = zeroTilt();
             sourceRef.current = 'none';
             lastFrameRef.current = null;
@@ -202,15 +206,16 @@ export const usePlatformTiltField = ({
                 surfaceNode.style.removeProperty('--tilt-y');
             }
         };
-    }, [enabled, reduceMotion, strength, surfaceRef, gyroTiltRef, suspended]);
+    }, [enabled, motionParallaxSuppressed, strength, surfaceRef, gyroTiltRef, suspended]);
 
     return useMemo(
         () => ({
             tiltRef,
             sourceRef,
+            motionParallaxSuppressed,
             permission,
             requestMotionPermission
         }),
-        [permission, requestMotionPermission]
+        [motionParallaxSuppressed, permission, requestMotionPermission]
     );
 };

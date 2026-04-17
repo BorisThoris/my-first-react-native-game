@@ -24,3 +24,22 @@ export const VIEWPORT_LANDSCAPE_STACK_MAX_WIDTH = 960;
 
 export const isNarrowShortLandscapeForMenuStack = (width: number, height: number): boolean =>
     isShortLandscapeViewport(width, height) && width <= VIEWPORT_LANDSCAPE_STACK_MAX_WIDTH;
+
+/** SSR / Vitest: no `window` access at call time beyond guards. */
+export const safeSubscribeWindowResize = (onResize: () => void): (() => void) => {
+    if (typeof window === 'undefined') {
+        return () => {};
+    }
+    window.addEventListener('resize', onResize);
+    return () => {
+        window.removeEventListener('resize', onResize);
+    };
+};
+
+/** Prefer over reading `window.innerWidth` during static import; defaults match `useViewportSize` SSR fallback. */
+export const readWindowInnerSizeFallback = (): { width: number; height: number } => {
+    if (typeof window === 'undefined') {
+        return { width: 1280, height: 800 };
+    }
+    return { width: window.innerWidth, height: window.innerHeight };
+};

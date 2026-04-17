@@ -5,11 +5,20 @@ import { defineConfig } from 'vitest/config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export default defineConfig({
+const boardWebglPerfSample = path.resolve(__dirname, 'src/renderer/dev/boardWebglPerfSample.ts');
+const boardWebglPerfSampleStub = path.resolve(__dirname, 'src/renderer/dev/boardWebglPerfSample.stub.ts');
+
+export default defineConfig(({ mode }) => ({
     plugins: [react()],
     resolve: {
         dedupe: ['react', 'react-dom'],
         alias: {
+            ...(mode === 'production'
+                ? {
+                      /* Dev perf harness: swap to no-op so prod bundle omits sampling logic. */
+                      [boardWebglPerfSample]: boardWebglPerfSampleStub
+                  }
+                : {}),
             // Vendored notifications + zustand: force one React for Vitest + Vite.
             react: path.resolve(__dirname, 'node_modules/react'),
             'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
@@ -35,6 +44,8 @@ export default defineConfig({
     test: {
         environment: 'happy-dom',
         setupFiles: './vitest.setup.ts',
+        restoreMocks: true,
+        clearMocks: true,
         /* Windows / sandbox: fork pool teardown can throw EPERM on process.kill; threads avoid it. */
         pool: 'threads',
         include: [
@@ -52,4 +63,4 @@ export default defineConfig({
             }
         }
     }
-});
+}));

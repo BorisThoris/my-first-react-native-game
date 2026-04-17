@@ -1,5 +1,10 @@
 import type { GameMode, MutatorId, RelicId, RunState, RunSummary } from './contracts';
 
+/**
+ * Run import/export (`v` + seed/rules/mode/mutators/relics) for share/debug.
+ * Forward compatibility: `parseRunImport` requires `v`, `seed`, `rules`, `mode`, `mutators`;
+ * `relics` is optional on the wire and may be omitted in JSON.
+ */
 export const RUN_EXPORT_VERSION = 1 as const;
 
 export type RunExportPayload = {

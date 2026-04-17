@@ -1,6 +1,20 @@
 import { DoubleSide, Mesh, type Intersection, type Raycaster } from 'three';
 import type { Tile } from '../../shared/contracts';
 
+/**
+ * Row-major linear index for `BoardState.tiles` — must match `game.ts` and keyboard nav in `TileBoard`
+ * (`Math.floor(index / columns)`, `index % columns`).
+ */
+export const linearBoardIndexFromRowCol = (columns: number, row: number, col: number): number => row * columns + col;
+
+export const rowColFromLinearBoardIndex = (
+    columns: number,
+    index: number
+): { row: number; col: number } => ({
+    row: Math.floor(index / columns),
+    col: index % columns
+});
+
 /** Raycast hook that never records an intersection (overlay / background meshes). */
 export const noopMeshRaycast: Mesh['raycast'] = () => undefined;
 

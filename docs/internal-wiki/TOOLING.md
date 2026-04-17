@@ -15,11 +15,23 @@
 
 | Script | What it does |
 |--------|----------------|
-| `yarn typecheck` | `tsc --noEmit` |
-| `yarn lint` | ESLint |
+| `yarn ci` | Same as **`yarn fullcheck`** (`eslint` + test extension guard + `tsc` + Vitest) — primary automation entrypoint. |
+| `yarn verify` | `yarn typecheck` + `yarn test` |
+| `yarn fullcheck` | `yarn lint` + `yarn verify` — includes ESLint + test file extension guard |
+| `yarn typecheck` | `tsc --noEmit` (full `src/` + root configs) |
+| `yarn typecheck:shared` | `tsc -p tsconfig.shared.json --noEmit` — optional narrow check for `src/shared` only (no `composite` split; see TypeScript note below) |
+| `yarn lint` | ESLint + `scripts/check-test-file-extensions.mjs` (REF-093: no JSX in `.test.ts`) |
 | `yarn test` | Vitest run |
+
+**Refinement backlog (REF-100):** [REF-100](../refinement-tasks/REF-100.md) is **Done** (INDEX acceptance met). Notes live in [refinement-tasks/README.md](../refinement-tasks/README.md) and [COMPLETION.md](../refinement-tasks/COMPLETION.md) (2026-04-17); optional INDEX re-triage is process only.
 | `yarn test:watch` | Vitest watch |
 | `yarn test:e2e` | Full Playwright suite |
+| `yarn test:e2e:a11y` | Scoped axe on main menu, settings, in-run shell (`e2e/a11y-scoped-routes.spec.ts`) |
+| `yarn sim:endless` | `tsx scripts/sim-endless.ts` — endless schedule CSV sampler (REF-098) |
+
+### TypeScript: shared vs renderer
+
+The repo uses a **single** root `tsconfig.json` for `tsc --noEmit` so CSS module typings and Vite aliases stay one graph. A **composite** split (`tsc -b` with `src/shared` emitting `.d.ts`) was evaluated; it stalled on the usual CSS-module string typing gap under a partitioned app project, so incremental project references are **deferred**. Use `tsconfig.shared.json` + `yarn typecheck:shared` when you want a faster mental model or IDE focus on `src/shared` only.
 
 ### Playwright visual / QA bundles
 
@@ -76,7 +88,7 @@
 
 | Path | Role |
 |------|------|
-| `postinstall.cjs` | Post-install setup |
+| `postinstall.cjs` | Runs `electron-builder install-app-deps` (skipped on Cloudflare Pages) so native Electron deps match the platform |
 | `run-mechanics-appendix.ts` | Writes mechanics catalog machine snapshot (versions + counts) |
 | `generate-visual-inventory-md.mjs` | Builds visual inventory markdown |
 | `extract-endproduct-wip-assets.mjs` | WIP extraction |
@@ -89,11 +101,11 @@
 
 ## Config files (pointers)
 
-- `vite.config.mts`, `tsup.config.ts`, `playwright.config.ts`, `eslint.config.js`, `tsconfig.json` — standard locations at repo root.
+- `vite.config.mts`, `tsup.config.ts`, `playwright.config.ts`, `eslint.config.mjs`, `tsconfig.json` — standard locations at repo root.
 
 ### Vitest (unit / component tests)
 
-Vitest is configured in `vite.config.mts` via `defineConfig` from `vitest/config`, so one file covers Vite dev/build and test runner settings. Tests use the `happy-dom` environment and `./vitest.setup.ts`, which wires `@testing-library/jest-dom/vitest`, provides a `window.matchMedia` mock for media-query hooks, and runs Testing Library `cleanup()` after each test. The test `pool` is set to `threads` so teardown avoids Windows/sandbox `EPERM` issues sometimes seen with Vitest’s default fork pool. Test discovery includes `src/**/*.{test,spec}.{ts,tsx}` and `packages/notifications/src/**/*.{test,spec}.{ts,tsx}`. The same `resolve.dedupe` and `resolve.alias` entries as the renderer (React, `react-dom`, `zustand`, and `@cross-repo-libs/notifications` → package `src`) apply during tests so imports match dev and do not require building `packages/notifications/dist` first.
+Vitest is configured in `vite.config.mts` via `defineConfig` from `vitest/config`, so one file covers Vite dev/build and test runner settings. Tests use the `happy-dom` environment and `./vitest.setup.ts`, which wires `@testing-library/jest-dom/vitest`, runs Testing Library `cleanup()` after each test, and documents **DOM behavior**: happy-dom’s built-in `matchMedia` (desktop-like defaults — coarse pointer false); tests that need touch-first media behavior should override `window.matchMedia` locally. **`visualViewport`** is not implemented in happy-dom; the setup installs a small polyfill so hooks that subscribe to `visualViewport` + `window` `resize` behave consistently. The test `pool` is set to `threads` so teardown avoids Windows/sandbox `EPERM` issues sometimes seen with Vitest’s default fork pool. Test discovery includes `src/**/*.{test,spec}.{ts,tsx}` and `packages/notifications/src/**/*.{test,spec}.{ts,tsx}`. The same `resolve.dedupe` and `resolve.alias` entries as the renderer (React, `react-dom`, `zustand`, and `@cross-repo-libs/notifications` → package `src`) apply during tests so imports match dev and do not require building `packages/notifications/dist` first.
 
 ## `@cross-repo-libs/notifications` (`packages/notifications`)
 

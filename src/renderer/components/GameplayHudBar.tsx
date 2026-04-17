@@ -259,6 +259,7 @@ const GameplayHudBar = ({
                             <span className={styles.statKey}>Lives</span>
                             <div
                                 className={styles.lifeTrack}
+                                role="group"
                                 aria-label={`${run.lives} of ${MAX_LIVES} lives remaining`}
                             >
                                 {Array.from({ length: MAX_LIVES }).map((_, index) => (

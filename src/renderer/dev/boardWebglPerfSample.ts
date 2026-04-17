@@ -1,6 +1,7 @@
 /**
  * Dev-only: set `localStorage.perfBoard = '1'` and reload to log average ms per R3F frame
  * for consolidated tile stepping (see TileBoardScene useFrame).
+ * Production `vite build` resolves this module to `boardWebglPerfSample.stub.ts` (see vite.config.mts).
  */
 let accumMs = 0;
 let frameCount = 0;

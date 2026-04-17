@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { FrontSide, Mesh, MeshBasicMaterial, PerspectiveCamera, PlaneGeometry, Raycaster, Vector2 } from 'three';
 import type { Intersection } from 'three';
 import type { Tile } from '../../shared/contracts';
-import { isTilePickable, pickableMeshRaycast } from './tileBoardPick';
+import {
+    isTilePickable,
+    linearBoardIndexFromRowCol,
+    pickableMeshRaycast,
+    rowColFromLinearBoardIndex
+} from './tileBoardPick';
 
 const hiddenTile = (id: string): Tile => ({
     id,
@@ -50,6 +55,19 @@ describe('pickableMeshRaycast', () => {
 
         expect(defaultHits.length).toBe(0);
         expect(pickHits.length).toBeGreaterThan(0);
+    });
+});
+
+describe('board grid indexing (parity with game.ts / TileBoard)', () => {
+    it('round-trips row/col within supported column counts', () => {
+        for (let cols = 2; cols <= 8; cols += 1) {
+            for (let idx = 0; idx < cols * 6; idx += 1) {
+                const { row, col } = rowColFromLinearBoardIndex(cols, idx);
+                expect(linearBoardIndexFromRowCol(cols, row, col)).toBe(idx);
+                expect(Math.floor(idx / cols)).toBe(row);
+                expect(idx % cols).toBe(col);
+            }
+        }
     });
 });
 

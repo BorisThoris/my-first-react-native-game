@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { ACHIEVEMENTS } from '../../shared/achievements';
 import {
+    ACHIEVEMENTS,
     CODEX_CORE_TOPICS,
     ENCYCLOPEDIA_CONTRACT_TOPICS,
     ENCYCLOPEDIA_FEATURED_RUN_TOPICS,
@@ -73,15 +73,21 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
     const panelClassName = stackedOnGameplay ? styles.inRunPanel : '';
     const heroPanelClassName = stackedOnGameplay ? styles.inRunHeroPanel : '';
     const [filterQuery, setFilterQuery] = useState('');
+    const [debouncedFilterQuery, setDebouncedFilterQuery] = useState('');
     const [codexTab, setCodexTab] = useState<CodexTab>('all');
 
-    const coreFiltered = filterTopics(CODEX_CORE_TOPICS, filterQuery);
-    const powersFiltered = filterTopics(ENCYCLOPEDIA_POWER_TOPICS, filterQuery);
-    const scoringFiltered = filterTopics(ENCYCLOPEDIA_SCORING_AND_SURVIVAL_TOPICS, filterQuery);
-    const settingsFiltered = filterTopics(ENCYCLOPEDIA_SETTINGS_AND_ASSISTS_TOPICS, filterQuery);
-    const pickupsFiltered = filterTopics(ENCYCLOPEDIA_PICKUP_AND_BOARD_TOPICS, filterQuery);
-    const contractsFiltered = filterTopics(ENCYCLOPEDIA_CONTRACT_TOPICS, filterQuery);
-    const featuredFiltered = filterTopics(ENCYCLOPEDIA_FEATURED_RUN_TOPICS, filterQuery);
+    useEffect(() => {
+        const schedule = window.setTimeout(() => setDebouncedFilterQuery(filterQuery), 125);
+        return () => window.clearTimeout(schedule);
+    }, [filterQuery]);
+
+    const coreFiltered = filterTopics(CODEX_CORE_TOPICS, debouncedFilterQuery);
+    const powersFiltered = filterTopics(ENCYCLOPEDIA_POWER_TOPICS, debouncedFilterQuery);
+    const scoringFiltered = filterTopics(ENCYCLOPEDIA_SCORING_AND_SURVIVAL_TOPICS, debouncedFilterQuery);
+    const settingsFiltered = filterTopics(ENCYCLOPEDIA_SETTINGS_AND_ASSISTS_TOPICS, debouncedFilterQuery);
+    const pickupsFiltered = filterTopics(ENCYCLOPEDIA_PICKUP_AND_BOARD_TOPICS, debouncedFilterQuery);
+    const contractsFiltered = filterTopics(ENCYCLOPEDIA_CONTRACT_TOPICS, debouncedFilterQuery);
+    const featuredFiltered = filterTopics(ENCYCLOPEDIA_FEATURED_RUN_TOPICS, debouncedFilterQuery);
 
     const relicList = useMemo(
         () => (Object.keys(RELIC_CATALOG) as RelicId[]).map((id) => RELIC_CATALOG[id]),
@@ -92,9 +98,9 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
         []
     );
 
-    const filteredRelics = filterTopics(relicList, filterQuery);
-    const filteredMutators = filterTopics(mutatorList, filterQuery);
-    const filteredAchievements = filterTopics(ACHIEVEMENTS, filterQuery);
+    const filteredRelics = filterTopics(relicList, debouncedFilterQuery);
+    const filteredMutators = filterTopics(mutatorList, debouncedFilterQuery);
+    const filteredAchievements = filterTopics(ACHIEVEMENTS, debouncedFilterQuery);
 
     const modeRows = useMemo(
         () => [
@@ -107,7 +113,7 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
         ],
         []
     );
-    const filteredModes = filterTopics(modeRows, filterQuery);
+    const filteredModes = filterTopics(modeRows, debouncedFilterQuery);
 
     const tabAllows = (kind: 'guide' | 'table'): boolean => {
         if (codexTab === 'all') {
@@ -120,7 +126,7 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
     };
 
     const anyFilterMatch = (() => {
-        const q = filterQuery.trim();
+        const q = debouncedFilterQuery.trim();
         const row = [
             tabAllows('guide') ? coreFiltered.length : 0,
             tabAllows('guide') ? powersFiltered.length : 0,
@@ -140,7 +146,7 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
         return row.some((n) => n > 0);
     })();
 
-    const showWhenFiltered = (count: number): boolean => !filterQuery.trim() || count > 0;
+    const showWhenFiltered = (count: number): boolean => !debouncedFilterQuery.trim() || count > 0;
 
     const showGuidePanel = (count: number): boolean => tabAllows('guide') && showWhenFiltered(count);
     const showTablePanel = (count: number): boolean => tabAllows('table') && showWhenFiltered(count);

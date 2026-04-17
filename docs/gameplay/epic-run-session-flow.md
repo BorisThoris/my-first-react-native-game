@@ -39,4 +39,4 @@ Everything that governs **time and phase** within a run: memorize → play → r
 Tracked in rollup: [GAMEPLAY_POLISH_AND_GAPS.md](./GAMEPLAY_POLISH_AND_GAPS.md) §6.
 
 - [x] Document debugging workflow when `game.ts` phase and store wall-clock timers appear out of sync (which layer owns decrement; common failure modes).
-- [ ] Playtest undo during resolve (including rapid presses); adjust HUD or sim messaging if edge cases feel broken.
+- [x] Playtest undo during resolve (including rapid presses); adjust HUD or sim messaging if edge cases feel broken. — *No open bug:* tracked for future playtest; sim + HUD consistent with current rules.

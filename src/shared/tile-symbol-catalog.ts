@@ -1,8 +1,12 @@
-/** Read-only tile face symbols for gallery + gameplay (pair generation imports from here). */
+/**
+ * Read-only tile face symbols for gallery + gameplay (pair generation imports from here).
+ *
+ * Symbol band floor thresholds and balance process: `docs/BALANCE_NOTES.md` (section *Symbol band thresholds*).
+ */
 
-/** Inclusive last floor level for the numeric (two-digit rank) symbol band. */
+/** Inclusive last floor level for the numeric (two-digit rank) symbol band. See `docs/BALANCE_NOTES.md`. */
 export const SYMBOL_BAND_LAST_LEVEL_NUMERIC = 8;
-/** Inclusive last floor level for the letter / digit-mixed band before callsigns. */
+/** Inclusive last floor level for the letter / digit-mixed band before callsigns. See `docs/BALANCE_NOTES.md`. */
 export const SYMBOL_BAND_LAST_LEVEL_LETTER = 16;
 
 export interface TileSymbolEntry {
@@ -81,7 +85,10 @@ export const CALLSIGN_SYMBOLS: TileSymbolEntry[] = [
     ['F4', 'Fathom']
 ].map(([symbol, label]) => ({ symbol, label }));
 
-/** Symbol bands for gallery / mutators. Default level play rotates bands by floor (see {@link getSymbolSetIndexForLevel}). */
+/**
+ * Symbol bands for gallery / mutators. Default level play rotates bands by floor (see {@link getSymbolSetIndexForLevel}).
+ * Tuning table: `docs/BALANCE_NOTES.md`.
+ */
 export const TILE_SYMBOL_SETS = [NUMBER_SYMBOLS, LETTER_SYMBOLS, CALLSIGN_SYMBOLS] as const;
 
 export const ALL_TILE_SYMBOLS_FOR_GALLERY: TileSymbolEntry[] = [
@@ -90,7 +97,10 @@ export const ALL_TILE_SYMBOLS_FOR_GALLERY: TileSymbolEntry[] = [
     ...CALLSIGN_SYMBOLS
 ];
 
-/** Staged band index: numeric glyphs early, mixed letters mid, callsigns later (caps at last band). */
+/**
+ * Staged band index: numeric glyphs early, mixed letters mid, callsigns later (caps at last band).
+ * Thresholds are balance-owned; see `docs/BALANCE_NOTES.md`.
+ */
 export const getSymbolSetIndexForLevel = (level: number): number => {
     const L = Math.max(1, Math.floor(level));
     if (L <= SYMBOL_BAND_LAST_LEVEL_NUMERIC) {

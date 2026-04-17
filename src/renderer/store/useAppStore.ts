@@ -47,6 +47,10 @@ import { parsePuzzleImportJson } from '../../shared/puzzle-import';
 import { parseRunImport } from '../../shared/run-export';
 import { trackEvent } from '../../shared/telemetry';
 import {
+    shouldScheduleDebugRevealTimerOnResume,
+    shouldScheduleMemorizeTimerOnResume
+} from './runTimerResumeConditions';
+import {
     createDefaultSaveData,
     mergeBestFloorNoPowers,
     mergeDailyComplete,
@@ -55,6 +59,13 @@ import {
     normalizeSaveData
 } from '../../shared/save-data';
 import { desktopClient } from '../desktop-client';
+import { persistSaveDataThenUnlockAchievements } from './achievementPersistence';
+import {
+    persistSaveData,
+    persistSaveSettings,
+    persistenceNoticeForConsecutiveFailures,
+    registerPersistenceWriteFailureHandler
+} from './persistBridge';
 import type { DevSandboxConfig } from '../dev/devSandboxParams';
 import { buildSandboxRun } from '../dev/runFixtures';
 import { needsRelicPick } from '../../shared/relics';
@@ -79,6 +90,12 @@ interface AppState {
     settings: Settings;
     run: RunState | null;
     newlyUnlockedAchievements: AchievementId[];
+    /** Non-blocking copy when Steam achievement sync fails (local save still applied). */
+    achievementBridgeNotice: string | null;
+    clearAchievementBridgeNotice: () => void;
+    /** Disk / localStorage save failures (autosave or settings write). */
+    persistenceWriteNotice: string | null;
+    clearPersistenceWriteNotice: () => void;
     boardPinMode: boolean;
     destroyPairArmed: boolean;
     peekModeArmed: boolean;
@@ -108,6 +125,8 @@ interface AppState {
     openSettings: (returnView?: SubscreenReturnView) => void;
     closeSettings: () => void;
     updateSettings: (settings: Settings) => Promise<void>;
+    /** Full save replace (import). Normalizes and persists. */
+    replaceSaveData: (data: SaveData) => Promise<void>;
     dismissHowToPlay: () => Promise<void>;
     pressTile: (tileId: string) => void;
     togglePeekMode: () => void;
@@ -132,8 +151,6 @@ interface AppState {
 let memorizeTimer: ActiveTimer | null = null;
 let resolveTimer: ActiveTimer | null = null;
 let debugRevealTimer: ActiveTimer | null = null;
-
-const persistSaveData = async (saveData: SaveData): Promise<SaveData> => normalizeSaveData(await desktopClient.saveGame(saveData));
 
 const clearTimer = (timer: ActiveTimer | null): void => {
     if (timer) {
@@ -231,11 +248,11 @@ const sfxGainFromStore = (): number => {
 };
 
 const applyResolveBoardTurn = (run: RunState): void => {
-    const { saveData, settings } = useAppStore.getState();
+    const { saveData } = useAppStore.getState();
     const encore = saveData.playerStats?.encorePairKeysLastRun ?? [];
     const next = resolveBoardTurn(run, encore);
     void resumeAudioContext();
-    playResolveSfx(run, next, sfxGainFromSettings(settings.masterVolume, settings.sfxVolume));
+    playResolveSfx(run, next, sfxGainFromStore());
     applyResolvedRun(next);
 };
 
@@ -258,8 +275,6 @@ const applyResolvedRun = (resolvedRun: RunState): void => {
             },
             unlocks: [...new Set([...(nextSave.unlocks ?? []), ...unlockTags])]
         });
-
-        void Promise.all(unlockedAchievements.map((achievementId) => desktopClient.unlockAchievement(achievementId)));
     }
 
     if (nextRun.status === 'gameOver') {
@@ -306,7 +321,18 @@ const applyResolvedRun = (resolvedRun: RunState): void => {
         });
     }
 
-    void persistSaveData(nextSave);
+    if (unlockedAchievements.length > 0) {
+        void persistSaveDataThenUnlockAchievements(nextSave, unlockedAchievements).then(({ failures }) => {
+            if (failures.length > 0) {
+                useAppStore.setState({
+                    achievementBridgeNotice:
+                        'Some achievements could not sync with Steam. Your unlocks are saved in this build.'
+                });
+            }
+        });
+    } else {
+        void persistSaveData(nextSave);
+    }
 };
 
 function scheduleMemorizeTimer(duration: number): void {
@@ -427,16 +453,16 @@ const freezeRunSnapshotForPlayingMetaOverlay = (run: RunState): RunState =>
 const resumeRunWithTimers = (run: RunState): RunState => {
     const resumedRun = resumeRun(run);
 
-    if (resumedRun.status === 'memorize' && resumedRun.timerState.memorizeRemainingMs) {
-        scheduleMemorizeTimer(resumedRun.timerState.memorizeRemainingMs);
+    if (shouldScheduleMemorizeTimerOnResume(resumedRun)) {
+        scheduleMemorizeTimer(resumedRun.timerState.memorizeRemainingMs!);
     }
 
     if (resumedRun.status === 'resolving' && resumedRun.timerState.resolveRemainingMs !== null) {
         scheduleResolveTimer(resumedRun.timerState.resolveRemainingMs);
     }
 
-    if (resumedRun.debugPeekActive && resumedRun.timerState.debugRevealRemainingMs) {
-        scheduleDebugRevealTimer(resumedRun.timerState.debugRevealRemainingMs);
+    if (shouldScheduleDebugRevealTimerOnResume(resumedRun)) {
+        scheduleDebugRevealTimer(resumedRun.timerState.debugRevealRemainingMs!);
     }
 
     return resumedRun;
@@ -453,6 +479,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     settings: createDefaultSaveData().settings,
     run: null,
     newlyUnlockedAchievements: [],
+    achievementBridgeNotice: null,
+    clearAchievementBridgeNotice: () => {
+        set({ achievementBridgeNotice: null });
+    },
+    persistenceWriteNotice: null,
+    clearPersistenceWriteNotice: () => {
+        set({ persistenceWriteNotice: null });
+    },
     boardPinMode: false,
     destroyPairArmed: false,
     peekModeArmed: false,
@@ -493,7 +527,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             run
         });
 
-        if (run.timerState.memorizeRemainingMs) {
+        if (run.timerState.memorizeRemainingMs !== null) {
             scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
         }
     },
@@ -510,7 +544,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             peekModeArmed: false,
             run
         });
-        if (run.timerState.memorizeRemainingMs) {
+        if (run.timerState.memorizeRemainingMs !== null) {
             scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
         }
     },
@@ -530,7 +564,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             peekModeArmed: false,
             run
         });
-        if (run.timerState.memorizeRemainingMs) {
+        if (run.timerState.memorizeRemainingMs !== null) {
             scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
         }
     },
@@ -564,7 +598,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             peekModeArmed: false,
             run
         });
-        if (run.timerState.memorizeRemainingMs) {
+        if (run.timerState.memorizeRemainingMs !== null) {
             scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
         }
         return true;
@@ -589,7 +623,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             peekModeArmed: false,
             run
         });
-        if (run.timerState.memorizeRemainingMs) {
+        if (run.timerState.memorizeRemainingMs !== null) {
             scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
         }
     },
@@ -609,7 +643,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             peekModeArmed: false,
             run
         });
-        if (run.timerState.memorizeRemainingMs) {
+        if (run.timerState.memorizeRemainingMs !== null) {
             scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
         }
     },
@@ -631,7 +665,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             peekModeArmed: false,
             run
         });
-        if (run.timerState.memorizeRemainingMs) {
+        if (run.timerState.memorizeRemainingMs !== null) {
             scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
         }
     },
@@ -648,7 +682,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             peekModeArmed: false,
             run
         });
-        if (run.timerState.memorizeRemainingMs) {
+        if (run.timerState.memorizeRemainingMs !== null) {
             scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
         }
     },
@@ -673,7 +707,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             peekModeArmed: false,
             run
         });
-        if (run.timerState.memorizeRemainingMs) {
+        if (run.timerState.memorizeRemainingMs !== null) {
             scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
         }
     },
@@ -695,7 +729,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             peekModeArmed: false,
             run
         });
-        if (run.timerState.memorizeRemainingMs) {
+        if (run.timerState.memorizeRemainingMs !== null) {
             scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
         }
     },
@@ -712,7 +746,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             peekModeArmed: false,
             run
         });
-        if (run.timerState.memorizeRemainingMs) {
+        if (run.timerState.memorizeRemainingMs !== null) {
             scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
         }
     },
@@ -733,7 +767,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             peekModeArmed: false,
             run
         });
-        if (run.timerState.memorizeRemainingMs) {
+        if (run.timerState.memorizeRemainingMs !== null) {
             scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
         }
         return true;
@@ -756,7 +790,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             destroyPairArmed: false,
             peekModeArmed: false
         });
-        if (nextRun.timerState.memorizeRemainingMs) {
+        if (nextRun.timerState.memorizeRemainingMs !== null) {
             scheduleMemorizeTimer(nextRun.timerState.memorizeRemainingMs);
         }
         void persistSaveData(nextSave);
@@ -778,6 +812,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             view: 'menu',
             run: null,
             newlyUnlockedAchievements: [],
+            achievementBridgeNotice: null,
             boardPinMode: false,
             destroyPairArmed: false,
             peekModeArmed: false,
@@ -901,7 +936,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     },
 
     updateSettings: async (settings) => {
-        const persistedSettings = await desktopClient.saveSettings(settings);
+        const persistedSettings = await persistSaveSettings(settings);
         const nextSave = normalizeSaveData({
             ...get().saveData,
             settings: persistedSettings
@@ -911,6 +946,15 @@ export const useAppStore = create<AppState>((set, get) => ({
             settings: persistedSettings,
             saveData: nextSave
         });
+    },
+
+    replaceSaveData: async (data) => {
+        const nextSave = normalizeSaveData(data);
+        set({
+            saveData: nextSave,
+            settings: nextSave.settings
+        });
+        await persistSaveData(nextSave);
     },
 
     dismissHowToPlay: async () => {
@@ -1198,7 +1242,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             run: nextRun
         });
 
-        if (nextRun.timerState.memorizeRemainingMs) {
+        if (nextRun.timerState.memorizeRemainingMs !== null) {
             scheduleMemorizeTimer(nextRun.timerState.memorizeRemainingMs);
         }
     },
@@ -1249,7 +1293,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             run
         });
 
-        if (run.timerState.memorizeRemainingMs) {
+        if (run.timerState.memorizeRemainingMs !== null) {
             scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
         }
     },
@@ -1279,7 +1323,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
         set({ run: nextRun });
 
-        if (nextRun.timerState.debugRevealRemainingMs) {
+        if (nextRun.timerState.debugRevealRemainingMs !== null) {
             scheduleDebugRevealTimer(nextRun.timerState.debugRevealRemainingMs);
         }
     },
@@ -1370,7 +1414,7 @@ export const useAppStore = create<AppState>((set, get) => ({
                 subscreenReturnView: 'menu',
                 settingsReturnView: 'menu'
             });
-            if (run.timerState.memorizeRemainingMs) {
+            if (run.timerState.memorizeRemainingMs !== null) {
                 scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
             }
             return;
@@ -1391,4 +1435,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
 useAppStore.subscribe(() => {
     syncGauntletExpiryWatch();
+});
+
+registerPersistenceWriteFailureHandler(({ consecutive }) => {
+    useAppStore.setState({
+        persistenceWriteNotice: persistenceNoticeForConsecutiveFailures(consecutive)
+    });
 });

@@ -21,6 +21,7 @@ import {
     type PointLight
 } from 'three';
 import relicSvgUrl from '../../../docs/wip-assets/card-sources/VECFINAL.svg?url';
+import { getMotionPermissionButtonLabels, shouldOfferDeviceMotionPermission } from '../platformTilt/platformTiltPermissionUi';
 import type { TiltVector } from '../platformTilt/platformTiltTypes';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
 import { RENDERER_THEME } from '../styles/theme';
@@ -593,12 +594,13 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
     const [sceneFrameRef, sceneFrameSize] = useElementSize<HTMLDivElement>();
     const overlayRef = useRef<HTMLElement | null>(null);
     const previousFocusRef = useRef<HTMLElement | null>(null);
-    const { tiltRef: introFieldTiltRef, permission, requestMotionPermission } = usePlatformTiltField({
-        enabled: true,
-        reduceMotion,
-        surfaceRef: overlayRef,
-        strength: 1
-    });
+    const { tiltRef: introFieldTiltRef, motionParallaxSuppressed, permission, requestMotionPermission } =
+        usePlatformTiltField({
+            enabled: true,
+            reduceMotion,
+            surfaceRef: overlayRef,
+            strength: 1
+        });
     const [touchPrimary, setTouchPrimary] = useState(false);
     const completedRef = useRef(false);
     const exitStartedRef = useRef(false);
@@ -801,7 +803,12 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
         beginExit();
     };
 
-    const showIntroMotionCta = touchPrimary && !reduceMotion && (permission === 'prompt' || permission === 'denied');
+    const showIntroMotionCta = shouldOfferDeviceMotionPermission({
+        motionParallaxSuppressed,
+        permission,
+        touchPrimary
+    });
+    const introMotionLabels = getMotionPermissionButtonLabels(permission, 'intro');
 
     return (
         <section
@@ -844,7 +851,7 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
             </div>
             {showIntroMotionCta ? (
                 <button
-                    aria-label="Enable device motion for this intro"
+                    aria-label={introMotionLabels.ariaLabel}
                     className={styles.motionCta}
                     data-testid="intro-motion-cta"
                     onClick={(event) => {
@@ -856,7 +863,7 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
                     }}
                     type="button"
                 >
-                    Enable motion
+                    {introMotionLabels.buttonText}
                 </button>
             ) : null}
         </section>

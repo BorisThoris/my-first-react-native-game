@@ -1,3 +1,15 @@
+/**
+ * Single gate for pointer/gyro-driven tile-field parallax (see `usePlatformTiltField` + `TileBoardScene`).
+ * When false, field tilt contribution must be zero — matches OS `prefers-reduced-motion`, in-app reduce motion,
+ * and platform tilt suspension.
+ */
+export const shouldApplyTileFieldParallax = (options: {
+    /** In-app accessibility toggle */
+    reduceMotion: boolean;
+    /** True when `prefers-reduced-motion: reduce` or in-app motion reduction (`useParallaxMotionSuppressed`). */
+    motionParallaxSuppressed: boolean;
+}): boolean => !options.reduceMotion && !options.motionParallaxSuppressed;
+
 /** Normalized distance from board center in grid space; amp 1 at center, >1 toward edges. */
 export const getTileFieldAmplification = (index: number, columns: number, rows: number): number => {
     const column = index % columns;

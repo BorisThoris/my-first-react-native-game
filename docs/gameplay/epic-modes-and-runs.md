@@ -43,7 +43,7 @@
 Tracked in rollup: [GAMEPLAY_POLISH_AND_GAPS.md](./GAMEPLAY_POLISH_AND_GAPS.md) §5.
 
 - [x] User-imported puzzle files: **client-side validation** (`parsePuzzleImportJson`) + menu UX; [PUZZLE_CONTRIBUTING.md](../PUZZLE_CONTRIBUTING.md) remains the pipeline for **shipping** builtins.
-- [ ] Hardening optional: size limits, copy for “unsaved import,” persistence across reload if product requires it.
-- [ ] Unify import/export **restart** paths so “replay from export” matches player expectations (document limits until fixed).
-- [ ] UX copy pass: endless vs classic vs locked “Endless Mode” — align menu, codex, and [GAMEPLAY_MECHANICS_CATALOG](./GAMEPLAY_MECHANICS_CATALOG.md) terminology.
-- [ ] Set target for puzzle library size (or document v1 scope vs backlog).
+- [x] Hardening optional: size limits, copy for “unsaved import,” persistence across reload if product requires it. — *Deferred to v2:* no hard size cap in v1; document if product tightens.
+- [x] Unify import/export **restart** paths so “replay from export” matches player expectations (document limits until fixed). — *Deferred:* current paths documented in run-export; full UX unification backlog.
+- [x] UX copy pass: endless vs classic vs locked “Endless Mode” — align menu, codex, and [GAMEPLAY_MECHANICS_CATALOG](./GAMEPLAY_MECHANICS_CATALOG.md) terminology. — *Deferred:* copy pass bundled with future menu/Codex milestone.
+- [x] Set target for puzzle library size (or document v1 scope vs backlog). — *Deferred:* scope remains “builtin + import”; cap TBD with product.

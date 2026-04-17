@@ -4,7 +4,9 @@ Single source for how **`view`**, return pointers, and overlays interact. The ap
 
 ## `ViewState` (see `contracts.ts`)
 
-Core views: `boot` | `menu` | `modeSelect` | `playing` | `paused` (implicit via `run.status`) | `collection` | `inventory` | `codex` | `settings` | `gameOver` | …
+Core views: `boot` | `menu` | `modeSelect` | `playing` | `collection` | `inventory` | `codex` | `settings` | `gameOver`.
+
+**Pause** is not a `ViewState` value: use **`run.status === 'paused'`** while `view` stays `'playing'`. Older docs that list `paused` beside `ViewState` literals mean this `RunStatus` distinction.
 
 ## Return pointers
 

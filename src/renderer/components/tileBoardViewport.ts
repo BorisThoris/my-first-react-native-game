@@ -184,6 +184,49 @@ export const carryBoardViewportForward = ({
     });
 };
 
+/**
+ * Coalesces rapid viewport size updates (resize, DPR, R3F `viewport` churn) to at most one callback per frame,
+ * reducing redundant React state updates and WebGL resize work.
+ */
+export const createRafCoalescedViewportNotifier = (
+    onFlush: (width: number, height: number) => void
+): {
+    schedule: (width: number, height: number) => void;
+    cancel: () => void;
+} => {
+    let raf = 0;
+    let pendingW = 0;
+    let pendingH = 0;
+    let hasPending = false;
+
+    const flush = (): void => {
+        raf = 0;
+        if (!hasPending) {
+            return;
+        }
+        hasPending = false;
+        onFlush(pendingW, pendingH);
+    };
+
+    return {
+        schedule(width: number, height: number): void {
+            pendingW = width;
+            pendingH = height;
+            hasPending = true;
+            if (raf === 0) {
+                raf = requestAnimationFrame(flush);
+            }
+        },
+        cancel(): void {
+            if (raf !== 0) {
+                cancelAnimationFrame(raf);
+                raf = 0;
+            }
+            hasPending = false;
+        }
+    };
+};
+
 export const screenPointToWorld = (
     point: TileBoardScreenPoint,
     rect: DOMRect | Pick<DOMRect, 'height' | 'left' | 'top' | 'width'>,

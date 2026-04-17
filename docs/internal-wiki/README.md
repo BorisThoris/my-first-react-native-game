@@ -13,12 +13,13 @@
 | Topic | Page |
 |--------|------|
 | **Architecture** (layers, IPC) | [ARCHITECTURE.md](./ARCHITECTURE.md) |
-| **`src/` module map** | [SOURCE_MAP.md](./SOURCE_MAP.md) |
+| **`src/` module map** (includes [renderer dev sandbox](SOURCE_MAP.md#renderer-dev-sandbox)) | [SOURCE_MAP.md](./SOURCE_MAP.md) |
 | **Scripts, Yarn, pipelines** | [TOOLING.md](./TOOLING.md) |
 | **Playwright specs & QA** | [E2E_AND_QA.md](./E2E_AND_QA.md) |
 | **Every `docs/*.md` file** (catalog) | [DOCS_CATALOG.md](./DOCS_CATALOG.md) |
 | **Legacy code & doc caveats** | [LEGACY_AND_CAVEATS.md](./LEGACY_AND_CAVEATS.md) |
 | **Parallel agents / drift control** | [multiple-agents.md](./multiple-agents.md) |
+| **Refinement backlog (REF-*) triage cadence** | [refinement-tasks/README.md](../refinement-tasks/README.md) — quarterly hygiene per REF-100 |
 | **App analysis snapshot (point-in-time)** | [APP_ANALYSIS_SNAPSHOT_2026-04-17.md](./APP_ANALYSIS_SNAPSHOT_2026-04-17.md) |
 
 ---
@@ -84,3 +85,7 @@
 - **Indexes:** [DOCS_CATALOG.md](./DOCS_CATALOG.md) should gain a row when a new `docs/**/*.md` is added.
 - **Coverage score:** Revisit [COVERAGE.md](./COVERAGE.md) when scope changes.
 - **Multi-agent / AI workflows:** [multiple-agents.md](./multiple-agents.md)
+
+### Player-facing changelog template (release notes)
+
+When gameplay rules change, include at least: build/version, user-visible rule changes, and whether **endless mode** uses the scripted per-floor mutator schedule (see `usesEndlessFloorSchedule` in `src/shared/floor-mutator-schedule.ts`).

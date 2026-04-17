@@ -28,7 +28,21 @@ Hooks in `src/shared/game.ts` consult `activeMutators` via `hasMutator` / `src/s
 
 ## Daily integration (A2 / D4)
 
-`DAILY_MUTATOR_TABLE` + deterministic index from daily seed (`dailyMutatorIndexFromSeed` in `rng.ts`) picks one mutator for `createDailyRun`.
+`DAILY_MUTATOR_TABLE` + deterministic index picks one mutator for `createDailyRun`. Source: `deriveDailyRunSeed` / `deriveDailyMutatorIndex` in `src/shared/rng.ts`.
+
+- **Daily run seed:** `hashStringToSeed` of the UTC calendar string `` `${rulesVersion}-${y}-${mm}-${dd}` ``, where `y`/`mm`/`dd` come from `getUTCFullYear()`, `getUTCMonth()+1`, `getUTCDate()`, and `mm`/`dd` are zero-padded to width 2.
+- **Daily mutator index:** if `mutatorTableLength <= 0` then `0`; else `hashStringToSeed("dailyMut:" + dailySeed) % mutatorTableLength`.
+
+**`DAILY_MUTATOR_TABLE` order** (index `0…length-1` from the daily hash; source of truth: `src/shared/mutators.ts`):
+
+1. `short_memorize`  
+2. `sticky_fingers`  
+3. `score_parasite`  
+4. `wide_recall`  
+5. `silhouette_twist`  
+6. `n_back_anchor`  
+7. `category_letters`  
+8. `glass_floor`
 
 ## Adding a mutator
 

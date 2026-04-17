@@ -8,7 +8,8 @@ import {
     SRGBColorSpace,
     Texture
 } from 'three';
-import type { Tile } from '../../shared/contracts';
+import type { GraphicsQualityPreset, Tile } from '../../shared/contracts';
+import { FEATURE_CARD_OPENTYPE_GLYPHS } from '../../shared/feature-flags';
 import { RENDERER_THEME } from '../styles/theme';
 import { CARD_PLANE_HEIGHT, CARD_PLANE_WIDTH } from './tileShatter';
 import referenceBackTextureUrl from '../assets/textures/cards/back.svg?url';
@@ -18,6 +19,9 @@ import cardFaceNormalTextureUrl from '../assets/textures/cards/front-normal.png'
 import edgeTextureUrl from '../assets/textures/cards/edge.png';
 import panelRoughnessTextureUrl from '../assets/textures/cards/panel-roughness.png';
 import edgeRoughnessTextureUrl from '../assets/textures/cards/edge-roughness.png';
+import { getCardFaceOverlayColors } from '../cardFace/cardFaceOverlayPalette';
+import { tryDrawOpentypeCenteredText } from '../cardFace/opentypeCardRankFont';
+import { overlayDrawTierFromGraphicsQuality, type OverlayDrawTier } from '../cardFace/overlayDrawTier';
 import {
     drawProgrammaticCardFaceOverlay,
     tileUsesProgrammaticFaceMotif
@@ -32,10 +36,57 @@ export type TileLayer = 'bezel' | 'panel' | 'shell' | 'core';
 export type CubeFace = TileFace;
 export type CubeLayer = 'shell' | 'core';
 
+/**
+ * Tile face canvases: **one tile = one full canvas texture** (no multi-tile atlas UVs).
+ * Procedural faces use `TEXTURE_SIZE`²; static PNG faces use `getStaticCardTexturePixelSize()` aspect = `CARD_PLANE_WIDTH`:`CARD_PLANE_HEIGHT`.
+ */
 const TEXTURE_SIZE = 512;
 /** Taller canvas for WebGL static card PNGs so 1403×2048 sources aren’t over-downscaled (was 512 — felt cropped/soft). */
 const STATIC_CARD_TEXTURE_HEIGHT = 1024;
 const STATIC_CARD_TEXTURE_WIDTH = Math.max(2, Math.round(STATIC_CARD_TEXTURE_HEIGHT * (CARD_PLANE_WIDTH / CARD_PLANE_HEIGHT)));
+
+let tileTextureSamplingQuality: GraphicsQualityPreset = 'medium';
+let lastOverlayTextureQuality: GraphicsQualityPreset | null = null;
+
+/** Regression anchor: static card bitmap dimensions must track `CARD_PLANE_*` in `tileShatter`. */
+export const getStaticCardTexturePixelSize = (): { width: number; height: number } => ({
+    width: STATIC_CARD_TEXTURE_WIDTH,
+    height: STATIC_CARD_TEXTURE_HEIGHT
+});
+
+const applyCanvasTileTextureSampling = (texture: CanvasTexture | Texture, quality: GraphicsQualityPreset): void => {
+    if (quality === 'low') {
+        texture.generateMipmaps = false;
+        texture.minFilter = LinearFilter;
+    } else {
+        texture.generateMipmaps = true;
+        texture.minFilter = LinearMipmapLinearFilter;
+    }
+    texture.magFilter = LinearFilter;
+    texture.needsUpdate = true;
+};
+
+/** Sync mips + minification filter with `graphicsQuality` whenever the WebGL tier changes. */
+export const setTileTextureSamplingQuality = (quality: GraphicsQualityPreset): void => {
+    if (lastOverlayTextureQuality !== quality) {
+        lastOverlayTextureQuality = quality;
+        for (const key of [...textureCache.keys()]) {
+            if (key.includes(':overlay:')) {
+                disposeCachedTexture(key);
+            }
+        }
+    }
+    tileTextureSamplingQuality = quality;
+    for (const texture of textureCache.values()) {
+        applyCanvasTileTextureSampling(texture, quality);
+    }
+    if (cachedRasterFaceNormalTexture) {
+        applyCanvasTileTextureSampling(cachedRasterFaceNormalTexture, quality);
+    }
+    if (cachedRasterBackNormalTexture) {
+        applyCanvasTileTextureSampling(cachedRasterBackNormalTexture, quality);
+    }
+};
 const TILE_TEXTURE_VERSION = GAMEPLAY_CARD_VISUALS.textureVersion;
 /** Bump when procedural card-surface maps change (independent of tile face caches). */
 const CARD_SURFACE_MAP_VERSION = GAMEPLAY_CARD_VISUALS.surfaceMapVersion;
@@ -315,10 +366,7 @@ const createTexture = (
 
     const texture = new CanvasTexture(canvas);
     texture.colorSpace = colorSpace;
-    texture.minFilter = LinearFilter;
-    texture.magFilter = LinearFilter;
-    texture.generateMipmaps = false;
-    texture.needsUpdate = true;
+    applyCanvasTileTextureSampling(texture, tileTextureSamplingQuality);
     textureCache.set(key, texture);
 
     return texture;
@@ -342,10 +390,7 @@ const createRasterNormalMapTexture = (image: HTMLImageElement): Texture => {
     texture.colorSpace = NoColorSpace;
     texture.wrapS = ClampToEdgeWrapping;
     texture.wrapT = ClampToEdgeWrapping;
-    texture.minFilter = LinearMipmapLinearFilter;
-    texture.magFilter = LinearFilter;
-    texture.generateMipmaps = true;
-    texture.needsUpdate = true;
+    applyCanvasTileTextureSampling(texture, tileTextureSamplingQuality);
     return texture;
 };
 
@@ -863,55 +908,153 @@ const drawCardFrontOverlay = (
     context: CanvasRenderingContext2D,
     canvas: HTMLCanvasElement,
     tile: Tile,
-    variant: Exclude<FaceVariant, 'hidden'>
+    variant: Exclude<FaceVariant, 'hidden'>,
+    tier: OverlayDrawTier
 ): void => {
     if (tileUsesProgrammaticFaceMotif(tile)) {
-        drawProgrammaticCardFaceOverlay(context, canvas, tile, variant);
+        drawProgrammaticCardFaceOverlay(context, canvas, tile, variant, tier);
         return;
     }
 
     const { width, height } = canvas;
-    const matched = variant === 'matched';
-    const mismatch = variant === 'mismatch';
+    const c = getCardFaceOverlayColors(variant);
     const symbolText = tile.symbol;
     const labelText = tile.label.toUpperCase();
     const symbolBaseSize = tile.symbol.length > 2 ? 104 : tile.symbol.length > 1 ? 122 : 142;
     const hasDistinctLabel = labelText !== symbolText.toUpperCase();
-    const symbolFill = matched ? '#fff3c4' : mismatch ? '#ffd8cf' : '#fffef5';
-    const symbolStroke = matched ? 'rgba(22, 12, 0, 0.92)' : mismatch ? 'rgba(28, 8, 6, 0.92)' : 'rgba(8, 8, 14, 0.92)';
-    const labelFill = matched ? '#fff8e1' : mismatch ? '#ffeae6' : '#fffef8';
-    const labelStroke = matched ? 'rgba(18, 10, 0, 0.9)' : mismatch ? 'rgba(32, 10, 8, 0.9)' : 'rgba(6, 6, 12, 0.9)';
+    const rng = createRng(hashString(`${tile.id}|${tile.pairKey}|${variant}|sym`));
+    const outerGrain = tier === 'full' ? 52 : tier === 'standard' ? 28 : 0;
+    const innerGrain = tier === 'full' ? 36 : tier === 'standard' ? 18 : 0;
+    const symbolYFrac = tier === 'full' ? 0.472 : tier === 'standard' ? 0.478 : 0.485;
+    const labelYFrac = tier === 'full' ? 0.764 : 0.772;
 
     context.clearRect(0, 0, width, height);
+    if (outerGrain > 0) {
+        drawNoise(context, width, height, outerGrain, `rgba(${c.grainRgb},${c.grainAlpha * 0.65})`, rng);
+    }
+
+    const cx = width * 0.5;
+    const symbolY = height * symbolYFrac;
+    const plateR = Math.min(width, height) * 0.34;
+    const plateOuter = plateR * 1.12;
+
+    context.save();
+    context.lineJoin = 'round';
+    const glow = context.createRadialGradient(cx, symbolY, plateR * 0.12, cx, symbolY, plateOuter);
+    glow.addColorStop(0, c.plateGlow);
+    glow.addColorStop(0.55, 'rgba(0,0,0,0)');
+    glow.addColorStop(1, 'rgba(0,0,0,0)');
+    context.fillStyle = glow;
+    context.beginPath();
+    context.arc(cx, symbolY, plateOuter, 0, Math.PI * 2);
+    context.fill();
+
+    const plateGrad = context.createRadialGradient(cx, symbolY - plateR * 0.22, plateR * 0.08, cx, symbolY, plateR);
+    plateGrad.addColorStop(0, c.plateFill);
+    plateGrad.addColorStop(0.65, c.plateFillOuter);
+    plateGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    context.fillStyle = plateGrad;
+    context.beginPath();
+    context.arc(cx, symbolY, plateR, 0, Math.PI * 2);
+    context.fill();
+
+    context.strokeStyle = c.plateStroke;
+    context.lineWidth = Math.max(2, Math.round(width * 0.0042));
+    context.beginPath();
+    context.arc(cx, symbolY, plateR, 0, Math.PI * 2);
+    context.stroke();
+
+    context.strokeStyle = c.frameInnerRim;
+    context.lineWidth = Math.max(1, Math.round(width * 0.0024));
+    context.globalAlpha = 0.88;
+    context.beginPath();
+    context.arc(cx, symbolY, plateR * 0.9, 0, Math.PI * 2);
+    context.stroke();
+    context.globalAlpha = 1;
+
+    context.beginPath();
+    context.arc(cx, symbolY, plateR * 0.97, 0, Math.PI * 2);
+    context.clip();
+    if (innerGrain > 0) {
+        drawNoise(context, width, height, innerGrain, `rgba(${c.grainRgb},${c.grainAlpha * 0.9})`, rng);
+    }
+    context.restore();
+
     context.textAlign = 'center';
     context.textBaseline = 'middle';
     context.lineJoin = 'round';
 
     let symbolSize = symbolBaseSize;
     context.font = `800 ${symbolSize}px "Source Sans 3", "Segoe UI Symbol", "Segoe UI Emoji", "Arial", sans-serif`;
-    const symbolMaxWidth = width * 0.38;
-    while (symbolSize > 88 && context.measureText(symbolText).width > symbolMaxWidth) {
+    const symbolMaxWidth = Math.min(width * 0.56, plateR * 2.15);
+    while (symbolSize > 72 && context.measureText(symbolText).width > symbolMaxWidth) {
         symbolSize -= 6;
         context.font = `800 ${symbolSize}px "Source Sans 3", "Segoe UI Symbol", "Segoe UI Emoji", "Arial", sans-serif`;
     }
 
-    const symbolY = height * 0.49;
-    context.shadowBlur = 0;
-    context.lineWidth = Math.max(6, Math.round(width * 0.011));
-    context.strokeStyle = symbolStroke;
-    context.strokeText(symbolText, width / 2, symbolY);
-    context.fillStyle = symbolFill;
-    context.fillText(symbolText, width / 2, symbolY);
+    const ctxLs = context as CanvasRenderingContext2D & { letterSpacing?: string };
+    const prevLs = ctxLs.letterSpacing;
+    if ('letterSpacing' in context) {
+        ctxLs.letterSpacing = symbolText.length >= 3 ? '0.05em' : '0.02em';
+    }
+
+    const sw = Math.max(5, Math.round(width * 0.009));
+    const otOk =
+        tier === 'full' &&
+        FEATURE_CARD_OPENTYPE_GLYPHS &&
+        tryDrawOpentypeCenteredText(context, symbolText, cx, symbolY, symbolSize, c.symbolFill, c.symbolStroke, sw);
+    if (!otOk) {
+        if (tier === 'full') {
+            context.fillStyle = c.rankShadow;
+            context.globalAlpha = 0.5;
+            context.fillText(symbolText, cx + 1.4, symbolY + 2.2);
+            context.globalAlpha = 1;
+        }
+
+        context.lineWidth = sw;
+        context.strokeStyle = c.symbolStroke;
+        context.strokeText(symbolText, cx, symbolY);
+        context.fillStyle = c.symbolFill;
+        context.fillText(symbolText, cx, symbolY);
+    }
+
+    if ('letterSpacing' in context) {
+        ctxLs.letterSpacing = prevLs ?? '0px';
+    }
 
     if (hasDistinctLabel) {
+        const labelY = height * labelYFrac;
+        const labelW = Math.min(width * 0.72, context.measureText(labelText).width + width * 0.08);
+        const labelH = Math.max(22, Math.round(height * 0.048));
+        const rx = labelH * 0.5;
+
+        context.save();
+        const pillGrad = context.createLinearGradient(cx - labelW * 0.5, labelY, cx + labelW * 0.5, labelY);
+        pillGrad.addColorStop(0, c.plateFillOuter);
+        pillGrad.addColorStop(0.5, c.plateFill);
+        pillGrad.addColorStop(1, c.plateFillOuter);
+        context.fillStyle = pillGrad;
+        context.strokeStyle = c.plateStroke;
+        context.lineWidth = Math.max(1.5, Math.round(width * 0.0028));
+        context.beginPath();
+        context.roundRect(cx - labelW * 0.5, labelY - labelH * 0.5, labelW, labelH, rx);
+        context.fill();
+        context.stroke();
+        context.restore();
+
         const labelFontSize = Math.max(16, Math.round(width * 0.032));
-        const labelY = height * 0.78;
         context.font = `800 ${labelFontSize}px "Source Sans 3", "Arial", sans-serif`;
         context.lineWidth = Math.max(3, Math.round(width * 0.005));
-        context.strokeStyle = labelStroke;
-        context.strokeText(labelText, width / 2, labelY);
-        context.fillStyle = labelFill;
-        context.fillText(labelText, width / 2, labelY);
+        if (tier === 'full') {
+            context.fillStyle = c.rankShadow;
+            context.globalAlpha = 0.45;
+            context.fillText(labelText, cx + 0.8, labelY + 1.4);
+            context.globalAlpha = 1;
+        }
+        context.strokeStyle = c.labelStroke;
+        context.strokeText(labelText, cx, labelY);
+        context.fillStyle = c.labelFill;
+        context.fillText(labelText, cx, labelY);
     }
 };
 
@@ -1127,15 +1270,18 @@ export const getTileFaceRoughnessTexture = (
 
 export const getTileFaceOverlayTexture = (
     tile: Tile,
-    variant: Exclude<FaceVariant, 'hidden'>
-): CanvasTexture | null =>
-    createTexture(
-        `${buildKey(tile, 'front', variant, 'panel')}:overlay`,
-        (context, canvas) => drawCardFrontOverlay(context, canvas, tile, variant),
+    variant: Exclude<FaceVariant, 'hidden'>,
+    graphicsQuality: GraphicsQualityPreset
+): CanvasTexture | null => {
+    const tier = overlayDrawTierFromGraphicsQuality(graphicsQuality);
+    return createTexture(
+        `${buildKey(tile, 'front', variant, 'panel')}:overlay:${graphicsQuality}`,
+        (context, canvas) => drawCardFrontOverlay(context, canvas, tile, variant, tier),
         SRGBColorSpace,
         STATIC_CARD_TEXTURE_WIDTH,
         STATIC_CARD_TEXTURE_HEIGHT
     );
+};
 
 export const getCardBackStaticTexture = (): CanvasTexture | null =>
     createTexture(

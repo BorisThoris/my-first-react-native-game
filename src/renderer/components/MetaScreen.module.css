@@ -8,18 +8,23 @@
     background: var(--theme-meta-stage-wash);
 }
 
+/* Shared shell chrome: safe-area padding + column gap for full-viewport shells and modal stack. */
+.shell,
+.modalOverlay {
+    padding: var(--ui-shell-screen-pad-safe);
+}
+
+.shell,
+.modalInner {
+    gap: var(--ui-shell-screen-gap);
+}
+
 .shell {
     min-height: 100dvh;
     max-height: 100dvh;
     height: 100%;
-    padding:
-        max(var(--ui-shell-screen-pad-block), env(safe-area-inset-top, 0px))
-        max(var(--ui-shell-screen-pad-inline), env(safe-area-inset-right, 0px))
-        max(var(--ui-shell-screen-pad-block), env(safe-area-inset-bottom, 0px))
-        max(var(--ui-shell-screen-pad-inline), env(safe-area-inset-left, 0px));
     display: flex;
     flex-direction: column;
-    gap: var(--ui-shell-screen-gap);
     overflow: hidden;
 }
 
@@ -71,7 +76,7 @@
     position: sticky;
     top: 0;
     z-index: 1;
-    background: linear-gradient(180deg, rgba(6, 7, 12, 0.96), rgba(6, 7, 12, 0.84));
+    background: var(--theme-meta-toc-sticky-bg);
     backdrop-filter: blur(10px) saturate(130%);
 }
 
@@ -100,17 +105,21 @@
     scroll-margin-top: 5.5rem;
 }
 
+/*
+ * REF-073: long meta lists (collection achievements, codex tables) — skip off-screen layout when possible.
+ * Keyboard: links still exist in DOM; roving tabindex unchanged (TOC is separate).
+ */
+.metaLongList {
+    content-visibility: auto;
+    contain-intrinsic-size: 480px 600px;
+}
+
 .modalOverlay {
     position: fixed;
     inset: 0;
     z-index: 22;
     display: flex;
     flex-direction: column;
-    padding:
-        max(var(--ui-shell-screen-pad-block), env(safe-area-inset-top, 0px))
-        max(var(--ui-shell-screen-pad-inline), env(safe-area-inset-right, 0px))
-        max(var(--ui-shell-screen-pad-block), env(safe-area-inset-bottom, 0px))
-        max(var(--ui-shell-screen-pad-inline), env(safe-area-inset-left, 0px));
     background: var(--gameplay-overlay-scrim-bg, var(--theme-scrim-heavy));
     backdrop-filter: var(--gameplay-overlay-scrim-filter, blur(12px) saturate(130%));
     overflow: hidden;
@@ -122,7 +131,6 @@
     margin: 0 auto;
     display: flex;
     flex-direction: column;
-    gap: var(--ui-shell-screen-gap);
     overflow: hidden;
     min-height: 0;
 }
@@ -281,6 +289,29 @@
         font-size: 0.6rem;
         letter-spacing: 0.08em;
     }
+}
+
+/* REF-015 — shared “archive desk” catalog row density (Collection relic grid + Inventory loadout lists). */
+.archiveCatalogGrid {
+    display: grid;
+    gap: 0.65rem;
+}
+
+.archiveCatalogRow {
+    margin: 0;
+    padding: 0.75rem 0.95rem;
+    border-radius: var(--ui-radius-md);
+    border: 1px solid var(--theme-divider-hairline);
+    background: var(--theme-panel-alt);
+    display: grid;
+    gap: var(--theme-space-2xs);
+}
+
+.archiveCatalogRowTitle {
+    margin: 0;
+    font-size: 0.98rem;
+    font-weight: 650;
+    color: var(--theme-text);
 }
 
 :global([data-reduce-motion='true']) .modalOverlay,

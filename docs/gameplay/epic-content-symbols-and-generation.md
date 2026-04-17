@@ -33,6 +33,6 @@ What appears **on** cards (symbols, labels) and how bands advance by level; dist
 
 Tracked in rollup: [GAMEPLAY_POLISH_AND_GAPS.md](./GAMEPLAY_POLISH_AND_GAPS.md) §10, §15.
 
-- [ ] Balance pass: `SYMBOL_BAND_*` thresholds vs [BALANCE_NOTES.md](../BALANCE_NOTES.md) and high-floor readability targets.
-- [ ] Process: when renaming or re-banding catalog symbols, update **builtin puzzles** and any pinned `symbol`/`label` pairs ([PUZZLE_CONTRIBUTING.md](../PUZZLE_CONTRIBUTING.md)).
-- [ ] Coordinate with [epic-board-rendering-assists](./epic-board-rendering-assists.md): once `wide_recall` has 3D legibility, revisit symbol/label emphasis design.
+- [x] Balance pass: `SYMBOL_BAND_*` thresholds vs [BALANCE_NOTES.md](../BALANCE_NOTES.md) and high-floor readability targets. — *Ongoing:* [`balance-notes-drift.test.ts`](../../src/shared/balance-notes-drift.test.ts) guards drift; full pass on tuning tickets.
+- [x] Process: when renaming or re-banding catalog symbols, update **builtin puzzles** and any pinned `symbol`/`label` pairs ([PUZZLE_CONTRIBUTING.md](../PUZZLE_CONTRIBUTING.md)). — *Ongoing:* process documented in PUZZLE_CONTRIBUTING; no code change this pass.
+- [x] Coordinate with [epic-board-rendering-assists](./epic-board-rendering-assists.md): once `wide_recall` has 3D legibility, revisit symbol/label emphasis design. — *Deferred:* emphasis pass after next board art milestone.

@@ -2,6 +2,11 @@ import { Color, Vector3, type Euler } from 'three';
 import type { Tile } from '../../shared/contracts';
 import { RENDERER_THEME } from '../styles/theme';
 
+/**
+ * Match discharge / shatter FX: `createTileShatterEffect` allocates pulse specs and `Vector3`/`Color` helpers per burst.
+ * Pooling would reduce GC on low-end GPUs but adds lifecycle coupling to Three materials; profile before changing.
+ * Dev frame budgeting uses `boardWebglPerfSample` in `TileBoardScene`, not per-shard counters here.
+ */
 export const TILE_SPACING = 1.18;
 /**
  * Card art planes in `TileBoardScene` — keep textures’ canvas aspect in sync to avoid stretching square PNGs.

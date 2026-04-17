@@ -9,6 +9,7 @@ import {
     zeroTilt
 } from './platformTiltMotion';
 import type { MotionPermissionState, TiltVector } from './platformTiltTypes';
+import { useParallaxMotionSuppressed } from './useParallaxMotionSuppressed';
 
 const GYRO_DAMP = 14;
 
@@ -63,7 +64,8 @@ const hasRequestPermission = (): boolean => {
 };
 
 export const PlatformTiltProvider = ({ children }: { children: ReactNode }) => {
-    const reduceMotion = useAppStore(useShallow((s) => s.settings.reduceMotion));
+    const reduceMotionFromSettings = useAppStore(useShallow((s) => s.settings.reduceMotion));
+    const motionParallaxSuppressed = useParallaxMotionSuppressed(reduceMotionFromSettings);
     const [permission, setPermission] = useState<MotionPermissionState>(() => {
         if (typeof window === 'undefined' || !getDeviceOrientationEventCtor()) {
             return 'unsupported';
@@ -123,7 +125,7 @@ export const PlatformTiltProvider = ({ children }: { children: ReactNode }) => {
             return;
         }
 
-        if (reduceMotion || permission !== 'granted') {
+        if (motionParallaxSuppressed || permission !== 'granted') {
             detachListener();
 
             return;
@@ -134,7 +136,7 @@ export const PlatformTiltProvider = ({ children }: { children: ReactNode }) => {
         return () => {
             detachListener();
         };
-    }, [reduceMotion, permission, attachListener, detachListener]);
+    }, [motionParallaxSuppressed, permission, attachListener, detachListener]);
 
     useEffect(() => {
         if (typeof window === 'undefined') {
@@ -171,7 +173,7 @@ export const PlatformTiltProvider = ({ children }: { children: ReactNode }) => {
     }, [resetBaseline]);
 
     useEffect(() => {
-        if (reduceMotion) {
+        if (motionParallaxSuppressed) {
             targetGyroRef.current = zeroTilt();
             gyroTiltRef.current = zeroTilt();
             lastFrameRef.current = null;
@@ -196,7 +198,7 @@ export const PlatformTiltProvider = ({ children }: { children: ReactNode }) => {
             window.cancelAnimationFrame(frameId);
             lastFrameRef.current = null;
         };
-    }, [reduceMotion]);
+    }, [motionParallaxSuppressed]);
 
     const requestMotionPermission = useCallback(async (): Promise<void> => {
         const orientationCtor = getDeviceOrientationEventCtor();

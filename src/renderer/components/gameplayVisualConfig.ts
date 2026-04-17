@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import { MATCH_DELAY_MS, RESOLVE_DELAY_MULTIPLIER_MIN } from '../../shared/contracts';
 
 export const GAMEPLAY_VISUAL_CSS_VARS = {
     ['--gameplay-chrome-blur' as string]: '18px',
@@ -96,9 +97,10 @@ export const GAMEPLAY_BOARD_VISUALS = {
             outerWidth: 0.46,
             softness: 0.0062
         },
+        /** Seconds — must stay within minimum match-resolve window (`MATCH_DELAY_MS` × `RESOLVE_DELAY_MULTIPLIER_MIN`). */
         burstDuration: {
-            default: 0.58,
-            reduceMotion: 0.38
+            default: 0.4,
+            reduceMotion: 0.35
         },
         colors: {
             core: [0.98, 1.0, 0.86],
@@ -160,7 +162,7 @@ export const GAMEPLAY_CARD_VISUALS = {
         textured: 0.42
     },
     surfaceMapVersion: 3,
-    textureVersion: 32,
+    textureVersion: 34,
     texturedBackEmblemOpacity: 0.14,
     texturedBackPatternOpacity: 0.18,
     texturedBackTint: {
@@ -168,3 +170,17 @@ export const GAMEPLAY_CARD_VISUALS = {
         start: 'rgba(62, 39, 20, 0.09)'
     }
 } as const;
+
+{
+    const minResolveMs = MATCH_DELAY_MS * RESOLVE_DELAY_MULTIPLIER_MIN;
+    const maxBurstMs =
+        Math.max(
+            GAMEPLAY_BOARD_VISUALS.matchedEdgeEffect.burstDuration.default,
+            GAMEPLAY_BOARD_VISUALS.matchedEdgeEffect.burstDuration.reduceMotion
+        ) * 1000;
+    if (maxBurstMs > minResolveMs) {
+        throw new Error(
+            `Matched edge burst (${maxBurstMs}ms) exceeds minimum resolve window (${minResolveMs}ms); sync with contracts.`
+        );
+    }
+}

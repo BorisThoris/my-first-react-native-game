@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FindableKind, Tile } from '../../shared/contracts';
 
 const GAUNTLET_WARN_SECS = [60, 30, 10, 5] as const;
@@ -22,6 +22,13 @@ const flushThenSet = (text: string, set: (value: string) => void): void => {
         set(text);
     });
 };
+
+/** Min interval between polite live-region updates (anti-spam for screen readers). */
+const POLITE_HUD_THROTTLE_MS = 400;
+
+export type HudAnnouncePriority = 'info' | 'error';
+
+const PRIORITY_RANK: Record<HudAnnouncePriority, number> = { error: 2, info: 1 };
 
 export const detectClaimedFindableKind = (
     previousTiles: readonly Tile[],
@@ -69,9 +76,17 @@ export interface HudPoliteLiveAnnouncementInput {
     findablesClaimedThisFloor: number;
 }
 
+export interface UseHudPoliteLiveAnnouncementResult {
+    message: string;
+    queuePoliteAnnouncement: (text: string, opts?: { dedupeKey?: string; priority?: HudAnnouncePriority }) => void;
+}
+
+const nowMs = (): number => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+
 /**
  * HUD-015: polite `aria-live` source text for gauntlet deadline buckets and score-parasite milestones.
- * Intentionally low-frequency to avoid screen-reader chatter during play.
+ * Batches concurrent announcements on `requestAnimationFrame`, dedupes by key, prefers higher priority,
+ * and throttles display cadence so screen readers get summaries, not chatter.
  */
 export const useHudPoliteLiveAnnouncement = ({
     gauntletRemainingMs,
@@ -83,7 +98,7 @@ export const useHudPoliteLiveAnnouncement = ({
     boardLevel,
     boardTiles,
     findablesClaimedThisFloor
-}: HudPoliteLiveAnnouncementInput): string => {
+}: HudPoliteLiveAnnouncementInput): UseHudPoliteLiveAnnouncementResult => {
     const [message, setMessage] = useState('');
     const prevGauntletSecsRef = useRef<number | null>(null);
     const parasiteSnapRef = useRef<{
@@ -98,6 +113,102 @@ export const useHudPoliteLiveAnnouncement = ({
         tiles: readonly Tile[];
     } | null>(null);
 
+    const queueRef = useRef(new Map<string, { text: string; priority: HudAnnouncePriority }>());
+    const rafIdRef = useRef<number | null>(null);
+    const lastDisplayedAtRef = useRef(0);
+    const throttleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pendingThrottledTextRef = useRef<string | null>(null);
+
+    const tryDeliver = useCallback((text: string) => {
+        const now = nowMs();
+        const last = lastDisplayedAtRef.current;
+        const elapsed = last === 0 ? POLITE_HUD_THROTTLE_MS : now - last;
+
+        const fire = (): void => {
+            flushThenSet(text, setMessage);
+            lastDisplayedAtRef.current = nowMs();
+            throttleTimerRef.current = null;
+            pendingThrottledTextRef.current = null;
+        };
+
+        if (last === 0 || elapsed >= POLITE_HUD_THROTTLE_MS) {
+            if (throttleTimerRef.current) {
+                clearTimeout(throttleTimerRef.current);
+                throttleTimerRef.current = null;
+            }
+            fire();
+            return;
+        }
+
+        pendingThrottledTextRef.current = text;
+        const wait = POLITE_HUD_THROTTLE_MS - elapsed;
+        if (throttleTimerRef.current) {
+            clearTimeout(throttleTimerRef.current);
+        }
+        throttleTimerRef.current = setTimeout(() => {
+            const pending = pendingThrottledTextRef.current;
+            if (pending) {
+                flushThenSet(pending, setMessage);
+                lastDisplayedAtRef.current = nowMs();
+            }
+            throttleTimerRef.current = null;
+            pendingThrottledTextRef.current = null;
+        }, wait);
+    }, []);
+
+    const flushAnnouncementQueue = useCallback(() => {
+        if (queueRef.current.size === 0) {
+            return;
+        }
+        const entries = [...queueRef.current.entries()].map(([key, v]) => ({ key, ...v }));
+        queueRef.current.clear();
+        entries.sort((a, b) => {
+            const pr = PRIORITY_RANK[b.priority] - PRIORITY_RANK[a.priority];
+            if (pr !== 0) {
+                return pr;
+            }
+            return a.key.localeCompare(b.key);
+        });
+        const combined = entries.map((e) => e.text).join(' ');
+        tryDeliver(combined);
+    }, [tryDeliver]);
+
+    const scheduleQueueFlush = useCallback(() => {
+        if (rafIdRef.current != null) {
+            return;
+        }
+        rafIdRef.current = requestAnimationFrame(() => {
+            rafIdRef.current = null;
+            flushAnnouncementQueue();
+        });
+    }, [flushAnnouncementQueue]);
+
+    const queuePoliteAnnouncement = useCallback(
+        (text: string, opts?: { dedupeKey?: string; priority?: HudAnnouncePriority }) => {
+            const dedupeKey = opts?.dedupeKey ?? text;
+            const priority = opts?.priority ?? 'info';
+            const prev = queueRef.current.get(dedupeKey);
+            if (prev && PRIORITY_RANK[prev.priority] > PRIORITY_RANK[priority]) {
+                return;
+            }
+            queueRef.current.set(dedupeKey, { text, priority });
+            scheduleQueueFlush();
+        },
+        [scheduleQueueFlush]
+    );
+
+    useEffect(
+        () => () => {
+            if (rafIdRef.current != null) {
+                cancelAnimationFrame(rafIdRef.current);
+            }
+            if (throttleTimerRef.current) {
+                clearTimeout(throttleTimerRef.current);
+            }
+        },
+        []
+    );
+
     useEffect(() => {
         if (!gauntletActive || gauntletRemainingMs === null) {
             prevGauntletSecsRef.current = null;
@@ -111,11 +222,14 @@ export const useHudPoliteLiveAnnouncement = ({
         }
         for (const bound of GAUNTLET_WARN_SECS) {
             if (prev > bound && secs <= bound) {
-                flushThenSet(gauntletMessageForThreshold(secs), setMessage);
+                queuePoliteAnnouncement(gauntletMessageForThreshold(secs), {
+                    dedupeKey: `gauntlet:${bound}`,
+                    priority: 'info'
+                });
                 return;
             }
         }
-    }, [gauntletActive, gauntletRemainingMs]);
+    }, [gauntletActive, gauntletRemainingMs, queuePoliteAnnouncement]);
 
     useEffect(() => {
         if (!scoreParasiteActive || boardLevel === null) {
@@ -146,17 +260,26 @@ export const useHudPoliteLiveAnnouncement = ({
             const crossedDrain = snap.parasiteFloors === 3 && parasiteFloors === 0;
             if (crossedDrain) {
                 if (lives < snap.lives) {
-                    flushThenSet('Score parasite drained one life.', setMessage);
+                    queuePoliteAnnouncement('Score parasite drained one life.', {
+                        dedupeKey: 'parasite:drain',
+                        priority: 'info'
+                    });
                 } else if (parasiteWardRemaining < snap.ward) {
-                    flushThenSet('Score parasite drain absorbed by ward.', setMessage);
+                    queuePoliteAnnouncement('Score parasite drain absorbed by ward.', {
+                        dedupeKey: 'parasite:ward',
+                        priority: 'info'
+                    });
                 }
             } else if (parasiteFloors === 3 && snap.parasiteFloors === 2) {
-                flushThenSet('Score parasite: next cleared floor triggers the drain unless warded.', setMessage);
+                queuePoliteAnnouncement('Score parasite: next cleared floor triggers the drain unless warded.', {
+                    dedupeKey: 'parasite:warn',
+                    priority: 'info'
+                });
             }
         }
 
         parasiteSnapRef.current = nextSnap;
-    }, [boardLevel, lives, parasiteFloors, parasiteWardRemaining, scoreParasiteActive]);
+    }, [boardLevel, lives, parasiteFloors, parasiteWardRemaining, queuePoliteAnnouncement, scoreParasiteActive]);
 
     useEffect(() => {
         if (boardLevel === null) {
@@ -179,12 +302,15 @@ export const useHudPoliteLiveAnnouncement = ({
         if (boardLevel === snap.level && findablesClaimedThisFloor > snap.claimed) {
             const claimedKind = detectClaimedFindableKind(snap.tiles, boardTiles);
             if (claimedKind != null) {
-                flushThenSet(getFindableAnnouncementText(claimedKind), setMessage);
+                queuePoliteAnnouncement(getFindableAnnouncementText(claimedKind), {
+                    dedupeKey: `pickup:${claimedKind}`,
+                    priority: 'info'
+                });
             }
         }
 
         pickupSnapRef.current = nextSnap;
-    }, [boardLevel, boardTiles, findablesClaimedThisFloor]);
+    }, [boardLevel, boardTiles, findablesClaimedThisFloor, queuePoliteAnnouncement]);
 
-    return message;
+    return { message, queuePoliteAnnouncement };
 };

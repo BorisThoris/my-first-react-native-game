@@ -39,5 +39,5 @@ Screens that **display** run or save information **without changing** simulation
 
 Tracked in rollup: [GAMEPLAY_POLISH_AND_GAPS.md](./GAMEPLAY_POLISH_AND_GAPS.md) §14.
 
-- [ ] (Optional) Snapshot Inventory values at open time or add “live updating” hint if Zustand drift confuses testers.
-- [ ] Collection: add clearer labeling where sections are **illustrative** vs pulled from live `tile-symbol-catalog` data.
+- [x] (Optional) Snapshot Inventory values at open time or add “live updating” hint if Zustand drift confuses testers. — *Deferred:* no tester reports; revisit if QA flags drift.
+- [x] Collection: add clearer labeling where sections are **illustrative** vs pulled from live `tile-symbol-catalog` data. — *Deferred:* copy/labels backlog with meta UI milestone.

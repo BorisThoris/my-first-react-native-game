@@ -43,6 +43,8 @@ export function computeFitShellZoomFactor({
 
 /**
  * Uniform zoom so a meta shell fits the viewport without scrolling (Chromium / Electron primary).
+ * Phone/desktop shell layout is latched with width hysteresis in `GameScreen` / `latchPhoneWidthForMobileCamera`
+ * so this hook is not fighting single-frame `cameraViewportMode` toggles during resize.
  * Apply `style={{ zoom: fitZoom }}` on the **first child** of `measureRef` (wrapper has no zoom).
  *
  * Measured `offsetWidth` / `offsetHeight` on the wrapper already reflect the **current** zoom.
@@ -72,6 +74,9 @@ export function useFitShellZoom({
 
         const el = measureRef.current;
         if (!el || viewportWidth < 1 || viewportHeight < 1) {
+            /* No usable measure target or viewport: snap to unity zoom (avoids stale shrink from a prior size). */
+            appliedZoomRef.current = 1;
+            setFitZoom(1);
             return;
         }
 
@@ -93,6 +98,8 @@ export function useFitShellZoom({
             const wAtZoom = node.offsetWidth;
             const hAtZoom = node.offsetHeight;
             if (wAtZoom < 2 || hAtZoom < 2) {
+                appliedZoomRef.current = 1;
+                setFitZoom(1);
                 return;
             }
             const intrinsicW = Math.max(2, wAtZoom / s);

@@ -1,6 +1,7 @@
 import { app, ipcMain } from 'electron';
-import type { BrowserWindow } from 'electron';
+import type { BrowserWindow, IpcMainInvokeEvent } from 'electron';
 import type { AchievementId, DisplayMode, SaveData, Settings } from '../shared/contracts';
+import { IPC_CHANNELS, IPC_CHANNELS_LEGACY_DESKTOP } from '../shared/ipc-channels';
 import type { PersistenceService } from './persistence';
 import type { SteamAdapter } from './steam';
 
@@ -18,44 +19,60 @@ export const registerIpcHandlers = (
     persistence: PersistenceService,
     steamAdapter: SteamAdapter
 ): void => {
-    ipcMain.handle('desktop:get-settings', () => {
+    const register = (channel: string, handler: Parameters<typeof ipcMain.handle>[1]): void => {
+        ipcMain.handle(channel, handler);
+    };
+
+    const getSettings = (): ReturnType<PersistenceService['getSettings']> => {
         try {
             return persistence.getSettings();
         } catch (error) {
-            console.error('[ipc] desktop:get-settings failed', error);
+            console.error('[ipc] get-settings failed', error);
             throw error;
         }
-    });
-    ipcMain.handle('desktop:get-save-data', () => {
+    };
+    register(IPC_CHANNELS.saveGetSettings, getSettings);
+    register(IPC_CHANNELS_LEGACY_DESKTOP.getSettings, getSettings);
+
+    const getSaveData = (): ReturnType<PersistenceService['getSaveData']> => {
         try {
             return persistence.getSaveData();
         } catch (error) {
-            console.error('[ipc] desktop:get-save-data failed', error);
+            console.error('[ipc] get-save-data failed', error);
             throw error;
         }
-    });
-    ipcMain.handle('desktop:is-steam-connected', () => {
+    };
+    register(IPC_CHANNELS.saveGetSaveData, getSaveData);
+    register(IPC_CHANNELS_LEGACY_DESKTOP.getSaveData, getSaveData);
+
+    const isSteamConnected = (): boolean => {
         try {
             return steamAdapter.isConnected();
         } catch (error) {
-            console.error('[ipc] desktop:is-steam-connected failed', error);
+            console.error('[ipc] steam is-connected failed', error);
             throw error;
         }
-    });
-    ipcMain.handle('desktop:set-display-mode', (_event, mode: DisplayMode) => {
+    };
+    register(IPC_CHANNELS.steamIsConnected, isSteamConnected);
+    register(IPC_CHANNELS_LEGACY_DESKTOP.isSteamConnected, isSteamConnected);
+
+    const setDisplayMode = (_event: IpcMainInvokeEvent, mode: DisplayMode): void => {
         try {
             const window = getMainWindow();
             if (!window || window.isDestroyed()) {
-                console.warn('[ipc] desktop:set-display-mode skipped: no main window');
+                console.warn('[ipc] set-display-mode skipped: no main window');
                 return;
             }
             applyDisplayMode(window, mode);
         } catch (error) {
-            console.error('[ipc] desktop:set-display-mode failed', error);
+            console.error('[ipc] set-display-mode failed', error);
             throw error;
         }
-    });
-    ipcMain.handle('desktop:save-settings', (_event, settings: Settings) => {
+    };
+    register(IPC_CHANNELS.windowSetDisplayMode, setDisplayMode);
+    register(IPC_CHANNELS_LEGACY_DESKTOP.setDisplayMode, setDisplayMode);
+
+    const saveSettings = (_event: IpcMainInvokeEvent, settings: Settings): Settings => {
         try {
             const saveData = persistence.saveSettings(settings);
             const window = getMainWindow();
@@ -64,33 +81,44 @@ export const registerIpcHandlers = (
             }
             return saveData.settings;
         } catch (error) {
-            console.error('[ipc] desktop:save-settings failed', error);
+            console.error('[ipc] save-settings failed', error);
             throw error;
         }
-    });
-    ipcMain.handle('desktop:save-game', (_event, saveData: SaveData) => {
+    };
+    register(IPC_CHANNELS.saveSaveSettings, saveSettings);
+    register(IPC_CHANNELS_LEGACY_DESKTOP.saveSettings, saveSettings);
+
+    const saveGame = (_event: IpcMainInvokeEvent, saveData: SaveData): SaveData => {
         try {
             return persistence.saveGame(saveData);
         } catch (error) {
-            console.error('[ipc] desktop:save-game failed', error);
+            console.error('[ipc] save-game failed', error);
             throw error;
         }
-    });
-    ipcMain.handle('desktop:unlock-achievement', (_event, achievementId: AchievementId) => {
+    };
+    register(IPC_CHANNELS.saveSaveGame, saveGame);
+    register(IPC_CHANNELS_LEGACY_DESKTOP.saveGame, saveGame);
+
+    const unlockAchievement = (_event: IpcMainInvokeEvent, achievementId: AchievementId) => {
         try {
             persistence.unlockAchievement(achievementId);
             return steamAdapter.unlockAchievement(achievementId);
         } catch (error) {
-            console.error('[ipc] desktop:unlock-achievement failed', achievementId, error);
+            console.error('[ipc] unlock-achievement failed', achievementId, error);
             throw error;
         }
-    });
-    ipcMain.handle('desktop:quit-app', () => {
+    };
+    register(IPC_CHANNELS.steamUnlockAchievement, unlockAchievement);
+    register(IPC_CHANNELS_LEGACY_DESKTOP.unlockAchievement, unlockAchievement);
+
+    const quitApp = (): void => {
         try {
             app.quit();
         } catch (error) {
-            console.error('[ipc] desktop:quit-app failed', error);
+            console.error('[ipc] quit-app failed', error);
             throw error;
         }
-    });
+    };
+    register(IPC_CHANNELS.windowQuitApp, quitApp);
+    register(IPC_CHANNELS_LEGACY_DESKTOP.quitApp, quitApp);
 };

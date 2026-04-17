@@ -29,9 +29,11 @@ export default tseslint.config(
     {
         files: [
             'src/**/*.{ts,tsx}',
+            'packages/notifications/src/**/*.{ts,tsx}',
             'vite.config.mts',
             'tsup.config.ts',
-            'vitest.setup.ts'
+            'vitest.setup.ts',
+            'scripts/run-mechanics-appendix.ts'
         ],
         languageOptions: {
             ecmaVersion: 'latest',

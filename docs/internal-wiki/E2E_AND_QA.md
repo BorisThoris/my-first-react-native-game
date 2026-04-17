@@ -2,6 +2,8 @@
 
 **Runner:** Playwright (`yarn test:e2e`). **Config:** `playwright.config.ts` at repo root (`use.baseURL` is `http://127.0.0.1:5173` against the Vite dev server).
 
+**Seeded saves:** Helpers in `e2e/tileBoardGameFlow.ts` and `e2e/visualScreenHelpers.ts` set `schemaVersion` from **`SAVE_SCHEMA_VERSION`** (`src/shared/contracts.ts`) so `localStorage` fixtures stay aligned with [save-data.ts](../../src/shared/save-data.ts) normalization expectations.
+
 **Curated gate (recommended for CI):** `yarn test:e2e:renderer-qa` — see root `package.json` for exact file list.
 
 ## Spec inventory (`e2e/`)

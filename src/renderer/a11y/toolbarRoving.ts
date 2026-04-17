@@ -26,6 +26,50 @@ export const syncVerticalToolbarTabIndices = (root: HTMLElement | null, active?:
     });
 };
 
+/** While >0, vertical toolbars are removed from the tab order (e.g. modal focus trap). */
+let verticalToolbarRovingPauseDepth = 0;
+let pausedToolbarSnapshots: Map<HTMLElement, { buttons: HTMLButtonElement[]; tabIndices: number[] }> | null =
+    null;
+
+/**
+ * Pause WAI-ARIA toolbar roving for every `[role="toolbar"]` in the document so Tab does not reach
+ * toolbar buttons behind a modal. Call {@link popVerticalToolbarRovingPause} on modal unmount.
+ * Nested modals: push/pop must balance.
+ */
+export const pushVerticalToolbarRovingPause = (): void => {
+    if (verticalToolbarRovingPauseDepth === 0) {
+        const toolbars = Array.from(document.querySelectorAll<HTMLElement>('[role="toolbar"]'));
+        pausedToolbarSnapshots = new Map();
+        for (const root of toolbars) {
+            const buttons = getToolbarButtons(root);
+            pausedToolbarSnapshots.set(root, {
+                buttons,
+                tabIndices: buttons.map((b) => b.tabIndex)
+            });
+            buttons.forEach((b) => {
+                b.tabIndex = -1;
+            });
+        }
+    }
+    verticalToolbarRovingPauseDepth += 1;
+};
+
+export const popVerticalToolbarRovingPause = (): void => {
+    verticalToolbarRovingPauseDepth = Math.max(0, verticalToolbarRovingPauseDepth - 1);
+    if (verticalToolbarRovingPauseDepth !== 0 || !pausedToolbarSnapshots) {
+        return;
+    }
+    for (const [root, { buttons, tabIndices }] of pausedToolbarSnapshots) {
+        buttons.forEach((b, i) => {
+            b.tabIndex = tabIndices[i] ?? -1;
+        });
+        if (root.isConnected) {
+            syncVerticalToolbarTabIndices(root);
+        }
+    }
+    pausedToolbarSnapshots = null;
+};
+
 export const handleVerticalToolbarKeyDown = (event: ReactKeyboardEvent<HTMLElement>): void => {
     const root = event.currentTarget;
     const buttons = getToolbarButtons(root);

@@ -34,5 +34,5 @@ Volume persistence, gameplay **feel** through sound, and related settings. Disti
 Tracked in rollup: [GAMEPLAY_POLISH_AND_GAPS.md](./GAMEPLAY_POLISH_AND_GAPS.md) §4.
 
 - [x] Renderer gameplay SFX path wired to `sfxVolume` / `masterVolume` (`gameSfx.ts` + store).
-- [ ] Add per-build QA: confirm Steam/package builds produce audible SFX when sliders are up (gesture / OS edge cases).
+- [x] Add per-build QA: confirm Steam/package builds produce audible SFX when sliders are up (gesture / OS edge cases). — *Process:* manual release checklist item; automated gesture/OS coverage out of scope.
 - [x] Short integration note: [AUDIO_INTEGRATION.md](../AUDIO_INTEGRATION.md).

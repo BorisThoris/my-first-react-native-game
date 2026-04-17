@@ -2,6 +2,8 @@ import type { RelicId, RunSummary, SaveData } from '../../shared/contracts';
 import { RELIC_CATALOG } from '../../shared/game-catalog';
 import { formatNextUtcReset } from '../../shared/utc-countdown';
 import { useEffect, useRef, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
+import { getHubShellFitPadding } from '../hooks/hubShellFit';
 import { useFitShellZoom } from '../hooks/useFitShellZoom';
 import { UI_ART } from '../assets/ui';
 import { desktopClient } from '../desktop-client';
@@ -15,6 +17,7 @@ import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
 import { Eyebrow, MetaFrame, Panel, ScreenTitle, UiButton } from '../ui';
 import MainMenuBackground from './MainMenuBackground';
+import { useAppStore } from '../store/useAppStore';
 import styles from './MainMenu.module.css';
 
 interface MainMenuProps {
@@ -48,6 +51,15 @@ const MainMenu = ({
     onOpenInventory,
     onOpenSettings
 }: MainMenuProps) => {
+    const { achievementBridgeNotice, clearAchievementBridgeNotice, persistenceWriteNotice, clearPersistenceWriteNotice } =
+        useAppStore(
+            useShallow((state) => ({
+                achievementBridgeNotice: state.achievementBridgeNotice,
+                clearAchievementBridgeNotice: state.clearAchievementBridgeNotice,
+                persistenceWriteNotice: state.persistenceWriteNotice,
+                clearPersistenceWriteNotice: state.clearPersistenceWriteNotice
+            }))
+        );
     const shellRef = useRef<HTMLElement | null>(null);
     const menuFitMeasureRef = useRef<HTMLDivElement | null>(null); /* outer box; zoom applied on inner .content */
     const [nowMs, setNowMs] = useState(() => Date.now());
@@ -67,7 +79,7 @@ const MainMenu = ({
     /** Layout-only compaction for wide, short desktop (not tied to fit-zoom, which runs for all sizes). */
     const shortDesktopShell = !touchCompactLayout && width >= 1024 && height <= 760;
     const ultraShortDesktopShell = shortDesktopShell && height <= 700;
-    const fitShellPadding = width >= 1024 && height <= 760 ? 8 : 12;
+    const fitShellPadding = getHubShellFitPadding(width, height, 'menu');
     /* App.tsx sets outer .content zoom from --ui-scale when not compact; useFitShellZoom scales the menu column only (no DOM scroll). */
     const { fitZoom: rawFitZoom } = useFitShellZoom({
         enabled: true,
@@ -199,6 +211,28 @@ const MainMenu = ({
                                 </div>
                             </MetaFrame>
                         </header>
+
+                        {persistenceWriteNotice ? (
+                            <div className={styles.steamBridgeNotice} role="alert">
+                                <span>{persistenceWriteNotice}</span>
+                                <button
+                                    type="button"
+                                    className={styles.steamBridgeNoticeDismiss}
+                                    onClick={clearPersistenceWriteNotice}
+                                >
+                                    Dismiss
+                                </button>
+                            </div>
+                        ) : null}
+
+                        {achievementBridgeNotice ? (
+                            <div className={styles.steamBridgeNotice} role="status">
+                                <span>{achievementBridgeNotice}</span>
+                                <button type="button" className={styles.steamBridgeNoticeDismiss} onClick={clearAchievementBridgeNotice}>
+                                    Dismiss
+                                </button>
+                            </div>
+                        ) : null}
 
                         <div className={styles.layout}>
                             <main className={styles.heroColumn}>

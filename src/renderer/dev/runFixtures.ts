@@ -1,3 +1,19 @@
+/**
+ * Dev sandbox fixtures (`?devSandbox=1&screen=playing&fixture=…`).
+ *
+ * | Fixture id     | runSeed / notes                                      | Expected surface                                      |
+ * | -------------- | ---------------------------------------------------- | ----------------------------------------------------- |
+ * | arcade         | `0xace`                                              | Post-memorize practice run, playing                   |
+ * | memorize       | `0xdec0de`                                           | New run still in memorize phase                       |
+ * | daily          | `buildSandboxDailyRun` (live daily table)            | Post-memorize daily                                   |
+ * | dailyParasite  | `0xcafe`, `dailyDateKeyUtc: 20260404`, score_parasite | Post-memorize daily + parasite mutator                |
+ * | gauntlet       | gauntlet factory                                     | Post-memorize gauntlet                                |
+ * | paused         | `0xbeefe`                                            | Paused arcade run                                     |
+ * | gameOver       | `0xdead`                                             | Game over summary (`lives: 0`)                        |
+ *
+ * **Repro bundle for QA:** copy app version from Settings / About, the query string above, and any non-default
+ * settings from `patchRunFromUserSettings` when filing bugs.
+ */
 import type { RunState } from '../../shared/contracts';
 import {
     createDailyRun,

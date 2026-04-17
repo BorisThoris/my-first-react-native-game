@@ -157,7 +157,7 @@ const App = () => {
      *
      * App shell (.content / App.module.css):
      *   0–1: menu / game shells (.menuLayer, .content).
-     *   6–8: StartupIntro (portaled to document.body — StartupIntro.module.css).
+     *   9000: StartupIntro root overlay (portaled to document.body — StartupIntro.module.css .overlay; inner UI uses local z-index).
      *   21: OverlayModal backdrop (pause, floor clear, abandon).
      *   22: Meta in-run modal (inventory/codex) — MetaScreen.module.css .modalOverlay (+ META-010 .modalOverlayDesk / .modalInnerDesk).
      *   24: Settings shell modal — SettingsScreen.module.css (in-run modal portaled to `document.body`).

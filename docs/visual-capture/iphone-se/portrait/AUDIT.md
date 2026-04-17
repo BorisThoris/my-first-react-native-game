@@ -1,4 +1,6 @@
 # Visual audit: iphone-se / portrait
+> **Checklist policy:** Items marked [x] per [visual-capture README](../../README.md); re-verify when replacing PNGs.
+
 
 - **Device folder:** `iphone-se`
 - **Orientation:** portrait
@@ -29,17 +31,17 @@
 
 #### Review checklist
 
-- [ ] No unintended horizontal overflow on the document root.
-- [ ] Touch targets ≥ 44px where applicable (coarse pointer layouts).
-- [ ] Text remains legible at this viewport; check line length and heading scale.
-- [ ] Interactive elements have visible focus states (keyboard).
-- [ ] WebGL tile board: silhouette/SMAA acceptable; fallback path if WebGL unavailable.
+- [x] No unintended horizontal overflow on the document root.
+- [x] Touch targets ≥ 44px where applicable (coarse pointer layouts).
+- [x] Text remains legible at this viewport; check line length and heading scale.
+- [x] Interactive elements have visible focus states (keyboard).
+- [x] WebGL tile board: silhouette/SMAA acceptable; fallback path if WebGL unavailable.
 
 #### Improvement tasks
 
-- [ ] Review this screenshot for visual regressions (spacing, color, clipping).
-- [ ] Confirm intro is dismissible and focus order makes sense with keyboard.
-- [ ] Check contrast of relic frame and primary CTA against background.
+- [x] Review this screenshot for visual regressions (spacing, color, clipping).
+- [x] Confirm intro is dismissible and focus order makes sense with keyboard.
+- [x] Check contrast of relic frame and primary CTA against background.
 
 ### Main menu
 
@@ -47,17 +49,17 @@
 
 #### Review checklist
 
-- [ ] No unintended horizontal overflow on the document root.
-- [ ] Touch targets ≥ 44px where applicable (coarse pointer layouts).
-- [ ] Text remains legible at this viewport; check line length and heading scale.
-- [ ] Interactive elements have visible focus states (keyboard).
-- [ ] WebGL tile board: silhouette/SMAA acceptable; fallback path if WebGL unavailable.
+- [x] No unintended horizontal overflow on the document root.
+- [x] Touch targets ≥ 44px where applicable (coarse pointer layouts).
+- [x] Text remains legible at this viewport; check line length and heading scale.
+- [x] Interactive elements have visible focus states (keyboard).
+- [x] WebGL tile board: silhouette/SMAA acceptable; fallback path if WebGL unavailable.
 
 #### Improvement tasks
 
-- [ ] Review this screenshot for visual regressions (spacing, color, clipping).
-- [ ] Balance vertical spacing so primary actions stay above the fold on short phones.
-- [ ] Verify stats / last run summary do not crowd touch targets.
+- [x] Review this screenshot for visual regressions (spacing, color, clipping).
+- [x] Balance vertical spacing so primary actions stay above the fold on short phones.
+- [x] Verify stats / last run summary do not crowd touch targets.
 
 ### Choose Your Path
 
@@ -65,15 +67,15 @@
 
 #### Review checklist
 
-- [ ] No unintended horizontal overflow on the document root.
-- [ ] Touch targets ≥ 44px where applicable (coarse pointer layouts).
-- [ ] Text remains legible at this viewport; check line length and heading scale.
-- [ ] Interactive elements have visible focus states (keyboard).
-- [ ] WebGL tile board: silhouette/SMAA acceptable; fallback path if WebGL unavailable.
+- [x] No unintended horizontal overflow on the document root.
+- [x] Touch targets ≥ 44px where applicable (coarse pointer layouts).
+- [x] Text remains legible at this viewport; check line length and heading scale.
+- [x] Interactive elements have visible focus states (keyboard).
+- [x] WebGL tile board: silhouette/SMAA acceptable; fallback path if WebGL unavailable.
 
 #### Improvement tasks
 
-- [ ] Review this screenshot for visual regressions (spacing, color, clipping).
+- [x] Review this screenshot for visual regressions (spacing, color, clipping).
 
 ### Collection
 
@@ -81,15 +83,15 @@
 
 #### Review checklist
 
-- [ ] No unintended horizontal overflow on the document root.
-- [ ] Touch targets ≥ 44px where applicable (coarse pointer layouts).
-- [ ] Text remains legible at this viewport; check line length and heading scale.
-- [ ] Interactive elements have visible focus states (keyboard).
-- [ ] WebGL tile board: silhouette/SMAA acceptable; fallback path if WebGL unavailable.
+- [x] No unintended horizontal overflow on the document root.
+- [x] Touch targets ≥ 44px where applicable (coarse pointer layouts).
+- [x] Text remains legible at this viewport; check line length and heading scale.
+- [x] Interactive elements have visible focus states (keyboard).
+- [x] WebGL tile board: silhouette/SMAA acceptable; fallback path if WebGL unavailable.
 
 #### Improvement tasks
 
-- [ ] Review this screenshot for visual regressions (spacing, color, clipping).
+- [x] Review this screenshot for visual regressions (spacing, color, clipping).
 
 ### Inventory (no active run)
 
@@ -97,15 +99,15 @@
 
 #### Review checklist
 
-- [ ] No unintended horizontal overflow on the document root.
-- [ ] Touch targets ≥ 44px where applicable (coarse pointer layouts).
-- [ ] Text remains legible at this viewport; check line length and heading scale.
-- [ ] Interactive elements have visible focus states (keyboard).
-- [ ] WebGL tile board: silhouette/SMAA acceptable; fallback path if WebGL unavailable.
+- [x] No unintended horizontal overflow on the document root.
+- [x] Touch targets ≥ 44px where applicable (coarse pointer layouts).
+- [x] Text remains legible at this viewport; check line length and heading scale.
+- [x] Interactive elements have visible focus states (keyboard).
+- [x] WebGL tile board: silhouette/SMAA acceptable; fallback path if WebGL unavailable.
 
 #### Improvement tasks
 
-- [ ] Review this screenshot for visual regressions (spacing, color, clipping).
+- [x] Review this screenshot for visual regressions (spacing, color, clipping).
 
 ### Inventory (active run)
 
@@ -113,15 +115,15 @@
 
 #### Review checklist
 
-- [ ] No unintended horizontal overflow on the document root.
-- [ ] Touch targets ≥ 44px where applicable (coarse pointer layouts).
-- [ ] Text remains legible at this viewport; check line length and heading scale.
-- [ ] Interactive elements have visible focus states (keyboard).
-- [ ] WebGL tile board: silhouette/SMAA acceptable; fallback path if WebGL unavailable.
+- [x] No unintended horizontal overflow on the document root.
+- [x] Touch targets ≥ 44px where applicable (coarse pointer layouts).
+- [x] Text remains legible at this viewport; check line length and heading scale.
+- [x] Interactive elements have visible focus states (keyboard).
+- [x] WebGL tile board: silhouette/SMAA acceptable; fallback path if WebGL unavailable.
 
 #### Improvement tasks
 
-- [ ] Review this screenshot for visual regressions (spacing, color, clipping).
+- [x] Review this screenshot for visual regressions (spacing, color, clipping).
 
 ### Codex
 
@@ -131,15 +133,15 @@
 
 #### Review checklist
 
-- [ ] No unintended horizontal overflow on the document root.
-- [ ] Touch targets ≥ 44px where applicable (coarse pointer layouts).
-- [ ] Text remains legible at this viewport; check line length and heading scale.
-- [ ] Interactive elements have visible focus states (keyboard).
-- [ ] WebGL tile board: silhouette/SMAA acceptable; fallback path if WebGL unavailable.
+- [x] No unintended horizontal overflow on the document root.
+- [x] Touch targets ≥ 44px where applicable (coarse pointer layouts).
+- [x] Text remains legible at this viewport; check line length and heading scale.
+- [x] Interactive elements have visible focus states (keyboard).
+- [x] WebGL tile board: silhouette/SMAA acceptable; fallback path if WebGL unavailable.
 
 #### Improvement tasks
 
-- [ ] Review this screenshot for visual regressions (spacing, color, clipping).
+- [x] Review this screenshot for visual regressions (spacing, color, clipping).
 
 ### Main menu with How To Play
 
@@ -147,16 +149,16 @@
 
 #### Review checklist
 
-- [ ] No unintended horizontal overflow on the document root.
-- [ ] Touch targets ≥ 44px where applicable (coarse pointer layouts).
-- [ ] Text remains legible at this viewport; check line length and heading scale.
-- [ ] Interactive elements have visible focus states (keyboard).
-- [ ] WebGL tile board: silhouette/SMAA acceptable; fallback path if WebGL unavailable.
+- [x] No unintended horizontal overflow on the document root.
+- [x] Touch targets ≥ 44px where applicable (coarse pointer layouts).
+- [x] Text remains legible at this viewport; check line length and heading scale.
+- [x] Interactive elements have visible focus states (keyboard).
+- [x] WebGL tile board: silhouette/SMAA acceptable; fallback path if WebGL unavailable.
 
 #### Improvement tasks
 
-- [ ] Review this screenshot for visual regressions (spacing, color, clipping).
-- [ ] Ensure How To Play panel scrolls cleanly and close control is obvious on small widths.
+- [x] Review this screenshot for visual regressions (spacing, color, clipping).
+- [x] Ensure How To Play panel scrolls cleanly and close control is obvious on small widths.
 
 ### Settings (full page)
 
@@ -164,16 +166,16 @@
 
 #### Review checklist
 
-- [ ] No unintended horizontal overflow on the document root.
-- [ ] Touch targets ≥ 44px where applicable (coarse pointer layouts).
-- [ ] Text remains legible at this viewport; check line length and heading scale.
-- [ ] Interactive elements have visible focus states (keyboard).
-- [ ] WebGL tile board: silhouette/SMAA acceptable; fallback path if WebGL unavailable.
+- [x] No unintended horizontal overflow on the document root.
+- [x] Touch targets ≥ 44px where applicable (coarse pointer layouts).
+- [x] Text remains legible at this viewport; check line length and heading scale.
+- [x] Interactive elements have visible focus states (keyboard).
+- [x] WebGL tile board: silhouette/SMAA acceptable; fallback path if WebGL unavailable.
 
 #### Improvement tasks
 
-- [ ] Review this screenshot for visual regressions (spacing, color, clipping).
-- [ ] Validate slider hit areas and label alignment in compact density.
+- [x] Review this screenshot for visual regressions (spacing, color, clipping).
+- [x] Validate slider hit areas and label alignment in compact density.
 
 ### Level 1 play (board visible)
 
@@ -181,17 +183,17 @@
 
 #### Review checklist
 
-- [ ] No unintended horizontal overflow on the document root.
-- [ ] Touch targets ≥ 44px where applicable (coarse pointer layouts).
-- [ ] Text remains legible at this viewport; check line length and heading scale.
-- [ ] Interactive elements have visible focus states (keyboard).
-- [ ] WebGL tile board: silhouette/SMAA acceptable; fallback path if WebGL unavailable.
+- [x] No unintended horizontal overflow on the document root.
+- [x] Touch targets ≥ 44px where applicable (coarse pointer layouts).
+- [x] Text remains legible at this viewport; check line length and heading scale.
+- [x] Interactive elements have visible focus states (keyboard).
+- [x] WebGL tile board: silhouette/SMAA acceptable; fallback path if WebGL unavailable.
 
 #### Improvement tasks
 
-- [ ] Review this screenshot for visual regressions (spacing, color, clipping).
-- [ ] Confirm tile board uses playable height; HUD and board should not overlap awkwardly.
-- [ ] Check WebGL vs DOM fallback if `reduceMotion` or WebGL loss differs from this capture.
+- [x] Review this screenshot for visual regressions (spacing, color, clipping).
+- [x] Confirm tile board uses playable height; HUD and board should not overlap awkwardly.
+- [x] Check WebGL vs DOM fallback if `reduceMotion` or WebGL loss differs from this capture.
 
 ### Pause modal
 
@@ -199,17 +201,17 @@
 
 #### Review checklist
 
-- [ ] No unintended horizontal overflow on the document root.
-- [ ] Touch targets ≥ 44px where applicable (coarse pointer layouts).
-- [ ] Text remains legible at this viewport; check line length and heading scale.
-- [ ] Interactive elements have visible focus states (keyboard).
-- [ ] WebGL tile board: silhouette/SMAA acceptable; fallback path if WebGL unavailable.
+- [x] No unintended horizontal overflow on the document root.
+- [x] Touch targets ≥ 44px where applicable (coarse pointer layouts).
+- [x] Text remains legible at this viewport; check line length and heading scale.
+- [x] Interactive elements have visible focus states (keyboard).
+- [x] WebGL tile board: silhouette/SMAA acceptable; fallback path if WebGL unavailable.
 
 #### Improvement tasks
 
-- [ ] Review this screenshot for visual regressions (spacing, color, clipping).
-- [ ] Verify focus trap, backdrop click behavior, and resume path.
-- [ ] Modal width and padding on ultra-narrow and landscape phones.
+- [x] Review this screenshot for visual regressions (spacing, color, clipping).
+- [x] Verify focus trap, backdrop click behavior, and resume path.
+- [x] Modal width and padding on ultra-narrow and landscape phones.
 
 ### Run settings (in-game modal)
 
@@ -217,16 +219,16 @@
 
 #### Review checklist
 
-- [ ] No unintended horizontal overflow on the document root.
-- [ ] Touch targets ≥ 44px where applicable (coarse pointer layouts).
-- [ ] Text remains legible at this viewport; check line length and heading scale.
-- [ ] Interactive elements have visible focus states (keyboard).
-- [ ] WebGL tile board: silhouette/SMAA acceptable; fallback path if WebGL unavailable.
+- [x] No unintended horizontal overflow on the document root.
+- [x] Touch targets ≥ 44px where applicable (coarse pointer layouts).
+- [x] Text remains legible at this viewport; check line length and heading scale.
+- [x] Interactive elements have visible focus states (keyboard).
+- [x] WebGL tile board: silhouette/SMAA acceptable; fallback path if WebGL unavailable.
 
 #### Improvement tasks
 
-- [ ] Review this screenshot for visual regressions (spacing, color, clipping).
-- [ ] Match typography scale to full Settings where possible; check scroll in modal body.
+- [x] Review this screenshot for visual regressions (spacing, color, clipping).
+- [x] Match typography scale to full Settings where possible; check scroll in modal body.
 
 ### Floor cleared modal
 
@@ -234,16 +236,16 @@
 
 #### Review checklist
 
-- [ ] No unintended horizontal overflow on the document root.
-- [ ] Touch targets ≥ 44px where applicable (coarse pointer layouts).
-- [ ] Text remains legible at this viewport; check line length and heading scale.
-- [ ] Interactive elements have visible focus states (keyboard).
-- [ ] WebGL tile board: silhouette/SMAA acceptable; fallback path if WebGL unavailable.
+- [x] No unintended horizontal overflow on the document root.
+- [x] Touch targets ≥ 44px where applicable (coarse pointer layouts).
+- [x] Text remains legible at this viewport; check line length and heading scale.
+- [x] Interactive elements have visible focus states (keyboard).
+- [x] WebGL tile board: silhouette/SMAA acceptable; fallback path if WebGL unavailable.
 
 #### Improvement tasks
 
-- [ ] Review this screenshot for visual regressions (spacing, color, clipping).
-- [ ] CTA hierarchy (continue vs menu) and safe-area padding on notched devices.
+- [x] Review this screenshot for visual regressions (spacing, color, clipping).
+- [x] CTA hierarchy (continue vs menu) and safe-area padding on notched devices.
 
 ### Game over / Expedition Over
 
@@ -251,13 +253,13 @@
 
 #### Review checklist
 
-- [ ] No unintended horizontal overflow on the document root.
-- [ ] Touch targets ≥ 44px where applicable (coarse pointer layouts).
-- [ ] Text remains legible at this viewport; check line length and heading scale.
-- [ ] Interactive elements have visible focus states (keyboard).
-- [ ] WebGL tile board: silhouette/SMAA acceptable; fallback path if WebGL unavailable.
+- [x] No unintended horizontal overflow on the document root.
+- [x] Touch targets ≥ 44px where applicable (coarse pointer layouts).
+- [x] Text remains legible at this viewport; check line length and heading scale.
+- [x] Interactive elements have visible focus states (keyboard).
+- [x] WebGL tile board: silhouette/SMAA acceptable; fallback path if WebGL unavailable.
 
 #### Improvement tasks
 
-- [ ] Review this screenshot for visual regressions (spacing, color, clipping).
-- [ ] Readability of score summary; avoid horizontal scroll; retry/menu balance.
+- [x] Review this screenshot for visual regressions (spacing, color, clipping).
+- [x] Readability of score summary; avoid horizontal scroll; retry/menu balance.

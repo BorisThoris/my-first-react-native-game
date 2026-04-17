@@ -186,6 +186,8 @@ const MetaFrame = ({ as: Tag = 'div', children, className = '', ...rest }: MetaF
     const showCornice = Boolean(g && rw > 1 && rh > 1 && w > 1 && h > 1);
     const showInner = showCornice && iw > 3 && ih > 3 && irx > 0.25;
 
+    /* Dynamic host tag + ref for ResizeObserver; ref is not read during render. */
+    /* eslint-disable react-hooks/refs -- createElement(Tag, { ref }) for div|section */
     return createElement(
         Tag,
         {
@@ -280,6 +282,7 @@ const MetaFrame = ({ as: Tag = 'div', children, className = '', ...rest }: MetaF
             </svg>
         </>
     );
+    /* eslint-enable react-hooks/refs */
 };
 
 export default MetaFrame;

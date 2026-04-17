@@ -37,4 +37,4 @@ First-run teaching, powers discovery, and **read-only** reference (`Codex`) — 
 Tracked in rollup: [GAMEPLAY_POLISH_AND_GAPS.md](./GAMEPLAY_POLISH_AND_GAPS.md) §11.
 
 - [x] **WebGL** tutorial pair-index markers (`TutorialPairMarkerPlane`).
-- [ ] When mechanics change (pair hints, gambit, sticky, etc.), sync `mechanics-encyclopedia.ts` and bump `ENCYCLOPEDIA_VERSION`; treat the version as the periodic audit hook (renderer shows it in the Codex subtitle).
+- [x] When mechanics change (pair hints, gambit, sticky, etc.), sync `mechanics-encyclopedia.ts` and bump `ENCYCLOPEDIA_VERSION`; treat the version as the periodic audit hook (renderer shows it in the Codex subtitle). — *Ongoing process:* documented here; bump on each mechanics PR (CONTRIBUTING / catalog workflow).

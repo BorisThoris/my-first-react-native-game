@@ -6,6 +6,34 @@ interface StoreShape {
     saveData: SaveData;
 }
 
+export type PersistenceWriteErrorCode = 'quota' | 'permission' | 'busy' | 'unknown';
+
+/** Thrown when `electron-store` cannot persist (disk, permissions, locks). No PII in message. */
+export class PersistenceWriteError extends Error {
+    readonly code: PersistenceWriteErrorCode;
+
+    constructor(code: PersistenceWriteErrorCode, cause?: unknown) {
+        super(`Save write failed (${code})`, cause !== undefined ? { cause } : undefined);
+        this.name = 'PersistenceWriteError';
+        this.code = code;
+    }
+}
+
+const mapNodeErrorToCode = (err: unknown): PersistenceWriteErrorCode => {
+    const e = err as NodeJS.ErrnoException & { code?: string };
+    const code = e?.code;
+    if (code === 'ENOSPC') {
+        return 'quota';
+    }
+    if (code === 'EACCES' || code === 'EPERM') {
+        return 'permission';
+    }
+    if (code === 'EBUSY' || code === 'ELOCKED' || code === 'ETXTBSY') {
+        return 'busy';
+    }
+    return 'unknown';
+};
+
 export class PersistenceService {
     private readonly store = new Store<StoreShape>({
         name: 'memory-dungeon-save',
@@ -13,6 +41,16 @@ export class PersistenceService {
             saveData: normalizeSaveData()
         }
     });
+
+    private commitSaveData(nextSave: SaveData): void {
+        try {
+            this.store.set('saveData', nextSave);
+        } catch (error) {
+            const code = mapNodeErrorToCode(error);
+            console.error('[persistence] store.set failed', code, error);
+            throw new PersistenceWriteError(code, error);
+        }
+    }
 
     getSaveData(): SaveData {
         return normalizeSaveData(this.store.get('saveData'));
@@ -28,13 +66,13 @@ export class PersistenceService {
             settings
         });
 
-        this.store.set('saveData', nextSave);
+        this.commitSaveData(nextSave);
         return nextSave;
     }
 
     saveGame(saveData: SaveData): SaveData {
         const nextSave = normalizeSaveData(saveData);
-        this.store.set('saveData', nextSave);
+        this.commitSaveData(nextSave);
         return nextSave;
     }
 
@@ -48,7 +86,7 @@ export class PersistenceService {
             }
         });
 
-        this.store.set('saveData', nextSave);
+        this.commitSaveData(nextSave);
         return nextSave;
     }
 }

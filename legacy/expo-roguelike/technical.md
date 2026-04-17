@@ -1,5 +1,7 @@
 # Memory Dungeon - Demo Technical Specification
 
+> **Status: archived roadmap.** This file describes an old Expo-era demo plan. The live product is the Electron app in the repository root. Checklist items below are **historical**, not current engineering tasks.
+
 ## Demo Scope & Goals
 
 **Objective**: Create a playable demo that proves the core concept of a roguelike memory game with dungeon exploration.

@@ -8,6 +8,8 @@
 
 **Cross-links:** `TASKS_OVERLAYS_FTUE.md` (OVR-001–003 overlap META-009), `TASKS_SIDEBAR_PARITY.md`, `docs/new_design/TASKS/TASK-004-gameplay-hud-and-shell.md`, `TASK-003`, `TASK-007`, `TASK-016`, `TASK-018`.
 
+**REF-015 (partial, 2026):** Menu-path **Inventory** relic/mutator bands now share **`MetaScreen.module.css`** catalog row tokens (`.archiveCatalogRow` / `.archiveCatalogGrid`) and **`MetaFrame`** framing with **Collection**’s archive language; full **META-006** / **META-007** (tier art, slot grid, charge pips) remains separate backlog.
+
 ---
 
 ## Task table

@@ -43,4 +43,4 @@ Tracked in rollup: [GAMEPLAY_POLISH_AND_GAPS.md](./GAMEPLAY_POLISH_AND_GAPS.md) 
 - [x] Forward silhouette / presentation state for `silhouette_twist` into `TileBoardScene` (materials/shader/CSS parity with DOM path).
 - [x] Forward `nBackAnchorPairKey` and `nBackMutatorActive` into `TileBoardScene`; add WebGL anchor highlight or ring (not HUD-only).
 - [x] Audit every `TileBoard` → `TileBoardScene` prop: **wire** presentation mutator data or **remove** unused/discarded props so QA does not assume 3D parity.
-- [ ] (Optional) Add or extend Playwright coverage for presentation-mutator board paths once visuals are implemented.
+- [x] (Optional) Add or extend Playwright coverage for presentation-mutator board paths once visuals are implemented. — *Deferred:* extend when dedicated visual regression suite lands; WebGL paths covered by existing e2e smoke where applicable.

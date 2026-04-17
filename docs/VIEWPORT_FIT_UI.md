@@ -2,9 +2,11 @@
 
 ## Policy: no DOM scrollports
 
-Shipped chrome (main menu, meta shells, settings, modals, panels) must not use **`overflow-y: auto` / `scroll`** on HTML. Prefer **`@media` / `@container` reflow**, **row→column** layout, **progressive disclosure** (group or hide secondary actions), then **uniform `zoom`** via [`useFitShellZoom`](../src/renderer/hooks/useFitShellZoom.ts). Short landscape detection for layout matches [`VIEWPORT_SHORT_LANDSCAPE_MAX_HEIGHT`](../src/renderer/breakpoints.ts) (860px) in TS and in shell CSS.
+Shipped chrome (main menu, meta shells, settings, modals, panels) must not use **`overflow-y: auto` / `scroll`** on HTML. Prefer **`@media` / `@container` reflow**, **row→column** layout, **progressive disclosure** (group or hide secondary actions), then **uniform `zoom`** via [`useFitShellZoom`](../src/renderer/hooks/useFitShellZoom.ts). [`VIEWPORT_SHORT_LANDSCAPE_MAX_HEIGHT`](../src/renderer/breakpoints.ts) (860px) defines short landscape in TS helpers, while shell CSS uses its own `max-height` / `@container` numbers (often tighter, e.g. 760px)—do not assume a literal `860px` breakpoint in stylesheets.
 
 **Main menu stack vs fit:** Short height alone does not force the phone-style single-column hero/support stack. That stack applies when the viewport is a **phone** (`width ≤ VIEWPORT_MOBILE_MAX`) or a **narrow** short landscape: [`isNarrowShortLandscapeForMenuStack`](../src/renderer/breakpoints.ts) (`isShortLandscapeViewport` **and** `width ≤ VIEWPORT_LANDSCAPE_STACK_MAX_WIDTH`, 960px). Examples: **844×390** and **900×700** stack; **1280×720** and **1920×720** keep the two-column grid and rely on fit zoom + tokens for height.
+
+With **`cameraViewportModePreference` = `never`**, [`deriveCameraViewportMode`](../src/shared/cameraViewportMode.ts) forces the wide game shell, but [`TileBoard`](../src/renderer/components/TileBoard.tsx) still sets **`compact`** from viewport width/height for board DPR, fit margins, and gestures.
 
 This project keeps meta shells (main menu, choose-your-path, etc.) inside the visible area **without document scrolling**, using a hybrid of **layout compaction** and **uniform scale** when content would still overflow.
 
@@ -28,7 +30,7 @@ This project keeps meta shells (main menu, choose-your-path, etc.) inside the vi
 | [**dynascale**](https://www.npmjs.com/package/dynascale) | Scale children in a container | Niche; audit bundle and behavior if tried. |
 | **Pan/zoom** viewers | Gestures, minimap | **Not** appropriate for full-app shell (feels like a web document tool). |
 
-A minimal **spike test** lives at [`src/renderer/dev/fitScreenSpike.test.tsx`](../src/renderer/dev/fitScreenSpike.test.tsx): it imports `@fit-screen/react` so the dependency stays wired and typechecked. It does **not** replace the production menu shell.
+A minimal **spike test** lives at [`src/renderer/dev/fitScreenSpike.test.tsx`](../src/renderer/dev/fitScreenSpike.test.tsx): it imports `@fit-screen/react` so the dependency stays wired and typechecked. It does **not** replace the production menu shell. For the rest of `src/renderer/dev/` (URL sandbox, fixtures, HUD harness), see [internal-wiki/SOURCE_MAP — Renderer dev sandbox](internal-wiki/SOURCE_MAP.md#renderer-dev-sandbox).
 
 ## In-repo decision (why not replace `useFitShellZoom` today)
 
@@ -72,7 +74,7 @@ Desktop-short compaction for the main menu and choose-your-path screens uses **`
 
 **Sources:** [`src/renderer/styles/theme.ts`](../src/renderer/styles/theme.ts) defines `--ui-space-*` (numeric steps) and `--theme-space-*` as aliases. [`buildRendererThemeStyle`](../src/renderer/styles/theme.ts) swaps in a tighter `--ui-space-*` ladder when the viewport is **compact** (same predicate as `data-density="compact"` on [`App.tsx`](../src/renderer/App.tsx)).
 
-**Shell locals:** Main menu [`.fitViewport`](../src/renderer/components/MainMenu.module.css) and choose-your-path [`.pathFitViewport`](../src/renderer/components/ChooseYourPathScreen.module.css) expose `--menu-*` / `--path-*` custom properties so **`@container`** can shrink spacing by **overriding variables** instead of duplicating every `gap` / `padding` rule.
+**Shell locals:** Main menu [`.fitViewport`](../src/renderer/components/MainMenu.module.css) and choose-your-path [`.pathFitViewport`](../src/renderer/components/ChooseYourPathScreen.module.css) expose `--menu-*` / `--path-*` custom properties so **`@container`** can shrink spacing by **overriding variables** instead of duplicating every `gap` / `padding` rule. **Fit-zoom padding** for both hubs is centralized in [`getHubShellFitPadding`](../src/renderer/hooks/hubShellFit.ts) (short-desktop vs default; choose-path uses +2px inset vs main menu when not short-desktop).
 
 ### Order of operations (small viewports)
 

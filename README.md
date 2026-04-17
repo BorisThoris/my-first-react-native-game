@@ -31,13 +31,13 @@ This starts:
 
 ```bash
 yarn dev
-yarn typecheck
-yarn lint
-yarn test
+yarn ci
 yarn build
 yarn package:dir
 yarn package:win
 ```
+
+`yarn ci` runs **`yarn fullcheck`** (`eslint` + the `.test.ts`/JSX guard + `tsc --noEmit` + `vitest run`). Use **`yarn verify`** for typecheck + tests only when iterating without lint. **`yarn lint`** runs ESLint + the guard only.
 
 See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for mechanics encyclopedia / Codex copy workflow when changing relics, mutators, or player-facing rules text.
 

@@ -2,13 +2,16 @@ import {
     SAVE_SCHEMA_VERSION,
     type AchievementId,
     type AchievementState,
+    type BoardPresentationMode,
     type BoardScreenSpaceAA,
     type CameraViewportModePreference,
+    type DisplayMode,
     type GraphicsQualityPreset,
     type PlayerStatsPersisted,
     type RelicId,
     type SaveData,
-    type Settings
+    type Settings,
+    type WeakerShuffleMode
 } from './contracts';
 import { utcDateKeyMinusOneDay } from './rng';
 
@@ -110,6 +113,21 @@ export const normalizeSaveData = (input?: Partial<SaveData> | null): SaveData =>
         cvRaw === 'auto' || cvRaw === 'always' || cvRaw === 'never'
             ? cvRaw
             : defaults.settings.cameraViewportModePreference;
+    const displayModeRaw = mergedSettingsBase.displayMode as DisplayMode | undefined;
+    const displayMode: DisplayMode =
+        displayModeRaw === 'windowed' || displayModeRaw === 'fullscreen'
+            ? displayModeRaw
+            : defaults.settings.displayMode;
+    const weakerShuffleRaw = mergedSettingsBase.weakerShuffleMode as WeakerShuffleMode | undefined;
+    const weakerShuffleMode: WeakerShuffleMode =
+        weakerShuffleRaw === 'full' || weakerShuffleRaw === 'rows_only'
+            ? weakerShuffleRaw
+            : defaults.settings.weakerShuffleMode;
+    const boardPresentationRaw = mergedSettingsBase.boardPresentation as BoardPresentationMode | undefined;
+    const boardPresentation: BoardPresentationMode =
+        boardPresentationRaw === 'standard' || boardPresentationRaw === 'spaghetti' || boardPresentationRaw === 'breathing'
+            ? boardPresentationRaw
+            : defaults.settings.boardPresentation;
 
     return {
         schemaVersion: SAVE_SCHEMA_VERSION,
@@ -124,7 +142,10 @@ export const normalizeSaveData = (input?: Partial<SaveData> | null): SaveData =>
             boardBloomEnabled,
             graphicsQuality,
             cameraViewportModePreference,
-            pairProximityHintsEnabled
+            pairProximityHintsEnabled,
+            displayMode,
+            weakerShuffleMode,
+            boardPresentation
         },
         onboardingDismissed: typeof input.onboardingDismissed === 'boolean' ? input.onboardingDismissed : defaults.onboardingDismissed,
         lastRunSummary: input.lastRunSummary ?? defaults.lastRunSummary,

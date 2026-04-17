@@ -6,7 +6,7 @@ import { useEffect } from 'react';
  */
 export const useItemEffects = (): void => {
     useEffect(() => {
-        // TODO: Implement item effect subscriptions and cleanup here
+        // Legacy stub — out of scope for the desktop build; Expo-era hook placeholder.
         return () => {
             // Cleanup any listeners when unmounting
         };

@@ -97,6 +97,9 @@ test.describe('Navigation shells', () => {
 
     test('Import JSON modal shows inline error for invalid payload and starts run for valid export', async ({ page }) => {
         await openMainMenuFromSave(page, true);
+        await page.getByRole('button', { name: /^play$/i }).click();
+        await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
+        await page.getByTestId('main-menu-low-cta').scrollIntoViewIfNeeded();
         await page.getByTestId('main-menu-low-cta').click();
         const libraryDetail = page.getByTestId('library-mode-detail-modal');
         await expect(libraryDetail).toBeVisible();

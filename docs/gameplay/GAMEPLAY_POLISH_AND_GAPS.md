@@ -2,7 +2,7 @@
 
 **Purpose:** One **consolidated** view of mechanics that are **incomplete**, **presentation-light**, **documentation-risky**, or **need product polish**—without duplicating full epic writeups. For implementation detail and code pointers, follow the linked epics.
 
-**Actionable tasks:** Each gameplay epic now has a **## Tasks (polish backlog)** section with `- [ ]` checkboxes tied to this rollup. Check tasks off in the epic when done, then trim or update rows here.
+**Actionable tasks:** Each gameplay epic has a **## Tasks (polish backlog)** section; items are checked off in epics with *resolution notes* where work was deferred to v2 or left as ongoing process (see epic **Backlog closure** lines, 2026-04-17). Update narrative rows below when mechanics change.
 
 **Maintenance:** When an item is fixed or superseded, update this file **and** the relevant epic’s **Rough edges** / **Refinement** section so they stay aligned.
 
@@ -50,7 +50,7 @@
 
 | Item | Status | Notes | Epic |
 |------|--------|-------|------|
-| `powersUsedThisRun` vs contract comment | **Risky** | Comment understates breadth (peek, undo, gambit, stray, flash, wild match, etc.); **`ACH_PERFECT_CLEAR`** is the main consumer—designers can misread “perfect.” | [epic-powers-and-interactions](./epic-powers-and-interactions.md), [epic-meta-progression](./epic-meta-progression.md) |
+| `powersUsedThisRun` vs contract comment | **Functional** | Authoritative list lives on [`RunState.powersUsedThisRun`](../../src/shared/contracts.ts) JSDoc (shuffle / row shuffle / destroy / peek / undo / gambit / stray / flash / wild match, etc.; pins excluded). **`ACH_PERFECT_CLEAR`** reads this flag—treat UI copy as separate from the type contract. | [epic-powers-and-interactions](./epic-powers-and-interactions.md), [epic-meta-progression](./epic-meta-progression.md) |
 | Flash pair | **Partial** | Rules gated to practice/wild menu paths—if UI exposes elsewhere, **guard mismatch**. | [epic-powers-and-interactions](./epic-powers-and-interactions.md) |
 | Perfect clear discoverability | **Functional** | Players may not realize undo/peek/gambit disqualify perfect—**UI hint or rename** worth considering. | [epic-meta-progression](./epic-meta-progression.md) |
 
@@ -180,6 +180,8 @@ From [GAMEPLAY_SYSTEMS_ANALYSIS.md](../GAMEPLAY_SYSTEMS_ANALYSIS.md) §10:
 1. Keep **MUTATORS.md**, **catalog**, and **game.ts + renderer** aligned as mechanics evolve.
 2. **Optional:** Additional e2e for board flows; **balance** follow-ups per [BALANCE_NOTES.md](../BALANCE_NOTES.md) and `tile-symbol-catalog` curves.
 3. **`mutators.ts`** — light coverage in **`src/shared/mutators.test.ts`** (catalog/daily table + `hasMutator`); full behavior remains in **`game.test.ts`** and integration/e2e.
+
+**Floor mutator schedule (test gap):** `src/shared/floor-mutator-schedule.ts` drives endless per-floor mutator lists and `floorTag` pacing (`pickFloorScheduleEntry`, `usesEndlessFloorSchedule`, `FLOOR_SCHEDULE_RULES_VERSION`) but has **no** dedicated unit file—unlike `mutators.test.ts`, which only covers `mutators.ts` metadata. Consider a focused suite (e.g. `floor-mutator-schedule.test.ts`) for rules-version / mode gates, deterministic `(runSeed, level)` outputs, cycle wrap, and the boss-floor branch that sometimes appends `distraction_channel` without duplicating mutators. Track with [epic-mutators](./epic-mutators.md) **Tasks** if you add tests.
 
 **Where tracked as tasks:** (1) and (3) → [epic-mutators](./epic-mutators.md) **Tasks**; (2) e2e → [epic-board-rendering-assists](./epic-board-rendering-assists.md) optional task; balance / symbol bands → [epic-content-symbols-and-generation](./epic-content-symbols-and-generation.md) **Tasks**.
 

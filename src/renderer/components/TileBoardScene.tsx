@@ -22,7 +22,6 @@ import {
     MultiplyBlending,
     PlaneGeometry,
     Raycaster,
-    RingGeometry,
     SRGBColorSpace,
     Vector2,
     Vector3,
@@ -38,8 +37,10 @@ import type { BoardState, GraphicsQualityPreset, RunStatus, Tile } from '../../s
 import { WILD_PAIR_KEY } from '../../shared/game';
 import { getPairProximityGridDistance } from '../../shared/pairProximityHint';
 import { getBoardAnisotropyCap } from '../../shared/graphicsQuality';
+import { preloadCardRankOpentypeFont, subscribeCardRankFontLoaded } from '../cardFace/opentypeCardRankFont';
 import {
     applyAnisotropyToCachedTileTextures,
+    setTileTextureSamplingQuality,
     getCardBackRasterNormalMapTexture,
     getCardBackStaticTexture,
     getCardFaceRasterNormalMapTexture,
@@ -61,25 +62,34 @@ import {
 import type { TiltVector } from '../platformTilt/platformTiltTypes';
 import { RENDERER_THEME } from '../styles/theme';
 import { boardWebglPerfSampleAccumulate, boardWebglPerfSampleEnabled } from '../dev/boardWebglPerfSample';
-import { readTileStepLegacy } from '../dev/tileStepLegacy';
-import { getTileFieldAmplification } from './tileFieldTilt';
+import { readTileStepLegacy } from '../dev/legacy/tileStepLegacy';
+import { getTileFieldAmplification, shouldApplyTileFieldParallax } from './tileFieldTilt';
 import { isTilePickable, noopMeshRaycast, pickableMeshRaycast } from './tileBoardPick';
 import { PairProximityHintPlane } from './PairProximityHintPlane';
 import { TutorialPairMarkerPlane } from './TutorialPairMarkerPlane';
-import { getResolvingSelectionState, type ResolvingSelectionState } from './tileResolvingSelection';
+import {
+    getResolvingMatchWaveKey,
+    getResolvingSelectionState,
+    type ResolvingSelectionState
+} from './tileResolvingSelection';
 import cardBackSvgUrl from '../assets/textures/cards/back.svg?url';
 import cardFrontSvgUrl from '../assets/textures/cards/front.svg?url';
 import { loadSharedCardSvgPlaneGeometry } from './cardSvgPlaneGeometry';
-import type { TileBoardViewportState } from './tileBoardViewport';
+import { createRafCoalescedViewportNotifier, type TileBoardViewportState } from './tileBoardViewport';
 import { computeStaggeredShuffleDealZ } from './shuffleFlipAnimation';
 import {
     getFocusRoundedRectRingGeometry,
     getMatchedRoundedRectRingGeometry,
     getResolvingRoundedRectRingGeometry,
+    getSharedCurseRingGeometry,
+    getSharedFindableCornerHaloGeometry,
+    getSharedFindableCornerRingGeometry,
+    getSharedFindableScoreGlyphGeometry,
+    getSharedFindableShardGlyphGeometry,
     getSharedFocusRingGeometry,
     getSharedResolvingCrispRingGeometry
 } from './tileBoardRimGeometry';
-import { createMatchedCardRimFireMaterial } from './matchedCardRimFireMaterial';
+import { clampMatchedCardRimFireDriverUniforms, createMatchedCardRimFireMaterial } from './matchedCardRimFireMaterial';
 import { GAMEPLAY_BOARD_VISUALS } from './gameplayVisualConfig';
 
 /** FX-006 / HOVER_DOM_WEBGL_TOKENS: border emphasis → warm tint lerp (~20% toward `#fff0d4` in sRGB mix space). */
@@ -142,6 +152,8 @@ interface TileBoardSceneProps {
     pinnedTileIds: string[];
     previewActive: boolean;
     reduceMotion: boolean;
+    /** From `usePlatformTiltField` / `useParallaxMotionSuppressed` — must gate field parallax with `shouldApplyTileFieldParallax`. */
+    motionParallaxSuppressed: boolean;
     runStatus: RunStatus;
     peekRevealedTileIds?: string[];
     cursedPairKey?: string | null;
@@ -159,7 +171,7 @@ interface TileBoardSceneProps {
     allowGambitThirdFlip?: boolean;
     /** PERF-007: caps texture anisotropy vs device max. */
     graphicsQuality?: GraphicsQualityPreset;
-    /** Keyboard focus ring target — only set while the board application region is actually focused (see `TileBoard`). */
+    /** Keyboard focus ring target — only set while the board application region is actually focused (see `TileBoard`; WebGL canvas is `aria-hidden`, SR uses the app region + live region). */
     focusedTileId?: string | null;
     /** Manhattan distance-to-pair badge on flipped tiles (assist). */
     pairProximityHintsEnabled?: boolean;
@@ -175,6 +187,8 @@ interface TileBoardSceneProps {
 interface TileBezelProps {
     faceUp: boolean;
     fieldAmp: number;
+    /** False when reduced-motion or platform parallax is suppressed — field tilt contribution must be zero. */
+    tileFieldParallaxEnabled: boolean;
     fieldTiltRef: MutableRefObject<TiltVector>;
     flipLocked: boolean;
     hoverTiltRef: MutableRefObject<TileHoverTiltState>;
@@ -220,6 +234,7 @@ interface TileBezelProps {
     presentationSilhouette?: boolean;
     /** `n_back_anchor` — anchor pair tiles get a cyan forward read. */
     presentationNBackAnchor?: boolean;
+    resolvingMatchWaveKey: string | null;
 }
 
 export interface TileHoverTiltState {
@@ -524,12 +539,15 @@ interface TileBezelFramePropsSnapshot {
     useSvgMeshBack: boolean;
     useSvgMeshFront: boolean;
     graphicsQuality: GraphicsQualityPreset;
+    tileFieldParallaxEnabled: boolean;
     fieldTiltRef: MutableRefObject<TiltVector>;
     hoverTiltRef: MutableRefObject<TileHoverTiltState>;
     keyboardFocused: boolean;
     presentationWideRecall: boolean;
     presentationSilhouette: boolean;
     presentationNBackAnchor: boolean;
+    /** Cancels match pulse / flip pop when a new resolving pair replaces the previous without a full idle frame. */
+    resolvingMatchWaveKey: string | null;
 }
 
 interface TileBezelPlaneGeometries {
@@ -554,6 +572,7 @@ interface TileBezelFrameBag {
     faceUpStructBlendRef: MutableRefObject<number>;
     faceUpStructT0Ref: MutableRefObject<number | null>;
     prevResolvingRef: MutableRefObject<ResolvingSelectionState | null>;
+    lastResolvingWaveKeyRef: MutableRefObject<string | null>;
     matchPulseRef: MutableRefObject<number>;
     liftSmoothRef: MutableRefObject<number>;
     frontCardMatRef: MutableRefObject<MeshStandardMaterial | null>;
@@ -596,6 +615,14 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
 
     if (!group) {
         return;
+    }
+
+    const waveKey = p.resolvingMatchWaveKey;
+    if (waveKey !== bag.lastResolvingWaveKeyRef.current) {
+        bag.lastResolvingWaveKeyRef.current = waveKey;
+        bag.flipPopT0Ref.current = null;
+        bag.matchPulseRef.current = 0;
+        bag.prevResolvingRef.current = null;
     }
 
     const clock = state.clock;
@@ -738,10 +765,11 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
     const idleDrift = p.reduceMotion ? 0 : Math.sin(time * 0.09 + p.transform.seed * 0.017) * (isMatched ? 0.00038 : 0.00024);
     const settle = p.reduceMotion ? 0 : Math.sin(time * 0.08 + p.transform.seed * 0.013) * (isMatched ? 0.00048 : 0.0003);
     const field = p.fieldTiltRef.current;
-    const fieldRotX = p.reduceMotion ? 0 : MathUtils.clamp(-field.y, -1, 1) * p.fieldAmp * (isMatched ? 0.042 : 0.074);
-    const fieldRotZ = p.reduceMotion ? 0 : MathUtils.clamp(field.x, -1, 1) * p.fieldAmp * (isMatched ? 0.038 : 0.068);
-    const fieldLift = p.reduceMotion ? 0 : MathUtils.clamp(Math.hypot(field.x, field.y), 0, 1) * p.fieldAmp * (isMatched ? 0.00035 : 0.00062);
-    const fieldDepth = p.reduceMotion ? 0 : MathUtils.clamp(Math.hypot(field.x, field.y), 0, 1) * p.fieldAmp * (isMatched ? 0.0005 : 0.00095);
+    const fieldOn = p.tileFieldParallaxEnabled;
+    const fieldRotX = fieldOn ? MathUtils.clamp(-field.y, -1, 1) * p.fieldAmp * (isMatched ? 0.042 : 0.074) : 0;
+    const fieldRotZ = fieldOn ? MathUtils.clamp(field.x, -1, 1) * p.fieldAmp * (isMatched ? 0.038 : 0.068) : 0;
+    const fieldLift = fieldOn ? MathUtils.clamp(Math.hypot(field.x, field.y), 0, 1) * p.fieldAmp * (isMatched ? 0.00035 : 0.00062) : 0;
+    const fieldDepth = fieldOn ? MathUtils.clamp(Math.hypot(field.x, field.y), 0, 1) * p.fieldAmp * (isMatched ? 0.0005 : 0.00095) : 0;
     const hoverTilt = p.hoverTiltRef.current;
     const hovered = !p.reduceMotion && hoverTilt.tileId === p.tile.id;
     /** Mirrors `.fallbackTile:hover:not(.faceUp):not(.matched)` — gold rim / lift / tilt only on hidden backs. */
@@ -969,6 +997,7 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
             u.uEmberStrength.value = matchedEdgeTier.emberStrength;
             u.uIntensity.value =
                 matchedEdgeTier.baseIntensity + matchedVictoryBurst * matchedEdgeTier.burstIntensity;
+            clampMatchedCardRimFireDriverUniforms({ uIntensity: u.uIntensity, uBurst: u.uBurst });
         } else {
             matchedFlameMesh.visible = false;
         }
@@ -1112,6 +1141,7 @@ const TileBezelLegacyFrameDriver = ({ bagRef }: { bagRef: RefObject<TileBezelFra
 const TileBezelInner = ({
     faceUp,
     fieldAmp,
+    tileFieldParallaxEnabled,
     fieldTiltRef,
     flipLocked,
     graphicsQuality,
@@ -1142,7 +1172,8 @@ const TileBezelInner = ({
     tutorialPairOrdinal = null,
     presentationWideRecall = false,
     presentationSilhouette = false,
-    presentationNBackAnchor = false
+    presentationNBackAnchor = false,
+    resolvingMatchWaveKey
 }: TileBezelProps) => {
     const { gl } = useThree();
     const frameRegistry = useContext(TileBezelFrameRegistryContext);
@@ -1169,14 +1200,11 @@ const TileBezelInner = ({
             ),
         []
     );
-    const curseRingGeometry = useMemo(() => {
-        const maxR = Math.max(CARD_WIDTH, CARD_HEIGHT) * 0.48;
-        return new RingGeometry(maxR * 0.86, maxR, 36);
-    }, []);
-    const findableCornerHaloGeometry = useMemo(() => new RingGeometry(0.032, 0.048, 24), []);
-    const findableCornerRingGeometry = useMemo(() => new RingGeometry(0.02, 0.032, 22), []);
-    const findableShardGlyphGeometry = useMemo(() => new RingGeometry(0.006, 0.016, 4), []);
-    const findableScoreGlyphGeometry = useMemo(() => new RingGeometry(0.008, 0.016, 18), []);
+    const curseRingGeometry = useMemo(() => getSharedCurseRingGeometry(), []);
+    const findableCornerHaloGeometry = useMemo(() => getSharedFindableCornerHaloGeometry(), []);
+    const findableCornerRingGeometry = useMemo(() => getSharedFindableCornerRingGeometry(), []);
+    const findableShardGlyphGeometry = useMemo(() => getSharedFindableShardGlyphGeometry(), []);
+    const findableScoreGlyphGeometry = useMemo(() => getSharedFindableScoreGlyphGeometry(), []);
     const matchedEdgeGeometry = useMemo(() => getMatchedRoundedRectRingGeometry(), []);
     const resolvingInnerGeometry = useMemo(
         () =>
@@ -1216,12 +1244,14 @@ const TileBezelInner = ({
         useSvgMeshBack,
         useSvgMeshFront,
         graphicsQuality,
+        tileFieldParallaxEnabled,
         fieldTiltRef,
         hoverTiltRef,
         keyboardFocused,
         presentationWideRecall,
         presentationSilhouette,
-        presentationNBackAnchor
+        presentationNBackAnchor,
+        resolvingMatchWaveKey
     };
 
     const cardPanelNormalMap = useMemo(() => getCardPanelNormalTexture(), []);
@@ -1255,6 +1285,7 @@ const TileBezelInner = ({
     const faceUpStructBlendRef = useRef(faceUp ? 1 : 0);
     const faceUpStructT0Ref = useRef<number | null>(null);
     const prevResolvingRef = useRef<ResolvingSelectionState | null>(null);
+    const lastResolvingWaveKeyRef = useRef<string | null>(null);
     /** FX-005 WebGL: brief match scale pulse (DOM hit layer adds CSS spark ring in `TileBoard.module.css`). */
     const matchPulseRef = useRef(0);
     const liftSmoothRef = useRef(0);
@@ -1314,6 +1345,7 @@ const TileBezelInner = ({
                 faceUpStructBlendRef,
                 faceUpStructT0Ref,
                 prevResolvingRef,
+                lastResolvingWaveKeyRef,
                 matchPulseRef,
                 liftSmoothRef,
                 frontCardMatRef,
@@ -1397,6 +1429,16 @@ const TileBezelInner = ({
         wearAssets.back.texture.anisotropy = cap;
         /* eslint-enable react-hooks/immutability */
     }, [gl, wearAssets]);
+
+    useEffect(() => {
+        return () => {
+            if (!wearAssets) {
+                return;
+            }
+            wearAssets.front.texture.dispose();
+            wearAssets.back.texture.dispose();
+        };
+    }, [wearAssets]);
 
     const commitPersistentBend = (): void => {
         if (reduceMotion) {
@@ -1625,7 +1667,7 @@ const TileBezelInner = ({
     const cardBackArtTexture = useSvgMeshBack ? null : getCardBackStaticTexture();
     const cardFrontArtTexture = useSvgMeshFront ? null : getCardFaceStaticTexture();
     const overlayTexture =
-        surfaceVariant === 'hidden' ? null : getTileFaceOverlayTexture(tile, surfaceVariant);
+        surfaceVariant === 'hidden' ? null : getTileFaceOverlayTexture(tile, surfaceVariant, graphicsQuality);
     const matchedCheckMap = useMemo(() => getMatchedCheckTexture(), []);
     const forceTextureRefreshKey = textureRevision;
 
@@ -2048,9 +2090,17 @@ const TileBezelInner = ({
                     <mesh geometry={overlayGeometry} position={[0, 0, overlayZ]} raycast={noopMeshRaycast} renderOrder={10}>
                         <meshBasicMaterial
                             alphaTest={0.08}
+                            color={
+                                surfaceVariant === 'matched' && graphicsQuality === 'high'
+                                    ? '#fff9f2'
+                                    : surfaceVariant === 'matched' && graphicsQuality === 'medium'
+                                      ? '#fff6ec'
+                                      : '#ffffff'
+                            }
                             depthTest={false}
                             depthWrite={false}
                             map={overlayTexture}
+                            opacity={surfaceVariant === 'matched' && graphicsQuality !== 'low' ? 0.97 : 0.93}
                             toneMapped={false}
                             transparent
                         />
@@ -2169,6 +2219,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
     pinnedTileIds,
     previewActive,
     reduceMotion,
+    motionParallaxSuppressed,
     runStatus,
     peekRevealedTileIds = [],
     cursedPairKey = null,
@@ -2190,6 +2241,14 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
 }: TileBoardSceneProps, ref) => {
     const { camera, gl, viewport } = useThree();
     const { colors } = RENDERER_THEME;
+    const tileFieldParallaxEnabled = useMemo(
+        () => shouldApplyTileFieldParallax({ motionParallaxSuppressed, reduceMotion }),
+        [motionParallaxSuppressed, reduceMotion]
+    );
+    const resolvingMatchWaveKey = useMemo(
+        () => getResolvingMatchWaveKey(board, runStatus),
+        [board, runStatus]
+    );
     const totalColumns = board.columns;
     const totalRows = board.rows;
     const [textureRevision, setTextureRevision] = useState(0);
@@ -2325,7 +2384,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
             if (index >= tiles.length) {
                 return;
             }
-            getTileFaceOverlayTexture(tiles[index], 'active');
+            getTileFaceOverlayTexture(tiles[index], 'active', graphicsQuality);
             index += 1;
             requestAnimationFrame(pump);
         };
@@ -2333,19 +2392,30 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
         return () => {
             cancelled = true;
         };
-    }, [overlayPrewarmKey]); // eslint-disable-line react-hooks/exhaustive-deps -- overlayPrewarmKey encodes level + tile ids
+    }, [overlayPrewarmKey, graphicsQuality]); // eslint-disable-line react-hooks/exhaustive-deps -- overlayPrewarmKey encodes level + tile ids
 
     /** Chain front → back so two huge SVGLoader.parse passes never run in parallel (main-thread + memory). */
     useEffect(() => {
         let cancelled = false;
         void (async () => {
-            const frontG = await loadSharedCardSvgPlaneGeometry(cardFrontSvgUrl);
+            const loadedFront = await loadSharedCardSvgPlaneGeometry(cardFrontSvgUrl);
+            if (loadedFront == null) {
+                return;
+            }
+            const frontG = loadedFront;
             if (cancelled) {
+                frontG.dispose();
                 return;
             }
             setSharedCardFrontGeometry(frontG);
-            const backG = await loadSharedCardSvgPlaneGeometry(cardBackSvgUrl);
+            const loadedBack = await loadSharedCardSvgPlaneGeometry(cardBackSvgUrl);
+            if (loadedBack == null) {
+                return;
+            }
+            const backG = loadedBack;
             if (cancelled) {
+                backG.dispose();
+                frontG.dispose();
                 return;
             }
             setSharedCardBackGeometry(backG);
@@ -2354,14 +2424,39 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
             cancelled = true;
         };
     }, []);
+
     useEffect(() => {
-        onViewportMetricsChange({ height: viewport.height, width: viewport.width });
-    }, [onViewportMetricsChange, viewport.height, viewport.width]);
+        return () => {
+            sharedCardFrontGeometry?.dispose();
+        };
+    }, [sharedCardFrontGeometry]);
+
+    useEffect(() => {
+        return () => {
+            sharedCardBackGeometry?.dispose();
+        };
+    }, [sharedCardBackGeometry]);
+
+    const viewportNotifier = useMemo(
+        () => createRafCoalescedViewportNotifier((w, h) => onViewportMetricsChange({ width: w, height: h })),
+        [onViewportMetricsChange]
+    );
+
+    useEffect(() => {
+        viewportNotifier.schedule(viewport.width, viewport.height);
+        return () => {
+            viewportNotifier.cancel();
+        };
+    }, [viewport.height, viewport.width, viewportNotifier]);
 
     useLayoutEffect(() => {
+        setTileTextureSamplingQuality(graphicsQuality);
+        preloadCardRankOpentypeFont(graphicsQuality);
         const tierCap = getBoardAnisotropyCap(graphicsQuality);
         applyAnisotropyToCachedTileTextures(Math.min(tierCap, gl.capabilities.getMaxAnisotropy()));
     }, [gl, graphicsQuality, textureRevision]);
+
+    useEffect(() => subscribeCardRankFontLoaded(() => setTextureRevision((n) => n + 1)), []);
 
     useImperativeHandle(
         ref,
@@ -2500,6 +2595,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                             faceUp={faceUp}
                             fieldAmp={fieldAmp}
                             fieldTiltRef={fieldTiltRef}
+                            tileFieldParallaxEnabled={tileFieldParallaxEnabled}
                             flipLocked={flipLocked}
                             focusDimmed={focusDimmed}
                             hostConsolidatesTileFrames={hostConsolidatesTileFrames}
@@ -2519,6 +2615,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                             memorizeCurseHighlight={memorizeCurseHighlight}
                             onTilePick={onTilePick}
                             reduceMotion={reduceMotion}
+                            resolvingMatchWaveKey={resolvingMatchWaveKey}
                             resolvingSelection={resolvingSelection}
                             shuffleBoardOrderIndex={shuffleBoardOrderIndex}
                             shuffleMotionBudgetMs={shuffleMotionBudgetMs}

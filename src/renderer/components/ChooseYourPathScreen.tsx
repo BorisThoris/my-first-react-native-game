@@ -9,6 +9,7 @@ import {
     type CSSProperties,
     type ReactElement
 } from 'react';
+import { getHubShellFitPadding } from '../hooks/hubShellFit';
 import { useFitShellZoom } from '../hooks/useFitShellZoom';
 import { useDragScroll } from '../hooks/useDragScroll';
 import { isNarrowShortLandscapeForMenuStack, isShortLandscapeViewport, VIEWPORT_MOBILE_MAX } from '../breakpoints';
@@ -23,7 +24,7 @@ import {
     RUN_MODE_GROUP_LABEL,
     type RunModeDefinition
 } from '../../shared/run-mode-catalog';
-import { resolveModePosterUrl } from '../assets/ui/modeArt';
+import { MODE_POSTER_FALLBACK_URL } from '../assets/ui/modePosterFallback';
 import { UI_ART } from '../assets/ui';
 import { Eyebrow, MetaFrame, ScreenTitle, UiButton } from '../ui';
 import { useAppStore } from '../store/useAppStore';
@@ -108,17 +109,44 @@ const ChooseYourPathScreen = () => {
             startWildRun: state.startWildRun
         }))
     );
+    const [modePosterByKey, setModePosterByKey] = useState<Record<string, string> | null>(null);
+    useEffect(() => {
+        let cancelled = false;
+        void import('../assets/ui/modeArt').then((mod) => {
+            if (!cancelled) {
+                setModePosterByKey(mod.MODE_CARD_ART as Record<string, string>);
+            }
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    const resolvePosterUrl = useCallback(
+        (posterKey: string): string => {
+            if (modePosterByKey && posterKey in modePosterByKey) {
+                return modePosterByKey[posterKey]!;
+            }
+            return MODE_POSTER_FALLBACK_URL;
+        },
+        [modePosterByKey]
+    );
+
     const [nowMs, setNowMs] = useState(() => Date.now());
     const dailyCountdown = formatNextUtcReset(nowMs);
     const pathFitMeasureRef = useRef<HTMLDivElement | null>(null);
     const puzzleImportInputRef = useRef<HTMLInputElement | null>(null);
     const librarySearchInputRef = useRef<HTMLInputElement | null>(null);
     const libraryScrollerRef = useRef<HTMLDivElement | null>(null);
-    const { onPointerDownCapture: onLibraryDragPointerDown } = useDragScroll(libraryScrollerRef);
+    const {
+        onPointerDownCapture: onLibraryDragPointerDown,
+        onKeyDownCapture: onLibraryScrollerKeyDownCapture,
+        tabIndex: libraryScrollerTabIndex
+    } = useDragScroll(libraryScrollerRef);
     const { height: vpH, width: vpW } = useViewportSize();
     const isPhoneViewport = vpW <= VIEWPORT_MOBILE_MAX;
     const isShortLandscapeShell = isShortLandscapeViewport(vpW, vpH);
-    const pathFitPadding = vpW >= 1024 && vpH <= 760 ? 8 : 14;
+    const pathFitPadding = getHubShellFitPadding(vpW, vpH, 'choosePath');
     const pathTouchCompact = isPhoneViewport || isNarrowShortLandscapeForMenuStack(vpW, vpH);
     const presetButtonSize = pathTouchCompact ? 'sm' : 'md';
     const { fitZoom: rawPathFitZoom } = useFitShellZoom({
@@ -191,7 +219,9 @@ const ChooseYourPathScreen = () => {
         if (el) {
             el.scrollLeft = 0;
         }
-        setLibraryPageIndex(0);
+        queueMicrotask(() => {
+            setLibraryPageIndex(0);
+        });
     }, [libraryQuery, filteredLibraryModes.length]);
 
     const onLibraryScroll = useCallback((): void => {
@@ -355,7 +385,7 @@ const ChooseYourPathScreen = () => {
     };
 
     const renderModeSurface = (def: RunModeDefinition): ReactElement => {
-        const poster = resolveModePosterUrl(def.posterKey);
+        const poster = resolvePosterUrl(def.posterKey);
         const variant = cardVariantClass(def);
         const isLocked = def.availability === 'locked';
         const testId = def.testId;
@@ -432,7 +462,7 @@ const ChooseYourPathScreen = () => {
     };
 
     const renderLibraryModeTile = (def: RunModeDefinition): ReactElement => {
-        const poster = resolveModePosterUrl(def.posterKey);
+        const poster = resolvePosterUrl(def.posterKey);
         const variant = cardVariantClass(def);
         const groupLabel = RUN_MODE_GROUP_LABEL[def.group];
         return (
@@ -702,10 +732,12 @@ const ChooseYourPathScreen = () => {
                                             <div className={styles.libraryScrollerWrap}>
                                                 <div
                                                     ref={libraryScrollerRef}
-                                                    aria-label="More modes library, swipe or drag sideways to browse pages"
+                                                    aria-label="More modes library, swipe or drag sideways to browse pages, or use arrow keys when this region is focused"
                                                     className={styles.libraryScroller}
+                                                    onKeyDownCapture={onLibraryScrollerKeyDownCapture}
                                                     onPointerDownCapture={onLibraryDragPointerDown}
                                                     onScroll={onLibraryScroll}
+                                                    tabIndex={libraryScrollerTabIndex}
                                                 >
                                                     {libraryPages.map((pageModes, pageIndex) => (
                                                         <div
@@ -803,7 +835,7 @@ const ChooseYourPathScreen = () => {
                             variant: 'primary'
                         }
                     ]}
-                    subtitle="Paste a Memory Dungeon run JSON (from Copy run seed on game over)."
+                    subtitle="Paste a Memory Dungeon run JSON (from Copy run export on game over)."
                     testId="run-import-modal"
                     title="Import run"
                 >
