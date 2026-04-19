@@ -9,7 +9,7 @@ Must stay consistent with [`RELIC_ROSTER.md`](../RELIC_ROSTER.md) and [`GAME_FOR
 ## GP-R01 — Relic: memorize buffer under `short_memorize`
 
 ### Status
-Backlog
+**Done** — relic `memorize_under_short_memorize` ([`relics.ts`](../../src/shared/relics.ts)); duration [`getMemorizeDurationForRun`](../../src/shared/game.ts).
 
 ### Priority
 Medium
@@ -42,7 +42,7 @@ Global memorize relic duplicate of `memorize_bonus_ms` without mutator gate.
 ## GP-R02 — Relic: parasite ward (one-shot)
 
 ### Status
-Backlog
+**Done** — `parasite_ward_once`, `parasiteWardRemaining` ([`contracts.ts`](../../src/shared/contracts.ts), [`game.ts`](../../src/shared/game.ts)).
 
 ### Priority
 Medium
@@ -74,7 +74,7 @@ Multi-charge parasite ward.
 ## GP-R03 — Relic: row shuffle synergy
 
 ### Status
-Backlog
+**Done** — `region_shuffle_free_first`, `regionShuffleFreeThisFloor` ([`game.ts`](../../src/shared/game.ts)).
 
 ### Priority
 Low
@@ -103,7 +103,7 @@ Implementing H01 inside this task.
 ## GP-C01 — Contract: pin vow
 
 ### Status
-Backlog
+**Done** — [`ContractFlags.maxPinsTotalRun`](../../src/shared/contracts.ts); pin guard [`togglePinnedTile`](../../src/shared/game.ts); HUD counts [`GameplayHudBar.tsx`](../../src/renderer/components/GameplayHudBar.tsx); tests [`game.test.ts`](../../src/shared/game.test.ts) (max pin cap).
 
 ### Priority
 Low

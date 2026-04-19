@@ -46,6 +46,14 @@ Procedural mode cache keys are built in [`buildProceduralIllustrationCacheKey`](
 
 After bumps, expect to refresh **E2E illustration fixtures** (`yarn regenerate:illustration-regression`) when canvas output changes, and to update any **snapshot or appendix** tests that encode catalog counts (unrelated files, but same release discipline).
 
+### PR checklist (version bumps)
+
+Before merging a PR that bumps **`ILLUSTRATION_GEN_SCHEMA_VERSION`** or **`GAMEPLAY_CARD_VISUALS.textureVersion`**:
+
+1. Update this file’s **When to bump what** table if filenames or semantics changed.
+2. If deterministic canvas pixels change: run **`yarn regenerate:illustration-regression`** and commit **`e2e/fixtures/tile-card-face-illustration-regression.json`** updates.
+3. Mention the bump and fixture refresh in the PR description (see [VIZ-001](./VIZ-001.md)).
+
 ## Other generation modes (stamps only)
 
 [`illustrationCacheKey.ts`](../../src/renderer/cardFace/proceduralIllustration/illustrationCacheKey.ts) defines stamps for **`drop`** (authored asset id + tier) and **`neural-baked`** (model, prompt hashes, sampler, steps, etc.). Runtime today is primarily **procedural** Canvas2D; the neural key shape is partly exercised in [`illustrationCacheKey.test.ts`](../../src/renderer/cardFace/proceduralIllustration/illustrationCacheKey.test.ts) as a **future-safe** extension point if baked neural textures are wired in later.

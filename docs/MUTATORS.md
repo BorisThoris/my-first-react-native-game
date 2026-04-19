@@ -17,7 +17,7 @@ Hooks in `src/shared/game.ts` consult `activeMutators` via `hasMutator` / `src/s
 
 - `glass_floor` — decoy `pairKey` (`DECOY_PAIR_KEY`); destroy/peek rules in `applyDestroyPair` / flip flow.
 - `sticky_fingers` — `stickyBlockIndex` on match path.
-- `score_parasite` — `parasiteFloors` in `advanceToNextLevel`.
+- `score_parasite` — `parasiteFloors` increments in `advanceToNextLevel` toward life loss every **four** clears; **`applyDestroyPair` resets `parasiteFloors` to `0`** while this mutator is active (counts as parasite “pressure relief”).
 - `category_letters` — forces the letter symbol band for generation (overrides floor-based `getSymbolSetForLevel` rotation).
 - `short_memorize` — reduced memorize window (`getMemorizeDurationForRun`).
 - `wide_recall` — play phase shows **labels** primarily (symbols de-emphasized in renderer); **rules:** flat match-score penalty per match.

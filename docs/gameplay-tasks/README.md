@@ -1,9 +1,10 @@
 # Gameplay systems tasks
 
-Implementation backlog for **rules, mutators, objectives, powers, relics, and mode variants** — separate from visual/shell work under [`docs/new_design/TASKS/`](../new_design/TASKS/).
+Tracked specs for **rules, mutators, objectives, powers, relics, mode variants, and findables** — separate from visual/shell work under [`docs/new_design/TASKS/`](../new_design/TASKS/).
 
 | Resource | Purpose |
 |----------|---------|
+| [**GP_AUDIT_ROLLUP.md**](./GP_AUDIT_ROLLUP.md) | **Audit matrix** — each GP-ID vs shipped code (updated 2026-04-19). |
 | [ENCYCLOPEDIA_FOLLOWUP_TASKS.md](./ENCYCLOPEDIA_FOLLOWUP_TASKS.md) | **Codex / mechanics encyclopedia** — doc drift, content gaps, UI IA, tests, workflow. |
 
 ## Specs and theory
@@ -52,6 +53,6 @@ Any task that changes generation, scoring, per-floor mutator lists, or export se
 
 ## Status legend
 
-- **Backlog** — not started  
-- **In progress** — active branch  
-- **Done** — merged; residual notes in task file  
+- **Done** — merged; pointers in each task file + [GP_AUDIT_ROLLUP.md](./GP_AUDIT_ROLLUP.md).
+- **Partial** — merged with explicit scope limits (see task body).
+- **Backlog** / **In progress** — reserved for genuinely unstarted work after the next audit.

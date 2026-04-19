@@ -14,6 +14,7 @@ import {
     type RefObject
 } from 'react';
 import {
+    Box3,
     CanvasTexture,
     Color,
     DoubleSide,
@@ -245,6 +246,9 @@ export interface TileHoverTiltState {
 }
 
 export interface TileBoardSceneHandle {
+    getTileClientRectById: (
+        tileId: string
+    ) => { bottom: number; height: number; left: number; right: number; top: number; width: number } | null;
     pickTileAtClientPoint: (clientX: number, clientY: number) => boolean;
 }
 
@@ -2305,6 +2309,76 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
     useImperativeHandle(
         ref,
         () => ({
+            getTileClientRectById: (tileId: string) => {
+                const boardGroup = boardGroupRef.current;
+
+                if (!boardGroup) {
+                    return null;
+                }
+
+                const rect = gl.domElement.getBoundingClientRect();
+                if (rect.width <= 0 || rect.height <= 0) {
+                    return null;
+                }
+
+                let tileObject: Mesh | null = null;
+                boardGroup.traverse((candidate) => {
+                    if (tileObject) {
+                        return;
+                    }
+                    if (candidate.userData?.tileId === tileId) {
+                        tileObject = candidate as Mesh;
+                    }
+                });
+
+                if (!tileObject) {
+                    return null;
+                }
+
+                const worldBounds = new Box3().setFromObject(tileObject);
+                if (worldBounds.isEmpty()) {
+                    return null;
+                }
+
+                const corners = [
+                    new Vector3(worldBounds.min.x, worldBounds.min.y, worldBounds.min.z),
+                    new Vector3(worldBounds.min.x, worldBounds.min.y, worldBounds.max.z),
+                    new Vector3(worldBounds.min.x, worldBounds.max.y, worldBounds.min.z),
+                    new Vector3(worldBounds.min.x, worldBounds.max.y, worldBounds.max.z),
+                    new Vector3(worldBounds.max.x, worldBounds.min.y, worldBounds.min.z),
+                    new Vector3(worldBounds.max.x, worldBounds.min.y, worldBounds.max.z),
+                    new Vector3(worldBounds.max.x, worldBounds.max.y, worldBounds.min.z),
+                    new Vector3(worldBounds.max.x, worldBounds.max.y, worldBounds.max.z)
+                ];
+
+                let left = Number.POSITIVE_INFINITY;
+                let right = Number.NEGATIVE_INFINITY;
+                let top = Number.POSITIVE_INFINITY;
+                let bottom = Number.NEGATIVE_INFINITY;
+
+                for (const corner of corners) {
+                    corner.project(camera);
+                    const x = rect.left + ((corner.x + 1) * 0.5) * rect.width;
+                    const y = rect.top + ((1 - corner.y) * 0.5) * rect.height;
+                    left = Math.min(left, x);
+                    right = Math.max(right, x);
+                    top = Math.min(top, y);
+                    bottom = Math.max(bottom, y);
+                }
+
+                if (!Number.isFinite(left) || !Number.isFinite(right) || !Number.isFinite(top) || !Number.isFinite(bottom)) {
+                    return null;
+                }
+
+                return {
+                    bottom,
+                    height: Math.max(0, bottom - top),
+                    left,
+                    right,
+                    top,
+                    width: Math.max(0, right - left)
+                };
+            },
             pickTileAtClientPoint: (clientX: number, clientY: number): boolean => {
                 const boardGroup = boardGroupRef.current;
 

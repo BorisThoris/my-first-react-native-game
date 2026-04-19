@@ -2,12 +2,14 @@
 
 Concrete feature specs for **this** codebase: file paths, `RunState` impact, and mode interactions. These are **design + engineering tickets**, not genre essays.
 
-**Current facts (baseline):**
+**Current facts (baseline — 2026-04 audit):**
 
-- Arcade `startRun` → `createNewRun(bestScore)` leaves `activeMutators` as **`[]`** for the whole run (`useAppStore.ts` → `game.ts`).
-- `advanceToNextLevel` always passes **`run.activeMutators`** unchanged into `buildBoard` (`game.ts` ~1244–1248).
-- Daily uses **one** mutator from `DAILY_MUTATOR_TABLE` (`mutators.ts`, `createDailyRun`).
-- Relic draft at floors **3 / 6 / 9** (`relics.ts`, `openRelicOffer`).
+- **`createNewRun`** seeds `activeMutators` from mode constructors (`createDailyRun`, `createWildRun`, `createGauntletRun`, …). Classic arcade-style runs can still ship with **`[]`** unless callers pass mutators (see `docs/gameplay-tasks/GP_AUDIT_ROLLUP.md`).
+- **`advanceToNextLevel`**: when **`usesEndlessFloorSchedule(gameMode, runRulesVersion)`** is true, **`pickFloorScheduleEntry`** supplies the next floor’s **`activeMutators`** + **`floorTag`** before `buildBoard`; otherwise **`run.activeMutators`** carries forward unchanged ([`floor-mutator-schedule.ts`](../../src/shared/floor-mutator-schedule.ts), [`game.ts`](../../src/shared/game.ts)).
+- **Daily** uses **one** mutator from **`DAILY_MUTATOR_TABLE`** (nine IDs; deterministic UTC date index via `deriveDailyMutatorIndex`).
+- **Wild** starts with **`['sticky_fingers','short_memorize','findables_floor']`** (`createWildRun`).
+- **Secondary objectives** (`glass_witness`, `cursed_last`, `flip_par`, **scholar-style per floor**) and **helpers** (region shuffle, flash pair—practice/wild charges by default), **conditional relics**, **pin vow** (`maxPinsTotalRun`), and **findables** are implemented per [`docs/gameplay-tasks/`](../gameplay-tasks/README.md).
+- Relic draft cadence floors **3 / 6 / 9 / …** (`RELIC_FIRST_MILESTONE_FLOOR`, `RELIC_MILESTONE_STEP`; `openRelicOffer`).
 
 When an idea changes generation, scoring, or per-floor rules, plan a **`GAME_RULES_VERSION` bump** and update `run-export` / import expectations ([`MUTATORS.md`](../MUTATORS.md)).
 

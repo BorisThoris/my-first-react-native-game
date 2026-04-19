@@ -31,7 +31,7 @@ This page states **what is covered**, **how we measure it**, and **what is expli
 
 Against the **in-scope** definition above:
 
-- **Documentation inventory:** ~**100%** of markdown files under `docs/` appear in [DOCS_CATALOG.md](./DOCS_CATALOG.md) (last full pass: **~263** files; re-count with `Get-ChildItem docs -Recurse -Filter *.md` on Windows).
+- **Documentation inventory:** ~**100%** of markdown files under `docs/` appear in [DOCS_CATALOG.md](./DOCS_CATALOG.md) (last full pass: **~295** files, 2026-04-19; re-count with `Get-ChildItem docs -Recurse -Filter *.md` on Windows).
 - **Product + engineering orientation:** ~**95–100%** of active `src/` surface is mapped in [SOURCE_MAP.md](./SOURCE_MAP.md) at module/folder granularity (not every React component name).
 - **Overall “everything in the game”** if you include legacy + every asset byte: **not 100%** by design; use this page’s **out of scope** list.
 

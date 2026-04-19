@@ -9,7 +9,7 @@ Source: [O-01–O-04](../gameplay-depth/05-app-specific-idea-backlog.md#o--secon
 ## GP-O01 — Glass witness bonus
 
 ### Status
-Backlog
+**Done** — `glass_witness` in `LevelResult.bonusTags` ([`game.ts`](../../src/shared/game.ts) ~1360); end-of-level line via `formatBonusTagsLine` ([`GameScreen.tsx`](../../src/renderer/components/GameScreen.tsx)).
 
 ### Priority
 High
@@ -41,7 +41,7 @@ New decoy art.
 ## GP-O02 — Cursed-last pair bonus
 
 ### Status
-Backlog
+**Done** — [`BoardState.cursedPairKey`](../../src/shared/contracts.ts), `pickCursedPairKey`, bonus tag `cursed_last`; board props [`GameScreen.tsx`](../../src/renderer/components/GameScreen.tsx) → `TileBoard` / `TileBoardScene`.
 
 ### Priority
 Medium
@@ -73,7 +73,7 @@ Narrative VO.
 ## GP-O03 — Flip par bonus
 
 ### Status
-Backlog
+**Done** — `flipParLimit`, `matchResolutionsThisFloor`, bonus tag `flip_par` ([`game.ts`](../../src/shared/game.ts)).
 
 ### Priority
 Medium
@@ -104,7 +104,7 @@ Leaderboard for flip efficiency (future).
 ## GP-O04 — Per-floor scholar-style bonus
 
 ### Status
-Backlog
+**Done** — `shuffleUsedThisFloor` / `destroyUsedThisFloor`; bonus tag `scholar_style`; encyclopedia topic `sys_scholar_style_floor` ([`mechanics-encyclopedia.ts`](../../src/shared/mechanics-encyclopedia.ts)).
 
 ### Priority
 High

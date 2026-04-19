@@ -1,7 +1,8 @@
 # Task 010: Final Logo and Emblem Lockup
 
 ## Status
-Partial (checklist paths documented; blocked on final brand art)
+
+Deferred — asset blocked (brand logo/emblem). Exit: drop-in paths in [`DROP_IN_ASSET_CHECKLIST.md`](../DROP_IN_ASSET_CHECKLIST.md) + approval.
 
 ## Implementation notes
 - **Audit finding:** Current lockup is typographic plus `brandCrest` / `menuEmblem` assets; reference targets a more ornamental logo treatment.

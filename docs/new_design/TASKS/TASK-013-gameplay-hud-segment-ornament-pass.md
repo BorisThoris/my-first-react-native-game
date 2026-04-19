@@ -1,7 +1,10 @@
 # Task 013: Gameplay HUD Segment Ornament Pass
 
 ## Status
-Partial (segment order + score/meta contrast landed; further ornament = asset frames)
+
+Done (shipped) — segment order + score/meta contrast landed per playing-shell pass.
+
+**Residual:** ornamental HUD frame rasters — deferred with final menu/gameplay art ([`TASK-009`](./TASK-009-final-menu-and-gameplay-illustrations.md)).
 
 ## Implementation notes
 - **Audit finding:** HUD structure matches spec; segment frames, score dominance, and mutator/daily context segments can move closer to reference ornament density.

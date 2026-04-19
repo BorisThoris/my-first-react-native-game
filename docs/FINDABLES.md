@@ -125,3 +125,4 @@ After a claim or destroy, the field is **cleared** (`undefined`) on the affected
 - [GAME_MECHANICS_IDEAS.md](./GAME_MECHANICS_IDEAS.md) — board powers, cognitive load note.
 - [gameplay-depth/02-helper-tiers-and-cognitive-jobs.md](./gameplay-depth/02-helper-tiers-and-cognitive-jobs.md) — findables as **Search / planning**, not Recall substitute.
 - [gameplay-tasks/GP-FINDABLES.md](./gameplay-tasks/GP-FINDABLES.md) — implementation tasks.
+- [gameplay-tasks/GP_AUDIT_ROLLUP.md](./gameplay-tasks/GP_AUDIT_ROLLUP.md) — GP-FIN01–06 vs shipped code (audit).

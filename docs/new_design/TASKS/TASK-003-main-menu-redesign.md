@@ -1,7 +1,10 @@
 # Task 003: Main Menu Redesign
 
 ## Status
-Partial (landed in renderer)
+
+Done (shipped baseline) — hero-first main menu, Choose Your Path flow, desktop quit.
+
+**Residual / follow-up:** embossed wordmark vs display title, illustrated `MainMenuBackground` vs abstract shell — [`CURRENT_VS_ENDPRODUCT.md`](../../reference-comparison/CURRENT_VS_ENDPRODUCT.md) + [`DROP_IN_ASSET_CHECKLIST.md`](../DROP_IN_ASSET_CHECKLIST.md).
 
 ## Implementation notes
 - Main menu uses hero-first layout, vertical primary actions, secondary “more run types,” Collection entry, and Play → Choose Your Path. Exit uses desktop `quitApp` where available.

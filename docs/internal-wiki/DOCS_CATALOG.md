@@ -2,7 +2,7 @@
 
 **Purpose:** Every `.md` under `docs/` is listed so nothing is “orphaned” from the internal wiki. **One-line summaries** are for navigation; authoritative detail stays in each file.
 
-**Count:** ~263 markdown files under `docs/` (exact count drifts as files are added; re-count when the catalog is audited — PowerShell: `(Get-ChildItem -Path docs -Recurse -Filter *.md).Count`).
+**Count:** ~295 markdown files under `docs/` (2026-04-19; exact count drifts as files are added; re-count when the catalog is audited — PowerShell: `(Get-ChildItem -Path docs -Recurse -Filter *.md).Count`).
 
 ---
 
@@ -94,6 +94,7 @@
 | File | Summary |
 |------|---------|
 | [README.md](../gameplay-tasks/README.md) | GP task index |
+| [GP_AUDIT_ROLLUP.md](../gameplay-tasks/GP_AUDIT_ROLLUP.md) | GP tasks vs shipped code audit matrix |
 | [ENCYCLOPEDIA_FOLLOWUP_TASKS.md](../gameplay-tasks/ENCYCLOPEDIA_FOLLOWUP_TASKS.md) | Codex & mechanics encyclopedia follow-up |
 | [GP-FINDABLES.md](../gameplay-tasks/GP-FINDABLES.md) | Findables tasks |
 | [GP-FLOOR-SCHEDULE.md](../gameplay-tasks/GP-FLOOR-SCHEDULE.md) | Floor schedule tasks |
@@ -183,6 +184,7 @@
 | [INDEX.md](../visualization-work/INDEX.md) | VIZ-001–006 task index |
 | [TASKS.md](../visualization-work/TASKS.md) | Rollup linking individual `VIZ-NNN` files |
 | [ARCHITECTURE.md](../visualization-work/ARCHITECTURE.md) | Canvas procedural pipeline + cache/version knobs |
+| [TAXONOMY.md](../visualization-work/TAXONOMY.md) | Regression pairKey buckets + hash stress shapes |
 | [EXPLICIT_50_AGENTS.md](../visualization-work/EXPLICIT_50_AGENTS.md) | Fifty scoped parallel-agent prompts mapped to VIZ phases |
 | [VIZ-001.md](../visualization-work/VIZ-001.md) … [VIZ-006.md](../visualization-work/VIZ-006.md) | Individual phased tasks |
 

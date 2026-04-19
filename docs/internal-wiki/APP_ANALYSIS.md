@@ -37,7 +37,7 @@ Bump **`GAME_RULES_VERSION`** when pair generation, scoring, or player-facing ru
 2. **Types + achievement IDs + settings shape:** `contracts.ts`.
 3. **Turn resolution, powers, mutators, level advance:** `game.ts` (+ `mutators.ts`, `relics.ts`, `floor-mutator-schedule.ts` for metadata/schedule).
 4. **Shell navigation + timers + IPC orchestration:** `useAppStore.ts` (large — pair with [GAMEPLAY_SYSTEMS_ANALYSIS.md](../GAMEPLAY_SYSTEMS_ANALYSIS.md)).
-5. **Bootstrap order:** `main.tsx` → `initRendererShell.tsx` (`bootstrapWebRenderer`) → theme + **`NotificationHost`** + **`PlatformTiltProvider`** → **`App`**.
+5. **Bootstrap order:** `main.tsx` → `initRendererShell.tsx` (`bootstrapWebRenderer`) → theme + **`PlatformTiltProvider`** → **`NotificationHost`** → **`App`** (matches consolidated finding #1).
 
 ---
 
@@ -49,7 +49,7 @@ Bump **`GAME_RULES_VERSION`** when pair generation, scoring, or player-facing ru
 | Shell / nav | `App.tsx`, `useAppStore.ts` | [NAVIGATION_MODEL.md](../new_design/NAVIGATION_MODEL.md), [SCREEN_SPEC_GAMEPLAY.md](../new_design/SCREEN_SPEC_GAMEPLAY.md) |
 | Board WebGL | `TileBoard.tsx`, `TileBoardScene.tsx`, `TileBoardPostFx.tsx`, `tileBoardViewport.ts` | [FX_REDUCE_MOTION_MATRIX.md](../new_design/FX_REDUCE_MOTION_MATRIX.md), [TILE_BOARD_WEBGL_FX_V2_AUDIT.md](../reference-comparison/TILE_BOARD_WEBGL_FX_V2_AUDIT.md) |
 | Matched rim FX tunables | `gameplayVisualConfig.ts`, rim shader/material/geometry | Same + sandbox `?devSandbox=1&fx=matchedRimFire` |
-| Procedural overlay illustration | `cardFace/proceduralIllustration/`, `tileTextures.ts`, `gameplayVisualConfig.ts` (`textureVersion`) | [SOURCE_MAP.md](./SOURCE_MAP.md) cardFace row; E2E `tile-card-face-illustration-*.spec.ts` |
+| Procedural overlay illustration | `cardFace/proceduralIllustration/` (`ILLUSTRATION_GEN_SCHEMA_VERSION` in `illustrationSchemaVersion.ts`), `cardIllustrationDraw.ts`, `tileTextures.ts`, `gameplayVisualConfig.ts` (`GAMEPLAY_CARD_VISUALS.textureVersion`), dev gallery + regression keys (`ProceduralIllustrationGallerySandbox`, `illustrationRegressionPairKeys`) | [SOURCE_MAP.md](./SOURCE_MAP.md) cardFace + dev rows; [visualization-work/ARCHITECTURE.md](../visualization-work/ARCHITECTURE.md) “When to bump what”; E2E `tile-card-face-illustration-*.spec.ts` |
 | Electron I/O | `main/`, `preload/`, `desktop-client.ts` | This wiki: ARCHITECTURE, SOURCE_MAP |
 | IPC channel names | `ipc-channels.ts`, `main/ipc.ts` (dual registration: canonical + legacy aliases) | [SOURCE_MAP.md](./SOURCE_MAP.md) shared + main rows |
 | Screen copy bundles | `copy/` (e.g. game over, inventory), `ui/strings/` | Future i18n hooks; centralized for a11y review |
@@ -64,7 +64,7 @@ Bump **`GAME_RULES_VERSION`** when pair generation, scoring, or player-facing ru
 - **Achievements:** Seven `AchievementId` values — Steam mapping 1:1 in `main/steam.ts`; unlock path **save locally then Steam** (see § Achievements ↔ Steam parity below). **Honors** (local titles) live in `honorUnlocks.ts` and `saveData.unlocks` `honor:*` tags.
 - **Persistence:** Renderer uses **`persistBridge.ts`** (normalized writes, failure UX); not raw Zustand `persist`.
 - **Audio:** `gameSfx.ts` — Web Audio; `resumeAudioContext()` runs on tile press **and** when resolve applies (immediate or timed)—not only on gesture.
-- **Visuals:** Card faces + procedural illustration + `tileTextures` / `gameplayVisualConfig` — bump **`GAMEPLAY_CARD_VISUALS.textureVersion`** / cache keys when deterministic art rules change.
+- **Visuals:** Card faces + procedural illustration + `tileTextures` / `gameplayVisualConfig`. **Schema / roll-table / stroke-rule changes** → bump **`ILLUSTRATION_GEN_SCHEMA_VERSION`** (`illustrationSchemaVersion.ts`) so cache keys and hashes stay aligned. **Overlay pipeline / bitmap cache integration** outside pure illustration schema → bump **`GAMEPLAY_CARD_VISUALS.textureVersion`** per `gameplayVisualConfig.ts` (see [visualization-work/ARCHITECTURE.md](../visualization-work/ARCHITECTURE.md)).
 
 ---
 
@@ -83,7 +83,7 @@ Bump **`GAME_RULES_VERSION`** when pair generation, scoring, or player-facing ru
 
 ## Documentation surface
 
-- **`docs/**/*.md`:** indicative **~264** files — index in [DOCS_CATALOG.md](./DOCS_CATALOG.md); polish rollup [GAMEPLAY_POLISH_AND_GAPS.md](../gameplay/GAMEPLAY_POLISH_AND_GAPS.md).
+- **`docs/**/*.md`:** indicative **~295** files (2026-04-19 recount) — index in [DOCS_CATALOG.md](./DOCS_CATALOG.md); polish rollup [GAMEPLAY_POLISH_AND_GAPS.md](../gameplay/GAMEPLAY_POLISH_AND_GAPS.md).
 - **Internal wiki:** [README.md](./README.md).
 
 **Wiki alignment notes:** [GAMEPLAY_POLISH §16](../gameplay/GAMEPLAY_POLISH_AND_GAPS.md) and [epic-mutators Schedules](../gameplay/epic-mutators.md) reference **`floor-mutator-schedule.test.ts`**. **`copy/inventoryScreen.ts`** documents Perfect Memory eligibility next to “Powers used this run”.
@@ -109,7 +109,7 @@ Bump **`GAME_RULES_VERSION`** when pair generation, scoring, or player-facing ru
 15. **Decoy key:** `'__decoy__'` is repeated in several modules (not a single shared export); consider centralizing `DECOY_PAIR_KEY` from `contracts` or `game.ts` to prevent drift.
 16. **DOM FLIP shuffle:** `captureTileRects` / `runShuffleFlipFromRects` in `shuffleFlipAnimation.ts` are **unwired** in the app; active path is WebGL stagger + `TileBoard` motion budget.
 17. **Shell exports:** [`initRendererShell.tsx`](../../src/renderer/initRendererShell.tsx) also exports `applyRendererThemeToDocument` / `mountRendererApp` for tests or alternate hosts—not only `bootstrapWebRenderer()`.
-18. **Procedural illustration:** Pair-key–seeded specs under `cardFace/proceduralIllustration/` feed Canvas drawing (`drawProceduralTarotIllustration`) for overlay tiers; bump **`GAMEPLAY_CARD_VISUALS.textureVersion`** (see `gameplayVisualConfig.ts`) when rolls/visual rules change so caches invalidate consistently.
+18. **Procedural illustration:** Pair-key–seeded specs under `cardFace/proceduralIllustration/` feed Canvas drawing (`drawProceduralTarotIllustration`, integrated via `cardIllustrationDraw.ts`). **Roll tables / stroke rules / deterministic illustration output** → bump **`ILLUSTRATION_GEN_SCHEMA_VERSION`**. **`textureVersion`** bumps cover overlay/pipeline/cache layers described in `gameplayVisualConfig.ts`, not a substitute for schema bumps — see [visualization-work/ARCHITECTURE.md](../visualization-work/ARCHITECTURE.md).
 19. **IPC naming:** [`ipc-channels.ts`](../../src/shared/ipc-channels.ts) is the shared source of truth for **`save:*`**, **`steam:*`**, **`window:*`** invokes; [`main/ipc.ts`](../../src/main/ipc.ts) registers **both** those names and deprecated **`desktop:*`** aliases so older preload assumptions keep working.
 20. **Persistence bridge:** [`persistBridge.ts`](../../src/renderer/store/persistBridge.ts) wraps `desktopClient.saveGame` / `saveSettings` with `normalizeSaveData`, consecutive write-failure counting, and optional **`registerPersistenceWriteFailureHandler`** for user-visible disk errors—not raw IPC at call sites.
 21. **Achievement unlock ordering:** [`achievementPersistence.ts`](../../src/renderer/store/achievementPersistence.ts) **`persistSaveData`** then **`unlockAchievement`** sequentially per REF-036 (avoids electron-store read–modify–write races across parallel Steam unlock IPCs).
@@ -137,6 +137,8 @@ Bump **`GAME_RULES_VERSION`** when pair generation, scoring, or player-facing ru
 **Round 3 (third 50-pass wave):** `useShallow` · gauntlet watch lifecycle · `flipTile` guards · Settings defaults parity · `ACHIEVEMENT_ORDER` vs catalog · daily RNG (`deriveDailyRunSeed`, `deriveDailyMutatorIndex`) · encore merge · DECOY literals · bloom off on `low` · `cameraViewportMode` `never` vs `TileBoard` `compact` · **P** pause · wheel/pointer listeners · `pickTileAtClientPoint` · HUD dual row · three toolbars · Codex tabs META-005 · inventory relic list · OverlayModal focus · GameOver export null path · StartupIntro WebGL vs SVG · achievement toast `aria-live` · silent `playResolveSfx` · `recomputeKey` on Settings · mocked HUD/TileBoard in `GameScreen.test` · dead DOM FLIP · `__devApplySandbox` DEV guard · eslint `e2e` block · `RELIC_ROSTER` completion · `FindableKind` · `peerDependencies` react>=18 · `postinstall` electron-builder · line-count scale (`useAppStore` ~1.4k, `TileBoardScene` ~2.5k).
 
 **Round 4 (wiki + tree sync):** `main.tsx` → [`initRendererShell.tsx`](../../src/renderer/initRendererShell.tsx) (`bootstrapWebRenderer`, `PlatformTiltProvider`) · seeded procedural tarot illustration (`cardFace/proceduralIllustration/`: `illustrationSeed`, roll tables, `drawProceduralTarotIllustration`, manifest/cache key) · `textureVersion` / overlay cache invalidation · `keyboard/gameplayShortcuts.ts` · `dev/legacy/tileStepLegacy` (paths no longer under `dev/` root) · Playwright: `tile-card-face-illustration-regression`, `tile-card-face-illustration-benchmark`, `tile-card-face-overlay-regression`, `a11y-scoped-routes` · package scripts `test:e2e:illustration-regression`, `test:e2e:a11y`, `benchmark:illustration-regression`, `regenerate:illustration-regression` · re-count `docs/**/*.md` when [DOCS_CATALOG.md](./DOCS_CATALOG.md) is audited.
+
+**Round 5 (2026-04-19 turbo wiki pass):** Merged parallel slices into [SOURCE_MAP](./SOURCE_MAP.md) (`desktop-client.ts`, main `*.test.ts`, dev regression row → `hashPairKey`), [TOOLING](./TOOLING.md) (`build:cloudflare`, bake/plates/manifest scripts, **`yarn bake:procedural-set` not in default CI**), [visualization-work/README](../visualization-work/README.md) → [multiple-agents](./multiple-agents.md); corrected bootstrap order + **schema vs `textureVersion`** bumps in executive map / findings; [REF-020](../refinement-tasks/REF-020.md) Related; doc count **~293** ([DOCS_CATALOG](./DOCS_CATALOG.md)).
 
 ---
 

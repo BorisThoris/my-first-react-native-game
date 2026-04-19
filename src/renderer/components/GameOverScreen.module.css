@@ -40,7 +40,7 @@
 }
 
 .foreground {
-    position: relative;
+position: relative;
     z-index: 1;
     min-height: 100dvh;
     display: flex;

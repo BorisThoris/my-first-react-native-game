@@ -41,6 +41,8 @@ Quick orientation for navigation and code review. **Rules of thumb:** `shared/` 
 | `persistence.ts` | electron-store: saves, settings paths |
 | `steam.ts` | steamworks.js adapter; **mock** adapter when init fails (IPC still saves unlocks locally first). `STEAM_ACHIEVEMENT_API_NAME`: **7** entries, 1:1 with `AchievementId` in `contracts.ts` |
 
+Co-located **`*.test.ts`** here: `persistence.test.ts`, `persistence-write-error.test.ts`.
+
 ## `src/preload/`
 
 | File | Role |
@@ -54,6 +56,7 @@ Quick orientation for navigation and code review. **Rules of thumb:** `shared/` 
 | `main.tsx` | Delegates to `bootstrapWebRenderer()` in [`initRendererShell.tsx`](../../src/renderer/initRendererShell.tsx) |
 | `initRendererShell.tsx` | Web bootstrap: `applyRendererThemeToDocument()`, global CSS imports, `PlatformTiltProvider` → `NotificationHost` → `App` |
 | `App.tsx` | Routed shell from `useAppStore`: screens, portals (intro, in-run settings), `data-view` / overlay semantics |
+| `desktop-client.ts` | Typed Electron `contextBridge` consumer + web fallbacks — **single file** at renderer root (not `desktop-client/`); used beside `preload` / `ipc-channels` |
 
 | Directory | Role |
 |-----------|------|
@@ -123,7 +126,7 @@ Defined in [`runFixtures.ts`](../../src/renderer/dev/runFixtures.ts) (`SANDBOX_F
 | [`legacy/tileStepLegacy.test.ts`](../../src/renderer/dev/legacy/tileStepLegacy.test.ts) | Tests for legacy toggle reader |
 | [`legacy/README.md`](../../src/renderer/dev/legacy/README.md) | Notes on dev-only legacy toggles |
 | [`ProceduralIllustrationGallerySandbox.tsx`](../../src/renderer/dev/ProceduralIllustrationGallerySandbox.tsx) (`.module.css`) | DEV `?devSandbox=1&fx=proceduralGallery` — Canvas2D procedural illustration grid ([`visualization-work/README.md`](../visualization-work/README.md)) |
-| [`illustrationRegressionPairKeys.ts`](../../src/renderer/dev/illustrationRegressionPairKeys.ts) | Regression `pairKeys` mirror of [`e2e/fixtures/tile-card-face-illustration-regression.json`](../../e2e/fixtures/tile-card-face-illustration-regression.json); guarded by [`illustrationRegressionPairKeys.test.ts`](../../src/renderer/dev/illustrationRegressionPairKeys.test.ts) |
+| [`illustrationRegressionPairKeys.ts`](../../src/renderer/dev/illustrationRegressionPairKeys.ts) | Regression `pairKeys` mirror of [`e2e/fixtures/tile-card-face-illustration-regression.json`](../../e2e/fixtures/tile-card-face-illustration-regression.json); hashing for deterministic visuals uses **[`hashPairKey`](../../src/shared/hashPairKey.ts)** in shared code — guarded by [`illustrationRegressionPairKeys.test.ts`](../../src/renderer/dev/illustrationRegressionPairKeys.test.ts) |
 
 ### Captures and E2E helpers
 

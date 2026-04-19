@@ -1,7 +1,8 @@
 # Task 018: Mode Select Card Illustrations
 
 ## Status
-Partial (top-light card chrome landed; per-mode raster panels still optional)
+
+Deferred — optional per-mode poster rasters (card chrome + Daily border landed). Re-open when poster assets exist under [`src/renderer/assets/ui/`](../../../src/renderer/assets/ui/) or product prioritizes parity stills.
 
 ## Implementation notes
 - **Audit finding:** `ChooseYourPathScreen` structure matches reference; mode cards can gain illustration panels, stronger frames, and timer/badge polish vs stills.

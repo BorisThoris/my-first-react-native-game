@@ -5,6 +5,15 @@ import { dismissStartupIntro } from './startupIntroHelpers';
 
 export const STORAGE_KEY = 'memory-dungeon-save-data';
 
+export interface E2eClientRect {
+    bottom: number;
+    height: number;
+    left: number;
+    right: number;
+    top: number;
+    width: number;
+}
+
 /** @deprecated Prefer `data-hidden-tile-count` on `tile-board-frame`; kept for grep / gradual migration. */
 export const BOARD_HIDDEN_TILE_BUTTON_RE = /hidden tile, row \d+, column \d+/i;
 
@@ -152,6 +161,39 @@ export async function flipTileAtGridCellKeyboard(page: Page, row: number, column
                 );
             }
             pick(r, c);
+        },
+        [row, column] as const
+    );
+}
+
+/**
+ * Read the current screen-space bounds of a tile at (row, column) from the live WebGL board.
+ * Requires Vite dev so `TileBoard` registers `window.__e2eGetTileClientRectAtGrid1`.
+ */
+export async function readTileClientRectAtGrid(page: Page, row: number, column: number): Promise<E2eClientRect> {
+    return page.evaluate(
+        ([r, c]) => {
+            const w = window as Window & {
+                __e2eGetTileClientRectAtGrid1?: (row: number, col: number) => {
+                    bottom: number;
+                    height: number;
+                    left: number;
+                    right: number;
+                    top: number;
+                    width: number;
+                } | null;
+            };
+            const getRect = w.__e2eGetTileClientRectAtGrid1;
+            if (!getRect) {
+                throw new Error(
+                    'window.__e2eGetTileClientRectAtGrid1 missing — e2e expects Vite dev so TileBoard registers the hook.'
+                );
+            }
+            const rect = getRect(r, c);
+            if (!rect) {
+                throw new Error(`No tile client rect for row ${r}, col ${c}.`);
+            }
+            return rect;
         },
         [row, column] as const
     );

@@ -22,7 +22,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium, type Browser } from 'playwright-core';
 import waitOn from 'wait-on';
-import type { OverlayDrawTier } from '../src/renderer/cardFace/overlayDrawTier';
+import { parseBakeTierTokenList, type OverlayDrawTier } from '../src/renderer/cardFace/overlayDrawTier';
 import { computeIllustrationPixelRect } from '../src/renderer/cardFace/cardIllustrationRect';
 import { GAMEPLAY_CARD_VISUALS } from '../src/renderer/components/gameplayVisualConfig';
 import { CARD_PLANE_HEIGHT, CARD_PLANE_WIDTH } from '../src/renderer/components/tileShatter';
@@ -56,19 +56,8 @@ function parseArgs(argv: string[]): {
             port = Number(arg.slice('--port='.length));
         } else if (arg.startsWith('--tiers=')) {
             const raw = arg.slice('--tiers='.length);
-            const parts = raw.split(',').map((s) => s.trim().toLowerCase());
-            const map: Record<string, OverlayDrawTier> = {
-                min: 'minimal',
-                minimal: 'minimal',
-                standard: 'standard',
-                medium: 'standard',
-                full: 'full',
-                high: 'full'
-            };
-            tiers = parts.map((p) => map[p] ?? (p as OverlayDrawTier)).filter(Boolean) as OverlayDrawTier[];
-            if (tiers.length === 0) {
-                tiers = ['full'];
-            }
+            const parts = raw.split(',').map((s) => s.trim());
+            tiers = parseBakeTierTokenList(parts);
         } else if (arg === '--include-full-canvas') {
             includeFullCanvas = true;
         } else if (arg.startsWith('--fixture=')) {

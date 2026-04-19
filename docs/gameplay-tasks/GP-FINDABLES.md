@@ -8,7 +8,7 @@
 ## GP-FIN01 — Types, constants, mutator gate
 
 ### Status
-Backlog
+**Done** — `FindableKind`, `findables_floor` ([`contracts.ts`](../../src/shared/contracts.ts), [`mutators.ts`](../../src/shared/mutators.ts)).
 
 ### Priority
 Medium
@@ -39,7 +39,7 @@ Renderer, scoring.
 ## GP-FIN02 — Seeded placement at `buildBoard`
 
 ### Status
-Backlog
+**Done** — [`buildBoard`](../../src/shared/game.ts) tagging; tests `describe('findables_floor')` in [`game.test.ts`](../../src/shared/game.test.ts).
 
 ### Priority
 Medium
@@ -70,7 +70,7 @@ Claim / rewards.
 ## GP-FIN03 — Claim rules in match / destroy / shuffle
 
 ### Status
-Backlog
+**Done** — match/destroy/shuffle tests in [`game.test.ts`](../../src/shared/game.test.ts) (`findables_floor` describe).
 
 ### Priority
 Medium
@@ -99,7 +99,7 @@ Score numbers (FIN04).
 ## GP-FIN04 — Rewards and scoring bookkeeping
 
 ### Status
-Backlog
+**Done** — `FINDABLE_MATCH_SCORE` / `FINDABLE_MATCH_COMBO_SHARDS` ([`contracts.ts`](../../src/shared/contracts.ts)); claim path [`game.ts`](../../src/shared/game.ts).
 
 ### Priority
 Medium
@@ -129,7 +129,7 @@ UI copy beyond a single toast line (FIN05).
 ## GP-FIN05 — Renderer, HUD, codex
 
 ### Status
-Backlog
+**Done** — WebGL + DOM markers [`TileBoardScene.tsx`](../../src/renderer/components/TileBoardScene.tsx), [`TileBoard.tsx`](../../src/renderer/components/TileBoard.tsx); mechanics encyclopedia topics.
 
 ### Priority
 Medium
@@ -160,7 +160,7 @@ Marketing art pass.
 ## GP-FIN06 — Export/import, docs sweep, regression tests
 
 ### Status
-Backlog
+**Done** — [`FINDABLES.md`](../FINDABLES.md) export section; regression coverage via shared tests above.
 
 ### Priority
 Low

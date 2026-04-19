@@ -12,3 +12,5 @@ Quick table for triage. Detail lives in each **`VIZ-NNN.md`** file linked below.
 | [VIZ-006](./VIZ-006.md) | P3 | tooling | Downstream card-pipeline handoff from bake output |
 
 **Related:** broader refinement backlog (different IDs): [`docs/refinement-tasks/`](../refinement-tasks/README.md)
+
+**Closure (2026-04):** VIZ-001–006 each have a **Status** section in their `VIZ-NNN.md` file pointing at shipped docs/tests/code.

@@ -1,7 +1,8 @@
 # Task 009: Final Menu and Gameplay Illustrations
 
 ## Status
-Partial (integration checklist landed; blocked on final illustrated assets)
+
+Deferred — asset blocked. Exit criteria: populate [`DROP_IN_ASSET_CHECKLIST.md`](../DROP_IN_ASSET_CHECKLIST.md) rows + visual sign-off vs reference stills.
 
 ## Implementation notes
 - **Audit finding:** Live menu uses `MainMenuBackground` (Pixi) plus `UI_ART.menuScene` / `gameplayScene` SVGs; reference comps expect painted dungeon/tavern hero and a cinematic gameplay stage (see `SCREEN_SPEC_GAMEPLAY.md` Zone A).

@@ -669,6 +669,23 @@ describe('board powers', () => {
         expect(cleared.lastLevelResult?.level).toBe(1);
     });
 
+    it('resets parasite floor counter on destroy when score_parasite is active', () => {
+        const tiles: Tile[] = [
+            createTile('a1', 'A', 'A'),
+            createTile('a2', 'A', 'A'),
+            createTile('b1', 'B', 'B'),
+            createTile('b2', 'B', 'B')
+        ];
+        const run = {
+            ...createRun(tiles),
+            activeMutators: ['score_parasite'] as MutatorId[],
+            destroyPairCharges: 1,
+            parasiteFloors: 3
+        };
+        const after = applyDestroyPair(run, 'a1');
+        expect(after.parasiteFloors).toBe(0);
+    });
+
     describe('glass_floor decoy and board completion', () => {
         it('isBoardComplete when all real tiles are matched and the decoy trap stays hidden', () => {
             const board = buildBoard(2, {

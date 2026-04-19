@@ -18,6 +18,7 @@ Implement phases in order only when dependencies require it; parallel work is fi
 
 ## Related
 
+- Pair-key taxonomy: [TAXONOMY.md](./TAXONOMY.md)
 - Architecture narrative: [ARCHITECTURE.md](./ARCHITECTURE.md)
 - Parallel agent prompts (50 rows): [EXPLICIT_50_AGENTS.md](./EXPLICIT_50_AGENTS.md)
 - Broader refinement backlog (unrelated IDs): [`docs/refinement-tasks/`](../refinement-tasks/README.md)

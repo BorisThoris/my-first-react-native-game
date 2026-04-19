@@ -9,7 +9,7 @@ Tier vocabulary: [`02-helper-tiers-and-cognitive-jobs.md`](../gameplay-depth/02-
 ## GP-H01 — Region shuffle (Search)
 
 ### Status
-Backlog
+**Done** — [`applyRegionShuffle`](../../src/shared/game.ts), `canRegionShuffle`; toolbar UI [`GameLeftToolbar.tsx`](../../src/renderer/components/GameLeftToolbar.tsx).
 
 ### Priority
 Medium
@@ -41,7 +41,7 @@ Column shuffle if row-only MVP ships first (add follow-up task).
 ## GP-H02 — Flash pair (Recall)
 
 ### Status
-Backlog
+**Partial (shipped scope)** — [`applyFlashPair`](../../src/shared/game.ts); charges default to **1** only when `practiceMode` **or** `wildMenuRun` (`createNewRun` ~1031–1032). Other modes keep **0** charges unless relic/meta changes that later.
 
 ### Priority
 Low
@@ -72,7 +72,7 @@ Player-chosen pair (different power).
 ## GP-H03 — Destroy ↔ score parasite feedback
 
 ### Status
-Backlog
+**Done** — [`applyDestroyPair`](../../src/shared/game.ts) resets `parasiteFloors` when `score_parasite` is active; see [`MUTATORS.md`](../MUTATORS.md) and test in [`game.test.ts`](../../src/shared/game.test.ts).
 
 ### Priority
 High

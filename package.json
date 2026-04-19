@@ -48,6 +48,7 @@
         "capture:ui-design-reference": "playwright test e2e/ui-design-reference.spec.ts --workers=1",
         "capture:endproduct-parity": "cross-env VISUAL_CAPTURE_ROOT=docs/visual-capture/endproduct-parity playwright test e2e/visual-endproduct-parity.spec.ts --workers=1",
         "capture:matched-flame": "playwright test e2e/capture-matched-flame.spec.ts --workers=1",
+        "test:e2e:procedural-gallery-smoke": "playwright test e2e/procedural-gallery-smoke.spec.ts --workers=1",
         "benchmark:illustration-regression": "cross-env RUN_ILLUSTRATION_BENCHMARK=1 playwright test e2e/tile-card-face-illustration-benchmark.spec.ts --workers=1",
         "docs:ui-audit": "node scripts/generate-visual-inventory-md.mjs",
         "docs:visual-inventory": "yarn docs:ui-audit",

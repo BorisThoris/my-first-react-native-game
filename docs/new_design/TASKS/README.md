@@ -2,6 +2,8 @@
 
 This folder holds **refined implementation tasks** derived from **multi-agent codebase audits** (parallel read-only exploration) plus manual consolidation. Use these as the working backlog for closing the gap to `docs/ENDPRODUCTIMAGE.png` and `docs/reference-comparison/CURRENT_VS_ENDPRODUCT.md`.
 
+**TASK-001 … TASK-020 snapshot (2026-04):** numbered `TASK-*.md` files were triaged — each **Status** is **Done (shipped baseline)**, **Deferred — asset blocked**, **Deferred — optional art**, or **Done (shipped)** with explicit residuals. Asset parity continues to route through [`DROP_IN_ASSET_CHECKLIST.md`](../DROP_IN_ASSET_CHECKLIST.md) and [`CURRENT_VS_ENDPRODUCT.md`](../../reference-comparison/CURRENT_VS_ENDPRODUCT.md).
+
 ## How these tasks were produced
 
 ### Pass 1 (four agents)

@@ -7,7 +7,7 @@ Source: [M-01–M-03](../gameplay-depth/05-app-specific-idea-backlog.md#m--mode-
 ## GP-M01 — Daily mutator variety
 
 ### Status
-Backlog
+**Done** — [`DAILY_MUTATOR_TABLE`](../../src/shared/mutators.ts) (9 entries); [`deriveDailyMutatorIndex`](../../src/shared/rng.ts); [`createDailyRun`](../../src/shared/game.ts).
 
 ### Priority
 Medium
@@ -39,7 +39,7 @@ Multiple mutators per daily (separate task if desired).
 ## GP-M02 — Wild run mutator pack
 
 ### Status
-Backlog
+**Done** — [`createWildRun`](../../src/shared/game.ts) (`sticky_fingers`, `short_memorize`, `findables_floor`).
 
 ### Priority
 Low
@@ -69,7 +69,7 @@ Player-selectable wild mutator mix (could be follow-up).
 ## GP-M03 — Meditation: pick focus mutator
 
 ### Status
-Backlog
+**Done** — [`createMeditationRun`](../../src/shared/game.ts); [`startMeditationRunWithMutators`](../../src/renderer/store/useAppStore.ts); meditation mutator picker UI (`ChooseYourPathScreen`).
 
 ### Priority
 Low

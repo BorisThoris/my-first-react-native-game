@@ -1,7 +1,10 @@
 # Task 012: Card Interaction FX and Celebration
 
 ## Status
-Partial (resolving-state pulse on DOM hit layer; score-pop / burst still future)
+
+Done (shipped) — resolving pulse on DOM hit layer; **`scorePop`** pill with **`scorePopBurst`** keyframes in [`GameScreen.module.css`](../../../src/renderer/components/GameScreen.module.css); animation disabled under **`data-reduce-motion='true'`**.
+
+**Not in v1:** reference-style particle burst / richer celebration beyond the pill — defer unless product adds FX budget.
 
 ## Implementation notes
 - **Audit finding:** Hidden / hover / flip / matched / mismatch exist; reference implies richer celebration (score pop, burst, clearer mismatch read).

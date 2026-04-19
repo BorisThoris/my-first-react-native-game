@@ -43,6 +43,10 @@ import { TILE_SPACING } from './tileShatter';
 import { computeShuffleMotionBudgetMs } from './shuffleFlipAnimation';
 
 export type TileBoardHandle = {
+    getTileClientRectAtGrid: (
+        row: number,
+        col: number
+    ) => { bottom: number; height: number; left: number; right: number; top: number; width: number } | null;
     runShuffleAnimation: (applyShuffle: () => void) => void;
 };
 
@@ -424,6 +428,18 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
     }, [focusedTileLabel]);
 
     useImperativeHandle(ref, () => ({
+        getTileClientRectAtGrid: (row: number, col: number) => {
+            const r = row - 1;
+            const c = col - 1;
+            if (r < 0 || c < 0 || r >= board.rows || c >= board.columns) {
+                return null;
+            }
+            const tile = board.tiles[r * board.columns + c];
+            if (!tile) {
+                return null;
+            }
+            return sceneHandleRef.current?.getTileClientRectById(tile.id) ?? null;
+        },
         runShuffleAnimation: (applyShuffle: () => void) => {
             if (reduceMotion) {
                 if (shuffleClearTimeoutRef.current) {
@@ -463,7 +479,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                 applyShuffle();
             });
         }
-    }), [board.tiles, reduceMotion]);
+    }), [board.columns, board.rows, board.tiles, reduceMotion]);
 
     useEffect(
         () => () => {
@@ -623,7 +639,25 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         if (!import.meta.env.DEV) {
             return undefined;
         }
-        const w = window as Window & { __e2ePickTileAtGrid1?: (row: number, col: number) => void };
+        const w = window as Window & {
+            __e2eGetTileClientRectAtGrid1?: (
+                row: number,
+                col: number
+            ) => { bottom: number; height: number; left: number; right: number; top: number; width: number } | null;
+            __e2ePickTileAtGrid1?: (row: number, col: number) => void;
+        };
+        w.__e2eGetTileClientRectAtGrid1 = (row: number, col: number) => {
+            const r = row - 1;
+            const c = col - 1;
+            if (r < 0 || c < 0 || r >= board.rows || c >= board.columns) {
+                return null;
+            }
+            const tile = board.tiles[r * board.columns + c];
+            if (!tile) {
+                return null;
+            }
+            return sceneHandleRef.current?.getTileClientRectById(tile.id) ?? null;
+        };
         w.__e2ePickTileAtGrid1 = (row: number, col: number): void => {
             const r = row - 1;
             const c = col - 1;
@@ -636,6 +670,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
             }
         };
         return () => {
+            delete w.__e2eGetTileClientRectAtGrid1;
             delete w.__e2ePickTileAtGrid1;
         };
     }, [board.columns, board.rows, board.tiles, handleTileSelect]);

@@ -8,6 +8,7 @@
  * | daily          | `buildSandboxDailyRun` (live daily table)            | Post-memorize daily                                   |
  * | dailyParasite  | `0xcafe`, `dailyDateKeyUtc: 20260404`, score_parasite | Post-memorize daily + parasite mutator                |
  * | gauntlet       | gauntlet factory                                     | Post-memorize gauntlet                                |
+ * | resolvingMismatch | `0xace`, first two non-matching tiles flipped     | Post-memorize arcade, mismatch resolving              |
  * | paused         | `0xbeefe`                                            | Paused arcade run                                     |
  * | gameOver       | `0xdead`                                             | Game over summary (`lives: 0`)                        |
  *
@@ -21,6 +22,7 @@ import {
     createNewRun,
     createRunSummary,
     finishMemorizePhase,
+    flipTile,
     pauseRun
 } from '../../shared/game';
 
@@ -36,6 +38,7 @@ export const SANDBOX_FIXTURE_IDS = [
     'daily',
     'dailyParasite',
     'gauntlet',
+    'resolvingMismatch',
     'paused',
     'gameOver'
 ] as const;
@@ -44,6 +47,30 @@ export type SandboxFixtureId = (typeof SANDBOX_FIXTURE_IDS)[number];
 
 const isFixtureId = (id: string | null): id is SandboxFixtureId =>
     id !== null && (SANDBOX_FIXTURE_IDS as readonly string[]).includes(id);
+
+const flipFirstMismatchPair = (run: RunState): RunState => {
+    const board = run.board;
+    if (!board) {
+        return run;
+    }
+
+    const pairGroups = new Map<string, string[]>();
+    for (const tile of board.tiles) {
+        const ids = pairGroups.get(tile.pairKey);
+        if (ids) {
+            ids.push(tile.id);
+        } else {
+            pairGroups.set(tile.pairKey, [tile.id]);
+        }
+    }
+
+    const orderedGroups = [...pairGroups.values()].filter((group) => group.length === 2);
+    if (orderedGroups.length < 2) {
+        return run;
+    }
+
+    return flipTile(flipTile(run, orderedGroups[0]![0]!), orderedGroups[1]![0]!);
+};
 
 /**
  * Build a non-persisted run for dev sandbox. Caller should apply `patchRunFromUserSettings`.
@@ -71,6 +98,11 @@ export const buildSandboxRun = (fixtureId: string | null, bestScore: number): Ru
         }
         case 'gauntlet': {
             return finishMemorizePhase(createGauntletRun(bestScore));
+        }
+        case 'resolvingMismatch': {
+            return flipFirstMismatchPair(
+                finishMemorizePhase(createNewRun(bestScore, { practiceMode: true, runSeed: 0xace }))
+            );
         }
         case 'paused': {
             const playing = finishMemorizePhase(createNewRun(bestScore, { practiceMode: true, runSeed: 0xbeefe }));

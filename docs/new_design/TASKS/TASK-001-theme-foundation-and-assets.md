@@ -1,7 +1,10 @@
 # Task 001: Theme Foundation and Assets
 
 ## Status
-Partial (landed in renderer)
+
+Done (shipped baseline) — theme tokens + global CSS + asset directories wired in renderer.
+
+**Residual / follow-up:** full illustrated menu/gameplay scenes vs `docs/ENDPRODUCTIMAGE*.png` — track in [`docs/reference-comparison/CURRENT_VS_ENDPRODUCT.md`](../../reference-comparison/CURRENT_VS_ENDPRODUCT.md) and [`docs/new_design/DROP_IN_ASSET_CHECKLIST.md`](../DROP_IN_ASSET_CHECKLIST.md); no further code until assets land.
 
 ## Implementation notes
 - Shared tokens live in `src/renderer/styles/theme.ts` and `src/renderer/styles/global.css`; UI raster slots live under `src/renderer/assets/ui/` and card textures under `src/renderer/assets/textures/cards/`.

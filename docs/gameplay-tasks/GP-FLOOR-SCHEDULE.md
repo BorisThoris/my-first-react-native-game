@@ -7,7 +7,7 @@ Source: [F-01, F-02, F-03](../gameplay-depth/05-app-specific-idea-backlog.md#f--
 ## GP-F01 — Per-floor mutator schedule (endless)
 
 ### Status
-Backlog
+**Done** (2026-04-19 audit) — [`pickFloorScheduleEntry`](../../src/shared/floor-mutator-schedule.ts), [`advanceToNextLevel`](../../src/shared/game.ts); rollup: [GP_AUDIT_ROLLUP.md](./GP_AUDIT_ROLLUP.md).
 
 ### Priority
 High
@@ -42,7 +42,7 @@ Art for boss floors (see GP-F03); full HUD redesign.
 ## GP-F02 — Breather floors in schedule
 
 ### Status
-Backlog
+**Done** — breather rows in [`ENDLESS_FLOOR_CYCLE`](../../src/shared/floor-mutator-schedule.ts); tests [`floor-mutator-schedule.test.ts`](../../src/shared/floor-mutator-schedule.test.ts).
 
 ### Priority
 Medium
@@ -72,7 +72,7 @@ Automatic difficulty detection from player skill.
 ## GP-F03 — Boss floor tag
 
 ### Status
-Backlog
+**Done** — [`FloorTag`](../../src/shared/contracts.ts) on board; boss score branch + pills [`GameplayHudBar.tsx`](../../src/renderer/components/GameplayHudBar.tsx).
 
 ### Priority
 Low

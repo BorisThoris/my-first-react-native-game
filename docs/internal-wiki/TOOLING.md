@@ -87,6 +87,17 @@ The repo uses a **single** root `tsconfig.json` for `tsc --noEmit` so CSS module
 | `yarn package:win` | Build + Windows NSIS installer |
 | `yarn postinstall` | `scripts/postinstall.cjs` |
 
+### Static assets, plates, manifests, procedural bake
+
+| Script | What it does |
+|--------|----------------|
+| `yarn build:cloudflare` | Renderer-only prod build (`yarn build:renderer`) — e.g. Cloudflare Pages; **no** Electron bundle |
+| `yarn assets:choose-path-bg` | `scripts/generate-choose-path-background.mjs` |
+| `yarn optimize:card-front` | `scripts/svgo-optimize-card-front.mjs` |
+| `yarn generate:card-plates` | `tsx scripts/generate-card-plates.ts` |
+| `yarn build:card-illustration-manifest` | `scripts/build-card-illustration-manifest.mjs` |
+| `yarn bake:procedural-set` | `tsx scripts/bake-procedural-illustration-set.ts` — offline procedural PNG bake (see [visualization-work/README.md](../visualization-work/README.md)). **Default CI (`yarn ci`) does not bake**; use locally or optional automation outside PR gates |
+
 ## `scripts/` (maintenance)
 
 | Path | Role |
@@ -95,6 +106,12 @@ The repo uses a **single** root `tsconfig.json` for `tsc --noEmit` so CSS module
 | `run-mechanics-appendix.ts` | Writes mechanics catalog machine snapshot (versions + counts) |
 | `generate-visual-inventory-md.mjs` | Builds visual inventory markdown |
 | `extract-endproduct-wip-assets.mjs` | WIP extraction |
+| `bake-procedural-illustration-set.ts` | Procedural illustration offline bake (also `yarn bake:procedural-set`) |
+| `sim-endless.ts` | Endless schedule sampler (`yarn sim:endless`) |
+| `generate-card-plates.ts` | Card plate generation (`yarn generate:card-plates`) |
+| `generate-choose-path-background.mjs` | Choose-path background asset (`yarn assets:choose-path-bg`) |
+| `build-card-illustration-manifest.mjs` | Illustration manifest (`yarn build:card-illustration-manifest`) |
+| `svgo-optimize-card-front.mjs` | SVG optimize pass (`yarn optimize:card-front`) |
 | `card-pipeline/image_gen.mjs` | Card image generation |
 | `card-pipeline/print-card-texture-ideal.mjs` | Texture ideal / AI brief output |
 | `card-pipeline/capture-ui-vs-asset-screens.mjs` | UI vs asset screenshot pass |
