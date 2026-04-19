@@ -67,3 +67,32 @@ powershell -ExecutionPolicy Bypass -File scripts/card-pipeline/normalize-card-te
 ```
 
 Requires `OPENAI_API_KEY` for `imagegen`. See also `src/renderer/assets/ASSET_SOURCES.md`.
+
+---
+
+## 6. Local GPU batch (SDXL, offline)
+
+Generate many card backs once on your machine (~36 built-in themed variants), then normalize the same way as API output.
+
+```bash
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
+pip install -r scripts/card-pipeline/requirements-local-card-backs.txt
+yarn card-backs:local
+```
+
+Raw PNGs land in `tmp/card-backs-raw/`; normalized **`1403×2048`**-class outputs in `tmp/card-backs-normalized/` (`--long-edge 2048`). Accept the model license on Hugging Face if prompted; gated checkpoints need `HF_TOKEN` or `huggingface-cli login`. Optional custom list: `--manifest scripts/card-pipeline/card-back-prompts.manifest.example.json`.
+
+---
+
+## 7. Face illustration panels (tarot mat only, local SDXL)
+
+Central illustration safe zone matches `CARD_ILLUSTRATION_INSET` in `src/renderer/cardFace/cardIllustrationRect.ts` and static overlay size **1024** card height in `tileTextures.ts`. The generator outputs **panel aspect** rasters (**520×592** px, SDXL-friendly), **not** full card planes — **do not** run `normalize-card-texture.ps1` on these.
+
+```bash
+yarn face-panels:local:dry
+yarn face-panels:local
+```
+
+Outputs: `tmp/face-panels/face-panel-NN.png` plus `scripts/card-pipeline/generated-face-panels-last-run.json`. Copy finals into `src/renderer/assets/cards/illustrations/` and extend `cardIllustrationRegistry.ts`. Keep prompts short (CLIP ~77-token limit per SDXL encoder).
+
+Treat each output as **standalone artwork**: the bitmap should read as illustration only (full canvas = paint), not a photograph of cardstock, borders, deck chrome, or “a tarot card showing …”. Prompt the **motif/scene/symbol** (relic, crystal, blade, tower, etc.); ornate frame and HUD chrome are drawn in code. After replacing PNGs from a regen, run `yarn build:card-illustration-manifest`, bump illustration schema / gameplay texture version if visuals shift, and `yarn regenerate:illustration-regression` if hashes are enforced.

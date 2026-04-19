@@ -194,6 +194,10 @@ async function openParityFixtureWithSave(
  * Element-scoped PNGs for side-by-side comparison with `docs/ENDPRODUCTIMAGE.png`.
  * Run: `yarn capture:endproduct-parity` (writes under `docs/visual-capture/endproduct-parity/`) or default
  * `test-results/endproduct-parity/` without env.
+ *
+ * Stable gameplay-panel basenames:
+ * `main-game-screen`, `top-bar-details`, `sidebar-menu`, `card-face-down`, `card-hover`, `card-flipped`,
+ * `card-matched`, `interaction-flip`, `interaction-match`, `interaction-mismatch`.
  */
 test.describe('Endproduct parity captures (dev sandbox)', () => {
     test.describe.configure({ mode: 'serial' });

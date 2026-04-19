@@ -6,7 +6,10 @@ import type { Tile } from '../../shared/contracts';
 import { hashPairKey } from '../../shared/hashPairKey';
 import { getCardFaceOverlayColors, type ProgrammaticOverlayVariant } from './cardFaceOverlayPalette';
 import type { OverlayDrawTier } from './overlayDrawTier';
-import { drawProceduralIllustrationCoverInViewBox } from './cardIllustrationDraw';
+import { CARD_ILLUSTRATION_REGISTRY } from './cardIllustrationRegistry';
+import { getCardIllustrationImageByUrl } from './cardIllustrationImages';
+import { drawIllustrationCoverInViewBox, drawProceduralIllustrationCoverInViewBox } from './cardIllustrationDraw';
+import { resolveCardIllustrationUrl } from './resolveCardIllustrationUrl';
 
 export type { ProgrammaticOverlayVariant };
 
@@ -238,19 +241,28 @@ export const drawProgrammaticCardFaceOverlay = (
         context.restore();
     }
 
-    drawProceduralIllustrationCoverInViewBox(
-        context,
-        width,
-        height,
-        vbW,
-        vbH,
-        tile.pairKey,
-        tier,
-        c,
-        {
-            matFeatherStrength: tier === 'minimal' ? 0.55 : 1
-        }
-    );
+    const illUrl = resolveCardIllustrationUrl(tile, CARD_ILLUSTRATION_REGISTRY);
+    const illImg = illUrl ? getCardIllustrationImageByUrl(illUrl) : null;
+    const matStrength = tier === 'minimal' ? 0.55 : 1;
+    if (illImg?.naturalWidth) {
+        drawIllustrationCoverInViewBox(context, illImg, width, height, vbW, vbH, {
+            matFeatherStrength: matStrength
+        });
+    } else {
+        drawProceduralIllustrationCoverInViewBox(
+            context,
+            width,
+            height,
+            vbW,
+            vbH,
+            tile.pairKey,
+            tier,
+            c,
+            {
+                matFeatherStrength: matStrength
+            }
+        );
+    }
 
     context.save();
     context.globalAlpha = 0.74;

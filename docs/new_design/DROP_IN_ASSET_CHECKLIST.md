@@ -2,7 +2,7 @@
 
 Use this when final art is ready. Swap files **or** update imports in `src/renderer/assets/ui/index.ts` / `tileTextures.ts` to point at new URLs. Keep fallbacks until assets are verified on device.
 
-## Menu and gameplay scenes (TASK-009)
+## Menu and gameplay scenes ([TASK-009](TASKS/TASK-009-final-menu-and-gameplay-illustrations.md); playing stage parity **PLAY-006** in [`PLAYING_ENDPRODUCT/04-environment-stage.md`](TASKS/PLAYING_ENDPRODUCT/04-environment-stage.md))
 | Role | Typical import / usage |
 |------|-------------------------|
 | Menu hero layer | `UI_ART.menuScene` — `src/renderer/assets/ui/menu-scene.svg` (replace or add raster + change import) |
@@ -10,21 +10,21 @@ Use this when final art is ready. Swap files **or** update imports in `src/rende
 | Stage ring (optional) | `UI_ART.stageRing` |
 | Ambient field | `MainMenuBackground.tsx` — procedural; optional texture pass |
 
-## Logo / emblem (TASK-010)
+## Logo / emblem ([TASK-010](TASKS/TASK-010-final-logo-and-emblem-lockup.md))
 | Role | Typical import |
 |------|----------------|
 | Crest | `UI_ART.brandCrest` |
 | Menu emblem | `UI_ART.menuEmblem` |
 | Divider | `UI_ART.dividerOrnament` |
 
-## Card raster (TASK-011)
+## Card raster (**PLAY-007** — [`PLAYING_ENDPRODUCT/05-cards.md`](TASKS/PLAYING_ENDPRODUCT/05-cards.md); optional AI path [`CARD_TEXTURE_AI_BRIEF.md`](CARD_TEXTURE_AI_BRIEF.md))
 | Role | File / import |
 |------|----------------|
 | Hidden-side card art | `back.svg` — `tileTextures.ts` (`cardReference`), `cardSvgPlaneGeometry.ts`, DOM `.cardFaceBack` |
 | Face-up panel art | `front.svg` — `tileTextures.ts` (`cardFace`), `slots.ts` / `cardFaceUrl`, DOM `.cardFaceFront` / `.faceUp .cardBack` |
 | Edge / roughness | `edge.png`, `panel-roughness.png`, `edge-roughness.png` |
 
-## Mode cards (TASK-018)
+## Mode cards ([TASK-018](TASKS/TASK-018-mode-select-card-illustrations.md))
 | Role | Implementation |
 |------|------------------|
 | Per-mode illustration | Add assets under `src/renderer/assets/ui/` (or `backgrounds/`) and mount inside `ChooseYourPathScreen` cards |

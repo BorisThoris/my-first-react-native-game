@@ -8,5 +8,6 @@ Material in this tree is for **design iteration, QA captures, and import sources
 | **`card-des/`** | Ad-hoc card reference PNGs. |
 | **`validation/`** | Screenshots from `yarn capture:ui-vs-assets` (board vs source assets). |
 | **`png/`**, **`svg/`**, `crops.json`, `index.json` | Output from `yarn wip:extract-endproduct` (`scripts/extract-endproduct-wip-assets.mjs`). |
+| [`GAMEPLAY_ENDPRODUCT_TARGET_BRIEF.md`](./GAMEPLAY_ENDPRODUCT_TARGET_BRIEF.md) | Fixed-target brief for gameplay-panel image refinement and parity review. |
 
 Card texture tooling: **`scripts/card-pipeline/`** (`imagegen`, normalize, trim, etc.).

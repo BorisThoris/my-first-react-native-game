@@ -6,7 +6,7 @@ Deferred — asset blocked (brand logo/emblem). Exit: drop-in paths in [`DROP_IN
 
 ## Implementation notes
 - **Audit finding:** Current lockup is typographic plus `brandCrest` / `menuEmblem` assets; reference targets a more ornamental logo treatment.
-- **Relationship:** Tightens `TASK-001` / `TASK-003` branding residual.
+- **Relationship:** Tightens branding vs [`CURRENT_VS_TARGET_GAP_ANALYSIS.md`](../CURRENT_VS_TARGET_GAP_ANALYSIS.md) main-menu rows and [`TASKS_META_AND_SHELL.md`](./TASKS_META_AND_SHELL.md) meta shell work.
 - **Done for this pass:** See logo/emblem rows in `docs/new_design/DROP_IN_ASSET_CHECKLIST.md`.
 
 ## Priority
@@ -28,7 +28,6 @@ Land a final logo or emblem system (raster and/or SVG) and integrate it into the
 
 ## Dependencies
 - Final brand asset delivery
-- `TASK-001-theme-foundation-and-assets.md`
 
 ## Implementation Outcomes
 - Single source of truth for logo/emblem used consistently across menu and linked surfaces.

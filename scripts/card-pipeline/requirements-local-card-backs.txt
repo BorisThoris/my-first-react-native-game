@@ -1,0 +1,16 @@
+﻿# Local SDXL batch generation for card-back rasters (optional dev-only).
+#
+# Install PyTorch with CUDA *first* (pick the wheel that matches your driver), e.g.:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
+# Then:
+#   pip install -r scripts/card-pipeline/requirements-local-card-backs.txt
+#
+# Some checkpoints (default: SDXL base) require a Hugging Face token if the model is gated:
+#   set HF_TOKEN=...
+#   huggingface-cli login
+#
+diffusers>=0.27.0
+transformers>=4.38.0
+accelerate>=0.27.0
+safetensors>=0.4.0
+pillow>=10.0.0

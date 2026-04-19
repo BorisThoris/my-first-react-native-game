@@ -6,7 +6,7 @@ Deferred — optional per-mode poster rasters (card chrome + Daily border landed
 
 ## Implementation notes
 - **Audit finding:** `ChooseYourPathScreen` structure matches reference; mode cards can gain illustration panels, stronger frames, and timer/badge polish vs stills.
-- **Relationship:** Visual layer on `TASK-007-mode-selection-and-menu-ia.md`.
+- **Relationship:** Visual layer on Choose Your Path (`CURRENT_VS_TARGET_GAP_ANALYSIS.md` § Mode selection; [`TASKS_META_AND_SHELL.md`](./TASKS_META_AND_SHELL.md) mode-select shell).
 - **Landed:** `ChooseYourPathScreen.module.css` — subtle top highlight + inset sheen on `.card`; **Daily** card (`.cardDaily`) stronger purple border + outer glow toward reference “featured” chrome. Mode-card asset row in `docs/new_design/DROP_IN_ASSET_CHECKLIST.md`. Per-mode **poster rasters** still optional.
 
 ### Reference audit ([`CURRENT_VS_ENDPRODUCT.md`](../../reference-comparison/CURRENT_VS_ENDPRODUCT.md))
@@ -30,7 +30,6 @@ Add approved per-mode art (or shared ornamental frames with mode iconography) to
 
 ## Dependencies
 - Final illustrations or frame assets
-- `TASK-007-mode-selection-and-menu-ia.md`
 
 ## Implementation Outcomes
 - Cards feel premium and distinct at a glance; locked Endless remains honest.

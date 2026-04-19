@@ -78,7 +78,7 @@ Requirements:
 
 ## Drop-in checklist (renderer paths)
 
-For a concise map of **current imports** and where to place final art without rewiring components, see [DROP_IN_ASSET_CHECKLIST.md](DROP_IN_ASSET_CHECKLIST.md) (supports TASK-009–011 and TASK-018).
+For a concise map of **current imports** and where to place final art without rewiring components, see [DROP_IN_ASSET_CHECKLIST.md](DROP_IN_ASSET_CHECKLIST.md) (supports **TASK-009**, **TASK-010**, **`PLAY-007`** / **`PLAYING_ENDPRODUCT/05-cards.md`**, and **TASK-018**).
 
 ## Recommended Repo Structure
 

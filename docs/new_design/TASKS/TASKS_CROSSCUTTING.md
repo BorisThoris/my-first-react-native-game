@@ -20,7 +20,7 @@
 
 | Topic | Primary ID | Also see |
 |-------|----------------|----------|
-| Ornate pause/floor/relic chrome | `OVR-002` | `META-009`, `TASK-004` |
+| Ornate pause/floor/relic chrome | `OVR-002` | `META-009`, `PLAYING_ENDPRODUCT/04-environment-stage.md` (`PLAY-006`) |
 | Unified modal visual system | `OVR-001` | `META-009`, `DS-010` |
 | Exit / abandon run | `SIDE-003` | `NAV-003`, `NAV-013` |
 | Codex from menu | `NAV-002` | `SIDE-006` (promote to rail after entry exists) |

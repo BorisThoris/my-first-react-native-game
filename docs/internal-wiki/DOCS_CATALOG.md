@@ -137,26 +137,11 @@
 | File | Summary |
 |------|---------|
 | [README.md](../new_design/TASKS/README.md) | TASK index + completion tracking |
-| [TASK-001-theme-foundation-and-assets.md](../new_design/TASKS/TASK-001-theme-foundation-and-assets.md) | Theme foundation |
-| [TASK-002-shared-ui-primitives.md](../new_design/TASKS/TASK-002-shared-ui-primitives.md) | Shared primitives |
-| [TASK-003-main-menu-redesign.md](../new_design/TASKS/TASK-003-main-menu-redesign.md) | Main menu |
-| [TASK-004-gameplay-hud-and-shell.md](../new_design/TASKS/TASK-004-gameplay-hud-and-shell.md) | HUD + shell |
-| [TASK-005-card-states-and-fx.md](../new_design/TASKS/TASK-005-card-states-and-fx.md) | Card states / FX |
-| [TASK-006-settings-shell.md](../new_design/TASKS/TASK-006-settings-shell.md) | Settings shell |
-| [TASK-007-mode-selection-and-menu-ia.md](../new_design/TASKS/TASK-007-mode-selection-and-menu-ia.md) | Mode selection IA |
-| [TASK-008-gap-surfaces-and-regression.md](../new_design/TASKS/TASK-008-gap-surfaces-and-regression.md) | Gap surfaces |
-| [TASK-009-final-menu-and-gameplay-illustrations.md](../new_design/TASKS/TASK-009-final-menu-and-gameplay-illustrations.md) | Illustrations |
-| [TASK-010-final-logo-and-emblem-lockup.md](../new_design/TASKS/TASK-010-final-logo-and-emblem-lockup.md) | Logo lockup |
-| [TASK-011-final-card-art-and-texture-pipeline.md](../new_design/TASKS/TASK-011-final-card-art-and-texture-pipeline.md) | Card art pipeline |
-| [TASK-012-card-interaction-fx-and-celebration.md](../new_design/TASKS/TASK-012-card-interaction-fx-and-celebration.md) | Card interaction FX |
-| [TASK-013-gameplay-hud-segment-ornament-pass.md](../new_design/TASKS/TASK-013-gameplay-hud-segment-ornament-pass.md) | HUD ornament |
-| [TASK-014-visual-reference-captures-and-diff-process.md](../new_design/TASKS/TASK-014-visual-reference-captures-and-diff-process.md) | Reference capture process |
-| [TASK-015-settings-schema-for-reference-controls.md](../new_design/TASKS/TASK-015-settings-schema-for-reference-controls.md) | Settings schema |
-| [TASK-016-profile-and-meta-menu-strip.md](../new_design/TASKS/TASK-016-profile-and-meta-menu-strip.md) | Profile strip |
-| [TASK-017-social-and-community-strip.md](../new_design/TASKS/TASK-017-social-and-community-strip.md) | Social strip |
-| [TASK-018-mode-select-card-illustrations.md](../new_design/TASKS/TASK-018-mode-select-card-illustrations.md) | Mode card art |
-| [TASK-019-reference-stills-and-scenario-audit-matrix.md](../new_design/TASKS/TASK-019-reference-stills-and-scenario-audit-matrix.md) | Scenario audit matrix |
-| [TASK-020-endproduct-screenshot-audit-and-captures.md](../new_design/TASKS/TASK-020-endproduct-screenshot-audit-and-captures.md) | End-product screenshots |
+| [PLAYING_ENDPRODUCT/README.md](../new_design/TASKS/PLAYING_ENDPRODUCT/README.md) | `PLAY-*` gameplay endproduct backlog (pack; `01`–`07` area files) |
+| [TASKS_PLAYING_ENDPRODUCT.md](../new_design/TASKS/TASKS_PLAYING_ENDPRODUCT.md) | Thin landing → `PLAYING_ENDPRODUCT/` |
+| [TASK-009-final-menu-and-gameplay-illustrations.md](../new_design/TASKS/TASK-009-final-menu-and-gameplay-illustrations.md) | Illustrations (deferred assets) |
+| [TASK-010-final-logo-and-emblem-lockup.md](../new_design/TASKS/TASK-010-final-logo-and-emblem-lockup.md) | Logo lockup (deferred assets) |
+| [TASK-018-mode-select-card-illustrations.md](../new_design/TASKS/TASK-018-mode-select-card-illustrations.md) | Mode card art (deferred optional) |
 | [TASKS_A11Y_I18N_E2E.md](../new_design/TASKS/TASKS_A11Y_I18N_E2E.md) | Cross-cutting a11y / i18n / e2e |
 | [TASKS_ARCHIVE_PARITY.md](../new_design/TASKS/TASKS_ARCHIVE_PARITY.md) | Archive parity |
 | [TASKS_ASSETS_QA.md](../new_design/TASKS/TASKS_ASSETS_QA.md) | Assets QA |

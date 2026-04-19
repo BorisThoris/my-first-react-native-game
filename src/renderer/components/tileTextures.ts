@@ -26,11 +26,15 @@ import {
 } from '../cardFace/programmaticCardFace';
 import {
     clearProceduralIllustrationBitmapCache,
+    drawIllustrationInCanvasOverlay,
     drawProceduralIllustrationInCanvasOverlay,
     forceProceduralIllustrationBitmapCacheVersion,
     getProceduralIllustrationBitmapCacheDebugState,
     prewarmProceduralIllustrationBitmap
 } from '../cardFace/cardIllustrationDraw';
+import { CARD_ILLUSTRATION_REGISTRY } from '../cardFace/cardIllustrationRegistry';
+import { getCardIllustrationImageByUrl } from '../cardFace/cardIllustrationImages';
+import { resolveCardIllustrationUrl } from '../cardFace/resolveCardIllustrationUrl';
 import { drawRasterDeckComposedOverlay, isCardRasterDeckEnabled } from '../cardFace/cardRasterDeck';
 import { computeIllustrationPixelRect } from '../cardFace/cardIllustrationRect';
 import {
@@ -1084,6 +1088,15 @@ const drawCardFrontOverlay = (
     context.clearRect(0, 0, width, height);
     if (outerGrain > 0) {
         drawNoise(context, width, height, outerGrain, `rgba(${c.grainRgb},${c.grainAlpha * 0.65})`, rng);
+    }
+
+    const rasterPanelUrl = resolveCardIllustrationUrl(tile, CARD_ILLUSTRATION_REGISTRY);
+    const rasterPanelImg = rasterPanelUrl ? getCardIllustrationImageByUrl(rasterPanelUrl) : null;
+    if (rasterPanelImg?.naturalWidth) {
+        drawIllustrationInCanvasOverlay(context, canvas, rasterPanelImg, 1, {
+            matFeatherStrength: 0.92
+        });
+        return;
     }
 
     if (isCardRasterDeckEnabled()) {

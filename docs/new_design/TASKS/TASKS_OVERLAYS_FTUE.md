@@ -4,7 +4,7 @@
 
 **Finding:** Two modal families (**OverlayModal** vs **Settings** `shellModal**); achievements share rail with score pops; distraction is numeric tick only; `suppressStatusOverlays` when meta over gameplay.
 
-**Cross-links:** `TASKS_HUD_PARITY.md` (HUD-020 distraction), `TASKS_CARDS_VFX_PARITY.md` (celebration), `docs/new_design/TASKS/TASK-004-gameplay-hud-and-shell.md`, `TASK-012`, `MOTION_AND_STATE_SPEC.md`, `REFERENCE_VS_SCENARIOS.md`.
+**Cross-links:** `TASKS_HUD_PARITY.md` (HUD-020 distraction), `TASKS_CARDS_VFX_PARITY.md` (celebration), `PLAYING_ENDPRODUCT/06-interactions.md` (`PLAY-008`), `MOTION_AND_STATE_SPEC.md`, `REFERENCE_VS_SCENARIOS.md`.
 
 ---
 
@@ -17,7 +17,7 @@
 | OVR-003 | P2 | Modal motion spec | Enter/exit from MOTION_AND_STATE_SPEC. | `data-reduce-motion` gates. | — |
 | OVR-004 | P1 | Achievement surface split | Dedicated ribbon/modal vs generic toast. | `aria-live` policy (A11Y-005). | — |
 | OVR-005 | P2 | Score pop stacking | Max concurrent, collision with achievements. | Readable on mobile. | OVR-004 |
-| OVR-006 | P2 | Powers FTUE polish | Placement/hierarchy vs TASK-004; optional board markers. | Product |
+| OVR-006 | P2 | Powers FTUE polish | Placement/hierarchy vs gameplay shell (`PLAY-*` pack); optional board markers. | Product |
 | OVR-007 | P2 | Distraction channel fidelity | Channel chrome; contrast; intent doc. | Still off when reduceMotion. | HUD-020 |
 | OVR-009 | P1 | `suppressStatusOverlays` tests | Matrix: pause + inventory/settings open. | Playwright or unit. | NAV-010 |
 | OVR-010 | P1 | Focus management parity | OverlayModal vs Settings modal: trap + return. | Keyboard audit. | A11Y-004 |

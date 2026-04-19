@@ -16,7 +16,7 @@
 | HUD-007 | P1 | Parasite art pass | Purple crystal + bar treatment aligned to ENDPRODUCT / VISUAL_SYSTEM_SPEC. | Uses asset or CSS vars; documented in `ASSET_SOURCES.md` if raster/SVG added. | — |
 | HUD-008 | P1 | Mutator visual variants | Beyond parasite: distinct mini-widgets or icons for time-sensitive mutators where spec demands. | At least 2 mutator types differ visually from generic chip. | — |
 | HUD-009 | P1 | Separate mutator “context” styling | Meta/mutator region visually subordinate to score (spec: context not peer). | Tokens or section class distinguish stats vs context. | HUD-001, **PLAY-003** |
-| HUD-010 | P2 | Floor module ornament | Hex / heavy gold frame variant for floor badge. | Matches COMPONENT_CATALOG direction; visual review. | TASK-013 / art, **PLAY-005** |
+| HUD-010 | P2 | Floor module ornament | Hex / heavy gold frame variant for floor badge. | Matches COMPONENT_CATALOG direction; visual review. | [`PLAYING_ENDPRODUCT/03-hud.md`](./PLAYING_ENDPRODUCT/03-hud.md) (**PLAY-005**), art |
 | HUD-011 | P2 | Continuous rail chrome | Shared outer frame connecting segments. | Optional SVG/CSS; does not break responsive wrap fallback. | HUD-001 |
 | HUD-012 | P1 | `cameraViewportMode` derivation | Replace hard-coded or always-on behavior with viewport + setting or flag; document behavior. | Types + comment; e2e updated if default changes. | Product |
 | HUD-013 | P1 | Z-index / safe-area QA | After layout changes, left rail and HUD do not overlap incorrectly. | Manual + `mobile-layout` green. | HUD-001 |

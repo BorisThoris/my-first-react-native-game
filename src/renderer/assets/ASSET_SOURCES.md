@@ -47,11 +47,14 @@ Two files both export a constant named `UI_ART` — they are **not** interchange
 | `ui/frames/hud-segment-ornament.svg` | HUD score segment flourish | Authored SVG | Hex motif; used in `GameScreen.module.css` |
 | `textures/cards/back.svg` | Tile **hidden** side (default runtime) | SVG Storm–style trace; wired from `tileTextures.ts`, `TileBoard.module.css`, `TileBoardScene.tsx`, `slots.ts`. WebGL merged mesh when under byte/vertex caps ([`cardSvgPlaneGeometry.ts`](../components/cardSvgPlaneGeometry.ts)). | Large path count; primary card back source. |
 | `textures/cards/front.svg` | Face-up panel (default runtime) | Traced front; pairs with `back.svg` | Same pipeline as `back.svg`. |
-| `textures/cards/authored-card-back.svg` | Alternate back art (optional) | Hand-authored vector (**PLAY-007** / **TASK-011**); not wired by default | On disk for reference or future toggle. |
+| `textures/cards/authored-card-back.svg` | Alternate back art (optional) | Hand-authored vector (**PLAY-007**, [`PLAYING_ENDPRODUCT/05-cards.md`](../../../docs/new_design/TASKS/PLAYING_ENDPRODUCT/05-cards.md)); not wired by default | On disk for reference or future toggle. |
 | `textures/cards/authored-card-front.svg` | Alternate face panel (optional) | Hand-authored stone frame + center well | Pairs with `authored-card-back.svg`. |
+| _(not in repo)_ `tmp/card-backs-normalized/` | Local SDXL batch card backs (36× portrait PNGs) | `yarn card-backs:local` → [`batch_local_card_backs.py`](../../../scripts/card-pipeline/batch_local_card_backs.py); manifest [`generated-backs-last-run.json`](../../../scripts/card-pipeline/generated-backs-last-run.json) | Gitignored temp output (~1403×2048 each). Pick a keeper and replace raster imports or add a theme pool when product wires multi-back selection in `tileTextures.ts`. |
 | `textures/cards/edge.png` | Card edge map | `scripts/card-pipeline/generate-card-textures.ps1` | Pairs with `tileTextures.ts` |
 | `textures/cards/panel-roughness.png` | Panel roughness | `scripts/card-pipeline/generate-card-textures.ps1` | |
 | `textures/cards/edge-roughness.png` | Edge roughness | `scripts/card-pipeline/generate-card-textures.ps1` | |
+| `cards/illustrations/face-panel-NN.png` | Tarot illustration **mat** rasters (center panel) | `yarn face-panels:local` → [`batch_local_face_panels.py`](../../../scripts/card-pipeline/batch_local_face_panels.py) | Drawn inside `CARD_ILLUSTRATION_INSET`; see `cardIllustrationRegistry.ts`. Legacy `deck-01..06.svg` stay referenced for `yarn build:card-illustration-manifest`. |
+| _(not in repo)_ `tmp/face-panels/` | Local SDXL batch staging | Same | Gitignored until copied into `cards/illustrations/`. |
 
 ### Card faces: atomic SVG vs overlay FX
 

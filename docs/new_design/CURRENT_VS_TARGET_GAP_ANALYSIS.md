@@ -9,7 +9,7 @@ This document maps the reference images against the current live renderer and cl
 - `Asset-only dependency`
 
 ## Related
-- **Screenshot delta tables** (Playwright captures vs `ENDPRODUCTIMAGE*.png`): [`docs/reference-comparison/CURRENT_VS_ENDPRODUCT.md`](../reference-comparison/CURRENT_VS_ENDPRODUCT.md). Maintenance: [`docs/new_design/TASKS/TASK-020-endproduct-screenshot-audit-and-captures.md`](TASKS/TASK-020-endproduct-screenshot-audit-and-captures.md).
+- **Screenshot delta tables** (Playwright captures vs `ENDPRODUCTIMAGE*.png`): [`docs/reference-comparison/CURRENT_VS_ENDPRODUCT.md`](../reference-comparison/CURRENT_VS_ENDPRODUCT.md). Maintenance: [`PLAYING_ENDPRODUCT/01-evidence-and-working-comps.md`](TASKS/PLAYING_ENDPRODUCT/01-evidence-and-working-comps.md) (**`PLAY-010`**).
 
 ## Current Live App Boundaries
 
@@ -60,9 +60,9 @@ From `e2e/visualScenarioSteps.ts`, the visual workflow captures:
 ### Main Menu Summary
 - Menu IA and routing match the redesign program; remaining gap is mostly illustration/logo assets and premium chrome density.
 
-### Profile / social strips (TASK-016 / TASK-017 resolution)
-- **Profile / meta strip:** Not required for the current Steam demo scope; tracked as optional product work in `docs/new_design/TASKS/TASK-016-profile-and-meta-menu-strip.md`.
-- **Social / community strip:** Not in v1; defer or use external storefront links only if product approves—see `docs/new_design/TASKS/TASK-017-social-and-community-strip.md`.
+### Profile / social strips (deferred)
+- **Profile / meta strip:** Not required for the current Steam demo scope; optional future product layer (no in-app strip in v1).
+- **Social / community strip:** Not in v1; defer or use external storefront links only if product approves.
 
 ---
 
@@ -77,7 +77,7 @@ From `e2e/visualScenarioSteps.ts`, the visual workflow captures:
 | Sidebar labeled actions | Reference shows expanded labels; live uses icon rail + overlays | Restylable existing surface | Parity is product choice, not a second flyout |
 | Collection/inventory/codex entries | Rail + full-screen meta where routed | Restylable existing surface | Collection is menu-first per IA |
 | Premium card back/front treatment | `tileTextures` + board CSS / WebGL | Structurally mismatched existing surface | Asset + state FX still main lever |
-| Hover, flip, matched, mismatch FX | Implemented; iteratively stronger | Restylable existing surface | See TASK-005 |
+| Hover, flip, matched, mismatch FX | Implemented; iteratively stronger | Restylable existing surface | See [`PLAYING_ENDPRODUCT/06-interactions.md`](TASKS/PLAYING_ENDPRODUCT/06-interactions.md) (`PLAY-008`, `PLAY-009`) |
 | Score popup and celebratory burst | Partial feedback | Structurally mismatched existing surface | FX layer can deepen |
 
 ### Gameplay Summary

@@ -1,0 +1,15 @@
+﻿{
+  "negative_prompt": "text, watermark, logo, face, photograph of person",
+  "entries": [
+    {
+      "id": "custom-a",
+      "prompt": "Portrait fantasy card back for a memory game. Deep blue-black void stone, antique gold filigree.",
+      "seed": 4242
+    },
+    {
+      "id": "custom-b",
+      "prompt": "Portrait fantasy card back for a memory game. Verdigris copper trim, labyrinth motif, cathedral mood.",
+      "seed": 4243
+    }
+  ]
+}

@@ -33,6 +33,8 @@ import {
     type IntroPreset
 } from './startupIntroConfig';
 import { handleTabFocusTrapEvent } from '../a11y/focusables';
+import { getAllCardIllustrationUrls } from '../cardFace/cardIllustrationRegistry';
+import { preloadCardIllustrationImages } from '../cardFace/cardIllustrationImages';
 import { preloadTileTextureImages } from './tileTextures';
 import { hasWebGLSupport, loadRelicTextures, type RelicTextureSet } from './startupIntroTextures';
 import styles from './StartupIntro.module.css';
@@ -766,7 +768,10 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
 
         let cancelled = false;
 
-        void preloadTileTextureImages();
+        void Promise.all([
+            preloadTileTextureImages(),
+            preloadCardIllustrationImages(getAllCardIllustrationUrls())
+        ]);
 
         void loadRelicTextures(relicSvgUrl)
             .then((nextTextureSet) => {

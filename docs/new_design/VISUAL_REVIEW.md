@@ -19,11 +19,11 @@ Describe how to compare the live renderer to `ENDPRODUCTIMAGE.png` / `ENDPRODUCT
 1. Generate captures for the viewport set you care about.
 2. Open reference stills beside `test-results/visual-screens/<device>/<orientation>/*.png` (or your `VISUAL_CAPTURE_ROOT` mirror).
 3. Use [REFERENCE_VS_SCENARIOS.md](REFERENCE_VS_SCENARIOS.md) to map each reference panel to a scenario name.
-4. File gaps under `docs/new_design/TASKS/TASK-009` through `TASK-019` or update [CURRENT_VS_TARGET_GAP_ANALYSIS.md](CURRENT_VS_TARGET_GAP_ANALYSIS.md).
+4. File gaps in [`PLAYING_ENDPRODUCT/README.md`](TASKS/PLAYING_ENDPRODUCT/README.md), retained asset tasks [`TASK-009`](TASKS/TASK-009-final-menu-and-gameplay-illustrations.md) / [`TASK-010`](TASKS/TASK-010-final-logo-and-emblem-lockup.md) / [`TASK-018`](TASKS/TASK-018-mode-select-card-illustrations.md), or update [CURRENT_VS_TARGET_GAP_ANALYSIS.md](CURRENT_VS_TARGET_GAP_ANALYSIS.md).
 
 ## Policy choice (team)
 - CI-only artifacts: rely on `test-results/` from pipeline; do not commit large binaries.
-- Committed baselines: check in a curated subset under `docs/visual-capture` for design review; document the policy here and in TASK-008 notes.
+- Committed baselines: check in a curated subset under `docs/visual-capture` for design review; document the policy here and in [`PLAYING_ENDPRODUCT/01-evidence-and-working-comps.md`](TASKS/PLAYING_ENDPRODUCT/01-evidence-and-working-comps.md) (**PLAY-010**).
 
 ### Recorded default (this repo)
 - Regression / CI: treat `test-results/visual-screens/` (or the default `VISUAL_CAPTURE_ROOT`) as the normal output, gitignored, with no binary commit required for green builds.
@@ -46,7 +46,6 @@ Use this before release or after any epic that moves **HUD**, **GameScreen** chr
 
 ## Related tasks
 - [TASKS_HUD_PARITY.md — HUD-019](TASKS/TASKS_HUD_PARITY.md) (visual baselines before release)
-- [TASK-014](TASKS/TASK-014-visual-reference-captures-and-diff-process.md)
-- [TASK-019](TASKS/TASK-019-reference-stills-and-scenario-audit-matrix.md)
-- [TASK-008](TASKS/TASK-008-gap-surfaces-and-regression.md)
-- [TASK-020](TASKS/TASK-020-endproduct-screenshot-audit-and-captures.md)
+- [PLAYING_ENDPRODUCT/01-evidence-and-working-comps.md — PLAY-010](TASKS/PLAYING_ENDPRODUCT/01-evidence-and-working-comps.md)
+- [`CURRENT_VS_ENDPRODUCT.md`](../reference-comparison/CURRENT_VS_ENDPRODUCT.md) (screenshot audit §4–§6)
+- [`REFERENCE_VS_SCENARIOS.md`](REFERENCE_VS_SCENARIOS.md)

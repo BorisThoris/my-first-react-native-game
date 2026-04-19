@@ -23,5 +23,5 @@ Maps major **reference still** areas to **`e2e/visualScenarioSteps.ts`** scenari
 Scenarios run per project in `e2e/visual-screens.mobile.spec.ts` and `e2e/visual-screens.standard.spec.ts` (see `MOBILE_VISUAL_VIEWPORTS` and `STANDARD_VISUAL_VIEWPORTS` in `e2e/visualScreenHelpers.ts`).
 
 ## Gaps
-- Reference **profile / social strips** have no dedicated scenario; see TASK-016 / TASK-017 and [CURRENT_VS_TARGET_GAP_ANALYSIS.md](CURRENT_VS_TARGET_GAP_ANALYSIS.md).
+- Reference **profile / social strips** have no dedicated scenario; deferrals in [CURRENT_VS_TARGET_GAP_ANALYSIS.md](CURRENT_VS_TARGET_GAP_ANALYSIS.md) § Profile / social strips.
 - **Pixel diff automation** is out of scope unless the team adds a separate tool.

@@ -2,7 +2,7 @@
 
 This folder holds **refined implementation tasks** derived from **multi-agent codebase audits** (parallel read-only exploration) plus manual consolidation. Use these as the working backlog for closing the gap to `docs/ENDPRODUCTIMAGE.png` and `docs/reference-comparison/CURRENT_VS_ENDPRODUCT.md`.
 
-**TASK-001 … TASK-020 snapshot (2026-04):** numbered `TASK-*.md` files were triaged — each **Status** is **Done (shipped baseline)**, **Deferred — asset blocked**, **Deferred — optional art**, or **Done (shipped)** with explicit residuals. Asset parity continues to route through [`DROP_IN_ASSET_CHECKLIST.md`](../DROP_IN_ASSET_CHECKLIST.md) and [`CURRENT_VS_ENDPRODUCT.md`](../../reference-comparison/CURRENT_VS_ENDPRODUCT.md).
+**Gameplay endproduct backlog:** open **`PLAY-*`** work lives only in [`PLAYING_ENDPRODUCT/README.md`](./PLAYING_ENDPRODUCT/README.md) (aligned with [`CURRENT_VS_ENDPRODUCT.md`](../../reference-comparison/CURRENT_VS_ENDPRODUCT.md) §4). **Deferred asset holdouts** remain in numbered docs **[`TASK-009`](./TASK-009-final-menu-and-gameplay-illustrations.md)** (menu/gameplay illustrations), **[`TASK-010`](./TASK-010-final-logo-and-emblem-lockup.md)** (logo/emblem), **[`TASK-018`](./TASK-018-mode-select-card-illustrations.md)** (mode posters). Asset drop-ins: [`DROP_IN_ASSET_CHECKLIST.md`](../DROP_IN_ASSET_CHECKLIST.md).
 
 ## How these tasks were produced
 
@@ -38,7 +38,7 @@ Use this whenever gameplay HUD, sidebar, or tile chrome changes, or before a rel
 - `docs/new_design/VISUAL_SYSTEM_SPEC.md`
 - `docs/new_design/COMPONENT_CATALOG.md`
 - `docs/reference-comparison/CURRENT_VS_ENDPRODUCT.md`
-- `docs/new_design/TASKS/TASK-004-gameplay-hud-and-shell.md` (and sibling TASK-* files)
+- [`PLAYING_ENDPRODUCT/README.md`](./PLAYING_ENDPRODUCT/README.md) — **`PLAY-*`** gameplay parity vs `ENDPRODUCTIMAGE.png` §4 (HUD/sidebar/stage/cards/evidence); namespaced **`HUD-*` / `SIDE-*` / `CARD-*`** tables remain in their parity docs below
 
 ---
 
@@ -52,7 +52,7 @@ Use this whenever gameplay HUD, sidebar, or tile chrome changes, or before a rel
 | [TASKS_SIDEBAR_PARITY.md](./TASKS_SIDEBAR_PARITY.md) | Left rail, icons, exit affordance | `SIDE-*` |
 | [TASKS_CARDS_VFX_PARITY.md](./TASKS_CARDS_VFX_PARITY.md) | DOM/WebGL tiles, flip, match/mismatch FX | `CARD-*`, `FX-*` |
 | [TASKS_ASSETS_QA.md](./TASKS_ASSETS_QA.md) | Asset paths, manifests, e2e/visual regression | `AST-*`, `QA-*` |
-| [TASKS_PLAYING_ENDPRODUCT.md](./TASKS_PLAYING_ENDPRODUCT.md) | Playing screen vs `ENDPRODUCTIMAGE.png` (top-left): rail IA, HUD density, stage, cards, FX, evidence | `PLAY-*` |
+| [`PLAYING_ENDPRODUCT/README.md`](./PLAYING_ENDPRODUCT/README.md) · thin landing [`TASKS_PLAYING_ENDPRODUCT.md`](./TASKS_PLAYING_ENDPRODUCT.md) | Playing screen vs `ENDPRODUCTIMAGE.png` (top-left): rail IA, HUD density, stage, cards, interactions, evidence | `PLAY-*` |
 | [TASKS_ARCHIVE_PARITY.md](./TASKS_ARCHIVE_PARITY.md) | Completed `HUD-*` / `SIDE-*` rows removed from active tables | archive only |
 
 **Endproduct HUD/board crops (local):** `yarn playwright test e2e/hud-inspect.spec.ts e2e/visual-endproduct-parity.spec.ts --workers=1` → `test-results/endproduct-parity/` (`hud-element.png`, `hud-metrics.json`, `hud-fragment.html`, `tile-board-*.png`). Set `VISUAL_CAPTURE_ROOT` to write elsewhere.

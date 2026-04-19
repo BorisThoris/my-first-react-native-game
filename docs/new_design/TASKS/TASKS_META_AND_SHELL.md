@@ -6,7 +6,7 @@
 
 **Finding:** Strong environment on **MainMenu** (Pixi + scene PNG) and **mode posters** on Choose Path; **Codex / Collection / Inventory / Choose Path** use **`.shellMetaStage`** dim wash (**`META-001`**); **page Settings** uses modal shell; **GameOver** uses Pixi + scrim but no hero plate like MainMenu; **OverlayModal** is shared chrome for pause / floor / relic.
 
-**Cross-links:** `TASKS_OVERLAYS_FTUE.md` (OVR-001–003 overlap META-009), `TASKS_SIDEBAR_PARITY.md`, `docs/new_design/TASKS/TASK-004-gameplay-hud-and-shell.md`, `TASK-003`, `TASK-007`, `TASK-016`, `TASK-018`.
+**Cross-links:** `TASKS_OVERLAYS_FTUE.md` (OVR-001–003 overlap META-009), `TASKS_SIDEBAR_PARITY.md`, `PLAYING_ENDPRODUCT/README.md` (in-`GameScreen` `PLAY-*` vs `ENDPRODUCTIMAGE.png`), `CURRENT_VS_TARGET_GAP_ANALYSIS.md` (main menu / mode select / profile–social deferrals), `TASK-018` (mode poster art).
 
 **REF-015 (partial, 2026):** Menu-path **Inventory** relic/mutator bands now share **`MetaScreen.module.css`** catalog row tokens (`.archiveCatalogRow` / `.archiveCatalogGrid`) and **`MetaFrame`** framing with **Collection**’s archive language; full **META-006** / **META-007** (tier art, slot grid, charge pips) remains separate backlog.
 

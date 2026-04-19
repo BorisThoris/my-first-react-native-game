@@ -6,7 +6,7 @@ Deferred — asset blocked. Exit criteria: populate [`DROP_IN_ASSET_CHECKLIST.md
 
 ## Implementation notes
 - **Audit finding:** Live menu uses `MainMenuBackground` (Pixi) plus `UI_ART.menuScene` / `gameplayScene` SVGs; reference comps expect painted dungeon/tavern hero and a cinematic gameplay stage (see `SCREEN_SPEC_GAMEPLAY.md` Zone A).
-- **Relationship:** Extends residual work in `TASK-001-theme-foundation-and-assets.md` and `TASK-003-main-menu-redesign.md` once final raster or vector key art is approved.
+- **Relationship:** Aligns main menu / gameplay illustrated layers with [`CURRENT_VS_TARGET_GAP_ANALYSIS.md`](../CURRENT_VS_TARGET_GAP_ANALYSIS.md); gameplay stage framing ties to **`PLAY-006`** in [`PLAYING_ENDPRODUCT/04-environment-stage.md`](./PLAYING_ENDPRODUCT/04-environment-stage.md) once approved art lands.
 - **Done for this pass:** `docs/new_design/DROP_IN_ASSET_CHECKLIST.md` lists drop-in paths for menu/gameplay scene slots.
 
 ## Priority
@@ -28,8 +28,7 @@ Replace or heavily layer approved illustrated key art for the main menu hero and
 - `src/renderer/assets/ui/` imports
 
 ## Dependencies
-- `TASK-001-theme-foundation-and-assets.md`
-- Approved final illustrations exported to repo-standard sizes and formats
+- Approved final illustrations exported to repo-standard sizes and formats ([`ASSET_AND_ART_PIPELINE.md`](../ASSET_AND_ART_PIPELINE.md))
 
 ## Implementation Outcomes
 - Menu and gameplay backgrounds read as intentional illustrated stages, not placeholder abstract fields.
