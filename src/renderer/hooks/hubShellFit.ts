@@ -12,7 +12,7 @@ const HUB_SHELL_FIT_PADDING_MENU_DEFAULT = 12;
  */
 const HUB_SHELL_FIT_PADDING_CHOOSE_PATH_DEFAULT = 14;
 
-export type HubShellSurface = 'menu' | 'choosePath';
+type HubShellSurface = 'menu' | 'choosePath';
 
 /**
  * CSS px padding passed to {@link useFitShellZoom} for hub meta shells.

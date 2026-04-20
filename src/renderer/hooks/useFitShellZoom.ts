@@ -1,6 +1,6 @@
 import { type RefObject, useLayoutEffect, useRef, useState } from 'react';
 
-export interface UseFitShellZoomArgs {
+interface UseFitShellZoomArgs {
     /** Element whose intrinsic `offsetWidth` / `offsetHeight` define the unscaled shell size. */
     measureRef: RefObject<HTMLElement | null>;
     viewportWidth: number;
@@ -13,7 +13,7 @@ export interface UseFitShellZoomArgs {
     recomputeKey?: unknown;
 }
 
-export interface ComputeFitShellZoomFactorArgs {
+interface ComputeFitShellZoomFactorArgs {
     viewportWidth: number;
     viewportHeight: number;
     contentWidth: number;

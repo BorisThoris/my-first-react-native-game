@@ -1,5 +1,5 @@
 # Legacy tree
 
-This folder holds **archived** code and notes from an earlier Expo / React Native prototype. It is **not** part of the current Electron desktop app build or release pipeline.
+The former **Expo / React Native / roguelike prototype** that lived under `legacy/expo-roguelike/` was **removed** from this repository to reduce noise in tooling and dead-code scans. For historical reference, use git history (commit before removal).
 
-Documents such as `expo-roguelike/technical.md` keep historical roadmaps and checklists for context only; unchecked `- [ ]` items are **not** active backlog for the shipping game.
+The **Memory Dungeon** desktop product is entirely under `src/` and `packages/notifications/`.

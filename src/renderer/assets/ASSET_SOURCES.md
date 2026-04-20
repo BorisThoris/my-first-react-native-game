@@ -4,13 +4,7 @@ Per [docs/new_design/ASSET_AND_ART_PIPELINE.md](../../docs/new_design/ASSET_AND_
 
 ## Which module to import? (`AST-003`)
 
-Two files both export a constant named `UI_ART` — they are **not** interchangeable.
-
-| Module | Export | Use for |
-|--------|--------|---------|
-| [`ui/index.ts`](ui/index.ts) | `UI_ART` | Shell / meta: menu & gameplay **PNG** backgrounds, crest, divider, emblem, seal, stage ring. Default import for full-screen scenes and shared chrome. |
-| [`ui/slots.ts`](ui/slots.ts) | `UI_ART` | Slot-style chrome plus **card** texture URLs (`cardBackUrl`, `cardFaceUrl`) and a small set of flourishes. Prefer aliasing on import (e.g. `UI_ART as SLOT_UI_ART`) in new code so it is not confused with the shell barrel. |
-| [`ui/modeArt.ts`](ui/modeArt.ts) | `MODE_CARD_ART` | Choose Your Path mode posters; re-exported from `index.ts`. |
+[`ui/index.ts`](ui/index.ts) exports **`UI_ART`** (shell / meta backgrounds and chrome). [`ui/modeArt.ts`](ui/modeArt.ts) exports **`MODE_CARD_ART`** (Choose Your Path posters; also re-exported from `index.ts`).
 
 **Authoritative menu / gameplay scenes:** `UI_ART.menuScene`, `UI_ART.choosePathScene`, and `UI_ART.gameplayScene` in `index.ts` point at **`ui/backgrounds/*.png`**. Legacy SVGs on disk (below) are not wired into the build.
 
@@ -44,7 +38,7 @@ Two files both export a constant named `UI_ART` — they are **not** interchange
 | `ui/icons/icon-undo-v1.svg` | Resolving-phase undo | Authored SVG | Same |
 | `ui/icons/icon-score-parasite-crystal.svg` | HUD score parasite mutator crystal glyph | Authored SVG | **HUD-007:** arcane-violet / gold-rim crystal aligned to `VISUAL_SYSTEM_SPEC` + `theme.ts` `--theme-hud-parasite-*`; used in `GameplayHudBar.tsx` (`?url` import). |
 | `ui/frames/hud-segment-ornament.svg` | HUD score segment flourish | Authored SVG | Hex motif; used in `GameScreen.module.css` |
-| `textures/cards/back.svg` | Tile **hidden** side (default runtime) | SVG Storm–style trace; wired from `tileTextures.ts`, `TileBoard.module.css`, `TileBoardScene.tsx`, `slots.ts`. WebGL merged mesh when under byte/vertex caps ([`cardSvgPlaneGeometry.ts`](../components/cardSvgPlaneGeometry.ts)). | Large path count; primary card back source. |
+| `textures/cards/back.svg` | Tile **hidden** side (default runtime) | SVG Storm–style trace; wired from `tileTextures.ts`, `TileBoard.module.css`, `TileBoardScene.tsx`. WebGL merged mesh when under byte/vertex caps ([`cardSvgPlaneGeometry.ts`](../components/cardSvgPlaneGeometry.ts)). | Large path count; primary card back source. |
 | `textures/cards/front.svg` | Face-up panel (default runtime) | Traced front; pairs with `back.svg` | Same pipeline as `back.svg`. |
 | `textures/cards/authored-card-back.svg` | Alternate back art (optional) | Hand-authored vector (**PLAY-007**, [`PLAYING_ENDPRODUCT/05-cards.md`](../../../docs/new_design/TASKS/PLAYING_ENDPRODUCT/05-cards.md)); not wired by default | On disk for reference or future toggle. |
 | `textures/cards/authored-card-front.svg` | Alternate face panel (optional) | Hand-authored stone frame + center well | Pairs with `authored-card-back.svg`. |
@@ -64,7 +58,7 @@ Two files both export a constant named `UI_ART` — they are **not** interchange
 - **WebGL:** [`tileTextures.ts`](../components/tileTextures.ts) loads each side as a single URL; [`cardSvgPlaneGeometry.ts`](../components/cardSvgPlaneGeometry.ts) merges paths into one plane mesh per side (vertex cap in that file).
 - **DOM:** [`TileBoard.module.css`](../components/TileBoard.module.css) uses each file as a full-bleed `background-image` on `.cardBack` / `.cardFaceFront`.
 
-**Independent motion or glow** on motifs is **not** done by parsing those SVGs into React subtrees. Optional **authored** overlays (crystal/sigil marks aligned in `back.svg` user space) live under [`components/cards/cardArt/`](../components/cards/cardArt/); the DOM hidden-face path can stack [`CardBackMotifOverlay`](../components/cards/cardArt/CardBackMotifOverlay.tsx) above the CSS `back.svg` layer. The WebGL board does **not** duplicate that overlay yet (same atomic texture + existing tint/overlay textures).
+**Independent motion or glow** on motifs is **not** done by parsing those SVGs into React subtrees; both DOM and WebGL use the same atomic raster/SVG layers plus existing tint and overlay textures from `tileTextures.ts`.
 
 ## Typography (self-hosted)
 
@@ -100,7 +94,7 @@ yarn imagegen -- --prompt "YOUR PROMPT" --out src/renderer/assets/ui/backgrounds
 # yarn png:trim-bbox tmp/card-back-raw.png tmp/card-back-trimmed.png --pad 2
 # powershell … normalize-card-texture.ps1 … -OutputPath src/renderer/assets/textures/cards/some-back.png
 
-# Vector sides: edit `back.svg` / `front.svg` (also `?url` imports in `tileTextures.ts` / `slots.ts`). WebGL builds merged meshes in `cardSvgPlaneGeometry.ts`.
+# Vector sides: edit `back.svg` / `front.svg` (also `?url` imports in `tileTextures.ts`). WebGL builds merged meshes in `cardSvgPlaneGeometry.ts`.
 ```
 
 In-game mapping is **contain** (not cover): full illustration stays visible; stretch is avoided so filigree/gems stay round.

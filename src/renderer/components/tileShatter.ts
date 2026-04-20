@@ -66,14 +66,14 @@ export interface TileShatterEffectData {
     pulses: TileDischargePulseSpec[];
 }
 
-export interface TileShatterFramePulseState {
+interface TileShatterFramePulseState {
     opacity: number;
     position: TileShatterVec3;
     scale: number;
     tint: string;
 }
 
-export interface TileShatterFrameState {
+interface TileShatterFrameState {
     completed: boolean;
     coreOpacity: number;
     flashOpacity: number;
@@ -84,7 +84,7 @@ export interface TileShatterFrameState {
     pulseStates: TileShatterFramePulseState[];
 }
 
-export interface TileShatterSpawnCandidate {
+interface TileShatterSpawnCandidate {
     index: number;
     tile: Tile;
 }
@@ -99,8 +99,6 @@ const createSeededRandom = (seed: number): (() => number) => {
         return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
     };
 };
-
-export const getNowMs = (): number => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 
 const hashString = (value: string): number => {
     let hash = 0;

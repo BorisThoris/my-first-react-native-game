@@ -21,7 +21,7 @@ const normalizePointerInViewport = (clientX: number, clientY: number): TiltVecto
     return applyDeadzoneTilt({ x, y });
 };
 
-export interface UsePlatformTiltFieldOptions {
+interface UsePlatformTiltFieldOptions {
     enabled: boolean;
     reduceMotion: boolean;
     surfaceRef: RefObject<HTMLElement | null>;
@@ -30,7 +30,7 @@ export interface UsePlatformTiltFieldOptions {
     strength?: number;
 }
 
-export interface UsePlatformTiltFieldResult {
+interface UsePlatformTiltFieldResult {
     tiltRef: MutableRefObject<TiltVector>;
     sourceRef: MutableRefObject<TiltSource>;
     /** In-app reduce motion and/or `prefers-reduced-motion` — use for permission chip visibility. */

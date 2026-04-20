@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-export interface ViewportSize {
+interface ViewportSize {
     width: number;
     height: number;
 }

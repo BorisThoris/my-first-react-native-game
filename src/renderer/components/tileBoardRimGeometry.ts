@@ -49,7 +49,7 @@ export const getSharedFindableScoreGlyphGeometry = (): RingGeometry => {
 /**
  * TBF-009: segment counts for circular rings (low = cheaper mesh).
  */
-export const getRimRingSegments = (quality: GraphicsQualityPreset): number => {
+const getRimRingSegments = (quality: GraphicsQualityPreset): number => {
     switch (quality) {
         case 'low':
             return 28;
@@ -62,11 +62,11 @@ export const getRimRingSegments = (quality: GraphicsQualityPreset): number => {
 };
 
 /** Crisp inner resolving ring — circular path (low / fallback). */
-export const createResolvingCrispRingGeometry = (quality: GraphicsQualityPreset): RingGeometry =>
+const createResolvingCrispRingGeometry = (quality: GraphicsQualityPreset): RingGeometry =>
     new RingGeometry(CARD_PLANE_WIDTH * 0.37, CARD_PLANE_WIDTH * 0.505, getRimRingSegments(quality));
 
 /** Focus ring — slightly outside resolving inner. */
-export const createFocusRingGeometry = (quality: GraphicsQualityPreset): RingGeometry =>
+const createFocusRingGeometry = (quality: GraphicsQualityPreset): RingGeometry =>
     new RingGeometry(CARD_PLANE_WIDTH * 0.35, CARD_PLANE_WIDTH * 0.52, getRimRingSegments(quality));
 
 /**
@@ -100,7 +100,7 @@ const roundRectHoleContour = (ctx: Path, x: number, y: number, w: number, h: num
     ctx.quadraticCurveTo(x + w, y, x + w - radius, y);
 };
 
-export const createRoundedRectBezelRingGeometry = (
+const createRoundedRectBezelRingGeometry = (
     outerPad: number,
     innerPad: number,
     outerCorner: number,

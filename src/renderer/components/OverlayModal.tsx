@@ -13,7 +13,7 @@ interface ModalAction {
 }
 
 /** META-009: pause=blue-neutral, floor=gold+success well, relic=violet — only when `ornamentalHeaderPlate`. */
-export type OverlayModalHeaderPlateTone = 'neutral' | 'success' | 'pause' | 'relic' | 'danger';
+type OverlayModalHeaderPlateTone = 'neutral' | 'success' | 'pause' | 'relic' | 'danger';
 
 interface OverlayModalProps {
     title: string;

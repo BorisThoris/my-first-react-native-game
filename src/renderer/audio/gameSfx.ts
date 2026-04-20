@@ -172,7 +172,7 @@ export const playMatchSfx = (gain: number): void => {
     });
 };
 
-export const playMismatchSfx = (gain: number): void => {
+const playMismatchSfx = (gain: number): void => {
     playTone({
         frequency: 180,
         frequencyEnd: 120,

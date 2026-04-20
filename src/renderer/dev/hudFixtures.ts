@@ -2,9 +2,6 @@ import type { GameplayHudBarProps } from '../components/GameplayHudBar';
 import type { RunState } from '../../shared/contracts';
 import { createGauntletRun, createNewRun, finishMemorizePhase } from '../../shared/game';
 
-/** Re-export for Storybook-style imports without reaching into the component file. */
-export type GameplayHudBarFixtureProps = GameplayHudBarProps;
-
 export type GameplayHudBarFixtureId = 'daily' | 'gauntlet' | 'scholar' | 'multiMutator';
 
 const intoPlaying = (run: RunState, hud: Omit<GameplayHudBarProps, 'run'>): GameplayHudBarProps => ({
@@ -23,7 +20,7 @@ const dailyRunBase = finishMemorizePhase(
     })
 );
 
-export const hudFixturePropsDaily: GameplayHudBarProps = {
+const hudFixturePropsDaily: GameplayHudBarProps = {
     run: { ...dailyRunBase, parasiteFloors: 2, parasiteWardRemaining: 1 },
     cameraViewportMode: false,
     gauntletRemainingMs: null,
@@ -31,14 +28,14 @@ export const hudFixturePropsDaily: GameplayHudBarProps = {
 };
 
 /** Gauntlet mode label, timer rail, and gauntlet context chip. */
-export const hudFixturePropsGauntlet: GameplayHudBarProps = intoPlaying(createGauntletRun(9000), {
+const hudFixturePropsGauntlet: GameplayHudBarProps = intoPlaying(createGauntletRun(9000), {
     cameraViewportMode: false,
     gauntletRemainingMs: 245_000,
     politeHudAnnouncement: 'Gauntlet — four minutes five seconds left, floor 2.'
 });
 
 /** Scholar contract chip + contract stat pill (shuffle disabled). */
-export const hudFixturePropsScholar: GameplayHudBarProps = intoPlaying(
+const hudFixturePropsScholar: GameplayHudBarProps = intoPlaying(
     createNewRun(1200, {
         practiceMode: true,
         runSeed: 0x5c501a2,
@@ -63,7 +60,7 @@ const multiMutatorBase = finishMemorizePhase(
     })
 );
 
-export const hudFixturePropsMultiMutator: GameplayHudBarProps = {
+const hudFixturePropsMultiMutator: GameplayHudBarProps = {
     run: {
         ...multiMutatorBase,
         nBackAnchorPairKey: 'anchor-deadb33f',
@@ -89,5 +86,3 @@ export const gameplayHudBarFixturePropsById: Record<GameplayHudBarFixtureId, Gam
 };
 
 export const GAMEPLAY_HUD_FIXTURE_IDS: GameplayHudBarFixtureId[] = ['daily', 'gauntlet', 'scholar', 'multiMutator'];
-
-export const listGameplayHudBarFixtureIds = (): GameplayHudBarFixtureId[] => [...GAMEPLAY_HUD_FIXTURE_IDS];

@@ -1,7 +1,6 @@
 /**
  * Loads each card SVG (`back.svg` / `front.svg`) as a **single merged** `BufferGeometry` per URL.
- * Traced SVGs are not decomposed into separate meshes per motif; DOM-only FX overlays live in
- * `components/cards/cardArt/` instead.
+ * Traced SVGs are not decomposed into separate meshes per motif; DOM chrome uses the same URLs via CSS / `<img>`.
  */
 import { BufferAttribute, Color, ShapeGeometry } from 'three';
 import type { BufferGeometry } from 'three';

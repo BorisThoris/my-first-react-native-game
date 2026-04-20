@@ -55,13 +55,6 @@ export async function dispatchTouchSequence(page: Page, steps: readonly TouchDis
     }
 }
 
-export async function dispatchSingleTouchTap(page: Page, point: TouchDispatchPoint): Promise<void> {
-    await dispatchTouchSequence(page, [
-        { points: [point], type: 'touchStart', waitMs: 28 },
-        { points: [], type: 'touchEnd', waitMs: 28 }
-    ]);
-}
-
 export async function forceCoarsePointerMedia(page: Page): Promise<void> {
     await page.addInitScript(() => {
         const originalMatchMedia = window.matchMedia.bind(window);

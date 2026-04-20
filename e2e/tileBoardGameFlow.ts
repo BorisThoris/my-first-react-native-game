@@ -14,9 +14,6 @@ export interface E2eClientRect {
     width: number;
 }
 
-/** @deprecated Prefer `data-hidden-tile-count` on `tile-board-frame`; kept for grep / gradual migration. */
-export const BOARD_HIDDEN_TILE_BUTTON_RE = /hidden tile, row \d+, column \d+/i;
-
 export async function readFrameHiddenTileCount(page: Page): Promise<number> {
     const raw = await page.getByTestId('tile-board-frame').getAttribute('data-hidden-tile-count');
     return Number.parseInt(raw ?? '0', 10);
@@ -54,34 +51,6 @@ export const defaultE2eGameSaveJson = JSON.stringify({
         }
     },
     onboardingDismissed: true,
-    lastRunSummary: null,
-    powersFtueSeen: true
-});
-
-export const reduceMotionSaveJson = JSON.stringify({
-    schemaVersion: SAVE_SCHEMA_VERSION,
-    bestScore: 0,
-    achievements: {
-        ACH_FIRST_CLEAR: false,
-        ACH_LEVEL_FIVE: false,
-        ACH_SCORE_THOUSAND: false,
-        ACH_PERFECT_CLEAR: false,
-        ACH_LAST_LIFE: false
-    },
-    settings: {
-        masterVolume: 0.8,
-        musicVolume: 0.55,
-        sfxVolume: 0.8,
-        displayMode: 'windowed',
-        uiScale: 1,
-        reduceMotion: true,
-        debugFlags: {
-            showDebugTools: false,
-            allowBoardReveal: false,
-            disableAchievementsOnDebug: true
-        }
-    },
-    onboardingDismissed: false,
     lastRunSummary: null,
     powersFtueSeen: true
 });

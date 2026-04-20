@@ -28,7 +28,7 @@ const rarityClass = (r: RelicDraftRarity): string => {
     }
 };
 
-export interface RelicDraftOfferPanelProps {
+interface RelicDraftOfferPanelProps {
     optionIds: RelicId[];
     descriptionById: Record<RelicId, string>;
     onPick: (id: RelicId) => void;

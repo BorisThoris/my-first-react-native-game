@@ -1,13 +1,13 @@
 export type IntroPreset = 'royal-sheen' | 'ember-fire' | 'molten-liquify' | 'arcane-pulse';
 export type IntroPlaybackState = 'pending' | 'playing' | 'done';
 
-export interface IntroSeed {
+interface IntroSeed {
     entropy: number;
     hourBucket: string;
     sessionSeed: number;
 }
 
-export interface ResolvedIntroVariant {
+interface ResolvedIntroVariant {
     durationMs: number;
     preset: IntroPreset;
     seed: IntroSeed;
@@ -30,16 +30,16 @@ const REDUCED_MOTION_WEIGHTS: WeightedPreset[] = [
     { preset: 'arcane-pulse', weight: 0.42 }
 ];
 
-export const DEFAULT_INTRO_DURATION_MS = 4200;
-export const REDUCED_MOTION_INTRO_DURATION_MS = 1800;
-export const DEFAULT_INTRO_ENTER_DURATION_MS = 520;
-export const REDUCED_MOTION_INTRO_ENTER_DURATION_MS = 220;
-export const DEFAULT_INTRO_EXIT_DURATION_MS = 460;
-export const REDUCED_MOTION_INTRO_EXIT_DURATION_MS = 220;
+const DEFAULT_INTRO_DURATION_MS = 4200;
+const REDUCED_MOTION_INTRO_DURATION_MS = 1800;
+const DEFAULT_INTRO_ENTER_DURATION_MS = 520;
+const REDUCED_MOTION_INTRO_ENTER_DURATION_MS = 220;
+const DEFAULT_INTRO_EXIT_DURATION_MS = 460;
+const REDUCED_MOTION_INTRO_EXIT_DURATION_MS = 220;
 
 const FALLBACK_SEED = 0xa341316c;
 
-export const getIntroDurationMs = (reduceMotion: boolean): number =>
+const getIntroDurationMs = (reduceMotion: boolean): number =>
     reduceMotion ? REDUCED_MOTION_INTRO_DURATION_MS : DEFAULT_INTRO_DURATION_MS;
 
 export const getIntroEnterDurationMs = (reduceMotion: boolean): number =>
@@ -48,7 +48,7 @@ export const getIntroEnterDurationMs = (reduceMotion: boolean): number =>
 export const getIntroExitDurationMs = (reduceMotion: boolean): number =>
     reduceMotion ? REDUCED_MOTION_INTRO_EXIT_DURATION_MS : DEFAULT_INTRO_EXIT_DURATION_MS;
 
-export const getLocalHourBucket = (value: Date): string =>
+const getLocalHourBucket = (value: Date): string =>
     `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}-${String(
         value.getHours()
     ).padStart(2, '0')}`;
@@ -75,7 +75,7 @@ const getRuntimeEntropy = (): number => {
     return Date.now() >>> 0;
 };
 
-export const hashString32 = (value: string): number => {
+const hashString32 = (value: string): number => {
     let hash = 2166136261;
 
     for (let index = 0; index < value.length; index += 1) {
@@ -86,7 +86,7 @@ export const hashString32 = (value: string): number => {
     return hash >>> 0;
 };
 
-export const mixSeed32 = (value: number): number => {
+const mixSeed32 = (value: number): number => {
     let mixed = value >>> 0;
     mixed ^= mixed >>> 16;
     mixed = Math.imul(mixed, 0x85ebca6b);
@@ -146,21 +146,6 @@ export const pickWeightedIntroPreset = (seed: number, reduceMotion: boolean): In
     }
 
     return table[table.length - 1].preset;
-};
-
-export const getIntroPresetIndex = (preset: IntroPreset): number => {
-    switch (preset) {
-        case 'royal-sheen':
-            return 0;
-        case 'ember-fire':
-            return 1;
-        case 'molten-liquify':
-            return 2;
-        case 'arcane-pulse':
-            return 3;
-        default:
-            return 0;
-    }
 };
 
 export const resolveIntroVariant = ({

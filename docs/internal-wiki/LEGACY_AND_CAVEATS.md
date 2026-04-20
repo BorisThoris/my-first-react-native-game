@@ -1,8 +1,8 @@
 # Legacy code and document caveats
 
-## `legacy/expo-roguelike/`
+## Former `legacy/expo-roguelike/` tree
 
-Archived tree (Expo / older web / roguelike prototype). **Not** part of the supported lint/test/build path for the Windows desktop game. Consult only for history or porting ideas—not for current behavior.
+That prototype directory was **removed** from the repo to reduce dead-code surface; use git history for the old files. The shipping desktop game is under `src/`.
 
 ## `docs/GAME_TECHSTACK_ANALYSIS.md`
 

@@ -1,0 +1,8 @@
+{
+    "ignores": [
+        "@fontsource/cinzel",
+        "@fontsource/source-sans-3",
+        "cross-env",
+        "rimraf"
+    ]
+}

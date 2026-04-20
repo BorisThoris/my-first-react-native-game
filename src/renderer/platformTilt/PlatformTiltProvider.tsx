@@ -13,7 +13,7 @@ import { useParallaxMotionSuppressed } from './useParallaxMotionSuppressed';
 
 const GYRO_DAMP = 14;
 
-export interface PlatformTiltContextValue {
+interface PlatformTiltContextValue {
     gyroTiltRef: MutableRefObject<TiltVector>;
     permission: MotionPermissionState;
     requestMotionPermission: () => Promise<void>;

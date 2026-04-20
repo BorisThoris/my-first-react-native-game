@@ -8,17 +8,15 @@ import { RENDERER_THEME } from './styles/theme';
 import './styles/global.css';
 import './styles/notificationsGame.css';
 
-export type RendererShellPlatform = 'web';
-
 /** Theme tokens on `:root` — shared by web bootstrap and any native shell that reuses the DOM theme bridge. */
-export const applyRendererThemeToDocument = (): void => {
+const applyRendererThemeToDocument = (): void => {
     const html = document.documentElement;
     for (const [key, value] of Object.entries(RENDERER_THEME.cssVars)) {
         html.style.setProperty(key, value);
     }
 };
 
-export const mountRendererApp = (rootElement: HTMLElement): Root => {
+const mountRendererApp = (rootElement: HTMLElement): Root => {
     const root = createRoot(rootElement);
     root.render(
         <StrictMode>

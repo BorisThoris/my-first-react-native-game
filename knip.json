@@ -1,0 +1,45 @@
+{
+    "$schema": "https://unpkg.com/knip@6/schema.json",
+    "entry": [
+        "index.html",
+        "logo-sandbox.html",
+        "src/renderer/sandbox/logoIntroSandbox.tsx",
+        "src/main/index.ts",
+        "src/preload/index.ts",
+        "e2e/**/*.ts",
+        "scripts/**/*.ts",
+        "scripts/**/*.mjs",
+        "packages/notifications/scripts/copy-css.mjs"
+    ],
+    "project": [
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "e2e/**/*.ts",
+        "scripts/**/*.ts",
+        "scripts/**/*.mjs",
+        "packages/notifications/src/**/*.ts",
+        "packages/notifications/src/**/*.tsx",
+        "vitest.setup.ts",
+        "playwright.config.ts",
+        "vite.config.mts",
+        "tsup.config.ts"
+    ],
+    "ignore": [
+        "e2e/tile-card-face-illustration-regression.spec.ts",
+        "e2e/tile-card-face-illustration-benchmark.spec.ts",
+        "e2e/tile-card-face-overlay-regression.spec.ts",
+        "scripts/bake-procedural-illustration-set.ts"
+    ],
+    "ignoreIssues": {
+        "src/shared/**": ["exports", "types", "nsExports", "nsTypes", "enumMembers", "namespaceMembers", "duplicates"],
+        "packages/notifications/src/**": ["exports", "types", "nsExports", "nsTypes", "enumMembers", "namespaceMembers", "duplicates"],
+        "src/renderer/ui/**/*.{ts,tsx}": ["exports", "types", "nsExports", "nsTypes"],
+        "src/renderer/assets/ui/**/*.{ts,tsx}": ["exports", "types", "nsExports", "nsTypes"],
+        "src/renderer/cardFace/**/*.{ts,tsx}": ["exports", "types", "nsExports", "nsTypes", "enumMembers", "namespaceMembers"],
+        "src/renderer/styles/theme.ts": ["exports", "types", "nsExports", "nsTypes"],
+        "src/renderer/components/tileTextures.ts": ["exports", "types", "nsExports", "nsTypes"],
+        "src/renderer/a11y/**/*.{ts,tsx}": ["exports", "types", "nsExports", "nsTypes"]
+    },
+    "ignoreBinaries": ["py"],
+    "ignoreDependencies": ["@fontsource/cinzel", "@fontsource/source-sans-3"]
+}

@@ -21,7 +21,7 @@ Use this when final art is ready. Swap files **or** update imports in `src/rende
 | Role | File / import |
 |------|----------------|
 | Hidden-side card art | `back.svg` — `tileTextures.ts` (`cardReference`), `cardSvgPlaneGeometry.ts`, DOM `.cardFaceBack` |
-| Face-up panel art | `front.svg` — `tileTextures.ts` (`cardFace`), `slots.ts` / `cardFaceUrl`, DOM `.cardFaceFront` / `.faceUp .cardBack` |
+| Face-up panel art | `front.svg` — `tileTextures.ts` (`cardFace`), DOM `.cardFaceFront` / `.faceUp .cardBack` |
 | Edge / roughness | `edge.png`, `panel-roughness.png`, `edge-roughness.png` |
 
 ## Mode cards ([TASK-018](TASKS/TASK-018-mode-select-card-illustrations.md))

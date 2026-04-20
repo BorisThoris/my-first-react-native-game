@@ -6,7 +6,7 @@ interface StoreShape {
     saveData: SaveData;
 }
 
-export type PersistenceWriteErrorCode = 'quota' | 'permission' | 'busy' | 'unknown';
+type PersistenceWriteErrorCode = 'quota' | 'permission' | 'busy' | 'unknown';
 
 /** Thrown when `electron-store` cannot persist (disk, permissions, locks). No PII in message. */
 export class PersistenceWriteError extends Error {

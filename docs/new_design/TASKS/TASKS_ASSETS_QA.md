@@ -1,6 +1,6 @@
 # Tasks: Assets consolidation & QA (`AST-*`, `QA-*`)
 
-**Research summary:** `src/renderer/assets/ui/index.ts` is the shell `UI_ART` barrel (PNG menu/gameplay backgrounds, SVG crest/divider/emblem/seal/stage-ring). `modeArt.ts` drives mode posters. **`slots.ts`** exports another object also named `UI_ART` (slot chrome + card texture URLs) — import with an alias when both are needed; see `ASSET_SOURCES.md`. `frames/hud-segment-ornament.svg` ties to `hudScoreSegment` in `GameScreen.module.css`. **`assets/ui/icons/`** holds gameplay rail / power SVGs (barrel `icons/index.ts`). Main menu / settings use `<img>` and shell assets, not necessarily that icons folder.
+**Research summary:** `src/renderer/assets/ui/index.ts` is the shell `UI_ART` barrel (PNG menu/gameplay backgrounds, SVG crest/divider/emblem/seal/stage-ring). `modeArt.ts` drives mode posters. **`ASSET_SOURCES.md`** documents card URLs via `tileTextures.ts` (`?url` imports), not a second `UI_ART` barrel. `frames/hud-segment-ornament.svg` ties to `hudScoreSegment` in `GameScreen.module.css`. **`assets/ui/icons/`** holds gameplay rail / power SVGs (barrel `icons/index.ts`). Main menu / settings use `<img>` and shell assets, not necessarily that icons folder.
 
 **Tests at risk:** `mobile-layout` (HUD vs board geometry), `navigation-flow` (`game-hud`), `tile-card-face-dom` (`.cardBack` stack), `tile-card-face-webgl` (stage screenshot diff), `visual-screens.*`, `tile-board-raycast`.
 
@@ -12,7 +12,7 @@
 |----|---|--------|------|---------------------|------|
 | AST-001 | P1 | Single source for scenes | Legacy `menu-scene` / `gameplay-scene` assets removed; authoritative menu/gameplay heroes are PNGs in `ui/backgrounds/` wired from [`ui/index.ts`](../../../src/renderer/assets/ui/index.ts). | `index.ts` + disk + `ASSET_SOURCES.md` agree. | — |
 | AST-002 | P1 | Backgrounds on disk | All imports in `index.ts` / `modeArt.ts` resolve in CI. | Fresh clone + `yarn build` OK. | — |
-| AST-003 | P2 | Document `slots.ts` vs `index.ts` | Explain when to import which barrel (cards vs shell UI). | Short table in `ASSET_SOURCES.md` or `assets/ui/README`. | — |
+| AST-003 | Done | Shell vs card texture imports | Card faces use `tileTextures.ts` + SVG/PNG assets; shell uses `ui/index.ts` — see `ASSET_SOURCES.md`. | — | — |
 | AST-004 | P1 | HUD ornament sync | If HUD segments move, update `hud-segment-ornament.svg` placement in `GameScreen.module.css`. | Visual review. | HUD-001 |
 | AST-005 | P2 | Card texture regen | When palette shifts, rerun `scripts/card-pipeline/generate-card-textures.ps1` (if used) and update sources doc. | Tile e2e green. | Art pass |
 | AST-006 | P2 | Future menu icons | If MainMenu/Settings gain icon buttons, add `menuIcons.tsx` or extend pipeline; don’t fork stroke style accidentally. | Design review. | — |

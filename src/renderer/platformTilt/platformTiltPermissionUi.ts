@@ -1,6 +1,6 @@
 import type { MotionPermissionState } from './platformTiltTypes';
 
-export type MotionPermissionCopyContext = 'board' | 'intro';
+type MotionPermissionCopyContext = 'board' | 'intro';
 
 export function shouldOfferDeviceMotionPermission(params: {
     touchPrimary: boolean;

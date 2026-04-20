@@ -17,7 +17,6 @@ export default tseslint.config(
             'output/**',
             'node_modules/**',
             'docs/**',
-            'legacy/expo-roguelike/**',
             '.idea/**',
             '.expo/**',
             'scripts/**/*.mjs',

@@ -29,10 +29,10 @@ import {
 const DEFAULT_FIXTURE = 'arcade';
 
 /** Daily run using live daily mutator table (not practice). */
-export const buildSandboxDailyRun = (bestScore: number): RunState => createDailyRun(bestScore);
+const buildSandboxDailyRun = (bestScore: number): RunState => createDailyRun(bestScore);
 
 /** Canned runs for `?devSandbox=1&screen=playing&fixture=…` (and gameOver). */
-export const SANDBOX_FIXTURE_IDS = [
+const SANDBOX_FIXTURE_IDS = [
     'arcade',
     'memorize',
     'daily',
@@ -43,7 +43,7 @@ export const SANDBOX_FIXTURE_IDS = [
     'gameOver'
 ] as const;
 
-export type SandboxFixtureId = (typeof SANDBOX_FIXTURE_IDS)[number];
+type SandboxFixtureId = (typeof SANDBOX_FIXTURE_IDS)[number];
 
 const isFixtureId = (id: string | null): id is SandboxFixtureId =>
     id !== null && (SANDBOX_FIXTURE_IDS as readonly string[]).includes(id);

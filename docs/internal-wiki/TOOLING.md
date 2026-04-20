@@ -21,6 +21,11 @@
 | `yarn typecheck` | `tsc --noEmit` (full `src/` + root configs) |
 | `yarn typecheck:shared` | `tsc -p tsconfig.shared.json --noEmit` — optional narrow check for `src/shared` only (no `composite` split; see TypeScript note below) |
 | `yarn lint` | ESLint + `scripts/check-test-file-extensions.mjs` (REF-093: no JSX in `.test.ts`) |
+| `yarn depcheck` | Unused/missing dependency scan ([`.depcheckrc.json`](../../.depcheckrc.json); ignores CSS-imported fonts + script runner bins) |
+| `yarn knip` | Unused files / dependency issues ([`knip.json`](../../knip.json); scopes `files`, `dependencies`, `unlisted`, `unresolved`; sets `NODE_OPTIONS=--experimental-require-module` for Knip on Node 22) |
+| `yarn knip:exports` | Knip unused **exports/types** mode (`--exports`; [`ignoreIssues`](../../knip.json) narrows intentional barrels — run before widening default `yarn knip` scope) |
+| `yarn knip:production` | Knip with `--production` — dependency/file issues along production entry paths (triage carefully vs tests) |
+| `yarn audit:renderer-assets` | `scripts/audit-renderer-assets.mjs` — lists `src/renderer/assets/**` files whose basename has no TS/CSS/markdown reference under `src/`, `scripts/`, `e2e/`, `public/` (manual triage; not a delete pass) |
 | `yarn test` | Vitest run |
 | `yarn test:watch` | Vitest watch |
 | `yarn test:e2e` | Full Playwright suite |
@@ -68,7 +73,7 @@ The repo uses a **single** root `tsconfig.json` for `tsc --noEmit` so CSS module
 | Script | What it does |
 |--------|----------------|
 | `yarn wip:extract-endproduct` | Extract WIP assets from end-product refs (`scripts/extract-endproduct-wip-assets.mjs`) |
-| `yarn wip:extract-endproduct:react` | Same + React emit |
+| `yarn wip:extract-endproduct:react` | Same + writes `docs/wip-assets/EndproductWipSvgs.tsx` beside traced SVGs |
 | `yarn wip:extract-endproduct:png-only` | PNG only |
 | `yarn imagegen` | `scripts/card-pipeline/image_gen.mjs` |
 | `yarn card-backs:local` | `py -3 scripts/card-pipeline/batch_local_card_backs.py` (Windows; local SDXL + `normalize-card-texture.ps1`; deps in `requirements-local-card-backs.txt`; elsewhere use `python3`/`python`) |
@@ -107,6 +112,7 @@ The repo uses a **single** root `tsconfig.json` for `tsc --noEmit` so CSS module
 
 | Path | Role |
 |------|------|
+| `audit-renderer-assets.mjs` | Basename audit for orphaned renderer asset files (`yarn audit:renderer-assets`) |
 | `postinstall.cjs` | Runs `electron-builder install-app-deps` (skipped on Cloudflare Pages) so native Electron deps match the platform |
 | `run-mechanics-appendix.ts` | Writes mechanics catalog machine snapshot (versions + counts) |
 | `generate-visual-inventory-md.mjs` | Builds visual inventory markdown |

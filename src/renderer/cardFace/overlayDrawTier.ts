@@ -3,7 +3,7 @@ import type { GraphicsQualityPreset } from '../../shared/contracts';
 /** Canvas/SVG richness for face overlays (maps from `GraphicsQualityPreset`). */
 export type OverlayDrawTier = 'minimal' | 'standard' | 'full';
 
-export const OVERLAY_DRAW_TIERS: readonly OverlayDrawTier[] = ['minimal', 'standard', 'full'];
+const OVERLAY_DRAW_TIERS: readonly OverlayDrawTier[] = ['minimal', 'standard', 'full'];
 
 export const overlayDrawTierFromGraphicsQuality = (quality: GraphicsQualityPreset): OverlayDrawTier => {
     if (quality === 'low') {

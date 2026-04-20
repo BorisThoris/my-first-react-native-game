@@ -10,7 +10,7 @@ This page states **what is covered**, **how we measure it**, and **what is expli
 
 **Out of scope for line-by-line wiki coverage:**
 
-- **`legacy/expo-roguelike/`** — archived; not part of the supported desktop workflow.
+- **Removed legacy Expo prototype** — was under `legacy/expo-roguelike/`; no longer in-tree (see [`legacy/README.md`](../../legacy/README.md)).
 - **Binary assets** (PNGs, installers, Steam DLLs, most of `docs/ui-design-reference/`, capture PNGs) — indexed at **folder + workflow** level, not file-by-file.
 - **`GAME_TECHSTACK_ANALYSIS.md`** as *current* architecture — treated as **historical**; see [LEGACY_AND_CAVEATS.md](./LEGACY_AND_CAVEATS.md).
 

@@ -21,7 +21,7 @@ import { useAppStore } from '../store/useAppStore';
 import metaStyles from './MetaScreen.module.css';
 import styles from './CodexScreen.module.css';
 
-export interface CodexScreenProps {
+interface CodexScreenProps {
     /** When true, shell title is `h2` so `GameScreen`'s level `h1` stays the sole document `h1`. */
     stackedOnGameplay?: boolean;
 }

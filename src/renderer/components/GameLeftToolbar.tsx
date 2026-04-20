@@ -16,7 +16,7 @@ import { UiButton } from '../ui';
 import type { TileBoardHandle } from './TileBoard';
 import styles from './GameScreen.module.css';
 
-export interface GameLeftToolbarProps {
+interface GameLeftToolbarProps {
     cameraViewportMode: boolean;
     run: RunState;
     debugFlags: Settings['debugFlags'];

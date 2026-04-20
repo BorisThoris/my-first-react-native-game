@@ -5,7 +5,7 @@
 export type IllustrationPixelRect = { x: number; y: number; width: number; height: number };
 
 /** Fractional inset from overlay canvas edges (matches tall portrait card overlay). */
-export const CARD_ILLUSTRATION_INSET = {
+const CARD_ILLUSTRATION_INSET = {
     left: 0.13,
     top: 0.11,
     right: 0.13,

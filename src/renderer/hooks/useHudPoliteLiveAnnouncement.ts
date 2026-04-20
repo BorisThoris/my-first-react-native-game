@@ -26,7 +26,7 @@ const flushThenSet = (text: string, set: (value: string) => void): void => {
 /** Min interval between polite live-region updates (anti-spam for screen readers). */
 const POLITE_HUD_THROTTLE_MS = 400;
 
-export type HudAnnouncePriority = 'info' | 'error';
+type HudAnnouncePriority = 'info' | 'error';
 
 const PRIORITY_RANK: Record<HudAnnouncePriority, number> = { error: 2, info: 1 };
 
@@ -56,7 +56,7 @@ export const detectClaimedFindableKind = (
     return null;
 };
 
-export const getFindableAnnouncementText = (kind: FindableKind): string =>
+const getFindableAnnouncementText = (kind: FindableKind): string =>
     kind === 'shard_spark'
         ? 'Shard spark claimed: plus one combo shard.'
         : 'Score glint claimed: plus twenty-five score.';
@@ -64,7 +64,7 @@ export const getFindableAnnouncementText = (kind: FindableKind): string =>
 export const getFindableToastText = (kind: FindableKind): string =>
     kind === 'shard_spark' ? 'Shard spark +1 shard' : 'Score glint +25 score';
 
-export interface HudPoliteLiveAnnouncementInput {
+interface HudPoliteLiveAnnouncementInput {
     gauntletRemainingMs: number | null;
     gauntletActive: boolean;
     scoreParasiteActive: boolean;
@@ -76,7 +76,7 @@ export interface HudPoliteLiveAnnouncementInput {
     findablesClaimedThisFloor: number;
 }
 
-export interface UseHudPoliteLiveAnnouncementResult {
+interface UseHudPoliteLiveAnnouncementResult {
     message: string;
     queuePoliteAnnouncement: (text: string, opts?: { dedupeKey?: string; priority?: HudAnnouncePriority }) => void;
 }

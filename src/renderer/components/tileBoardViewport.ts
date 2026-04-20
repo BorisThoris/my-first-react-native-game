@@ -16,7 +16,7 @@ export interface TileBoardViewportMetrics extends TileBoardWorldMetrics {
     fitZoom: number;
 }
 
-export interface TileBoardPanBounds {
+interface TileBoardPanBounds {
     maxPanX: number;
     maxPanY: number;
 }
@@ -26,9 +26,9 @@ export interface TileBoardScreenPoint {
     clientY: number;
 }
 
-export const BOARD_CAMERA_FIT_ZOOM = 1;
-export const MOBILE_CAMERA_MIN_ZOOM = 0.01;
-export const MOBILE_CAMERA_MAX_ZOOM = 2.8;
+const BOARD_CAMERA_FIT_ZOOM = 1;
+const MOBILE_CAMERA_MIN_ZOOM = 0.01;
+const MOBILE_CAMERA_MAX_ZOOM = 2.8;
 export const MOBILE_CAMERA_FIT_MARGIN = 0.92;
 export const COMPACT_BOARD_FIT_MARGIN = 0.72;
 export const ROOMY_BOARD_FIT_MARGIN = 0.85;
@@ -60,7 +60,7 @@ export const createFittedBoardViewport = (fitZoom: number): TileBoardViewportSta
 
 export const clampBoardZoom = (zoom: number): number => clamp(zoom, MOBILE_CAMERA_MIN_ZOOM, MOBILE_CAMERA_MAX_ZOOM);
 
-export const getBoardPanBounds = ({
+const getBoardPanBounds = ({
     boardHeight,
     boardWidth,
     fitZoom,
@@ -81,7 +81,7 @@ export const getBoardPanBounds = ({
     };
 };
 
-export const clampBoardPan = ({
+const clampBoardPan = ({
     boardHeight,
     boardWidth,
     fitZoom,

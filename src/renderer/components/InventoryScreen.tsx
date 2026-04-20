@@ -9,7 +9,7 @@ import styles from './InventoryScreen.module.css';
 const modeTitle = (gameMode: string): string =>
     GAME_MODE_CODEX.find((m) => m.id === gameMode)?.title ?? gameMode;
 
-export interface InventoryScreenProps {
+interface InventoryScreenProps {
     /** When true, shell title is `h2` so `GameScreen`'s level `h1` stays the sole document `h1`. */
     stackedOnGameplay?: boolean;
 }
