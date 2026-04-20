@@ -10,6 +10,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
 const illustrationsDir = path.join(root, 'src/renderer/assets/cards/illustrations');
 const registryPath = path.join(root, 'src/renderer/cardFace/cardIllustrationRegistry.ts');
+const facePanelRasterUrlsPath = path.join(root, 'src/renderer/cardFace/facePanelRasterUrls.ts');
 
 if (!fs.existsSync(illustrationsDir)) {
     console.error('Missing illustrations directory:', illustrationsDir);
@@ -25,7 +26,10 @@ const files = fs
     .readdirSync(illustrationsDir)
     .filter((f) => /\.(webp|png|jpe?g|svg)$/i.test(f) && !f.startsWith('.'));
 
-const registrySrc = fs.readFileSync(registryPath, 'utf8');
+let registrySrc = fs.readFileSync(registryPath, 'utf8');
+if (fs.existsSync(facePanelRasterUrlsPath)) {
+    registrySrc += fs.readFileSync(facePanelRasterUrlsPath, 'utf8');
+}
 
 const orphanFiles = files.filter((f) => {
     const base = f.replace(/\.[^.]+$/i, '');

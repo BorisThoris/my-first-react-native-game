@@ -10,7 +10,7 @@
 
 | ID | P | Title | Goal | Acceptance criteria | Deps |
 |----|---|--------|------|---------------------|------|
-| AST-001 | P1 | Single source for scenes | Resolve any legacy `menu-scene.svg` / `gameplay-scene.svg` vs PNG backgrounds; one authoritative path per screen. | `index.ts` + disk + `ASSET_SOURCES.md` agree; dead assets removed or documented legacy. | — |
+| AST-001 | P1 | Single source for scenes | Legacy `menu-scene` / `gameplay-scene` assets removed; authoritative menu/gameplay heroes are PNGs in `ui/backgrounds/` wired from [`ui/index.ts`](../../../src/renderer/assets/ui/index.ts). | `index.ts` + disk + `ASSET_SOURCES.md` agree. | — |
 | AST-002 | P1 | Backgrounds on disk | All imports in `index.ts` / `modeArt.ts` resolve in CI. | Fresh clone + `yarn build` OK. | — |
 | AST-003 | P2 | Document `slots.ts` vs `index.ts` | Explain when to import which barrel (cards vs shell UI). | Short table in `ASSET_SOURCES.md` or `assets/ui/README`. | — |
 | AST-004 | P1 | HUD ornament sync | If HUD segments move, update `hud-segment-ornament.svg` placement in `GameScreen.module.css`. | Visual review. | HUD-001 |

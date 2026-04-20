@@ -11,6 +11,8 @@ Example:
   pip install -r scripts/card-pipeline/requirements-local-card-backs.txt
   yarn face-panels:local:dry
   yarn face-panels:local
+
+Default manifest: 80 panels (48 common / 24 uncommon / 8 rare tiers). Registry uses a weighted strip (~70/20/10%).
 """
 
 from __future__ import annotations
@@ -51,8 +53,12 @@ BASE_PANEL_PROMPT = (
     "Not a card photo; no frame, tabletop, text, letters, faces."
 )
 
-# 40 short motif tails (keep total prompt under CLIP token limits)
-_MOTIFS = [
+# Tier extras (suffix — motif stays first per entry). Keep short for CLIP 77-token window.
+UNCOMMON_EXTRA = "Intricate luminous detail."
+RARE_EXTRA = "Masterpiece ethereal mythic jewel glow."
+
+# 48 common motifs (panels 01-48)
+_COMMON_MOTIFS = [
     "glowing crystal obelisk",
     "crowned moon sigil",
     "crossed blades and ember",
@@ -93,6 +99,54 @@ _MOTIFS = [
     "star fountain upward",
     "moon moth luna",
     "world ring atlas",
+    "raven quill relic",
+    "silver key mist",
+    "copper beetle charm",
+    "frost rose sigil",
+    "ember lotus bloom",
+    "void spark lantern",
+    "ivy lock chain",
+    "salt circle spark",
+]
+
+# 24 uncommon (49-72): richer motifs, extra prompt + slightly more steps in pipeline
+_UNCOMMON_MOTIFS = [
+    "twin serpent crown ruby",
+    "obsidian throne silhouette",
+    "celestial orrery brass",
+    "grim visor shattered",
+    "sandglass nebula swirl",
+    "silver harp strings glow",
+    "frozen crown bleeding light",
+    "bronze compass bloodline",
+    "wax seal eye sigil",
+    "thorn cathedral spire",
+    "blue inferno jar relic",
+    "moonpool ripples rune",
+    "golden gate fog",
+    "adamant pillar crack",
+    "spirit bell resonance",
+    "woven fate spindle",
+    "dragon tooth pendant",
+    "oracle smoke spiral",
+    "shard crown fractal",
+    "river styx ferry light",
+    "pillar of verdict flame",
+    "suspended blade choir",
+    "crystallized tear drop",
+    "woven star mantle",
+]
+
+# 8 rare showcase (73-80): strongest suffix + highest default steps
+_RARE_MOTIFS = [
+    "apex crown void heart",
+    "titans gate singularity",
+    "world tree root spark",
+    "eclipse throne eternal",
+    "primordial font ascendant",
+    "obsidian grail nova",
+    "seraph wing reliquary",
+    "final lantern horizon",
 ]
 
 
@@ -102,15 +156,38 @@ def repo_root() -> Path:
 
 def default_entries() -> list[dict]:
     out: list[dict] = []
-    for i, m in enumerate(_MOTIFS):
-        idx = i + 1
+    n = 1
+    for m in _COMMON_MOTIFS:
         out.append(
             {
-                "id": f"face-panel-{idx:02d}",
+                "id": f"face-panel-{n:02d}",
                 "prompt": f"{m}. {BASE_PANEL_PROMPT}",
-                "seed": 12000 + idx,
+                "seed": 12000 + n,
+                "steps": 28,
             }
         )
+        n += 1
+    for m in _UNCOMMON_MOTIFS:
+        out.append(
+            {
+                "id": f"face-panel-{n:02d}",
+                "prompt": f"{m}. {BASE_PANEL_PROMPT} {UNCOMMON_EXTRA}",
+                "seed": 12000 + n,
+                "steps": 32,
+            }
+        )
+        n += 1
+    for m in _RARE_MOTIFS:
+        out.append(
+            {
+                "id": f"face-panel-{n:02d}",
+                "prompt": f"{m}. {BASE_PANEL_PROMPT} {RARE_EXTRA}",
+                "seed": 12000 + n,
+                "steps": 36,
+            }
+        )
+        n += 1
+    assert n == 81
     return out
 
 
@@ -160,8 +237,8 @@ def main() -> None:
 
     manifest_path = root / "scripts" / "card-pipeline" / "generated-face-panels-last-run.json"
     if args.dry_run:
-        for e in entries[:3]:
-            print("  sample:", e["id"], e.get("seed"))
+        for e in (entries[0], entries[47], entries[48], entries[71], entries[72], entries[-1]):
+            print("  sample:", e["id"], "steps=", e.get("steps"), "seed=", e.get("seed"))
         print("  ... dry-run OK")
         return
 
@@ -196,13 +273,14 @@ def main() -> None:
         seed = int(entry["seed"]) if entry.get("seed") is not None else 12000 + i
         out_path = out_dir / f"{rid}.png"
 
+        steps = int(entry["steps"]) if entry.get("steps") is not None else args.steps
         generator.manual_seed(seed)
         result = pipe(
             prompt=prompt,
             negative_prompt=negative_prompt,
             width=GEN_W,
             height=GEN_H,
-            num_inference_steps=args.steps,
+            num_inference_steps=steps,
             guidance_scale=args.guidance,
             generator=generator,
         )

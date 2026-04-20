@@ -310,7 +310,7 @@ function New-CardFrontTemplateFromReference {
 
 <#
   Card face raster: same substrate and ornament language as back.png (reference art + back pipeline),
-  then the same tone / vignette / foil / double-frame pass as the legacy front-template — reads as a matched pair.
+  then the same tone / vignette / foil / double-frame pass aligned with front-face raster output — reads as a matched pair.
   Requires back.png to exist (run after New-CardBackFromReference).
 #>
 function New-CardFrontFaceImage {

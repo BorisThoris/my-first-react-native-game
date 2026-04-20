@@ -43,11 +43,11 @@ import {
     applyAnisotropyToCachedTileTextures,
     setTileTextureSamplingQuality,
     getCardBackRasterNormalMapTexture,
-    getCardBackStaticTexture,
     getCardFaceRasterNormalMapTexture,
     getCardFaceStaticTexture,
     getCardPanelDisplacementTexture,
     getCardPanelNormalTexture,
+    getTileFaceTexture,
     getTileFaceOverlayTexture,
     prewarmTileFaceOverlayTextures,
     subscribeTextureImageUpdates,
@@ -1571,7 +1571,7 @@ const TileBezelInner = ({
                 ? '#cfe8f2'
                 : '#ffffff';
     /** Hidden side: shared SVG mesh when loaded, else raster fallback. Face-up: same for front. */
-    const cardBackArtTexture = useSvgMeshBack ? null : getCardBackStaticTexture();
+    const cardBackArtTexture = useSvgMeshBack ? null : getTileFaceTexture(tile, 'back', 'hidden', 'panel');
     const cardFrontArtTexture = useSvgMeshFront ? null : getCardFaceStaticTexture();
     const overlayTexture =
         surfaceVariant === 'hidden' ? null : getTileFaceOverlayTexture(tile, surfaceVariant, graphicsQuality);

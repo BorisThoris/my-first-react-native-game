@@ -62,6 +62,7 @@
         "card-backs:local:dry": "py -3 scripts/card-pipeline/batch_local_card_backs.py --dry-run",
         "face-panels:local": "py -3 scripts/card-pipeline/batch_local_face_panels.py",
         "face-panels:local:dry": "py -3 scripts/card-pipeline/batch_local_face_panels.py --dry-run",
+        "gen:face-panel-raster-urls": "node scripts/gen-face-panel-raster-urls.mjs",
         "card-texture:ideal": "node scripts/card-pipeline/print-card-texture-ideal.mjs",
         "card-texture:ai-brief": "node scripts/card-pipeline/print-card-texture-ideal.mjs --ai-brief",
         "capture:ui-vs-assets": "node scripts/card-pipeline/capture-ui-vs-asset-screens.mjs",

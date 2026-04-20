@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * Procedural wide background for Choose Your Path (memory-dungeon palette).
- * For DALL·E-quality art, use instead:
- *   OPENAI_API_KEY=... node scripts/card-pipeline/image_gen.mjs --prompt "..." --out src/renderer/assets/ui/backgrounds/bg-choose-path-stage-v1.png --resolution menu-wide
+ * For DALL·E-quality art, overwrite the shipped hero layer:
+ *   OPENAI_API_KEY=... node scripts/card-pipeline/image_gen.mjs --prompt "..." --out src/renderer/assets/ui/backgrounds/bg-choose-path-stage-ambient-v2.png --resolution menu-wide
  *
  * Usage: node scripts/generate-choose-path-background.mjs
  */

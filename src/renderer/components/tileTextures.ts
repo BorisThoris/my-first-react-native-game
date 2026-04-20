@@ -248,16 +248,15 @@ const syncIllustrationOverlayCacheVersion = (versionToken: string = OVERLAY_TEXT
     forceProceduralIllustrationBitmapCacheVersion(versionToken);
 };
 
-const invalidateStaticCardBackTexture = (): void => {
-    disposeCachedTexture(`static-card-back:${TILE_TEXTURE_VERSION}`);
-};
-
 const invalidateStaticCardFaceTexture = (): void => {
     disposeCachedTexture(`static-card-face:${TILE_TEXTURE_VERSION}`);
 };
 
-/** Keys from {@link buildKey} and overlay suffixes — safe to drop when edge/roughness maps arrive. */
-const invalidateVersionedProceduralTextures = (): void => {
+/**
+ * Keys from {@link buildKey} and overlay suffixes — safe to drop when edge/roughness maps arrive.
+ * Exported for post-preload refresh when SDXL card-back rasters finish decoding.
+ */
+export const invalidateVersionedTileFaceTextureCaches = (): void => {
     const prefix = `${TILE_TEXTURE_VERSION}:`;
 
     for (const key of [...textureCache.keys()]) {
@@ -286,7 +285,7 @@ type TextureImageId = keyof typeof textureImageUrls;
 
 const invalidateCachesAfterImageLoad = (id: TextureImageId): void => {
     if (id === 'cardReference') {
-        invalidateStaticCardBackTexture();
+        invalidateVersionedTileFaceTextureCaches();
     } else if (id === 'cardFace') {
         invalidateStaticCardFaceTexture();
     } else if (id === 'cardFaceNormal') {
@@ -294,7 +293,7 @@ const invalidateCachesAfterImageLoad = (id: TextureImageId): void => {
     } else if (id === 'cardBackNormal') {
         disposeRasterBackNormalTexture();
     } else {
-        invalidateVersionedProceduralTextures();
+        invalidateVersionedTileFaceTextureCaches();
     }
 };
 
@@ -902,7 +901,7 @@ const drawNoise = (context: CanvasRenderingContext2D, width: number, height: num
     context.restore();
 };
 
-/** Rounded panel: card back raster (`back.svg` / `cardReference`) plus hatch / emblem used on the physical back. */
+/** Rounded panel: shared `cardReference` (`back.svg`), plus hatch / emblem on the physical back. */
 const drawCardReferenceRoundPanel = (
     context: CanvasRenderingContext2D,
     canvas: HTMLCanvasElement,
@@ -1062,7 +1061,11 @@ const drawCardOuterFramesAndNoise = (
 };
 
 /** Same card face for back and flipped front: hidden palette for panel, hatch, and rims (no active/matched cyan rim). */
-const drawCardBackPattern = (context: CanvasRenderingContext2D, canvas: HTMLCanvasElement, rng: () => number): void => {
+const drawCardBackPattern = (
+    context: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    rng: () => number
+): void => {
     const hiddenPanel = getPalette('hidden', 'panel');
     const metrics = drawCardReferenceRoundPanel(context, canvas, hiddenPanel);
     drawCardOuterFramesAndNoise(context, canvas, hiddenPanel, rng, metrics);
@@ -1491,25 +1494,6 @@ export const prewarmTileFaceOverlayTextures = (
         }
     };
 };
-
-export const getCardBackStaticTexture = (): CanvasTexture | null =>
-    createTexture(
-        `static-card-back:${TILE_TEXTURE_VERSION}`,
-        (context, canvas) => {
-            const rendered = drawCardRasterFullBleed(context, canvas, 'cardReference', 1);
-
-            if (!rendered) {
-                const fallback = context.createLinearGradient(0, 0, canvas.width, canvas.height);
-                fallback.addColorStop(0, '#2b394f');
-                fallback.addColorStop(1, '#182233');
-                context.fillStyle = fallback;
-                context.fillRect(0, 0, canvas.width, canvas.height);
-            }
-        },
-        SRGBColorSpace,
-        STATIC_CARD_TEXTURE_WIDTH,
-        STATIC_CARD_TEXTURE_HEIGHT
-    );
 
 export const getCardFaceStaticTexture = (): CanvasTexture | null =>
     createTexture(

@@ -1,5 +1,5 @@
 import brandCrestUrl from './brand-crest.svg';
-import choosePathSceneUrl from './backgrounds/bg-choose-path-stage-ambient-v2.png';
+import choosePathSceneUrl from './backgrounds/bg-choose-path-stage-v1.png';
 import gameplaySceneUrl from './backgrounds/bg-gameplay-dungeon-ring-v1.png';
 import dividerOrnamentUrl from './divider-ornament.svg';
 import menuEmblemUrl from './menu-emblem.svg';

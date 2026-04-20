@@ -73,8 +73,9 @@ The repo uses a **single** root `tsconfig.json` for `tsc --noEmit` so CSS module
 | `yarn imagegen` | `scripts/card-pipeline/image_gen.mjs` |
 | `yarn card-backs:local` | `py -3 scripts/card-pipeline/batch_local_card_backs.py` (Windows; local SDXL + `normalize-card-texture.ps1`; deps in `requirements-local-card-backs.txt`; elsewhere use `python3`/`python`) |
 | `yarn card-backs:local:dry` | Same with `--dry-run` (no torch; lists plan) |
-| `yarn face-panels:local` | `py -3 scripts/card-pipeline/batch_local_face_panels.py` (SDXL tarot mat panels 520×592) |
+| `yarn face-panels:local` | `py -3 scripts/card-pipeline/batch_local_face_panels.py` (SDXL tarot mat panels 520×592, 80 tiered) |
 | `yarn face-panels:local:dry` | Same with `--dry-run` |
+| `yarn gen:face-panel-raster-urls` | Rebuild `facePanelRasterUrls.ts` after adding/removing `face-panel-NN.png` |
 | `yarn card-texture:ideal` / `card-texture:ai-brief` | Print ideal texture spec / AI brief |
 | `yarn capture:ui-vs-assets` | Compare UI vs asset renders |
 | `yarn png:trim-bbox` | Trim PNG bounding boxes |

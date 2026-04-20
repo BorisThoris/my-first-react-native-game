@@ -162,7 +162,7 @@ export const GAMEPLAY_CARD_VISUALS = {
         textured: 0.42
     },
     surfaceMapVersion: 3,
-    textureVersion: 43,
+    textureVersion: 47,
     texturedBackEmblemOpacity: 0.14,
     texturedBackPatternOpacity: 0.18,
     texturedBackTint: {

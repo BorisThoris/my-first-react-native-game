@@ -20,13 +20,12 @@ Two files both export a constant named `UI_ART` — they are **not** interchange
 |------|------|---------------|-------|
 | `ui/backgrounds/bg-main-menu-cathedral-v1.png` | Main menu hero layer | AI-generated (Cursor image tool, project batch) | Fantasy vault; central negative space for title. **`GameOverScreen`** composites the same raster via `UI_ART.menuScene` behind the scrim (**META-002** shell parity). |
 | `ui/backgrounds/bg-gameplay-dungeon-ring-v1.png` | Gameplay stage under board | AI-generated | Memory ring / arena; board-safe center |
-| `ui/menu-scene.svg` | Legacy menu art | Authored SVG | **Not imported** in app code. Kept for reference or future swap; shipped menu uses `bg-main-menu-cathedral-v1.png`. |
-| `ui/gameplay-scene.svg` | Legacy gameplay art | Authored SVG | **Not imported**; shipped gameplay uses `bg-gameplay-dungeon-ring-v1.png`. |
 | `ui/backgrounds/bg-mode-classic-v1.png` | Mode card poster | AI-generated | Classic / blue-silver gate |
 | `ui/backgrounds/bg-mode-daily-v1.png` | Mode card poster | AI-generated | Daily / purple crystal featured |
 | `ui/backgrounds/bg-mode-endless-v1.png` | Mode card poster (locked) | AI-generated | Endless / ember gate, darker |
 | `ui/backgrounds/bg-mode-placeholder-v1.png` | Mode card poster (fallback) | Copy of `bg-mode-endless-v1.png` until per-mode art ships | Wired in `modeArt.ts` for catalog keys (gauntlet, wild, imports, etc.). Replace the file or add keyed PNGs and point `MODE_CARD_ART` at them. |
-| `ui/backgrounds/bg-choose-path-stage-v1.png` | Choose Your Path hero layer | Procedural (`scripts/generate-choose-path-background.mjs`) or replace via `scripts/card-pipeline/image_gen.mjs` with `OPENAI_API_KEY` | Same stack as main menu: `sceneLayer` + scrim in `ChooseYourPathScreen`. Regenerate: `node scripts/generate-choose-path-background.mjs`. |
+| `ui/backgrounds/bg-choose-path-stage-ambient-v2.png` | Choose Your Path hero layer (**shipped**) | AI / external (`image_gen.mjs`); path wired from [`ui/index.ts`](ui/index.ts) | `ChooseYourPathScreen` soft-light layer over gameplay base. |
+| `ui/backgrounds/bg-choose-path-stage-v1.png` | Choose Your Path procedural **preview** (optional) | `node scripts/generate-choose-path-background.mjs` | Mid-res procedural plate (~800×500); **not** imported by default — swap into `UI_ART.choosePathScene` or replace `ambient-v2` when iterating. |
 | `ui/brand-crest.svg` | Menu crest | Authored SVG | Crystal sigil in gold frame; reused on **GameOver** hero lockup (**META-002**). |
 | `ui/menu-emblem.svg` | Secondary emblem | Authored SVG | Ring + tome motif |
 | `ui/divider-ornament.svg` | Hero divider | Authored SVG | Gold gradient + center gem + side flourishes |
@@ -53,7 +52,9 @@ Two files both export a constant named `UI_ART` — they are **not** interchange
 | `textures/cards/edge.png` | Card edge map | `scripts/card-pipeline/generate-card-textures.ps1` | Pairs with `tileTextures.ts` |
 | `textures/cards/panel-roughness.png` | Panel roughness | `scripts/card-pipeline/generate-card-textures.ps1` | |
 | `textures/cards/edge-roughness.png` | Edge roughness | `scripts/card-pipeline/generate-card-textures.ps1` | |
-| `cards/illustrations/face-panel-NN.png` | Tarot illustration **mat** rasters (center panel) | `yarn face-panels:local` → [`batch_local_face_panels.py`](../../../scripts/card-pipeline/batch_local_face_panels.py) | Drawn inside `CARD_ILLUSTRATION_INSET`; see `cardIllustrationRegistry.ts`. Legacy `deck-01..06.svg` stay referenced for `yarn build:card-illustration-manifest`. |
+| `textures/cards/reference-back.png` | Card-back **pipeline source** (normalize / PS1 raster steps) | Authored / AI → normalize | Default input for [`generate-card-textures.ps1`](../../../scripts/card-pipeline/generate-card-textures.ps1); **not** the runtime `back.svg` URL in `tileTextures.ts`. |
+| `textures/cards/front-face.png` | Card-face **pipeline output** / plate reference | Same PS1 pipeline from `reference-back.png` | Runtime faces still use `front.svg` + illustration mats unless you replace imports. |
+| `cards/illustrations/face-panel-01.png` … `face-panel-80.png` | Tarot illustration **mat** rasters (center panel), tiered common/uncommon/rare | `yarn face-panels:local` → [`batch_local_face_panels.py`](../../../scripts/card-pipeline/batch_local_face_panels.py); URL barrel [`facePanelRasterUrls.ts`](../cardFace/facePanelRasterUrls.ts) | Weighted fallback in [`weightedFacePanelPool.ts`](../cardFace/weightedFacePanelPool.ts). Legacy `deck-01..06.svg` stay referenced for `yarn build:card-illustration-manifest`. |
 | _(not in repo)_ `tmp/face-panels/` | Local SDXL batch staging | Same | Gitignored until copied into `cards/illustrations/`. |
 
 ### Card faces: atomic SVG vs overlay FX
