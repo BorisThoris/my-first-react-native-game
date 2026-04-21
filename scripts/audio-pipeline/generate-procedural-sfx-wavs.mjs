@@ -72,20 +72,148 @@ function twoTone(sr, durSec, f0, f1, gain) {
     return out;
 }
 
-function chillBed(sr, seconds) {
-    const n = Math.floor(sr * seconds);
-    const out = new Float32Array(n);
-    for (let i = 0; i < n; i += 1) {
+/** Deterministic white noise [-1,1] for snare/hats (reproducible builds). */
+function noiseSample(seedRef) {
+    seedRef.v = (seedRef.v * 1103515245 + 12345) >>> 0;
+    return (seedRef.v / 0x7fffffff) * 2 - 1;
+}
+
+/** Mix exponential sine-sweep kick (four-on-the-floor friendly). */
+function mixKick(buffer, offset, sr) {
+    const len = Math.floor(sr * 0.095);
+    const seedRef = { v: offset >>> 0 };
+    for (let i = 0; i < len && offset + i < buffer.length; i += 1) {
         const t = i / sr;
-        const lfo = 0.45 + 0.55 * Math.sin(2 * Math.PI * 0.07 * t);
-        const g = 0.055 * lfo;
-        out[i] =
-            g *
-            (Math.sin(2 * Math.PI * 128 * t) +
-                0.55 * Math.sin(2 * Math.PI * 192 * t) +
-                0.35 * Math.sin(2 * Math.PI * 256 * t + 0.4));
+        const progress = i / len;
+        const env = Math.pow(1 - progress, 2.8) * 0.92;
+        const f = 185 * Math.pow(58 / 185, progress);
+        const click = i < Math.floor(sr * 0.004) ? noiseSample(seedRef) * 0.35 * (1 - i / Math.max(1, sr * 0.004)) : 0;
+        buffer[offset + i] += click + env * 0.52 * Math.sin(2 * Math.PI * f * t);
     }
-    return out;
+}
+
+/** Mix noise-body snare with a little tonal ring. */
+function mixSnare(buffer, offset, sr) {
+    const len = Math.min(Math.floor(sr * 0.14), buffer.length - offset);
+    const seedRef = { v: (offset + 999) >>> 0 };
+    for (let i = 0; i < len; i += 1) {
+        const progress = i / len;
+        const env = Math.pow(1 - progress, 1.35);
+        const body = noiseSample(seedRef) * env * 0.38;
+        const tone = env * 0.08 * Math.sin(2 * Math.PI * 330 * (i / sr));
+        buffer[offset + i] += body + tone;
+    }
+}
+
+/** Closed hat: band-limited noise burst. */
+function mixHat(buffer, offset, sr, velocity) {
+    const len = Math.min(Math.floor(sr * 0.035), buffer.length - offset);
+    const seedRef = { v: (offset + 2048) >>> 0 };
+    for (let i = 0; i < len; i += 1) {
+        const env = Math.pow(1 - i / len, 4);
+        const n = noiseSample(seedRef);
+        buffer[offset + i] += n * env * velocity * 0.65;
+    }
+}
+
+/** Soft sub-bass note (sine). */
+function mixBassNote(buffer, offset, sr, freqHz, durSec, velocity) {
+    const len = Math.min(Math.floor(sr * durSec), buffer.length - offset);
+    for (let i = 0; i < len; i += 1) {
+        const t = i / sr;
+        const attack = Math.min(1, i / Math.max(1, sr * 0.012));
+        const release = Math.min(1, (len - i) / Math.max(1, sr * 0.045));
+        const env = attack * release;
+        buffer[offset + i] += velocity * env * 0.42 * Math.sin(2 * Math.PI * freqHz * t);
+    }
+}
+
+/** Warm pad: stacked detuned sines with slow attack (per chord zone). */
+function mixPadChord(buffer, startSample, sr, durationSamples, freqs, gain) {
+    const len = Math.min(durationSamples, buffer.length - startSample);
+    const seeds = freqs.map((_, j) => j * 9973);
+    for (let i = 0; i < len; i += 1) {
+        let s = 0;
+        const att = Math.min(1, i / Math.max(1, sr * 0.55));
+        const rel = Math.min(1, (len - i) / Math.max(1, sr * 0.4));
+        const zone = att * rel;
+        for (let k = 0; k < freqs.length; k += 1) {
+            const detune = 1 + (seeds[k] % 7) * 0.00015;
+            const f = freqs[k] * detune;
+            const t = (startSample + i) / sr;
+            s += Math.sin(2 * Math.PI * f * t + k * 0.7);
+        }
+        buffer[startSample + i] += gain * zone * (s / freqs.length) * 0.22;
+    }
+}
+
+/**
+ * Chill loop: 4/4 @ BPM, kick on 1&3, snare backbeat, 8th hats, walking bass, pad chords.
+ * Length `bars` — integer samples per quarter so the WAV loops seamlessly at bar boundaries.
+ */
+function generateChillLoop(sr, bpm, bars) {
+    const spq = Math.round((sr * 60) / bpm);
+    if (Math.abs(spq - (sr * 60) / bpm) > 1e-6) {
+        throw new Error(`Pick bpm so ${sr}*60/bpm is integral (got ${(sr * 60) / bpm})`);
+    }
+    const totalSamples = bars * 4 * spq;
+    const buffer = new Float32Array(totalSamples);
+
+    // Am | F | C | G — roots (Hz) for bass; pads as chord stacks (fundamentals + thirds + fifths).
+    const progression = [
+        { root: 55, pad: [110, 130.81, 164.81] }, // Am
+        { root: 43.65, pad: [87.31, 130.81, 174.61] }, // F
+        { root: 65.41, pad: [130.81, 164.81, 196] }, // C
+        { root: 49, pad: [98, 123.47, 146.83] } // G
+    ];
+
+    for (let bar = 0; bar < bars; bar += 1) {
+        const chord = progression[bar % 4];
+        const barStart = bar * 4 * spq;
+
+        mixPadChord(buffer, barStart, sr, 4 * spq, chord.pad, 0.95);
+
+        for (let beat = 0; beat < 4; beat += 1) {
+            const beatStart = barStart + beat * spq;
+            if (beat === 0 || beat === 2) {
+                mixKick(buffer, beatStart, sr);
+            }
+            if (beat === 1 || beat === 3) {
+                mixSnare(buffer, beatStart, sr);
+            }
+            for (let h = 0; h < 8; h += 1) {
+                const swing = h % 2 === 1 ? Math.round(sr * 0.011) : 0;
+                const hatOff = beatStart + Math.round((h * spq) / 2) + swing;
+                const accent = h % 4 === 0 ? 0.14 : h % 2 === 0 ? 0.1 : 0.065;
+                mixHat(buffer, hatOff, sr, accent);
+            }
+
+            const bassDur = (spq * 0.92) / sr;
+            const rootHz = chord.root;
+            const fifthHz = rootHz * 1.498307; // just-ish fifth
+            if (beat === 0) {
+                mixBassNote(buffer, beatStart, sr, rootHz, bassDur, 1);
+            } else if (beat === 1) {
+                mixBassNote(buffer, beatStart, sr, fifthHz, bassDur * 0.92, 0.88);
+            } else if (beat === 2) {
+                mixBassNote(buffer, beatStart, sr, rootHz * 1.02, bassDur, 0.92);
+            } else {
+                mixBassNote(buffer, beatStart + Math.floor(spq * 0.12), sr, rootHz * 1.25992, bassDur * 0.75, 0.78); // octave bounce hint
+            }
+        }
+    }
+
+    let peak = 1e-6;
+    for (let i = 0; i < buffer.length; i += 1) {
+        peak = Math.max(peak, Math.abs(buffer[i]));
+    }
+    const norm = 0.92 / peak;
+    for (let i = 0; i < buffer.length; i += 1) {
+        const x = buffer[i] * norm;
+        buffer[i] = Math.tanh(x * 1.15) / 1.15;
+    }
+
+    return buffer;
 }
 
 const SR = 44100;
@@ -115,7 +243,13 @@ for (const [name, samples] of Object.entries(sfx)) {
     console.log('wrote', name);
 }
 
-const musicSr = 22050;
-const bed = chillBed(musicSr, 48);
-writeWav(path.join(musicDir, 'chill-loop.wav'), bed, musicSr);
-console.log('wrote chill-loop.wav (replace with ACE-Step export when ready)');
+// Music at 44.1kHz; BPM chosen so samples/beat is integer for gapless loop.
+const MUSIC_SR = 44100;
+const MUSIC_BPM = 80;
+const MUSIC_BARS = 8;
+const bed = generateChillLoop(MUSIC_SR, MUSIC_BPM, MUSIC_BARS);
+writeWav(path.join(musicDir, 'chill-loop.wav'), bed, MUSIC_SR);
+console.log(
+    'wrote chill-loop.wav',
+    `(${MUSIC_BARS} bars @ ${MUSIC_BPM} BPM, ~${(bed.length / MUSIC_SR).toFixed(1)}s, replace with ACE-Step when ready)`
+);
