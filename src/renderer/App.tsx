@@ -17,6 +17,7 @@ import { VIEWPORT_MOBILE_MAX, VIEWPORT_TABLET_MAX } from './breakpoints';
 import { useViewportSize } from './hooks/useViewportSize';
 import styles from './styles/App.module.css';
 import { buildRendererThemeStyle } from './styles/theme';
+import { useGameplayMusic } from './audio/gameplayMusic';
 import MatchedCardRimFireSandbox from './dev/MatchedCardRimFireSandbox';
 import ProceduralIllustrationGallerySandbox from './dev/ProceduralIllustrationGallerySandbox';
 import { readDevSandboxConfig } from './dev/devSandboxParams';
@@ -95,6 +96,13 @@ const App = () => {
         subscreenReturnView === 'playing' &&
         run !== null;
     const visualView = inGameSettingsOverlay || inGameShellOverlay ? 'playing' : activeView;
+
+    useGameplayMusic({
+        active: hydrated && (visualView === 'menu' || visualView === 'playing'),
+        masterVolume: settings.masterVolume,
+        musicVolume: settings.musicVolume
+    });
+
     const ambientGridState =
         hydrated &&
         (visualView === 'menu' ||
@@ -169,6 +177,9 @@ const App = () => {
      *       stays above the main column / HUD stack).
      *   Within `.mainGameColumn`: `.hudRow` 2; `.boardStage` 1; board tiles `.boardStage > :global(*)` 1;
      *       `.distractionHud` 4 (above tiles, still under the HUD row because `.boardStage` roots below `.hudRow`).
+     *       `.matchScoreFloater` / `.mismatchScoreFloater` 5 — transient +score or “Miss” pop
+     *       (`data-testid` `match-score-floater` / `mismatch-score-floater`); above distraction HUD, under in-run
+     *       OverlayModal shells (21+).
      */
     if (import.meta.env.DEV) {
         const fx = readDevSandboxConfig().fxSandbox;
@@ -236,6 +247,7 @@ const App = () => {
                 {introOverlayVisible &&
                     createPortal(
                         <StartupIntro
+                            graphicsQuality={hydrated ? settings.graphicsQuality : undefined}
                             onComplete={() => setIntroPlayback('done')}
                             reduceMotion={settings.reduceMotion}
                         />,

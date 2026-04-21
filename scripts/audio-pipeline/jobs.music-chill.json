@@ -1,0 +1,17 @@
+{
+    "jobs": [
+        {
+            "id": "music-chill-hub",
+            "task_type": "text2music",
+            "caption": "Chill ambient puzzle game background, soft pads, gentle arpeggio hints, slow 72 BPM feel, seamless loop character, instrumental no drums, cozy fantasy lobby",
+            "lyrics": "[Instrumental]",
+            "instrumental": true,
+            "duration": 95,
+            "bpm": 72,
+            "inference_steps": 8,
+            "shift": 3.0,
+            "infer_method": "ode",
+            "seed": 920001
+        }
+    ]
+}
