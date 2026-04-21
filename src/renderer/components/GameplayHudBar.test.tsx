@@ -7,7 +7,8 @@ describe('GameplayHudBar', () => {
     it('shows endless archetype, featured objective, and favor progress on scheduled endless floors', () => {
         const run = {
             ...finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false })),
-            relicFavorProgress: 2
+            relicFavorProgress: 2,
+            featuredObjectiveStreak: 3
         };
 
         render(
@@ -22,6 +23,7 @@ describe('GameplayHudBar', () => {
         expect(screen.getByTestId('hud-endless-archetype').textContent).toContain('Survey Hall');
         expect(screen.getByTestId('hud-featured-objective').textContent).toContain('Flip par');
         expect(screen.getByTestId('hud-favor-progress').textContent).toContain('2/3');
+        expect(screen.getByTestId('hud-featured-streak').textContent).toContain('x3');
     });
 
     it('does not show favor UI on non-endless runs', () => {
@@ -39,5 +41,6 @@ describe('GameplayHudBar', () => {
         expect(screen.queryByTestId('hud-endless-archetype')).toBeNull();
         expect(screen.queryByTestId('hud-featured-objective')).toBeNull();
         expect(screen.queryByTestId('hud-favor-progress')).toBeNull();
+        expect(screen.queryByTestId('hud-featured-streak')).toBeNull();
     });
 });

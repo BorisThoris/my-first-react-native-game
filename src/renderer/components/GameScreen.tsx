@@ -478,6 +478,14 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const favorGained = run.lastLevelResult?.relicFavorGained ?? 0;
     const favorGainLine =
         run.lastLevelResult?.featuredObjectiveId != null ? `Favor gained: +${favorGained}` : null;
+    const featuredObjectiveStreakLine =
+        run.lastLevelResult?.featuredObjectiveId != null
+            ? `Objective streak: x${run.lastLevelResult.featuredObjectiveStreak ?? 0}${
+                  (run.lastLevelResult.featuredObjectiveStreakBonus ?? 0) > 0
+                      ? ` (+${run.lastLevelResult.featuredObjectiveStreakBonus!.toLocaleString()})`
+                      : ''
+              }`
+            : null;
     const favorBankedPickCount = countFavorBonusPicksBanked(run.relicFavorProgress, favorGained);
     const favorBankedLine =
         favorBankedPickCount > 0
@@ -799,6 +807,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                     >
                         {clearLifeBonusLabel ? <p className={styles.modalNote}>{clearLifeBonusLabel}</p> : null}
                         {featuredObjectiveResultLine ? <p className={styles.modalNote}>{featuredObjectiveResultLine}</p> : null}
+                        {featuredObjectiveStreakLine ? <p className={styles.modalNote}>{featuredObjectiveStreakLine}</p> : null}
                         {favorGainLine ? <p className={styles.modalNote}>{favorGainLine}</p> : null}
                         {favorBankedLine ? <p className={styles.modalNote}>{favorBankedLine}</p> : null}
                         {objectiveBonusLine ? <p className={styles.modalNote}>{objectiveBonusLine}</p> : null}

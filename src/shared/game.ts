@@ -6,6 +6,8 @@ import {
     DEBUG_REVEAL_MS,
     FINDABLE_MATCH_COMBO_SHARDS,
     FINDABLE_MATCH_SCORE,
+    FEATURED_OBJECTIVE_STREAK_BONUS_MAX,
+    FEATURED_OBJECTIVE_STREAK_BONUS_PER_STEP,
     FLIP_PAR_BONUS_SCORE,
     GAME_RULES_VERSION,
     SHIFTING_BOUNTY_MATCH_BONUS,
@@ -1018,6 +1020,7 @@ export const createNewRun = (bestScore: number, options: CreateRunOptions = {}):
         bonusRelicPicksNextOffer: 0,
         favorBonusRelicPicksNextOffer: 0,
         relicFavorProgress: 0,
+        featuredObjectiveStreak: 0,
         metaRelicDraftExtraPerMilestone: options.metaRelicDraftExtraPerMilestone ?? 0,
         relicOffer: null,
         activeContract: options.activeContract ?? null,
@@ -1392,12 +1395,28 @@ const finalizeLevel = (run: RunState, board: BoardState): RunState => {
     const featuredObjectiveCompleted =
         featuredObjectiveId != null ? isFeaturedObjectiveCompleted(run, board, featuredObjectiveId) : false;
     let relicFavorGained = 0;
+    const featuredObjectiveStreak =
+        featuredObjectiveId != null
+            ? featuredObjectiveCompleted
+                ? run.featuredObjectiveStreak + 1
+                : 0
+            : run.featuredObjectiveStreak;
+    const featuredObjectiveStreakBonus =
+        featuredObjectiveId != null && featuredObjectiveCompleted
+            ? Math.min(
+                  Math.max(0, featuredObjectiveStreak - 1) * FEATURED_OBJECTIVE_STREAK_BONUS_PER_STEP,
+                  FEATURED_OBJECTIVE_STREAK_BONUS_MAX
+              )
+            : 0;
 
     if (featuredObjectiveId != null) {
         if (featuredObjectiveCompleted) {
             objectiveBonus += FEATURED_OBJECTIVE_BONUS_SCORES[featuredObjectiveId];
             bonusTags.push(featuredObjectiveId);
             relicFavorGained = board.floorTag === 'boss' ? 2 : 1;
+            if (featuredObjectiveStreakBonus > 0) {
+                bonusTags.push('objective_streak');
+            }
         }
     } else {
         if (!run.shuffleUsedThisFloor && !run.destroyUsedThisFloor) {
@@ -1417,7 +1436,8 @@ const finalizeLevel = (run: RunState, board: BoardState): RunState => {
             bonusTags.push('flip_par');
         }
     }
-    const preBossSubtotal = run.stats.currentLevelScore + levelBonus + perfectBonus + objectiveBonus;
+    const preBossSubtotal =
+        run.stats.currentLevelScore + levelBonus + perfectBonus + objectiveBonus + featuredObjectiveStreakBonus;
     const scoreGained =
         board.floorTag === 'boss'
             ? Math.floor(preBossSubtotal * BOSS_FLOOR_SCORE_MULTIPLIER)
@@ -1443,7 +1463,10 @@ const finalizeLevel = (run: RunState, board: BoardState): RunState => {
         objectiveBonusScore: objectiveBonus > 0 ? objectiveBonus : undefined,
         featuredObjectiveId: featuredObjectiveId ?? undefined,
         featuredObjectiveCompleted: featuredObjectiveId != null ? featuredObjectiveCompleted : undefined,
-        relicFavorGained: featuredObjectiveId != null ? relicFavorGained : undefined
+        relicFavorGained: featuredObjectiveId != null ? relicFavorGained : undefined,
+        featuredObjectiveStreak: featuredObjectiveId != null ? featuredObjectiveStreak : undefined,
+        featuredObjectiveStreakBonus:
+            featuredObjectiveId != null && featuredObjectiveStreakBonus > 0 ? featuredObjectiveStreakBonus : undefined
     };
 
     return {
@@ -1453,6 +1476,7 @@ const finalizeLevel = (run: RunState, board: BoardState): RunState => {
         bonusRelicPicksNextOffer: relicFavor.bonusRelicPicksNextOffer,
         favorBonusRelicPicksNextOffer: relicFavor.favorBonusRelicPicksNextOffer,
         relicFavorProgress: relicFavor.relicFavorProgress,
+        featuredObjectiveStreak,
         board,
         stats: {
             ...run.stats,

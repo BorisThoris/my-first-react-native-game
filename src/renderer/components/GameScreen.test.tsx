@@ -300,8 +300,10 @@ describe('GameScreen (OVR-014)', () => {
                 featuredObjectiveId: 'flip_par',
                 featuredObjectiveCompleted: true,
                 relicFavorGained: 1,
+                featuredObjectiveStreak: 2,
+                featuredObjectiveStreakBonus: 10,
                 objectiveBonusScore: 30,
-                bonusTags: ['flip_par']
+                bonusTags: ['flip_par', 'objective_streak']
             }
         };
 
@@ -314,6 +316,7 @@ describe('GameScreen (OVR-014)', () => {
         );
 
         expect(getByText('Flip par: Complete')).toBeTruthy();
+        expect(getByText('Objective streak: x2 (+10)')).toBeTruthy();
         expect(getByText('Favor gained: +1')).toBeTruthy();
         expect(getByText(/Extra relic pick banked/)).toBeTruthy();
         expect(getByText(/Next: Speed Trial/)).toBeTruthy();

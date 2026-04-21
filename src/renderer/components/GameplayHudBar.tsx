@@ -454,6 +454,16 @@ const GameplayHudBar = ({
                                         <span className={styles.statVal}>{run.relicFavorProgress}/3</span>
                                     </div>
                                 ) : null}
+                                {endlessChapterActive && run.featuredObjectiveStreak > 0 ? (
+                                    <div
+                                        className={styles.statPillCompact}
+                                        data-testid="hud-featured-streak"
+                                        title="Consecutive endless featured objectives completed"
+                                    >
+                                        <span className={styles.statKey}>Streak</span>
+                                        <span className={styles.statVal}>x{run.featuredObjectiveStreak}</span>
+                                    </div>
+                                ) : null}
                                 {run.findablesTotalThisFloor > 0 ? (
                                     <div
                                         className={styles.statPillCompact}

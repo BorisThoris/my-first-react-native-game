@@ -8,11 +8,13 @@
  */
 export const SAVE_SCHEMA_VERSION = 5;
 /** Bump when generation rules change (tile order, mutators, pair layout). */
-export const GAME_RULES_VERSION = 11;
+export const GAME_RULES_VERSION = 12;
 export const INITIAL_LIVES = 4;
 /** Hard cap on life total during a run; HUD renders this many heart slots (PLAY-004 — honest max, not mock’s three). */
 export const MAX_LIVES = 5;
 export const MATCH_DELAY_MS = 850;
+export const FEATURED_OBJECTIVE_STREAK_BONUS_PER_STEP = 10;
+export const FEATURED_OBJECTIVE_STREAK_BONUS_MAX = 50;
 /** Minimum value for Settings → Gameplay → Resolve Delay — keep in sync with `SettingsScreen` slider `min`. */
 export const RESOLVE_DELAY_MULTIPLIER_MIN = 0.5;
 export const DEBUG_REVEAL_MS = 1500;
@@ -293,6 +295,8 @@ export interface LevelResult {
     featuredObjectiveId?: FeaturedObjectiveId;
     featuredObjectiveCompleted?: boolean;
     relicFavorGained?: number;
+    featuredObjectiveStreak?: number;
+    featuredObjectiveStreakBonus?: number;
 }
 
 export interface RunSummary {
@@ -361,6 +365,8 @@ export interface RunState {
     favorBonusRelicPicksNextOffer: number;
     /** Endless-only favor bank from featured objectives; every 3 converts to +1 extra relic pick. */
     relicFavorProgress: number;
+    /** Endless-only consecutive featured-objective clears. Missed featured objectives reset this to 0. */
+    featuredObjectiveStreak: number;
     /**
      * Copied from save at run start: meta unlock grants +1 relic pick at **each** milestone (`relicShrineExtraPickUnlocked`).
      */

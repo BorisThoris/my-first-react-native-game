@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { BoardState, MutatorId, RunState, Tile } from './contracts';
 import {
+    FEATURED_OBJECTIVE_STREAK_BONUS_PER_STEP,
     FINDABLE_MATCH_COMBO_SHARDS,
     FINDABLE_MATCH_SCORE,
     FLIP_PAR_BONUS_SCORE,
@@ -113,6 +114,14 @@ const pairTileIds = (board: BoardState): string[][] => {
     return [...groups.values()];
 };
 
+const clearRealPairs = (run: RunState): RunState => {
+    let current = run;
+    for (const ids of pairTileIds(current.board!).filter((group) => group.length === 2)) {
+        current = resolveBoardTurn(flipTile(flipTile(current, ids[0]!), ids[1]!));
+    }
+    return current;
+};
+
 describe('createDailyRun', () => {
     it('uses daily mode, one table mutator, and a UTC date key', () => {
         const run = createDailyRun(0);
@@ -156,6 +165,42 @@ describe('endless chapters and featured objectives', () => {
         expect(finished.relicFavorProgress).toBe(0);
         expect(finished.bonusRelicPicksNextOffer).toBe(1);
         expect(finished.favorBonusRelicPicksNextOffer).toBe(1);
+    });
+
+    it('builds a featured-objective streak and awards a score kicker after the first clear', () => {
+        const started = finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false }));
+
+        const firstFinished = clearRealPairs(started);
+        expect(firstFinished.lastLevelResult?.featuredObjectiveStreak).toBe(1);
+        expect(firstFinished.lastLevelResult?.featuredObjectiveStreakBonus).toBeUndefined();
+
+        const secondStarted = finishMemorizePhase(advanceToNextLevel(firstFinished));
+        const secondFinished = clearRealPairs(secondStarted);
+
+        expect(secondFinished.status).toBe('levelComplete');
+        expect(secondFinished.featuredObjectiveStreak).toBe(2);
+        expect(secondFinished.lastLevelResult?.featuredObjectiveStreak).toBe(2);
+        expect(secondFinished.lastLevelResult?.featuredObjectiveStreakBonus).toBe(
+            FEATURED_OBJECTIVE_STREAK_BONUS_PER_STEP
+        );
+        expect(secondFinished.lastLevelResult?.bonusTags).toContain('objective_streak');
+    });
+
+    it('resets the featured-objective streak when the objective is missed', () => {
+        const started = finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false }));
+        const primed: RunState = {
+            ...started,
+            featuredObjectiveStreak: 3,
+            matchResolutionsThisFloor: 99
+        };
+
+        const finished = clearRealPairs(primed);
+
+        expect(finished.status).toBe('levelComplete');
+        expect(finished.lastLevelResult?.featuredObjectiveCompleted).toBe(false);
+        expect(finished.featuredObjectiveStreak).toBe(0);
+        expect(finished.lastLevelResult?.featuredObjectiveStreak).toBe(0);
+        expect(finished.lastLevelResult?.featuredObjectiveStreakBonus).toBeUndefined();
     });
 
     it('grants +2 favor on boss floors when the featured objective succeeds', () => {
