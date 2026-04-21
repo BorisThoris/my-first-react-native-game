@@ -1,5 +1,5 @@
 import { NotificationHost, useNotificationStore } from '@cross-repo-libs/notifications';
-import { act, render } from '@testing-library/react';
+import { act, fireEvent, render } from '@testing-library/react';
 import { forwardRef } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RunState } from '../../shared/contracts';
@@ -320,5 +320,125 @@ describe('GameScreen (OVR-014)', () => {
         expect(getByText('Favor gained: +1')).toBeTruthy();
         expect(getByText(/Extra relic pick banked/)).toBeTruthy();
         expect(getByText(/Next: Speed Trial/)).toBeTruthy();
+    });
+
+    it('shows and arms an endless risk wager when the cleared streak is eligible', () => {
+        const baseRun = createNewRun(0, { echoFeedbackEnabled: false });
+        const run: RunState = {
+            ...baseRun,
+            status: 'levelComplete',
+            relicOffer: null,
+            featuredObjectiveStreak: 2,
+            lastLevelResult: {
+                level: 1,
+                scoreGained: 120,
+                rating: 'S++',
+                livesRemaining: 5,
+                perfect: true,
+                mistakes: 0,
+                clearLifeReason: 'perfect',
+                clearLifeGained: 1,
+                featuredObjectiveId: 'flip_par',
+                featuredObjectiveCompleted: true,
+                relicFavorGained: 1,
+                featuredObjectiveStreak: 2,
+                objectiveBonusScore: 30,
+                bonusTags: ['flip_par', 'objective_streak']
+            }
+        };
+        act(() => {
+            useAppStore.setState({ run });
+        });
+
+        const { getByTestId, getByRole } = render(
+            <PlatformTiltProvider>
+                <NotificationHost>
+                    <GameScreen achievements={[]} run={run} />
+                </NotificationHost>
+            </PlatformTiltProvider>
+        );
+
+        expect(getByTestId('endless-risk-wager-panel')).toBeTruthy();
+        fireEvent.click(getByRole('button', { name: 'Arm wager' }));
+        expect(useAppStore.getState().run?.endlessRiskWager).toEqual({
+            acceptedOnLevel: 1,
+            targetLevel: 2,
+            streakAtRisk: 2,
+            bonusFavorOnSuccess: 2
+        });
+    });
+
+    it('shows armed and resolved endless risk wager copy', () => {
+        const baseRun = createNewRun(0, { echoFeedbackEnabled: false });
+        const armedRun: RunState = {
+            ...baseRun,
+            status: 'levelComplete',
+            relicOffer: null,
+            featuredObjectiveStreak: 2,
+            endlessRiskWager: {
+                acceptedOnLevel: 1,
+                targetLevel: 2,
+                streakAtRisk: 2,
+                bonusFavorOnSuccess: 2
+            },
+            lastLevelResult: {
+                level: 1,
+                scoreGained: 120,
+                rating: 'S++',
+                livesRemaining: 5,
+                perfect: true,
+                mistakes: 0,
+                clearLifeReason: 'perfect',
+                clearLifeGained: 1,
+                featuredObjectiveId: 'flip_par',
+                featuredObjectiveCompleted: true,
+                relicFavorGained: 1,
+                featuredObjectiveStreak: 2
+            }
+        };
+        const resolvedRun: RunState = {
+            ...baseRun,
+            status: 'levelComplete',
+            relicOffer: null,
+            featuredObjectiveStreak: 3,
+            lastLevelResult: {
+                level: 2,
+                scoreGained: 160,
+                rating: 'S++',
+                livesRemaining: 5,
+                perfect: true,
+                mistakes: 0,
+                clearLifeReason: 'perfect',
+                clearLifeGained: 1,
+                featuredObjectiveId: 'flip_par',
+                featuredObjectiveCompleted: true,
+                relicFavorGained: 3,
+                featuredObjectiveStreak: 3,
+                endlessRiskWagerOutcome: 'won',
+                endlessRiskWagerFavorGained: 2
+            }
+        };
+
+        const { getByText, rerender } = render(
+            <PlatformTiltProvider>
+                <NotificationHost>
+                    <GameScreen achievements={[]} run={armedRun} />
+                </NotificationHost>
+            </PlatformTiltProvider>
+        );
+
+        expect(getByText('Risk wager armed')).toBeTruthy();
+        expect(getByText(/Next featured objective: \+2 Favor/)).toBeTruthy();
+
+        rerender(
+            <PlatformTiltProvider>
+                <NotificationHost>
+                    <GameScreen achievements={[]} run={resolvedRun} />
+                </NotificationHost>
+            </PlatformTiltProvider>
+        );
+
+        expect(getByText('Risk wager won: +2 Favor')).toBeTruthy();
+        expect(getByText('Favor gained: +3')).toBeTruthy();
     });
 });

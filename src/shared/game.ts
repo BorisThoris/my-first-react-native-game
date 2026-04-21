@@ -4,6 +4,9 @@ import {
     COMBO_GUARD_STREAK_STEP,
     CURSED_LAST_BONUS_SCORE,
     DEBUG_REVEAL_MS,
+    ENDLESS_RISK_WAGER_BONUS_FAVOR,
+    ENDLESS_RISK_WAGER_MIN_STREAK,
+    FEATURED_OBJECTIVE_STREAK_MISS_DECAY,
     FINDABLE_MATCH_COMBO_SHARDS,
     FINDABLE_MATCH_SCORE,
     FEATURED_OBJECTIVE_STREAK_BONUS_MAX,
@@ -1021,6 +1024,7 @@ export const createNewRun = (bestScore: number, options: CreateRunOptions = {}):
         favorBonusRelicPicksNextOffer: 0,
         relicFavorProgress: 0,
         featuredObjectiveStreak: 0,
+        endlessRiskWager: null,
         metaRelicDraftExtraPerMilestone: options.metaRelicDraftExtraPerMilestone ?? 0,
         relicOffer: null,
         activeContract: options.activeContract ?? null,
@@ -1395,12 +1399,25 @@ const finalizeLevel = (run: RunState, board: BoardState): RunState => {
     const featuredObjectiveCompleted =
         featuredObjectiveId != null ? isFeaturedObjectiveCompleted(run, board, featuredObjectiveId) : false;
     let relicFavorGained = 0;
+    let endlessRiskWagerFavorGained = 0;
+    const activeEndlessRiskWager =
+        featuredObjectiveId != null && run.endlessRiskWager?.targetLevel === board.level
+            ? run.endlessRiskWager
+            : null;
+    const endlessRiskWagerOutcome =
+        activeEndlessRiskWager != null ? (featuredObjectiveCompleted ? 'won' : 'lost') : undefined;
     const featuredObjectiveStreak =
         featuredObjectiveId != null
             ? featuredObjectiveCompleted
                 ? run.featuredObjectiveStreak + 1
-                : 0
+                : activeEndlessRiskWager
+                  ? 0
+                  : Math.max(0, run.featuredObjectiveStreak - FEATURED_OBJECTIVE_STREAK_MISS_DECAY)
             : run.featuredObjectiveStreak;
+    const endlessRiskWagerStreakLost =
+        activeEndlessRiskWager != null && !featuredObjectiveCompleted
+            ? activeEndlessRiskWager.streakAtRisk
+            : undefined;
     const featuredObjectiveStreakBonus =
         featuredObjectiveId != null && featuredObjectiveCompleted
             ? Math.min(
@@ -1414,6 +1431,9 @@ const finalizeLevel = (run: RunState, board: BoardState): RunState => {
             objectiveBonus += FEATURED_OBJECTIVE_BONUS_SCORES[featuredObjectiveId];
             bonusTags.push(featuredObjectiveId);
             relicFavorGained = board.floorTag === 'boss' ? 2 : 1;
+            if (activeEndlessRiskWager) {
+                endlessRiskWagerFavorGained = activeEndlessRiskWager.bonusFavorOnSuccess;
+            }
             if (featuredObjectiveStreakBonus > 0) {
                 bonusTags.push('objective_streak');
             }
@@ -1449,7 +1469,8 @@ const finalizeLevel = (run: RunState, board: BoardState): RunState => {
     const bestScore = Math.max(run.stats.bestScore, totalScore);
     const rating = calculateRating(run.stats.tries);
     const lives = Math.min(MAX_LIVES, run.lives + clearLifeGained);
-    const relicFavor = gainRelicFavor(run, relicFavorGained);
+    const totalRelicFavorGained = relicFavorGained + endlessRiskWagerFavorGained;
+    const relicFavor = gainRelicFavor(run, totalRelicFavorGained);
     const lastLevelResult: LevelResult = {
         level: board.level,
         scoreGained,
@@ -1463,10 +1484,14 @@ const finalizeLevel = (run: RunState, board: BoardState): RunState => {
         objectiveBonusScore: objectiveBonus > 0 ? objectiveBonus : undefined,
         featuredObjectiveId: featuredObjectiveId ?? undefined,
         featuredObjectiveCompleted: featuredObjectiveId != null ? featuredObjectiveCompleted : undefined,
-        relicFavorGained: featuredObjectiveId != null ? relicFavorGained : undefined,
+        relicFavorGained: featuredObjectiveId != null ? totalRelicFavorGained : undefined,
         featuredObjectiveStreak: featuredObjectiveId != null ? featuredObjectiveStreak : undefined,
         featuredObjectiveStreakBonus:
-            featuredObjectiveId != null && featuredObjectiveStreakBonus > 0 ? featuredObjectiveStreakBonus : undefined
+            featuredObjectiveId != null && featuredObjectiveStreakBonus > 0 ? featuredObjectiveStreakBonus : undefined,
+        endlessRiskWagerOutcome,
+        endlessRiskWagerFavorGained:
+            endlessRiskWagerFavorGained > 0 ? endlessRiskWagerFavorGained : undefined,
+        endlessRiskWagerStreakLost
     };
 
     return {
@@ -1477,6 +1502,7 @@ const finalizeLevel = (run: RunState, board: BoardState): RunState => {
         favorBonusRelicPicksNextOffer: relicFavor.favorBonusRelicPicksNextOffer,
         relicFavorProgress: relicFavor.relicFavorProgress,
         featuredObjectiveStreak,
+        endlessRiskWager: activeEndlessRiskWager ? null : run.endlessRiskWager,
         board,
         stats: {
             ...run.stats,
@@ -1619,6 +1645,32 @@ const isEndlessFeaturedObjectiveBoard = (run: RunState, board: BoardState): bool
     run.gameMode === 'endless' &&
     usesEndlessFloorSchedule(run.gameMode, run.runRulesVersion) &&
     board.featuredObjectiveId != null;
+
+export const canOfferEndlessRiskWager = (run: RunState): boolean =>
+    run.status === 'levelComplete' &&
+    run.relicOffer == null &&
+    run.gameMode === 'endless' &&
+    usesEndlessFloorSchedule(run.gameMode, run.runRulesVersion) &&
+    run.endlessRiskWager == null &&
+    run.lastLevelResult?.featuredObjectiveId != null &&
+    run.lastLevelResult.featuredObjectiveCompleted === true &&
+    run.featuredObjectiveStreak >= ENDLESS_RISK_WAGER_MIN_STREAK;
+
+export const acceptEndlessRiskWager = (run: RunState): RunState => {
+    if (!canOfferEndlessRiskWager(run) || !run.lastLevelResult) {
+        return run;
+    }
+
+    return {
+        ...run,
+        endlessRiskWager: {
+            acceptedOnLevel: run.lastLevelResult.level,
+            targetLevel: run.lastLevelResult.level + 1,
+            streakAtRisk: run.featuredObjectiveStreak,
+            bonusFavorOnSuccess: ENDLESS_RISK_WAGER_BONUS_FAVOR
+        }
+    };
+};
 
 const isFeaturedObjectiveCompleted = (
     run: RunState,

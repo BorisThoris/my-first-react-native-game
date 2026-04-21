@@ -328,6 +328,47 @@
     color: color-mix(in srgb, var(--theme-rune) 88%, white);
 }
 
+.endlessRiskWagerPanel {
+    display: grid;
+    gap: 0.35rem;
+    margin: 0.55rem 0;
+    padding: 0.65rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 28%, var(--theme-border-strong));
+    background:
+        linear-gradient(180deg, rgba(255, 243, 217, 0.07), transparent 58%),
+        color-mix(in srgb, var(--theme-panel-solid) 88%, var(--theme-gold-deep) 12%);
+    color: var(--theme-text-muted);
+    text-align: left;
+}
+
+.endlessRiskWagerPanel strong {
+    color: var(--theme-gold-bright);
+    font-size: 0.78rem;
+    letter-spacing: 0.02em;
+}
+
+.endlessRiskWagerPanel span {
+    font-size: 0.72rem;
+    line-height: 1.35;
+}
+
+.endlessRiskWagerButton {
+    justify-self: start;
+    padding: 0.38rem 0.72rem;
+    border-radius: 8px;
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 38%, var(--theme-border-strong));
+    background: color-mix(in srgb, var(--theme-gold-deep) 28%, var(--theme-hud-accent-fill-strong));
+    color: var(--theme-text);
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.endlessRiskWagerButton:hover {
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 62%, white);
+    background: color-mix(in srgb, var(--theme-gold-deep) 42%, var(--theme-hud-accent-fill-strong));
+}
+
 .ftueDismiss {
     margin-left: auto;
     padding: 0.25rem 0.55rem;

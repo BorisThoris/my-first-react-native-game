@@ -8,7 +8,7 @@
 import type { AchievementId, GameMode, MutatorId, RelicId } from './contracts';
 
 /** Monotonic reference doc version (increment when the encyclopedia meaningfully changes). */
-export const ENCYCLOPEDIA_VERSION = 8 as const;
+export const ENCYCLOPEDIA_VERSION = 9 as const;
 
 export interface RelicDefinition {
     id: RelicId;
@@ -386,7 +386,7 @@ export const ENCYCLOPEDIA_SCORING_AND_SURVIVAL_TOPICS: readonly EncyclopediaTopi
         id: 'sys_endless_chapters_and_favor',
         title: 'Endless chapters, featured objectives, streaks, and Favor',
         description:
-            'Modern **Classic Run** uses a repeating chapter schedule: each endless floor has a **name**, a short **hint**, and **one featured objective** instead of the old hidden objective stack. Completing consecutive featured objectives builds an **objective streak**: the first clear starts the chain, then each continued clear adds a small capped score kicker. Completing the featured objective also grants **Favor** (+1 on normal or breather floors, +2 on boss floors). Every **3 Favor** banks **+1 extra relic selection** for the next shrine.'
+            'Modern **Classic Run** uses a repeating chapter schedule: each endless floor has a **name**, a short **hint**, and **one featured objective** instead of the old hidden objective stack. Completing consecutive featured objectives builds an **objective streak**: the first clear starts the chain, then each continued clear adds a small capped score kicker. A normal miss decays the streak by 1. At streak x2 or higher, you can arm a **risk wager** for the next floor: complete that featured objective for bonus Favor, or miss it and reset the streak. Completing featured objectives also grants **Favor** (+1 on normal or breather floors, +2 on boss floors). Every **3 Favor** banks **+1 extra relic selection** for the next shrine.'
     },
     {
         id: 'sys_perfect_floor_vs_achievement',

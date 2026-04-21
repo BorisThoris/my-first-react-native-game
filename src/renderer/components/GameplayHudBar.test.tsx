@@ -8,7 +8,13 @@ describe('GameplayHudBar', () => {
         const run = {
             ...finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false })),
             relicFavorProgress: 2,
-            featuredObjectiveStreak: 3
+            featuredObjectiveStreak: 3,
+            endlessRiskWager: {
+                acceptedOnLevel: 0,
+                targetLevel: 1,
+                streakAtRisk: 3,
+                bonusFavorOnSuccess: 2
+            }
         };
 
         render(
@@ -24,6 +30,7 @@ describe('GameplayHudBar', () => {
         expect(screen.getByTestId('hud-featured-objective').textContent).toContain('Flip par');
         expect(screen.getByTestId('hud-favor-progress').textContent).toContain('2/3');
         expect(screen.getByTestId('hud-featured-streak').textContent).toContain('x3');
+        expect(screen.getByTestId('hud-endless-risk-wager').textContent).toContain('+2 Favor');
     });
 
     it('does not show favor UI on non-endless runs', () => {
@@ -42,5 +49,6 @@ describe('GameplayHudBar', () => {
         expect(screen.queryByTestId('hud-featured-objective')).toBeNull();
         expect(screen.queryByTestId('hud-favor-progress')).toBeNull();
         expect(screen.queryByTestId('hud-featured-streak')).toBeNull();
+        expect(screen.queryByTestId('hud-endless-risk-wager')).toBeNull();
     });
 });

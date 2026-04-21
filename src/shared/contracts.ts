@@ -8,13 +8,16 @@
  */
 export const SAVE_SCHEMA_VERSION = 5;
 /** Bump when generation rules change (tile order, mutators, pair layout). */
-export const GAME_RULES_VERSION = 12;
+export const GAME_RULES_VERSION = 13;
 export const INITIAL_LIVES = 4;
 /** Hard cap on life total during a run; HUD renders this many heart slots (PLAY-004 — honest max, not mock’s three). */
 export const MAX_LIVES = 5;
 export const MATCH_DELAY_MS = 850;
 export const FEATURED_OBJECTIVE_STREAK_BONUS_PER_STEP = 10;
 export const FEATURED_OBJECTIVE_STREAK_BONUS_MAX = 50;
+export const FEATURED_OBJECTIVE_STREAK_MISS_DECAY = 1;
+export const ENDLESS_RISK_WAGER_MIN_STREAK = 2;
+export const ENDLESS_RISK_WAGER_BONUS_FAVOR = 2;
 /** Minimum value for Settings → Gameplay → Resolve Delay — keep in sync with `SettingsScreen` slider `min`. */
 export const RESOLVE_DELAY_MULTIPLIER_MIN = 0.5;
 export const DEBUG_REVEAL_MS = 1500;
@@ -54,6 +57,7 @@ export type TileState = 'hidden' | 'flipped' | 'matched' | 'removed';
 export type Rating = 'S++' | 'S' | 'A' | 'B' | 'C' | 'D' | 'F';
 export type ClearLifeReason = 'none' | 'clean' | 'perfect';
 export type FeaturedObjectiveId = 'scholar_style' | 'glass_witness' | 'cursed_last' | 'flip_par';
+export type EndlessRiskWagerOutcome = 'won' | 'lost';
 export type ViewState =
     | 'boot'
     | 'menu'
@@ -127,6 +131,13 @@ export interface RelicOfferState {
     pickRound: number;
     /** Display-only source marker for bonus picks banked from endless featured-objective favor. */
     favorBonusPicks?: number;
+}
+
+export interface EndlessRiskWagerState {
+    acceptedOnLevel: number;
+    targetLevel: number;
+    streakAtRisk: number;
+    bonusFavorOnSuccess: number;
 }
 
 export interface ContractFlags {
@@ -297,6 +308,9 @@ export interface LevelResult {
     relicFavorGained?: number;
     featuredObjectiveStreak?: number;
     featuredObjectiveStreakBonus?: number;
+    endlessRiskWagerOutcome?: EndlessRiskWagerOutcome;
+    endlessRiskWagerFavorGained?: number;
+    endlessRiskWagerStreakLost?: number;
 }
 
 export interface RunSummary {
@@ -365,8 +379,10 @@ export interface RunState {
     favorBonusRelicPicksNextOffer: number;
     /** Endless-only favor bank from featured objectives; every 3 converts to +1 extra relic pick. */
     relicFavorProgress: number;
-    /** Endless-only consecutive featured-objective clears. Missed featured objectives reset this to 0. */
+    /** Endless-only consecutive featured-objective clears. Normal misses decay this; risk-wager misses reset it. */
     featuredObjectiveStreak: number;
+    /** Endless-only risk wager armed from a level-complete modal for the next floor. */
+    endlessRiskWager: EndlessRiskWagerState | null;
     /**
      * Copied from save at run start: meta unlock grants +1 relic pick at **each** milestone (`relicShrineExtraPickUnlocked`).
      */

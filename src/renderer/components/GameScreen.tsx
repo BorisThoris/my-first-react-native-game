@@ -1,12 +1,13 @@
 import { ACHIEVEMENTS } from '../../shared/achievements';
 import {
+    ENDLESS_RISK_WAGER_BONUS_FAVOR,
     MAX_PINNED_TILES,
     type AchievementId,
     type RunState,
     type Settings
 } from '../../shared/contracts';
 import { computeFocusDimmedTileIds } from '../../shared/focusDimmedTileIds';
-import { canRegionShuffle, canRegionShuffleRow, canShuffleBoard } from '../../shared/game';
+import { canOfferEndlessRiskWager, canRegionShuffle, canRegionShuffleRow, canShuffleBoard } from '../../shared/game';
 import { useNotificationStore } from '@cross-repo-libs/notifications';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
@@ -64,6 +65,7 @@ const BONUS_TAG_LABELS: Record<string, string> = {
     glass_witness: 'Glass witness',
     cursed_last: 'Cursed last',
     flip_par: 'Flip par',
+    objective_streak: 'Objective streak',
     boss_floor: 'Boss floor'
 };
 
@@ -140,6 +142,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const gameScreenActions = useAppStore(
         useShallow((state) => ({
             applyFlashPairPower: state.applyFlashPairPower,
+            acceptEndlessRiskWager: state.acceptEndlessRiskWager,
             continueToNextLevel: state.continueToNextLevel,
             dismissPowersFtue: state.dismissPowersFtue,
             goToMenu: state.goToMenu,
@@ -215,6 +218,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     );
     const {
         applyFlashPairPower,
+        acceptEndlessRiskWager,
         continueToNextLevel,
         dismissPowersFtue,
         goToMenu,
@@ -478,6 +482,12 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const favorGained = run.lastLevelResult?.relicFavorGained ?? 0;
     const favorGainLine =
         run.lastLevelResult?.featuredObjectiveId != null ? `Favor gained: +${favorGained}` : null;
+    const endlessRiskWagerOutcomeLine =
+        run.lastLevelResult?.endlessRiskWagerOutcome === 'won'
+            ? `Risk wager won: +${run.lastLevelResult.endlessRiskWagerFavorGained ?? 0} Favor`
+            : run.lastLevelResult?.endlessRiskWagerOutcome === 'lost'
+              ? `Risk wager lost: streak reset from x${run.lastLevelResult.endlessRiskWagerStreakLost ?? 0}`
+              : null;
     const featuredObjectiveStreakLine =
         run.lastLevelResult?.featuredObjectiveId != null
             ? `Objective streak: x${run.lastLevelResult.featuredObjectiveStreak ?? 0}${
@@ -490,6 +500,11 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const favorBankedLine =
         favorBankedPickCount > 0
             ? `Extra relic ${favorBankedPickCount === 1 ? 'pick' : 'picks'} banked for the next shrine`
+            : null;
+    const endlessRiskWagerOfferAvailable = canOfferEndlessRiskWager(run);
+    const acceptedEndlessRiskWager =
+        run.lastLevelResult && run.endlessRiskWager?.acceptedOnLevel === run.lastLevelResult.level
+            ? run.endlessRiskWager
             : null;
     const nextFloorPreview =
         endlessChapterActive && run.lastLevelResult
@@ -808,11 +823,41 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         {clearLifeBonusLabel ? <p className={styles.modalNote}>{clearLifeBonusLabel}</p> : null}
                         {featuredObjectiveResultLine ? <p className={styles.modalNote}>{featuredObjectiveResultLine}</p> : null}
                         {featuredObjectiveStreakLine ? <p className={styles.modalNote}>{featuredObjectiveStreakLine}</p> : null}
+                        {endlessRiskWagerOutcomeLine ? <p className={styles.modalNote}>{endlessRiskWagerOutcomeLine}</p> : null}
                         {favorGainLine ? <p className={styles.modalNote}>{favorGainLine}</p> : null}
                         {favorBankedLine ? <p className={styles.modalNote}>{favorBankedLine}</p> : null}
                         {objectiveBonusLine ? <p className={styles.modalNote}>{objectiveBonusLine}</p> : null}
                         {bonusTagsLine ? <p className={styles.modalNote}>{bonusTagsLine}</p> : null}
                         {nextFloorPreviewLine ? <p className={styles.modalNote}>{nextFloorPreviewLine}</p> : null}
+                        {endlessRiskWagerOfferAvailable || acceptedEndlessRiskWager ? (
+                            <div className={styles.endlessRiskWagerPanel} data-testid="endless-risk-wager-panel">
+                                {acceptedEndlessRiskWager ? (
+                                    <>
+                                        <strong>Risk wager armed</strong>
+                                        <span>
+                                            Next featured objective: +{acceptedEndlessRiskWager.bonusFavorOnSuccess}{' '}
+                                            Favor if completed. Miss it and the x{acceptedEndlessRiskWager.streakAtRisk}{' '}
+                                            streak breaks.
+                                        </span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <strong>Risk wager available</strong>
+                                        <span>
+                                            Stake your x{run.featuredObjectiveStreak} objective streak on the next floor for
+                                            +{ENDLESS_RISK_WAGER_BONUS_FAVOR} bonus Favor.
+                                        </span>
+                                        <button
+                                            className={styles.endlessRiskWagerButton}
+                                            onClick={acceptEndlessRiskWager}
+                                            type="button"
+                                        >
+                                            Arm wager
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        ) : null}
                         <div className={styles.modalStats}>
                             <StatTile
                                 density="minimal"

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { BoardState, MutatorId, RunState, Tile } from './contracts';
 import {
+    ENDLESS_RISK_WAGER_BONUS_FAVOR,
+    ENDLESS_RISK_WAGER_MIN_STREAK,
     FEATURED_OBJECTIVE_STREAK_BONUS_PER_STEP,
     FINDABLE_MATCH_COMBO_SHARDS,
     FINDABLE_MATCH_SCORE,
@@ -12,6 +14,7 @@ import {
     SHIFTING_WARD_MATCH_PENALTY
 } from './contracts';
 import {
+    acceptEndlessRiskWager,
     advanceToNextLevel,
     applyDestroyPair,
     applyFlashPair,
@@ -19,6 +22,7 @@ import {
     applyShuffle,
     buildBoard,
     calculateMatchScore,
+    canOfferEndlessRiskWager,
     canRegionShuffle,
     canRegionShuffleRow,
     canShuffleBoard,
@@ -186,7 +190,7 @@ describe('endless chapters and featured objectives', () => {
         expect(secondFinished.lastLevelResult?.bonusTags).toContain('objective_streak');
     });
 
-    it('resets the featured-objective streak when the objective is missed', () => {
+    it('decays the featured-objective streak when a non-wager objective is missed', () => {
         const started = finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false }));
         const primed: RunState = {
             ...started,
@@ -198,9 +202,172 @@ describe('endless chapters and featured objectives', () => {
 
         expect(finished.status).toBe('levelComplete');
         expect(finished.lastLevelResult?.featuredObjectiveCompleted).toBe(false);
-        expect(finished.featuredObjectiveStreak).toBe(0);
-        expect(finished.lastLevelResult?.featuredObjectiveStreak).toBe(0);
+        expect(finished.featuredObjectiveStreak).toBe(2);
+        expect(finished.lastLevelResult?.featuredObjectiveStreak).toBe(2);
         expect(finished.lastLevelResult?.featuredObjectiveStreakBonus).toBeUndefined();
+    });
+
+    it('offers and accepts an endless risk wager after a completed streak of two', () => {
+        const base = createNewRun(0, { echoFeedbackEnabled: false });
+        const cleared: RunState = {
+            ...base,
+            status: 'levelComplete',
+            featuredObjectiveStreak: ENDLESS_RISK_WAGER_MIN_STREAK,
+            lastLevelResult: {
+                level: 1,
+                scoreGained: 100,
+                rating: 'S++',
+                livesRemaining: base.lives,
+                perfect: true,
+                mistakes: 0,
+                clearLifeReason: 'perfect',
+                clearLifeGained: 1,
+                featuredObjectiveId: 'flip_par',
+                featuredObjectiveCompleted: true,
+                featuredObjectiveStreak: ENDLESS_RISK_WAGER_MIN_STREAK,
+                relicFavorGained: 1
+            }
+        };
+
+        expect(canOfferEndlessRiskWager(cleared)).toBe(true);
+        const accepted = acceptEndlessRiskWager(cleared);
+        expect(accepted.endlessRiskWager).toEqual({
+            acceptedOnLevel: 1,
+            targetLevel: 2,
+            streakAtRisk: ENDLESS_RISK_WAGER_MIN_STREAK,
+            bonusFavorOnSuccess: ENDLESS_RISK_WAGER_BONUS_FAVOR
+        });
+        expect(canOfferEndlessRiskWager(accepted)).toBe(false);
+    });
+
+    it('does not offer risk wagers outside scheduled endless runs', () => {
+        const daily = createDailyRun(0, { echoFeedbackEnabled: false });
+        const clearedDaily: RunState = {
+            ...daily,
+            status: 'levelComplete',
+            featuredObjectiveStreak: ENDLESS_RISK_WAGER_MIN_STREAK,
+            lastLevelResult: {
+                level: 1,
+                scoreGained: 100,
+                rating: 'S++',
+                livesRemaining: daily.lives,
+                perfect: true,
+                mistakes: 0,
+                clearLifeReason: 'perfect',
+                clearLifeGained: 1,
+                featuredObjectiveId: 'flip_par',
+                featuredObjectiveCompleted: true,
+                featuredObjectiveStreak: ENDLESS_RISK_WAGER_MIN_STREAK,
+                relicFavorGained: 1
+            }
+        };
+
+        expect(canOfferEndlessRiskWager(clearedDaily)).toBe(false);
+        expect(acceptEndlessRiskWager(clearedDaily)).toBe(clearedDaily);
+    });
+
+    it('keeps an accepted risk wager through relic offer flow', () => {
+        const base = createNewRun(0, { echoFeedbackEnabled: false });
+        const clearedMilestone: RunState = {
+            ...base,
+            status: 'levelComplete',
+            featuredObjectiveStreak: ENDLESS_RISK_WAGER_MIN_STREAK,
+            lastLevelResult: {
+                level: 3,
+                scoreGained: 100,
+                rating: 'S++',
+                livesRemaining: base.lives,
+                perfect: true,
+                mistakes: 0,
+                clearLifeReason: 'perfect',
+                clearLifeGained: 1,
+                featuredObjectiveId: 'scholar_style',
+                featuredObjectiveCompleted: true,
+                featuredObjectiveStreak: ENDLESS_RISK_WAGER_MIN_STREAK,
+                relicFavorGained: 1
+            }
+        };
+
+        const accepted = acceptEndlessRiskWager(clearedMilestone);
+        const offerRun = openRelicOffer(accepted);
+
+        expect(offerRun.relicOffer).not.toBeNull();
+        expect(offerRun.endlessRiskWager?.targetLevel).toBe(4);
+    });
+
+    it('wins a risk wager by completing the next featured objective and converts bonus favor', () => {
+        const base = createNewRun(0, { echoFeedbackEnabled: false });
+        const cleared: RunState = {
+            ...base,
+            status: 'levelComplete',
+            featuredObjectiveStreak: ENDLESS_RISK_WAGER_MIN_STREAK,
+            lastLevelResult: {
+                level: 1,
+                scoreGained: 100,
+                rating: 'S++',
+                livesRemaining: base.lives,
+                perfect: true,
+                mistakes: 0,
+                clearLifeReason: 'perfect',
+                clearLifeGained: 1,
+                featuredObjectiveId: 'flip_par',
+                featuredObjectiveCompleted: true,
+                featuredObjectiveStreak: ENDLESS_RISK_WAGER_MIN_STREAK,
+                relicFavorGained: 1
+            }
+        };
+        const wagered = acceptEndlessRiskWager(cleared);
+        const next = finishMemorizePhase(advanceToNextLevel(wagered));
+
+        const finished = clearRealPairs(next);
+
+        expect(finished.status).toBe('levelComplete');
+        expect(finished.endlessRiskWager).toBeNull();
+        expect(finished.lastLevelResult?.endlessRiskWagerOutcome).toBe('won');
+        expect(finished.lastLevelResult?.endlessRiskWagerFavorGained).toBe(ENDLESS_RISK_WAGER_BONUS_FAVOR);
+        expect(finished.lastLevelResult?.relicFavorGained).toBe(1 + ENDLESS_RISK_WAGER_BONUS_FAVOR);
+        expect(finished.bonusRelicPicksNextOffer).toBe(1);
+        expect(finished.favorBonusRelicPicksNextOffer).toBe(1);
+        expect(finished.relicFavorProgress).toBe(0);
+    });
+
+    it('loses a risk wager by missing the next featured objective and resets the streak', () => {
+        const base = createNewRun(0, { echoFeedbackEnabled: false });
+        const cleared: RunState = {
+            ...base,
+            status: 'levelComplete',
+            featuredObjectiveStreak: ENDLESS_RISK_WAGER_MIN_STREAK,
+            lastLevelResult: {
+                level: 1,
+                scoreGained: 100,
+                rating: 'S++',
+                livesRemaining: base.lives,
+                perfect: true,
+                mistakes: 0,
+                clearLifeReason: 'perfect',
+                clearLifeGained: 1,
+                featuredObjectiveId: 'flip_par',
+                featuredObjectiveCompleted: true,
+                featuredObjectiveStreak: ENDLESS_RISK_WAGER_MIN_STREAK,
+                relicFavorGained: 1
+            }
+        };
+        const wagered = acceptEndlessRiskWager(cleared);
+        const next: RunState = {
+            ...finishMemorizePhase(advanceToNextLevel(wagered)),
+            matchResolutionsThisFloor: 99
+        };
+
+        const finished = clearRealPairs(next);
+
+        expect(finished.status).toBe('levelComplete');
+        expect(finished.endlessRiskWager).toBeNull();
+        expect(finished.featuredObjectiveStreak).toBe(0);
+        expect(finished.lastLevelResult?.featuredObjectiveCompleted).toBe(false);
+        expect(finished.lastLevelResult?.endlessRiskWagerOutcome).toBe('lost');
+        expect(finished.lastLevelResult?.endlessRiskWagerStreakLost).toBe(ENDLESS_RISK_WAGER_MIN_STREAK);
+        expect(finished.lastLevelResult?.endlessRiskWagerFavorGained).toBeUndefined();
+        expect(finished.lastLevelResult?.relicFavorGained).toBe(0);
     });
 
     it('grants +2 favor on boss floors when the featured objective succeeds', () => {

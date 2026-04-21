@@ -14,6 +14,7 @@ import type {
 } from '../../shared/contracts';
 import { BUILTIN_PUZZLES } from '../../shared/builtin-puzzles';
 import {
+    acceptEndlessRiskWager as acceptEndlessRiskWagerRule,
     advanceToNextLevel,
     applyDestroyPair,
     applyFlashPair,
@@ -146,6 +147,7 @@ interface AppState {
     toggleDestroyPairArmed: () => void;
     pause: () => void;
     resume: () => void;
+    acceptEndlessRiskWager: () => void;
     continueToNextLevel: () => void;
     restartRun: () => void;
     endRun: () => void;
@@ -1253,6 +1255,16 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
 
         set({ run: resumeRunWithTimers(run) });
+    },
+
+    acceptEndlessRiskWager: () => {
+        const { run } = get();
+
+        if (!run) {
+            return;
+        }
+
+        set({ run: acceptEndlessRiskWagerRule(run) });
     },
 
     continueToNextLevel: () => {

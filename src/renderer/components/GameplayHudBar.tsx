@@ -464,6 +464,16 @@ const GameplayHudBar = ({
                                         <span className={styles.statVal}>x{run.featuredObjectiveStreak}</span>
                                     </div>
                                 ) : null}
+                                {endlessChapterActive && run.endlessRiskWager?.targetLevel === board.level ? (
+                                    <div
+                                        className={styles.statPillCompact}
+                                        data-testid="hud-endless-risk-wager"
+                                        title="Complete this floor's featured objective to win bonus Favor; miss it and the streak resets"
+                                    >
+                                        <span className={styles.statKey}>Wager</span>
+                                        <span className={styles.statVal}>+{run.endlessRiskWager.bonusFavorOnSuccess} Favor</span>
+                                    </div>
+                                ) : null}
                                 {run.findablesTotalThisFloor > 0 ? (
                                     <div
                                         className={styles.statPillCompact}
