@@ -43,6 +43,6 @@ Verify packaged Windows build with **master + SFX** sliders at audible levels an
 
 Batch **text-only** jobs with **ACE-Step 1.5** — see `scripts/audio-pipeline/README.md`, `RIGHTS.md`, `jobs.sfx.example.json` (one-shots), `jobs.music-chill.json` / `jobs.game-ambient.example.json` (beds). Raw renders land under `tmp/audio/ace-step/` (gitignored); trim and copy finals into `src/renderer/assets/audio/sfx/` and `src/renderer/assets/audio/music/` (replace `chill-loop.wav` when upgrading from placeholders).
 
-Regenerate checked-in procedural placeholders after manifest edits: `yarn audio:placeholders`. The bundled chill loop is a synthesized **beat + bass + pads** loop (see `generate-procedural-sfx-wavs.mjs`), not a monotone drone.
+Regenerate checked-in procedural placeholders after manifest edits: `yarn audio:placeholders`. The bundled chill loop is synthesized to match UI mood (**warm pads, soft low-pass backbeat**, sparse hats, ~72 BPM — see `generate-procedural-sfx-wavs.mjs`), not a bright club drum loop.
 
 The renderer loads the menu/run loop from `src/renderer/assets/audio/music/chill-loop.wav` (bundled via Vite `?url` import in `gameplayMusic.ts`).

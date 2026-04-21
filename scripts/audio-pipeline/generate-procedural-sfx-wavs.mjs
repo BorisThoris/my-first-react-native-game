@@ -3,7 +3,13 @@
  * Writes short PCM WAV one-shots + a chill bed so the repo ships audible placeholders
  * when ACE-Step is not installed. Replace with ACE-Step exports + trim when available.
  *
+ * Chill loop aesthetic (aligned with shipped art — see `src/renderer/styles/theme.ts`,
+ * `assets/ui/brand-crest.svg`, card illustrations): **dark vault + torch gold/ember warmth +
+ * cyan/violet crystal accents**. Pad-forward, warm low pulse, **muted “cloth” backbeat**
+ * (no piercing snare). Optional soft arps read as faint crystal sparkle.
+ *
  *   node scripts/audio-pipeline/generate-procedural-sfx-wavs.mjs
+ *   yarn audio:placeholders
  */
 
 import fs from 'fs';
@@ -78,41 +84,50 @@ function noiseSample(seedRef) {
     return (seedRef.v / 0x7fffffff) * 2 - 1;
 }
 
-/** Mix exponential sine-sweep kick (four-on-the-floor friendly). */
+/** Warm sub kick — softer click than club kicks; dungeon pulse not EDM slap. */
 function mixKick(buffer, offset, sr) {
-    const len = Math.floor(sr * 0.095);
+    const len = Math.floor(sr * 0.098);
     const seedRef = { v: offset >>> 0 };
     for (let i = 0; i < len && offset + i < buffer.length; i += 1) {
         const t = i / sr;
         const progress = i / len;
-        const env = Math.pow(1 - progress, 2.8) * 0.92;
-        const f = 185 * Math.pow(58 / 185, progress);
-        const click = i < Math.floor(sr * 0.004) ? noiseSample(seedRef) * 0.35 * (1 - i / Math.max(1, sr * 0.004)) : 0;
-        buffer[offset + i] += click + env * 0.52 * Math.sin(2 * Math.PI * f * t);
+        const env = Math.pow(1 - progress, 2.9) * 0.94;
+        const f = 172 * Math.pow(52 / 172, progress);
+        const clickMs = sr * 0.0028;
+        const click =
+            i < Math.floor(clickMs) ? noiseSample(seedRef) * 0.1 * (1 - i / Math.max(1, clickMs)) : 0;
+        buffer[offset + i] += click + env * 0.48 * Math.sin(2 * Math.PI * f * t);
     }
 }
 
-/** Mix noise-body snare with a little tonal ring. */
-function mixSnare(buffer, offset, sr) {
-    const len = Math.min(Math.floor(sr * 0.14), buffer.length - offset);
+/**
+ * Muted backbeat — low-passed noise + soft low-mid thunk (no bright snare crack / ringing highs).
+ */
+function mixSoftBackbeat(buffer, offset, sr) {
+    const len = Math.min(Math.floor(sr * 0.078), buffer.length - offset);
     const seedRef = { v: (offset + 999) >>> 0 };
+    let lp1 = 0;
+    let lp2 = 0;
     for (let i = 0; i < len; i += 1) {
         const progress = i / len;
-        const env = Math.pow(1 - progress, 1.35);
-        const body = noiseSample(seedRef) * env * 0.38;
-        const tone = env * 0.08 * Math.sin(2 * Math.PI * 330 * (i / sr));
-        buffer[offset + i] += body + tone;
+        const env = Math.pow(1 - progress, 2.4);
+        const white = noiseSample(seedRef);
+        lp1 = lp1 * 0.86 + white * 0.14;
+        lp2 = lp2 * 0.82 + lp1 * 0.18;
+        const thunk = env * 0.045 * Math.sin(2 * Math.PI * 208 * (i / sr));
+        buffer[offset + i] += lp2 * env * 0.095 + thunk;
     }
 }
 
-/** Closed hat: band-limited noise burst. */
-function mixHat(buffer, offset, sr, velocity) {
-    const len = Math.min(Math.floor(sr * 0.035), buffer.length - offset);
+/** Soft hat burst — quieter, duller decay (sits under pads). */
+function mixSoftHat(buffer, offset, sr, velocity) {
+    const len = Math.min(Math.floor(sr * 0.048), buffer.length - offset);
     const seedRef = { v: (offset + 2048) >>> 0 };
+    let lp = 0;
     for (let i = 0; i < len; i += 1) {
-        const env = Math.pow(1 - i / len, 4);
-        const n = noiseSample(seedRef);
-        buffer[offset + i] += n * env * velocity * 0.65;
+        const env = Math.pow(1 - i / len, 6);
+        lp = lp * 0.72 + noiseSample(seedRef) * 0.28;
+        buffer[offset + i] += lp * env * velocity * 0.28;
     }
 }
 
@@ -128,28 +143,51 @@ function mixBassNote(buffer, offset, sr, freqHz, durSec, velocity) {
     }
 }
 
-/** Warm pad: stacked detuned sines with slow attack (per chord zone). */
+/** Warm pad: stacked detuned sines — slower attack/release (“relic chamber”). */
 function mixPadChord(buffer, startSample, sr, durationSamples, freqs, gain) {
     const len = Math.min(durationSamples, buffer.length - startSample);
     const seeds = freqs.map((_, j) => j * 9973);
     for (let i = 0; i < len; i += 1) {
         let s = 0;
-        const att = Math.min(1, i / Math.max(1, sr * 0.55));
-        const rel = Math.min(1, (len - i) / Math.max(1, sr * 0.4));
+        const att = Math.min(1, i / Math.max(1, sr * 0.72));
+        const rel = Math.min(1, (len - i) / Math.max(1, sr * 0.52));
         const zone = att * rel;
         for (let k = 0; k < freqs.length; k += 1) {
-            const detune = 1 + (seeds[k] % 7) * 0.00015;
+            const detune = 1 + (seeds[k] % 7) * 0.00012;
             const f = freqs[k] * detune;
             const t = (startSample + i) / sr;
             s += Math.sin(2 * Math.PI * f * t + k * 0.7);
         }
-        buffer[startSample + i] += gain * zone * (s / freqs.length) * 0.22;
+        buffer[startSample + i] += gain * zone * (s / freqs.length) * 0.24;
+    }
+}
+
+/** Short decay pluck for sparse crystal arp layer. */
+function mixPluck(buffer, offset, sr, freqHz, gain, durSec) {
+    const len = Math.min(Math.floor(sr * durSec), buffer.length - offset);
+    for (let i = 0; i < len; i += 1) {
+        const env = Math.exp(-8.5 * (i / Math.max(1, len - 1)));
+        const t = i / sr;
+        buffer[offset + i] += gain * env * Math.sin(2 * Math.PI * freqHz * t);
+    }
+}
+
+/** Very light stepped arpeggio on chord tones (cyan/crystal suggestion, low blend). */
+function mixSparseArp(buffer, barStart, sr, barSamples, chordFreqs, mixGain) {
+    const steps = 8;
+    const stepSamples = Math.floor(barSamples / steps);
+    const pattern = [0, 2, 1, 2, 0, 1, 2, 1];
+    for (let s = 0; s < steps; s += 1) {
+        const idx = pattern[s % pattern.length];
+        const f = chordFreqs[idx] * 2;
+        const off = barStart + s * stepSamples;
+        mixPluck(buffer, off, sr, f, mixGain * 0.055, (stepSamples * 1.6) / sr);
     }
 }
 
 /**
- * Chill loop: 4/4 @ BPM, kick on 1&3, snare backbeat, 8th hats, walking bass, pad chords.
- * Length `bars` — integer samples per quarter so the WAV loops seamlessly at bar boundaries.
+ * Chill loop: 4/4 @ BPM — kick 1&3, soft backbeat 2&4, sparse hats, bass, pads + light arp.
+ * Integer samples/quarter for seamless loop at bar boundaries.
  */
 function generateChillLoop(sr, bpm, bars) {
     const spq = Math.round((sr * 60) / bpm);
@@ -167,38 +205,45 @@ function generateChillLoop(sr, bpm, bars) {
         { root: 49, pad: [98, 123.47, 146.83] } // G
     ];
 
+    const barSamples = 4 * spq;
+
     for (let bar = 0; bar < bars; bar += 1) {
         const chord = progression[bar % 4];
-        const barStart = bar * 4 * spq;
+        const barStart = bar * barSamples;
 
-        mixPadChord(buffer, barStart, sr, 4 * spq, chord.pad, 0.95);
+        mixPadChord(buffer, barStart, sr, barSamples, chord.pad, 1.02);
+        mixSparseArp(buffer, barStart, sr, barSamples, chord.pad, 0.92);
 
-        for (let beat = 0; beat < 4; beat += 1) {
-            const beatStart = barStart + beat * spq;
-            if (beat === 0 || beat === 2) {
-                mixKick(buffer, beatStart, sr);
+        for (let q = 0; q < 4; q += 1) {
+            const qs = barStart + q * spq;
+
+            if (q === 0 || q === 2) {
+                mixKick(buffer, qs, sr);
             }
-            if (beat === 1 || beat === 3) {
-                mixSnare(buffer, beatStart, sr);
-            }
-            for (let h = 0; h < 8; h += 1) {
-                const swing = h % 2 === 1 ? Math.round(sr * 0.011) : 0;
-                const hatOff = beatStart + Math.round((h * spq) / 2) + swing;
-                const accent = h % 4 === 0 ? 0.14 : h % 2 === 0 ? 0.1 : 0.065;
-                mixHat(buffer, hatOff, sr, accent);
+            if (q === 1 || q === 3) {
+                mixSoftBackbeat(buffer, qs, sr);
             }
 
-            const bassDur = (spq * 0.92) / sr;
+            mixSoftHat(buffer, qs, sr, 0.056);
+            const half = Math.floor(spq / 2);
+            if (q < 3) {
+                mixSoftHat(buffer, qs + half, sr, 0.028);
+            }
+            if (bar % 2 === 0 && q === 0) {
+                mixSoftHat(buffer, qs + Math.floor(spq * 0.25), sr, 0.022);
+            }
+
+            const bassDur = (spq * 0.9) / sr;
             const rootHz = chord.root;
-            const fifthHz = rootHz * 1.498307; // just-ish fifth
-            if (beat === 0) {
-                mixBassNote(buffer, beatStart, sr, rootHz, bassDur, 1);
-            } else if (beat === 1) {
-                mixBassNote(buffer, beatStart, sr, fifthHz, bassDur * 0.92, 0.88);
-            } else if (beat === 2) {
-                mixBassNote(buffer, beatStart, sr, rootHz * 1.02, bassDur, 0.92);
+            const fifthHz = rootHz * 1.498307;
+            if (q === 0) {
+                mixBassNote(buffer, qs, sr, rootHz, bassDur, 0.95);
+            } else if (q === 1) {
+                mixBassNote(buffer, qs, sr, fifthHz, bassDur * 0.92, 0.82);
+            } else if (q === 2) {
+                mixBassNote(buffer, qs, sr, rootHz * 1.02, bassDur, 0.88);
             } else {
-                mixBassNote(buffer, beatStart + Math.floor(spq * 0.12), sr, rootHz * 1.25992, bassDur * 0.75, 0.78); // octave bounce hint
+                mixBassNote(buffer, qs + Math.floor(spq * 0.1), sr, rootHz * 1.25992, bassDur * 0.72, 0.72);
             }
         }
     }
@@ -243,9 +288,9 @@ for (const [name, samples] of Object.entries(sfx)) {
     console.log('wrote', name);
 }
 
-// Music at 44.1kHz; BPM chosen so samples/beat is integer for gapless loop.
+// Music at 44.1kHz; BPM where (sr*60)/bpm is integral (gapless loop). Slower ~vault lounge pace.
 const MUSIC_SR = 44100;
-const MUSIC_BPM = 80;
+const MUSIC_BPM = 72;
 const MUSIC_BARS = 8;
 const bed = generateChillLoop(MUSIC_SR, MUSIC_BPM, MUSIC_BARS);
 writeWav(path.join(musicDir, 'chill-loop.wav'), bed, MUSIC_SR);
