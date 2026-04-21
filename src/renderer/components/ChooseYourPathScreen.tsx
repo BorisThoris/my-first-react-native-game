@@ -24,7 +24,7 @@ import {
     RUN_MODE_GROUP_LABEL,
     type RunModeDefinition
 } from '../../shared/run-mode-catalog';
-import { MODE_POSTER_FALLBACK_URL } from '../assets/ui/modePosterFallback';
+import { resolveModePosterUrl } from '../assets/ui/modeArt';
 import { UI_ART } from '../assets/ui';
 import { Eyebrow, MetaFrame, ScreenTitle, UiButton } from '../ui';
 import { useAppStore } from '../store/useAppStore';
@@ -109,29 +109,6 @@ const ChooseYourPathScreen = () => {
             startWildRun: state.startWildRun
         }))
     );
-    const [modePosterByKey, setModePosterByKey] = useState<Record<string, string> | null>(null);
-    useEffect(() => {
-        let cancelled = false;
-        void import('../assets/ui/modeArt').then((mod) => {
-            if (!cancelled) {
-                setModePosterByKey(mod.MODE_CARD_ART as Record<string, string>);
-            }
-        });
-        return () => {
-            cancelled = true;
-        };
-    }, []);
-
-    const resolvePosterUrl = useCallback(
-        (posterKey: string): string => {
-            if (modePosterByKey && posterKey in modePosterByKey) {
-                return modePosterByKey[posterKey]!;
-            }
-            return MODE_POSTER_FALLBACK_URL;
-        },
-        [modePosterByKey]
-    );
-
     const [nowMs, setNowMs] = useState(() => Date.now());
     const dailyCountdown = formatNextUtcReset(nowMs);
     const pathFitMeasureRef = useRef<HTMLDivElement | null>(null);
@@ -385,7 +362,7 @@ const ChooseYourPathScreen = () => {
     };
 
     const renderModeSurface = (def: RunModeDefinition): ReactElement => {
-        const poster = resolvePosterUrl(def.posterKey);
+        const poster = resolveModePosterUrl(def.posterKey);
         const variant = cardVariantClass(def);
         const isLocked = def.availability === 'locked';
         const testId = def.testId;
@@ -462,7 +439,7 @@ const ChooseYourPathScreen = () => {
     };
 
     const renderLibraryModeTile = (def: RunModeDefinition): ReactElement => {
-        const poster = resolvePosterUrl(def.posterKey);
+        const poster = resolveModePosterUrl(def.posterKey);
         const variant = cardVariantClass(def);
         const groupLabel = RUN_MODE_GROUP_LABEL[def.group];
         return (

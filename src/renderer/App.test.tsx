@@ -6,6 +6,10 @@ vi.mock('./components/MainMenuBackground', () => ({
     default: () => <div aria-hidden="true" data-testid="menu-background" />
 }));
 
+vi.mock('./assets/preloadStartupAssets', () => ({
+    preloadStartupCriticalAssets: vi.fn(() => Promise.resolve({ relicTextureSet: null }))
+}));
+
 import App, { APP_MAIN_LANDMARK_ID } from './App';
 import type { RunState } from '../shared/contracts';
 import { createNewRun, pauseRun } from '../shared/game';

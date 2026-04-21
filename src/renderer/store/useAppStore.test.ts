@@ -1,5 +1,7 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
+import { buildBoard, countFindablePairs } from '../../shared/game';
 import { createDefaultSaveData } from '../../shared/save-data';
+import { BOARD_FLOATER_POP_CLEAR } from './matchScorePop';
 import { useAppStore } from './useAppStore';
 
 const resetStore = (): void => {
@@ -20,7 +22,8 @@ const resetStore = (): void => {
         persistenceWriteNotice: null,
         boardPinMode: false,
         destroyPairArmed: false,
-        peekModeArmed: false
+        peekModeArmed: false,
+        ...BOARD_FLOATER_POP_CLEAR
     });
 };
 
@@ -77,6 +80,87 @@ describe('useAppStore timers', () => {
         expect(useAppStore.getState().run?.status).toBe('playing');
         expect(useAppStore.getState().run?.stats.tries).toBe(1);
         expect(useAppStore.getState().run?.lives).toBe(4);
+    });
+
+    it('does not set matchScorePop on mismatch resolve; mismatches increment and mismatchScorePop payload is stored', async () => {
+        useAppStore.getState().startRun();
+
+        const memorizeDuration = useAppStore.getState().run?.timerState.memorizeRemainingMs ?? 0;
+        await vi.advanceTimersByTimeAsync(memorizeDuration + 1);
+
+        const board = useAppStore.getState().run?.board;
+        expect(board).not.toBeNull();
+
+        const firstTile = board?.tiles[0];
+        const mismatchTile = board?.tiles.find((tile) => tile.pairKey !== firstTile?.pairKey);
+
+        expect(firstTile).toBeDefined();
+        expect(mismatchTile).toBeDefined();
+
+        useAppStore.getState().pressTile(firstTile!.id);
+        useAppStore.getState().pressTile(mismatchTile!.id);
+
+        expect(useAppStore.getState().run?.status).toBe('resolving');
+
+        await vi.advanceTimersByTimeAsync(1400);
+
+        expect(useAppStore.getState().run?.status).toBe('playing');
+        expect(useAppStore.getState().run?.stats.mismatches).toBe(1);
+        expect(useAppStore.getState().matchScorePop).toBeNull();
+        expect(useAppStore.getState().mismatchScorePop).not.toBeNull();
+        expect(useAppStore.getState().mismatchScorePop?.tileIdA).toBe(firstTile!.id);
+        expect(useAppStore.getState().mismatchScorePop?.tileIdB).toBe(mismatchTile!.id);
+    });
+
+    it('gambit triple-no-match sets mismatchScorePop with tileIdC in flip order', async () => {
+        useAppStore.getState().startRun();
+
+        const memorizeDuration = useAppStore.getState().run?.timerState.memorizeRemainingMs ?? 0;
+        await vi.advanceTimersByTimeAsync(memorizeDuration + 1);
+
+        const runAfterMem = useAppStore.getState().run!;
+        const threePairBoard = buildBoard(2, {
+            runSeed: runAfterMem.runSeed,
+            runRulesVersion: runAfterMem.runRulesVersion,
+            activeMutators: runAfterMem.activeMutators
+        });
+        useAppStore.setState({
+            run: {
+                ...runAfterMem,
+                board: threePairBoard,
+                findablesTotalThisFloor: countFindablePairs(threePairBoard.tiles)
+            }
+        });
+
+        const board = useAppStore.getState().run?.board;
+        expect(board).not.toBeNull();
+
+        const hidden = board!.tiles.filter((tile) => tile.state === 'hidden');
+        const first = hidden[0]!;
+        const second = hidden.find((tile) => tile.pairKey !== first.pairKey)!;
+        const third = hidden.find(
+            (tile) => tile.pairKey !== first.pairKey && tile.pairKey !== second.pairKey
+        )!;
+
+        expect(third).toBeDefined();
+
+        useAppStore.getState().pressTile(first.id);
+        useAppStore.getState().pressTile(second.id);
+
+        expect(useAppStore.getState().run?.status).toBe('resolving');
+
+        useAppStore.getState().pressTile(third.id);
+        expect(useAppStore.getState().run?.board?.flippedTileIds).toEqual([first.id, second.id, third.id]);
+
+        await vi.advanceTimersByTimeAsync(2500);
+
+        expect(useAppStore.getState().run?.status).toBe('playing');
+        expect(useAppStore.getState().matchScorePop).toBeNull();
+
+        const miss = useAppStore.getState().mismatchScorePop;
+        expect(miss?.tileIdA).toBe(first.id);
+        expect(miss?.tileIdB).toBe(second.id);
+        expect(miss?.tileIdC).toBe(third.id);
     });
 
     it('resolves matches immediately so the next pair can be started right away', async () => {

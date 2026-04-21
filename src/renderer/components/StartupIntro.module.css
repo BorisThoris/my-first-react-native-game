@@ -65,6 +65,24 @@
     transform: translate3d(calc(var(--tilt-x, 0) * -8px), calc(var(--tilt-y, 0) * -7px), 0);
 }
 
+.loadingHint {
+    position: absolute;
+    bottom: clamp(1rem, 3vw, 2rem);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9;
+    margin: 0;
+    padding: 0.35rem 0.75rem;
+    border-radius: var(--ui-radius-pill);
+    border: 1px solid color-mix(in srgb, var(--theme-border-strong) 70%, transparent);
+    background: color-mix(in srgb, var(--theme-panel-solid) 88%, transparent);
+    color: var(--theme-text-muted);
+    font-size: var(--ui-font-caption);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    pointer-events: none;
+}
+
 .motionCta {
     position: absolute;
     top: clamp(0.75rem, 2vw, 1.25rem);

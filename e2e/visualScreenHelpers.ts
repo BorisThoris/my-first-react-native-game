@@ -28,6 +28,10 @@ type PairClickSettlement = 'floor_cleared' | 'four_hidden' | 'two_hidden';
 async function settleAfterHiddenPairClick(page: Page, timeoutMs = 18_000): Promise<PairClickSettlement> {
     const deadline = Date.now() + timeoutMs;
     const floorCleared = page.getByRole('dialog', { name: /floor cleared/i });
+
+    /** On a mismatch, brief `hidden === 2` is transient (tiles revealed) before flip-back to four hidden. After a legal match clearing two tiles on a small board, `hidden === 2` can stay stable (two cards remain). Wait out the transient before treating as accidental match downstate. */
+    const settleTransientTwoHiddenMs = 5_000;
+
     while (Date.now() < deadline) {
         if (await floorCleared.isVisible().catch(() => false)) {
             return 'floor_cleared';
@@ -37,6 +41,24 @@ async function settleAfterHiddenPairClick(page: Page, timeoutMs = 18_000): Promi
             return 'four_hidden';
         }
         if (hidden === 2) {
+            const innerDeadline = Math.min(Date.now() + settleTransientTwoHiddenMs, deadline);
+            while (Date.now() < innerDeadline) {
+                if (await floorCleared.isVisible().catch(() => false)) {
+                    return 'floor_cleared';
+                }
+                const h = await readFrameHiddenTileCount(page);
+                if (h === 4) {
+                    return 'four_hidden';
+                }
+                if (h !== 2) {
+                    break;
+                }
+                await page.waitForTimeout(80);
+            }
+            const finalHidden = await readFrameHiddenTileCount(page);
+            if (finalHidden === 4) {
+                return 'four_hidden';
+            }
             return 'two_hidden';
         }
         await page.waitForTimeout(80);
@@ -406,7 +428,11 @@ export async function openMainMenuFromSave(page: Page, onboardingDismissed: bool
 }
 
 export async function startClassicRunFromModeSelect(page: Page): Promise<void> {
-    await page.getByRole('button', { name: /classic run/i }).click();
+    const classicBtn = page.getByRole('button', { name: /classic run/i });
+    await expect(classicBtn).toBeVisible({ timeout: 15_000 });
+    await classicBtn.scrollIntoViewIfNeeded();
+    // Long serial visual runs against Vite can see `element was detached` / stability timeouts on animated cards.
+    await classicBtn.click({ force: true });
     // GameScreen level title is `srOnly` (screen-reader-only); visible checks time out on narrow viewports.
     await expect(page.getByRole('heading', { name: /level 1/i })).toBeAttached({ timeout: 15000 });
     await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible({ timeout: 15000 });

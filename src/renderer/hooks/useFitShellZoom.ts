@@ -7,6 +7,8 @@ interface UseFitShellZoomArgs {
     viewportHeight: number;
     /** Inset from each edge when comparing to the viewport (CSS px). */
     padding?: number;
+    /** Do not shrink uniform zoom below this (readable UI); overflow scrolls when combined with caller layout. */
+    minFitZoom?: number;
     /** Disable fit zoom entirely when the shell should not scale (caller applies zoom: 1). */
     enabled?: boolean;
     /** Re-run fit measurement when shell content changes without a viewport resize (e.g. tab/category switch). */
@@ -19,6 +21,8 @@ interface ComputeFitShellZoomFactorArgs {
     contentWidth: number;
     contentHeight: number;
     padding?: number;
+    /** Optional floor for uniform zoom (same semantics as `useFitShellZoom`). */
+    minFitZoom?: number;
 }
 
 /**
@@ -30,15 +34,21 @@ export function computeFitShellZoomFactor({
     viewportHeight,
     contentWidth,
     contentHeight,
-    padding = 14
+    padding = 14,
+    minFitZoom
 }: ComputeFitShellZoomFactorArgs): number {
     if (viewportWidth < 1 || viewportHeight < 1 || contentWidth < 2 || contentHeight < 2) {
         return 1;
     }
     const availW = Math.max(1, viewportWidth - padding * 2);
     const availH = Math.max(1, viewportHeight - padding * 2);
-    const raw = Math.min(1, availW / contentWidth, availH / contentHeight);
-    return Math.round(raw * 1000) / 1000;
+    let raw = Math.min(1, availW / contentWidth, availH / contentHeight);
+    raw = Math.round(raw * 1000) / 1000;
+    if (minFitZoom != null && Number.isFinite(minFitZoom)) {
+        const floor = Math.min(1, Math.max(0.02, minFitZoom));
+        raw = Math.min(1, Math.max(floor, raw));
+    }
+    return raw;
 }
 
 /**
@@ -57,6 +67,7 @@ export function useFitShellZoom({
     viewportWidth,
     viewportHeight,
     padding = 14,
+    minFitZoom,
     enabled = true,
     recomputeKey
 }: UseFitShellZoomArgs): { fitZoom: number } {
@@ -109,7 +120,8 @@ export function useFitShellZoom({
                 viewportHeight,
                 contentWidth: intrinsicW,
                 contentHeight: intrinsicH,
-                padding
+                padding,
+                minFitZoom
             });
             setFitZoom((prev) => {
                 if (Math.abs(prev - next) < 0.004) {
@@ -149,7 +161,7 @@ export function useFitShellZoom({
             window.clearTimeout(delayed);
             void fontsDone;
         };
-    }, [measureRef, viewportWidth, viewportHeight, padding, enabled, recomputeKey]);
+    }, [measureRef, viewportWidth, viewportHeight, padding, minFitZoom, enabled, recomputeKey]);
 
     return { fitZoom };
 }

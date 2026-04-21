@@ -54,6 +54,10 @@ import {
     type FaceVariant
 } from './tileTextures';
 import {
+    BOARD_LAYOUT_JITTER_XY,
+    BOARD_LAYOUT_JITTER_Z,
+    BOARD_LAYOUT_ROW_STAGGER_X,
+    BOARD_LAYOUT_YAW_MAX,
     CARD_PLANE_HEIGHT,
     CARD_PLANE_WIDTH,
     CORE_SCALE,
@@ -78,7 +82,7 @@ import cardBackSvgUrl from '../assets/textures/cards/back.svg?url';
 import cardFrontSvgUrl from '../assets/textures/cards/front.svg?url';
 import { loadSharedCardSvgPlaneGeometry } from './cardSvgPlaneGeometry';
 import { createRafCoalescedViewportNotifier, type TileBoardViewportState } from './tileBoardViewport';
-import { computeStaggeredShuffleDealZ } from './shuffleFlipAnimation';
+import { computeBoardEntranceRemainderXY, computeStaggeredShuffleDealZ } from './shuffleFlipAnimation';
 import {
     getFocusRoundedRectRingGeometry,
     getMatchedRoundedRectRingGeometry,
@@ -99,6 +103,8 @@ const HOVER_RIM_TINT = new Color('#fff0d4');
 const HOVER_RIM_TINT_LERP = 0.2;
 /** Glass decoy pair key — keep in sync with `game.ts`. */
 const DECOY_PAIR_KEY = '__decoy__';
+
+const EMPTY_TILE_IDS: ReadonlySet<string> = new Set();
 /** Emissive base (theme `goldBright`); intensity scaled by graphics quality when DOM-hover-parity applies. */
 const HOVER_GOLD_EMISSIVE = new Color('#f2d39d');
 /** Matched face tint on `low` only (no ember-rim shader); medium+ relies on the edge effect + neutral card albedo. */
@@ -167,6 +173,10 @@ interface TileBoardSceneProps {
     shuffleMotionBudgetMs: number;
     /** Tile count used for `computeShuffleMotionBudgetMs` when shuffle started (reading-order stagger). */
     shuffleStaggerTileCount: number;
+    /** New-board deal-in window (exclusive with shuffle XY motion — shuffle wins). */
+    boardEntranceMotionDeadlineMs: number;
+    boardEntranceMotionBudgetMs: number;
+    boardEntranceStaggerTileCount: number;
     /** Hidden tiles to de-emphasize when focus-assist is on (matches 2D `.tileFocusDim`). */
     dimmedTileIds?: ReadonlySet<string>;
     /** When true with two flips, allow picking a third tile (gambit) instead of locking hidden tiles. */
@@ -184,6 +194,16 @@ interface TileBoardSceneProps {
     silhouetteDuringPlay?: boolean;
     nBackAnchorPairKey?: string | null;
     nBackMutatorActive?: boolean;
+    shiftingSpotlightActive?: boolean;
+    destroyPowerVisualActive?: boolean;
+    destroyEligibleTileIds?: ReadonlySet<string>;
+    peekPowerVisualActive?: boolean;
+    peekEligibleTileIds?: ReadonlySet<string>;
+    strayPowerVisualActive?: boolean;
+    strayEligibleTileIds?: ReadonlySet<string>;
+    pinModeBoardHintActive?: boolean;
+    /** `sticky_fingers`: tile id at `stickyBlockIndex` while the next opening flip is restricted. */
+    stickyBlockedTileId?: string | null;
 }
 
 interface TileBezelProps {
@@ -204,6 +224,11 @@ interface TileBezelProps {
     shuffleMotionBudgetMs: number;
     shuffleStaggerTileCount: number;
     shuffleBoardOrderIndex: number;
+    boardEntranceMotionDeadlineMs: number;
+    boardEntranceMotionBudgetMs: number;
+    boardEntranceStaggerTileCount: number;
+    boardRows: number;
+    boardColumns: number;
     textureRevision: number;
     tile: Tile;
     transform: TileTransform;
@@ -219,6 +244,8 @@ interface TileBezelProps {
     spotlightBountyHighlight?: boolean;
     /** Dims card materials when focus-assist targets this hidden tile (not when peek shows face). */
     focusDimmed?: boolean;
+    /** Sticky fingers — highlight slot that cannot open the next pair (matched opener or hidden back). */
+    stickyFingerSlotMark?: boolean;
     /**
      * When true (default), tile motion is stepped from `TileBoardScene`’s consolidated `useFrame`.
      * When false (dev `tileStepLegacy`), this tile registers its own `useFrame` for A/B comparison.
@@ -237,6 +264,10 @@ interface TileBezelProps {
     /** `n_back_anchor` — anchor pair tiles get a cyan forward read. */
     presentationNBackAnchor?: boolean;
     resolvingMatchWaveKey: string | null;
+    spotlightWardOnBack?: boolean;
+    spotlightBountyOnBack?: boolean;
+    powerBackAccent?: 'destroy' | 'peek' | 'stray' | 'pin' | null;
+    destroyBlockedDecoyBack?: boolean;
 }
 
 export interface TileHoverTiltState {
@@ -262,7 +293,12 @@ interface TileTransform {
     imperfectionRotationZ: number;
     imperfectionX: number;
     imperfectionY: number;
-    targetRotation: number;
+    /** Face flip: 0 face-up, PI face-down (hidden back). */
+    flipRotationY: number;
+    layoutJitterX: number;
+    layoutJitterY: number;
+    layoutJitterZ: number;
+    layoutYaw: number;
     seed: number;
 }
 
@@ -457,11 +493,27 @@ const getSurfaceVariant = (tile: Tile, faceUp: boolean, resolving: ResolvingSele
     return faceUp ? 'active' : 'hidden';
 };
 
-const getTileTransform = (tile: Tile, index: number, totalColumns: number, totalRows: number, compact: boolean, faceUp: boolean): TileTransform => {
+const layoutNormFromSeed = (seed: number, shift: number): number =>
+    (((seed >>> shift) % 1001) / 500) - 1;
+
+const getTileTransform = (
+    tile: Tile,
+    index: number,
+    totalColumns: number,
+    totalRows: number,
+    compact: boolean,
+    faceUp: boolean,
+    reduceMotion: boolean
+): TileTransform => {
     const seed = hashString(tile.id);
     const column = index % totalColumns;
-    const baseX = (column - (totalColumns - 1) / 2) * TILE_SPACING;
-    const baseY = ((totalRows - 1) / 2 - Math.floor(index / totalColumns)) * TILE_SPACING;
+    const row = Math.floor(index / totalColumns);
+    const compactMul = compact ? 0.85 : 1;
+    let baseX = (column - (totalColumns - 1) / 2) * TILE_SPACING;
+    if (!reduceMotion && row % 2 === 1) {
+        baseX += BOARD_LAYOUT_ROW_STAGGER_X * compactMul;
+    }
+    const baseY = ((totalRows - 1) / 2 - row) * TILE_SPACING;
     const imperfectionX = (((seed % 19) - 9) * 0.0025) / (compact ? 1.2 : 1);
     const imperfectionY = ((((seed >> 3) % 19) - 9) * 0.0024) / (compact ? 1.2 : 1);
     const imperfectionRotationX = (((seed >> 5) % 11) - 5) * 0.0028;
@@ -469,20 +521,32 @@ const getTileTransform = (tile: Tile, index: number, totalColumns: number, total
     const baseScale = 0.968 + ((seed % 7) * 0.0018);
     const bezelScale = SHELL_SCALE + ((seed % 5) * 0.0028);
     const panelScale = CORE_SCALE + ((seed % 5) * 0.002);
-    const targetRotation = faceUp ? 0 : Math.PI;
+    const flipRotationY = faceUp ? 0 : Math.PI;
+    const layoutJitterX =
+        reduceMotion ? 0 : layoutNormFromSeed(seed, 11) * BOARD_LAYOUT_JITTER_XY * compactMul;
+    const layoutJitterY =
+        reduceMotion ? 0 : layoutNormFromSeed(seed, 17) * BOARD_LAYOUT_JITTER_XY * compactMul;
+    const layoutJitterZ =
+        reduceMotion ? 0 : layoutNormFromSeed(seed, 23) * BOARD_LAYOUT_JITTER_Z * compactMul;
+    const layoutYaw =
+        reduceMotion ? 0 : layoutNormFromSeed(seed, 29) * BOARD_LAYOUT_YAW_MAX * compactMul;
 
     return {
         baseScale,
         baseX,
         baseY,
         bezelScale,
+        flipRotationY,
         imperfectionRotationX,
         imperfectionRotationZ,
         imperfectionX,
         imperfectionY,
+        layoutJitterX,
+        layoutJitterY,
+        layoutJitterZ,
+        layoutYaw,
         panelScale,
-        seed,
-        targetRotation
+        seed
     };
 };
 
@@ -501,6 +565,11 @@ interface TileBezelFramePropsSnapshot {
     shuffleMotionBudgetMs: number;
     shuffleStaggerTileCount: number;
     shuffleBoardOrderIndex: number;
+    boardEntranceMotionDeadlineMs: number;
+    boardEntranceMotionBudgetMs: number;
+    boardEntranceStaggerTileCount: number;
+    boardRows: number;
+    boardColumns: number;
     textureRevision: number;
     tile: Tile;
     transform: TileTransform;
@@ -766,15 +835,41 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
         p.reduceMotion ? 42 : 22,
         delta
     );
+    const rotationYTarget = p.transform.layoutYaw + p.transform.flipRotationY;
     group.rotation.y = p.reduceMotion
-        ? p.transform.targetRotation
-        : MathUtils.damp(group.rotation.y, p.transform.targetRotation, rotationDamp, delta);
-    const targetX = p.transform.baseX + p.transform.imperfectionX;
-    const targetY =
-        p.transform.baseY + p.transform.imperfectionY + bag.liftSmoothRef.current + fieldLift + idleDrift + settle;
+        ? rotationYTarget
+        : MathUtils.damp(group.rotation.y, rotationYTarget, rotationDamp, delta);
+    const baseTargetX = p.transform.baseX + p.transform.imperfectionX + p.transform.layoutJitterX;
+    const baseTargetY =
+        p.transform.baseY +
+        p.transform.imperfectionY +
+        p.transform.layoutJitterY +
+        bag.liftSmoothRef.current +
+        fieldLift +
+        idleDrift +
+        settle;
     const now = performance.now();
     const shuffleLayoutActive =
         !p.reduceMotion && p.shuffleMotionDeadlineMs > 0 && now < p.shuffleMotionDeadlineMs;
+    const entranceLayoutActive =
+        !p.reduceMotion &&
+        !shuffleLayoutActive &&
+        p.boardEntranceMotionDeadlineMs > 0 &&
+        now < p.boardEntranceMotionDeadlineMs;
+
+    const entranceRemainder =
+        entranceLayoutActive && p.boardEntranceMotionBudgetMs > 0 && p.boardEntranceStaggerTileCount > 0
+            ? computeBoardEntranceRemainderXY(
+                  now,
+                  p.boardEntranceMotionDeadlineMs,
+                  p.boardEntranceMotionBudgetMs,
+                  p.shuffleBoardOrderIndex,
+                  p.boardEntranceStaggerTileCount,
+                  p.boardRows,
+                  p.boardColumns
+              )
+            : { rx: 0, ry: 0 };
+
     const shuffleDealZ =
         shuffleLayoutActive && p.shuffleMotionBudgetMs > 0 && p.shuffleStaggerTileCount > 0
             ? computeStaggeredShuffleDealZ(
@@ -785,7 +880,21 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
                   p.shuffleStaggerTileCount
               )
             : 0;
-    const targetZ = structDepth + hoverDepth + fieldDepth + shuffleDealZ;
+    const entranceDealZ =
+        entranceLayoutActive && p.boardEntranceMotionBudgetMs > 0 && p.boardEntranceStaggerTileCount > 0
+            ? computeStaggeredShuffleDealZ(
+                  now,
+                  p.boardEntranceMotionDeadlineMs,
+                  p.boardEntranceMotionBudgetMs,
+                  p.shuffleBoardOrderIndex,
+                  p.boardEntranceStaggerTileCount
+              )
+            : 0;
+
+    const targetX = baseTargetX + entranceRemainder.rx;
+    const targetY = baseTargetY + entranceRemainder.ry;
+    const targetZ =
+        structDepth + hoverDepth + fieldDepth + shuffleDealZ + entranceDealZ + p.transform.layoutJitterZ;
     const wobbleT = clock.elapsedTime;
     const mismatchShakeX =
         !p.reduceMotion && p.resolvingSelection === 'mismatch'
@@ -797,10 +906,11 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
             : 0;
     const posX = targetX + mismatchShakeX;
     const posY = targetY + mismatchShakeY;
-    const posLambda = shuffleLayoutActive ? 9 : 200;
+    const layoutMotionActive = shuffleLayoutActive || entranceLayoutActive;
+    const posLambda = layoutMotionActive ? 9 : 200;
 
     const zWithFlipPop = targetZ + flipPopZ;
-    if (shuffleLayoutActive) {
+    if (layoutMotionActive) {
         group.position.x = MathUtils.damp(group.position.x, posX, posLambda, delta);
         group.position.y = MathUtils.damp(group.position.y, posY, posLambda, delta);
         group.position.z = MathUtils.damp(group.position.z, zWithFlipPop, posLambda, delta);
@@ -1073,6 +1183,11 @@ const TileBezelInner = ({
     shuffleMotionBudgetMs,
     shuffleStaggerTileCount,
     shuffleBoardOrderIndex,
+    boardEntranceMotionDeadlineMs,
+    boardEntranceMotionBudgetMs,
+    boardEntranceStaggerTileCount,
+    boardRows,
+    boardColumns,
     textureRevision,
     tile,
     transform,
@@ -1082,7 +1197,12 @@ const TileBezelInner = ({
     findableFaceHighlight = false,
     spotlightWardHighlight = false,
     spotlightBountyHighlight = false,
+    spotlightWardOnBack = false,
+    spotlightBountyOnBack = false,
+    powerBackAccent = null,
+    destroyBlockedDecoyBack = false,
     focusDimmed = false,
+    stickyFingerSlotMark = false,
     hostConsolidatesTileFrames = true,
     keyboardFocused = false,
     pairProximityDistance = null,
@@ -1155,6 +1275,11 @@ const TileBezelInner = ({
         shuffleMotionBudgetMs,
         shuffleStaggerTileCount,
         shuffleBoardOrderIndex,
+        boardEntranceMotionDeadlineMs,
+        boardEntranceMotionBudgetMs,
+        boardEntranceStaggerTileCount,
+        boardRows,
+        boardColumns,
         textureRevision,
         tile,
         transform,
@@ -1816,6 +1941,160 @@ const TileBezelInner = ({
                         />
                     </mesh>
                 </group>
+                {/* Shifting spotlight + board-power hints on hidden card backs */}
+                {(spotlightWardOnBack ||
+                    spotlightBountyOnBack ||
+                    destroyBlockedDecoyBack ||
+                    powerBackAccent != null ||
+                    (stickyFingerSlotMark && tile.state === 'hidden')) &&
+                !faceUp ? (
+                    <group position={[0, 0, -faceZ - 0.00033]} rotation={[0, Math.PI, 0]}>
+                        {spotlightWardOnBack ? (
+                            <mesh
+                                geometry={findableCornerRingGeometry}
+                                position={[-CARD_WIDTH * 0.36, CARD_HEIGHT * 0.4, 0.00052]}
+                                raycast={noopMeshRaycast}
+                                renderOrder={9}
+                            >
+                                <meshBasicMaterial
+                                    color="#ff7a6a"
+                                    depthTest
+                                    depthWrite={false}
+                                    opacity={0.88}
+                                    side={DoubleSide}
+                                    toneMapped={false}
+                                    transparent
+                                />
+                            </mesh>
+                        ) : null}
+                        {spotlightBountyOnBack ? (
+                            <mesh
+                                geometry={findableCornerRingGeometry}
+                                position={[CARD_WIDTH * 0.36, -CARD_HEIGHT * 0.4, 0.00052]}
+                                raycast={noopMeshRaycast}
+                                renderOrder={9}
+                            >
+                                <meshBasicMaterial
+                                    color="#5ee0c8"
+                                    depthTest
+                                    depthWrite={false}
+                                    opacity={0.88}
+                                    side={DoubleSide}
+                                    toneMapped={false}
+                                    transparent
+                                />
+                            </mesh>
+                        ) : null}
+                        {destroyBlockedDecoyBack ? (
+                            <mesh
+                                geometry={findableCornerRingGeometry}
+                                position={[0, CARD_HEIGHT * 0.38, 0.00053]}
+                                raycast={noopMeshRaycast}
+                                renderOrder={10}
+                            >
+                                <meshBasicMaterial
+                                    color="#9480a8"
+                                    depthTest
+                                    depthWrite={false}
+                                    opacity={0.82}
+                                    side={DoubleSide}
+                                    toneMapped={false}
+                                    transparent
+                                />
+                            </mesh>
+                        ) : null}
+                        {powerBackAccent === 'destroy' ? (
+                            <mesh
+                                geometry={findableCornerRingGeometry}
+                                position={[-CARD_WIDTH * 0.36, -CARD_HEIGHT * 0.4, 0.00054]}
+                                raycast={noopMeshRaycast}
+                                renderOrder={10}
+                            >
+                                <meshBasicMaterial
+                                    color="#d94848"
+                                    depthTest
+                                    depthWrite={false}
+                                    opacity={0.92}
+                                    side={DoubleSide}
+                                    toneMapped={false}
+                                    transparent
+                                />
+                            </mesh>
+                        ) : null}
+                        {powerBackAccent === 'peek' ? (
+                            <mesh
+                                geometry={findableCornerRingGeometry}
+                                position={[CARD_WIDTH * 0.36, CARD_HEIGHT * 0.4, 0.00054]}
+                                raycast={noopMeshRaycast}
+                                renderOrder={10}
+                            >
+                                <meshBasicMaterial
+                                    color="#59b4d9"
+                                    depthTest
+                                    depthWrite={false}
+                                    opacity={0.9}
+                                    side={DoubleSide}
+                                    toneMapped={false}
+                                    transparent
+                                />
+                            </mesh>
+                        ) : null}
+                        {powerBackAccent === 'stray' ? (
+                            <mesh
+                                geometry={findableCornerRingGeometry}
+                                position={[CARD_WIDTH * 0.36, -CARD_HEIGHT * 0.4, 0.00054]}
+                                raycast={noopMeshRaycast}
+                                renderOrder={10}
+                            >
+                                <meshBasicMaterial
+                                    color="#d4a03d"
+                                    depthTest
+                                    depthWrite={false}
+                                    opacity={0.9}
+                                    side={DoubleSide}
+                                    toneMapped={false}
+                                    transparent
+                                />
+                            </mesh>
+                        ) : null}
+                        {powerBackAccent === 'pin' ? (
+                            <mesh
+                                geometry={findableCornerRingGeometry}
+                                position={[0, -CARD_HEIGHT * 0.42, 0.00054]}
+                                raycast={noopMeshRaycast}
+                                renderOrder={10}
+                            >
+                                <meshBasicMaterial
+                                    color="#e8c878"
+                                    depthTest
+                                    depthWrite={false}
+                                    opacity={0.88}
+                                    side={DoubleSide}
+                                    toneMapped={false}
+                                    transparent
+                                />
+                            </mesh>
+                        ) : null}
+                        {stickyFingerSlotMark && tile.state === 'hidden' ? (
+                            <mesh
+                                geometry={findableCornerRingGeometry}
+                                position={[CARD_WIDTH * 0.34, CARD_HEIGHT * 0.39, 0.00056]}
+                                raycast={noopMeshRaycast}
+                                renderOrder={10}
+                            >
+                                <meshBasicMaterial
+                                    color="#c65a28"
+                                    depthTest
+                                    depthWrite={false}
+                                    opacity={0.88}
+                                    side={DoubleSide}
+                                    toneMapped={false}
+                                    transparent
+                                />
+                            </mesh>
+                        ) : null}
+                    </group>
+                ) : null}
                 {/*
                   TBF-008: softer gold strips on the front face when face-up + pickable (gambit third pick path).
                 */}
@@ -1992,6 +2271,24 @@ const TileBezelInner = ({
                         />
                     </mesh>
                 ) : null}
+                {stickyFingerSlotMark && tile.state === 'matched' ? (
+                    <mesh
+                        geometry={findableCornerRingGeometry}
+                        position={[0, CARD_HEIGHT * 0.41, faceZ + 0.019]}
+                        raycast={noopMeshRaycast}
+                        renderOrder={9}
+                    >
+                        <meshBasicMaterial
+                            color="#c65a28"
+                            depthTest
+                            depthWrite={false}
+                            opacity={0.87}
+                            side={DoubleSide}
+                            toneMapped={false}
+                            transparent
+                        />
+                    </mesh>
+                ) : null}
                 {overlayTexture ? (
                     <mesh geometry={overlayGeometry} position={[0, 0, overlayZ]} raycast={noopMeshRaycast} renderOrder={10}>
                         <meshBasicMaterial
@@ -2092,6 +2389,9 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
     shuffleMotionDeadlineMs,
     shuffleMotionBudgetMs,
     shuffleStaggerTileCount,
+    boardEntranceMotionDeadlineMs = 0,
+    boardEntranceMotionBudgetMs = 0,
+    boardEntranceStaggerTileCount = 0,
     dimmedTileIds,
     allowGambitThirdFlip = false,
     graphicsQuality = 'medium',
@@ -2101,7 +2401,16 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
     silhouetteDuringPlay = false,
     nBackAnchorPairKey = null,
     nBackMutatorActive = false,
-    showTutorialPairMarkers = true
+    showTutorialPairMarkers = true,
+    shiftingSpotlightActive = false,
+    destroyPowerVisualActive = false,
+    destroyEligibleTileIds = EMPTY_TILE_IDS,
+    peekPowerVisualActive = false,
+    peekEligibleTileIds = EMPTY_TILE_IDS,
+    strayPowerVisualActive = false,
+    strayEligibleTileIds = EMPTY_TILE_IDS,
+    pinModeBoardHintActive = false,
+    stickyBlockedTileId = null
 }: TileBoardSceneProps, ref) => {
     const { camera, gl, viewport } = useThree();
     const { colors } = RENDERER_THEME;
@@ -2176,7 +2485,42 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                 showTutorialPairMarkers && tile.state === 'hidden' && !faceUp
                     ? tutorialPairOrdinalByKey?.get(tile.pairKey) ?? null
                     : null;
+            const spotlightWardOnBack =
+                shiftingSpotlightActive &&
+                Boolean(wardPairKey) &&
+                !faceUp &&
+                tile.pairKey === wardPairKey;
+            const spotlightBountyOnBack =
+                shiftingSpotlightActive &&
+                Boolean(bountyPairKey) &&
+                !faceUp &&
+                tile.pairKey === bountyPairKey;
+            const destroyBlockedDecoyBack =
+                destroyPowerVisualActive &&
+                !faceUp &&
+                tile.state === 'hidden' &&
+                tile.pairKey === DECOY_PAIR_KEY;
+            const stickyFingerSlotMark =
+                stickyBlockedTileId != null &&
+                stickyBlockedTileId === tile.id &&
+                flippedN === 0 &&
+                (tile.state === 'matched' || (tile.state === 'hidden' && !faceUp));
+            let powerBackAccent: 'destroy' | 'peek' | 'stray' | 'pin' | null = null;
+            if (tile.state === 'hidden' && !faceUp) {
+                if (pinModeBoardHintActive) {
+                    powerBackAccent = 'pin';
+                } else if (destroyBlockedDecoyBack) {
+                    powerBackAccent = null;
+                } else if (destroyPowerVisualActive && destroyEligibleTileIds.has(tile.id)) {
+                    powerBackAccent = 'destroy';
+                } else if (peekPowerVisualActive && peekEligibleTileIds.has(tile.id)) {
+                    powerBackAccent = 'peek';
+                } else if (strayPowerVisualActive && strayEligibleTileIds.has(tile.id)) {
+                    powerBackAccent = 'stray';
+                }
+            }
             return {
+                destroyBlockedDecoyBack,
                 faceUp,
                 fieldAmp: getTileFieldAmplification(index, totalColumns, totalRows),
                 findableFaceHighlight,
@@ -2184,15 +2528,19 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                 isPinned: pinnedSet.has(tile.id),
                 memorizeCurseHighlight,
                 pairProximityDistance,
+                powerBackAccent,
                 presentationNBackAnchor,
                 presentationSilhouette,
                 presentationWideRecall,
                 resolvingSelection: getResolvingSelectionState(board, runStatus, tile.id),
                 shuffleBoardOrderIndex: index,
                 spotlightBountyHighlight,
+                spotlightBountyOnBack,
                 spotlightWardHighlight,
+                spotlightWardOnBack,
+                stickyFingerSlotMark,
                 tile,
-                transform: getTileTransform(tile, index, totalColumns, totalRows, compact, faceUp),
+                transform: getTileTransform(tile, index, totalColumns, totalRows, compact, faceUp, reduceMotion),
                 tutorialPairOrdinal
             };
         });
@@ -2202,16 +2550,27 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
         compact,
         cursedPairKey,
         debugPeekActive,
+        destroyEligibleTileIds,
+        destroyPowerVisualActive,
         dimmedTileIds,
         nBackAnchorPairKey,
         nBackMutatorActive,
         pairProximityHintsEnabled,
+        peekEligibleTileIds,
+        peekPowerVisualActive,
         peekSet,
+        pinModeBoardHintActive,
         pinnedSet,
         previewActive,
+        reduceMotion,
         runStatus,
+        shiftingSpotlightActive,
         showTutorialPairMarkers,
         silhouetteDuringPlay,
+        strayEligibleTileIds,
+        strayPowerVisualActive,
+        stickyBlockedTileId,
+        flippedN,
         totalColumns,
         totalRows,
         tutorialPairOrdinalByKey,
@@ -2490,6 +2849,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
             <group ref={boardGroupRef} rotation={[0, 0, 0]}>
                 {tileBezelRows.map(
                     ({
+                        destroyBlockedDecoyBack,
                         faceUp,
                         fieldAmp,
                         findableFaceHighlight,
@@ -2497,36 +2857,45 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                         isPinned,
                         memorizeCurseHighlight,
                         pairProximityDistance,
+                        powerBackAccent,
                         presentationNBackAnchor,
                         presentationSilhouette,
                         presentationWideRecall,
                         resolvingSelection,
                         shuffleBoardOrderIndex,
                         spotlightBountyHighlight,
+                        spotlightBountyOnBack,
                         spotlightWardHighlight,
+                        spotlightWardOnBack,
+                        stickyFingerSlotMark,
                         tile,
                         transform,
                         tutorialPairOrdinal: tileTutorialPairOrdinal
                     }) => (
                         <TileBezel
                             key={tile.id}
+                            destroyBlockedDecoyBack={destroyBlockedDecoyBack}
                             faceUp={faceUp}
                             fieldAmp={fieldAmp}
                             fieldTiltRef={fieldTiltRef}
                             tileFieldParallaxEnabled={tileFieldParallaxEnabled}
                             flipLocked={flipLocked}
                             focusDimmed={focusDimmed}
+                            stickyFingerSlotMark={stickyFingerSlotMark}
                             hostConsolidatesTileFrames={hostConsolidatesTileFrames}
                             hoverTiltRef={hoverTiltRef}
                             findableFaceHighlight={findableFaceHighlight}
                             keyboardFocused={focusedTileId === tile.id}
                             pairProximityDistance={pairProximityDistance}
+                            powerBackAccent={powerBackAccent}
                             tutorialPairOrdinal={tileTutorialPairOrdinal}
                             presentationNBackAnchor={presentationNBackAnchor}
                             presentationSilhouette={presentationSilhouette}
                             presentationWideRecall={presentationWideRecall}
                             spotlightBountyHighlight={spotlightBountyHighlight}
+                            spotlightBountyOnBack={spotlightBountyOnBack}
                             spotlightWardHighlight={spotlightWardHighlight}
+                            spotlightWardOnBack={spotlightWardOnBack}
                             interactionSuppressed={interactionSuppressed}
                             interactive={interactive}
                             isPinned={isPinned}
@@ -2539,6 +2908,11 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                             shuffleMotionBudgetMs={shuffleMotionBudgetMs}
                             shuffleMotionDeadlineMs={shuffleMotionDeadlineMs}
                             shuffleStaggerTileCount={shuffleStaggerTileCount}
+                            boardEntranceMotionDeadlineMs={boardEntranceMotionDeadlineMs}
+                            boardEntranceMotionBudgetMs={boardEntranceMotionBudgetMs}
+                            boardEntranceStaggerTileCount={boardEntranceStaggerTileCount}
+                            boardRows={totalRows}
+                            boardColumns={totalColumns}
                             sharedCardBackGeometry={sharedCardBackGeometry}
                             sharedCardFrontGeometry={sharedCardFrontGeometry}
                             textureRevision={textureRevision}

@@ -41,7 +41,12 @@ const SEED_IMPROVEMENTS = {
     ],
     '01-main-menu': [
         'Balance vertical spacing so primary actions stay above the fold on short phones.',
-        'Verify stats / last run summary do not crowd touch targets.'
+        'Verify stats / last run summary do not crowd touch targets.',
+        'Pixi backdrop grid should read as atmosphere, not a literal wire grid (compare `ENDPRODUCTIMAGE2` left panel).'
+    ],
+    '01a-choose-your-path': [
+        'Poster frames vs reference: gradient panels should stay legible behind labels; bump contrast if headlines wash out.',
+        'Featured mode glow — ensure selected state stays obvious in bright environments.'
     ],
     '02-main-menu-howto': [
         'Ensure How To Play panel scrolls cleanly and close control is obvious on small widths.'

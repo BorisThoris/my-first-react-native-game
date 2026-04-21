@@ -8,6 +8,16 @@ import { RENDERER_THEME } from '../styles/theme';
  * Dev frame budgeting uses `boardWebglPerfSample` in `TileBoardScene`, not per-shard counters here.
  */
 export const TILE_SPACING = 1.18;
+/** Organic layout: max XY offset from nominal grid (world units); deterministic per tile id. */
+export const BOARD_LAYOUT_JITTER_XY = 0.092;
+/** Organic layout: max idle Y rotation (rad) for a scattered-table read. */
+export const BOARD_LAYOUT_YAW_MAX = 0.1;
+/** Organic layout: subtle depth variation (world units). */
+export const BOARD_LAYOUT_JITTER_Z = 0.0045;
+/** Odd rows shift X (brick) to break column lines; scales with `TILE_SPACING`. */
+export const BOARD_LAYOUT_ROW_STAGGER_X = TILE_SPACING * 0.32;
+/** Extra half-extent on boardWorldWidth/Height so fit-zoom does not clip jittered corners. */
+export const BOARD_LAYOUT_VIEWPORT_PADDING = 0.24;
 /**
  * Card art planes in `TileBoardScene` — keep textures’ canvas aspect in sync to avoid stretching square PNGs.
  * Pipeline: `scripts/card-pipeline/cardTextureConstants.mjs`, `yarn imagegen --resolution card-plane`, `scripts/card-pipeline/normalize-card-texture.ps1`.

@@ -1,6 +1,7 @@
 import { useId, type ReactNode } from 'react';
 import { MAX_LIVES, type MutatorId, type RunState } from '../../shared/contracts';
 import {
+    getFeaturedObjectiveHudTooltip,
     getFeaturedObjectiveLabel,
     getFloorArchetypeDefinition,
     usesEndlessFloorSchedule
@@ -8,6 +9,7 @@ import {
 import codexBookUrl from '../assets/ui/icons/icon-codex-book-v1.svg?url';
 import scoreParasiteCrystalUrl from '../assets/ui/icons/icon-score-parasite-crystal.svg?url';
 import shuffleIconUrl from '../assets/ui/icons/icon-shuffle-v1.svg?url';
+import { PERFECT_MEMORY_BASE_RULES, perfectMemoryHudKind } from '../copy/perfectMemory';
 import styles from './GameScreen.module.css';
 
 const MUTATOR_HUD_LABELS: Record<MutatorId, string> = {
@@ -97,13 +99,16 @@ export interface GameplayHudBarProps {
     gauntletRemainingMs: number | null;
     /** HUD-015: low-frequency status line for screen readers (`aria-live="polite"`). */
     politeHudAnnouncement?: string;
+    /** Gates brief chain-pill emphasis animation */
+    reduceMotion?: boolean;
 }
 
 const GameplayHudBar = ({
     run,
     cameraViewportMode,
     gauntletRemainingMs,
-    politeHudAnnouncement = ''
+    politeHudAnnouncement = '',
+    reduceMotion = false
 }: GameplayHudBarProps) => {
     const floorHexUid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
     const floorHexStrokeGradId = `hud-floor-hex-stroke-${floorHexUid}`;
@@ -137,6 +142,7 @@ const GameplayHudBar = ({
         run.gameMode === 'endless' &&
         usesEndlessFloorSchedule(run.gameMode, run.runRulesVersion) &&
         board.floorArchetypeId != null;
+    const perfectMemoryHud = perfectMemoryHudKind(run.achievementsEnabled, run.powersUsedThisRun);
     const activeRiskWagerFavor =
         run.endlessRiskWager != null
             ? run.endlessRiskWager.bonusFavorOnSuccess + (run.relicIds.includes('wager_surety') ? 1 : 0)
@@ -442,7 +448,10 @@ const GameplayHudBar = ({
                                     <div
                                         className={styles.statPillCompact}
                                         data-testid="hud-featured-objective"
-                                        title="Featured objective for this endless floor"
+                                        title={
+                                            getFeaturedObjectiveHudTooltip(board.featuredObjectiveId ?? null) ??
+                                            'Featured objective for this endless floor'
+                                        }
                                     >
                                         <span className={styles.statKey}>Objective</span>
                                         <span className={styles.statVal}>{featuredObjectiveLabel}</span>
@@ -494,6 +503,57 @@ const GameplayHudBar = ({
                                         </span>
                                     </div>
                                 ) : null}
+                                {run.status === 'playing' && run.stats.currentStreak > 0 ? (
+                                    <div
+                                        key={`hud-chain-${board.level}-${run.stats.currentStreak}`}
+                                        className={`${styles.statPillCompact} ${reduceMotion ? '' : styles.hudChainPill}`}
+                                        data-testid="hud-match-chain"
+                                        title="Consecutive matches without a miss — each match adds bonus score on top of the base."
+                                    >
+                                        <span className={styles.statKey}>Chain</span>
+                                        <span className={styles.statVal}>×{run.stats.currentStreak}</span>
+                                    </div>
+                                ) : null}
+                                {run.status === 'memorize' || run.status === 'playing' ? (
+                                    <>
+                                        <div
+                                            className={styles.statPillCompact}
+                                            data-testid="hud-shuffle-charges"
+                                            title={
+                                                run.activeContract?.noShuffle
+                                                    ? 'Scholar contract: full-board shuffle is locked.'
+                                                    : `Shuffle charges: ${run.shuffleCharges}. Uses a run charge; breaks Scholar-style and some perfect-memory rules when used.`
+                                            }
+                                        >
+                                            <span className={styles.statKey}>Shuffle</span>
+                                            <span className={styles.statVal}>
+                                                {run.activeContract?.noShuffle ? 'Off' : run.shuffleCharges}
+                                            </span>
+                                        </div>
+                                        <div
+                                            className={styles.statPillCompact}
+                                            data-testid="hud-destroy-charges"
+                                            title={
+                                                run.activeContract?.noDestroy
+                                                    ? 'Scholar contract: destroy pair is locked.'
+                                                    : `Destroy charges: ${run.destroyPairCharges}. Spend to remove a fully hidden pair with no match score — forfeits pickups on that pair. Clean clears can refill the bank.`
+                                            }
+                                        >
+                                            <span className={styles.statKey}>Destroy</span>
+                                            <span className={styles.statVal}>
+                                                {run.activeContract?.noDestroy ? 'Off' : run.destroyPairCharges}
+                                            </span>
+                                        </div>
+                                        <div
+                                            className={styles.statPillCompact}
+                                            data-testid="hud-peek-charges"
+                                            title={`Peek charges: ${run.peekCharges}. Arm peek in the toolbar, then tap a tile for a brief reveal.`}
+                                        >
+                                            <span className={styles.statKey}>Peek</span>
+                                            <span className={styles.statVal}>{run.peekCharges}</span>
+                                        </div>
+                                    </>
+                                ) : null}
                                 {run.activeContract?.noShuffle ? (
                                     <div className={styles.statPillCompact}>
                                         <span className={styles.statKey}>Contract</span>
@@ -518,6 +578,20 @@ const GameplayHudBar = ({
                                     <div className={styles.statPillCompact} title="Wild joker run">
                                         <span className={styles.statKey}>Wild</span>
                                         <span className={styles.statVal}>On</span>
+                                    </div>
+                                ) : null}
+                                {perfectMemoryHud !== 'hidden' ? (
+                                    <div
+                                        className={`${styles.statPillCompact} ${
+                                            perfectMemoryHud === 'locked' ? styles.statPillCompactPerfectMemoryLocked : ''
+                                        }`}
+                                        data-testid="hud-perfect-memory"
+                                        title={PERFECT_MEMORY_BASE_RULES}
+                                    >
+                                        <span className={styles.statKey}>Perfect Memory</span>
+                                        <span className={styles.statVal}>
+                                            {perfectMemoryHud === 'locked' ? 'Locked' : 'Eligible'}
+                                        </span>
                                     </div>
                                 ) : null}
                             </div>

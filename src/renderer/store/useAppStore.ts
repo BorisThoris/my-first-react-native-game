@@ -69,10 +69,28 @@ import {
     persistenceNoticeForConsecutiveFailures,
     registerPersistenceWriteFailureHandler
 } from './persistBridge';
+import {
+    BOARD_FLOATER_POP_CLEAR,
+    buildMatchScorePopPayload,
+    buildMismatchScorePopPayload,
+    type MatchScorePop,
+    type MismatchScorePop
+} from './matchScorePop';
 import type { DevSandboxConfig } from '../dev/devSandboxParams';
 import { buildSandboxRun } from '../dev/runFixtures';
 import { needsRelicPick } from '../../shared/relics';
-import { playFlipSfx, playResolveSfx, resumeAudioContext, sfxGainFromSettings } from '../audio/gameSfx';
+import {
+    playDestroyPairSfx,
+    playFlipSfx,
+    playGambitCommitSfx,
+    playFloorClearSfx,
+    playPeekPowerSfx,
+    playPowerArmSfx,
+    playResolveSfx,
+    playStrayPowerSfx,
+    resumeAudioContext,
+    sfxGainFromSettings
+} from '../audio/gameSfx';
 
 /** Session-only cache so imported puzzle boards survive in-run restart. */
 const importPuzzleTilesById = new Map<string, Tile[]>();
@@ -106,6 +124,12 @@ interface AppState {
     boardPinMode: boolean;
     destroyPairArmed: boolean;
     peekModeArmed: boolean;
+    /** Transient floating +score near matched tiles (Gameplay column). */
+    matchScorePop: MatchScorePop | null;
+    dismissMatchScorePop: () => void;
+    /** Transient miss floater after mismatch resolve (same anchor as match floater). */
+    mismatchScorePop: MismatchScorePop | null;
+    dismissMismatchScorePop: () => void;
     hydrate: () => Promise<void>;
     startRun: () => void;
     startDailyRun: () => void;
@@ -259,6 +283,15 @@ const applyResolveBoardTurn = (run: RunState): void => {
     const { saveData } = useAppStore.getState();
     const encore = saveData.playerStats?.encorePairKeysLastRun ?? [];
     const next = resolveBoardTurn(run, encore);
+    const pop = buildMatchScorePopPayload(run, next);
+    const missPop = buildMismatchScorePopPayload(run, next);
+    if (pop) {
+        useAppStore.setState({ ...BOARD_FLOATER_POP_CLEAR, matchScorePop: pop });
+    } else if (missPop) {
+        useAppStore.setState({ ...BOARD_FLOATER_POP_CLEAR, mismatchScorePop: missPop });
+    } else {
+        useAppStore.setState({ ...BOARD_FLOATER_POP_CLEAR });
+    }
     void resumeAudioContext();
     playResolveSfx(run, next, sfxGainFromStore());
     applyResolvedRun(next);
@@ -266,6 +299,11 @@ const applyResolveBoardTurn = (run: RunState): void => {
 
 const applyResolvedRun = (resolvedRun: RunState): void => {
     const state = useAppStore.getState();
+    const prevStatus = state.run?.status;
+    if (resolvedRun.status === 'levelComplete' && prevStatus !== 'levelComplete') {
+        void resumeAudioContext();
+        playFloorClearSfx(sfxGainFromStore());
+    }
     let nextRun = resolvedRun.status === 'playing' ? resolvedRun : disableDebugPeek(resolvedRun);
 
     let saveForAchievements = state.saveData;
@@ -331,7 +369,8 @@ const applyResolvedRun = (resolvedRun: RunState): void => {
             view: 'gameOver',
             saveData: nextSave,
             settings: nextSave.settings,
-            newlyUnlockedAchievements: unlockedAchievements
+            newlyUnlockedAchievements: unlockedAchievements,
+            ...BOARD_FLOATER_POP_CLEAR
         });
     } else {
         nextSave = mergeHonorUnlockTags(nextSave);
@@ -513,6 +552,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     boardPinMode: false,
     destroyPairArmed: false,
     peekModeArmed: false,
+    ...BOARD_FLOATER_POP_CLEAR,
+    dismissMatchScorePop: () => {
+        set({ matchScorePop: null });
+    },
+    dismissMismatchScorePop: () => {
+        set({ mismatchScorePop: null });
+    },
 
     hydrate: async () => {
         if (get().hydrating || get().hydrated) {
@@ -868,7 +914,8 @@ export const useAppStore = create<AppState>((set, get) => ({
             destroyPairArmed: false,
             peekModeArmed: false,
             subscreenReturnView: 'menu',
-            settingsReturnView: 'menu'
+            settingsReturnView: 'menu',
+            ...BOARD_FLOATER_POP_CLEAR
         });
     },
 
@@ -1049,7 +1096,11 @@ export const useAppStore = create<AppState>((set, get) => ({
             const flippedAfter = nextRun.board?.flippedTileIds.length ?? 0;
             if (flippedAfter > flippedBefore) {
                 void resumeAudioContext();
-                playFlipSfx(sfxGainFromStore());
+                const g = sfxGainFromStore();
+                playFlipSfx(g);
+                if (flippedAfter === 3) {
+                    playGambitCommitSfx(g);
+                }
             }
             set({ run: nextRun, peekModeArmed: false });
             if (nextRun.status === 'resolving' && nextRun.timerState.resolveRemainingMs !== null) {
@@ -1078,6 +1129,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (run.strayRemoveArmed) {
             const nextRun = applyStrayRemove(run, tileId);
             if (nextRun !== run) {
+                void resumeAudioContext();
+                playStrayPowerSfx(sfxGainFromStore());
                 set({ run: nextRun });
             }
             return;
@@ -1086,6 +1139,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (peekModeArmed && run.peekCharges > 0 && run.board && run.board.flippedTileIds.length === 0) {
             const nextRun = applyPeek(run, tileId);
             if (nextRun !== run) {
+                void resumeAudioContext();
+                playPeekPowerSfx(sfxGainFromStore());
                 set({ run: nextRun, peekModeArmed: false });
             }
             return;
@@ -1096,6 +1151,9 @@ export const useAppStore = create<AppState>((set, get) => ({
             if (nextRun === run) {
                 return;
             }
+
+            void resumeAudioContext();
+            playDestroyPairSfx(sfxGainFromStore());
 
             set({ run: nextRun, destroyPairArmed: false, peekModeArmed: false });
 
@@ -1133,9 +1191,14 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (boardPinMode || destroyPairArmed) {
             return;
         }
+        const nextPeekArmed = !peekModeArmed;
         const nextRun = run.strayRemoveArmed ? { ...run, strayRemoveArmed: false } : run;
+        if (nextPeekArmed) {
+            void resumeAudioContext();
+            playPowerArmSfx(sfxGainFromStore());
+        }
         set({
-            peekModeArmed: !peekModeArmed,
+            peekModeArmed: nextPeekArmed,
             run: nextRun
         });
     },
@@ -1157,8 +1220,13 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (!run || view !== 'playing' || run.status !== 'playing') {
             return;
         }
+        const wasArmed = run.strayRemoveArmed;
         const nextRun = toggleStrayRemoveArmed(run);
         if (nextRun !== run) {
+            if (nextRun.strayRemoveArmed && !wasArmed) {
+                void resumeAudioContext();
+                playPowerArmSfx(sfxGainFromStore());
+            }
             set({
                 run: nextRun,
                 boardPinMode: false,
@@ -1218,18 +1286,28 @@ export const useAppStore = create<AppState>((set, get) => ({
     },
 
     toggleBoardPinMode: () => {
-        const { boardPinMode } = get();
+        const { boardPinMode, run, view } = get();
+        const next = !boardPinMode;
+        if (next && run && view === 'playing' && run.status === 'playing') {
+            void resumeAudioContext();
+            playPowerArmSfx(sfxGainFromStore() * 0.92);
+        }
         set({
-            boardPinMode: !boardPinMode,
+            boardPinMode: next,
             destroyPairArmed: false,
             peekModeArmed: false
         });
     },
 
     toggleDestroyPairArmed: () => {
-        const { destroyPairArmed } = get();
+        const { destroyPairArmed, run, view } = get();
+        const next = !destroyPairArmed;
+        if (next && run && view === 'playing' && run.status === 'playing' && run.destroyPairCharges > 0) {
+            void resumeAudioContext();
+            playPowerArmSfx(sfxGainFromStore());
+        }
         set({
-            destroyPairArmed: !destroyPairArmed,
+            destroyPairArmed: next,
             boardPinMode: false,
             peekModeArmed: false
         });
@@ -1244,7 +1322,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
         const pausedRun = freezeRun(run);
         clearAllTimers();
-        set({ run: pausedRun });
+        set({ run: pausedRun, ...BOARD_FLOATER_POP_CLEAR });
     },
 
     resume: () => {
@@ -1281,7 +1359,8 @@ export const useAppStore = create<AppState>((set, get) => ({
                 run: openRelicOffer(run),
                 boardPinMode: false,
                 destroyPairArmed: false,
-                peekModeArmed: false
+                peekModeArmed: false,
+                ...BOARD_FLOATER_POP_CLEAR
             });
             return;
         }
@@ -1303,7 +1382,8 @@ export const useAppStore = create<AppState>((set, get) => ({
             boardPinMode: false,
             destroyPairArmed: false,
             peekModeArmed: false,
-            run: nextRun
+            run: nextRun,
+            ...BOARD_FLOATER_POP_CLEAR
         });
 
         if (nextRun.timerState.memorizeRemainingMs !== null) {
@@ -1361,7 +1441,8 @@ export const useAppStore = create<AppState>((set, get) => ({
             boardPinMode: false,
             destroyPairArmed: false,
             peekModeArmed: false,
-            run
+            run,
+            ...BOARD_FLOATER_POP_CLEAR
         });
 
         if (run.timerState.memorizeRemainingMs !== null) {
@@ -1379,7 +1460,8 @@ export const useAppStore = create<AppState>((set, get) => ({
             destroyPairArmed: false,
             peekModeArmed: false,
             subscreenReturnView: 'menu',
-            settingsReturnView: 'menu'
+            settingsReturnView: 'menu',
+            ...BOARD_FLOATER_POP_CLEAR
         });
     },
 
@@ -1415,7 +1497,8 @@ export const useAppStore = create<AppState>((set, get) => ({
             newlyUnlockedAchievements: [] as AchievementId[],
             boardPinMode: false,
             destroyPairArmed: false,
-            peekModeArmed: false
+            peekModeArmed: false,
+            ...BOARD_FLOATER_POP_CLEAR
         };
 
         if (screen === 'menu') {
@@ -1487,6 +1570,13 @@ export const useAppStore = create<AppState>((set, get) => ({
             });
             if (run.timerState.memorizeRemainingMs !== null) {
                 scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
+            }
+            if (
+                run.status === 'resolving' &&
+                run.timerState.resolveRemainingMs !== null &&
+                run.timerState.resolveRemainingMs > 0
+            ) {
+                scheduleResolveTimer(run.timerState.resolveRemainingMs);
             }
             return;
         }

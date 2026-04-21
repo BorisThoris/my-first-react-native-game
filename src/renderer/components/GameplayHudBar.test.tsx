@@ -27,7 +27,9 @@ describe('GameplayHudBar', () => {
         );
 
         expect(screen.getByTestId('hud-endless-archetype').textContent).toContain('Survey Hall');
-        expect(screen.getByTestId('hud-featured-objective').textContent).toContain('Flip par');
+        const objectivePill = screen.getByTestId('hud-featured-objective');
+        expect(objectivePill.textContent).toContain('Flip par');
+        expect(objectivePill.getAttribute('title')).toMatch(/match resolutions/i);
         expect(screen.getByTestId('hud-favor-progress').textContent).toContain('2/3');
         expect(screen.getByTestId('hud-featured-streak').textContent).toContain('x3');
         expect(screen.getByTestId('hud-endless-risk-wager').textContent).toContain('+2 Favor');
@@ -50,6 +52,71 @@ describe('GameplayHudBar', () => {
         expect(screen.queryByTestId('hud-favor-progress')).toBeNull();
         expect(screen.queryByTestId('hud-featured-streak')).toBeNull();
         expect(screen.queryByTestId('hud-endless-risk-wager')).toBeNull();
+    });
+
+    it('shows shuffle, destroy, peek economy on memorize and playing', () => {
+        const run = finishMemorizePhase(createDailyRun(0, { echoFeedbackEnabled: false }));
+
+        render(
+            <GameplayHudBar
+                cameraViewportMode={false}
+                gauntletRemainingMs={null}
+                politeHudAnnouncement=""
+                run={run}
+            />
+        );
+
+        expect(screen.getByTestId('hud-shuffle-charges').textContent).toContain('Shuffle');
+        expect(screen.getByTestId('hud-destroy-charges').textContent).toContain('Destroy');
+        expect(screen.getByTestId('hud-peek-charges').textContent).toContain('Peek');
+    });
+
+    it('shows Perfect Memory eligible when achievements track and no assist power was used', () => {
+        const run = finishMemorizePhase(createDailyRun(0, { echoFeedbackEnabled: false }));
+
+        render(
+            <GameplayHudBar
+                cameraViewportMode={false}
+                gauntletRemainingMs={null}
+                politeHudAnnouncement=""
+                run={run}
+            />
+        );
+
+        expect(screen.getByTestId('hud-perfect-memory')).toHaveTextContent('Eligible');
+    });
+
+    it('shows Perfect Memory locked after a disqualifying assist', () => {
+        const base = finishMemorizePhase(createDailyRun(0, { echoFeedbackEnabled: false }));
+        const run = { ...base, powersUsedThisRun: true };
+
+        render(
+            <GameplayHudBar
+                cameraViewportMode={false}
+                gauntletRemainingMs={null}
+                politeHudAnnouncement=""
+                run={run}
+            />
+        );
+
+        expect(screen.getByTestId('hud-perfect-memory')).toHaveTextContent('Locked');
+    });
+
+    it('hides Perfect Memory pill when achievements are off (practice)', () => {
+        const run = finishMemorizePhase(
+            createNewRun(0, { echoFeedbackEnabled: false, practiceMode: true, gameMode: 'puzzle' })
+        );
+
+        render(
+            <GameplayHudBar
+                cameraViewportMode={false}
+                gauntletRemainingMs={null}
+                politeHudAnnouncement=""
+                run={run}
+            />
+        );
+
+        expect(screen.queryByTestId('hud-perfect-memory')).toBeNull();
     });
 
     it('includes wager_surety bonus in the active wager pill', () => {

@@ -1,20 +1,64 @@
 import { NotificationHost, useNotificationStore } from '@cross-repo-libs/notifications';
-import { act, fireEvent, render } from '@testing-library/react';
-import { forwardRef } from 'react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { forwardRef, useImperativeHandle } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RunState } from '../../shared/contracts';
 import { createNewRun, finishMemorizePhase } from '../../shared/game';
 import { createDefaultSaveData } from '../../shared/save-data';
+import { GAMBIT_KEYBOARD_HELP_TIP } from '../copy/gameplayHints';
 import { PlatformTiltProvider } from '../platformTilt/PlatformTiltProvider';
 import { useAppStore } from '../store/useAppStore';
 import GameScreen from './GameScreen';
+import { BOARD_FLOATER_POP_CLEAR } from '../store/matchScorePop';
+import {
+    MATCH_SCORE_FLOAT_FALLBACK_MARGIN_MS,
+    MATCH_SCORE_FLOAT_MS_FULL
+} from './matchScoreFloaterTiming';
 
 vi.mock('./MainMenuBackground', () => ({ default: () => null }));
 vi.mock('./GameLeftToolbar', () => ({ default: () => null }));
 vi.mock('./GameplayHudBar', () => ({ default: () => null }));
 vi.mock('./TileBoard', () => ({
     default: forwardRef(function TileBoardStub(_props, ref) {
-        return <div data-testid="tile-board-stub" ref={ref as never} />;
+        useImperativeHandle(ref, () => ({
+            getTileClientRectAtGrid: () => null,
+            getTileClientRectById: (tileId: string) => {
+                if (tileId === 'cx') {
+                    return null;
+                }
+                const tri: Record<string, { left: number; top: number; width: number; height: number }> = {
+                    ga: { left: 110, top: 220, width: 40, height: 40 },
+                    gb: { left: 410, top: 220, width: 40, height: 40 },
+                    gc: { left: 710, top: 220, width: 40, height: 40 }
+                };
+                const r = tri[tileId];
+                if (r) {
+                    return {
+                        ...r,
+                        right: r.left + r.width,
+                        bottom: r.top + r.height,
+                        x: r.left,
+                        y: r.top,
+                        toJSON: () => ({})
+                    };
+                }
+                return {
+                    left: 200,
+                    top: 160,
+                    width: 40,
+                    height: 40,
+                    right: 240,
+                    bottom: 200,
+                    x: 200,
+                    y: 160,
+                    toJSON: () => ({})
+                };
+            },
+            runShuffleAnimation: (applyShuffle: () => void) => {
+                applyShuffle();
+            }
+        }));
+        return <div data-testid="tile-board-stub" />;
     })
 }));
 vi.mock('../hooks/useViewportSize', () => ({
@@ -26,7 +70,10 @@ vi.mock('../hooks/useDistractionChannelTick', () => ({
 vi.mock('../hooks/useHudPoliteLiveAnnouncement', () => ({
     detectClaimedFindableKind: () => null,
     getFindableToastText: () => '',
-    useHudPoliteLiveAnnouncement: () => ''
+    useHudPoliteLiveAnnouncement: () => ({
+        message: '',
+        queuePoliteAnnouncement: vi.fn()
+    })
 }));
 vi.mock('../platformTilt/usePlatformTiltField', () => ({
     usePlatformTiltField: () => ({ tiltRef: { current: null } })
@@ -88,7 +135,8 @@ describe('GameScreen (OVR-014)', () => {
                 settings: saveData.settings,
                 boardPinMode: false,
                 destroyPairArmed: false,
-                peekModeArmed: false
+                peekModeArmed: false,
+                ...BOARD_FLOATER_POP_CLEAR
             });
         });
     });
@@ -121,6 +169,213 @@ describe('GameScreen (OVR-014)', () => {
         );
 
         expect(achievementNotifications()).toBe(1);
+    });
+
+    it('keyboard shortcuts overlay lists board navigation and Gambit tip after F1', () => {
+        const playing = finishMemorizePhase(createNewRun(0));
+        render(
+            <PlatformTiltProvider>
+                <NotificationHost>
+                    <GameScreen achievements={[]} run={playing} />
+                </NotificationHost>
+            </PlatformTiltProvider>
+        );
+
+        act(() => {
+            document.dispatchEvent(
+                new KeyboardEvent('keydown', { code: 'F1', bubbles: true, cancelable: true })
+            );
+        });
+
+        expect(screen.getByTestId('game-shortcuts-help-overlay')).toBeTruthy();
+        expect(screen.getByText(/Arrow keys/)).toBeTruthy();
+        expect(screen.getByText(/Flip the focused tile/)).toBeTruthy();
+        expect(screen.getByText(GAMBIT_KEYBOARD_HELP_TIP)).toBeTruthy();
+    });
+
+    it('renders match score floater from store and clears after float window', async () => {
+        vi.useFakeTimers();
+        const base = createNewRun(0, { echoFeedbackEnabled: false, gameMode: 'puzzle' });
+        const playing = finishMemorizePhase(base);
+        try {
+            render(
+                <PlatformTiltProvider>
+                    <NotificationHost>
+                        <GameScreen achievements={[]} run={playing} />
+                    </NotificationHost>
+                </PlatformTiltProvider>
+            );
+
+            act(() => {
+                useAppStore.setState({
+                    matchScorePop: {
+                        amount: 99,
+                        tileIdA: 'a',
+                        tileIdB: 'b',
+                        key: 'test-floater-1'
+                    }
+                });
+            });
+
+            expect(screen.getByTestId('match-score-floater')).toHaveTextContent('+99');
+            expect(screen.getByText(/Plus 99 points/)).toBeInTheDocument();
+
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(
+                    MATCH_SCORE_FLOAT_MS_FULL + MATCH_SCORE_FLOAT_FALLBACK_MARGIN_MS + 25
+                );
+            });
+
+            expect(useAppStore.getState().matchScorePop).toBeNull();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('renders mismatch floater from store', async () => {
+        vi.useFakeTimers();
+        const base = createNewRun(0, { echoFeedbackEnabled: false, gameMode: 'puzzle' });
+        const playing = finishMemorizePhase(base);
+        try {
+            render(
+                <PlatformTiltProvider>
+                    <NotificationHost>
+                        <GameScreen achievements={[]} run={playing} />
+                    </NotificationHost>
+                </PlatformTiltProvider>
+            );
+
+            act(() => {
+                useAppStore.setState({
+                    mismatchScorePop: {
+                        tileIdA: 'a',
+                        tileIdB: 'b',
+                        key: 'test-miss-1'
+                    },
+                    matchScorePop: null
+                });
+            });
+
+            expect(screen.getByTestId('mismatch-score-floater')).toHaveTextContent('Miss');
+            expect(screen.getByText(/No match/)).toBeInTheDocument();
+
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(
+                    MATCH_SCORE_FLOAT_MS_FULL + MATCH_SCORE_FLOAT_FALLBACK_MARGIN_MS + 25
+                );
+            });
+
+            expect(useAppStore.getState().mismatchScorePop).toBeNull();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('positions gambit mismatch floater at centroid of three tile rects (tileIdC)', () => {
+        const origBound = HTMLElement.prototype.getBoundingClientRect;
+        const spy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+            this: HTMLElement
+        ) {
+            if (this.getAttribute('data-testid') === 'board-stage') {
+                return {
+                    left: 10,
+                    top: 20,
+                    width: 1000,
+                    height: 800,
+                    right: 1010,
+                    bottom: 820,
+                    x: 10,
+                    y: 20,
+                    toJSON: () => ({})
+                } as DOMRect;
+            }
+            return origBound.call(this);
+        });
+
+        vi.useFakeTimers();
+        const base = createNewRun(0, { echoFeedbackEnabled: false, gameMode: 'puzzle' });
+        const playing = finishMemorizePhase(base);
+        try {
+            render(
+                <PlatformTiltProvider>
+                    <NotificationHost>
+                        <GameScreen achievements={[]} run={playing} />
+                    </NotificationHost>
+                </PlatformTiltProvider>
+            );
+
+            act(() => {
+                useAppStore.setState({
+                    mismatchScorePop: {
+                        tileIdA: 'ga',
+                        tileIdB: 'gb',
+                        tileIdC: 'gc',
+                        key: 'test-gambit-miss-centroid'
+                    },
+                    matchScorePop: null
+                });
+            });
+
+            const floater = screen.getByTestId('mismatch-score-floater');
+            // Stage (10,20); tile centers relative to stage: (120,220),(420,220),(720,220) => centroid (420,220)
+            expect(floater).toHaveStyle({ left: '420px', top: '220px' });
+        } finally {
+            spy.mockRestore();
+            vi.useRealTimers();
+        }
+    });
+
+    it('falls back to two-tile midpoint when tileIdC is set but third rect is missing', () => {
+        const origBound = HTMLElement.prototype.getBoundingClientRect;
+        const spy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+            this: HTMLElement
+        ) {
+            if (this.getAttribute('data-testid') === 'board-stage') {
+                return {
+                    left: 10,
+                    top: 20,
+                    width: 1000,
+                    height: 800,
+                    right: 1010,
+                    bottom: 820,
+                    x: 10,
+                    y: 20,
+                    toJSON: () => ({})
+                } as DOMRect;
+            }
+            return origBound.call(this);
+        });
+
+        vi.useFakeTimers();
+        const base = createNewRun(0, { echoFeedbackEnabled: false, gameMode: 'puzzle' });
+        const playing = finishMemorizePhase(base);
+        try {
+            render(
+                <PlatformTiltProvider>
+                    <NotificationHost>
+                        <GameScreen achievements={[]} run={playing} />
+                    </NotificationHost>
+                </PlatformTiltProvider>
+            );
+
+            act(() => {
+                useAppStore.setState({
+                    mismatchScorePop: {
+                        tileIdA: 'ga',
+                        tileIdB: 'gb',
+                        tileIdC: 'cx',
+                        key: 'test-gambit-miss-partial-rect'
+                    },
+                    matchScorePop: null
+                });
+            });
+
+            const floater = screen.getByTestId('mismatch-score-floater');
+            expect(floater).toHaveStyle({ left: '270px', top: '220px' });
+        } finally {
+            spy.mockRestore();
+            vi.useRealTimers();
+        }
     });
 
     it('does not call pause when KeyP is pressed during a relic offer', () => {

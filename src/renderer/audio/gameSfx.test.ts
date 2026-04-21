@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { __resetGameSfxEngineForTests, playFlipSfx, playMatchSfx, sfxGainFromSettings } from './gameSfx';
+import {
+    __resetGameSfxEngineForTests,
+    playFlipSfx,
+    playGambitCommitSfx,
+    playFloorClearSfx,
+    playMatchSfx,
+    playShuffleSfx,
+    sfxGainFromSettings
+} from './gameSfx';
 
 describe('gameSfx', () => {
     const oscillators: { addEventListener: ReturnType<typeof vi.fn>; stop: ReturnType<typeof vi.fn> }[] = [];
@@ -42,6 +50,8 @@ describe('gameSfx', () => {
 
         playFlipSfx(sfxGainFromSettings(1, 0));
         expect(createOscillator).not.toHaveBeenCalled();
+        playGambitCommitSfx(sfxGainFromSettings(1, 0));
+        expect(createOscillator).not.toHaveBeenCalled();
     });
 
     it('steals oldest match voice when polyphony is exceeded', () => {
@@ -83,5 +93,100 @@ describe('gameSfx', () => {
             playMatchSfx(g);
         }
         expect(stops.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('playShuffleSfx respects mute', () => {
+        const createOscillator = vi.fn(() => ({
+            type: 'sine' as OscillatorType,
+            frequency: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+            connect: vi.fn(),
+            start: vi.fn(),
+            stop: vi.fn(),
+            addEventListener: vi.fn()
+        }));
+        const createGain = vi.fn(() => ({
+            gain: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+            connect: vi.fn()
+        }));
+
+        vi.stubGlobal(
+            'AudioContext',
+            class {
+                currentTime = 0;
+                destination = {};
+                createOscillator = createOscillator;
+                createGain = createGain;
+                close = (): Promise<void> => Promise.resolve();
+            }
+        );
+
+        playShuffleSfx(sfxGainFromSettings(1, 0));
+        expect(createOscillator).not.toHaveBeenCalled();
+    });
+
+    it('playShuffleSfx full uses layered voices', () => {
+        const createOscillator = vi.fn(() => ({
+            type: 'sine' as OscillatorType,
+            frequency: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+            connect: vi.fn(),
+            start: vi.fn(),
+            stop: vi.fn(),
+            addEventListener: vi.fn()
+        }));
+        const createGain = vi.fn(() => ({
+            gain: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+            connect: vi.fn()
+        }));
+
+        vi.stubGlobal(
+            'AudioContext',
+            class {
+                currentTime = 0;
+                destination = {};
+                createOscillator = createOscillator;
+                createGain = createGain;
+                close = (): Promise<void> => Promise.resolve();
+            }
+        );
+
+        playShuffleSfx(sfxGainFromSettings(1, 1));
+        expect(createOscillator.mock.calls.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('playFloorClearSfx defers oscillators to next macrotask', async () => {
+        const createOscillator = vi.fn(() => ({
+            type: 'sine' as OscillatorType,
+            frequency: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+            connect: vi.fn(),
+            start: vi.fn(),
+            stop: vi.fn(),
+            addEventListener: vi.fn()
+        }));
+        const createGain = vi.fn(() => ({
+            gain: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+            connect: vi.fn()
+        }));
+
+        vi.stubGlobal(
+            'AudioContext',
+            class {
+                currentTime = 0;
+                destination = {};
+                createOscillator = createOscillator;
+                createGain = createGain;
+                close = (): Promise<void> => Promise.resolve();
+            }
+        );
+
+        playFloorClearSfx(sfxGainFromSettings(1, 1));
+        expect(createOscillator).not.toHaveBeenCalled();
+
+        await new Promise<void>((resolve) => {
+            globalThis.setTimeout(() => {
+                resolve();
+            }, 0);
+        });
+
+        expect(createOscillator).toHaveBeenCalled();
     });
 });

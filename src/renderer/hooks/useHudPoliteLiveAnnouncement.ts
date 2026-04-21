@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FindableKind, Tile } from '../../shared/contracts';
+import { GAMBIT_OPPORTUNITY_HINT_LINE } from '../copy/gameplayHints';
 
 const GAUNTLET_WARN_SECS = [60, 30, 10, 5] as const;
 
@@ -74,6 +75,14 @@ interface HudPoliteLiveAnnouncementInput {
     boardLevel: number | null;
     boardTiles: readonly Tile[];
     findablesClaimedThisFloor: number;
+    /** Current consecutive-match streak (run stats). */
+    chainMatchStreak: number;
+    /** When false, chain milestone announcements are suppressed (e.g. memorize or menus). */
+    chainAnnounceActive: boolean;
+    /** Gambit third-flip window (two tiles face-up, mismatch resolving). */
+    gambitThirdPickActive: boolean;
+    /** Flipped tile ids when Gambit is offered (length 2); used for dedupe keys. */
+    gambitOpportunityFlippedIds: readonly string[] | null;
 }
 
 interface UseHudPoliteLiveAnnouncementResult {
@@ -88,6 +97,8 @@ const nowMs = (): number => (typeof performance !== 'undefined' ? performance.no
  * Batches concurrent announcements on `requestAnimationFrame`, dedupes by key, prefers higher priority,
  * and throttles display cadence so screen readers get summaries, not chatter.
  */
+const CHAIN_MILESTONE_THRESHOLDS = [3, 5, 8] as const;
+
 export const useHudPoliteLiveAnnouncement = ({
     gauntletRemainingMs,
     gauntletActive,
@@ -97,7 +108,11 @@ export const useHudPoliteLiveAnnouncement = ({
     lives,
     boardLevel,
     boardTiles,
-    findablesClaimedThisFloor
+    findablesClaimedThisFloor,
+    chainMatchStreak,
+    chainAnnounceActive,
+    gambitThirdPickActive,
+    gambitOpportunityFlippedIds
 }: HudPoliteLiveAnnouncementInput): UseHudPoliteLiveAnnouncementResult => {
     const [message, setMessage] = useState('');
     const prevGauntletSecsRef = useRef<number | null>(null);
@@ -112,6 +127,7 @@ export const useHudPoliteLiveAnnouncement = ({
         claimed: number;
         tiles: readonly Tile[];
     } | null>(null);
+    const chainSnapRef = useRef<{ level: number | null; streak: number } | null>(null);
 
     const queueRef = useRef(new Map<string, { text: string; priority: HudAnnouncePriority }>());
     const rafIdRef = useRef<number | null>(null);
@@ -311,6 +327,56 @@ export const useHudPoliteLiveAnnouncement = ({
 
         pickupSnapRef.current = nextSnap;
     }, [boardLevel, boardTiles, findablesClaimedThisFloor, queuePoliteAnnouncement]);
+
+    useEffect(() => {
+        if (!chainAnnounceActive || boardLevel === null) {
+            return;
+        }
+
+        const snap = chainSnapRef.current;
+        if (snap === null || snap.level !== boardLevel) {
+            chainSnapRef.current = { level: boardLevel, streak: chainMatchStreak };
+            return;
+        }
+
+        const prev = snap.streak;
+        if (chainMatchStreak > prev) {
+            for (const m of CHAIN_MILESTONE_THRESHOLDS) {
+                if (prev < m && chainMatchStreak >= m) {
+                    queuePoliteAnnouncement(
+                        m === 3
+                            ? 'Chain times three — consecutive matches boost your score.'
+                            : `Chain times ${m} — keep the chain for bigger match payouts.`,
+                        { dedupeKey: `chain:${boardLevel}:${m}`, priority: 'info' }
+                    );
+                    break;
+                }
+            }
+        }
+
+        chainSnapRef.current = { level: boardLevel, streak: chainMatchStreak };
+    }, [boardLevel, chainAnnounceActive, chainMatchStreak, queuePoliteAnnouncement]);
+
+    useEffect(() => {
+        if (
+            !gambitThirdPickActive ||
+            boardLevel === null ||
+            !gambitOpportunityFlippedIds ||
+            gambitOpportunityFlippedIds.length !== 2
+        ) {
+            return;
+        }
+        const pairKey = [...gambitOpportunityFlippedIds].sort().join(',');
+        queuePoliteAnnouncement(GAMBIT_OPPORTUNITY_HINT_LINE, {
+            dedupeKey: `gambit:${boardLevel}:${pairKey}`,
+            priority: 'info'
+        });
+    }, [
+        boardLevel,
+        gambitOpportunityFlippedIds,
+        gambitThirdPickActive,
+        queuePoliteAnnouncement
+    ]);
 
     return { message, queuePoliteAnnouncement };
 };

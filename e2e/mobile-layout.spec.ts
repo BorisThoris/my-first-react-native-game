@@ -393,7 +393,7 @@ test.describe('Mobile layout (renderer)', () => {
         await expect(reset).toBeVisible();
         await expectLocatorFullyInWindowViewport(page, reset);
         await expectSettingsFooterButtonsInViewport(page, dialog);
-        /* Outer `zoom` + tall game column: `scrollHeight` can report unscaled min-content; layout is still clipped. */
+        /* Tall game column: `scrollHeight` can inflate vs flex viewport; tolerate slack while shell stays clipped. */
         await expectAppScrollportHasNoVerticalOverflow(page, 140);
     });
 
@@ -412,8 +412,7 @@ test.describe('Mobile layout (renderer)', () => {
         const layout = await readSettingsLayout(settingsSection);
         const metrics = await readSettingsShellMetrics(page, settingsSection);
         expect(layout.contentBelowNav).toBe(false);
-        expect(metrics.zoom).toBeGreaterThanOrEqual(0.92);
-        expect(metrics.zoom).toBeLessThanOrEqual(1.01);
+        expect(metrics.zoom).toBeCloseTo(1, 3);
         await expectSettingsPanelInset(page, settingsSection, 4);
         await expectSettingsFooterButtonsInViewport(page, settingsSection);
         await expectAppScrollportHasNoVerticalOverflow(page);
@@ -431,11 +430,10 @@ test.describe('Mobile layout (renderer)', () => {
         const layout = await readSettingsLayout(dialog);
         const metrics = await readSettingsShellMetrics(page, dialog);
         expect(layout.contentBelowNav).toBe(false);
-        expect(metrics.zoom).toBeGreaterThanOrEqual(0.92);
-        expect(metrics.zoom).toBeLessThanOrEqual(1.01);
+        expect(metrics.zoom).toBeCloseTo(1, 3);
         await expectSettingsPanelInset(page, dialog, 4);
         await expectSettingsFooterButtonsInViewport(page, dialog);
-        /* In-run settings portaled to `body`; game column + zoom can still inflate `scrollHeight` vs flex viewport. */
+        /* In-run settings portaled to `body`; game column can inflate `scrollHeight` vs flex viewport. */
         await expectAppScrollportHasNoVerticalOverflow(page, 80);
     });
 

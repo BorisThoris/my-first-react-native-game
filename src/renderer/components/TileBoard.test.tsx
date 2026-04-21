@@ -81,6 +81,52 @@ describe('TileBoard touch and click controls', () => {
         expect(frame).toHaveAttribute('data-board-run-status', 'playing');
     });
 
+    it('arms deal-in motion on mount when motion is enabled', async () => {
+        renderBoard({
+            board,
+            debugPeekActive: false,
+            interactive: true,
+            onTileSelect: vi.fn(),
+            previewActive: false,
+            reduceMotion: false
+        });
+
+        await waitFor(
+            () => {
+                expect(screen.getByTestId('tile-board-frame').getAttribute('data-shuffle-animating')).toBe('true');
+            },
+            { timeout: 5000 }
+        );
+    });
+
+    it('skips pre-board loading overlay when reduced motion is enabled', () => {
+        renderBoard({
+            board,
+            debugPeekActive: false,
+            interactive: true,
+            onTileSelect: vi.fn(),
+            previewActive: false,
+            reduceMotion: true
+        });
+
+        const frame = screen.getByTestId('tile-board-frame');
+        expect(frame.getAttribute('data-board-prestage')).toBe('idle');
+        expect(screen.queryByTestId('tile-board-prestage-overlay')).toBeNull();
+    });
+
+    it('does not arm deal-in motion when reduced motion is enabled', () => {
+        renderBoard({
+            board,
+            debugPeekActive: false,
+            interactive: true,
+            onTileSelect: vi.fn(),
+            previewActive: false,
+            reduceMotion: true
+        });
+
+        expect(screen.getByTestId('tile-board-frame').getAttribute('data-shuffle-animating')).toBe('false');
+    });
+
     it('shows WebGL required copy when the browser cannot create a GL context', () => {
         vi.restoreAllMocks();
         vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => null);

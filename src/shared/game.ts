@@ -373,7 +373,8 @@ const createTiles = (
     return shuffleWithRng(() => rng(), pairs);
 };
 
-const countFindablePairs = (tiles: readonly Tile[]): number =>
+/** Distinct pairKeys that have at least one tile with `findableKind` (run `findablesTotalThisFloor` / fixtures). */
+export const countFindablePairs = (tiles: readonly Tile[]): number =>
     new Set(tiles.filter((tile) => tile.findableKind != null).map((tile) => tile.pairKey)).size;
 
 const assignFindableKindsToTiles = (
@@ -655,6 +656,62 @@ export const canDestroyPair = (run: RunState, tileId: string): boolean => {
 
     const pairTiles = run.board.tiles.filter((t) => t.pairKey === tile.pairKey);
     return pairTiles.length === 2 && pairTiles.every((t) => t.state === 'hidden');
+};
+
+/**
+ * Board-only checks for destroy targeting (mirrors `canDestroyPair` tile rules).
+ * Caller gates run status, charges, contract `noDestroy`, armed state, and flipped tiles.
+ */
+export const tileIsDestroyEligiblePreview = (board: BoardState, tileId: string): boolean => {
+    const tile = board.tiles.find((t) => t.id === tileId);
+    if (!tile || tile.state !== 'hidden' || tile.pairKey === DECOY_PAIR_KEY) {
+        return false;
+    }
+    const pairTiles = board.tiles.filter((t) => t.pairKey === tile.pairKey);
+    return pairTiles.length === 2 && pairTiles.every((t) => t.state === 'hidden');
+};
+
+/** All tile ids that are valid destroy targets when run rules would allow destroy (fully hidden real pairs). */
+export const collectDestroyEligibleTileIds = (board: BoardState): Set<string> => {
+    const eligible = new Set<string>();
+    for (const tile of board.tiles) {
+        if (tileIsDestroyEligiblePreview(board, tile.id)) {
+            eligible.add(tile.id);
+        }
+    }
+    return eligible;
+};
+
+/** Peek can target any still-hidden tile that has not already been peek-revealed this floor. */
+export const tileIsPeekEligiblePreview = (
+    board: BoardState,
+    peekRevealedTileIds: readonly string[],
+    tileId: string
+): boolean => {
+    const tile = board.tiles.find((t) => t.id === tileId);
+    if (!tile || tile.state !== 'hidden') {
+        return false;
+    }
+    return !peekRevealedTileIds.includes(tileId);
+};
+
+export const collectPeekEligibleTileIds = (
+    board: BoardState,
+    peekRevealedTileIds: readonly string[]
+): Set<string> => {
+    const eligible = new Set<string>();
+    for (const tile of board.tiles) {
+        if (tileIsPeekEligiblePreview(board, peekRevealedTileIds, tile.id)) {
+            eligible.add(tile.id);
+        }
+    }
+    return eligible;
+};
+
+/** Stray remove targets one hidden non-decoy tile (mirrors `applyStrayRemove`). */
+export const tileIsStrayEligiblePreview = (board: BoardState, tileId: string): boolean => {
+    const tile = board.tiles.find((t) => t.id === tileId);
+    return Boolean(tile && tile.state === 'hidden' && tile.pairKey !== DECOY_PAIR_KEY);
 };
 
 export const applyShuffle = (run: RunState): RunState => {
@@ -2094,6 +2151,64 @@ export const resolveBoardTurn = (run: RunState, encorePairKeys: string[] = []): 
         return run;
     }
     return resolveTwoFlippedTiles(run, encorePairKeys);
+};
+
+/**
+ * CARD-008 — Tile ids for match-score board floater (two-flip or gambit matched pair).
+ * Mirrors `resolveGambitThree` pairing and renderer `tileResolvingSelection.gambitMatchPairIds`.
+ * Returns null when three tiles are flipped but none form a pair (gambit fail).
+ */
+export const getMatchFloaterAnchorTileIds = (
+    run: RunState | null
+): { tileIdA: string; tileIdB: string } | null => {
+    const board = run?.board;
+    if (!board) {
+        return null;
+    }
+    const ids = board.flippedTileIds;
+    if (ids.length === 2) {
+        return { tileIdA: ids[0], tileIdB: ids[1] };
+    }
+    if (ids.length !== 3) {
+        return null;
+    }
+    const [aId, bId, cId] = ids;
+    const ta = board.tiles.find((t) => t.id === aId);
+    const tb = board.tiles.find((t) => t.id === bId);
+    const tc = board.tiles.find((t) => t.id === cId);
+    if (!ta || !tb || !tc) {
+        return null;
+    }
+    if (tilesArePairMatch(ta, tb)) {
+        return { tileIdA: aId, tileIdB: bId };
+    }
+    if (tilesArePairMatch(ta, tc)) {
+        return { tileIdA: aId, tileIdB: cId };
+    }
+    if (tilesArePairMatch(tb, tc)) {
+        return { tileIdA: bId, tileIdB: cId };
+    }
+    return null;
+};
+
+/**
+ * Tile ids for mismatch floater: flipped pair order for two-flip miss; three ids (flip sequence) for gambit miss.
+ */
+export const getMismatchFloaterAnchorTileIds = (
+    run: RunState | null
+): { tileIdA: string; tileIdB: string; tileIdC?: string } | null => {
+    const board = run?.board;
+    if (!board) {
+        return null;
+    }
+    const ids = board.flippedTileIds;
+    if (ids.length === 2) {
+        return { tileIdA: ids[0], tileIdB: ids[1] };
+    }
+    if (ids.length === 3) {
+        return { tileIdA: ids[0], tileIdB: ids[1], tileIdC: ids[2] };
+    }
+    return null;
 };
 
 export const advanceToNextLevel = (run: RunState): RunState => {

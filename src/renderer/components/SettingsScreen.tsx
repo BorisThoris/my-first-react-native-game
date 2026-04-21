@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import {
     SAVE_SCHEMA_VERSION,
@@ -21,7 +21,6 @@ import {
 } from '../breakpoints';
 import { focusFirstTabbableOrContainer, handleTabFocusTrapEvent } from '../a11y/focusables';
 import { popModalFocusSnapshot, pushModalFocusSnapshot } from '../a11y/modalFocusReturnStack';
-import { useFitShellZoom } from '../hooks/useFitShellZoom';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { useAppStore } from '../store/useAppStore';
 import { Eyebrow, Panel, ScreenTitle, UiButton } from '../ui';
@@ -281,10 +280,6 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
     );
     const isModal = presentation === 'modal';
     const modalShellRef = useRef<HTMLElement | null>(null);
-    const fitViewportRef = useRef<HTMLDivElement | null>(null);
-    const settingsFitMeasureRef = useRef<HTMLDivElement | null>(null);
-    /** Inner box inside shell padding; useFitShellZoom must use this, not raw window size, or the panel clips top/bottom on modals. */
-    const [fitShellAvail, setFitShellAvail] = useState<{ height: number; width: number } | null>(null);
     const { height: viewportHeight, width: viewportWidth } = useViewportSize();
     const titleId = useId();
     const title = isModal ? 'Run Settings' : 'Settings';
@@ -303,43 +298,9 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
         isShortLandscapeViewport(viewportWidth, viewportHeight) &&
         viewportWidth > VIEWPORT_LANDSCAPE_STACK_MAX_WIDTH;
     const footerButtonSize = stackedSettingsShell ? 'sm' : 'md';
-    /* Uncollapsed (non-stacked) two-column shell: allow mild fit zoom whenever intrinsic height exceeds the viewport. Stacked modes keep zoom off (layout + disclosure). */
-    const settingsFitEnabled = !stackedSettingsShell;
-
-    useLayoutEffect(() => {
-        const node = fitViewportRef.current;
-        if (!node) {
-            return;
-        }
-        const w = node.clientWidth;
-        const h = node.clientHeight;
-        if (w >= 32 && h >= 32) {
-            setFitShellAvail((prev) => (prev?.width === w && prev?.height === h ? prev : { width: w, height: h }));
-        }
-    }, [
-        activeCategory,
-        isModal,
-        presentation,
-        shortLandscapeStackedShell,
-        stackedSettingsShell,
-        viewportHeight,
-        viewportWidth,
-        wideShortDesktopShell
-    ]);
-
-    const fitShellWidth = fitShellAvail?.width ?? viewportWidth;
-    const fitShellHeight = fitShellAvail?.height ?? viewportHeight;
-    const { fitZoom: settingsFitZoom } = useFitShellZoom({
-        enabled: settingsFitEnabled,
-        measureRef: settingsFitMeasureRef,
-        padding: 8,
-        recomputeKey: `${activeCategory}:${activeSubsection}`,
-        viewportHeight: fitShellHeight,
-        viewportWidth: fitShellWidth
-    });
     const activeCategoryMeta = SETTINGS_CATEGORIES.find((item) => item.id === activeCategory) ?? SETTINGS_CATEGORIES[0];
     const subsectionOptions = SETTINGS_SUBSECTIONS[activeCategory];
-    /** Wide-short (e.g. 1280×720): one subsection at a time so intrinsic shell height fits `useFitShellZoom` (≥0.92) with full Gameplay subsections. */
+    /** Wide-short (e.g. 1280×720): one subsection at a time so the right column scroll region stays usable with full Gameplay subsections. */
     const subsectionOneAtATime =
         compactDisclosure || (wideShortDesktopShell && subsectionOptions.length > 1);
     const showSubsectionNav = subsectionOneAtATime && subsectionOptions.length > 1;
@@ -485,12 +446,12 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
             style={isModal ? GAMEPLAY_VISUAL_CSS_VARS : undefined}
             tabIndex={isModal ? -1 : undefined}
         >
-            <div className={styles.fitViewport} ref={fitViewportRef}>
-                <div className={styles.fitMeasureOuter} ref={settingsFitMeasureRef}>
+            <div className={styles.fitViewport}>
+                <div className={styles.fitMeasureOuter}>
                     <div
                         className={styles.fitZoomInner}
                         data-testid="settings-shell-fit-zoom"
-                        style={{ zoom: settingsFitZoom }}
+                        style={{ zoom: 1 }}
                     >
                         <Panel
                             className={`${styles.panel} ${isModal ? styles.panelModal : ''}`.trim()}

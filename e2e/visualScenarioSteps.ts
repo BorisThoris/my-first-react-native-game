@@ -239,11 +239,11 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
         name: 'run settings modal (in-game)',
         run: async (page, capture) => {
             await openLevel1Play(page);
-            await page.getByRole('button', { name: /run settings \(toolbar\)/i }).evaluate((element) => {
-                (element as HTMLButtonElement).click();
-            });
+            const settingsBtn = page.getByTestId('game-toolbar-settings');
+            await expect(settingsBtn).toBeVisible({ timeout: 20_000 });
+            await settingsBtn.click({ force: true });
             const runSettings = page.getByRole('dialog', { name: /run settings/i });
-            await expect(runSettings).toBeVisible();
+            await expect(runSettings).toBeVisible({ timeout: 15_000 });
             await expectNoHorizontalOverflow(page);
             await capture('06-run-settings-modal');
             await runSettings.getByRole('button', { name: /^back$/i }).evaluate((element) => {

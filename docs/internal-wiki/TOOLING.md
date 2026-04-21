@@ -80,6 +80,8 @@ The repo uses a **single** root `tsconfig.json` for `tsc --noEmit` so CSS module
 | `yarn card-backs:local:dry` | Same with `--dry-run` (no torch; lists plan) |
 | `yarn face-panels:local` | `py -3 scripts/card-pipeline/batch_local_face_panels.py` (SDXL tarot mat panels 520×592, 80 tiered) |
 | `yarn face-panels:local:dry` | Same with `--dry-run` |
+| `yarn audio:ace-step:batch` | `py -3 scripts/audio-pipeline/batch_ace_step.py` — local **ACE-Step 1.5** batch (Python 3.11+ venv; see `scripts/audio-pipeline/README.md`; outputs under `tmp/audio/ace-step/`) |
+| `yarn audio:ace-step:batch:dry` | Same with `--dry-run` (no torch) |
 | `yarn gen:face-panel-raster-urls` | Rebuild `facePanelRasterUrls.ts` after adding/removing `face-panel-NN.png` |
 | `yarn card-texture:ideal` / `card-texture:ai-brief` | Print ideal texture spec / AI brief |
 | `yarn capture:ui-vs-assets` | Compare UI vs asset renders |
@@ -132,6 +134,12 @@ The repo uses a **single** root `tsconfig.json` for `tsc --noEmit` so CSS module
 | `card-pipeline/trim-png-bounding-box.mjs` | PNG trim |
 | `card-pipeline/cardTextureConstants.mjs` | Shared constants for pipeline |
 | `card-pipeline/*.ps1` | Windows PowerShell helpers for textures |
+| `audio-pipeline/batch_ace_step.py` | ACE-Step 1.5 JSON job batch → `tmp/audio/ace-step/` + manifest |
+| `audio-pipeline/jobs.example.json` | Example jobs (`text2music`, reference audio, `cover`) |
+| `audio-pipeline/jobs.game-ambient.example.json` | Text-only ambient/menu + run tension (no `samples/` files) |
+| `audio-pipeline/jobs.sfx.example.json` | ACE-Step captions for gameplay one-shots → trim → `src/renderer/assets/audio/sfx/` |
+| `audio-pipeline/RIGHTS.md` / `EVENT_MAP.md` / `PROMPTS.md` | Legal strategy, SFX mapping, caption seeds |
+| `audio-pipeline/README.md` | Install + rights notes for ACE-Step |
 
 ## Config files (pointers)
 

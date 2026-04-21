@@ -6,16 +6,25 @@ import StartupIntro from './StartupIntro';
 import { getIntroExitDurationMs } from './startupIntroConfig';
 
 const mockHasWebGLSupport = vi.fn();
-const mockLoadRelicTextures = vi.fn();
+
+const mockPreloadStartupCriticalAssets = vi.hoisted(() =>
+    vi.fn(() => Promise.resolve({ relicTextureSet: null }))
+);
+
+vi.mock('../assets/preloadStartupAssets', () => ({
+    preloadStartupCriticalAssets: mockPreloadStartupCriticalAssets
+}));
 
 vi.mock('./startupIntroTextures', () => ({
-    hasWebGLSupport: () => mockHasWebGLSupport(),
-    loadRelicTextures: (source: string) => mockLoadRelicTextures(source)
+    hasWebGLSupport: () => mockHasWebGLSupport()
 }));
 
-vi.mock('./tileTextures', () => ({
-    preloadTileTextureImages: vi.fn(() => Promise.resolve())
-}));
+const flushIntroPreload = async (): Promise<void> => {
+    await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+    });
+};
 
 const renderIntro = (ui: ReactElement): ReturnType<typeof render> =>
     render(<PlatformTiltProvider>{ui}</PlatformTiltProvider>);
@@ -24,7 +33,8 @@ describe('StartupIntro', () => {
     beforeEach(() => {
         vi.useFakeTimers();
         mockHasWebGLSupport.mockReset();
-        mockLoadRelicTextures.mockReset();
+        mockPreloadStartupCriticalAssets.mockReset();
+        mockPreloadStartupCriticalAssets.mockImplementation(() => Promise.resolve({ relicTextureSet: null }));
         mockHasWebGLSupport.mockReturnValue(false);
     });
 
@@ -32,10 +42,12 @@ describe('StartupIntro', () => {
         vi.useRealTimers();
     });
 
-    it('auto completes after the full runtime by default', () => {
+    it('auto completes after the full runtime by default', async () => {
         const onComplete = vi.fn();
 
         renderIntro(<StartupIntro onComplete={onComplete} reduceMotion={false} />);
+
+        await flushIntroPreload();
 
         expect(screen.getByRole('dialog', { name: /startup relic intro/i })).toBeInTheDocument();
         expect(screen.getByRole('img', { name: /obsidian relic sigil/i })).toBeInTheDocument();
@@ -53,10 +65,12 @@ describe('StartupIntro', () => {
         expect(onComplete).toHaveBeenCalledTimes(1);
     });
 
-    it('uses the shortened reduced-motion runtime and supports keyboard skip', () => {
+    it('uses the shortened reduced-motion runtime and supports keyboard skip', async () => {
         const onComplete = vi.fn();
 
         renderIntro(<StartupIntro onComplete={onComplete} reduceMotion={true} />);
+
+        await flushIntroPreload();
 
         act(() => {
             vi.advanceTimersByTime(1399);
@@ -75,10 +89,12 @@ describe('StartupIntro', () => {
         expect(onComplete).toHaveBeenCalledTimes(1);
     });
 
-    it('skips when the intro overlay is clicked', () => {
+    it('skips when the intro overlay is clicked', async () => {
         const onComplete = vi.fn();
 
         renderIntro(<StartupIntro onComplete={onComplete} reduceMotion={false} />);
+
+        await flushIntroPreload();
 
         fireEvent.pointerDown(screen.getByRole('dialog', { name: /startup relic intro/i }), {
             button: 0,
@@ -97,15 +113,13 @@ describe('StartupIntro', () => {
     it('falls back cleanly when 3D texture generation fails', async () => {
         const onComplete = vi.fn();
         mockHasWebGLSupport.mockReturnValue(true);
-        mockLoadRelicTextures.mockRejectedValueOnce(new Error('svg texture parse failed'));
+        mockPreloadStartupCriticalAssets.mockImplementationOnce(() => Promise.resolve({ relicTextureSet: null }));
 
         renderIntro(<StartupIntro onComplete={onComplete} reduceMotion={false} />);
 
-        await act(async () => {
-            await Promise.resolve();
-        });
+        await flushIntroPreload();
 
-        expect(mockLoadRelicTextures).toHaveBeenCalledTimes(1);
+        expect(mockPreloadStartupCriticalAssets).toHaveBeenCalledTimes(1);
         expect(screen.getByRole('img', { name: /obsidian relic sigil/i })).toBeInTheDocument();
     });
 });
@@ -117,6 +131,7 @@ describe('StartupIntro motion CTA', () => {
 
     beforeEach(() => {
         mockHasWebGLSupport.mockReturnValue(false);
+        mockPreloadStartupCriticalAssets.mockImplementation(() => Promise.resolve({ relicTextureSet: null }));
         requestPermissionSpy = vi.fn(() => Promise.resolve('granted'));
 
         const MockCtor = function MockDeviceOrientation() {
@@ -155,6 +170,8 @@ describe('StartupIntro motion CTA', () => {
 
         renderIntro(<StartupIntro onComplete={onComplete} reduceMotion={false} />);
 
+        await flushIntroPreload();
+
         const cta = await screen.findByTestId('intro-motion-cta');
 
         expect(cta).toBeInTheDocument();
@@ -168,12 +185,14 @@ describe('StartupIntro motion CTA', () => {
         expect(onComplete).not.toHaveBeenCalled();
     });
 
-    it('lets a normal overlay pointer-down still complete the intro after exit timing', () => {
+    it('lets a normal overlay pointer-down still complete the intro after exit timing', async () => {
         vi.useFakeTimers();
 
         const onComplete = vi.fn();
 
         renderIntro(<StartupIntro onComplete={onComplete} reduceMotion={false} />);
+
+        await flushIntroPreload();
 
         fireEvent.pointerDown(screen.getByRole('dialog', { name: /startup relic intro/i }), {
             button: 0,

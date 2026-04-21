@@ -21,6 +21,7 @@ import { useViewportSize } from '../hooks/useViewportSize';
 import { getMotionPermissionButtonLabels, shouldOfferDeviceMotionPermission } from '../platformTilt/platformTiltPermissionUi';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
 import styles from './TileBoard.module.css';
+import { playShuffleSfx, resumeAudioContext } from '../audio/gameSfx';
 import { getPairProximityGridDistance } from '../../shared/pairProximityHint';
 import { pairProximityUiStrings } from '../ui/strings/pairProximityUi';
 import { isTilePickable } from './tileBoardPick';
@@ -39,14 +40,28 @@ import {
     type TileBoardViewportMetrics,
     type TileBoardViewportState
 } from './tileBoardViewport';
-import { TILE_SPACING } from './tileShatter';
-import { computeShuffleMotionBudgetMs } from './shuffleFlipAnimation';
+import { BOARD_LAYOUT_VIEWPORT_PADDING, TILE_SPACING } from './tileShatter';
+import { computeBoardEntranceMotionBudgetMs, computeShuffleMotionBudgetMs } from './shuffleFlipAnimation';
+import { preloadTileTextureImages } from './tileTextures';
+
+/** Minimum time the pre-board “shuffling” motif stays visible while GPU warm-up runs in parallel. */
+const BOARD_PRESTAGE_DWELL_MS = 420;
+
+/** Decorative deck cards in the prestaging overlay (must match `--prestage-cards` in CSS math). */
+const PRESTAGE_CARD_COUNT = 10;
+
+export type TileBoardClientRect = {
+    bottom: number;
+    height: number;
+    left: number;
+    right: number;
+    top: number;
+    width: number;
+};
 
 export type TileBoardHandle = {
-    getTileClientRectAtGrid: (
-        row: number,
-        col: number
-    ) => { bottom: number; height: number; left: number; right: number; top: number; width: number } | null;
+    getTileClientRectAtGrid: (row: number, col: number) => TileBoardClientRect | null;
+    getTileClientRectById: (tileId: string) => TileBoardClientRect | null;
     runShuffleAnimation: (applyShuffle: () => void) => void;
 };
 
@@ -86,6 +101,20 @@ interface TileBoardProps {
     /** Distance-to-pair badge on flipped tiles (Manhattan grid steps). */
     pairProximityHintsEnabled?: boolean;
     onTileSelect: (tileId: string) => void;
+    /** `shifting_spotlight` — show ward/bounty corner markers on face-down tiles. */
+    shiftingSpotlightActive?: boolean;
+    /** Board power affordances: destroy pair armed and valid run + board state. */
+    destroyPowerVisualActive?: boolean;
+    destroyEligibleTileIds?: ReadonlySet<string>;
+    peekPowerVisualActive?: boolean;
+    peekEligibleTileIds?: ReadonlySet<string>;
+    strayPowerVisualActive?: boolean;
+    strayEligibleTileIds?: ReadonlySet<string>;
+    pinModeBoardHintActive?: boolean;
+    /** Effective SFX gain (0–1) for shuffle whoosh; from settings in GameScreen. */
+    shuffleSfxGain?: number;
+    /** Sticky fingers: board slot that cannot start the next pair (from `RunState.stickyBlockIndex`). */
+    stickyBlockedTileId?: string | null;
 }
 
 interface StageWorldViewport {
@@ -120,6 +149,8 @@ interface MouseDragSnapshot {
 
 const MOUSE_PAN_DRAG_THRESHOLD_PX = 8;
 const DECOY_PAIR_KEY = '__decoy__';
+
+const EMPTY_TILE_IDS: ReadonlySet<string> = new Set();
 
 const canUseWebGL = (): boolean => {
     if (typeof document === 'undefined') {
@@ -259,7 +290,17 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         runStatus = 'playing',
         showTutorialPairMarkers = true,
         pairProximityHintsEnabled = true,
-        onTileSelect
+        onTileSelect,
+        shiftingSpotlightActive = false,
+        destroyPowerVisualActive = false,
+        destroyEligibleTileIds = EMPTY_TILE_IDS,
+        peekPowerVisualActive = false,
+        peekEligibleTileIds = EMPTY_TILE_IDS,
+        strayPowerVisualActive = false,
+        strayEligibleTileIds = EMPTY_TILE_IDS,
+        pinModeBoardHintActive = false,
+        shuffleSfxGain = 1,
+        stickyBlockedTileId = null
     },
     ref
 ) {
@@ -284,11 +325,18 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
     const frameRef = useRef<HTMLDivElement>(null);
     const boardAppRef = useRef<HTMLDivElement>(null);
     const shuffleClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const entranceClearTimeoutRef = useRef<number | null>(null);
     const [shuffleAnimating, setShuffleAnimating] = useState(false);
     const [shuffleMotionDeadlineMs, setShuffleMotionDeadlineMs] = useState(0);
     /** Mirrors FLIP motion budget for WebGL FX-013 staggered deal-Z (0 = inactive). */
     const [shuffleMotionBudgetMs, setShuffleMotionBudgetMs] = useState(0);
     const [shuffleStaggerTileCount, setShuffleStaggerTileCount] = useState(0);
+    const [boardEntranceMotionDeadlineMs, setBoardEntranceMotionDeadlineMs] = useState(0);
+    const [boardEntranceMotionBudgetMs, setBoardEntranceMotionBudgetMs] = useState(0);
+    const [boardEntranceStaggerTileCount, setBoardEntranceStaggerTileCount] = useState(0);
+    const [boardEntranceAnimating, setBoardEntranceAnimating] = useState(false);
+    const [boardPreStage, setBoardPreStage] = useState<'dealIn' | 'idle' | 'loading'>('idle');
+    const prestageRunIdRef = useRef(0);
     const sceneHandleRef = useRef<TileBoardSceneHandle | null>(null);
     const stageRef = useRef<HTMLDivElement>(null);
     const hoverTiltRef = useRef<TileHoverTiltState>({ tileId: null, x: 0, y: 0 });
@@ -325,6 +373,9 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
     });
     const mergedFrameStyle = useMemo(() => ({ ...frameStyle }), [frameStyle]);
 
+    const boardMotionAnimating =
+        shuffleAnimating || boardEntranceAnimating || boardPreStage === 'loading';
+
     const hiddenTileCount = useMemo(
         () => board.tiles.filter((t) => t.state === 'hidden').length,
         [board.tiles]
@@ -345,6 +396,91 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                 .filter((v): v is string => v != null)
                 .join(';'),
         [board.columns, board.tiles]
+    );
+
+    const boardEntranceKey = useMemo(
+        () =>
+            `${board.level}|${board.columns}x${board.rows}|${[...board.tiles].map((t) => t.id).sort().join('|')}`,
+        [board.columns, board.level, board.rows, board.tiles]
+    );
+    const prevBoardEntranceKeyRef = useRef<string | null>(null);
+
+    useEffect(() => {
+        if (reduceMotion) {
+            prevBoardEntranceKeyRef.current = boardEntranceKey;
+            setBoardPreStage('idle');
+            return;
+        }
+        if (prevBoardEntranceKeyRef.current === boardEntranceKey) {
+            return;
+        }
+
+        prestageRunIdRef.current += 1;
+        const runId = prestageRunIdRef.current;
+        setBoardPreStage('loading');
+
+        const armEntrance = (): void => {
+            const tileCountForBudget = board.tiles.filter((t) => t.state !== 'removed').length;
+            const motionBudgetMs = computeBoardEntranceMotionBudgetMs(tileCountForBudget);
+            const deadline = performance.now() + motionBudgetMs;
+
+            if (entranceClearTimeoutRef.current) {
+                clearTimeout(entranceClearTimeoutRef.current);
+                entranceClearTimeoutRef.current = null;
+            }
+
+            setBoardEntranceMotionDeadlineMs(deadline);
+            setBoardEntranceMotionBudgetMs(motionBudgetMs);
+            setBoardEntranceStaggerTileCount(tileCountForBudget);
+            setBoardEntranceAnimating(true);
+            setBoardPreStage('dealIn');
+
+            entranceClearTimeoutRef.current = window.setTimeout(() => {
+                prevBoardEntranceKeyRef.current = boardEntranceKey;
+                setBoardEntranceMotionDeadlineMs(0);
+                setBoardEntranceMotionBudgetMs(0);
+                setBoardEntranceStaggerTileCount(0);
+                setBoardEntranceAnimating(false);
+                setBoardPreStage('idle');
+                entranceClearTimeoutRef.current = null;
+            }, motionBudgetMs + 100);
+        };
+
+        void (async () => {
+            try {
+                await preloadTileTextureImages();
+            } catch {
+                /* resilient */
+            }
+
+            await Promise.all([
+                new Promise<void>((resolve) => {
+                    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+                }),
+                new Promise<void>((resolve) => {
+                    window.setTimeout(resolve, BOARD_PRESTAGE_DWELL_MS);
+                })
+            ]);
+
+            if (runId !== prestageRunIdRef.current) {
+                return;
+            }
+
+            armEntrance();
+        })();
+
+        return () => {
+            prestageRunIdRef.current += 1;
+        };
+    }, [boardEntranceKey, reduceMotion]);
+
+    useEffect(
+        () => () => {
+            if (entranceClearTimeoutRef.current) {
+                clearTimeout(entranceClearTimeoutRef.current);
+            }
+        },
+        []
     );
 
     /**
@@ -440,7 +576,21 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
             }
             return sceneHandleRef.current?.getTileClientRectById(tile.id) ?? null;
         },
+        getTileClientRectById: (tileId: string) =>
+            sceneHandleRef.current?.getTileClientRectById(tileId) ?? null,
         runShuffleAnimation: (applyShuffle: () => void) => {
+            const g = shuffleSfxGain;
+            prestageRunIdRef.current += 1;
+            setBoardPreStage('idle');
+            if (entranceClearTimeoutRef.current) {
+                clearTimeout(entranceClearTimeoutRef.current);
+                entranceClearTimeoutRef.current = null;
+            }
+            setBoardEntranceMotionDeadlineMs(0);
+            setBoardEntranceMotionBudgetMs(0);
+            setBoardEntranceStaggerTileCount(0);
+            setBoardEntranceAnimating(false);
+
             if (reduceMotion) {
                 if (shuffleClearTimeoutRef.current) {
                     clearTimeout(shuffleClearTimeoutRef.current);
@@ -449,9 +599,14 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                 setShuffleMotionDeadlineMs(0);
                 setShuffleMotionBudgetMs(0);
                 setShuffleStaggerTileCount(0);
+                void resumeAudioContext();
+                playShuffleSfx(g, true);
                 applyShuffle();
                 return;
             }
+
+            void resumeAudioContext();
+            playShuffleSfx(g, false);
 
             const tileCountForBudget = board.tiles.filter((t) => t.state !== 'removed').length;
             const motionBudgetMs = computeShuffleMotionBudgetMs(tileCountForBudget);
@@ -479,7 +634,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                 applyShuffle();
             });
         }
-    }), [board.columns, board.rows, board.tiles, reduceMotion]);
+    }), [board.columns, board.rows, board.tiles, reduceMotion, shuffleSfxGain]);
 
     useEffect(
         () => () => {
@@ -501,8 +656,14 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
     }, [boardScreenSpaceAA, reduceMotion]);
     /** MSAA on the default framebuffer; off when using SMAA post-pass or AA off. */
     const glAntialias = resolvedBoardAa === 'msaa';
-    const boardWorldWidth = useMemo(() => (board.columns - 1) * TILE_SPACING + 1, [board.columns]);
-    const boardWorldHeight = useMemo(() => (board.rows - 1) * TILE_SPACING + 1, [board.rows]);
+    const boardWorldWidth = useMemo(
+        () => (board.columns - 1) * TILE_SPACING + 1 + 2 * BOARD_LAYOUT_VIEWPORT_PADDING,
+        [board.columns]
+    );
+    const boardWorldHeight = useMemo(
+        () => (board.rows - 1) * TILE_SPACING + 1 + 2 * BOARD_LAYOUT_VIEWPORT_PADDING,
+        [board.rows]
+    );
     const fitMargin = cameraViewportMode ? MOBILE_CAMERA_FIT_MARGIN : compact ? COMPACT_BOARD_FIT_MARGIN : ROOMY_BOARD_FIT_MARGIN;
     const fitZoom = useMemo(
         () =>
@@ -764,8 +925,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
 
     useEffect(() => {
         if (!touchGestureMode) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect -- reset gesture UI when leaving two-finger mode
-            clearTouchGestureState(true);
+            clearTouchGestureState(true); // eslint-disable-line react-hooks/set-state-in-effect -- reset gesture UI when leaving two-finger mode
             return;
         }
 
@@ -1159,18 +1319,24 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         </div>
     );
 
+    const gambitPickWindowOpen =
+        allowGambitThirdFlip && runStatus === 'resolving' && board.flippedTileIds.length === 2;
+
     return (
         <div
+            aria-busy={boardPreStage === 'loading'}
             className={`${styles.frame} ${cameraViewportMode ? styles.frameMobileCamera : ''} ${
-                shuffleAnimating ? styles.frameShuffleAnimating : ''
-            }`}
+                boardMotionAnimating ? styles.frameShuffleAnimating : ''
+            } ${gambitPickWindowOpen && !reduceMotion ? styles.frameGambitWindow : ''}`}
+            data-board-gambit-window={gambitPickWindowOpen ? 'true' : 'false'}
+            data-board-prestage={boardPreStage}
             data-board-columns={board.columns}
             data-board-rows={board.rows}
             data-board-run-status={runStatus}
             data-hidden-tile-count={hiddenTileCount}
             data-hidden-slots={hiddenSlotsAttr}
             {...(devE2ePairPositionsJson ? { 'data-e2e-pair-positions': devE2ePairPositionsJson } : {})}
-            data-shuffle-animating={shuffleAnimating ? 'true' : 'false'}
+            data-shuffle-animating={boardMotionAnimating ? 'true' : 'false'}
             data-board-pan-x={renderedViewportState.panX.toFixed(4)}
             data-board-pan-y={renderedViewportState.panY.toFixed(4)}
             data-board-zoom={renderedViewportState.zoom.toFixed(4)}
@@ -1206,6 +1372,28 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                     tabIndex={0}
                 >
                     <div className={styles.stage} data-testid="tile-board-stage-shell" ref={stageRef}>
+                        {boardPreStage === 'loading' && baselineWebGl && !gpuSurfaceLost ? (
+                            <div
+                                aria-hidden
+                                className={styles.prestageOverlay}
+                                data-testid="tile-board-prestage-overlay"
+                            >
+                                <div
+                                    className={styles.prestageDeck}
+                                    style={{ '--prestage-cards': PRESTAGE_CARD_COUNT } as CSSProperties}
+                                >
+                                    <div className={styles.prestageStack}>
+                                        {Array.from({ length: PRESTAGE_CARD_COUNT }, (_, deckI) => (
+                                            <span
+                                                className={styles.prestageCard}
+                                                key={deckI}
+                                                style={{ '--deck-i': deckI } as CSSProperties}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        ) : null}
                         <TileBoardErrorBoundary fallback={sceneErrorFallback}>
                             <div className={styles.scene} data-testid="tile-board-stage">
                                 <Canvas
@@ -1249,6 +1437,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                                         compact={compact}
                                         cursedPairKey={cursedPairKey}
                                         dimmedTileIds={dimmedTileIds}
+                                        stickyBlockedTileId={stickyBlockedTileId}
                                         focusedTileId={boardApplicationFocused ? focusedTileId : null}
                                         graphicsQuality={graphicsQuality}
                                         wardPairKey={wardPairKey}
@@ -1270,12 +1459,23 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                                         reduceMotion={reduceMotion}
                                         motionParallaxSuppressed={motionParallaxSuppressed}
                                         runStatus={runStatus}
+                                        boardEntranceMotionBudgetMs={boardEntranceMotionBudgetMs}
+                                        boardEntranceMotionDeadlineMs={boardEntranceMotionDeadlineMs}
+                                        boardEntranceStaggerTileCount={boardEntranceStaggerTileCount}
                                         shuffleMotionBudgetMs={shuffleMotionBudgetMs}
                                         shuffleMotionDeadlineMs={shuffleMotionDeadlineMs}
                                         shuffleStaggerTileCount={shuffleStaggerTileCount}
                                         showTutorialPairMarkers={showTutorialPairMarkers}
                                         silhouetteDuringPlay={silhouetteDuringPlay}
                                         wideRecallInPlay={wideRecallInPlay}
+                                        shiftingSpotlightActive={shiftingSpotlightActive}
+                                        destroyPowerVisualActive={destroyPowerVisualActive}
+                                        destroyEligibleTileIds={destroyEligibleTileIds}
+                                        peekPowerVisualActive={peekPowerVisualActive}
+                                        peekEligibleTileIds={peekEligibleTileIds}
+                                        strayPowerVisualActive={strayPowerVisualActive}
+                                        strayEligibleTileIds={strayEligibleTileIds}
+                                        pinModeBoardHintActive={pinModeBoardHintActive}
                                     />
                                     <TileBoardPostFx
                                         bloomEnabled={bloomEffective}

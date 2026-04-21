@@ -107,6 +107,8 @@ Defined in [`runFixtures.ts`](../../src/renderer/dev/runFixtures.ts) (`SANDBOX_F
 | `daily` | Daily run after memorize (live daily mutator table) |
 | `dailyParasite` | Daily-style run with score parasite + fixed seed |
 | `gauntlet` | Gauntlet run after memorize |
+| `resolvingMismatch` | Practice run: first tile from each of two different pairs flipped — **mismatch resolving** (visual harness) |
+| `gambitTripleMissSetup` | Fixed 2×3 board (three pairKeys); two mismatched flips + long resolve stall; Playwright [`gambit-mismatch-floater.spec.ts`](../../e2e/gambit-mismatch-floater.spec.ts) issues gambit third flip at **row 1, col 3** (`__e2ePickTileAtGrid1`) → triple-no-match → mismatch floater |
 | `paused` | Paused practice run |
 | `gameOver` | Game-over summary state |
 
@@ -130,6 +132,7 @@ Defined in [`runFixtures.ts`](../../src/renderer/dev/runFixtures.ts) (`SANDBOX_F
 
 ### Captures and E2E helpers
 
+- **Gambit triple-miss floater:** [`e2e/gambit-mismatch-floater.spec.ts`](../../e2e/gambit-mismatch-floater.spec.ts) exercises fixture `gambitTripleMissSetup`; flake absorption follows the root Playwright **`retries`** in [`playwright.config.ts`](../../playwright.config.ts) (currently 2 when `CI` is set).
 - **End-product HUD/board crops:** `yarn capture:endproduct-parity` (paths and defaults described in `devSandboxParams.ts`; Playwright specs such as [`e2e/hud-inspect.spec.ts`](../../e2e/hud-inspect.spec.ts) / [`e2e/visual-endproduct-parity.spec.ts`](../../e2e/visual-endproduct-parity.spec.ts); helpers in [`e2e/visualScreenHelpers.ts`](../../e2e/visualScreenHelpers.ts)).
 - **Matched flame stills:** `yarn capture:matched-flame` → `test-results/matched-flame-capture/` (or `VISUAL_CAPTURE_ROOT`).
 

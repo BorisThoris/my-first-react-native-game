@@ -81,6 +81,18 @@ describe('computeFitShellZoomFactor', () => {
             })
         ).toBe(1);
     });
+
+    it('applies minFitZoom when raw scale would be smaller (readability floor)', () => {
+        const z = computeFitShellZoomFactor({
+            contentHeight: 1000,
+            contentWidth: 800,
+            minFitZoom: 0.8,
+            padding: 12,
+            viewportHeight: 600,
+            viewportWidth: 900
+        });
+        expect(z).toBe(0.8);
+    });
 });
 
 const flushDoubleRaf = async (): Promise<void> => {
@@ -220,5 +232,42 @@ describe('useFitShellZoom', () => {
         const { container } = render(<FitProbe />);
         const z = container.querySelector('span')?.getAttribute('data-zoom');
         expect(z).toBe('1');
+    });
+
+    it('respects minFitZoom when shrinking would drop below floor', async () => {
+        const FitProbe = (p: { minFitZoom?: number }) => {
+            const measureRef = useRef<HTMLDivElement | null>(null);
+            const setMeasureRef = (node: HTMLDivElement | null): void => {
+                measureRef.current = node;
+                if (node) {
+                    Object.defineProperty(node, 'offsetWidth', { configurable: true, value: 900 });
+                    Object.defineProperty(node, 'offsetHeight', { configurable: true, value: 2000 });
+                }
+            };
+            const { fitZoom } = useFitShellZoom({
+                measureRef,
+                minFitZoom: p.minFitZoom,
+                padding: 14,
+                viewportHeight: 700,
+                viewportWidth: 900
+            });
+            return (
+                <div ref={setMeasureRef}>
+                    <div
+                        data-fit-zoom={fitZoom}
+                        data-testid="fit-zoom-readout"
+                        style={{ zoom: fitZoom }}
+                    />
+                </div>
+            );
+        };
+
+        const { container: noFloor } = render(<FitProbe />);
+        await flushDoubleRaf();
+        expect(readFitZoomFromDom(noFloor)).toBeLessThan(0.8);
+
+        const { container: floored } = render(<FitProbe minFitZoom={0.8} />);
+        await flushDoubleRaf();
+        expect(readFitZoomFromDom(floored)).toBe(0.8);
     });
 });

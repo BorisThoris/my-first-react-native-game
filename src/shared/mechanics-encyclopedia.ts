@@ -386,7 +386,7 @@ export const ENCYCLOPEDIA_POWER_TOPICS: readonly EncyclopediaTopic[] = [
         id: 'power_gambit',
         title: 'Gambit (third flip)',
         description:
-            'Once per floor, after two flips, you may try a third card to complete a pair; wrong gambit still counts against tries. Counts as a power for perfect clear when used.'
+            'Once per floor, after two flips, you may try a third card to complete a pair; wrong gambit still counts against tries. Counts as a power for perfect clear when used. Resolve **feel** can differ from a normal two-flip miss when **Echo** is on—see **Resolve timing & echo**.'
     },
     {
         id: 'power_wild',
@@ -500,7 +500,7 @@ export const ENCYCLOPEDIA_SETTINGS_AND_ASSISTS_TOPICS: readonly EncyclopediaTopi
         id: 'opt_resolve_echo',
         title: 'Resolve timing & echo',
         description:
-            'Adjust how long matches and mismatches **linger** before the board unlocks (`resolveDelayMultiplier`). **Echo** adds extra feedback time for accessibility. These change **feel**, not scoring formulas.'
+            'Adjust how long matches and mismatches **linger** before the board unlocks (`resolveDelayMultiplier`). **Echo** adds extra feedback time on a **two-flip mismatch** (accessibility). **Gambit** uses a **separate** resolving delay after the third flip and does **not** apply that same echo extension—so mismatch timing can feel different from a straight two-flip miss when echo is enabled. These change **feel**, not scoring formulas.'
     },
     {
         id: 'meta_memorize_pacing',

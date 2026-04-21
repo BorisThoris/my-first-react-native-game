@@ -1,0 +1,19 @@
+# Attribution template (CC-BY reference samples)
+
+If you place CC-BY–licensed WAV files in this folder as `reference_audio` or `src_audio` inputs, retain the license terms and ship credits where required.
+
+Replace placeholders before release builds:
+
+---
+Sample: <filename.wav>
+Author: <name or username>
+Source: <URL>
+License: CC BY <version>
+Changes: <none | trimmed to N seconds | normalized>
+---
+
+Optional consolidated credits file path for the game (edit as needed):
+
+- docs/credits-audio-third-party.md
+
+Keep a copy of each license alongside the sample in version control if policy requires.

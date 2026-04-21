@@ -1,0 +1,30 @@
+{
+    "jobs": [
+        {
+            "id": "ambient-01-menu-hub",
+            "task_type": "text2music",
+            "caption": "Calm puzzle game lobby, soft synthetic pads, subtle crystalline textures, sparse gentle percussion, loopable instrumental, minor key, elegant not epic",
+            "lyrics": "[Instrumental]",
+            "instrumental": true,
+            "duration": 75,
+            "bpm": 82,
+            "inference_steps": 8,
+            "shift": 3.0,
+            "infer_method": "ode",
+            "seed": 810001
+        },
+        {
+            "id": "ambient-02-run-tension",
+            "task_type": "text2music",
+            "caption": "Low tension memory puzzle underscore, muted arpeggio, cold hall reverb, no drums, suspenseful but hopeful, loopable instrumental",
+            "lyrics": "[Instrumental]",
+            "instrumental": true,
+            "duration": 50,
+            "bpm": 72,
+            "inference_steps": 8,
+            "shift": 3.0,
+            "infer_method": "ode",
+            "seed": 810002
+        }
+    ]
+}

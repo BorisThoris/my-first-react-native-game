@@ -22,6 +22,8 @@ import {
     applyShuffle,
     buildBoard,
     calculateMatchScore,
+    collectDestroyEligibleTileIds,
+    collectPeekEligibleTileIds,
     canOfferEndlessRiskWager,
     canRegionShuffle,
     canRegionShuffleRow,
@@ -34,9 +36,12 @@ import {
     createWildRun,
     enableDebugPeek,
     finishMemorizePhase,
+    countFindablePairs,
     flipTile,
+    getMatchFloaterAnchorTileIds,
     getMemorizeDuration,
     getMemorizeDurationForRun,
+    getMismatchFloaterAnchorTileIds,
     getPresentationMutatorMatchPenalty,
     getWildTileIdFromBoard,
     grantBonusRelicPickNextOffer,
@@ -46,6 +51,9 @@ import {
     resolveBoardTurn,
     tilesArePairMatch,
     togglePinnedTile,
+    tileIsDestroyEligiblePreview,
+    tileIsPeekEligiblePreview,
+    tileIsStrayEligiblePreview,
     WILD_PAIR_KEY
 } from './game';
 import { DAILY_MUTATOR_TABLE } from './mutators';
@@ -98,13 +106,63 @@ const createBoard = (tiles: Tile[]): BoardState => ({
     featuredObjectiveId: null
 });
 
-const countFindablePairs = (tiles: readonly Tile[]): number =>
-    new Set(tiles.filter((tile) => tile.findableKind != null).map((tile) => tile.pairKey)).size;
-
 const createRun = (tiles: Tile[]): RunState => ({
     ...finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false, gameMode: 'puzzle' })),
     board: createBoard(tiles),
     findablesTotalThisFloor: countFindablePairs(tiles)
+});
+
+describe('getMatchFloaterAnchorTileIds', () => {
+    it('returns null when run has no board', () => {
+        expect(getMatchFloaterAnchorTileIds(null)).toBeNull();
+        expect(getMatchFloaterAnchorTileIds({ board: null } as RunState)).toBeNull();
+    });
+
+    it('returns two flipped ids for a standard two-flip', () => {
+        const run = createRun([createTile('a', 'p1', '1'), createTile('b', 'p1', '2')]);
+        run.board!.flippedTileIds = ['a', 'b'];
+        expect(getMatchFloaterAnchorTileIds(run)).toEqual({ tileIdA: 'a', tileIdB: 'b' });
+    });
+
+    it('returns first matching pair for gambit when first two tiles match', () => {
+        const tiles = [createTile('a', 'p1', '1'), createTile('b', 'p1', '2'), createTile('c', 'p2', '3')];
+        const run = createRun(tiles);
+        run.board!.flippedTileIds = ['a', 'b', 'c'];
+        expect(getMatchFloaterAnchorTileIds(run)).toEqual({ tileIdA: 'a', tileIdB: 'b' });
+    });
+
+    it('returns second+third pair when first pair does not match (CARD-008 order)', () => {
+        const tiles = [createTile('a', 'p2', '1'), createTile('b', 'p1', '2'), createTile('c', 'p1', '3')];
+        const run = createRun(tiles);
+        run.board!.flippedTileIds = ['a', 'b', 'c'];
+        expect(getMatchFloaterAnchorTileIds(run)).toEqual({ tileIdA: 'b', tileIdB: 'c' });
+    });
+
+    it('returns null when gambit has no matching pair', () => {
+        const tiles = [createTile('a', 'p1', '1'), createTile('b', 'p2', '2'), createTile('c', 'p3', '3')];
+        const run = createRun(tiles);
+        run.board!.flippedTileIds = ['a', 'b', 'c'];
+        expect(getMatchFloaterAnchorTileIds(run)).toBeNull();
+    });
+});
+
+describe('getMismatchFloaterAnchorTileIds', () => {
+    it('returns flip order for two tiles', () => {
+        const run = createRun([createTile('a', 'p1', '1'), createTile('b', 'p1', '2')]);
+        run.board!.flippedTileIds = ['b', 'a'];
+        expect(getMismatchFloaterAnchorTileIds(run)).toEqual({ tileIdA: 'b', tileIdB: 'a' });
+    });
+
+    it('returns three ids in flip order for gambit miss', () => {
+        const tiles = [createTile('a', 'p1', '1'), createTile('b', 'p2', '2'), createTile('c', 'p3', '3')];
+        const run = createRun(tiles);
+        run.board!.flippedTileIds = ['a', 'b', 'c'];
+        expect(getMismatchFloaterAnchorTileIds(run)).toEqual({
+            tileIdA: 'a',
+            tileIdB: 'b',
+            tileIdC: 'c'
+        });
+    });
 });
 
 const pairTileIds = (board: BoardState): string[][] => {
@@ -1070,6 +1128,44 @@ describe('board powers', () => {
         const cleared = applyDestroyPair(lastPairRun, 'b1');
         expect(cleared.status).toBe('levelComplete');
         expect(cleared.lastLevelResult?.level).toBe(1);
+    });
+
+    describe('board power preview helpers', () => {
+        it('destroy preview collects fully hidden non-decoy pairs only', () => {
+            const tiles: Tile[] = [
+                createTile('a1', 'A', 'A'),
+                createTile('a2', 'A', 'A'),
+                createTile('d1', DECOY_PAIR_KEY, '?'),
+                createTile('b1', 'B', 'B'),
+                createTile('b2', 'B', 'B')
+            ];
+            const board = createRun(tiles).board!;
+            expect(tileIsDestroyEligiblePreview(board, 'a1')).toBe(true);
+            expect(tileIsDestroyEligiblePreview(board, 'd1')).toBe(false);
+            const eligible = collectDestroyEligibleTileIds(board);
+            expect(eligible).toEqual(new Set(['a1', 'a2', 'b1', 'b2']));
+        });
+
+        it('peek preview excludes tiles already peek-revealed', () => {
+            const tiles: Tile[] = [
+                createTile('a1', 'A', 'A'),
+                createTile('a2', 'A', 'A')
+            ];
+            const board = createRun(tiles).board!;
+            expect(tileIsPeekEligiblePreview(board, [], 'a1')).toBe(true);
+            expect(tileIsPeekEligiblePreview(board, ['a1'], 'a1')).toBe(false);
+            expect(collectPeekEligibleTileIds(board, ['a1'])).toEqual(new Set(['a2']));
+        });
+
+        it('stray preview matches hidden non-decoy tiles', () => {
+            const tiles: Tile[] = [
+                createTile('a1', 'A', 'A'),
+                createTile('d1', DECOY_PAIR_KEY, '?')
+            ];
+            const board = createRun(tiles).board!;
+            expect(tileIsStrayEligiblePreview(board, 'a1')).toBe(true);
+            expect(tileIsStrayEligiblePreview(board, 'd1')).toBe(false);
+        });
     });
 
     it('resets parasite floor counter on destroy when score_parasite is active', () => {

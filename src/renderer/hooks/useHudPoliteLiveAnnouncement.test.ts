@@ -1,6 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { Tile } from '../../shared/contracts';
+import { GAMBIT_OPPORTUNITY_HINT_LINE } from '../copy/gameplayHints';
 import { useHudPoliteLiveAnnouncement } from './useHudPoliteLiveAnnouncement';
 
 const base = {
@@ -12,7 +13,11 @@ const base = {
     lives: 3,
     boardLevel: 1 as number | null,
     boardTiles: [] as Tile[],
-    findablesClaimedThisFloor: 0
+    findablesClaimedThisFloor: 0,
+    chainMatchStreak: 0,
+    chainAnnounceActive: false,
+    gambitThirdPickActive: false,
+    gambitOpportunityFlippedIds: null as readonly string[] | null
 };
 
 const flushRaf = async (): Promise<void> => {
@@ -100,6 +105,28 @@ describe('useHudPoliteLiveAnnouncement', () => {
         });
         await flushRaf();
         expect(result.current.message).toBe('Score parasite drain absorbed by ward.');
+    });
+
+    it('announces match chain milestones while playing', async () => {
+        const { result, rerender } = renderHook(
+            (p: { streak: number }) =>
+                useHudPoliteLiveAnnouncement({
+                    ...base,
+                    boardLevel: 3,
+                    chainAnnounceActive: true,
+                    chainMatchStreak: p.streak
+                }),
+            { initialProps: { streak: 2 } }
+        );
+
+        await act(async () => {
+            rerender({ streak: 3 });
+        });
+        await flushRaf();
+
+        expect(result.current.message).toBe(
+            'Chain times three — consecutive matches boost your score.'
+        );
     });
 
     it('announces pickup claims with reward-specific copy', async () => {
@@ -211,4 +238,23 @@ describe('useHudPoliteLiveAnnouncement', () => {
         },
         10_000
     );
+
+    it('announces Gambit third-flip opportunity when the window opens', async () => {
+        const { result, rerender } = renderHook(
+            (p: { active: boolean; ids: readonly string[] | null }) =>
+                useHudPoliteLiveAnnouncement({
+                    ...base,
+                    boardLevel: 2,
+                    scoreParasiteActive: false,
+                    gambitThirdPickActive: p.active,
+                    gambitOpportunityFlippedIds: p.ids
+                }),
+            { initialProps: { active: false, ids: null as readonly string[] | null } }
+        );
+        await act(async () => {
+            rerender({ active: true, ids: ['tile-a', 'tile-b'] });
+        });
+        await flushRaf();
+        expect(result.current.message).toBe(GAMBIT_OPPORTUNITY_HINT_LINE);
+    });
 });

@@ -16,3 +16,7 @@ This avoids thousands of stale unchecked boxes while keeping the checklist struc
 ## Folder layout
 
 Each `<device>/<orientation>/` holds PNGs plus `AUDIT.md`. Device names match Playwright / capture scripts (see root `package.json` `capture:*` scripts).
+
+**Screenshot-derived task queue:** [`improvement-workqueue/README.md`](./improvement-workqueue/README.md) (`UI-*` IDs and status).
+
+**Game-over captures:** `yarn capture:ui-audit` sets `E2E_USE_SANDBOX_GAMEOVER=1` so the device grid finishes reliably (`08-game-over` uses the dev sandbox shell). Omit that variable when invoking `visual-inventory-capture.spec.ts` manually if you need the live mismatch harness (see [`e2e/README.md`](../../e2e/README.md)).

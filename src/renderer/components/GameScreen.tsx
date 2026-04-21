@@ -7,9 +7,18 @@ import {
     type Settings
 } from '../../shared/contracts';
 import { computeFocusDimmedTileIds } from '../../shared/focusDimmedTileIds';
-import { canOfferEndlessRiskWager, canRegionShuffle, canRegionShuffleRow, canShuffleBoard } from '../../shared/game';
+import {
+    canOfferEndlessRiskWager,
+    canRegionShuffle,
+    canRegionShuffleRow,
+    canShuffleBoard,
+    collectDestroyEligibleTileIds,
+    collectPeekEligibleTileIds,
+    tileIsStrayEligiblePreview
+} from '../../shared/game';
 import { useNotificationStore } from '@cross-repo-libs/notifications';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { UI_ART } from '../assets/ui';
 import { isNarrowShortLandscapeForMenuStack } from '../breakpoints';
@@ -20,6 +29,7 @@ import {
     pickFloorScheduleEntry,
     usesEndlessFloorSchedule
 } from '../../shared/floor-mutator-schedule';
+import { GAMBIT_OPPORTUNITY_HINT_LINE } from '../copy/gameplayHints';
 import { useDistractionChannelTick } from '../hooks/useDistractionChannelTick';
 import {
     detectClaimedFindableKind,
@@ -34,6 +44,7 @@ import {
     relicDraftProgressLine,
     relicEffectLabels
 } from '../copy/relicDraftOffer';
+import { GAMBIT_KEYBOARD_HELP_TIP } from '../copy/gameplayHints';
 import { GAMEPLAY_SHORTCUT_ROWS } from '../keyboard/gameplayShortcuts';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
 import { StatTile } from '../ui';
@@ -44,12 +55,36 @@ import MainMenuBackground from './MainMenuBackground';
 import OverlayModal from './OverlayModal';
 import RelicDraftOfferPanel from './RelicDraftOfferPanel';
 import TileBoard, { type TileBoardHandle } from './TileBoard';
+import { sfxGainFromSettings } from '../audio/gameSfx';
 import { GAMEPLAY_VISUAL_CSS_VARS } from './gameplayVisualConfig';
 import styles from './GameScreen.module.css';
+import {
+    MATCH_SCORE_FLOAT_FALLBACK_MARGIN_MS,
+    matchScoreFloatDurationMs
+} from './matchScoreFloaterTiming';
+import { getStickyBlockedTileId } from '../gameplay/stickyFingersBlockedTileId';
+
+const subscribeOsPrefersReducedMotion = (onStoreChange: () => void): (() => void) => {
+    if (typeof window === 'undefined') {
+        return () => {};
+    }
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    mq.addEventListener('change', onStoreChange);
+    return () => mq.removeEventListener('change', onStoreChange);
+};
+
+const getOsPrefersReducedMotionSnapshot = (): boolean =>
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const getOsPrefersReducedMotionServerSnapshot = (): boolean => false;
 import { MUTATOR_CATALOG } from '../../shared/mechanics-encyclopedia';
+import { matchScoreFloaterLiveRegionText } from '../copy/matchScoreFloater';
+import { mismatchFloaterLiveRegionText, mismatchFloaterVisualLabel } from '../copy/mismatchFloater';
 
 /** OVR-007 / HUD-020: decoy readout for `distraction_channel` — not gameplay state; hidden when reduce motion or assist toggle is off. */
 const DISTRACTION_CHANNEL_LABEL = 'Chaff';
+
+const EMPTY_TILE_ID_SET: ReadonlySet<string> = new Set();
 
 interface GameScreenProps {
     achievements: AchievementId[];
@@ -102,6 +137,8 @@ const countFavorBonusPicksBanked = (favorProgressAfter: number, favorGain: numbe
 
 const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameScreenProps) => {
     const shellRef = useRef<HTMLElement | null>(null);
+    const boardStageRef = useRef<HTMLDivElement | null>(null);
+    const boardFloaterRef = useRef<HTMLDivElement | null>(null);
     const tileBoardRef = useRef<TileBoardHandle>(null);
     const { height, width } = useViewportSize();
     const [phoneViewportLatched, setPhoneViewportLatched] = useState(() =>
@@ -186,6 +223,127 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         }))
     );
     const settingsReduceMotion = useAppStore((state) => state.settings.reduceMotion);
+    const osPrefersReducedMotion = useSyncExternalStore(
+        subscribeOsPrefersReducedMotion,
+        getOsPrefersReducedMotionSnapshot,
+        getOsPrefersReducedMotionServerSnapshot
+    );
+    const boardFloaterReducedMotion = settingsReduceMotion || osPrefersReducedMotion;
+    const boardFloaterDurationMs = matchScoreFloatDurationMs(boardFloaterReducedMotion);
+
+    const { matchScorePop, mismatchScorePop, dismissMatchScorePop, dismissMismatchScorePop } = useAppStore(
+        useShallow((state) => ({
+            matchScorePop: state.matchScorePop,
+            mismatchScorePop: state.mismatchScorePop,
+            dismissMatchScorePop: state.dismissMatchScorePop,
+            dismissMismatchScorePop: state.dismissMismatchScorePop
+        }))
+    );
+
+    const boardFloaterPayload = useMemo(
+        () =>
+            matchScorePop
+                ? ({ kind: 'match' as const, ...matchScorePop })
+                : mismatchScorePop
+                  ? ({ kind: 'miss' as const, ...mismatchScorePop })
+                  : null,
+        [matchScorePop, mismatchScorePop]
+    );
+
+    const [boardFloaterPos, setBoardFloaterPos] = useState<{ x: number; y: number } | null>(null);
+
+    useLayoutEffect(() => {
+        if (!boardFloaterPayload) {
+            /* Floater teardown must track payload removal synchronously before paint (tests + hit-testing). */
+            setBoardFloaterPos(null); // eslint-disable-line react-hooks/set-state-in-effect -- layout sync
+            return;
+        }
+
+        const stageEl = boardStageRef.current;
+
+        if (!stageEl) {
+            return;
+        }
+
+        const stageRect = stageEl.getBoundingClientRect();
+        const handle = tileBoardRef.current;
+        const ra = handle?.getTileClientRectById?.(boardFloaterPayload.tileIdA) ?? null;
+        const rb = handle?.getTileClientRectById?.(boardFloaterPayload.tileIdB) ?? null;
+        const rc =
+            boardFloaterPayload.kind === 'miss' && boardFloaterPayload.tileIdC
+                ? handle?.getTileClientRectById?.(boardFloaterPayload.tileIdC) ?? null
+                : null;
+
+        let cx = stageRect.width / 2;
+        let cy = stageRect.height / 2;
+
+        if (ra && rb && rc) {
+            const ax = ra.left + ra.width / 2 - stageRect.left;
+            const ay = ra.top + ra.height / 2 - stageRect.top;
+            const bx = rb.left + rb.width / 2 - stageRect.left;
+            const by = rb.top + rb.height / 2 - stageRect.top;
+            const cx3 = rc.left + rc.width / 2 - stageRect.left;
+            const cy3 = rc.top + rc.height / 2 - stageRect.top;
+            cx = (ax + bx + cx3) / 3;
+            cy = (ay + by + cy3) / 3;
+        } else if (ra && rb) {
+            const ax = ra.left + ra.width / 2 - stageRect.left;
+            const ay = ra.top + ra.height / 2 - stageRect.top;
+            const bx = rb.left + rb.width / 2 - stageRect.left;
+            const by = rb.top + rb.height / 2 - stageRect.top;
+            cx = (ax + bx) / 2;
+            cy = (ay + by) / 2;
+        }
+
+        setBoardFloaterPos({ x: cx, y: cy });
+    }, [boardFloaterPayload]);
+
+    useEffect(() => {
+        if (!boardFloaterPayload || !boardFloaterPos) {
+            return;
+        }
+
+        const el = boardFloaterRef.current;
+
+        if (!el) {
+            return;
+        }
+
+        let settled = false;
+
+        const dismiss =
+            boardFloaterPayload.kind === 'match' ? dismissMatchScorePop : dismissMismatchScorePop;
+
+        const finish = (): void => {
+            if (settled) {
+                return;
+            }
+            settled = true;
+            window.clearTimeout(fallbackId);
+            dismiss();
+        };
+
+        el.addEventListener('animationend', finish, { once: true });
+        /** DOM `setTimeout` id (number); avoids Node `Timeout` typing clashes in `tsc`. */
+        const fallbackId = window.setTimeout(finish, boardFloaterDurationMs + MATCH_SCORE_FLOAT_FALLBACK_MARGIN_MS);
+
+        return () => {
+            el.removeEventListener('animationend', finish);
+            window.clearTimeout(fallbackId);
+        };
+    }, [
+        boardFloaterPayload,
+        boardFloaterPos,
+        boardFloaterDurationMs,
+        dismissMatchScorePop,
+        dismissMismatchScorePop
+    ]);
+    const settingsMasterVolume = useAppStore((state) => state.settings.masterVolume);
+    const settingsSfxVolume = useAppStore((state) => state.settings.sfxVolume);
+    const shuffleSfxGain = useMemo(
+        () => sfxGainFromSettings(settingsMasterVolume, settingsSfxVolume),
+        [settingsMasterVolume, settingsSfxVolume]
+    );
     const seenAchievementToastIdsRef = useRef<Set<string>>(new Set());
     const pickupToastSnapshotRef = useRef<{
         level: number;
@@ -448,6 +606,18 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         () => computeFocusDimmedTileIds(run.board, run.status, settingsTileFocusAssist),
         [run.board, run.status, settingsTileFocusAssist]
     );
+    const stickyBlockedTileId = useMemo((): string | null => {
+        const board = run.board;
+        if (!board || run.status !== 'playing') {
+            return null;
+        }
+        return getStickyBlockedTileId({
+            activeMutators: run.activeMutators,
+            flippedTileIds: board.flippedTileIds,
+            stickyBlockIndex: run.stickyBlockIndex,
+            tiles: board.tiles
+        });
+    }, [run.activeMutators, run.board, run.status, run.stickyBlockIndex]);
     const mergedPeekTileIds = useMemo(() => {
         const merged = new Set<string>([...run.peekRevealedTileIds, ...run.flashPairRevealedTileIds]);
         return [...merged];
@@ -534,8 +704,88 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         lives: run.lives,
         parasiteFloors: run.parasiteFloors,
         parasiteWardRemaining: run.parasiteWardRemaining,
-        scoreParasiteActive: run.activeMutators.includes('score_parasite')
+        scoreParasiteActive: run.activeMutators.includes('score_parasite'),
+        chainMatchStreak: run.stats.currentStreak,
+        chainAnnounceActive: run.status === 'playing',
+        gambitThirdPickActive,
+        gambitOpportunityFlippedIds:
+            gambitThirdPickActive && run.board ? run.board.flippedTileIds : null
     });
+
+    const shiftingSpotlightActive = useMemo(
+        () => run.activeMutators.includes('shifting_spotlight'),
+        [run.activeMutators]
+    );
+
+    const destroyPowerVisualActive = useMemo(
+        () =>
+            Boolean(run.board) &&
+            run.status === 'playing' &&
+            destroyPairArmed &&
+            run.destroyPairCharges > 0 &&
+            !run.activeContract?.noDestroy &&
+            run.board!.flippedTileIds.length === 0,
+        [
+            run.board,
+            run.status,
+            destroyPairArmed,
+            run.destroyPairCharges,
+            run.activeContract?.noDestroy,
+            run.board?.flippedTileIds.length
+        ]
+    );
+
+    const peekPowerVisualActive = useMemo(
+        () =>
+            Boolean(run.board) &&
+            run.status === 'playing' &&
+            peekModeArmed &&
+            run.peekCharges > 0 &&
+            run.board!.flippedTileIds.length === 0,
+        [run.board, run.status, peekModeArmed, run.peekCharges, run.board?.flippedTileIds.length]
+    );
+
+    const strayPowerVisualActive = useMemo(
+        () =>
+            Boolean(run.board) &&
+            run.status === 'playing' &&
+            run.strayRemoveArmed &&
+            run.strayRemoveCharges > 0 &&
+            run.board!.flippedTileIds.length === 0,
+        [run.board, run.status, run.strayRemoveArmed, run.strayRemoveCharges, run.board?.flippedTileIds.length]
+    );
+
+    const pinModeBoardHintActive = useMemo(
+        () => boardPinMode && run.status === 'playing',
+        [boardPinMode, run.status]
+    );
+
+    const destroyEligibleTileIds = useMemo(() => {
+        if (!run.board || !destroyPowerVisualActive) {
+            return EMPTY_TILE_ID_SET;
+        }
+        return collectDestroyEligibleTileIds(run.board);
+    }, [run.board, destroyPowerVisualActive]);
+
+    const peekEligibleTileIds = useMemo(() => {
+        if (!run.board || !peekPowerVisualActive) {
+            return EMPTY_TILE_ID_SET;
+        }
+        return collectPeekEligibleTileIds(run.board, mergedPeekTileIds);
+    }, [run.board, peekPowerVisualActive, mergedPeekTileIds]);
+
+    const strayEligibleTileIds = useMemo(() => {
+        if (!run.board || !strayPowerVisualActive) {
+            return EMPTY_TILE_ID_SET;
+        }
+        const next = new Set<string>();
+        for (const t of run.board.tiles) {
+            if (tileIsStrayEligiblePreview(run.board, t.id)) {
+                next.add(t.id);
+            }
+        }
+        return next;
+    }, [run.board, strayPowerVisualActive]);
 
     if (!run.board) {
         return null;
@@ -692,8 +942,19 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                             cameraViewportMode={cameraViewportMode}
                             gauntletRemainingMs={gauntletRemainingMs}
                             politeHudAnnouncement={politeHudAnnouncement}
+                            reduceMotion={settingsReduceMotion}
                             run={run}
                         />
+
+                        {gambitThirdPickActive ? (
+                            <div
+                                aria-hidden="true"
+                                className={styles.gambitOpportunityHint}
+                                data-testid="gambit-opportunity-hint"
+                            >
+                                {GAMBIT_OPPORTUNITY_HINT_LINE}
+                            </div>
+                        ) : null}
 
                         {showEndlessChapterBanner ? (
                             <div className={styles.endlessChapterBanner} data-testid="endless-chapter-banner">
@@ -706,6 +967,8 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         ) : null}
 
                         <div
+                            ref={boardStageRef}
+                            data-testid="board-stage"
                             className={`${styles.boardStage} ${cameraViewportMode ? styles.boardStageCamera : ''} ${boardPresentationClass} ${boardStageCssBloomClass}`.trim()}
                         >
                             <div className={styles.boardGlow} aria-hidden="true" />
@@ -738,7 +1001,57 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                 silhouetteDuringPlay={silhouetteDuringPlay}
                                 viewportResetToken={viewportResetToken}
                                 wideRecallInPlay={wideRecallInPlay}
+                                shiftingSpotlightActive={shiftingSpotlightActive}
+                                destroyPowerVisualActive={destroyPowerVisualActive}
+                                destroyEligibleTileIds={destroyEligibleTileIds}
+                                peekPowerVisualActive={peekPowerVisualActive}
+                                peekEligibleTileIds={peekEligibleTileIds}
+                                strayPowerVisualActive={strayPowerVisualActive}
+                                strayEligibleTileIds={strayEligibleTileIds}
+                                pinModeBoardHintActive={pinModeBoardHintActive}
+                                shuffleSfxGain={shuffleSfxGain}
+                                stickyBlockedTileId={stickyBlockedTileId}
                             />
+                            {boardFloaterPayload ? (
+                                <span
+                                    key={`live-${boardFloaterPayload.key}`}
+                                    aria-atomic="true"
+                                    aria-live="polite"
+                                    className={styles.srOnly}
+                                >
+                                    {boardFloaterPayload.kind === 'match'
+                                        ? matchScoreFloaterLiveRegionText(boardFloaterPayload.amount)
+                                        : mismatchFloaterLiveRegionText()}
+                                </span>
+                            ) : null}
+                            {boardFloaterPos && boardFloaterPayload ? (
+                                <div
+                                    ref={boardFloaterRef}
+                                    key={boardFloaterPayload.key}
+                                    aria-hidden
+                                    className={`${
+                                        boardFloaterPayload.kind === 'match'
+                                            ? styles.matchScoreFloater
+                                            : styles.mismatchScoreFloater
+                                    } ${boardFloaterReducedMotion ? styles.matchScoreFloaterReduced : ''}`}
+                                    data-testid={
+                                        boardFloaterPayload.kind === 'match'
+                                            ? 'match-score-floater'
+                                            : 'mismatch-score-floater'
+                                    }
+                                    style={
+                                        {
+                                            left: boardFloaterPos.x,
+                                            top: boardFloaterPos.y,
+                                            '--match-score-float-ms': `${boardFloaterDurationMs}ms`
+                                        } as CSSProperties
+                                    }
+                                >
+                                    {boardFloaterPayload.kind === 'match'
+                                        ? `+${boardFloaterPayload.amount.toLocaleString()}`
+                                        : mismatchFloaterVisualLabel()}
+                                </div>
+                            ) : null}
                             {distractionHudOn ? (
                                 <div
                                     aria-hidden="true"
@@ -912,6 +1225,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                 </li>
                             ))}
                         </ul>
+                        <p className={styles.shortcutsHelpTip}>{GAMBIT_KEYBOARD_HELP_TIP}</p>
                     </OverlayModal>
                 ) : null}
 

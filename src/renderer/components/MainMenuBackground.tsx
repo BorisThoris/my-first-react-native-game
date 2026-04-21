@@ -397,7 +397,7 @@ const createSceneController = (
         const grid = new pixi.Sprite(registerDynamicTexture(createGridTexture(pixi, surfaceWidth, surfaceHeight)));
         grid.width = surfaceWidth;
         grid.height = surfaceHeight;
-        grid.alpha = 0.88;
+        grid.alpha = 0.52;
         gridLayer.addChild(grid);
 
         const particleCount = getParticleCount(surfaceWidth, surfaceHeight) + (surfaceWidth <= 760 ? 2 : 4);

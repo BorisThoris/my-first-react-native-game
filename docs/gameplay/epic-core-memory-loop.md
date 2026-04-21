@@ -10,7 +10,7 @@ The heart of the game: hidden tiles flip to reveal symbols; two (or three with g
 |------|--------|--------|
 | Two-flip resolution | **Shippable** | `flipTile`, `resolveTwoFlippedTiles` in `game.ts`; `tilesArePairMatch` exported for UI parity. |
 | Resolve delay | **Shippable** | `computeFlipResolveDelayMs`; user `resolveDelayMultiplier`; echo adds `ECHO_EXTRA_RESOLVE_MS` for two-flip mismatch path. |
-| Gambit (third flip) | **Functional** | Allowed while `resolving` with two flips; `resolveGambitThree`; fail path adds extra tries (`GAMBIT_FAIL_EXTRA_TRIES`). Third-flip delay does not add echo — asymmetry vs two-flip (may be intentional; undocumented). |
+| Gambit (third flip) | **Functional** | Allowed while `resolving` with two flips; `resolveGambitThree`; fail path adds extra tries (`GAMBIT_FAIL_EXTRA_TRIES`). Third-flip delay does not add echo — asymmetry vs two-flip (**Codex**: **Resolve timing & echo** + **Gambit (third flip)**). |
 | Wild joker | **Functional** | `WILD_PAIR_KEY` matching rules; `wildMatchesRemaining` across floors in wild-style runs. |
 | `wildTileId` on `RunState` | **Shippable** | Populated from the wild tile’s `id` when present (`getWildTileIdFromBoard` in `createNewRun` / `advanceToNextLevel`); `null` when no wild tile. Matching remains `pairKey`-driven. |
 | Glass decoy | **Shippable** | `DECOY_PAIR_KEY` never matches; `glass_floor` mutator; `decoyFlippedThisFloor` tracking. |
@@ -20,7 +20,7 @@ The heart of the game: hidden tiles flip to reveal symbols; two (or three with g
 
 ## Rough edges
 
-- **Gambit vs echo:** Mismatch timing differs between 2-flip (echo-aware) and 3-flip resolving — no in-file TODO; worth a design note if balance changes.
+- **Gambit vs echo:** Player-facing note lives in the Codex (**Resolve timing & echo**, **Gambit (third flip)**). Revisit balance only if feel testing asks for parity.
 - **Wild tile id:** Resolved — `wildTileId` tracks the spawned wild tile id when present; see `getWildTileIdFromBoard`.
 - **Puzzle boards:** Builtins table in `builtin-puzzles.ts` lists which optional systems apply; defaults are layout-only.
 

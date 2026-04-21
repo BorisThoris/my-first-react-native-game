@@ -1,0 +1,40 @@
+{
+    "jobs": [
+        {
+            "id": "01-instrumental-loop",
+            "task_type": "text2music",
+            "caption": "Dark fantasy dungeon ambient, subtle pulse, loopable instrumental, minor key, cold hall reverb",
+            "lyrics": "[Instrumental]",
+            "instrumental": true,
+            "duration": 45,
+            "bpm": 92,
+            "inference_steps": 8,
+            "shift": 3.0,
+            "infer_method": "ode",
+            "seed": 424242
+        },
+        {
+            "id": "02-with-reference-style",
+            "task_type": "text2music",
+            "caption": "Same energy as reference but brighter mix, add airy pads, keep rhythm section sparse",
+            "lyrics": "[Instrumental]",
+            "instrumental": true,
+            "duration": 40,
+            "reference_audio": "samples/reference-for-text2music.wav",
+            "audio_cover_strength": 0.35,
+            "inference_steps": 8,
+            "shift": 3.0,
+            "seed": 424243
+        },
+        {
+            "id": "03-cover-remix",
+            "task_type": "cover",
+            "caption": "Retro synthwave rearrangement, wide stereo, polished mix, instrumental",
+            "src_audio": "samples/source-for-cover.wav",
+            "audio_cover_strength": 0.65,
+            "inference_steps": 8,
+            "shift": 3.0,
+            "seed": 424244
+        }
+    ]
+}

@@ -21,6 +21,9 @@ import {
     type PointLight
 } from 'three';
 import relicSvgUrl from '../../../docs/wip-assets/card-sources/VECFINAL.svg?url';
+import type { GraphicsQualityPreset } from '../../shared/contracts';
+import { preloadStartupCriticalAssets } from '../assets/preloadStartupAssets';
+import { preloadCardRankOpentypeFont } from '../cardFace/opentypeCardRankFont';
 import { getMotionPermissionButtonLabels, shouldOfferDeviceMotionPermission } from '../platformTilt/platformTiltPermissionUi';
 import type { TiltVector } from '../platformTilt/platformTiltTypes';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
@@ -33,13 +36,11 @@ import {
     type IntroPreset
 } from './startupIntroConfig';
 import { handleTabFocusTrapEvent } from '../a11y/focusables';
-import { getAllCardIllustrationUrls } from '../cardFace/cardIllustrationRegistry';
-import { preloadCardIllustrationImages } from '../cardFace/cardIllustrationImages';
-import { preloadTileTextureImages } from './tileTextures';
-import { hasWebGLSupport, loadRelicTextures, type RelicTextureSet } from './startupIntroTextures';
+import { hasWebGLSupport, type RelicTextureSet } from './startupIntroTextures';
 import styles from './StartupIntro.module.css';
 
 interface StartupIntroProps {
+    graphicsQuality?: GraphicsQualityPreset;
     onComplete: () => void;
     reduceMotion: boolean;
 }
@@ -588,9 +589,11 @@ const RelicIntroScene = ({
     );
 };
 
-const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
+const StartupIntro = ({ graphicsQuality, onComplete, reduceMotion }: StartupIntroProps) => {
     const [renderMode, setRenderMode] = useState<IntroRenderMode>(() => (hasWebGLSupport() ? 'three' : 'fallback'));
     const [textureSet, setTextureSet] = useState<RelicTextureSet | null>(null);
+    const [assetsReady, setAssetsReady] = useState(false);
+    const [skipPending, setSkipPending] = useState(false);
     const [phase, setPhase] = useState<IntroPhase>('enter');
     const [variant] = useState(() => resolveIntroVariant({ reduceMotion }));
     const [sceneFrameRef, sceneFrameSize] = useElementSize<HTMLDivElement>();
@@ -606,12 +609,15 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
     const [touchPrimary, setTouchPrimary] = useState(false);
     const completedRef = useRef(false);
     const exitStartedRef = useRef(false);
-    const autoExitTimeoutRef = useRef<number | null>(null);
-    const autoCompleteTimeoutRef = useRef<number | null>(null);
+    const assetsReadyRef = useRef(false);
+    const skipRequestedRef = useRef(false);
+    const introStartMsRef = useRef(0);
+    const timeGateTimeoutRef = useRef<number | null>(null);
     const manualExitTimeoutRef = useRef<number | null>(null);
     const targetFootprint = sceneFrameSize;
     const enterDurationMs = getIntroEnterDurationMs(reduceMotion);
     const exitDurationMs = getIntroExitDurationMs(reduceMotion);
+    const autoExitDelay = useMemo(() => Math.max(0, variant.durationMs - exitDurationMs), [variant.durationMs, exitDurationMs]);
     const timingStyle = useMemo(
         () =>
             ({
@@ -634,13 +640,9 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
         }
 
         exitStartedRef.current = true;
-        if (autoExitTimeoutRef.current !== null) {
-            window.clearTimeout(autoExitTimeoutRef.current);
-            autoExitTimeoutRef.current = null;
-        }
-        if (autoCompleteTimeoutRef.current !== null) {
-            window.clearTimeout(autoCompleteTimeoutRef.current);
-            autoCompleteTimeoutRef.current = null;
+        if (timeGateTimeoutRef.current !== null) {
+            window.clearTimeout(timeGateTimeoutRef.current);
+            timeGateTimeoutRef.current = null;
         }
         if (manualExitTimeoutRef.current !== null) {
             window.clearTimeout(manualExitTimeoutRef.current);
@@ -651,13 +653,29 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
         }, exitDurationMs);
     }, [completeIntro, exitDurationMs]);
 
+    const tryBeginExitWhenReady = useCallback(() => {
+        if (completedRef.current || exitStartedRef.current) {
+            return;
+        }
+        if (!assetsReadyRef.current) {
+            return;
+        }
+        const elapsed = performance.now() - introStartMsRef.current;
+        if (skipRequestedRef.current || elapsed >= autoExitDelay) {
+            beginExit();
+        }
+    }, [autoExitDelay, beginExit]);
+
+    const requestSkip = useCallback(() => {
+        skipRequestedRef.current = true;
+        setSkipPending(true);
+        tryBeginExitWhenReady();
+    }, [tryBeginExitWhenReady]);
+
     useEffect(() => {
         return () => {
-            if (autoExitTimeoutRef.current !== null) {
-                window.clearTimeout(autoExitTimeoutRef.current);
-            }
-            if (autoCompleteTimeoutRef.current !== null) {
-                window.clearTimeout(autoCompleteTimeoutRef.current);
+            if (timeGateTimeoutRef.current !== null) {
+                window.clearTimeout(timeGateTimeoutRef.current);
             }
             if (manualExitTimeoutRef.current !== null) {
                 window.clearTimeout(manualExitTimeoutRef.current);
@@ -726,31 +744,24 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
     }, [enterDurationMs, phase]);
 
     useEffect(() => {
-        const autoExitDelay = Math.max(0, variant.durationMs - exitDurationMs);
-        autoExitTimeoutRef.current = window.setTimeout(() => {
-            beginExit();
+        introStartMsRef.current = performance.now();
+        timeGateTimeoutRef.current = window.setTimeout(() => {
+            tryBeginExitWhenReady();
         }, autoExitDelay);
-        autoCompleteTimeoutRef.current = window.setTimeout(() => {
-            completeIntro();
-        }, variant.durationMs);
 
         return () => {
-            if (autoExitTimeoutRef.current !== null) {
-                window.clearTimeout(autoExitTimeoutRef.current);
-                autoExitTimeoutRef.current = null;
-            }
-            if (autoCompleteTimeoutRef.current !== null) {
-                window.clearTimeout(autoCompleteTimeoutRef.current);
-                autoCompleteTimeoutRef.current = null;
+            if (timeGateTimeoutRef.current !== null) {
+                window.clearTimeout(timeGateTimeoutRef.current);
+                timeGateTimeoutRef.current = null;
             }
         };
-    }, [beginExit, completeIntro, exitDurationMs, variant.durationMs]);
+    }, [autoExitDelay, tryBeginExitWhenReady]);
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent): void => {
             if (event.key === 'Enter' || event.key === 'Escape' || event.key === ' ' || event.key === 'Spacebar') {
                 event.preventDefault();
-                beginExit();
+                requestSkip();
             }
         };
 
@@ -759,39 +770,41 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [beginExit]);
+    }, [requestSkip]);
 
     useEffect(() => {
-        if (!hasWebGLSupport()) {
-            return;
+        if (graphicsQuality) {
+            preloadCardRankOpentypeFont(graphicsQuality);
         }
+    }, [graphicsQuality]);
 
+    useEffect(() => {
         let cancelled = false;
+        const webgl = hasWebGLSupport();
 
-        void Promise.all([
-            preloadTileTextureImages(),
-            preloadCardIllustrationImages(getAllCardIllustrationUrls())
-        ]);
+        void preloadStartupCriticalAssets({ relicSvgUrl, webgl }).then(({ relicTextureSet }) => {
+            if (cancelled) {
+                relicTextureSet?.dispose();
+                return;
+            }
 
-        void loadRelicTextures(relicSvgUrl)
-            .then((nextTextureSet) => {
-                if (cancelled) {
-                    nextTextureSet.dispose();
-                    return;
-                }
-
-                setTextureSet(nextTextureSet);
-            })
-            .catch(() => {
-                if (!cancelled) {
+            if (webgl) {
+                if (relicTextureSet) {
+                    setTextureSet(relicTextureSet);
+                } else {
                     setRenderMode('fallback');
                 }
-            });
+            }
+
+            assetsReadyRef.current = true;
+            setAssetsReady(true);
+            tryBeginExitWhenReady();
+        });
 
         return () => {
             cancelled = true;
         };
-    }, []);
+    }, [tryBeginExitWhenReady]);
 
     useEffect(
         () => () => {
@@ -805,7 +818,7 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
             return;
         }
 
-        beginExit();
+        requestSkip();
     };
 
     const showIntroMotionCta = shouldOfferDeviceMotionPermission({
@@ -817,6 +830,7 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
 
     return (
         <section
+            aria-busy={!assetsReady}
             aria-label="Startup relic intro"
             aria-modal="true"
             className={styles.overlay}
@@ -830,6 +844,11 @@ const StartupIntro = ({ onComplete, reduceMotion }: StartupIntroProps) => {
             style={timingStyle}
             tabIndex={-1}
         >
+            {skipPending && !assetsReady ? (
+                <div aria-live="polite" className={styles.loadingHint}>
+                    Preparing assets…
+                </div>
+            ) : null}
             <div aria-hidden="true" className={styles.chromaticVeil} />
             <div aria-hidden="true" className={styles.edgeNoise} />
 

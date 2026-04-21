@@ -294,6 +294,17 @@
     color: var(--theme-text-muted);
 }
 
+.gambitOpportunityHint {
+    margin: 0 0 0.4rem;
+    padding: 0.38rem 0.55rem;
+    border-radius: var(--ui-radius-md, 10px);
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 28%, var(--theme-border-strong));
+    background: color-mix(in srgb, var(--theme-panel-alt) 88%, var(--theme-gold-deep) 12%);
+    font-size: 0.72rem;
+    line-height: 1.35;
+    color: color-mix(in srgb, var(--theme-text-muted) 70%, var(--theme-gold-bright) 30%);
+}
+
 .endlessChapterBanner {
     display: flex;
     flex-wrap: wrap;
@@ -711,6 +722,10 @@
     color: color-mix(in srgb, var(--theme-text-muted) 90%, var(--theme-rune));
 }
 
+.hudContextSecondaryStrip .statPillCompact.statPillCompactPerfectMemoryLocked .statVal {
+    color: color-mix(in srgb, var(--theme-ember) 86%, var(--theme-rune));
+}
+
 .hudDeck .hudParasiteCrystalWrap {
     width: 2.42rem;
     height: 2.42rem;
@@ -982,6 +997,32 @@
 
 .statPill {
     min-width: 5rem;
+}
+
+@keyframes hudChainPop {
+    0% {
+        transform: scale(0.92);
+        filter: saturate(1.05);
+    }
+    55% {
+        transform: scale(1.06);
+        filter: saturate(1.25);
+    }
+    100% {
+        transform: scale(1);
+        filter: saturate(1);
+    }
+}
+
+.hudChainPill {
+    animation: hudChainPop 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+    transform-origin: center bottom;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hudChainPill {
+        animation: none;
+    }
 }
 
 .statPillCompact {
@@ -2295,4 +2336,88 @@
 .shortcutsHelpKeys {
     font-weight: 600;
     letter-spacing: 0.02em;
+}
+
+.shortcutsHelpTip {
+    margin: 0.75rem 0 0;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    color: color-mix(in srgb, var(--theme-text-muted) 92%, transparent);
+}
+
+/* Match score floater: between board canvas and distraction HUD, under pause/relic modals.
+   `--match-score-float-ms` is set inline from TS (`matchScoreFloaterTiming.ts`). */
+.matchScoreFloater {
+    position: absolute;
+    z-index: 5;
+    transform: translate(-50%, -120%);
+    pointer-events: none;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    font-size: clamp(0.95rem, 2.4vi, 1.3rem);
+    letter-spacing: 0.04em;
+    color: var(--theme-gold-bright);
+    text-shadow:
+        0 0 10px color-mix(in srgb, var(--theme-void) 45%, transparent),
+        0 0 18px color-mix(in srgb, var(--theme-gold-bright) 35%, transparent),
+        0 1px 0 color-mix(in srgb, var(--theme-void) 70%, transparent);
+    animation-name: matchScoreFloaterRise;
+    animation-duration: var(--match-score-float-ms, 780ms);
+    animation-timing-function: ease-out;
+    animation-fill-mode: forwards;
+}
+
+/* Mismatch floater: same motion stack / z-order as `.matchScoreFloater`, subdued cool palette. */
+.mismatchScoreFloater {
+    position: absolute;
+    z-index: 5;
+    transform: translate(-50%, -120%);
+    pointer-events: none;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    font-size: clamp(0.95rem, 2.4vi, 1.3rem);
+    letter-spacing: 0.06em;
+    color: color-mix(in srgb, var(--theme-rune) 88%, white);
+    text-shadow:
+        0 0 10px color-mix(in srgb, var(--theme-void) 45%, transparent),
+        0 0 18px color-mix(in srgb, var(--theme-rune) 28%, transparent),
+        0 1px 0 color-mix(in srgb, var(--theme-void) 70%, transparent);
+    animation-name: matchScoreFloaterRise;
+    animation-duration: var(--match-score-float-ms, 780ms);
+    animation-timing-function: ease-out;
+    animation-fill-mode: forwards;
+}
+
+.matchScoreFloaterReduced {
+    animation-name: matchScoreFloaterFade;
+}
+
+@keyframes matchScoreFloaterRise {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -105%);
+    }
+
+    22% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -148%);
+    }
+}
+
+@keyframes matchScoreFloaterFade {
+    0% {
+        opacity: 0;
+    }
+
+    35% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
 }

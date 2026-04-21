@@ -1,0 +1,121 @@
+{
+    "jobs": [
+        {
+            "id": "sfx-flip",
+            "task_type": "text2music",
+            "caption": "Ultra short soft UI click, bright tick 80ms feel, casual puzzle game tile flip, single transient no tail, sterile digital",
+            "lyrics": "[Instrumental]",
+            "instrumental": true,
+            "duration": 5,
+            "seed": 910101
+        },
+        {
+            "id": "sfx-gambit-commit",
+            "task_type": "text2music",
+            "caption": "Extra short confirming chirp layered arpeggio upward, puzzle skill confirm 120ms character, subtle sparkle",
+            "lyrics": "[Instrumental]",
+            "instrumental": true,
+            "duration": 5,
+            "seed": 910102
+        },
+        {
+            "id": "sfx-match-tier-low",
+            "task_type": "text2music",
+            "caption": "Positive puzzle match reward sting, soft bell brassy warmth, gentle rise not brass band, video game UI success short",
+            "lyrics": "[Instrumental]",
+            "instrumental": true,
+            "duration": 6,
+            "seed": 910103
+        },
+        {
+            "id": "sfx-match-tier-mid",
+            "task_type": "text2music",
+            "caption": "Brighter match reward flourish, slightly richer harmony, still short casual puzzle game success",
+            "lyrics": "[Instrumental]",
+            "instrumental": true,
+            "duration": 6,
+            "seed": 910104
+        },
+        {
+            "id": "sfx-match-tier-high",
+            "task_type": "text2music",
+            "caption": "Epic but tasteful combo reward sting, fantasy puzzle streak high tier, celebratory short no choir bombast",
+            "lyrics": "[Instrumental]",
+            "instrumental": true,
+            "duration": 7,
+            "seed": 910105
+        },
+        {
+            "id": "sfx-mismatch",
+            "task_type": "text2music",
+            "caption": "Soft negative feedback buzz downward, puzzle wrong pair gentle dissonance, short non harsh",
+            "lyrics": "[Instrumental]",
+            "instrumental": true,
+            "duration": 6,
+            "seed": 910106
+        },
+        {
+            "id": "sfx-power-arm",
+            "task_type": "text2music",
+            "caption": "Tiny armed ability UI chirp affirmative bright glassy",
+            "lyrics": "[Instrumental]",
+            "instrumental": true,
+            "duration": 5,
+            "seed": 910107
+        },
+        {
+            "id": "sfx-destroy-pair",
+            "task_type": "text2music",
+            "caption": "Heavy break crumble impact low thump fantasy card destroy short",
+            "lyrics": "[Instrumental]",
+            "instrumental": true,
+            "duration": 7,
+            "seed": 910108
+        },
+        {
+            "id": "sfx-peek-power",
+            "task_type": "text2music",
+            "caption": "Airy rising shimmer reveal magic peek short lift",
+            "lyrics": "[Instrumental]",
+            "instrumental": true,
+            "duration": 6,
+            "seed": 910109
+        },
+        {
+            "id": "sfx-stray-power",
+            "task_type": "text2music",
+            "caption": "Quick scrape whoosh dismiss stray token short",
+            "lyrics": "[Instrumental]",
+            "instrumental": true,
+            "duration": 5,
+            "seed": 910110
+        },
+        {
+            "id": "sfx-shuffle-full",
+            "task_type": "text2music",
+            "caption": "Mechanical shuffle sweep layered noise rise puzzle board scramble motion medium length transition",
+            "lyrics": "[Instrumental]",
+            "instrumental": true,
+            "duration": 8,
+            "seed": 910111
+        },
+        {
+            "id": "sfx-shuffle-quick",
+            "task_type": "text2music",
+            "caption": "Minimal tick tap reduce motion shuffle placeholder extremely short",
+            "lyrics": "[Instrumental]",
+            "instrumental": true,
+            "duration": 4,
+            "seed": 910112
+        },
+        {
+            "id": "sfx-floor-clear",
+            "task_type": "text2music",
+            "caption": "Victory sting level clear flourish bright ascending fantasy puzzle stage complete short",
+            "lyrics": "[Instrumental]",
+            "instrumental": true,
+            "duration": 7,
+            "seed": 910113
+        }
+    ]
+}
