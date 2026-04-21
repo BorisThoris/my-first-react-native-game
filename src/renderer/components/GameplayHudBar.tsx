@@ -137,6 +137,10 @@ const GameplayHudBar = ({
         run.gameMode === 'endless' &&
         usesEndlessFloorSchedule(run.gameMode, run.runRulesVersion) &&
         board.floorArchetypeId != null;
+    const activeRiskWagerFavor =
+        run.endlessRiskWager != null
+            ? run.endlessRiskWager.bonusFavorOnSuccess + (run.relicIds.includes('wager_surety') ? 1 : 0)
+            : 0;
     const archetype = getFloorArchetypeDefinition(board.floorArchetypeId);
     const featuredObjectiveLabel = getFeaturedObjectiveLabel(board.featuredObjectiveId);
     const contextChips: { className: string; key: string; label: string; testId: string; title: string; glyph: ReactNode }[] = [];
@@ -468,10 +472,14 @@ const GameplayHudBar = ({
                                     <div
                                         className={styles.statPillCompact}
                                         data-testid="hud-endless-risk-wager"
-                                        title="Complete this floor's featured objective to win bonus Favor; miss it and the streak resets"
+                                        title={
+                                            run.relicIds.includes('wager_surety')
+                                                ? "Complete this floor's featured objective to win bonus Favor; miss it and the streak falls to x1"
+                                                : "Complete this floor's featured objective to win bonus Favor; miss it and the streak resets"
+                                        }
                                     >
                                         <span className={styles.statKey}>Wager</span>
-                                        <span className={styles.statVal}>+{run.endlessRiskWager.bonusFavorOnSuccess} Favor</span>
+                                        <span className={styles.statVal}>+{activeRiskWagerFavor} Favor</span>
                                     </div>
                                 ) : null}
                                 {run.findablesTotalThisFloor > 0 ? (

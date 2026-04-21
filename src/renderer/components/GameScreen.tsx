@@ -482,11 +482,13 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const favorGained = run.lastLevelResult?.relicFavorGained ?? 0;
     const favorGainLine =
         run.lastLevelResult?.featuredObjectiveId != null ? `Favor gained: +${favorGained}` : null;
+    const wagerSuretyActive = run.relicIds.includes('wager_surety');
+    const offeredRiskWagerFavor = ENDLESS_RISK_WAGER_BONUS_FAVOR + (wagerSuretyActive ? 1 : 0);
     const endlessRiskWagerOutcomeLine =
         run.lastLevelResult?.endlessRiskWagerOutcome === 'won'
             ? `Risk wager won: +${run.lastLevelResult.endlessRiskWagerFavorGained ?? 0} Favor`
             : run.lastLevelResult?.endlessRiskWagerOutcome === 'lost'
-              ? `Risk wager lost: streak reset from x${run.lastLevelResult.endlessRiskWagerStreakLost ?? 0}`
+              ? `Risk wager lost: -${run.lastLevelResult.endlessRiskWagerStreakLost ?? 0} streak`
               : null;
     const featuredObjectiveStreakLine =
         run.lastLevelResult?.featuredObjectiveId != null
@@ -797,6 +799,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                             onPick={pickRelic}
                             optionIds={run.relicOffer.options}
                             pickRound={run.relicOffer.pickRound}
+                            reasonById={run.relicOffer.contextualOptionReasons}
                         />
                     </OverlayModal>
                 ) : null}
@@ -835,9 +838,9 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                     <>
                                         <strong>Risk wager armed</strong>
                                         <span>
-                                            Next featured objective: +{acceptedEndlessRiskWager.bonusFavorOnSuccess}{' '}
+                                            Next featured objective: +{offeredRiskWagerFavor}{' '}
                                             Favor if completed. Miss it and the x{acceptedEndlessRiskWager.streakAtRisk}{' '}
-                                            streak breaks.
+                                            streak {wagerSuretyActive ? 'falls to x1' : 'breaks'}.
                                         </span>
                                     </>
                                 ) : (
@@ -845,7 +848,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                         <strong>Risk wager available</strong>
                                         <span>
                                             Stake your x{run.featuredObjectiveStreak} objective streak on the next floor for
-                                            +{ENDLESS_RISK_WAGER_BONUS_FAVOR} bonus Favor.
+                                            +{offeredRiskWagerFavor} bonus Favor.
                                         </span>
                                         <button
                                             className={styles.endlessRiskWagerButton}

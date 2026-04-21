@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { RunState } from './contracts';
-import { createNewRun } from './game';
+import { createDailyRun, createNewRun } from './game';
+import { pickFloorScheduleEntry } from './floor-mutator-schedule';
 import {
     MAX_RELIC_PICKS_PER_RUN,
+    getContextualRelicDraftWeight,
+    getRelicDraftContext,
+    getRelicDraftOptionReasons,
+    isRelicDraftEligible,
     effectiveRelicDraftWeight,
     relicMilestoneIndexForFloor,
     needsRelicPick,
@@ -117,6 +122,119 @@ describe('rollRelicOptions', () => {
         expect(new Set(opts).size).toBe(3);
         for (const id of opts) {
             expect(taken).not.toContain(id);
+        }
+    });
+
+    it('hard-filters relics that conflict with noShuffle and noDestroy contracts', () => {
+        const run = levelCompleteRun(3, 0, {
+            activeContract: { noShuffle: true, noDestroy: true, maxMismatches: null }
+        });
+
+        expect(isRelicDraftEligible('extra_shuffle_charge', run)).toBe(false);
+        expect(isRelicDraftEligible('first_shuffle_free_per_floor', run)).toBe(false);
+        expect(isRelicDraftEligible('region_shuffle_free_first', run)).toBe(false);
+        expect(isRelicDraftEligible('destroy_bank_plus_one', run)).toBe(false);
+        expect(rollRelicOptions(run, 0, 3, 0)).not.toContain('extra_shuffle_charge');
+        expect(rollRelicOptions(run, 0, 3, 0)).not.toContain('destroy_bank_plus_one');
+    });
+
+    it('guarantees a deterministic contextual spotlight for scheduled Endless drafts', () => {
+        const run = levelCompleteRun(2, 0, {
+            activeMutators: ['short_memorize'],
+            board: {
+                ...createNewRun(7).board!,
+                level: 2,
+                floorArchetypeId: 'speed_trial',
+                featuredObjectiveId: 'flip_par'
+            }
+        });
+
+        const a = rollRelicOptions(run, 0, 2, 0);
+        const b = rollRelicOptions(run, 0, 2, 0);
+        const reasons = getRelicDraftOptionReasons(run, 2, a);
+
+        expect(a).toEqual(b);
+        expect(a).toHaveLength(3);
+        expect(Object.values(reasons ?? {})).toContain('Answers short memorize');
+    });
+
+    it('keeps non-Endless drafts on base odds except hard filters', () => {
+        const daily = {
+            ...createDailyRun(0),
+            status: 'levelComplete' as const,
+            lastLevelResult: {
+                level: 3,
+                scoreGained: 10,
+                rating: 'S' as const,
+                livesRemaining: 3,
+                perfect: false,
+                mistakes: 0,
+                clearLifeReason: 'none' as const,
+                clearLifeGained: 0
+            }
+        };
+
+        expect(getRelicDraftOptionReasons(daily, 3, rollRelicOptions(daily, 0, 3))).toBeUndefined();
+        expect(isRelicDraftEligible('chapter_compass', daily)).toBe(false);
+        expect(isRelicDraftEligible('wager_surety', daily)).toBe(false);
+        expect(isRelicDraftEligible('parasite_ledger', daily)).toBe(false);
+    });
+
+    it('chapter_compass strengthens contextual spotlight weights without adding draft slots', () => {
+        const run = levelCompleteRun(2, 0, {
+            activeMutators: ['short_memorize'],
+            board: {
+                ...createNewRun(11).board!,
+                level: 2,
+                floorArchetypeId: 'speed_trial',
+                featuredObjectiveId: 'flip_par'
+            }
+        });
+        const baseWeight = getContextualRelicDraftWeight(
+            'memorize_under_short_memorize',
+            getRelicDraftContext(run, 2),
+            0
+        );
+        const compassRun: RunState = { ...run, relicIds: ['chapter_compass'] };
+        const compassWeight = getContextualRelicDraftWeight(
+            'memorize_under_short_memorize',
+            getRelicDraftContext(compassRun, 2),
+            0
+        );
+        const options = rollRelicOptions(compassRun, 0, 2, 0);
+
+        expect(compassWeight).toBeGreaterThan(baseWeight);
+        expect(options).toHaveLength(3);
+        expect(options).not.toContain('chapter_compass');
+    });
+
+    it('keeps Endless contextual drafts varied and valid across floors 1-24', () => {
+        const base = createNewRun(42001);
+
+        for (let floor = 1; floor <= 24; floor += 1) {
+            const entry = pickFloorScheduleEntry(base.runSeed, base.runRulesVersion, floor, 'endless');
+            const run = levelCompleteRun(floor, 0, {
+                runSeed: base.runSeed,
+                runRulesVersion: base.runRulesVersion,
+                activeMutators: entry.mutators,
+                board: {
+                    ...base.board!,
+                    level: floor,
+                    floorArchetypeId: entry.floorArchetypeId,
+                    featuredObjectiveId: entry.featuredObjectiveId,
+                    floorTag: entry.floorTag
+                }
+            });
+            const tier = Math.max(0, relicMilestoneIndexForFloor(floor) ?? 0);
+            const options = rollRelicOptions(run, tier, floor, 0);
+            const reasons = getRelicDraftOptionReasons(run, floor, options);
+
+            expect(new Set(options).size).toBe(options.length);
+            expect(options.length).toBeLessThanOrEqual(3);
+            expect(options.length).toBe(3);
+            if (reasons) {
+                expect(options.some((id) => reasons[id] != null)).toBe(true);
+            }
         }
     });
 });

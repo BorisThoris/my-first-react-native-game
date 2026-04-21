@@ -244,6 +244,45 @@ describe('GameScreen (OVR-014)', () => {
         expect(queryByText(/this visit/)).toBeNull();
     });
 
+    it('shows contextual relic draft reasons and chapter-aligned footnote', () => {
+        const base = createNewRun(0, { echoFeedbackEnabled: false });
+        const playing = finishMemorizePhase(base);
+        const run: RunState = {
+            ...playing,
+            status: 'playing',
+            lastLevelResult: {
+                level: 3,
+                scoreGained: 100,
+                rating: 'S',
+                livesRemaining: 5,
+                perfect: true,
+                mistakes: 0,
+                clearLifeReason: 'none',
+                clearLifeGained: 0
+            },
+            relicOffer: {
+                tier: 1,
+                options: ['memorize_under_short_memorize', 'peek_charge_plus_one', 'shrine_echo'],
+                picksRemaining: 1,
+                pickRound: 0,
+                contextualOptionReasons: {
+                    memorize_under_short_memorize: 'Answers short memorize'
+                }
+            }
+        };
+
+        const { getByText } = render(
+            <PlatformTiltProvider>
+                <NotificationHost>
+                    <GameScreen achievements={[]} run={run} />
+                </NotificationHost>
+            </PlatformTiltProvider>
+        );
+
+        expect(getByText('Answers short memorize')).toBeTruthy();
+        expect(getByText('At least one choice is chapter-aligned for this Endless route.')).toBeTruthy();
+    });
+
     it('shows the endless chapter banner during memorize on scheduled endless floors', () => {
         const run = createNewRun(0, { echoFeedbackEnabled: false });
 

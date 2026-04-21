@@ -31,6 +31,7 @@ const rarityClass = (r: RelicDraftRarity): string => {
 interface RelicDraftOfferPanelProps {
     optionIds: RelicId[];
     descriptionById: Record<RelicId, string>;
+    reasonById?: Partial<Record<RelicId, string>>;
     onPick: (id: RelicId) => void;
     /** Advances when options reroll mid-visit (multi-pick). */
     pickRound: number;
@@ -39,6 +40,7 @@ interface RelicDraftOfferPanelProps {
 const RelicDraftOfferPanel = ({
     optionIds,
     descriptionById,
+    reasonById,
     onPick,
     pickRound
 }: RelicDraftOfferPanelProps) => {
@@ -146,13 +148,14 @@ const RelicDraftOfferPanel = ({
                 {optionIds.map((id, index) => {
                     const row = getRelicDraftRow(id);
                     const desc = descriptionById[id] ?? id;
+                    const reason = reasonById?.[id];
                     const ariaTier = relicDraftRarityLabel(row.rarity);
                     const staggerStyle: CSSProperties = {
                         '--relic-card-stagger': index
                     } as CSSProperties;
                     return (
                         <button
-                            aria-label={`${ariaTier} relic: ${desc}`}
+                            aria-label={`${ariaTier} relic: ${desc}${reason ? `. ${reason}` : ''}`}
                             className={`${styles.card} ${rarityClass(row.rarity)}`}
                             key={`${id}-${pickRound}`}
                             onClick={() => onPick(id)}
@@ -160,6 +163,7 @@ const RelicDraftOfferPanel = ({
                             type="button"
                         >
                             <span aria-hidden className={styles.runeStrip} />
+                            {reason ? <span className={styles.reason}>{reason}</span> : null}
                             <p className={styles.body}>{desc}</p>
                         </button>
                     );

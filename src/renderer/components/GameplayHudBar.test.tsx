@@ -51,4 +51,27 @@ describe('GameplayHudBar', () => {
         expect(screen.queryByTestId('hud-featured-streak')).toBeNull();
         expect(screen.queryByTestId('hud-endless-risk-wager')).toBeNull();
     });
+
+    it('includes wager_surety bonus in the active wager pill', () => {
+        const run = {
+            ...finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false, initialRelicIds: ['wager_surety'] })),
+            endlessRiskWager: {
+                acceptedOnLevel: 0,
+                targetLevel: 1,
+                streakAtRisk: 3,
+                bonusFavorOnSuccess: 2
+            }
+        };
+
+        render(
+            <GameplayHudBar
+                cameraViewportMode={false}
+                gauntletRemainingMs={null}
+                politeHudAnnouncement=""
+                run={run}
+            />
+        );
+
+        expect(screen.getByTestId('hud-endless-risk-wager').textContent).toContain('+3 Favor');
+    });
 });

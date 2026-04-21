@@ -19,6 +19,9 @@ Relics are **run modifiers** stored on `RunState.relicIds` and chosen from `reli
 | `pin_cap_plus_one` | +1 concurrent pin capacity (`maxPinnedTilesForRun`) | Distinct from contract max-pin challenges. |
 | `guard_token_plus_one` | +1 guard token (capped at `MAX_GUARD_TOKENS`) | Same token economy as streak/guard gains. |
 | `shrine_echo` | Banks **+1 relic selection** for the **next** milestone draft (`grantBonusRelicPickNextOffer`) | Does not grant picks on the floor you take it; stacks with other draft bonuses. |
+| `chapter_compass` | Scheduled Endless drafts lean harder into current/next chapter answers | Draft-shaping relic; does not add a fourth card. |
+| `wager_surety` | Won risk wagers grant +1 extra Favor; lost wagers keep objective streak at x1 | Wager-specific risk control, not a generic life or score boost. |
+| `parasite_ledger` | Successful scheduled Endless parasite objectives reduce parasite pressure by 1 | Slows score-parasite pacing without removing the mutator. |
 
 ## Expansion candidates (deferred)
 
@@ -29,4 +32,4 @@ Relics are **run modifiers** stored on `RunState.relicIds` and chosen from `reli
 
 After clearing floors **3, 6, 9, 12, …** (every 3 from 3), up to **12 milestone visits** per run (`relicTiersClaimed` caps visits; a visit may grant **multiple** relics via `picksRemaining` / `bonusRelicPicksNextOffer`): `needsRelicPick` + `openRelicOffer` → UI in `GameScreen` (`RelicDraftOfferPanel`) → `pickRelic` / `completeRelicPickAndAdvance`. **Puzzle** mode skips offers.
 
-Each **round** shows up to **three** distinct options from `RELIC_DRAFT` in `relics.ts`: rarity + base weight; `effectiveRelicDraftWeight(id, tierIndex)` scales by milestone tier. `pickRound` rerolls a fresh trio when the player still owes picks. Selection uses `pickWeightedWithoutReplacement` (`weightedPick.ts`) with a run-seeded RNG (`runSeed`, tier, floor, `pickRound`).
+Each **round** shows up to **three** distinct options from `RELIC_DRAFT` in `relics.ts`: rarity + base weight; `effectiveRelicDraftWeight(id, tierIndex)` scales by milestone tier. Scheduled Endless drafts first guarantee one contextual spotlight when an eligible relic fits the current/next chapter, active risk wager, or near-complete Favor bank; the remaining slots still use weighted selection. `pickRound` rerolls a fresh trio when the player still owes picks. Selection uses `pickWeightedWithoutReplacement` (`weightedPick.ts`) with a run-seeded RNG (`runSeed`, tier, floor, `pickRound`). Contract hard filters remove shuffle relics under `noShuffle` and `destroy_bank_plus_one` under `noDestroy`.

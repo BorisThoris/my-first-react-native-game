@@ -331,6 +331,43 @@ describe('endless chapters and featured objectives', () => {
         expect(finished.relicFavorProgress).toBe(0);
     });
 
+    it('wager_surety adds favor on won wagers and leaves x1 streak on wager failure', () => {
+        const base = createNewRun(0, { echoFeedbackEnabled: false, initialRelicIds: ['wager_surety'] });
+        const cleared: RunState = {
+            ...base,
+            status: 'levelComplete',
+            featuredObjectiveStreak: ENDLESS_RISK_WAGER_MIN_STREAK,
+            lastLevelResult: {
+                level: 1,
+                scoreGained: 100,
+                rating: 'S++',
+                livesRemaining: base.lives,
+                perfect: true,
+                mistakes: 0,
+                clearLifeReason: 'perfect',
+                clearLifeGained: 1,
+                featuredObjectiveId: 'flip_par',
+                featuredObjectiveCompleted: true,
+                featuredObjectiveStreak: ENDLESS_RISK_WAGER_MIN_STREAK,
+                relicFavorGained: 1
+            }
+        };
+        const wagered = acceptEndlessRiskWager(cleared);
+        const won = clearRealPairs(finishMemorizePhase(advanceToNextLevel(wagered)));
+        const lostStart: RunState = {
+            ...finishMemorizePhase(advanceToNextLevel(wagered)),
+            matchResolutionsThisFloor: 99
+        };
+        const lost = clearRealPairs(lostStart);
+
+        expect(won.lastLevelResult?.endlessRiskWagerOutcome).toBe('won');
+        expect(won.lastLevelResult?.endlessRiskWagerFavorGained).toBe(ENDLESS_RISK_WAGER_BONUS_FAVOR + 1);
+        expect(won.lastLevelResult?.relicFavorGained).toBe(1 + ENDLESS_RISK_WAGER_BONUS_FAVOR + 1);
+        expect(lost.lastLevelResult?.endlessRiskWagerOutcome).toBe('lost');
+        expect(lost.featuredObjectiveStreak).toBe(1);
+        expect(lost.lastLevelResult?.endlessRiskWagerStreakLost).toBe(ENDLESS_RISK_WAGER_MIN_STREAK - 1);
+    });
+
     it('loses a risk wager by missing the next featured objective and resets the streak', () => {
         const base = createNewRun(0, { echoFeedbackEnabled: false });
         const cleared: RunState = {
@@ -368,6 +405,48 @@ describe('endless chapters and featured objectives', () => {
         expect(finished.lastLevelResult?.endlessRiskWagerStreakLost).toBe(ENDLESS_RISK_WAGER_MIN_STREAK);
         expect(finished.lastLevelResult?.endlessRiskWagerFavorGained).toBeUndefined();
         expect(finished.lastLevelResult?.relicFavorGained).toBe(0);
+    });
+
+    it('parasite_ledger reduces parasite progress only on featured-objective success', () => {
+        const base = finishMemorizePhase(
+            createNewRun(0, { echoFeedbackEnabled: false, initialRelicIds: ['parasite_ledger'] })
+        );
+        const board: BoardState = {
+            level: 11,
+            pairCount: 2,
+            columns: 2,
+            rows: 2,
+            tiles: [
+                createTile('a1', 'A', 'A'),
+                createTile('a2', 'A', 'A'),
+                createTile('b1', 'B', 'B'),
+                createTile('b2', 'B', 'B')
+            ],
+            flippedTileIds: [],
+            matchedPairs: 0,
+            floorTag: 'normal',
+            cursedPairKey: null,
+            wardPairKey: null,
+            bountyPairKey: null,
+            floorArchetypeId: 'parasite_tithe',
+            featuredObjectiveId: 'scholar_style'
+        };
+        const parasiteRun: RunState = {
+            ...base,
+            board,
+            activeMutators: ['score_parasite'],
+            parasiteFloors: 3
+        };
+        const success = clearRealPairs(parasiteRun);
+        const missed = clearRealPairs({
+            ...parasiteRun,
+            shuffleUsedThisFloor: true
+        });
+
+        expect(success.lastLevelResult?.featuredObjectiveCompleted).toBe(true);
+        expect(success.parasiteFloors).toBe(2);
+        expect(missed.lastLevelResult?.featuredObjectiveCompleted).toBe(false);
+        expect(missed.parasiteFloors).toBe(3);
     });
 
     it('grants +2 favor on boss floors when the featured objective succeeds', () => {

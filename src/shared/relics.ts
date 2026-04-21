@@ -6,8 +6,9 @@
  * Balance cross-check: `docs/BALANCE_NOTES.md` (Relic roster) — update when adding IDs or changing memorize /
  * charge numbers; `relicBalanceDoc.test.ts` guards key doc strings.
  */
+import type { ContractFlags, MutatorId, RelicId, RunState } from './contracts';
+import { pickFloorScheduleEntry, usesEndlessFloorSchedule } from './floor-mutator-schedule';
 import { hashStringToSeed } from './rng';
-import type { RelicId, RunState } from './contracts';
 import { pickWeightedWithoutReplacement } from './weightedPick';
 
 /** First floor (after clear) that can trigger a relic offer. */
@@ -19,11 +20,38 @@ export const MAX_RELIC_PICKS_PER_RUN = 12;
 
 /** Draft rarity — affects base weight and how fast odds rise with {@link relicMilestoneIndexForFloor}. */
 export type RelicDraftRarity = 'common' | 'uncommon' | 'rare';
+export type RelicDraftTag =
+    | 'memorize'
+    | 'parasite'
+    | 'shuffle'
+    | 'search'
+    | 'destroy'
+    | 'combo'
+    | 'peek'
+    | 'pin'
+    | 'guard'
+    | 'wager'
+    | 'favor'
+    | 'draft';
+
+type RelicContractForbid = keyof Pick<ContractFlags, 'noShuffle' | 'noDestroy'>;
+
+export interface RelicDraftContext {
+    isScheduledEndless: boolean;
+    clearedFloor: number;
+    currentMutators: MutatorId[];
+    nextMutators: MutatorId[];
+    activeOrAcceptedRiskWager: boolean;
+    favorNearRelicPick: boolean;
+    hasChapterCompass: boolean;
+}
 
 export interface RelicDraftRow {
     rarity: RelicDraftRarity;
     /** Base weight before tier scaling (tune relative odds at tier 0). */
     weight: number;
+    tags: RelicDraftTag[];
+    forbiddenWithContract?: RelicContractForbid[];
 }
 
 /**
@@ -31,23 +59,80 @@ export interface RelicDraftRow {
  * Weights are relative within a draft; tier scaling favors higher rarities in later drafts.
  */
 export const RELIC_DRAFT: Record<RelicId, RelicDraftRow> = {
-    extra_shuffle_charge: { rarity: 'common', weight: 100 },
-    first_shuffle_free_per_floor: { rarity: 'common', weight: 88 },
-    memorize_bonus_ms: { rarity: 'common', weight: 92 },
-    memorize_under_short_memorize: { rarity: 'uncommon', weight: 52 },
-    region_shuffle_free_first: { rarity: 'common', weight: 85 },
-    destroy_bank_plus_one: { rarity: 'uncommon', weight: 55 },
-    combo_shard_plus_step: { rarity: 'uncommon', weight: 48 },
-    parasite_ward_once: { rarity: 'rare', weight: 28 },
-    peek_charge_plus_one: { rarity: 'uncommon', weight: 50 },
-    stray_charge_plus_one: { rarity: 'rare', weight: 26 },
-    pin_cap_plus_one: { rarity: 'rare', weight: 24 },
-    guard_token_plus_one: { rarity: 'rare', weight: 30 },
-    shrine_echo: { rarity: 'uncommon', weight: 36 }
+    extra_shuffle_charge: {
+        rarity: 'common',
+        weight: 100,
+        tags: ['shuffle'],
+        forbiddenWithContract: ['noShuffle']
+    },
+    first_shuffle_free_per_floor: {
+        rarity: 'common',
+        weight: 88,
+        tags: ['shuffle'],
+        forbiddenWithContract: ['noShuffle']
+    },
+    memorize_bonus_ms: { rarity: 'common', weight: 92, tags: ['memorize'] },
+    memorize_under_short_memorize: { rarity: 'uncommon', weight: 52, tags: ['memorize'] },
+    region_shuffle_free_first: {
+        rarity: 'common',
+        weight: 85,
+        tags: ['shuffle'],
+        forbiddenWithContract: ['noShuffle']
+    },
+    destroy_bank_plus_one: {
+        rarity: 'uncommon',
+        weight: 55,
+        tags: ['destroy'],
+        forbiddenWithContract: ['noDestroy']
+    },
+    combo_shard_plus_step: { rarity: 'uncommon', weight: 48, tags: ['combo', 'parasite'] },
+    parasite_ward_once: { rarity: 'rare', weight: 28, tags: ['parasite'] },
+    peek_charge_plus_one: { rarity: 'uncommon', weight: 50, tags: ['peek', 'wager'] },
+    stray_charge_plus_one: { rarity: 'rare', weight: 26, tags: ['search'] },
+    pin_cap_plus_one: { rarity: 'rare', weight: 24, tags: ['pin'] },
+    guard_token_plus_one: { rarity: 'rare', weight: 30, tags: ['guard', 'parasite', 'wager'] },
+    shrine_echo: { rarity: 'uncommon', weight: 36, tags: ['favor', 'wager'] },
+    chapter_compass: { rarity: 'uncommon', weight: 34, tags: ['draft'] },
+    wager_surety: { rarity: 'rare', weight: 22, tags: ['wager'] },
+    parasite_ledger: { rarity: 'uncommon', weight: 38, tags: ['parasite'] }
 };
 
 /** Stable iteration order for docs / balance checks. */
 export const RELIC_POOL: RelicId[] = (Object.keys(RELIC_DRAFT) as RelicId[]).sort((a, b) => a.localeCompare(b));
+
+const RELIC_SYNERGY_RULES_VERSION = 14;
+const ENDLESS_SYNERGY_RELICS = new Set<RelicId>(['chapter_compass', 'wager_surety', 'parasite_ledger']);
+const SHORT_MEMORIZE_RELICS = new Set<RelicId>(['memorize_under_short_memorize', 'memorize_bonus_ms']);
+const PARASITE_RELICS = new Set<RelicId>([
+    'parasite_ward_once',
+    'combo_shard_plus_step',
+    'guard_token_plus_one',
+    'parasite_ledger'
+]);
+const SHUFFLE_SEARCH_RELICS = new Set<RelicId>([
+    'extra_shuffle_charge',
+    'first_shuffle_free_per_floor',
+    'region_shuffle_free_first',
+    'stray_charge_plus_one'
+]);
+const ANCHOR_SPOTLIGHT_RELICS = new Set<RelicId>(['pin_cap_plus_one', 'peek_charge_plus_one']);
+const WAGER_RELICS = new Set<RelicId>([
+    'shrine_echo',
+    'guard_token_plus_one',
+    'peek_charge_plus_one',
+    'wager_surety'
+]);
+
+const hasAnyMutator = (mutators: readonly MutatorId[], ids: readonly MutatorId[]): boolean =>
+    ids.some((id) => mutators.includes(id));
+
+const contextHasAnyMutator = (context: RelicDraftContext, ids: readonly MutatorId[]): boolean =>
+    hasAnyMutator(context.currentMutators, ids) || hasAnyMutator(context.nextMutators, ids);
+
+const isScheduledEndlessDraftRun = (run: RunState): boolean =>
+    usesEndlessFloorSchedule(run.gameMode, run.runRulesVersion) &&
+    !run.wildMenuRun &&
+    run.board?.floorArchetypeId != null;
 
 const tierWeightScale = (rarity: RelicDraftRarity, tierIndex: number): number => {
     const t = Math.max(0, tierIndex);
@@ -70,6 +155,116 @@ export const effectiveRelicDraftWeight = (id: RelicId, tierIndex: number): numbe
 };
 
 export const getRelicDraftRow = (id: RelicId): RelicDraftRow => RELIC_DRAFT[id];
+
+export const getRelicDraftContext = (run: RunState, clearedFloor: number): RelicDraftContext => {
+    const isScheduledEndless = isScheduledEndlessDraftRun(run);
+    const nextMutators =
+        isScheduledEndless
+            ? pickFloorScheduleEntry(run.runSeed, run.runRulesVersion, clearedFloor + 1, run.gameMode).mutators
+            : [];
+
+    return {
+        isScheduledEndless,
+        clearedFloor,
+        currentMutators: isScheduledEndless ? [...run.activeMutators] : [],
+        nextMutators,
+        activeOrAcceptedRiskWager: isScheduledEndless && run.endlessRiskWager != null,
+        favorNearRelicPick: isScheduledEndless && run.relicFavorProgress >= 2,
+        hasChapterCompass: run.relicIds.includes('chapter_compass')
+    };
+};
+
+export const isRelicDraftEligible = (id: RelicId, run: RunState): boolean => {
+    if (run.relicIds.includes(id)) {
+        return false;
+    }
+    if (run.runRulesVersion < RELIC_SYNERGY_RULES_VERSION && ENDLESS_SYNERGY_RELICS.has(id)) {
+        return false;
+    }
+    if (ENDLESS_SYNERGY_RELICS.has(id) && !isScheduledEndlessDraftRun(run)) {
+        return false;
+    }
+    const forbidden = RELIC_DRAFT[id].forbiddenWithContract ?? [];
+    return !forbidden.some((flag) => run.activeContract?.[flag]);
+};
+
+export const getRelicDraftReason = (id: RelicId, context: RelicDraftContext): string | null => {
+    if (!context.isScheduledEndless) {
+        return null;
+    }
+    if (context.activeOrAcceptedRiskWager && WAGER_RELICS.has(id)) {
+        return 'Protects wager';
+    }
+    if (context.favorNearRelicPick && id === 'shrine_echo') {
+        return 'Turns Favor into relic picks';
+    }
+    if (contextHasAnyMutator(context, ['short_memorize']) && SHORT_MEMORIZE_RELICS.has(id)) {
+        return 'Answers short memorize';
+    }
+    if (contextHasAnyMutator(context, ['score_parasite']) && PARASITE_RELICS.has(id)) {
+        return 'Checks parasite pressure';
+    }
+    if (
+        contextHasAnyMutator(context, ['wide_recall', 'category_letters', 'sticky_fingers']) &&
+        SHUFFLE_SEARCH_RELICS.has(id)
+    ) {
+        return 'Fits next chapter';
+    }
+    if (
+        contextHasAnyMutator(context, ['n_back_anchor', 'shifting_spotlight']) &&
+        ANCHOR_SPOTLIGHT_RELICS.has(id)
+    ) {
+        return 'Tracks shifting reads';
+    }
+    if (id === 'chapter_compass' && context.currentMutators.length + context.nextMutators.length > 0) {
+        return 'Improves future chapter drafts';
+    }
+    return null;
+};
+
+export const getContextualRelicDraftWeight = (
+    id: RelicId,
+    context: RelicDraftContext,
+    tierIndex: number
+): number => {
+    const base = effectiveRelicDraftWeight(id, tierIndex);
+    if (!context.isScheduledEndless) {
+        return base;
+    }
+
+    let multiplier = 1;
+    if (contextHasAnyMutator(context, ['short_memorize']) && SHORT_MEMORIZE_RELICS.has(id)) {
+        multiplier *= id === 'memorize_under_short_memorize' ? 3 : 1.8;
+    }
+    if (contextHasAnyMutator(context, ['score_parasite']) && PARASITE_RELICS.has(id)) {
+        multiplier *= id === 'parasite_ledger' || id === 'parasite_ward_once' ? 3 : 1.7;
+    }
+    if (
+        contextHasAnyMutator(context, ['wide_recall', 'category_letters', 'sticky_fingers']) &&
+        SHUFFLE_SEARCH_RELICS.has(id)
+    ) {
+        multiplier *= 1.8;
+    }
+    if (
+        contextHasAnyMutator(context, ['n_back_anchor', 'shifting_spotlight']) &&
+        ANCHOR_SPOTLIGHT_RELICS.has(id)
+    ) {
+        multiplier *= id === 'pin_cap_plus_one' ? 2.4 : 2;
+    }
+    if (context.activeOrAcceptedRiskWager && WAGER_RELICS.has(id)) {
+        multiplier *= id === 'wager_surety' ? 3 : 2;
+    }
+    if (context.favorNearRelicPick && id === 'shrine_echo') {
+        multiplier *= 2.5;
+    }
+    if (id === 'chapter_compass' && getRelicDraftReason(id, context) != null) {
+        multiplier *= 1.45;
+    }
+    if (context.hasChapterCompass && getRelicDraftReason(id, context) != null) {
+        multiplier *= 1.35;
+    }
+    return base * multiplier;
+};
 
 export const relicDraftRarityLabel = (rarity: RelicDraftRarity): string => {
     switch (rarity) {
@@ -152,18 +347,60 @@ export const rollRelicOptions = (
     clearedFloor: number,
     pickRound: number = 0
 ): RelicId[] => {
-    const available = RELIC_POOL.filter((r) => !run.relicIds.includes(r));
+    const available = RELIC_POOL.filter((id) => isRelicDraftEligible(id, run));
     if (available.length <= DRAFT_OPTION_COUNT) {
         return available.slice(0, DRAFT_OPTION_COUNT);
     }
 
     const seed = hashStringToSeed(`relic:${run.runSeed}:${tierIndex}:${clearedFloor}:${pickRound}`);
     const rng = makeRng(seed);
+    const context = getRelicDraftContext(run, clearedFloor);
+    const picked: RelicId[] = [];
 
-    const weighted = available.map((id) => ({
-        value: id,
-        weight: effectiveRelicDraftWeight(id, tierIndex)
-    }));
+    if (context.isScheduledEndless) {
+        const contextualCandidates = available.filter((id) => getRelicDraftReason(id, context) != null);
+        const directAnswerCandidates = contextualCandidates.filter((id) => id !== 'chapter_compass');
+        const spotlightCandidates = directAnswerCandidates.length > 0 ? directAnswerCandidates : contextualCandidates;
+        const spotlight = pickWeightedWithoutReplacement(
+            rng,
+            spotlightCandidates.map((id) => ({
+                value: id,
+                weight: getContextualRelicDraftWeight(id, context, tierIndex)
+            })),
+            1
+        )[0];
+        if (spotlight) {
+            picked.push(spotlight);
+        }
+    }
 
-    return pickWeightedWithoutReplacement(rng, weighted, DRAFT_OPTION_COUNT);
+    const weighted = available
+        .filter((id) => !picked.includes(id))
+        .map((id) => ({
+            value: id,
+            weight: context.isScheduledEndless
+                ? getContextualRelicDraftWeight(id, context, tierIndex)
+                : effectiveRelicDraftWeight(id, tierIndex)
+        }));
+
+    return [...picked, ...pickWeightedWithoutReplacement(rng, weighted, DRAFT_OPTION_COUNT - picked.length)];
+};
+
+export const getRelicDraftOptionReasons = (
+    run: RunState,
+    clearedFloor: number,
+    options: readonly RelicId[]
+): Partial<Record<RelicId, string>> | undefined => {
+    const context = getRelicDraftContext(run, clearedFloor);
+    if (!context.isScheduledEndless) {
+        return undefined;
+    }
+    const reasons: Partial<Record<RelicId, string>> = {};
+    for (const id of options) {
+        const reason = getRelicDraftReason(id, context);
+        if (reason) {
+            reasons[id] = reason;
+        }
+    }
+    return Object.keys(reasons).length > 0 ? reasons : undefined;
 };

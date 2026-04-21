@@ -17,7 +17,10 @@ export const relicEffectLabels: Record<RelicId, string> = {
     stray_charge_plus_one: '+1 stray remover charge (now)',
     pin_cap_plus_one: '+1 max pinned tiles',
     guard_token_plus_one: '+1 guard token (now, capped)',
-    shrine_echo: 'Next relic milestone: +1 extra selection'
+    shrine_echo: 'Next relic milestone: +1 extra selection',
+    chapter_compass: 'Future Endless drafts lean harder into chapter answers',
+    wager_surety: 'Risk wagers pay +1 Favor and soften wager busts',
+    parasite_ledger: 'Successful parasite floors slow parasite pressure'
 };
 
 /**
@@ -68,11 +71,16 @@ export function buildRelicDraftBonusFootnoteLines(run: RunState): string[] {
         return [];
     }
     const { total } = getRelicDraftVisitTotals(offer);
-    if (total <= 1) {
-        return [];
-    }
 
     const lines: string[] = [];
+
+    if (offer.contextualOptionReasons && Object.keys(offer.contextualOptionReasons).length > 0) {
+        lines.push('At least one choice is chapter-aligned for this Endless route.');
+    }
+
+    if (total <= 1) {
+        return lines;
+    }
 
     if ((offer.favorBonusPicks ?? 0) > 0) {
         lines.push(

@@ -57,7 +57,7 @@ import {
     usesEndlessFloorSchedule
 } from './floor-mutator-schedule';
 import { DAILY_MUTATOR_TABLE, hasMutator } from './mutators';
-import { needsRelicPick, relicMilestoneIndexForFloor, rollRelicOptions } from './relics';
+import { getRelicDraftOptionReasons, needsRelicPick, relicMilestoneIndexForFloor, rollRelicOptions } from './relics';
 import type { RunExportPayload } from './run-export';
 import {
     createMulberry32,
@@ -956,6 +956,10 @@ const applyRelicImmediate = (run: RunState, relicId: RelicId): RunState => {
             };
         case 'shrine_echo':
             return grantBonusRelicPickNextOffer(run, 1);
+        case 'chapter_compass':
+        case 'wager_surety':
+        case 'parasite_ledger':
+            return run;
         default:
             return run;
     }
@@ -1211,6 +1215,7 @@ export const openRelicOffer = (run: RunState): RunState => {
     }
     const picksRemaining = computeRelicOfferPickBudget(run);
     const options = rollRelicOptions(run, tierIndex, cleared, 0);
+    const contextualOptionReasons = getRelicDraftOptionReasons(run, cleared, options);
 
     return {
         ...run,
@@ -1221,7 +1226,8 @@ export const openRelicOffer = (run: RunState): RunState => {
             options,
             picksRemaining,
             pickRound: 0,
-            favorBonusPicks: run.favorBonusRelicPicksNextOffer
+            favorBonusPicks: run.favorBonusRelicPicksNextOffer,
+            contextualOptionReasons
         }
     };
 };
@@ -1254,6 +1260,7 @@ export const completeRelicPickAndAdvance = (run: RunState, relicId: RelicId): Ru
         }
         const newPickRound = offer.pickRound + 1;
         const newOptions = rollRelicOptions(next, tierIndex, cleared, newPickRound);
+        const contextualOptionReasons = getRelicDraftOptionReasons(next, cleared, newOptions);
         if (newOptions.length === 0) {
             next = {
                 ...next,
@@ -1269,7 +1276,8 @@ export const completeRelicPickAndAdvance = (run: RunState, relicId: RelicId): Ru
                 options: newOptions,
                 picksRemaining: remainingAfter,
                 pickRound: newPickRound,
-                favorBonusPicks: offer.favorBonusPicks
+                favorBonusPicks: offer.favorBonusPicks,
+                contextualOptionReasons
             }
         };
     }
@@ -1406,17 +1414,20 @@ const finalizeLevel = (run: RunState, board: BoardState): RunState => {
             : null;
     const endlessRiskWagerOutcome =
         activeEndlessRiskWager != null ? (featuredObjectiveCompleted ? 'won' : 'lost') : undefined;
+    const hasWagerSurety = run.relicIds.includes('wager_surety');
     const featuredObjectiveStreak =
         featuredObjectiveId != null
             ? featuredObjectiveCompleted
                 ? run.featuredObjectiveStreak + 1
                 : activeEndlessRiskWager
-                  ? 0
+                  ? hasWagerSurety
+                      ? 1
+                      : 0
                   : Math.max(0, run.featuredObjectiveStreak - FEATURED_OBJECTIVE_STREAK_MISS_DECAY)
             : run.featuredObjectiveStreak;
     const endlessRiskWagerStreakLost =
         activeEndlessRiskWager != null && !featuredObjectiveCompleted
-            ? activeEndlessRiskWager.streakAtRisk
+            ? Math.max(0, activeEndlessRiskWager.streakAtRisk - featuredObjectiveStreak)
             : undefined;
     const featuredObjectiveStreakBonus =
         featuredObjectiveId != null && featuredObjectiveCompleted
@@ -1432,7 +1443,8 @@ const finalizeLevel = (run: RunState, board: BoardState): RunState => {
             bonusTags.push(featuredObjectiveId);
             relicFavorGained = board.floorTag === 'boss' ? 2 : 1;
             if (activeEndlessRiskWager) {
-                endlessRiskWagerFavorGained = activeEndlessRiskWager.bonusFavorOnSuccess;
+                endlessRiskWagerFavorGained =
+                    activeEndlessRiskWager.bonusFavorOnSuccess + (hasWagerSurety ? 1 : 0);
             }
             if (featuredObjectiveStreakBonus > 0) {
                 bonusTags.push('objective_streak');
@@ -1471,6 +1483,13 @@ const finalizeLevel = (run: RunState, board: BoardState): RunState => {
     const lives = Math.min(MAX_LIVES, run.lives + clearLifeGained);
     const totalRelicFavorGained = relicFavorGained + endlessRiskWagerFavorGained;
     const relicFavor = gainRelicFavor(run, totalRelicFavorGained);
+    const parasiteFloors =
+        featuredObjectiveId != null &&
+        featuredObjectiveCompleted &&
+        run.relicIds.includes('parasite_ledger') &&
+        hasMutator(run, 'score_parasite')
+            ? Math.max(0, run.parasiteFloors - 1)
+            : run.parasiteFloors;
     const lastLevelResult: LevelResult = {
         level: board.level,
         scoreGained,
@@ -1501,6 +1520,7 @@ const finalizeLevel = (run: RunState, board: BoardState): RunState => {
         bonusRelicPicksNextOffer: relicFavor.bonusRelicPicksNextOffer,
         favorBonusRelicPicksNextOffer: relicFavor.favorBonusRelicPicksNextOffer,
         relicFavorProgress: relicFavor.relicFavorProgress,
+        parasiteFloors,
         featuredObjectiveStreak,
         endlessRiskWager: activeEndlessRiskWager ? null : run.endlessRiskWager,
         board,

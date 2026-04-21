@@ -8,7 +8,7 @@
  */
 export const SAVE_SCHEMA_VERSION = 5;
 /** Bump when generation rules change (tile order, mutators, pair layout). */
-export const GAME_RULES_VERSION = 13;
+export const GAME_RULES_VERSION = 14;
 export const INITIAL_LIVES = 4;
 /** Hard cap on life total during a run; HUD renders this many heart slots (PLAY-004 — honest max, not mock’s three). */
 export const MAX_LIVES = 5;
@@ -118,7 +118,10 @@ export type RelicId =
     | 'stray_charge_plus_one'
     | 'pin_cap_plus_one'
     | 'guard_token_plus_one'
-    | 'shrine_echo';
+    | 'shrine_echo'
+    | 'chapter_compass'
+    | 'wager_surety'
+    | 'parasite_ledger';
 
 /** Active milestone relic draft (one visit may allow multiple picks). */
 export interface RelicOfferState {
@@ -131,6 +134,8 @@ export interface RelicOfferState {
     pickRound: number;
     /** Display-only source marker for bonus picks banked from endless featured-objective favor. */
     favorBonusPicks?: number;
+    /** Display-only reason copy for chapter-aligned options in the current draft round. */
+    contextualOptionReasons?: Partial<Record<RelicId, string>>;
 }
 
 export interface EndlessRiskWagerState {

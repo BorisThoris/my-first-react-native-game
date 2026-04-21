@@ -17,5 +17,8 @@ Draft tier (`RelicDraftRarity` in [`relics.ts`](../../../src/shared/relics.ts)) 
 | `pin_cap_plus_one` | rare | +1 max pinned tiles |
 | `guard_token_plus_one` | rare | +1 guard token (capped) |
 | `shrine_echo` | uncommon | +1 pick budget at **next** shrine only |
+| `chapter_compass` | uncommon | Stronger scheduled Endless contextual drafts |
+| `wager_surety` | rare | Risk wager +1 Favor and x1 bust floor |
+| `parasite_ledger` | uncommon | Successful parasite objective slows parasite pressure |
 
 See [`RELIC_ROSTER.md`](../../RELIC_ROSTER.md) for full behavior and overlap notes.
