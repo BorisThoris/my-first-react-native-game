@@ -6,7 +6,7 @@
 
 **Maintenance:** When an item is fixed or superseded, update this file **and** the relevant epic’s **Rough edges** / **Refinement** section so they stay aligned.
 
-**Related:** [GAMEPLAY_MECHANICS_CATALOG.md](./GAMEPLAY_MECHANICS_CATALOG.md) (what exists), [GAMEPLAY_SYSTEMS_ANALYSIS.md](../GAMEPLAY_SYSTEMS_ANALYSIS.md) (architecture + recommendations).
+**Related:** [GAMEPLAY_MECHANICS_CATALOG.md](./GAMEPLAY_MECHANICS_CATALOG.md) (what exists; Appendices A–D match `contracts.ts` including **`Tile`** fields), [GAMEPLAY_SYSTEMS_ANALYSIS.md](../GAMEPLAY_SYSTEMS_ANALYSIS.md) (architecture + recommendations).
 
 ---
 

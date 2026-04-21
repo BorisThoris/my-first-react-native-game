@@ -17,6 +17,8 @@ const minimalBoard = (overrides: Partial<BoardState> & Pick<BoardState, 'tiles' 
         level: overrides.level ?? 1,
         pairCount: overrides.pairCount ?? 1,
         matchedPairs: overrides.matchedPairs ?? 0,
+        floorArchetypeId: overrides.floorArchetypeId ?? null,
+        featuredObjectiveId: overrides.featuredObjectiveId ?? null,
         ...overrides
     }) as BoardState;
 

@@ -1,7 +1,7 @@
 # Gameplay systems analysis
 
-**Generated:** 2026-04-09  
-**Method:** Delegated codebase exploration (shared core, renderer, docs/entry) plus spot-checks in `game.ts`, `useAppStore.ts`, and `floor-mutator-schedule.ts`.
+**Generated:** 2026-04-20  
+**Method:** Full parity pass against [docs/gameplay/GAMEPLAY_MECHANICS_CATALOG.md](gameplay/GAMEPLAY_MECHANICS_CATALOG.md) (§1–14, Appendices A–D vs `contracts.ts`), plus codebase exploration (`game.ts`, `useAppStore.ts`, `floor-mutator-schedule.ts`, `mechanics-encyclopedia.ts`).
 
 This document maps **what exists today**, **how pieces connect**, and **where gameplay is incomplete or split between “rules” and “presentation.”** It is meant to support a **fully refined** mechanical design—not to replace `GAME_MECHANICS_IDEAS.md` (backlog) or `MUTATORS.md` (mutator checklist).
 
@@ -12,6 +12,8 @@ This document maps **what exists today**, **how pieces connect**, and **where ga
 The project has a **strong shared rules layer** (`src/shared/game.ts` + `contracts.ts`): memory phase, pair matching, scoring, lives, many powers (shuffle, destroy, peek, undo, pins, stray remove, gambit, wild/decoy paths, etc.), contracts, relic-adjacent hooks, and extensive unit tests.
 
 The **desktop renderer** (`GameScreen`, `TileBoard`, Zustand `useAppStore`) is **correctly wired** to that layer for turns: tile presses and toolbar actions call pure `game.ts` functions and update `run` in the store. **Electron IPC does not drive turns**; it handles settings, save/load, achievements, display, Steam—appropriate for a local rules engine.
+
+**Documentation chain:** Hand-maintained [GAMEPLAY_MECHANICS_CATALOG.md](gameplay/GAMEPLAY_MECHANICS_CATALOG.md) maps mechanisms and **every** `RunState` / `Tile` field to epics; [GAMEPLAY_MECHANICS_CATALOG.auto-appendix.md](gameplay/GAMEPLAY_MECHANICS_CATALOG.auto-appendix.md) is regenerated via `yarn docs:mechanics-appendix` for version counters. Player-facing Codex copy is **`mechanics-encyclopedia.ts`** (see [CONTRIBUTING.md](../CONTRIBUTING.md)).
 
 **Remaining polish** (smaller):
 

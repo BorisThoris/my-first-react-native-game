@@ -78,7 +78,7 @@ Also:
 - Local saves, settings, and achievements
 - Windows x64 only
 
-Design and mutator details: [docs/MUTATORS.md](docs/MUTATORS.md), [docs/GAMEPLAY_SYSTEMS_ANALYSIS.md](docs/GAMEPLAY_SYSTEMS_ANALYSIS.md).
+Design and mutator details: [docs/MUTATORS.md](docs/MUTATORS.md), [docs/gameplay/GAMEPLAY_MECHANICS_CATALOG.md](docs/gameplay/GAMEPLAY_MECHANICS_CATALOG.md) (full rules matrix), [docs/GAMEPLAY_SYSTEMS_ANALYSIS.md](docs/GAMEPLAY_SYSTEMS_ANALYSIS.md).
 
 **Internal wiki (full doc map, multi-agent upkeep, coverage methodology):** [docs/internal-wiki/README.md](docs/internal-wiki/README.md) · [docs/internal-wiki/COVERAGE.md](docs/internal-wiki/COVERAGE.md).
 

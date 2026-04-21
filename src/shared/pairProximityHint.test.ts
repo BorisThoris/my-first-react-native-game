@@ -18,7 +18,9 @@ const board2x2 = (tiles: Tile[]): BoardState => ({
     rows: 2,
     tiles,
     flippedTileIds: tiles.filter((t) => t.state === 'flipped').map((t) => t.id),
-    matchedPairs: 0
+    matchedPairs: 0,
+    floorArchetypeId: null,
+    featuredObjectiveId: null
 });
 
 const boardRect = (columns: number, rows: number, tiles: Tile[]): BoardState => ({
@@ -28,7 +30,9 @@ const boardRect = (columns: number, rows: number, tiles: Tile[]): BoardState => 
     rows,
     tiles,
     flippedTileIds: tiles.filter((t) => t.state === 'flipped').map((t) => t.id),
-    matchedPairs: 0
+    matchedPairs: 0,
+    floorArchetypeId: null,
+    featuredObjectiveId: null
 });
 
 describe('getPairProximityGridDistance', () => {

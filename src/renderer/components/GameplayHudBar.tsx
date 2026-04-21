@@ -1,5 +1,10 @@
 import { useId, type ReactNode } from 'react';
 import { MAX_LIVES, type MutatorId, type RunState } from '../../shared/contracts';
+import {
+    getFeaturedObjectiveLabel,
+    getFloorArchetypeDefinition,
+    usesEndlessFloorSchedule
+} from '../../shared/floor-mutator-schedule';
 import codexBookUrl from '../assets/ui/icons/icon-codex-book-v1.svg?url';
 import scoreParasiteCrystalUrl from '../assets/ui/icons/icon-score-parasite-crystal.svg?url';
 import shuffleIconUrl from '../assets/ui/icons/icon-shuffle-v1.svg?url';
@@ -128,6 +133,12 @@ const GameplayHudBar = ({
     const scoreParasiteActive = run.activeMutators.includes('score_parasite');
     const parasiteFloorProgress = Math.min(1, run.parasiteFloors / 4);
     const mutatorsForChips = run.activeMutators.filter((id) => !(scoreParasiteActive && id === 'score_parasite'));
+    const endlessChapterActive =
+        run.gameMode === 'endless' &&
+        usesEndlessFloorSchedule(run.gameMode, run.runRulesVersion) &&
+        board.floorArchetypeId != null;
+    const archetype = getFloorArchetypeDefinition(board.floorArchetypeId);
+    const featuredObjectiveLabel = getFeaturedObjectiveLabel(board.featuredObjectiveId);
     const contextChips: { className: string; key: string; label: string; testId: string; title: string; glyph: ReactNode }[] = [];
     if (run.gameMode === 'gauntlet') {
         contextChips.push({
@@ -372,6 +383,15 @@ const GameplayHudBar = ({
                             <div className={`${styles.hudSegment} ${styles.hudMetaSegment}`}>
                                 <span className={styles.statKey}>Mode</span>
                                 <span className={styles.statVal}>{hudModeLabel}</span>
+                                {endlessChapterActive && archetype ? (
+                                    <span
+                                        className={styles.statSubline}
+                                        data-testid="hud-endless-archetype"
+                                        title={archetype.hint}
+                                    >
+                                        {archetype.title}
+                                    </span>
+                                ) : null}
                                 {nBackLabel ? <span className={styles.statSubline}>{nBackLabel}</span> : null}
                                 {showMutatorChipRow ? (
                                     <div className={styles.mutatorRow}>
@@ -412,6 +432,26 @@ const GameplayHudBar = ({
                                     <div className={styles.statPillCompact} title="Gauntlet time left">
                                         <span className={styles.statKey}>Time</span>
                                         <span className={styles.statVal}>{Math.ceil(gauntletRemainingMs / 1000)}s</span>
+                                    </div>
+                                ) : null}
+                                {endlessChapterActive && featuredObjectiveLabel ? (
+                                    <div
+                                        className={styles.statPillCompact}
+                                        data-testid="hud-featured-objective"
+                                        title="Featured objective for this endless floor"
+                                    >
+                                        <span className={styles.statKey}>Objective</span>
+                                        <span className={styles.statVal}>{featuredObjectiveLabel}</span>
+                                    </div>
+                                ) : null}
+                                {endlessChapterActive ? (
+                                    <div
+                                        className={styles.statPillCompact}
+                                        data-testid="hud-favor-progress"
+                                        title="Every 3 favor banks an extra relic pick for the next shrine"
+                                    >
+                                        <span className={styles.statKey}>Favor</span>
+                                        <span className={styles.statVal}>{run.relicFavorProgress}/3</span>
                                     </div>
                                 ) : null}
                                 {run.findablesTotalThisFloor > 0 ? (

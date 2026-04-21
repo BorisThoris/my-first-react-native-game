@@ -14,7 +14,7 @@ The heart of the game: hidden tiles flip to reveal symbols; two (or three with g
 | Wild joker | **Functional** | `WILD_PAIR_KEY` matching rules; `wildMatchesRemaining` across floors in wild-style runs. |
 | `wildTileId` on `RunState` | **Shippable** | Populated from the wild tile’s `id` when present (`getWildTileIdFromBoard` in `createNewRun` / `advanceToNextLevel`); `null` when no wild tile. Matching remains `pairKey`-driven. |
 | Glass decoy | **Shippable** | `DECOY_PAIR_KEY` never matches; `glass_floor` mutator; `decoyFlippedThisFloor` tracking. |
-| Board generation | **Shippable** | `createTiles`, `buildBoard`; weaker shuffle modes, cursed pair pick, shifting spotlight init. |
+| Board generation | **Shippable** | `buildBoard` (internal `createTiles`); weaker shuffle modes, cursed pair pick, shifting spotlight init. [`Tile`](../../src/shared/contracts.ts) field matrix: [catalog Appendix D](./GAMEPLAY_MECHANICS_CATALOG.md#appendix-d--tile-every-field). |
 | Fixed / puzzle boards | **Functional** | `fixedTiles` supplies layout; cursed pair init and shifting spotlight keys are added only when the puzzle / run pipeline wires them. Shipped builtins are documented per id in `builtin-puzzles.ts` (layout-only). |
 | Timer fields | **Functional** | `RunTimerState` in `game.ts` (`pauseRun` / `resumeRun`); tick driving is primarily store/renderer. |
 

@@ -2,7 +2,7 @@
 
 ## Authoritative catalog (complete coverage)
 
-**[GAMEPLAY_MECHANICS_CATALOG.md](./GAMEPLAY_MECHANICS_CATALOG.md)** is the **full matrix** of gameplay mechanics: every major rule cluster, store actions, settings that affect play, input channels, and read-only UI. **§14 + Appendices A–C** list **every field** on `RunState`, `RunTimerState`, `SessionStats`, and `BoardState` from `src/shared/contracts.ts`. **Start here** to verify nothing is missing.
+**[GAMEPLAY_MECHANICS_CATALOG.md](./GAMEPLAY_MECHANICS_CATALOG.md)** is the **full matrix** of gameplay mechanics: every major rule cluster, store actions, settings that affect play, input channels, and read-only UI. **§14 + Appendices A–D** list **every field** on `RunState`, `RunTimerState`, `SessionStats`, `BoardState`, and **`Tile`** from `src/shared/contracts.ts`. **Start here** to verify nothing is missing.
 
 **[GAMEPLAY_POLISH_AND_GAPS.md](./GAMEPLAY_POLISH_AND_GAPS.md)** is the **rollup** of polish needs, partial implementations, and doc/UX risks—synthesized from each epic’s refinement notes (not a second source of truth).
 

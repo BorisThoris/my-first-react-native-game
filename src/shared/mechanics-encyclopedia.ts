@@ -8,7 +8,7 @@
 import type { AchievementId, GameMode, MutatorId, RelicId } from './contracts';
 
 /** Monotonic reference doc version (increment when the encyclopedia meaningfully changes). */
-export const ENCYCLOPEDIA_VERSION = 5 as const;
+export const ENCYCLOPEDIA_VERSION = 7 as const;
 
 export interface RelicDefinition {
     id: RelicId;
@@ -244,7 +244,7 @@ export const GAME_MODE_CODEX: GameModeCodexEntry[] = [
         id: 'endless',
         title: 'Classic Run',
         description:
-            'Standard descent: procedural floors, relic offers, and escalating pair counts. (Internal mode id: endless.)'
+            'Standard descent: procedural floors, named endless chapters, one featured objective per floor, and relic offers every three clears. Completing featured objectives builds Favor; every 3 Favor banks +1 extra relic selection for the next shrine. (Internal mode id: endless.)'
     },
     {
         id: 'daily',
@@ -305,7 +305,7 @@ export const CODEX_CORE_TOPICS: CodexCoreTopic[] = [
         id: 'relics',
         title: 'Relics',
         description:
-            'Offered at milestone floors **during the current run** (e.g. 3 / 6 / 9). Picks apply **for the rest of that run only**—they are not permanent meta upgrades between runs.'
+            'Offered at milestone floors **during the current run** (every **three** cleared floors starting at floor **3**, with a cap on how many visits per run). Picks apply **for the rest of that run only**. After the **Week of Archives** achievement, meta progression can grant **+1 selection at each milestone**. **Shrine echo**, **Generous shrine**, endless-floor **Favor**, and occasional bonus drafts can add extra picks in specific visits.'
     },
     {
         id: 'mutators',
@@ -383,6 +383,12 @@ export const ENCYCLOPEDIA_POWER_TOPICS: readonly EncyclopediaTopic[] = [
  */
 export const ENCYCLOPEDIA_SCORING_AND_SURVIVAL_TOPICS: readonly EncyclopediaTopic[] = [
     {
+        id: 'sys_endless_chapters_and_favor',
+        title: 'Endless chapters, featured objectives, and Favor',
+        description:
+            'Modern **Classic Run** uses a repeating chapter schedule: each endless floor has a **name**, a short **hint**, and **one featured objective** instead of the old hidden objective stack. Completing that featured objective grants its usual score bonus plus **Favor** (+1 on normal or breather floors, +2 on boss floors). Every **3 Favor** banks **+1 extra relic selection** for the next shrine.'
+    },
+    {
         id: 'sys_perfect_floor_vs_achievement',
         title: 'Perfect floor vs Perfect Memory (achievement)',
         description:
@@ -392,19 +398,19 @@ export const ENCYCLOPEDIA_SCORING_AND_SURVIVAL_TOPICS: readonly EncyclopediaTopi
         id: 'sys_scholar_style_floor',
         title: 'Scholar-style floor bonus (not only the contract)',
         description:
-            'On **any** run, if you clear a floor **without using full-board shuffle or destroy pair on that floor**, you earn a **scholar-style** stackable objective bonus (+40 in current rules). This is separate from picking a **Scholar** menu contract—it rewards clean play per floor whenever it happens.'
+            'The **scholar-style** objective is worth **+40**. Outside scheduled endless chapters, it still behaves like a normal stackable floor objective: clear the floor **without using full-board shuffle or destroy pair on that floor** and you get the bonus. In modern endless chapters, you earn it only on floors where **Scholar style** is the **featured objective**.'
     },
     {
         id: 'sys_flip_par_floor',
         title: 'Flip par (match-resolution budget)',
         description:
-            'If you finish the floor within a **match-resolution budget** based on pair count (roughly “pairs × 1.25, rounded up, plus a small buffer”), you earn the **flip par** objective bonus (+30). Counts **pair clears** (matches, gambit hits), not every tile flip.'
+            'The **flip par** objective is worth **+30**. If you finish the floor within a **match-resolution budget** based on pair count, you get the bonus. It counts **pair clears** (matches, gambit hits), not every tile flip. Outside scheduled endless chapters this can stack with other floor objectives; in modern endless chapters it pays out only when **Flip par** is the **featured objective** for that floor.'
     },
     {
         id: 'sys_glass_witness_and_cursed_last',
         title: 'Glass witness & cursed last objectives',
         description:
-            '**Glass witness** (+35): with a glass decoy on the board, you keep the bonus only if the decoy is **never involved in a mismatch** (including a **failed gambit** that touches it). **Cursed last** (+50): one pair is marked cursed—match it **last** among real pairs; matching it early forfeits this bonus.'
+            '**Glass witness** is worth **+35**: with a glass decoy on the board, you keep the bonus only if the decoy is **never involved in a mismatch**. **Cursed last** is worth **+50**: one pair is marked cursed, and you must match it **last** among real pairs. Outside scheduled endless chapters these behave like normal floor objectives. In modern endless chapters, they only appear when they are the floor\'s **featured objective**; endless floors also generate the cursed pair only on **Cursed last** chapters.'
     },
     {
         id: 'sys_boss_floor_multiplier',
@@ -488,7 +494,7 @@ export const ENCYCLOPEDIA_SETTINGS_AND_ASSISTS_TOPICS: readonly EncyclopediaTopi
         id: 'meta_floor_cycle_boss',
         title: 'Endless floor cycle & boss tags',
         description:
-            'In **Classic Run** with the modern floor schedule, each level draws **active mutators** and a **pacing tag** (normal, breather, or **boss**) from a **repeating cycle**. **Boss**-tagged clears apply the boss **score multiplier**; some boss steps may add presentation mutators for variation.'
+            'In **Classic Run** with the modern floor schedule, each level draws a named **chapter**, **active mutators**, a **featured objective**, and a **pacing tag** (normal, breather, or **boss**) from a **repeating cycle**. **Boss**-tagged clears apply the boss **score multiplier**; some boss steps may add presentation mutators for variation.'
     },
     {
         id: 'dev_debug_peek',

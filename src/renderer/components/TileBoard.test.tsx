@@ -46,6 +46,8 @@ const board: BoardState = {
     rows: 2,
     matchedPairs: 0,
     flippedTileIds: [],
+    floorArchetypeId: null,
+    featuredObjectiveId: null,
     tiles: [
         { id: 'a1', pairKey: 'A', symbol: 'A', label: 'A', state: 'hidden' },
         { id: 'a2', pairKey: 'A', symbol: 'A', label: 'A', state: 'hidden' },

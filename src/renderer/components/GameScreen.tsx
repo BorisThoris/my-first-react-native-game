@@ -13,6 +13,12 @@ import { useShallow } from 'zustand/react/shallow';
 import { UI_ART } from '../assets/ui';
 import { isNarrowShortLandscapeForMenuStack } from '../breakpoints';
 import { deriveCameraViewportMode, latchPhoneWidthForMobileCamera } from '../../shared/cameraViewportMode';
+import {
+    getFeaturedObjectiveLabel,
+    getFloorArchetypeDefinition,
+    pickFloorScheduleEntry,
+    usesEndlessFloorSchedule
+} from '../../shared/floor-mutator-schedule';
 import { useDistractionChannelTick } from '../hooks/useDistractionChannelTick';
 import {
     detectClaimedFindableKind,
@@ -39,6 +45,7 @@ import RelicDraftOfferPanel from './RelicDraftOfferPanel';
 import TileBoard, { type TileBoardHandle } from './TileBoard';
 import { GAMEPLAY_VISUAL_CSS_VARS } from './gameplayVisualConfig';
 import styles from './GameScreen.module.css';
+import { MUTATOR_CATALOG } from '../../shared/mechanics-encyclopedia';
 
 /** OVR-007 / HUD-020: decoy readout for `distraction_channel` — not gameplay state; hidden when reduce motion or assist toggle is off. */
 const DISTRACTION_CHANNEL_LABEL = 'Chaff';
@@ -81,6 +88,14 @@ const formatBonusTagsLine = (tags: string[] | undefined): string | null => {
         return null;
     }
     return tags.map((t) => BONUS_TAG_LABELS[t] ?? t).join(' · ');
+};
+
+const countFavorBonusPicksBanked = (favorProgressAfter: number, favorGain: number): number => {
+    if (favorGain <= 0) {
+        return 0;
+    }
+    const previousProgress = favorProgressAfter - favorGain;
+    return previousProgress < 0 ? 1 : 0;
 };
 
 const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameScreenProps) => {
@@ -449,6 +464,38 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
             ? `Objective bonuses: +${run.lastLevelResult.objectiveBonusScore!.toLocaleString()}`
             : null;
     const bonusTagsLine = run.lastLevelResult ? formatBonusTagsLine(run.lastLevelResult.bonusTags) : null;
+    const endlessChapterActive =
+        run.gameMode === 'endless' && usesEndlessFloorSchedule(run.gameMode, run.runRulesVersion);
+    const currentArchetype = getFloorArchetypeDefinition(run.board?.floorArchetypeId ?? null);
+    const currentFeaturedObjectiveLabel = getFeaturedObjectiveLabel(run.board?.featuredObjectiveId ?? null);
+    const levelResultObjectiveLabel = getFeaturedObjectiveLabel(run.lastLevelResult?.featuredObjectiveId ?? null);
+    const featuredObjectiveResultLine =
+        run.lastLevelResult?.featuredObjectiveId && levelResultObjectiveLabel
+            ? `${levelResultObjectiveLabel}: ${
+                  run.lastLevelResult.featuredObjectiveCompleted ? 'Complete' : 'Missed'
+              }`
+            : null;
+    const favorGained = run.lastLevelResult?.relicFavorGained ?? 0;
+    const favorGainLine =
+        run.lastLevelResult?.featuredObjectiveId != null ? `Favor gained: +${favorGained}` : null;
+    const favorBankedPickCount = countFavorBonusPicksBanked(run.relicFavorProgress, favorGained);
+    const favorBankedLine =
+        favorBankedPickCount > 0
+            ? `Extra relic ${favorBankedPickCount === 1 ? 'pick' : 'picks'} banked for the next shrine`
+            : null;
+    const nextFloorPreview =
+        endlessChapterActive && run.lastLevelResult
+            ? pickFloorScheduleEntry(run.runSeed, run.runRulesVersion, run.lastLevelResult.level + 1, run.gameMode)
+            : null;
+    const nextFloorObjectiveLabel = getFeaturedObjectiveLabel(nextFloorPreview?.featuredObjectiveId ?? null);
+    const nextFloorMutatorLabels =
+        nextFloorPreview && nextFloorPreview.mutators.length > 0
+            ? nextFloorPreview.mutators.map((id) => MUTATOR_CATALOG[id]?.title ?? id).join(', ')
+            : 'No mutators';
+    const nextFloorPreviewLine =
+        nextFloorPreview?.title && nextFloorObjectiveLabel
+            ? `Next: ${nextFloorPreview.title} В· ${nextFloorObjectiveLabel} В· ${nextFloorMutatorLabels}`
+            : null;
 
     const gauntletRemainingMs =
         run.gauntletDeadlineMs !== null ? Math.max(0, run.gauntletDeadlineMs - gauntletNowMs) : null;
@@ -469,6 +516,11 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         return null;
     }
 
+    const showEndlessChapterBanner =
+        endlessChapterActive &&
+        currentArchetype &&
+        currentFeaturedObjectiveLabel &&
+        (run.status === 'memorize' || (run.status === 'playing' && run.board.matchedPairs === 0));
     const showForgivenessHint =
         run.board.level <= 3 &&
         (run.status === 'memorize' || run.status === 'playing') &&
@@ -618,6 +670,16 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                             run={run}
                         />
 
+                        {showEndlessChapterBanner ? (
+                            <div className={styles.endlessChapterBanner} data-testid="endless-chapter-banner">
+                                <strong className={styles.endlessChapterTitle}>{currentArchetype!.title}</strong>
+                                <span className={styles.endlessChapterHint}>{currentArchetype!.hint}</span>
+                                <span className={styles.endlessChapterObjective}>
+                                    Objective: {currentFeaturedObjectiveLabel!}
+                                </span>
+                            </div>
+                        ) : null}
+
                         <div
                             className={`${styles.boardStage} ${cameraViewportMode ? styles.boardStageCamera : ''} ${boardPresentationClass} ${boardStageCssBloomClass}`.trim()}
                         >
@@ -736,8 +798,12 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         title="Floor cleared"
                     >
                         {clearLifeBonusLabel ? <p className={styles.modalNote}>{clearLifeBonusLabel}</p> : null}
+                        {featuredObjectiveResultLine ? <p className={styles.modalNote}>{featuredObjectiveResultLine}</p> : null}
+                        {favorGainLine ? <p className={styles.modalNote}>{favorGainLine}</p> : null}
+                        {favorBankedLine ? <p className={styles.modalNote}>{favorBankedLine}</p> : null}
                         {objectiveBonusLine ? <p className={styles.modalNote}>{objectiveBonusLine}</p> : null}
                         {bonusTagsLine ? <p className={styles.modalNote}>{bonusTagsLine}</p> : null}
+                        {nextFloorPreviewLine ? <p className={styles.modalNote}>{nextFloorPreviewLine}</p> : null}
                         <div className={styles.modalStats}>
                             <StatTile
                                 density="minimal"

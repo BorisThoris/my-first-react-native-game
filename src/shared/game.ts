@@ -31,7 +31,9 @@ import {
     type BoardState,
     type FindableKind,
     type ClearLifeReason,
+    type FeaturedObjectiveId,
     type FloorTag,
+    type FloorArchetypeId,
     type GameMode,
     type LevelResult,
     type MutatorId,
@@ -107,6 +109,14 @@ const ECHO_EXTRA_RESOLVE_MS = 380;
 const SHUFFLE_SCORE_TAX_FACTOR = 0.94;
 const ENCORE_BONUS_SCORE = 18;
 const GAMBIT_FAIL_EXTRA_TRIES = 1;
+const RELIC_FAVOR_PER_BONUS_PICK = 3;
+
+const FEATURED_OBJECTIVE_BONUS_SCORES: Record<FeaturedObjectiveId, number> = {
+    scholar_style: SCHOLAR_STYLE_FLOOR_BONUS_SCORE,
+    glass_witness: GLASS_WITNESS_BONUS_SCORE,
+    cursed_last: CURSED_LAST_BONUS_SCORE,
+    flip_par: FLIP_PAR_BONUS_SCORE
+};
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
 
@@ -295,6 +305,8 @@ export interface BuildBoardOptions {
     /** H4: include one wild tile that pairs with any real symbol. */
     includeWildTile?: boolean;
     floorTag?: FloorTag;
+    floorArchetypeId?: FloorArchetypeId | null;
+    featuredObjectiveId?: FeaturedObjectiveId | null;
 }
 
 const createTiles = (
@@ -509,6 +521,8 @@ export const buildBoard = (level: number, options: BuildBoardOptions = {}): Boar
     const runSeed = options.runSeed ?? 0;
     const rulesVersion = options.runRulesVersion ?? GAME_RULES_VERSION;
     const mutators = options.activeMutators ?? [];
+    const floorArchetypeId = options.floorArchetypeId ?? null;
+    const featuredObjectiveId = options.featuredObjectiveId ?? null;
 
     if (options.fixedTiles && options.fixedTiles.length > 0) {
         const tiles = options.fixedTiles.map((t) => ({ ...t }));
@@ -528,7 +542,9 @@ export const buildBoard = (level: number, options: BuildBoardOptions = {}): Boar
             floorTag: options.floorTag ?? 'normal',
             cursedPairKey: null,
             wardPairKey: null,
-            bountyPairKey: null
+            bountyPairKey: null,
+            floorArchetypeId,
+            featuredObjectiveId
         };
     }
 
@@ -543,7 +559,10 @@ export const buildBoard = (level: number, options: BuildBoardOptions = {}): Boar
     const tileCount = tiles.length;
     const columns = clamp(Math.ceil(Math.sqrt(tileCount)), 2, 8);
     const rows = Math.ceil(tileCount / columns);
-    const cursedPairKey = pickCursedPairKey(tiles, runSeed, rulesVersion, level);
+    const cursedPairKey =
+        featuredObjectiveId === 'cursed_last' || featuredObjectiveId === null
+            ? pickCursedPairKey(tiles, runSeed, rulesVersion, level)
+            : null;
     const baseBoard: BoardState = {
         level,
         pairCount,
@@ -553,7 +572,9 @@ export const buildBoard = (level: number, options: BuildBoardOptions = {}): Boar
         flippedTileIds: [],
         matchedPairs: 0,
         floorTag: options.floorTag ?? 'normal',
-        cursedPairKey
+        cursedPairKey,
+        floorArchetypeId,
+        featuredObjectiveId
     };
     if (!mutators.includes('shifting_spotlight')) {
         return { ...baseBoard, wardPairKey: null, bountyPairKey: null };
@@ -941,6 +962,8 @@ export const createNewRun = (bestScore: number, options: CreateRunOptions = {}):
     const rulesVersion = options.runRulesVersionOverride ?? GAME_RULES_VERSION;
     let activeMutators = options.activeMutators ?? [];
     let initialFloorTag: FloorTag = 'normal';
+    let initialFloorArchetypeId: FloorArchetypeId | null = null;
+    let initialFeaturedObjectiveId: FeaturedObjectiveId | null = null;
     if (
         gameMode === 'endless' &&
         usesEndlessFloorSchedule(gameMode, rulesVersion) &&
@@ -950,6 +973,8 @@ export const createNewRun = (bestScore: number, options: CreateRunOptions = {}):
         const entry = pickFloorScheduleEntry(runSeed, rulesVersion, 1, gameMode);
         activeMutators = entry.mutators;
         initialFloorTag = entry.floorTag;
+        initialFloorArchetypeId = entry.floorArchetypeId;
+        initialFeaturedObjectiveId = entry.featuredObjectiveId;
     }
     const weakerShuffleMode: WeakerShuffleMode = options.weakerShuffleMode ?? 'full';
     const shuffleScoreTaxActive = options.shuffleScoreTaxActive ?? false;
@@ -962,7 +987,9 @@ export const createNewRun = (bestScore: number, options: CreateRunOptions = {}):
             runRulesVersion: rulesVersion,
             activeMutators,
             includeWildTile: enableWildJoker,
-            floorTag: initialFloorTag
+            floorTag: initialFloorTag,
+            floorArchetypeId: initialFloorArchetypeId,
+            featuredObjectiveId: initialFeaturedObjectiveId
         });
 
     const run: RunState = {
@@ -989,6 +1016,8 @@ export const createNewRun = (bestScore: number, options: CreateRunOptions = {}):
         relicIds: [...(options.initialRelicIds ?? [])],
         relicTiersClaimed: 0,
         bonusRelicPicksNextOffer: 0,
+        favorBonusRelicPicksNextOffer: 0,
+        relicFavorProgress: 0,
         metaRelicDraftExtraPerMilestone: options.metaRelicDraftExtraPerMilestone ?? 0,
         relicOffer: null,
         activeContract: options.activeContract ?? null,
@@ -1105,14 +1134,11 @@ export const createRunFromExportPayload = (
     payload: RunExportPayload,
     extra: Partial<CreateRunOptions> = {}
 ): RunState => {
-    let activeMutators = payload.mutators;
-    if (payload.mode === 'endless' && payload.rules >= FLOOR_SCHEDULE_RULES_VERSION) {
-        activeMutators = pickFloorScheduleEntry(payload.seed, payload.rules, 1, 'endless').mutators;
-    }
+    const usesScheduledEndless = payload.mode === 'endless' && payload.rules >= FLOOR_SCHEDULE_RULES_VERSION;
     return createNewRun(bestScore, {
         runSeed: payload.seed,
         gameMode: payload.mode,
-        activeMutators,
+        ...(usesScheduledEndless ? {} : { activeMutators: payload.mutators }),
         initialRelicIds: payload.relics ?? [],
         runRulesVersionOverride: payload.rules,
         ...extra
@@ -1140,7 +1166,9 @@ export const createPuzzleRun = (
             rows,
             tiles: tiles.map((t) => ({ ...t })),
             flippedTileIds: [],
-            matchedPairs: 0
+            matchedPairs: 0,
+            floorArchetypeId: null,
+            featuredObjectiveId: null
         },
         ...extra
     });
@@ -1180,7 +1208,14 @@ export const openRelicOffer = (run: RunState): RunState => {
     return {
         ...run,
         bonusRelicPicksNextOffer: 0,
-        relicOffer: { tier: tierIndex + 1, options, picksRemaining, pickRound: 0 }
+        favorBonusRelicPicksNextOffer: 0,
+        relicOffer: {
+            tier: tierIndex + 1,
+            options,
+            picksRemaining,
+            pickRound: 0,
+            favorBonusPicks: run.favorBonusRelicPicksNextOffer
+        }
     };
 };
 
@@ -1226,7 +1261,8 @@ export const completeRelicPickAndAdvance = (run: RunState, relicId: RelicId): Ru
                 tier: offer.tier,
                 options: newOptions,
                 picksRemaining: remainingAfter,
-                pickRound: newPickRound
+                pickRound: newPickRound,
+                favorBonusPicks: offer.favorBonusPicks
             }
         };
     }
@@ -1351,21 +1387,35 @@ const finalizeLevel = (run: RunState, board: BoardState): RunState => {
     const perfectBonus = perfect ? calculatePerfectClearBonus() : 0;
     const bonusTags: string[] = [];
     let objectiveBonus = 0;
-    if (!run.shuffleUsedThisFloor && !run.destroyUsedThisFloor) {
-        objectiveBonus += SCHOLAR_STYLE_FLOOR_BONUS_SCORE;
-        bonusTags.push('scholar_style');
-    }
-    if (run.glassDecoyActiveThisFloor && !run.decoyFlippedThisFloor) {
-        objectiveBonus += GLASS_WITNESS_BONUS_SCORE;
-        bonusTags.push('glass_witness');
-    }
-    if (board.cursedPairKey && !run.cursedMatchedEarlyThisFloor) {
-        objectiveBonus += CURSED_LAST_BONUS_SCORE;
-        bonusTags.push('cursed_last');
-    }
-    if (board.pairCount >= 2 && run.matchResolutionsThisFloor <= flipParLimit(board.pairCount)) {
-        objectiveBonus += FLIP_PAR_BONUS_SCORE;
-        bonusTags.push('flip_par');
+    const endlessFeaturedObjectiveActive = isEndlessFeaturedObjectiveBoard(run, board);
+    const featuredObjectiveId = endlessFeaturedObjectiveActive ? board.featuredObjectiveId : null;
+    const featuredObjectiveCompleted =
+        featuredObjectiveId != null ? isFeaturedObjectiveCompleted(run, board, featuredObjectiveId) : false;
+    let relicFavorGained = 0;
+
+    if (featuredObjectiveId != null) {
+        if (featuredObjectiveCompleted) {
+            objectiveBonus += FEATURED_OBJECTIVE_BONUS_SCORES[featuredObjectiveId];
+            bonusTags.push(featuredObjectiveId);
+            relicFavorGained = board.floorTag === 'boss' ? 2 : 1;
+        }
+    } else {
+        if (!run.shuffleUsedThisFloor && !run.destroyUsedThisFloor) {
+            objectiveBonus += SCHOLAR_STYLE_FLOOR_BONUS_SCORE;
+            bonusTags.push('scholar_style');
+        }
+        if (run.glassDecoyActiveThisFloor && !run.decoyFlippedThisFloor) {
+            objectiveBonus += GLASS_WITNESS_BONUS_SCORE;
+            bonusTags.push('glass_witness');
+        }
+        if (board.cursedPairKey && !run.cursedMatchedEarlyThisFloor) {
+            objectiveBonus += CURSED_LAST_BONUS_SCORE;
+            bonusTags.push('cursed_last');
+        }
+        if (board.pairCount >= 2 && run.matchResolutionsThisFloor <= flipParLimit(board.pairCount)) {
+            objectiveBonus += FLIP_PAR_BONUS_SCORE;
+            bonusTags.push('flip_par');
+        }
     }
     const preBossSubtotal = run.stats.currentLevelScore + levelBonus + perfectBonus + objectiveBonus;
     const scoreGained =
@@ -1379,6 +1429,7 @@ const finalizeLevel = (run: RunState, board: BoardState): RunState => {
     const bestScore = Math.max(run.stats.bestScore, totalScore);
     const rating = calculateRating(run.stats.tries);
     const lives = Math.min(MAX_LIVES, run.lives + clearLifeGained);
+    const relicFavor = gainRelicFavor(run, relicFavorGained);
     const lastLevelResult: LevelResult = {
         level: board.level,
         scoreGained,
@@ -1389,13 +1440,19 @@ const finalizeLevel = (run: RunState, board: BoardState): RunState => {
         clearLifeReason,
         clearLifeGained,
         bonusTags: bonusTags.length > 0 ? bonusTags : undefined,
-        objectiveBonusScore: objectiveBonus > 0 ? objectiveBonus : undefined
+        objectiveBonusScore: objectiveBonus > 0 ? objectiveBonus : undefined,
+        featuredObjectiveId: featuredObjectiveId ?? undefined,
+        featuredObjectiveCompleted: featuredObjectiveId != null ? featuredObjectiveCompleted : undefined,
+        relicFavorGained: featuredObjectiveId != null ? relicFavorGained : undefined
     };
 
     return {
         ...run,
         status: 'levelComplete',
         lives,
+        bonusRelicPicksNextOffer: relicFavor.bonusRelicPicksNextOffer,
+        favorBonusRelicPicksNextOffer: relicFavor.favorBonusRelicPicksNextOffer,
+        relicFavorProgress: relicFavor.relicFavorProgress,
         board,
         stats: {
             ...run.stats,
@@ -1533,6 +1590,50 @@ const clearResolveState = (run: RunState): RunState['timerState'] => ({
     resolveRemainingMs: null,
     pausedFromStatus: null
 });
+
+const isEndlessFeaturedObjectiveBoard = (run: RunState, board: BoardState): boolean =>
+    run.gameMode === 'endless' &&
+    usesEndlessFloorSchedule(run.gameMode, run.runRulesVersion) &&
+    board.featuredObjectiveId != null;
+
+const isFeaturedObjectiveCompleted = (
+    run: RunState,
+    board: BoardState,
+    objectiveId: FeaturedObjectiveId
+): boolean => {
+    switch (objectiveId) {
+        case 'scholar_style':
+            return !run.shuffleUsedThisFloor && !run.destroyUsedThisFloor;
+        case 'glass_witness':
+            return run.glassDecoyActiveThisFloor && !run.decoyFlippedThisFloor;
+        case 'cursed_last':
+            return Boolean(board.cursedPairKey) && !run.cursedMatchedEarlyThisFloor;
+        case 'flip_par':
+            return board.pairCount >= 2 && run.matchResolutionsThisFloor <= flipParLimit(board.pairCount);
+        default:
+            return false;
+    }
+};
+
+const gainRelicFavor = (
+    run: RunState,
+    favorGain: number
+): Pick<RunState, 'bonusRelicPicksNextOffer' | 'favorBonusRelicPicksNextOffer' | 'relicFavorProgress'> => {
+    if (favorGain <= 0) {
+        return {
+            bonusRelicPicksNextOffer: run.bonusRelicPicksNextOffer,
+            favorBonusRelicPicksNextOffer: run.favorBonusRelicPicksNextOffer,
+            relicFavorProgress: run.relicFavorProgress
+        };
+    }
+    const totalFavor = run.relicFavorProgress + favorGain;
+    const bonusPicks = Math.floor(totalFavor / RELIC_FAVOR_PER_BONUS_PICK);
+    return {
+        bonusRelicPicksNextOffer: run.bonusRelicPicksNextOffer + bonusPicks,
+        favorBonusRelicPicksNextOffer: run.favorBonusRelicPicksNextOffer + bonusPicks,
+        relicFavorProgress: totalFavor % RELIC_FAVOR_PER_BONUS_PICK
+    };
+};
 
 const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState => {
     if (!run.board || run.board.flippedTileIds.length !== 3) {
@@ -1914,10 +2015,14 @@ export const advanceToNextLevel = (run: RunState): RunState => {
     const nextLevelNum = run.board.level + 1;
     let nextActiveMutators = [...run.activeMutators];
     let nextFloorTag: FloorTag = 'normal';
+    let nextFloorArchetypeId: FloorArchetypeId | null = null;
+    let nextFeaturedObjectiveId: FeaturedObjectiveId | null = null;
     if (usesEndlessFloorSchedule(run.gameMode, run.runRulesVersion) && !run.wildMenuRun) {
         const entry = pickFloorScheduleEntry(run.runSeed, run.runRulesVersion, nextLevelNum, run.gameMode);
         nextActiveMutators = entry.mutators;
         nextFloorTag = entry.floorTag;
+        nextFloorArchetypeId = entry.floorArchetypeId;
+        nextFeaturedObjectiveId = entry.featuredObjectiveId;
     }
 
     let parasiteFloors = run.parasiteFloors + 1;
@@ -1937,7 +2042,9 @@ export const advanceToNextLevel = (run: RunState): RunState => {
         runRulesVersion: run.runRulesVersion,
         activeMutators: nextActiveMutators,
         includeWildTile: run.wildMatchesRemaining > 0,
-        floorTag: nextFloorTag
+        floorTag: nextFloorTag,
+        floorArchetypeId: nextFloorArchetypeId,
+        featuredObjectiveId: nextFeaturedObjectiveId
     });
     const runForNextMemorize: RunState = { ...run, activeMutators: nextActiveMutators };
     const baseMemorizeMs = getMemorizeDurationForRun(runForNextMemorize, nextBoard.level);

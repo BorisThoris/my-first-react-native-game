@@ -8,7 +8,7 @@
  */
 export const SAVE_SCHEMA_VERSION = 5;
 /** Bump when generation rules change (tile order, mutators, pair layout). */
-export const GAME_RULES_VERSION = 10;
+export const GAME_RULES_VERSION = 11;
 export const INITIAL_LIVES = 4;
 /** Hard cap on life total during a run; HUD renders this many heart slots (PLAY-004 — honest max, not mock’s three). */
 export const MAX_LIVES = 5;
@@ -51,6 +51,7 @@ export type DisplayMode = 'windowed' | 'fullscreen';
 export type TileState = 'hidden' | 'flipped' | 'matched' | 'removed';
 export type Rating = 'S++' | 'S' | 'A' | 'B' | 'C' | 'D' | 'F';
 export type ClearLifeReason = 'none' | 'clean' | 'perfect';
+export type FeaturedObjectiveId = 'scholar_style' | 'glass_witness' | 'cursed_last' | 'flip_par';
 export type ViewState =
     | 'boot'
     | 'menu'
@@ -122,6 +123,8 @@ export interface RelicOfferState {
     picksRemaining: number;
     /** Reroll counter for deterministic `rollRelicOptions` within this visit. */
     pickRound: number;
+    /** Display-only source marker for bonus picks banked from endless featured-objective favor. */
+    favorBonusPicks?: number;
 }
 
 export interface ContractFlags {
@@ -220,6 +223,18 @@ export interface Tile {
 }
 
 export type FloorTag = 'normal' | 'breather' | 'boss';
+export type FloorArchetypeId =
+    | 'survey_hall'
+    | 'speed_trial'
+    | 'treasure_gallery'
+    | 'shadow_read'
+    | 'anchor_chain'
+    | 'trap_hall'
+    | 'script_room'
+    | 'rush_recall'
+    | 'parasite_tithe'
+    | 'spotlight_hunt'
+    | 'breather';
 
 export interface BoardState {
     level: number;
@@ -237,6 +252,10 @@ export interface BoardState {
     bountyPairKey?: string | null;
     /** GP-F03: pacing tag for this floor. */
     floorTag?: FloorTag;
+    /** Endless-only authored chapter identity; null outside the schedule. */
+    floorArchetypeId: FloorArchetypeId | null;
+    /** Endless-only visible goal for this floor; null outside the schedule. */
+    featuredObjectiveId: FeaturedObjectiveId | null;
 }
 
 export interface SessionStats {
@@ -271,6 +290,9 @@ export interface LevelResult {
     bonusTags?: string[];
     /** Extra score from bonusTags (included in scoreGained). */
     objectiveBonusScore?: number;
+    featuredObjectiveId?: FeaturedObjectiveId;
+    featuredObjectiveCompleted?: boolean;
+    relicFavorGained?: number;
 }
 
 export interface RunSummary {
@@ -335,6 +357,10 @@ export interface RunState {
      * Sources: `grantBonusRelicPickNextOffer` (future relics/meta/mutators).
      */
     bonusRelicPicksNextOffer: number;
+    /** Subset of `bonusRelicPicksNextOffer` sourced specifically from endless featured-objective favor. */
+    favorBonusRelicPicksNextOffer: number;
+    /** Endless-only favor bank from featured objectives; every 3 converts to +1 extra relic pick. */
+    relicFavorProgress: number;
     /**
      * Copied from save at run start: meta unlock grants +1 relic pick at **each** milestone (`relicShrineExtraPickUnlocked`).
      */

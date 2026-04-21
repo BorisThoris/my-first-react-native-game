@@ -198,7 +198,8 @@ describe('GameScreen (OVR-014)', () => {
                 tier: 1,
                 options: ['extra_shuffle_charge', 'memorize_bonus_ms', 'destroy_bank_plus_one'],
                 picksRemaining: 2,
-                pickRound: 0
+                pickRound: 0,
+                favorBonusPicks: 1
             }
         };
 
@@ -213,6 +214,7 @@ describe('GameScreen (OVR-014)', () => {
         expect(getByTestId('game-relic-offer-overlay')).toBeTruthy();
         expect(getByText('Relic draft · tier 1')).toBeTruthy();
         expect(getByText('Pick 1 of 2 this visit')).toBeTruthy();
+        expect(getByText(/Featured-objective favor/)).toBeTruthy();
         expect(getByText(/Scholar contract/)).toBeTruthy();
     });
 
@@ -240,5 +242,80 @@ describe('GameScreen (OVR-014)', () => {
 
         expect(getByTestId('game-relic-offer-overlay')).toBeTruthy();
         expect(queryByText(/this visit/)).toBeNull();
+    });
+
+    it('shows the endless chapter banner during memorize on scheduled endless floors', () => {
+        const run = createNewRun(0, { echoFeedbackEnabled: false });
+
+        const { getByTestId, getByText } = render(
+            <PlatformTiltProvider>
+                <NotificationHost>
+                    <GameScreen achievements={[]} run={run} />
+                </NotificationHost>
+            </PlatformTiltProvider>
+        );
+
+        expect(getByTestId('endless-chapter-banner')).toBeTruthy();
+        expect(getByText('Survey Hall')).toBeTruthy();
+        expect(getByText(/Objective: Flip par/)).toBeTruthy();
+    });
+
+    it('shows featured objective result, favor gain, and next-floor preview on endless floor clear', () => {
+        const baseRun = createNewRun(0, { echoFeedbackEnabled: false });
+        const run: RunState = {
+            ...baseRun,
+            status: 'levelComplete',
+            relicOffer: null,
+            relicFavorProgress: 0,
+            bonusRelicPicksNextOffer: 1,
+            favorBonusRelicPicksNextOffer: 1,
+            stats: {
+                ...baseRun.stats,
+                totalScore: 120,
+                currentLevelScore: 120,
+                tries: 0,
+                rating: 'S++',
+                levelsCleared: 1,
+                matchesFound: 2,
+                highestLevel: 1,
+                currentStreak: 2,
+                bestStreak: 2,
+                comboShards: 1
+            },
+            timerState: {
+                memorizeRemainingMs: null,
+                resolveRemainingMs: null,
+                debugRevealRemainingMs: null,
+                pausedFromStatus: null
+            },
+            lastLevelResult: {
+                level: 1,
+                scoreGained: 120,
+                rating: 'S++',
+                livesRemaining: 5,
+                perfect: true,
+                mistakes: 0,
+                clearLifeReason: 'perfect',
+                clearLifeGained: 1,
+                featuredObjectiveId: 'flip_par',
+                featuredObjectiveCompleted: true,
+                relicFavorGained: 1,
+                objectiveBonusScore: 30,
+                bonusTags: ['flip_par']
+            }
+        };
+
+        const { getByText } = render(
+            <PlatformTiltProvider>
+                <NotificationHost>
+                    <GameScreen achievements={[]} run={run} />
+                </NotificationHost>
+            </PlatformTiltProvider>
+        );
+
+        expect(getByText('Flip par: Complete')).toBeTruthy();
+        expect(getByText('Favor gained: +1')).toBeTruthy();
+        expect(getByText(/Extra relic pick banked/)).toBeTruthy();
+        expect(getByText(/Next: Speed Trial/)).toBeTruthy();
     });
 });

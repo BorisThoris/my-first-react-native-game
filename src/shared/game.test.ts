@@ -3,6 +3,7 @@ import type { BoardState, MutatorId, RunState, Tile } from './contracts';
 import {
     FINDABLE_MATCH_COMBO_SHARDS,
     FINDABLE_MATCH_SCORE,
+    FLIP_PAR_BONUS_SCORE,
     GAME_RULES_VERSION,
     MATCH_DELAY_MS,
     MAX_DESTROY_PAIR_BANK,
@@ -87,7 +88,9 @@ const createBoard = (tiles: Tile[]): BoardState => ({
     rows: Math.ceil(tiles.length / 2),
     tiles,
     flippedTileIds: [],
-    matchedPairs: 0
+    matchedPairs: 0,
+    floorArchetypeId: null,
+    featuredObjectiveId: null
 });
 
 const countFindablePairs = (tiles: readonly Tile[]): number =>
@@ -99,6 +102,17 @@ const createRun = (tiles: Tile[]): RunState => ({
     findablesTotalThisFloor: countFindablePairs(tiles)
 });
 
+const pairTileIds = (board: BoardState): string[][] => {
+    const groups = new Map<string, string[]>();
+    for (const tile of board.tiles) {
+        if (!groups.has(tile.pairKey)) {
+            groups.set(tile.pairKey, []);
+        }
+        groups.get(tile.pairKey)!.push(tile.id);
+    }
+    return [...groups.values()];
+};
+
 describe('createDailyRun', () => {
     it('uses daily mode, one table mutator, and a UTC date key', () => {
         const run = createDailyRun(0);
@@ -106,6 +120,104 @@ describe('createDailyRun', () => {
         expect(run.activeMutators).toHaveLength(1);
         expect(DAILY_MUTATOR_TABLE).toContain(run.activeMutators[0]);
         expect(run.dailyDateKeyUtc).toMatch(/^\d{8}$/);
+    });
+});
+
+describe('endless chapters and featured objectives', () => {
+    it('awards only the featured objective bonus on endless floors', () => {
+        const started = finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false }));
+        const [firstPair, secondPair] = pairTileIds(started.board!);
+
+        const afterFirstMatch = resolveBoardTurn(flipTile(flipTile(started, firstPair![0]!), firstPair![1]!));
+        const finished = resolveBoardTurn(flipTile(flipTile(afterFirstMatch, secondPair![0]!), secondPair![1]!));
+
+        expect(finished.status).toBe('levelComplete');
+        expect(finished.lastLevelResult?.featuredObjectiveId).toBe('flip_par');
+        expect(finished.lastLevelResult?.featuredObjectiveCompleted).toBe(true);
+        expect(finished.lastLevelResult?.objectiveBonusScore).toBe(FLIP_PAR_BONUS_SCORE);
+        expect(finished.lastLevelResult?.bonusTags).toContain('flip_par');
+        expect(finished.lastLevelResult?.bonusTags).not.toContain('scholar_style');
+        expect(finished.lastLevelResult?.bonusTags).not.toContain('cursed_last');
+    });
+
+    it('banks an extra relic pick when favor reaches three', () => {
+        const started = finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false }));
+        const [firstPair, secondPair] = pairTileIds(started.board!);
+        const primed = {
+            ...started,
+            relicFavorProgress: 2
+        };
+
+        const afterFirstMatch = resolveBoardTurn(flipTile(flipTile(primed, firstPair![0]!), firstPair![1]!));
+        const finished = resolveBoardTurn(flipTile(flipTile(afterFirstMatch, secondPair![0]!), secondPair![1]!));
+
+        expect(finished.status).toBe('levelComplete');
+        expect(finished.lastLevelResult?.relicFavorGained).toBe(1);
+        expect(finished.relicFavorProgress).toBe(0);
+        expect(finished.bonusRelicPicksNextOffer).toBe(1);
+        expect(finished.favorBonusRelicPicksNextOffer).toBe(1);
+    });
+
+    it('grants +2 favor on boss floors when the featured objective succeeds', () => {
+        const run = finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false }));
+        const board: BoardState = {
+            level: 7,
+            pairCount: 2,
+            columns: 2,
+            rows: 3,
+            tiles: [
+                createTile('a1', 'A', 'A'),
+                createTile('a2', 'A', 'A'),
+                createTile('b1', 'B', 'B'),
+                createTile('b2', 'B', 'B'),
+                createTile('decoy', DECOY_PAIR_KEY, 'X')
+            ],
+            flippedTileIds: [],
+            matchedPairs: 0,
+            floorTag: 'boss',
+            cursedPairKey: null,
+            wardPairKey: null,
+            bountyPairKey: null,
+            floorArchetypeId: 'trap_hall',
+            featuredObjectiveId: 'glass_witness'
+        };
+        const bossRun: RunState = {
+            ...run,
+            board,
+            activeMutators: ['glass_floor', 'sticky_fingers'],
+            glassDecoyActiveThisFloor: true
+        };
+
+        const afterFirstMatch = resolveBoardTurn(flipTile(flipTile(bossRun, 'a1'), 'a2'));
+        const finished = resolveBoardTurn(flipTile(flipTile(afterFirstMatch, 'b1'), 'b2'));
+
+        expect(finished.status).toBe('levelComplete');
+        expect(finished.lastLevelResult?.featuredObjectiveId).toBe('glass_witness');
+        expect(finished.lastLevelResult?.featuredObjectiveCompleted).toBe(true);
+        expect(finished.lastLevelResult?.relicFavorGained).toBe(2);
+        expect(finished.relicFavorProgress).toBe(2);
+    });
+
+    it('only generates cursedPairKey on cursed-last featured-objective floors', () => {
+        const flipParBoard = buildBoard(1, {
+            runSeed: 1234,
+            runRulesVersion: GAME_RULES_VERSION,
+            activeMutators: ['wide_recall'],
+            floorTag: 'normal',
+            floorArchetypeId: 'survey_hall',
+            featuredObjectiveId: 'flip_par'
+        });
+        const cursedBoard = buildBoard(4, {
+            runSeed: 1234,
+            runRulesVersion: GAME_RULES_VERSION,
+            activeMutators: ['silhouette_twist'],
+            floorTag: 'normal',
+            floorArchetypeId: 'shadow_read',
+            featuredObjectiveId: 'cursed_last'
+        });
+
+        expect(flipParBoard.cursedPairKey).toBeNull();
+        expect(cursedBoard.cursedPairKey).not.toBeNull();
     });
 });
 

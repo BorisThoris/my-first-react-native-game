@@ -24,7 +24,9 @@ describe('computeFocusDimmedTileIds', () => {
                 tile('d', 'B', 'hidden')
             ],
             flippedTileIds: ['a'],
-            matchedPairs: 0
+            matchedPairs: 0,
+            floorArchetypeId: null,
+            featuredObjectiveId: null
         };
         expect(computeFocusDimmedTileIds(board, 'playing', false)).toBeUndefined();
         expect(computeFocusDimmedTileIds(board, 'memorize', true)).toBeUndefined();
@@ -43,7 +45,9 @@ describe('computeFocusDimmedTileIds', () => {
                 tile('d', 'B', 'hidden')
             ],
             flippedTileIds: ['a'],
-            matchedPairs: 0
+            matchedPairs: 0,
+            floorArchetypeId: null,
+            featuredObjectiveId: null
         };
         const dim = computeFocusDimmedTileIds(board, 'playing', true);
         expect(dim).toBeDefined();
@@ -60,7 +64,9 @@ describe('computeFocusDimmedTileIds', () => {
             rows: 1,
             tiles: [tile('a', 'A', 'flipped'), tile('b', 'A', 'hidden')],
             flippedTileIds: ['a'],
-            matchedPairs: 0
+            matchedPairs: 0,
+            floorArchetypeId: null,
+            featuredObjectiveId: null
         };
         expect(computeFocusDimmedTileIds(board, 'playing', true)).toBeUndefined();
     });
@@ -78,7 +84,9 @@ describe('computeFocusDimmedTileIds', () => {
                 tile('d', 'B', 'hidden')
             ],
             flippedTileIds: ['a', 'b'],
-            matchedPairs: 0
+            matchedPairs: 0,
+            floorArchetypeId: null,
+            featuredObjectiveId: null
         };
         expect(computeFocusDimmedTileIds(board, 'playing', true)).toBeUndefined();
     });
@@ -96,7 +104,9 @@ describe('computeFocusDimmedTileIds', () => {
                 tile('d', 'B', 'hidden')
             ],
             flippedTileIds: ['a'],
-            matchedPairs: 0
+            matchedPairs: 0,
+            floorArchetypeId: null,
+            featuredObjectiveId: null
         };
         expect(computeFocusDimmedTileIds(board, 'playing', true)).toBeUndefined();
     });

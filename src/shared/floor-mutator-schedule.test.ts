@@ -23,31 +23,56 @@ describe('usesEndlessFloorSchedule', () => {
 describe('pickFloorScheduleEntry', () => {
     const rv = FLOOR_SCHEDULE_RULES_VERSION;
 
-    it('returns empty mutators for non-endless modes', () => {
+    it('returns an empty schedule entry for non-endless modes', () => {
         expect(pickFloorScheduleEntry(1, rv, 5, 'puzzle')).toEqual({
             mutators: [],
-            floorTag: 'normal'
+            floorTag: 'normal',
+            floorArchetypeId: null,
+            featuredObjectiveId: null,
+            title: null,
+            hint: null
         });
     });
 
-    it('returns empty mutators when rules version is below the gate', () => {
+    it('returns an empty schedule entry when rules version is below the gate', () => {
         expect(pickFloorScheduleEntry(1, rv - 1, 5, 'endless')).toEqual({
             mutators: [],
-            floorTag: 'normal'
+            floorTag: 'normal',
+            floorArchetypeId: null,
+            featuredObjectiveId: null,
+            title: null,
+            hint: null
         });
     });
 
-    it('cycles mutators and floorTag for endless + qualifying rules version', () => {
-        expect(pickFloorScheduleEntry(0, rv, 1, 'endless')).toEqual({
+    it('returns authored chapter metadata for endless floors', () => {
+        expect(pickFloorScheduleEntry(0, rv, 1, 'endless')).toMatchObject({
             mutators: ['wide_recall'],
-            floorTag: 'normal'
+            floorTag: 'normal',
+            floorArchetypeId: 'survey_hall',
+            featuredObjectiveId: 'flip_par',
+            title: 'Survey Hall'
         });
-        expect(pickFloorScheduleEntry(0, rv, 3, 'endless')).toEqual({
-            mutators: [],
-            floorTag: 'breather'
+        expect(pickFloorScheduleEntry(0, rv, 3, 'endless')).toMatchObject({
+            mutators: ['findables_floor'],
+            floorTag: 'breather',
+            floorArchetypeId: 'treasure_gallery',
+            featuredObjectiveId: 'scholar_style',
+            title: 'Treasure Gallery'
         });
-        expect(pickFloorScheduleEntry(0, rv, 7, 'endless').floorTag).toBe('boss');
-        expect(pickFloorScheduleEntry(0, rv, 7, 'endless').mutators).toContain('glass_floor');
+        expect(pickFloorScheduleEntry(0, rv, 7, 'endless')).toMatchObject({
+            floorTag: 'boss',
+            floorArchetypeId: 'trap_hall',
+            featuredObjectiveId: 'glass_witness',
+            title: 'Trap Hall'
+        });
+        expect(pickFloorScheduleEntry(0, rv, 12, 'endless')).toMatchObject({
+            mutators: ['shifting_spotlight'],
+            floorTag: 'normal',
+            floorArchetypeId: 'spotlight_hunt',
+            featuredObjectiveId: 'cursed_last',
+            title: 'Spotlight Hunt'
+        });
     });
 
     const cycleLen = 12;
@@ -58,7 +83,7 @@ describe('pickFloorScheduleEntry', () => {
         expect(b).toEqual(a);
     });
 
-    it('optionally appends distraction_channel on some boss floors when RNG is below threshold', () => {
+    it('optionally appends distraction_channel on some boss floors without changing archetype or objective', () => {
         let foundWith: number | null = null;
         let foundWithout: number | null = null;
         for (let runSeed = 0; runSeed < 8000; runSeed += 1) {
@@ -78,16 +103,21 @@ describe('pickFloorScheduleEntry', () => {
         }
         expect(foundWith, 'expected a boss seed where distraction_channel appended').not.toBeNull();
         expect(foundWithout, 'expected a boss seed where distraction_channel not appended').not.toBeNull();
+        const withDistraction = pickFloorScheduleEntry(foundWith!, rv, 7, 'endless');
+        expect(withDistraction.floorArchetypeId).toBe('trap_hall');
+        expect(withDistraction.featuredObjectiveId).toBe('glass_witness');
     });
 
     it('uses the same boss-floor shape for BALANCE_NOTES sim default seed (42001) at level 7', () => {
         const e = pickFloorScheduleEntry(42_001, rv, 7, 'endless');
         expect(e.floorTag).toBe('boss');
+        expect(e.floorArchetypeId).toBe('trap_hall');
+        expect(e.featuredObjectiveId).toBe('glass_witness');
         expect(e.mutators).toContain('glass_floor');
         expect(e.mutators).toContain('sticky_fingers');
     });
 
-    it('does not add duplicate distraction_channel or exceed three mutators', () => {
+    it('does not add duplicate distraction_channel or exceed three mutators on boss floors', () => {
         for (let runSeed = 0; runSeed < 2000; runSeed += 1) {
             const e = pickFloorScheduleEntry(runSeed, rv, 7, 'endless');
             if (e.floorTag !== 'boss') {

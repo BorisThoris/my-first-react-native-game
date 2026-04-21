@@ -34,7 +34,7 @@
 
 | Mechanic | Where | Epic / note |
 |-----------|--------|-------------|
-| Board build (procedural) | `buildBoard`, `createTiles`, `BuildBoardOptions` | [epic-content-symbols-and-generation](./epic-content-symbols-and-generation.md) |
+| Board build (procedural) | `buildBoard` (internal `createTiles`), `BuildBoardOptions` | [epic-content-symbols-and-generation](./epic-content-symbols-and-generation.md) |
 | Fixed puzzle boards | `buildBoard` + `fixedTiles`, `createPuzzleRun` | [epic-modes-and-runs](./epic-modes-and-runs.md) |
 | Grid geometry | `BoardState.columns`, `rows`, `tiles` | core |
 | Tile states: hidden, flipped, matched, removed | `TileState` | [epic-core-memory-loop](./epic-core-memory-loop.md) |
@@ -43,7 +43,7 @@
 | Sticky fingers block index | `stickyBlockIndex` + flip guard | [epic-mutators](./epic-mutators.md) |
 | Board complete check | `isBoardComplete`, `countFullyHiddenPairs` | Sim |
 | Pair proximity hint (Manhattan) | `getPairProximityGridDistance` | [epic-board-rendering-assists](./epic-board-rendering-assists.md) |
-| Focus dim set (assist) | `focusDimmedTileIds` (shared helper) | [epic-board-rendering-assists](./epic-board-rendering-assists.md) |
+| Focus dim set (assist) | `computeFocusDimmedTileIds` in `focusDimmedTileIds.ts` | [epic-board-rendering-assists](./epic-board-rendering-assists.md) |
 
 ---
 
@@ -55,7 +55,7 @@
 | Two-flip resolution | `resolveTwoFlippedTiles` (internal) via `resolveBoardTurn` | [epic-core-memory-loop](./epic-core-memory-loop.md) |
 | Gambit three-flip resolution | `resolveGambitThree` | [epic-core-memory-loop](./epic-core-memory-loop.md) |
 | Wild pair key | `WILD_PAIR_KEY`, `wildMatchesRemaining` | [epic-core-memory-loop](./epic-core-memory-loop.md) |
-| Wild tile id (contract field) | `wildTileId` — **not assigned in sim** | [epic-core-memory-loop](./epic-core-memory-loop.md) |
+| Wild tile id (HUD / export) | `wildTileId`; discovery helper `getWildTileIdFromBoard` | [epic-core-memory-loop](./epic-core-memory-loop.md) |
 | Glass / decoy | `boardHasGlassDecoy`, `DECOY` handling | [epic-mutators](./epic-mutators.md), core |
 | Shifting spotlight scoring + rotation | `shiftingSpotlightMatchDelta`, `withRotatedShiftingSpotlight` | [epic-mutators](./epic-mutators.md), [epic-board-rendering-assists](./epic-board-rendering-assists.md) |
 | Cursed pair early match flag | `cursedMatchedEarlyThisFloor` | [epic-core-memory-loop](./epic-core-memory-loop.md) |
@@ -71,8 +71,8 @@
 |-----------|--------|-------------|
 | Per-match score | `calculateMatchScore`, streak, `matchScoreMultiplier` | [epic-scoring-objectives](./epic-scoring-objectives.md) |
 | Presentation mutator flat penalty | `getPresentationMutatorMatchPenalty` | [epic-mutators](./epic-mutators.md) |
-| Level clear bonus / perfect / boss multiplier | `finalizeLevel` | [epic-scoring-objectives](./epic-scoring-objectives.md) |
-| Objective tags (scholar, glass, cursed last, flip par, boss) | `finalizeLevel` | [epic-scoring-objectives](./epic-scoring-objectives.md) |
+| Level clear bonus / perfect / boss multiplier | `finalizeLevel` (internal; invoked from resolution paths) | [epic-scoring-objectives](./epic-scoring-objectives.md) |
+| Objective tags (scholar, glass, cursed last, flip par, boss) | `finalizeLevel` (internal) | [epic-scoring-objectives](./epic-scoring-objectives.md) |
 | Rating letter | `calculateRating` | [epic-scoring-objectives](./epic-scoring-objectives.md) |
 | Shuffle score tax | `shuffleScoreTaxActive`, multiplier decay | [epic-powers-and-interactions](./epic-powers-and-interactions.md) |
 
@@ -131,7 +131,9 @@
 | Mechanic | Where | Epic |
 |-----------|--------|------|
 | Active mutator list | `activeMutators`, `MUTATOR_CATALOG`, daily table, floor schedule | [epic-mutators](./epic-mutators.md) |
-| Relic ids & milestones | `relicIds`, `relicTiersClaimed`, `relicOffer`, `applyRelicImmediate` | [epic-relics](./epic-relics.md) |
+| Relic ids & milestones | `relicIds`, `relicTiersClaimed`, `relicOffer`, `bonusRelicPicksNextOffer`, `metaRelicDraftExtraPerMilestone` | [epic-relics](./epic-relics.md) |
+| Relic draft open / pick / bonus | `openRelicOffer`, `completeRelicPickAndAdvance`, `grantBonusRelicPickNextOffer`, `computeRelicOfferPickBudget` | [epic-relics](./epic-relics.md) |
+| Relic immediate effects on run | `applyRelicImmediate` (internal in `game.ts`) | [epic-relics](./epic-relics.md) |
 
 ---
 
@@ -199,7 +201,7 @@ See [epic-readonly-meta-ui](./epic-readonly-meta-ui.md).
 
 ## 14. Field-by-field coverage (contracts)
 
-Sections 1–13 map **mechanisms** to code paths. **Appendices A–C** list **every field** on `RunState`, `SessionStats`, and `BoardState` in [`contracts.ts`](../../src/shared/contracts.ts) so the catalog matches the type definitions line-for-line. If you add a contract field, update the relevant appendix and an epic.
+Sections 1–13 map **mechanisms** to code paths. **Appendices A–D** list **every field** on `RunState`, `SessionStats`, `BoardState`, and `Tile` in [`contracts.ts`](../../src/shared/contracts.ts) so the catalog matches the type definitions line-for-line. If you add a contract field, update the relevant appendix and an epic.
 
 ---
 
@@ -230,7 +232,9 @@ Source: [`RunState`](../../src/shared/contracts.ts) interface.
 | `shuffleNonce` | Increments per shuffle for deterministic order | [epic-powers-and-interactions](./epic-powers-and-interactions.md) |
 | `activeMutators` | Active mutator ids | [epic-mutators](./epic-mutators.md) |
 | `relicIds` | Relics taken this run | [epic-relics](./epic-relics.md) |
-| `relicTiersClaimed` | Milestone picks used (every 3 floors from 3, max 12/run) | [epic-relics](./epic-relics.md) |
+| `relicTiersClaimed` | Milestone visits completed this run (cadence in `relics.ts`; capped) | [epic-relics](./epic-relics.md) |
+| `bonusRelicPicksNextOffer` | Extra relic selections for the **next** milestone draft only (consumed in `openRelicOffer`) | [epic-relics](./epic-relics.md) |
+| `metaRelicDraftExtraPerMilestone` | Copied at run start from save meta (`relicShrineExtraPickUnlocked`): +1 pick at each milestone | [epic-meta-progression](./epic-meta-progression.md), [epic-relics](./epic-relics.md) |
 | `relicOffer` | Pending pick options before advance | [epic-relics](./epic-relics.md) |
 | `activeContract` | Scholar / pin vow constraints | [epic-contracts-challenge-runs](./epic-contracts-challenge-runs.md) |
 | `practiceMode` | Practice run flag | [epic-modes-and-runs](./epic-modes-and-runs.md) |
@@ -274,7 +278,8 @@ Source: [`RunState`](../../src/shared/contracts.ts) interface.
 | `regionShuffleRowArmed` | Pending row index | [epic-powers-and-interactions](./epic-powers-and-interactions.md) |
 | `regionShuffleFreeThisFloor` | Relic free row shuffle | [epic-relics](./epic-relics.md) |
 | `pinsPlacedCountThisRun` | Contract pin cap | [epic-contracts-challenge-runs](./epic-contracts-challenge-runs.md) |
-| `findablesClaimedThisFloor` | Findables mutator claims | [epic-mutators](./epic-mutators.md) |
+| `findablesClaimedThisFloor` | Successful findable pickup matches this floor | [epic-mutators](./epic-mutators.md) |
+| `findablesTotalThisFloor` | Total pickup pairs spawned this floor (claimed or not) | [epic-mutators](./epic-mutators.md) |
 | `shiftingSpotlightNonce` | Ward/bounty rotation seed step | [epic-mutators](./epic-mutators.md) |
 
 ### Appendix A2 — `RunTimerState` (nested in `RunState.timerState`)
@@ -333,7 +338,23 @@ Nested under `RunState.board`.
 
 ---
 
+## Appendix D — `Tile` (every field)
+
+Elements of `BoardState.tiles`. Source: [`Tile`](../../src/shared/contracts.ts).
+
+| Field | Role | Epic |
+|-------|------|------|
+| `id` | Stable tile id (flip queue, removal) | [epic-core-memory-loop](./epic-core-memory-loop.md) |
+| `pairKey` | Pairing key (includes wild `WILD_PAIR_KEY`) | [epic-core-memory-loop](./epic-core-memory-loop.md) |
+| `symbol` | Face symbol key for render / Codex | [epic-content-symbols-and-generation](./epic-content-symbols-and-generation.md) |
+| `label` | Accessible / HUD label text | [epic-onboarding-codex-copy](./epic-onboarding-codex-copy.md) |
+| `state` | hidden / flipped / matched / removed | [epic-core-memory-loop](./epic-core-memory-loop.md) |
+| `atomicVariant` | Optional deck art variant index | [epic-content-symbols-and-generation](./epic-content-symbols-and-generation.md) |
+| `findableKind` | Optional shard_spark / score_glint pickup | [epic-mutators](./epic-mutators.md) |
+
+---
+
 ## Maintenance
 
-- **When adding a mechanic:** Update §1–13 first, then **Appendices A–C** if `contracts.ts` changes, then the relevant epic.
+- **When adding a mechanic:** Update §1–13 first, then **Appendices A–D** if `contracts.ts` changes, then the relevant epic.
 - **Epics** remain narrative + refinement; **this file** is the completeness matrix (mechanisms + field-by-field).

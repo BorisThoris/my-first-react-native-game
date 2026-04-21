@@ -74,6 +74,13 @@ export function buildRelicDraftBonusFootnoteLines(run: RunState): string[] {
 
     const lines: string[] = [];
 
+    if ((offer.favorBonusPicks ?? 0) > 0) {
+        lines.push(
+            `Featured-objective favor: +${offer.favorBonusPicks} relic ${
+                offer.favorBonusPicks === 1 ? 'choice' : 'choices'
+            } banked into this shrine.`
+        );
+    }
     if (run.activeContract?.bonusRelicDraftPick) {
         lines.push('Scholar contract: +1 choice at this shrine.');
     }
