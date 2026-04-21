@@ -131,15 +131,21 @@ function mixSoftHat(buffer, offset, sr, velocity) {
     }
 }
 
-/** Soft sub-bass note (sine). */
+/** Soft sub-bass “thump” — short rounded envelope (no long sine plateau → fewer giant waveform peaks). */
 function mixBassNote(buffer, offset, sr, freqHz, durSec, velocity) {
     const len = Math.min(Math.floor(sr * durSec), buffer.length - offset);
+    if (len < 2) return;
+    const peakIdx = Math.max(1, Math.floor(len * 0.14));
+    const BASS_GAIN = 0.14;
     for (let i = 0; i < len; i += 1) {
         const t = i / sr;
-        const attack = Math.min(1, i / Math.max(1, sr * 0.012));
-        const release = Math.min(1, (len - i) / Math.max(1, sr * 0.045));
-        const env = attack * release;
-        buffer[offset + i] += velocity * env * 0.42 * Math.sin(2 * Math.PI * freqHz * t);
+        let env;
+        if (i < peakIdx) {
+            env = Math.sin((i / peakIdx) * (Math.PI / 2));
+        } else {
+            env = Math.exp((-6.2 * (i - peakIdx)) / Math.max(len - peakIdx, 1));
+        }
+        buffer[offset + i] += velocity * env * BASS_GAIN * Math.sin(2 * Math.PI * freqHz * t);
     }
 }
 
@@ -233,29 +239,42 @@ function generateChillLoop(sr, bpm, bars) {
                 mixSoftHat(buffer, qs + Math.floor(spq * 0.25), sr, 0.022);
             }
 
-            const bassDur = (spq * 0.9) / sr;
+            /* Shorter notes + lower velocities — bass stays felt, not dominant in the mix. */
+            const bassDur = (spq * 0.48) / sr;
             const rootHz = chord.root;
             const fifthHz = rootHz * 1.498307;
             if (q === 0) {
-                mixBassNote(buffer, qs, sr, rootHz, bassDur, 0.95);
+                mixBassNote(buffer, qs, sr, rootHz, bassDur, 0.52);
             } else if (q === 1) {
-                mixBassNote(buffer, qs, sr, fifthHz, bassDur * 0.92, 0.82);
+                mixBassNote(buffer, qs, sr, fifthHz, bassDur * 0.88, 0.44);
             } else if (q === 2) {
-                mixBassNote(buffer, qs, sr, rootHz * 1.02, bassDur, 0.88);
+                mixBassNote(buffer, qs, sr, rootHz * 1.02, bassDur, 0.48);
             } else {
-                mixBassNote(buffer, qs + Math.floor(spq * 0.1), sr, rootHz * 1.25992, bassDur * 0.72, 0.72);
+                mixBassNote(buffer, qs + Math.floor(spq * 0.1), sr, rootHz * 1.25992, bassDur * 0.68, 0.4);
             }
         }
     }
+
+    /** Pull down isolated spikes before peak-normalize so the waveform isn’t “all peaks”. */
+    const gentleCompress = (samples, thresh, ratio) => {
+        for (let i = 0; i < samples.length; i += 1) {
+            const x = samples[i];
+            const ax = Math.abs(x);
+            if (ax <= thresh) continue;
+            const sign = x < 0 ? -1 : 1;
+            samples[i] = sign * (thresh + (ax - thresh) * ratio);
+        }
+    };
+    gentleCompress(buffer, 0.38, 0.52);
 
     let peak = 1e-6;
     for (let i = 0; i < buffer.length; i += 1) {
         peak = Math.max(peak, Math.abs(buffer[i]));
     }
-    const norm = 0.92 / peak;
+    const norm = 0.88 / peak;
     for (let i = 0; i < buffer.length; i += 1) {
         const x = buffer[i] * norm;
-        buffer[i] = Math.tanh(x * 1.15) / 1.15;
+        buffer[i] = Math.tanh(x * 1.08) / 1.08;
     }
 
     return buffer;
@@ -291,7 +310,7 @@ for (const [name, samples] of Object.entries(sfx)) {
 // Music at 44.1kHz; BPM where (sr*60)/bpm is integral (gapless loop). Slower ~vault lounge pace.
 const MUSIC_SR = 44100;
 const MUSIC_BPM = 72;
-const MUSIC_BARS = 8;
+const MUSIC_BARS = 16;
 const bed = generateChillLoop(MUSIC_SR, MUSIC_BPM, MUSIC_BARS);
 writeWav(path.join(musicDir, 'chill-loop.wav'), bed, MUSIC_SR);
 console.log(
