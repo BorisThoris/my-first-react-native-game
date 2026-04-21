@@ -84,19 +84,16 @@ function noiseSample(seedRef) {
     return (seedRef.v / 0x7fffffff) * 2 - 1;
 }
 
-/** Warm sub kick — softer click than club kicks; dungeon pulse not EDM slap. */
+/** Warm sub kick — sine sweep only (no HF click), eased attack so it doesn’t spike normalisation. */
 function mixKick(buffer, offset, sr) {
     const len = Math.floor(sr * 0.098);
-    const seedRef = { v: offset >>> 0 };
     for (let i = 0; i < len && offset + i < buffer.length; i += 1) {
         const t = i / sr;
         const progress = i / len;
         const env = Math.pow(1 - progress, 2.9) * 0.94;
-        const f = 172 * Math.pow(52 / 172, progress);
-        const clickMs = sr * 0.0028;
-        const click =
-            i < Math.floor(clickMs) ? noiseSample(seedRef) * 0.1 * (1 - i / Math.max(1, clickMs)) : 0;
-        buffer[offset + i] += click + env * 0.48 * Math.sin(2 * Math.PI * f * t);
+        const f = 168 * Math.pow(50 / 168, progress);
+        const attackEase = Math.min(1, i / Math.max(1, sr * 0.0045));
+        buffer[offset + i] += attackEase * env * 0.32 * Math.sin(2 * Math.PI * f * t);
     }
 }
 
@@ -108,26 +105,28 @@ function mixSoftBackbeat(buffer, offset, sr) {
     const seedRef = { v: (offset + 999) >>> 0 };
     let lp1 = 0;
     let lp2 = 0;
+    let lp3 = 0;
     for (let i = 0; i < len; i += 1) {
         const progress = i / len;
-        const env = Math.pow(1 - progress, 2.4);
+        const env = Math.pow(1 - progress, 2.5);
         const white = noiseSample(seedRef);
-        lp1 = lp1 * 0.86 + white * 0.14;
-        lp2 = lp2 * 0.82 + lp1 * 0.18;
-        const thunk = env * 0.045 * Math.sin(2 * Math.PI * 208 * (i / sr));
-        buffer[offset + i] += lp2 * env * 0.095 + thunk;
+        lp1 = lp1 * 0.9 + white * 0.1;
+        lp2 = lp2 * 0.88 + lp1 * 0.12;
+        lp3 = lp3 * 0.86 + lp2 * 0.14;
+        const thunk = env * 0.022 * Math.sin(2 * Math.PI * 188 * (i / sr));
+        buffer[offset + i] += lp3 * env * 0.052 + thunk;
     }
 }
 
-/** Soft hat burst — quieter, duller decay (sits under pads). */
+/** Soft hat burst — heavily dulled noise (no airy “ss” peaks). */
 function mixSoftHat(buffer, offset, sr, velocity) {
     const len = Math.min(Math.floor(sr * 0.048), buffer.length - offset);
     const seedRef = { v: (offset + 2048) >>> 0 };
     let lp = 0;
     for (let i = 0; i < len; i += 1) {
-        const env = Math.pow(1 - i / len, 6);
-        lp = lp * 0.72 + noiseSample(seedRef) * 0.28;
-        buffer[offset + i] += lp * env * velocity * 0.28;
+        const env = Math.pow(1 - i / len, 6.5);
+        lp = lp * 0.84 + noiseSample(seedRef) * 0.16;
+        buffer[offset + i] += lp * env * velocity * 0.15;
     }
 }
 
@@ -230,13 +229,13 @@ function generateChillLoop(sr, bpm, bars) {
                 mixSoftBackbeat(buffer, qs, sr);
             }
 
-            mixSoftHat(buffer, qs, sr, 0.056);
+            mixSoftHat(buffer, qs, sr, 0.038);
             const half = Math.floor(spq / 2);
             if (q < 3) {
-                mixSoftHat(buffer, qs + half, sr, 0.028);
+                mixSoftHat(buffer, qs + half, sr, 0.019);
             }
             if (bar % 2 === 0 && q === 0) {
-                mixSoftHat(buffer, qs + Math.floor(spq * 0.25), sr, 0.022);
+                mixSoftHat(buffer, qs + Math.floor(spq * 0.25), sr, 0.014);
             }
 
             /* Shorter notes + lower velocities — bass stays felt, not dominant in the mix. */
@@ -265,16 +264,17 @@ function generateChillLoop(sr, bpm, bars) {
             samples[i] = sign * (thresh + (ax - thresh) * ratio);
         }
     };
-    gentleCompress(buffer, 0.38, 0.52);
+    gentleCompress(buffer, 0.26, 0.38);
+    gentleCompress(buffer, 0.42, 0.58);
 
     let peak = 1e-6;
     for (let i = 0; i < buffer.length; i += 1) {
         peak = Math.max(peak, Math.abs(buffer[i]));
     }
-    const norm = 0.88 / peak;
+    const norm = 0.86 / peak;
     for (let i = 0; i < buffer.length; i += 1) {
         const x = buffer[i] * norm;
-        buffer[i] = Math.tanh(x * 1.08) / 1.08;
+        buffer[i] = Math.tanh(x * 1.02) / 1.02;
     }
 
     return buffer;
