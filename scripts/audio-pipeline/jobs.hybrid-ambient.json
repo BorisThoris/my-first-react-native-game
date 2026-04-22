@@ -1,0 +1,30 @@
+{
+    "jobs": [
+        {
+            "id": "hybrid-ambient-01-vault-bed",
+            "task_type": "text2music",
+            "caption": "Loopable dark fantasy puzzle game ambience, warm low synth pads, ancient stone vault space, faint glass crystal shimmer, ember glow, restrained tension, no lead melody, no vocals, no cinematic brass, no EDM drop, instrumental",
+            "lyrics": "[Instrumental]",
+            "instrumental": true,
+            "duration": 53,
+            "bpm": 72,
+            "inference_steps": 8,
+            "shift": 3.0,
+            "infer_method": "ode",
+            "seed": 820101
+        },
+        {
+            "id": "hybrid-ambient-02-menu-breath",
+            "task_type": "text2music",
+            "caption": "Elegant memory puzzle menu underscore, soft vaulted room tone, low amber pads, sparse cyan crystal plucks, quiet ritual percussion far in the background, calm and mysterious, seamless loop, instrumental",
+            "lyrics": "[Instrumental]",
+            "instrumental": true,
+            "duration": 64,
+            "bpm": 72,
+            "inference_steps": 8,
+            "shift": 3.0,
+            "infer_method": "ode",
+            "seed": 820102
+        }
+    ]
+}

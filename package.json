@@ -69,6 +69,8 @@
         "face-panels:local:dry": "py -3 scripts/card-pipeline/batch_local_face_panels.py --dry-run",
         "audio:ace-step:batch": "py -3 scripts/audio-pipeline/batch_ace_step.py --jobs scripts/audio-pipeline/jobs.example.json",
         "audio:ace-step:batch:dry": "py -3 scripts/audio-pipeline/batch_ace_step.py --dry-run --jobs scripts/audio-pipeline/jobs.example.json",
+        "audio:ace-step:hybrid": "py -3 scripts/audio-pipeline/batch_ace_step.py --jobs scripts/audio-pipeline/jobs.hybrid-ambient.json",
+        "audio:ace-step:hybrid:dry": "py -3 scripts/audio-pipeline/batch_ace_step.py --dry-run --jobs scripts/audio-pipeline/jobs.hybrid-ambient.json",
         "audio:placeholders": "node scripts/audio-pipeline/generate-procedural-sfx-wavs.mjs",
         "gen:face-panel-raster-urls": "node scripts/gen-face-panel-raster-urls.mjs",
         "card-texture:ideal": "node scripts/card-pipeline/print-card-texture-ideal.mjs",

@@ -13,13 +13,15 @@ export interface GameplayMusicParams {
     active: boolean;
     masterVolume: number;
     musicVolume: number;
+    /** When true, keep the element paused (e.g. other systems need exclusive control of the output). */
+    suppressed?: boolean;
 }
 
 /**
  * Looped background music via `HTMLAudioElement`. Volume follows **`masterVolume` × `musicVolume`**.
  * HTMLMediaElement autoplay rules apply: first successful `play()` may require a user gesture; we retry on the first `pointerdown`.
  */
-export function useGameplayMusic({ active, masterVolume, musicVolume }: GameplayMusicParams): void {
+export function useGameplayMusic({ active, masterVolume, musicVolume, suppressed = false }: GameplayMusicParams): void {
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
@@ -51,11 +53,11 @@ export function useGameplayMusic({ active, masterVolume, musicVolume }: Gameplay
 
         el.volume = musicGainFromSettings(masterVolume, musicVolume);
 
-        if (!active) {
+        if (!active || suppressed) {
             el.pause();
             return;
         }
 
         void el.play().catch(() => {});
-    }, [active, masterVolume, musicVolume]);
+    }, [active, masterVolume, musicVolume, suppressed]);
 }

@@ -75,6 +75,14 @@ Text-only loops for menu/run beds (nothing in `samples/` required):
 py -3 scripts/audio-pipeline/batch_ace_step.py --dry-run --jobs scripts/audio-pipeline/jobs.game-ambient.example.json
 ```
 
+Hybrid ambience jobs — optional beds to pair with the bundled procedural chill loop:
+
+```bash
+py -3 scripts/audio-pipeline/batch_ace_step.py --dry-run --jobs scripts/audio-pipeline/jobs.hybrid-ambient.json
+```
+
+When a render is selected, trim it to a clean loop, export WAV, and replace or add files under [`src/renderer/assets/audio/music/`](../src/renderer/assets/audio/music/README.md) (see `gameplayMusic.ts` for how the menu/run loop is loaded).
+
 ### Gameplay one-shots (`jobs.sfx.example.json`)
 
 Use [`jobs.sfx.example.json`](jobs.sfx.example.json) to batch captions for flip / match tiers / shuffle / powers / floor clear. ACE-Step outputs **long** clips — **trim** each render to a short cue in a DAW or `ffmpeg`, normalize, export **OGG**, then copy into [`src/renderer/assets/audio/sfx/`](../src/renderer/assets/audio/sfx/README.md) with filenames from [`manifest.json`](../src/renderer/assets/audio/sfx/manifest.json). Rebuild the app; missing files keep procedural `gameSfx` tones.

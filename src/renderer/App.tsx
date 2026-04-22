@@ -97,8 +97,10 @@ const App = () => {
         run !== null;
     const visualView = inGameSettingsOverlay || inGameShellOverlay ? 'playing' : activeView;
 
+    const musicShellActive = hydrated && (visualView === 'menu' || visualView === 'playing');
+
     useGameplayMusic({
-        active: hydrated && (visualView === 'menu' || visualView === 'playing'),
+        active: musicShellActive,
         masterVolume: settings.masterVolume,
         musicVolume: settings.musicVolume
     });
