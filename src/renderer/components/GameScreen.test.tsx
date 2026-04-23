@@ -15,6 +15,23 @@ import {
     MATCH_SCORE_FLOAT_MS_FULL
 } from './matchScoreFloaterTiming';
 
+const gameSfxMocks = vi.hoisted(() => ({
+    playRelicOfferOpenSfx: vi.fn(),
+    playWagerArmSfx: vi.fn(),
+    resumeAudioContext: vi.fn(),
+    sfxGainFromSettings: (masterVolume: number, sfxVolume: number) =>
+        Math.max(0, Math.min(1, masterVolume)) * Math.max(0, Math.min(1, sfxVolume))
+}));
+
+const uiSfxMocks = vi.hoisted(() => ({
+    playMenuOpenSfx: vi.fn(),
+    playUiBackSfx: vi.fn(),
+    playUiClickSfx: vi.fn(),
+    resumeUiSfxContext: vi.fn(),
+    uiSfxGainFromSettings: (masterVolume: number, sfxVolume: number) =>
+        Math.max(0, Math.min(1, masterVolume)) * Math.max(0, Math.min(1, sfxVolume))
+}));
+
 vi.mock('./MainMenuBackground', () => ({ default: () => null }));
 vi.mock('./GameLeftToolbar', () => ({ default: () => null }));
 vi.mock('./GameplayHudBar', () => ({ default: () => null }));
@@ -78,6 +95,8 @@ vi.mock('../hooks/useHudPoliteLiveAnnouncement', () => ({
 vi.mock('../platformTilt/usePlatformTiltField', () => ({
     usePlatformTiltField: () => ({ tiltRef: { current: null } })
 }));
+vi.mock('../audio/gameSfx', () => gameSfxMocks);
+vi.mock('../audio/uiSfx', () => uiSfxMocks);
 
 const achievementNotifications = (): number =>
     useNotificationStore.getState().notifications.filter((n) => n.surface === 'achievement').length;
@@ -123,6 +142,7 @@ const levelCompleteRunFixture = (): RunState => {
 
 describe('GameScreen (OVR-014)', () => {
     beforeEach(() => {
+        vi.clearAllMocks();
         useNotificationStore.setState({
             notifications: [],
             maxNotifications: 5,
@@ -471,6 +491,7 @@ describe('GameScreen (OVR-014)', () => {
         expect(getByText('Pick 1 of 2 this visit')).toBeTruthy();
         expect(getByText(/Featured-objective favor/)).toBeTruthy();
         expect(getByText(/Scholar contract/)).toBeTruthy();
+        expect(gameSfxMocks.playRelicOfferOpenSfx).toHaveBeenCalledTimes(1);
     });
 
     it('does not show progress line for a single-pick relic offer', () => {

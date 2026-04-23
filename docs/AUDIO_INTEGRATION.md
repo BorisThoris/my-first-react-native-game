@@ -1,48 +1,54 @@
 # Audio integration (desktop)
 
-**Status:** Volume sliders persist via `Settings` / `save-data.ts`. **Gameplay SFX** uses **Web Audio** — **procedural** oscillators by default, with **optional** sampled **OGG/WAV** one-shots from [`src/renderer/assets/audio/sfx/`](../src/renderer/assets/audio/sfx/README.md) when files are present. Effective gain is **`masterVolume` × `sfxVolume`**.
+Ultra-deep table of every shipped sound (style, duration, references, coupling): [AUDIO_ASSET_INVENTORY.md](./AUDIO_ASSET_INVENTORY.md).
 
-**Background music** uses an **`HTMLAudioElement`** loop ([`gameplayMusic.ts`](../src/renderer/audio/gameplayMusic.ts)): gain is **`masterVolume` × `musicVolume`**. Playback runs while **`visualView`** is **menu** or **playing** (main menu + active run, including in-run settings/codex overlays where `data-view` stays `playing`). Other views pause the track. **Autoplay:** browsers may block `play()` until a user gesture; the hook retries after the first **`pointerdown`** (same class of policy as SFX, though Web Audio vs media element APIs differ).
+**Status:** Volume sliders persist via `Settings` / `save-data.ts`. **Gameplay SFX** uses **Web Audio**: procedural oscillators by default, with optional sampled OGG/WAV one-shots from [`src/renderer/assets/audio/sfx/`](../src/renderer/assets/audio/sfx/README.md) when files are present. Effective gain is `masterVolume * sfxVolume`.
+
+**UI/menu SFX** uses the same shared renderer `AudioContext` through [`uiSfx.ts`](../src/renderer/audio/uiSfx.ts). It covers focused navigation and confirmation cues: click, confirm, back, counter, menu-open, and run-start.
+
+**Background music** uses an `HTMLAudioElement` loop ([`gameplayMusic.ts`](../src/renderer/audio/gameplayMusic.ts)): gain is `masterVolume * musicVolume`. Playback runs while `visualView` is `menu` or `playing`. Menu uses `menu-loop.wav`; gameplay uses `run-loop.wav`. Other views pause the track. Browser autoplay rules still apply, so the hook retries after the first `pointerdown`.
 
 ## Current wiring
 
 | Event | Where | Module |
-|-------|--------|--------|
-| Flip | After a successful `flipTile` in `pressTile` | `src/renderer/audio/gameSfx.ts` → `playFlipSfx` |
-| Match / mismatch | When `resolveBoardTurn` runs (timer or immediate) | `playResolveSfx` (compares stat deltas on the run) |
+|-------|-------|--------|
+| Flip | After a successful `flipTile` in `pressTile` | `gameSfx.ts` -> `playFlipSfx` |
+| Match / mismatch | When `resolveBoardTurn` runs | `playResolveSfx` |
+| Powers / shuffle / floor clear | Store and board power paths | `gameSfx.ts` |
+| UI/menu navigation | Main menu, mode select, settings, codex | `uiSfx.ts` |
+| Run start / restart | Store run creation paths | `playRunStartSfx` |
 
-`resumeAudioContext()` is called after tile presses (gesture) and again when **`applyResolveBoardTurn`** runs (immediate or timer-driven resolve) so a still-suspended context can resume before match/mismatch tones—not every resolve follows a fresh user gesture. The same call starts a **one-time** async preload of optional samples (`maybePreloadSampledSfx`).
+`resumeAudioContext()` is called after tile presses and resolve ticks so a suspended context can resume before gameplay cues. UI/menu SFX calls `resumeUiSfxContext()` at focused navigation/action points.
 
 ## Files
 
-- `src/renderer/audio/webAudioContext.ts` — shared `AudioContext` for procedural + sampled playback
-- `src/renderer/audio/sampledSfx.ts` — manifest-driven decode + buffer playback (tests skip samples via `import.meta.env.MODE === 'test'`)
-- `src/renderer/audio/gameSfx.ts` — gain helpers, sampled-first then procedural fallback for all gameplay one-shots
-- `src/renderer/audio/gameplayMusic.ts` — menu/run background loop asset + volume + view gating (`useGameplayMusic` from `App.tsx`)
-- `src/renderer/assets/audio/sfx/manifest.json` — logical keys → filenames + match streak tier ranges
-- `src/renderer/assets/audio/music/` — loop file(s); see [`music/README.md`](../src/renderer/assets/audio/music/README.md)
-- `src/renderer/store/useAppStore.ts` — calls into `gameSfx` from `pressTile` and resolve scheduling
+- `src/renderer/audio/webAudioContext.ts` - shared `AudioContext` for procedural + sampled playback
+- `src/renderer/audio/sampledSfx.ts` - manifest-driven gameplay sample decode + buffer playback
+- `src/renderer/audio/gameSfx.ts` - sampled-first gameplay one-shots with procedural fallback
+- `src/renderer/audio/uiSfx.ts` - sampled-first UI/menu one-shots with procedural fallback
+- `src/renderer/audio/gameplayMusic.ts` - menu/run background loop selection + volume + view gating
+- `src/renderer/assets/audio/sfx/manifest.json` - gameplay keys to filenames + match tier ranges
+- `src/renderer/assets/audio/ui/manifest.json` - UI/menu keys to filenames
+- `src/renderer/assets/audio/music/` - `menu-loop.wav` and `run-loop.wav`
 
-## Sampled one-shots (optional)
+## Asset Set
 
-1. Generate offline (e.g. ACE-Step `jobs.sfx.example.json`), **trim** long renders to tight cues, export OGG/WAV.
-2. Copy into `src/renderer/assets/audio/sfx/` using names from `manifest.json` (see folder README).
-3. Rebuild; Vite bundles only files that exist. Missing keys keep **procedural** tones.
+Gameplay SFX: `flip`, `gambit-commit`, `match-tier-low`, `match-tier-mid`, `match-tier-high`, `mismatch`, `power-arm`, `destroy-pair`, `peek-power`, `stray-power`, `shuffle-full`, `shuffle-quick`, and `floor-clear`.
 
-**Match streaks:** three tier samples (`match-tier-low` / `mid` / `high`) map to streak depth ranges in `manifest.json`.
+UI/menu SFX: `ui-click`, `ui-confirm`, `ui-back`, `ui-counter`, `menu-open`, and `run-start`.
 
-## Visual match feedback (DOM, not Web Audio)
+Music: `menu-loop.wav` and `run-loop.wav`.
 
-Floating **+score** on a successful match resolve, and a **“Miss”** label on mismatch, are **DOM-only** and do not use `gameSfx`. They use `matchScorePop` and `mismatchScorePop` in `useAppStore.ts`, set in `applyResolveBoardTurn` before `applyResolvedRun`, and rendered in `GameScreen.tsx` over `boardStage` using tile rects from `TileBoard`. Timing constants live in `matchScoreFloaterTiming.ts`; live region copy is in `copy/matchScoreFloater.ts` and `copy/mismatchFloater.ts`. **Match/mismatch SFX** still come only from `playResolveSfx` on the same resolve tick as the store update.
+## Offline generation
+
+Use `scripts/audio-pipeline/jobs.memory-dungeon-app-audio.json` for the full app-audio ACE-Step batch. Reference audio paths are under `scripts/audio-pipeline/reference-audio/` (run `yarn audio:prep-ace-app` for procedural stubs, or add licensed originals per `reference-audio/README.md`) with conservative `audio_cover_strength` values. Raw renders land under `tmp/audio/ace-step/`; trim one-shots, normalize, and copy finals into:
+
+- `src/renderer/assets/audio/sfx/`
+- `src/renderer/assets/audio/ui/`
+- `src/renderer/assets/audio/music/`
+
+Regenerate checked-in procedural placeholders after manifest edits with `yarn audio:placeholders`.
 
 ## QA
 
-Verify packaged Windows build with **master + SFX** sliders at audible levels and confirm flip / match / mismatch feedback per release. If a build is silent, check OS mixer, Electron audio, and that a user gesture occurred before the first flip (browser autoplay policies).
-
-## Offline generation (ACE-Step, legal-safe)
-
-Batch **text-only** jobs with **ACE-Step 1.5** — see `scripts/audio-pipeline/README.md`, `RIGHTS.md`, `jobs.sfx.example.json` (one-shots), `jobs.music-chill.json` / `jobs.game-ambient.example.json` (beds). Raw renders land under `tmp/audio/ace-step/` (gitignored); trim and copy finals into `src/renderer/assets/audio/sfx/` and `src/renderer/assets/audio/music/` (replace `chill-loop.wav` when upgrading from placeholders).
-
-Regenerate checked-in procedural placeholders after manifest edits: `yarn audio:placeholders`. The bundled chill loop is synthesized to match UI mood (**warm pads, soft low-pass backbeat**, sparse hats, ~72 BPM — see `generate-procedural-sfx-wavs.mjs`), not a bright club drum loop.
-
-The renderer loads the menu/run loop from `src/renderer/assets/audio/music/chill-loop.wav` (bundled via Vite `?url` import in `gameplayMusic.ts`).
+Verify packaged Windows builds with master/music/SFX sliders at audible levels. Confirm menu navigation, run start, flip, match, mismatch, powers, shuffle, floor clear, and menu/run music switching after a normal user gesture.

@@ -101,6 +101,7 @@ const App = () => {
 
     useGameplayMusic({
         active: musicShellActive,
+        track: visualView === 'playing' ? 'run' : 'menu',
         masterVolume: settings.masterVolume,
         musicVolume: settings.musicVolume
     });

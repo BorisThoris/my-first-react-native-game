@@ -17,3 +17,13 @@ playwright/.cache/
 *.orig.*
 .DS_Store
 steam_appid.txt.bak
+
+# Dedicated ACE-Step / GPU audio generation venv (see scripts/audio-pipeline/README.md)
+/.venv-audio/
+/scripts/audio-pipeline/environment.audio.local.env
+
+# ACE-Step reference stubs / licensed WAVs (see scripts/audio-pipeline/reference-audio/README.md)
+/scripts/audio-pipeline/reference-audio/*.wav
+
+# Local clone for pip install -e (see scripts/audio-pipeline/install-acestep.ps1)
+/third_party/ACE-Step-1.5/

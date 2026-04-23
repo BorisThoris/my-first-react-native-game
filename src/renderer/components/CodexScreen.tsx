@@ -17,6 +17,12 @@ import {
 } from '../../shared/game-catalog';
 import type { MutatorId, RelicId } from '../../shared/contracts';
 import { Eyebrow, MetaFrame, Panel, ScreenTitle, UiButton } from '../ui';
+import {
+    playUiBackSfx,
+    playUiClickSfx,
+    resumeUiSfxContext,
+    uiSfxGainFromSettings
+} from '../audio/uiSfx';
 import { useAppStore } from '../store/useAppStore';
 import metaStyles from './MetaScreen.module.css';
 import styles from './CodexScreen.module.css';
@@ -68,13 +74,27 @@ function tocVisible(tab: CodexTab, kind: TocKind): boolean {
 }
 
 const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
-    const closeSubscreen = useAppStore(useShallow((state) => state.closeSubscreen));
+    const { closeSubscreen, settings } = useAppStore(
+        useShallow((state) => ({
+            closeSubscreen: state.closeSubscreen,
+            settings: state.settings
+        }))
+    );
     const shellStageClass = stackedOnGameplay ? metaStyles.shellInRunModal : metaStyles.shellMetaStage;
     const panelClassName = stackedOnGameplay ? styles.inRunPanel : '';
     const heroPanelClassName = stackedOnGameplay ? styles.inRunHeroPanel : '';
     const [filterQuery, setFilterQuery] = useState('');
     const [debouncedFilterQuery, setDebouncedFilterQuery] = useState('');
     const [codexTab, setCodexTab] = useState<CodexTab>('all');
+    const uiGain = uiSfxGainFromSettings(settings.masterVolume, settings.sfxVolume);
+    const playUiClick = (): void => {
+        resumeUiSfxContext();
+        playUiClickSfx(uiGain);
+    };
+    const playUiBack = (): void => {
+        resumeUiSfxContext();
+        playUiBackSfx(uiGain);
+    };
 
     useEffect(() => {
         const schedule = window.setTimeout(() => setDebouncedFilterQuery(filterQuery), 125);
@@ -172,7 +192,15 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
                         powers, scoring, settings assists, pickups, and board rules. Does not change gameplay.
                     </p>
                 </div>
-                <UiButton size="md" variant="secondary" onClick={closeSubscreen} type="button">
+                <UiButton
+                    size="md"
+                    variant="secondary"
+                    onClick={() => {
+                        playUiBack();
+                        closeSubscreen();
+                    }}
+                    type="button"
+                >
                     Back
                 </UiButton>
             </header>
@@ -194,7 +222,10 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
                             aria-selected={codexTab === id}
                             id={`codex-tab-${id}`}
                             tabIndex={codexTab === id ? 0 : -1}
-                            onClick={() => setCodexTab(id)}
+                            onClick={() => {
+                                playUiClick();
+                                setCodexTab(id);
+                            }}
                         >
                             {label}
                         </button>

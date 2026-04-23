@@ -17,6 +17,13 @@ import {
 import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
 import { Eyebrow, MetaFrame, Panel, ScreenTitle, UiButton } from '../ui';
+import {
+    playMenuOpenSfx,
+    playUiBackSfx,
+    playUiClickSfx,
+    resumeUiSfxContext,
+    uiSfxGainFromSettings
+} from '../audio/uiSfx';
 import MainMenuBackground from './MainMenuBackground';
 import { useAppStore } from '../store/useAppStore';
 import styles from './MainMenu.module.css';
@@ -102,6 +109,19 @@ const MainMenu = ({
         ? `${lastRunSummary.totalScore.toLocaleString()} score / Floor ${lastRunSummary.highestLevel} / ${lastRunSummary.bestStreak} streak`
         : 'No descent recorded yet.';
     const dailyCountdown = formatNextUtcReset(nowMs);
+    const uiGain = uiSfxGainFromSettings(saveData.settings.masterVolume, saveData.settings.sfxVolume);
+    const playUiClick = (): void => {
+        resumeUiSfxContext();
+        playUiClickSfx(uiGain);
+    };
+    const playMenuOpen = (): void => {
+        resumeUiSfxContext();
+        playMenuOpenSfx(uiGain);
+    };
+    const playUiBack = (): void => {
+        resumeUiSfxContext();
+        playUiBackSfx(uiGain);
+    };
 
     useEffect(() => {
         const id = window.setInterval(() => setNowMs(Date.now()), 1000);
@@ -153,7 +173,15 @@ const MainMenu = ({
                 <p>Every clean pair grows score and streak. Wrong pairs cut the chain instead of wiping it.</p>
                 <p>Every 2-pair chain earns a shard. Three shards restore one life.</p>
             </div>
-            <UiButton fullWidth size="md" variant="secondary" onClick={() => void onDismissHowToPlay()}>
+            <UiButton
+                fullWidth
+                size="md"
+                variant="secondary"
+                onClick={() => {
+                    playUiClick();
+                    void onDismissHowToPlay();
+                }}
+            >
                 Dismiss
             </UiButton>
         </Panel>
@@ -270,7 +298,10 @@ const MainMenu = ({
                                                 fullWidth
                                                 size="lg"
                                                 variant="primary"
-                                                onClick={onPlay}
+                                                onClick={() => {
+                                                    playMenuOpen();
+                                                    onPlay();
+                                                }}
                                             >
                                                 <span className={styles.ctaContent}>
                                                     <span className={styles.ctaTitle}>Play</span>
@@ -283,7 +314,10 @@ const MainMenu = ({
                                                 fullWidth
                                                 size={ctaSize}
                                                 variant="secondary"
-                                                onClick={onOpenCollection}
+                                                onClick={() => {
+                                                    playMenuOpen();
+                                                    onOpenCollection();
+                                                }}
                                             >
                                                 <span className={styles.ctaContent}>
                                                     <span className={styles.ctaTitle}>Collection</span>
@@ -296,7 +330,10 @@ const MainMenu = ({
                                                 fullWidth
                                                 size={ctaSize}
                                                 variant="ghost"
-                                                onClick={onOpenInventory}
+                                                onClick={() => {
+                                                    playMenuOpen();
+                                                    onOpenInventory();
+                                                }}
                                             >
                                                 <span className={styles.ctaContent}>
                                                     <span className={styles.ctaTitle}>Inventory</span>
@@ -309,7 +346,10 @@ const MainMenu = ({
                                                 fullWidth
                                                 size={ctaSize}
                                                 variant="ghost"
-                                                onClick={onOpenCodex}
+                                                onClick={() => {
+                                                    playMenuOpen();
+                                                    onOpenCodex();
+                                                }}
                                             >
                                                 <span className={styles.ctaContent}>
                                                     <span className={styles.ctaTitle}>Codex</span>
@@ -322,7 +362,10 @@ const MainMenu = ({
                                                 fullWidth
                                                 size={ctaSize}
                                                 variant="secondary"
-                                                onClick={onOpenSettings}
+                                                onClick={() => {
+                                                    playMenuOpen();
+                                                    onOpenSettings();
+                                                }}
                                             >
                                                 <span className={styles.ctaContent}>
                                                     <span className={styles.ctaTitle}>Settings</span>
@@ -335,7 +378,10 @@ const MainMenu = ({
                                                 fullWidth
                                                 size={ctaSize}
                                                 variant="ghost"
-                                                onClick={() => void desktopClient.quitApp()}
+                                                onClick={() => {
+                                                    playUiBack();
+                                                    void desktopClient.quitApp();
+                                                }}
                                             >
                                                 <span className={styles.ctaContent}>
                                                     <span className={styles.ctaTitle}>Exit Game</span>

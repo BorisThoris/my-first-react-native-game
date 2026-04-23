@@ -1,0 +1,17 @@
+{
+    "jobs": [
+        {
+            "id": "smoke-one",
+            "task_type": "text2music",
+            "caption": "Minimal ambient pad, very short, for pipeline smoke test",
+            "lyrics": "[Instrumental]",
+            "instrumental": true,
+            "duration": 12,
+            "bpm": 90,
+            "inference_steps": 6,
+            "shift": 3.0,
+            "infer_method": "ode",
+            "seed": 999001
+        }
+    ]
+}

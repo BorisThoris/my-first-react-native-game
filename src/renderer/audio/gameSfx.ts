@@ -358,3 +358,45 @@ export const playFloorClearSfx = (gain: number): void => {
         });
     }, 0);
 };
+
+export const playRelicOfferOpenSfx = (gain: number): void => {
+    if (tryPlaySampled('relic-offer-open', gain)) {
+        return;
+    }
+    playTone({
+        frequency: 620,
+        frequencyEnd: 960,
+        durationSec: 0.18,
+        gain: gain * 0.78,
+        type: 'triangle',
+        category: 'power'
+    });
+};
+
+export const playRelicPickSfx = (gain: number): void => {
+    if (tryPlaySampled('relic-pick', gain)) {
+        return;
+    }
+    playTone({
+        frequency: 520,
+        frequencyEnd: 920,
+        durationSec: 0.16,
+        gain: gain * 0.86,
+        type: 'triangle',
+        category: 'power'
+    });
+};
+
+export const playWagerArmSfx = (gain: number): void => {
+    if (tryPlaySampled('wager-arm', gain)) {
+        return;
+    }
+    playTone({
+        frequency: 460,
+        frequencyEnd: 1180,
+        durationSec: 0.14,
+        gain: gain * 0.82,
+        type: 'sawtooth',
+        category: 'power'
+    });
+};

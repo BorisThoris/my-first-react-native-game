@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
     FLIP_DURATION_MS,
     STAGGER_MS,
+    computeBoardEntranceMotionTransform,
     computeShuffleMotionBudgetMs,
+    computeShuffleMotionTransform,
     computeStaggeredShuffleDealZ
 } from './shuffleFlipAnimation';
 
@@ -45,5 +47,73 @@ describe('computeStaggeredShuffleDealZ (FX-013)', () => {
         const zAfter = computeStaggeredShuffleDealZ(afterArc, deadline, budget, idx, n);
 
         expect(zPeak).toBeGreaterThan(zAfter);
+    });
+});
+
+describe('premium board motion transforms', () => {
+    it('returns neutral transforms outside the active window', () => {
+        const budget = computeShuffleMotionBudgetMs(6);
+        const deadline = 20_000 + budget;
+
+        expect(computeShuffleMotionTransform(19_999, deadline, budget, 1, 6, 2, 3)).toEqual({
+            rx: 0,
+            ry: 0,
+            rz: 0,
+            rotX: 0,
+            rotY: 0,
+            rotZ: 0
+        });
+        expect(computeBoardEntranceMotionTransform(deadline, deadline, budget, 1, 6, 2, 3)).toEqual({
+            rx: 0,
+            ry: 0,
+            rz: 0,
+            rotX: 0,
+            rotY: 0,
+            rotZ: 0
+        });
+    });
+
+    it('stagger ordering keeps early shuffle tiles further along than late ones', () => {
+        const budget = computeShuffleMotionBudgetMs(6);
+        const start = 30_000;
+        const deadline = start + budget;
+        const sampleTime = start + 240;
+
+        const early = computeShuffleMotionTransform(sampleTime, deadline, budget, 0, 6, 2, 3);
+        const late = computeShuffleMotionTransform(sampleTime, deadline, budget, 5, 6, 2, 3);
+
+        expect(Math.abs(early.rz)).toBeGreaterThan(Math.abs(late.rz));
+        expect(Math.abs(early.rotZ)).toBeGreaterThan(Math.abs(late.rotZ));
+    });
+
+    it('shuffle transform peaks mid-window and settles exactly to rest', () => {
+        const budget = computeShuffleMotionBudgetMs(8);
+        const start = 40_000;
+        const deadline = start + budget;
+        const idx = 2;
+        const tileStart = start + idx * STAGGER_MS;
+        const peakTime = tileStart + FLIP_DURATION_MS * 0.5;
+        const lateTime = tileStart + FLIP_DURATION_MS * 0.92;
+
+        const peak = computeShuffleMotionTransform(peakTime, deadline, budget, idx, 8, 2, 4);
+        const late = computeShuffleMotionTransform(lateTime, deadline, budget, idx, 8, 2, 4);
+        const atRest = computeShuffleMotionTransform(deadline, deadline, budget, idx, 8, 2, 4);
+
+        expect(Math.abs(peak.rz)).toBeGreaterThan(Math.abs(late.rz));
+        expect(Math.abs(peak.rotY)).toBeGreaterThan(0);
+        expect(atRest).toEqual({ rx: 0, ry: 0, rz: 0, rotX: 0, rotY: 0, rotZ: 0 });
+    });
+
+    it('entrance transform keeps a broader XY sweep than the in-board shuffle', () => {
+        const budget = computeShuffleMotionBudgetMs(9);
+        const start = 50_000;
+        const deadline = start + budget;
+        const sampleTime = start + 220;
+
+        const shuffle = computeShuffleMotionTransform(sampleTime, deadline, budget, 4, 9, 3, 3);
+        const entrance = computeBoardEntranceMotionTransform(sampleTime, deadline, budget, 4, 9, 3, 3);
+
+        expect(Math.hypot(entrance.rx, entrance.ry)).toBeGreaterThan(Math.hypot(shuffle.rx, shuffle.ry));
+        expect(Math.abs(entrance.rotY)).toBeGreaterThan(0);
     });
 });

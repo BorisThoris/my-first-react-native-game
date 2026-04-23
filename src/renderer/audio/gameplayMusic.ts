@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 
-import chillLoopUrl from '../assets/audio/music/chill-loop.wav?url';
+import menuLoopUrl from '../assets/audio/music/menu-loop.wav?url';
+import runLoopUrl from '../assets/audio/music/run-loop.wav?url';
 
 const clamp01 = (v: number): number => Math.max(0, Math.min(1, v));
 
@@ -11,6 +12,7 @@ export const musicGainFromSettings = (masterVolume: number, musicVolume: number)
 export interface GameplayMusicParams {
     /** When false, playback is paused (e.g. settings, codex, game over). */
     active: boolean;
+    track: 'menu' | 'run';
     masterVolume: number;
     musicVolume: number;
     /** When true, keep the element paused (e.g. other systems need exclusive control of the output). */
@@ -21,13 +23,13 @@ export interface GameplayMusicParams {
  * Looped background music via `HTMLAudioElement`. Volume follows **`masterVolume` × `musicVolume`**.
  * HTMLMediaElement autoplay rules apply: first successful `play()` may require a user gesture; we retry on the first `pointerdown`.
  */
-export function useGameplayMusic({ active, masterVolume, musicVolume, suppressed = false }: GameplayMusicParams): void {
+export function useGameplayMusic({ active, track, masterVolume, musicVolume, suppressed = false }: GameplayMusicParams): void {
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
         if (typeof Audio === 'undefined') return undefined;
 
-        const el = new Audio(chillLoopUrl);
+        const el = new Audio(track === 'menu' ? menuLoopUrl : runLoopUrl);
         el.loop = true;
         el.preload = 'auto';
         audioRef.current = el;
@@ -45,7 +47,7 @@ export function useGameplayMusic({ active, masterVolume, musicVolume, suppressed
             el.load();
             audioRef.current = null;
         };
-    }, []);
+    }, [track]);
 
     useEffect(() => {
         const el = audioRef.current;
@@ -59,5 +61,5 @@ export function useGameplayMusic({ active, masterVolume, musicVolume, suppressed
         }
 
         void el.play().catch(() => {});
-    }, [active, masterVolume, musicVolume, suppressed]);
+    }, [active, track, masterVolume, musicVolume, suppressed]);
 }

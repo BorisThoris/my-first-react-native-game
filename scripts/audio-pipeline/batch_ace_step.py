@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import subprocess
 import sys
 from dataclasses import fields
 from datetime import datetime, timezone
@@ -70,6 +71,94 @@ def acestep_project_root() -> Path:
         ) from exc
 
     return Path(acestep.__file__).resolve().parent.parent
+
+
+def resolve_weights_project_root() -> Path:
+    """
+    Folder that contains DiT weights (e.g. `acestep-v15-turbo/`) and LM weights.
+
+    Set **ACESTEP_PROJECT_ROOT** to a HuggingFace-style checkout (such as `.../Repos/Ace-Step1.5`)
+    when weights live next to the game repo instead of under the pip-installed package tree.
+    """
+    env = os.environ.get("ACESTEP_PROJECT_ROOT", "").strip()
+    if env:
+        p = Path(env).expanduser().resolve()
+        if not p.is_dir():
+            raise SystemExit(f"ACESTEP_PROJECT_ROOT is not a directory: {p}")
+        return p
+    return acestep_project_root()
+
+
+def resolve_checkpoint_dir(project_root: Path) -> str:
+    """LM + embedding assets: `project_root/checkpoints` if present, else flat `project_root` (HF layout)."""
+    env = os.environ.get("ACESTEP_CHECKPOINTS_DIR", "").strip()
+    if env:
+        p = Path(env).expanduser().resolve()
+        if not p.is_dir():
+            raise SystemExit(f"ACESTEP_CHECKPOINTS_DIR is not a directory: {p}")
+        return str(p)
+    nested = project_root / "checkpoints"
+    if nested.is_dir():
+        return str(nested.resolve())
+    return str(project_root.resolve())
+
+
+def default_dit_config_name(project_root: Path) -> str | None:
+    for name in ("acestep-v15-turbo", "acestep-v15"):
+        if (project_root / name).is_dir():
+            return name
+    return None
+
+
+def default_lm_dir_name(checkpoint_dir: Path) -> str | None:
+    try:
+        for p in sorted(checkpoint_dir.iterdir()):
+            if p.is_dir() and "5hz" in p.name.lower():
+                return p.name
+    except FileNotFoundError:
+        return None
+    return None
+
+
+def ensure_hf_flat_weights_linked_into_checkpoints(weights_root: Path) -> None:
+    """
+    HuggingFace `Ace-Step1.5` snapshots often place `acestep-v15-turbo/` at the **repo root**, while
+    `initialize_service` expects `weights_root/checkpoints/acestep-v15-turbo/`. If we see the flat
+    layout, create `checkpoints/` and directory junctions (Windows) or symlinks (POSIX) — idempotent.
+    """
+    ck = weights_root / "checkpoints"
+    turbo_ck = ck / "acestep-v15-turbo"
+    turbo_flat = weights_root / "acestep-v15-turbo"
+    if turbo_ck.is_dir() or not turbo_flat.is_dir():
+        return
+
+    ck.mkdir(parents=True, exist_ok=True)
+    for name in (
+        "acestep-v15-turbo",
+        "acestep-5Hz-lm-1.7B",
+        "Qwen3-Embedding-0.6B",
+        "vae",
+    ):
+        src = (weights_root / name).resolve()
+        dst = ck / name
+        if not src.is_dir() or dst.exists():
+            continue
+        if sys.platform == "win32":
+            completed = subprocess.run(
+                ["cmd", "/c", "mklink", "/J", str(dst), str(src)],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if completed.returncode != 0:
+                raise SystemExit(
+                    "ACE-Step expects models under checkpoints\\ but this repo has a flat HF layout.\n"
+                    f"Could not junction {dst} -> {src}:\n{completed.stderr or completed.stdout}\n"
+                    "Create the link manually (Developer Mode or elevated shell) or move folders; "
+                    "see scripts/audio-pipeline/README.md."
+                )
+        else:
+            dst.symlink_to(src, target_is_directory=True)
 
 
 def parse_args() -> argparse.Namespace:
@@ -198,7 +287,8 @@ def main() -> None:
     dit_handler = AceStepHandler()
     llm_handler = LLMHandler()
 
-    project_root = acestep_project_root()
+    project_root = resolve_weights_project_root()
+    ensure_hf_flat_weights_linked_into_checkpoints(project_root)
     prefer_source = args.download_source if args.download_source and args.download_source != "auto" else None
 
     compile_model = os.environ.get("ACESTEP_COMPILE_MODEL", "").strip().lower() in {"1", "true", "yes", "y", "on"}
@@ -206,13 +296,18 @@ def main() -> None:
 
     config_path = args.config_path
     if not config_path:
-        models = dit_handler.get_available_acestep_v15_models()
-        if models:
-            config_path = "acestep-v15-turbo" if "acestep-v15-turbo" in models else models[0]
+        dit_candidate = default_dit_config_name(project_root)
+        if dit_candidate:
+            config_path = dit_candidate
         else:
-            raise SystemExit(
-                "No ACE-Step v1.5 DiT models found. Download checkpoints (see upstream README) or pass --config-path."
-            )
+            models = dit_handler.get_available_acestep_v15_models()
+            if models:
+                config_path = "acestep-v15-turbo" if "acestep-v15-turbo" in models else models[0]
+            else:
+                raise SystemExit(
+                    "No ACE-Step v1.5 DiT models found. Download checkpoints (see upstream README), "
+                    "set ACESTEP_PROJECT_ROOT to your weights folder (e.g. ../Ace-Step1.5), or pass --config-path."
+                )
 
     init_status, enable_generate = dit_handler.initialize_service(
         project_root=str(project_root),
@@ -237,15 +332,22 @@ def main() -> None:
 
         gpu_config = get_gpu_config()
         set_global_gpu_config(gpu_config)  # refresh after DiT init in case handlers touched tier state
-        checkpoint_dir = os.path.join(str(project_root), "checkpoints")
+        checkpoint_dir = resolve_checkpoint_dir(project_root)
 
         backend = resolve_lm_backend(backend_raw, gpu_config)
 
         if not lm_model_path:
-            models_lm = llm_handler.get_available_5hz_lm_models()
-            if not models_lm:
-                raise SystemExit("No 5Hz LM models under checkpoints; download via upstream tools or set --lm-model-path.")
-            lm_model_path = models_lm[0]
+            lm_flat = default_lm_dir_name(Path(checkpoint_dir))
+            if lm_flat:
+                lm_model_path = lm_flat
+            else:
+                models_lm = llm_handler.get_available_5hz_lm_models()
+                if not models_lm:
+                    raise SystemExit(
+                        "No 5Hz LM models found. Download via upstream tools, set ACESTEP_PROJECT_ROOT / "
+                        "ACESTEP_CHECKPOINTS_DIR to the folder containing acestep-5Hz-lm-*, or pass --lm-model-path."
+                    )
+                lm_model_path = models_lm[0]
 
         try:
             from acestep.model_downloader import ensure_lm_model  # noqa: PLC0415

@@ -1,25 +1,140 @@
 /**
  * Shuffle / deal motion helpers for the **WebGL** tile board (`TileBoard` → `TileBoardScene`).
- * `TileBoard` uses `computeShuffleMotionBudgetMs`; the scene uses `computeStaggeredShuffleDealZ` during the shuffle window.
- * This module is the single timing source for that path — there is no separate DOM FLIP pipeline for the same effect.
+ * This module is the single timing source for shuffle, deal-in, and related premium motion accents.
  */
 import { TILE_SPACING } from './tileShatter';
 
-export const FLIP_DURATION_MS = 600;
-export const STAGGER_MS = 32;
+export const FLIP_DURATION_MS = 680;
+export const STAGGER_MS = 28;
+const SHUFFLE_SETTLE_TAIL_MS = 220;
+
+export interface BoardMotionTransform {
+    rx: number;
+    ry: number;
+    rz: number;
+    rotX: number;
+    rotY: number;
+    rotZ: number;
+}
+
+const ZERO_MOTION_TRANSFORM: BoardMotionTransform = {
+    rx: 0,
+    ry: 0,
+    rz: 0,
+    rotX: 0,
+    rotY: 0,
+    rotZ: 0
+};
+
+interface BoardMotionState {
+    arch: number;
+    columnNorm: number;
+    globalSmooth: number;
+    lane: number;
+    remain: number;
+    rowNorm: number;
+}
 
 /** Upper bound for 3D ease-out: matches worst-case staggered shuffle motion on this board. */
 export function computeShuffleMotionBudgetMs(tileCount: number): number {
     const n = Math.max(1, tileCount);
     if (n <= 1) {
-        return FLIP_DURATION_MS + 200;
+        return FLIP_DURATION_MS + SHUFFLE_SETTLE_TAIL_MS;
     }
-    return (n - 1) * STAGGER_MS + FLIP_DURATION_MS + 160;
+    return (n - 1) * STAGGER_MS + FLIP_DURATION_MS + SHUFFLE_SETTLE_TAIL_MS;
+}
+
+const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
+
+const smoothstep = (value: number): number => {
+    const t = clamp01(value);
+    return t * t * (3 - 2 * t);
+};
+
+const computeBoardMotionState = (
+    nowMs: number,
+    deadlineMs: number,
+    budgetMs: number,
+    boardOrderIndex: number,
+    tileCount: number,
+    rows: number,
+    columns: number
+): BoardMotionState | null => {
+    if (budgetMs <= 0 || deadlineMs <= 0 || tileCount <= 0) {
+        return null;
+    }
+
+    const startMs = deadlineMs - budgetMs;
+
+    if (nowMs < startMs || nowMs >= deadlineMs) {
+        return null;
+    }
+
+    const elapsed = nowMs - startMs;
+    const n = Math.max(1, tileCount);
+    const clampedIndex = Math.min(Math.max(0, boardOrderIndex), Math.max(0, n - 1));
+    const tileStart = clampedIndex * STAGGER_MS;
+    const localT = Math.max(0, elapsed - tileStart);
+    const u = clamp01(localT / FLIP_DURATION_MS);
+    const eased = smoothstep(u);
+    const remain = 1 - eased;
+    const arch = Math.sin(u * Math.PI);
+    const row = Math.floor(clampedIndex / Math.max(1, columns));
+    const column = clampedIndex % Math.max(1, columns);
+    const rowNorm = rows <= 1 ? 0 : row / Math.max(1, rows - 1) - 0.5;
+    const columnNorm = columns <= 1 ? 0 : column / Math.max(1, columns - 1) - 0.5;
+    const lane = n <= 1 ? 0 : clampedIndex / Math.max(1, n - 1) * 2 - 1;
+
+    return {
+        arch,
+        columnNorm,
+        globalSmooth: smoothstep(elapsed / budgetMs),
+        lane,
+        remain,
+        rowNorm
+    };
+};
+
+export function computeShuffleMotionTransform(
+    nowMs: number,
+    deadlineMs: number,
+    budgetMs: number,
+    boardOrderIndex: number,
+    tileCount: number,
+    rows: number,
+    columns: number
+): BoardMotionTransform {
+    const state = computeBoardMotionState(
+        nowMs,
+        deadlineMs,
+        budgetMs,
+        boardOrderIndex,
+        tileCount,
+        rows,
+        columns
+    );
+    if (!state) {
+        return ZERO_MOTION_TRANSFORM;
+    }
+
+    const gridSpan = Math.max((Math.max(1, columns) - 1) * TILE_SPACING, (Math.max(1, rows) - 1) * TILE_SPACING);
+    const sweepRadius = (0.18 + gridSpan * 0.018) * state.remain * (0.52 + state.arch * 0.48);
+    const theta = state.globalSmooth * Math.PI * 1.25 + state.lane * 1.18 + state.rowNorm * 0.85;
+    const lateralSweep = state.lane * sweepRadius * 0.44;
+    const crossSweep = (state.columnNorm - state.rowNorm * 0.65) * sweepRadius * 0.34;
+
+    return {
+        rx: Math.cos(theta) * sweepRadius * 0.68 + lateralSweep,
+        ry: Math.sin(theta) * sweepRadius * 0.34 + crossSweep,
+        rz: state.arch * 0.022 + state.remain * 0.004,
+        rotX: -Math.sin(theta + 0.22) * 0.048 * state.arch,
+        rotY: state.lane * 0.11 * state.remain + Math.sin(theta) * 0.045 * state.arch,
+        rotZ: Math.cos(theta - 0.33) * 0.068 * state.arch
+    };
 }
 
 /**
- * FX-013: brief per-tile Z lift during the shuffle window, staggered like reading-order index.
- * Returns world-units offset; 0 when outside the window or when `reduceMotion` would skip motion.
+ * Legacy wrapper kept for focused tests and any narrow callers that only care about the lift.
  */
 export function computeStaggeredShuffleDealZ(
     nowMs: number,
@@ -28,25 +143,7 @@ export function computeStaggeredShuffleDealZ(
     boardOrderIndex: number,
     tileCount: number
 ): number {
-    if (budgetMs <= 0 || deadlineMs <= 0 || tileCount <= 0) {
-        return 0;
-    }
-
-    const startMs = deadlineMs - budgetMs;
-
-    if (nowMs < startMs || nowMs >= deadlineMs) {
-        return 0;
-    }
-
-    const elapsed = nowMs - startMs;
-    const n = Math.max(1, tileCount);
-    const clampedIndex = Math.min(Math.max(0, boardOrderIndex), Math.max(0, n - 1));
-    const tileStart = clampedIndex * STAGGER_MS;
-    const localT = Math.max(0, elapsed - tileStart);
-    const u = Math.min(1, localT / FLIP_DURATION_MS);
-    const envelope = Math.sin(u * Math.PI);
-
-    return envelope * 0.028;
+    return computeShuffleMotionTransform(nowMs, deadlineMs, budgetMs, boardOrderIndex, tileCount, 1, tileCount).rz;
 }
 
 /** Same timing envelope as shuffle — used when a new board identity appears (deal-in). */
@@ -54,15 +151,47 @@ export function computeBoardEntranceMotionBudgetMs(tileCount: number): number {
     return computeShuffleMotionBudgetMs(tileCount);
 }
 
-/** Spiral spread per tile index (full rotations around the deck). */
-const ENTRANCE_TWIST_TURNS = 1.65;
-/** Extra radians the whole formation rotates over the motion budget (“tornado” spin). */
-const ENTRANCE_SPIN_OVER_BUDGET_RAD = Math.PI * 2.85;
-
 /**
- * Per-tile XY offset toward layout rest (spiral / tornado in from off-screen).
- * Returns remainder added to nominal layout targets; fades to zero by end of window.
+ * New-board deal-in: broader sweep than in-board shuffle, but same timing vocabulary so the two effects feel related.
  */
+export function computeBoardEntranceMotionTransform(
+    nowMs: number,
+    deadlineMs: number,
+    budgetMs: number,
+    boardOrderIndex: number,
+    tileCount: number,
+    rows: number,
+    columns: number
+): BoardMotionTransform {
+    const state = computeBoardMotionState(
+        nowMs,
+        deadlineMs,
+        budgetMs,
+        boardOrderIndex,
+        tileCount,
+        rows,
+        columns
+    );
+    if (!state) {
+        return ZERO_MOTION_TRANSFORM;
+    }
+
+    const gridSpan = Math.max((Math.max(1, columns) - 1) * TILE_SPACING, (Math.max(1, rows) - 1) * TILE_SPACING);
+    const radius = (4.6 + gridSpan * 0.62) * state.remain;
+    const theta0 = state.lane * Math.PI * 1.72 + state.columnNorm * Math.PI * 0.9;
+    const theta = theta0 + state.globalSmooth * Math.PI * 2.2;
+
+    return {
+        rx: radius * Math.cos(theta),
+        ry: radius * Math.sin(theta) * 0.78,
+        rz: state.arch * 0.026 + state.remain * 0.01,
+        rotX: -Math.sin(theta) * 0.072 * state.arch,
+        rotY: Math.cos(theta + state.rowNorm * 1.2) * 0.12 * state.remain,
+        rotZ: Math.sin(theta - 0.3) * 0.1 * state.arch
+    };
+}
+
+/** Legacy wrapper for callers that only need the XY portion. */
 export function computeBoardEntranceRemainderXY(
     nowMs: number,
     deadlineMs: number,
@@ -72,39 +201,14 @@ export function computeBoardEntranceRemainderXY(
     rows: number,
     columns: number
 ): { rx: number; ry: number } {
-    if (budgetMs <= 0 || deadlineMs <= 0 || tileCount <= 0) {
-        return { rx: 0, ry: 0 };
-    }
-
-    const startMs = deadlineMs - budgetMs;
-
-    if (nowMs < startMs || nowMs >= deadlineMs) {
-        return { rx: 0, ry: 0 };
-    }
-
-    const elapsed = nowMs - startMs;
-    const n = Math.max(1, tileCount);
-    const clampedIndex = Math.min(Math.max(0, boardOrderIndex), Math.max(0, n - 1));
-    const tileStart = clampedIndex * STAGGER_MS;
-    const localT = Math.max(0, elapsed - tileStart);
-    const u = Math.min(1, localT / FLIP_DURATION_MS);
-    const eased = u * u * (3 - 2 * u);
-    const remain = 1 - eased;
-
-    const rRows = Math.max(1, rows);
-    const rCols = Math.max(1, columns);
-    const gridSpan = Math.max((rCols - 1) * TILE_SPACING, (rRows - 1) * TILE_SPACING);
-    const rMax = 5.9 + gridSpan * 0.85;
-    const R = remain * rMax;
-
-    const globalU = Math.min(1, elapsed / budgetMs);
-    const globalSmooth = globalU * globalU * (3 - 2 * globalU);
-    const theta0 =
-        n <= 1 ? 0 : (clampedIndex / Math.max(1, n - 1)) * Math.PI * 2 * ENTRANCE_TWIST_TURNS;
-    const theta = theta0 + ENTRANCE_SPIN_OVER_BUDGET_RAD * globalSmooth;
-
-    return {
-        rx: R * Math.cos(theta),
-        ry: R * Math.sin(theta)
-    };
+    const transform = computeBoardEntranceMotionTransform(
+        nowMs,
+        deadlineMs,
+        budgetMs,
+        boardOrderIndex,
+        tileCount,
+        rows,
+        columns
+    );
+    return { rx: transform.rx, ry: transform.ry };
 }

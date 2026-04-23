@@ -5,6 +5,13 @@ import type { MutatorId, RelicId, RunState } from '../../shared/contracts';
 import { serializeRunPayloadFromSummary } from '../../shared/run-export';
 import { useShallow } from 'zustand/react/shallow';
 import { UI_ART } from '../assets/ui';
+import {
+    playGameOverOpenSfx,
+    playUiBackSfx,
+    playUiCopySfx,
+    resumeUiSfxContext,
+    uiSfxGainFromSettings
+} from '../audio/uiSfx';
 import { gameOverScreenCopy } from '../copy/gameOverScreen';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
@@ -47,6 +54,12 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
                 : '',
         [summary]
     );
+    const uiGain = uiSfxGainFromSettings(settings.masterVolume, settings.sfxVolume);
+
+    useEffect(() => {
+        resumeUiSfxContext();
+        playGameOverOpenSfx(uiGain);
+    }, [uiGain]);
 
     useEffect(() => {
         if (copyHint !== gameOverScreenCopy.runExportSuccess) return;
@@ -78,6 +91,8 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
         }
         try {
             await navigator.clipboard.writeText(sharePayload);
+            resumeUiSfxContext();
+            playUiCopySfx(uiGain);
             setCopyHint(gameOverScreenCopy.runExportSuccess);
         } catch {
             setCopyHint(gameOverScreenCopy.runExportClipboardFail);
@@ -198,7 +213,11 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
                                     aria-label={gameOverScreenCopy.mainMenuAriaLabel}
                                     size="lg"
                                     variant="secondary"
-                                    onClick={goToMenu}
+                                    onClick={() => {
+                                        resumeUiSfxContext();
+                                        playUiBackSfx(uiGain);
+                                        goToMenu();
+                                    }}
                                 >
                                     {gameOverScreenCopy.mainMenuLabel}
                                 </UiButton>

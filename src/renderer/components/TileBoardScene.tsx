@@ -82,7 +82,10 @@ import cardBackSvgUrl from '../assets/textures/cards/back.svg?url';
 import cardFrontSvgUrl from '../assets/textures/cards/front.svg?url';
 import { loadSharedCardSvgPlaneGeometry } from './cardSvgPlaneGeometry';
 import { createRafCoalescedViewportNotifier, type TileBoardViewportState } from './tileBoardViewport';
-import { computeBoardEntranceRemainderXY, computeStaggeredShuffleDealZ } from './shuffleFlipAnimation';
+import {
+    computeBoardEntranceMotionTransform,
+    computeShuffleMotionTransform
+} from './shuffleFlipAnimation';
 import {
     getFocusRoundedRectRingGeometry,
     getMatchedRoundedRectRingGeometry,
@@ -823,19 +826,68 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
     bag.liftSmoothRef.current = MathUtils.damp(bag.liftSmoothRef.current, liftGoal, liftLambda, delta);
     const rotationDamp = p.reduceMotion ? 42 : p.faceUp ? 18 : 16;
 
+    const now = performance.now();
+    const shuffleLayoutActive =
+        !p.reduceMotion && p.shuffleMotionDeadlineMs > 0 && now < p.shuffleMotionDeadlineMs;
+    const entranceLayoutActive =
+        !p.reduceMotion &&
+        !shuffleLayoutActive &&
+        p.boardEntranceMotionDeadlineMs > 0 &&
+        now < p.boardEntranceMotionDeadlineMs;
+
+    const shuffleMotion =
+        shuffleLayoutActive && p.shuffleMotionBudgetMs > 0 && p.shuffleStaggerTileCount > 0
+            ? computeShuffleMotionTransform(
+                  now,
+                  p.shuffleMotionDeadlineMs,
+                  p.shuffleMotionBudgetMs,
+                  p.shuffleBoardOrderIndex,
+                  p.shuffleStaggerTileCount,
+                  p.boardRows,
+                  p.boardColumns
+              )
+            : {
+                  rx: 0,
+                  ry: 0,
+                  rz: 0,
+                  rotX: 0,
+                  rotY: 0,
+                  rotZ: 0
+              };
+    const entranceMotion =
+        entranceLayoutActive && p.boardEntranceMotionBudgetMs > 0 && p.boardEntranceStaggerTileCount > 0
+            ? computeBoardEntranceMotionTransform(
+                  now,
+                  p.boardEntranceMotionDeadlineMs,
+                  p.boardEntranceMotionBudgetMs,
+                  p.shuffleBoardOrderIndex,
+                  p.boardEntranceStaggerTileCount,
+                  p.boardRows,
+                  p.boardColumns
+              )
+            : {
+                  rx: 0,
+                  ry: 0,
+                  rz: 0,
+                  rotX: 0,
+                  rotY: 0,
+                  rotZ: 0
+              };
+
     group.rotation.x = MathUtils.damp(
         group.rotation.x,
-        p.transform.imperfectionRotationX + fieldRotX + hoverTiltX,
+        p.transform.imperfectionRotationX + fieldRotX + hoverTiltX + shuffleMotion.rotX + entranceMotion.rotX,
         p.reduceMotion ? 42 : 22,
         delta
     );
     group.rotation.z = MathUtils.damp(
         group.rotation.z,
-        p.transform.imperfectionRotationZ + fieldRotZ + hoverTiltZ,
+        p.transform.imperfectionRotationZ + fieldRotZ + hoverTiltZ + shuffleMotion.rotZ + entranceMotion.rotZ,
         p.reduceMotion ? 42 : 22,
         delta
     );
-    const rotationYTarget = p.transform.layoutYaw + p.transform.flipRotationY;
+    const rotationYTarget =
+        p.transform.layoutYaw + p.transform.flipRotationY + shuffleMotion.rotY + entranceMotion.rotY;
     group.rotation.y = p.reduceMotion
         ? rotationYTarget
         : MathUtils.damp(group.rotation.y, rotationYTarget, rotationDamp, delta);
@@ -848,53 +900,11 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
         fieldLift +
         idleDrift +
         settle;
-    const now = performance.now();
-    const shuffleLayoutActive =
-        !p.reduceMotion && p.shuffleMotionDeadlineMs > 0 && now < p.shuffleMotionDeadlineMs;
-    const entranceLayoutActive =
-        !p.reduceMotion &&
-        !shuffleLayoutActive &&
-        p.boardEntranceMotionDeadlineMs > 0 &&
-        now < p.boardEntranceMotionDeadlineMs;
 
-    const entranceRemainder =
-        entranceLayoutActive && p.boardEntranceMotionBudgetMs > 0 && p.boardEntranceStaggerTileCount > 0
-            ? computeBoardEntranceRemainderXY(
-                  now,
-                  p.boardEntranceMotionDeadlineMs,
-                  p.boardEntranceMotionBudgetMs,
-                  p.shuffleBoardOrderIndex,
-                  p.boardEntranceStaggerTileCount,
-                  p.boardRows,
-                  p.boardColumns
-              )
-            : { rx: 0, ry: 0 };
-
-    const shuffleDealZ =
-        shuffleLayoutActive && p.shuffleMotionBudgetMs > 0 && p.shuffleStaggerTileCount > 0
-            ? computeStaggeredShuffleDealZ(
-                  now,
-                  p.shuffleMotionDeadlineMs,
-                  p.shuffleMotionBudgetMs,
-                  p.shuffleBoardOrderIndex,
-                  p.shuffleStaggerTileCount
-              )
-            : 0;
-    const entranceDealZ =
-        entranceLayoutActive && p.boardEntranceMotionBudgetMs > 0 && p.boardEntranceStaggerTileCount > 0
-            ? computeStaggeredShuffleDealZ(
-                  now,
-                  p.boardEntranceMotionDeadlineMs,
-                  p.boardEntranceMotionBudgetMs,
-                  p.shuffleBoardOrderIndex,
-                  p.boardEntranceStaggerTileCount
-              )
-            : 0;
-
-    const targetX = baseTargetX + entranceRemainder.rx;
-    const targetY = baseTargetY + entranceRemainder.ry;
+    const targetX = baseTargetX + shuffleMotion.rx + entranceMotion.rx;
+    const targetY = baseTargetY + shuffleMotion.ry + entranceMotion.ry;
     const targetZ =
-        structDepth + hoverDepth + fieldDepth + shuffleDealZ + entranceDealZ + p.transform.layoutJitterZ;
+        structDepth + hoverDepth + fieldDepth + shuffleMotion.rz + entranceMotion.rz + p.transform.layoutJitterZ;
     const wobbleT = clock.elapsedTime;
     const mismatchShakeX =
         !p.reduceMotion && p.resolvingSelection === 'mismatch'

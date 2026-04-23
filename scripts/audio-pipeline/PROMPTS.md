@@ -4,6 +4,17 @@ These are **starting points** for `task_type: "text2music"` with `"lyrics": "[In
 
 Copy lines into your jobs file `caption` field. Do not paste copyrighted lyrics or transcribed themes from commercial games.
 
+## Full app batch (`jobs.memory-dungeon-app-audio.json`)
+
+Authoritative **captions for all 21 shipped targets** (gameplay, UI, menu/run loops) live in [`jobs.memory-dungeon-app-audio.json`](jobs.memory-dungeon-app-audio.json). Each `caption` pairs with that job’s **`reference_audio`** for timbre.
+
+**Memory Dungeon style brief** (repeated in those captions):
+
+- Setting: dark fantasy **memory-vault / shrine** of recalled pairs, **arcade-tight**, **crystalline** or **marble-glass** textures, **restrained** mix.
+- Avoid: horror, dubstep/EDM drops, obvious drum loops, **vocals**, long lead melodies.
+- One-shots: **single transient**, fast perceived attack, **no rhythmic pulse**, align with reference density; trim renders after batch.
+- Loops (`menu-loop`, `run-loop`): **seamless loopable** beds, low motion, no hook melody.
+
 ## Menu / hub
 
 - Calm puzzle lobby, soft synthetic pads, subtle marble-like glass touches, sparse percussion, loopable 60–90s, minor key

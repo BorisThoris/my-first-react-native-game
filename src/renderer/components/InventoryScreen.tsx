@@ -1,5 +1,6 @@
 import { useShallow } from 'zustand/react/shallow';
 import { GAME_MODE_CODEX, MUTATOR_CATALOG, RELIC_CATALOG } from '../../shared/game-catalog';
+import { playUiBackSfx, resumeUiSfxContext, uiSfxGainFromSettings } from '../audio/uiSfx';
 import { inventoryScreenCopy } from '../copy/inventoryScreen';
 import { Eyebrow, MetaFrame, Panel, ScreenTitle, UiButton } from '../ui';
 import { useAppStore } from '../store/useAppStore';
@@ -15,10 +16,11 @@ interface InventoryScreenProps {
 }
 
 const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) => {
-    const { closeSubscreen, run } = useAppStore(
+    const { closeSubscreen, run, settings } = useAppStore(
         useShallow((state) => ({
             closeSubscreen: state.closeSubscreen,
-            run: state.run
+            run: state.run,
+            settings: state.settings
         }))
     );
 
@@ -27,6 +29,12 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
     const shellClassName = `${metaStyles.shell} ${shellStageClass} ${stackedOnGameplay ? styles.inRunInventoryShell : ''}`.trim();
     const panelClassName = stackedOnGameplay ? styles.inRunPanel : '';
     const heroPanelClassName = stackedOnGameplay ? styles.inRunHeroPanel : '';
+    const uiGain = uiSfxGainFromSettings(settings.masterVolume, settings.sfxVolume);
+    const handleBack = (): void => {
+        resumeUiSfxContext();
+        playUiBackSfx(uiGain);
+        closeSubscreen();
+    };
 
     if (!run) {
         return (
@@ -39,7 +47,7 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                         </ScreenTitle>
                         <p className={metaStyles.subtitle}>No active expedition. Start a run from the main menu.</p>
                     </div>
-                    <UiButton size="md" variant="secondary" onClick={closeSubscreen} type="button">
+                    <UiButton size="md" variant="secondary" onClick={handleBack} type="button">
                         Back
                     </UiButton>
                 </header>
@@ -69,7 +77,7 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                     </ScreenTitle>
                     <p className={metaStyles.subtitle}>Read-only snapshot of this descent (charges, relics, mutators).</p>
                 </div>
-                <UiButton size="md" variant="secondary" onClick={closeSubscreen} type="button">
+                <UiButton size="md" variant="secondary" onClick={handleBack} type="button">
                     Back
                 </UiButton>
             </header>

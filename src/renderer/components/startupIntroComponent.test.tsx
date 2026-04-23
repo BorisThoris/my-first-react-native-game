@@ -5,6 +5,12 @@ import { PlatformTiltProvider } from '../platformTilt/PlatformTiltProvider';
 import StartupIntro from './StartupIntro';
 import { getIntroExitDurationMs } from './startupIntroConfig';
 
+const uiSfxMocks = vi.hoisted(() => ({
+    playIntroStingSfx: vi.fn(),
+    resumeUiSfxContext: vi.fn(),
+    uiSfxGainFromSettings: () => 1
+}));
+
 const mockHasWebGLSupport = vi.fn();
 
 const mockPreloadStartupCriticalAssets = vi.hoisted(() =>
@@ -17,6 +23,17 @@ vi.mock('../assets/preloadStartupAssets', () => ({
 
 vi.mock('./startupIntroTextures', () => ({
     hasWebGLSupport: () => mockHasWebGLSupport()
+}));
+
+vi.mock('../audio/uiSfx', () => uiSfxMocks);
+vi.mock('../store/useAppStore', () => ({
+    useAppStore: (selector: (state: { settings: { masterVolume: number; sfxVolume: number } }) => unknown) =>
+        selector({
+            settings: {
+                masterVolume: 1,
+                sfxVolume: 1
+            }
+        })
 }));
 
 const flushIntroPreload = async (): Promise<void> => {
@@ -40,6 +57,7 @@ describe('StartupIntro', () => {
 
     afterEach(() => {
         vi.useRealTimers();
+        vi.clearAllMocks();
     });
 
     it('auto completes after the full runtime by default', async () => {
@@ -63,6 +81,8 @@ describe('StartupIntro', () => {
         });
 
         expect(onComplete).toHaveBeenCalledTimes(1);
+        expect(uiSfxMocks.resumeUiSfxContext).toHaveBeenCalled();
+        expect(uiSfxMocks.playIntroStingSfx).toHaveBeenCalledTimes(1);
     });
 
     it('uses the shortened reduced-motion runtime and supports keyboard skip', async () => {

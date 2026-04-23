@@ -1,0 +1,16 @@
+{
+    "version": 1,
+    "entries": {
+        "ui-click": { "file": "ui-click.wav", "category": "ui" },
+        "ui-confirm": { "file": "ui-confirm.wav", "category": "ui" },
+        "ui-back": { "file": "ui-back.wav", "category": "ui" },
+        "ui-counter": { "file": "ui-counter.wav", "category": "ui" },
+        "menu-open": { "file": "menu-open.wav", "category": "menu" },
+        "run-start": { "file": "run-start.wav", "category": "menu" },
+        "intro-sting": { "file": "intro-sting.wav", "category": "menu" },
+        "pause-open": { "file": "pause-open.wav", "category": "menu" },
+        "pause-resume": { "file": "pause-resume.wav", "category": "menu" },
+        "game-over-open": { "file": "game-over-open.wav", "category": "menu" },
+        "ui-copy": { "file": "ui-copy.wav", "category": "ui" }
+    }
+}

@@ -4,6 +4,32 @@ import { createDefaultSaveData } from '../../shared/save-data';
 import { BOARD_FLOATER_POP_CLEAR } from './matchScorePop';
 import { useAppStore } from './useAppStore';
 
+const gameSfxMocks = vi.hoisted(() => ({
+    playDestroyPairSfx: vi.fn(),
+    playFlipSfx: vi.fn(),
+    playFloorClearSfx: vi.fn(),
+    playGambitCommitSfx: vi.fn(),
+    playPeekPowerSfx: vi.fn(),
+    playPowerArmSfx: vi.fn(),
+    playRelicPickSfx: vi.fn(),
+    playResolveSfx: vi.fn(),
+    playStrayPowerSfx: vi.fn(),
+    playWagerArmSfx: vi.fn(),
+    resumeAudioContext: vi.fn(),
+    sfxGainFromSettings: (masterVolume: number, sfxVolume: number) =>
+        Math.max(0, Math.min(1, masterVolume)) * Math.max(0, Math.min(1, sfxVolume))
+}));
+
+const uiSfxMocks = vi.hoisted(() => ({
+    playPauseOpenSfx: vi.fn(),
+    playPauseResumeSfx: vi.fn(),
+    playRunStartSfx: vi.fn(),
+    resumeUiSfxContext: vi.fn()
+}));
+
+vi.mock('../audio/gameSfx', () => gameSfxMocks);
+vi.mock('../audio/uiSfx', () => uiSfxMocks);
+
 const resetStore = (): void => {
     const saveData = createDefaultSaveData();
 
@@ -37,6 +63,7 @@ describe('useAppStore timers', () => {
     afterEach(() => {
         vi.runOnlyPendingTimers();
         vi.useRealTimers();
+        vi.clearAllMocks();
     });
 
     it('freezes a pending board resolution while settings are open', async () => {
@@ -263,6 +290,71 @@ describe('useAppStore timers', () => {
         expect(useAppStore.getState().view).toBe('menu');
         expect(useAppStore.getState().run).toBeNull();
         expect(useAppStore.getState().settingsReturnView).toBe('menu');
+    });
+
+    it('plays pause and resume cues from store transitions', async () => {
+        useAppStore.getState().startRun();
+        const memorizeDuration = useAppStore.getState().run?.timerState.memorizeRemainingMs ?? 0;
+        await vi.advanceTimersByTimeAsync(memorizeDuration + 1);
+
+        useAppStore.getState().pause();
+        expect(uiSfxMocks.resumeUiSfxContext).toHaveBeenCalled();
+        expect(uiSfxMocks.playPauseOpenSfx).toHaveBeenCalledTimes(1);
+
+        useAppStore.getState().resume();
+        expect(uiSfxMocks.playPauseResumeSfx).toHaveBeenCalledTimes(1);
+    });
+
+    it('plays relic-pick cue when a relic choice is accepted', async () => {
+        useAppStore.getState().startRun();
+        const run = useAppStore.getState().run!;
+        useAppStore.setState({
+            run: {
+                ...run,
+                relicOffer: {
+                    tier: 1,
+                    options: ['extra_shuffle_charge'],
+                    picksRemaining: 1,
+                    pickRound: 0
+                }
+            }
+        });
+
+        useAppStore.getState().pickRelic('extra_shuffle_charge');
+        expect(gameSfxMocks.resumeAudioContext).toHaveBeenCalled();
+        expect(gameSfxMocks.playRelicPickSfx).toHaveBeenCalledTimes(1);
+    });
+
+    it('plays wager-arm cue when risk wager is accepted', () => {
+        const run = useAppStore.getState().run;
+        useAppStore.getState().startRun();
+        const current = useAppStore.getState().run!;
+        useAppStore.setState({
+            run: {
+                ...current,
+                status: 'levelComplete',
+                featuredObjectiveStreak: 2,
+                lastLevelResult: {
+                    level: 1,
+                    scoreGained: 120,
+                    rating: 'S++',
+                    livesRemaining: 5,
+                    perfect: true,
+                    mistakes: 0,
+                    clearLifeReason: 'perfect',
+                    clearLifeGained: 1,
+                    featuredObjectiveId: 'flip_par',
+                    featuredObjectiveCompleted: true,
+                    relicFavorGained: 1,
+                    featuredObjectiveStreak: 2
+                }
+            }
+        });
+
+        useAppStore.getState().acceptEndlessRiskWager();
+        expect(gameSfxMocks.resumeAudioContext).toHaveBeenCalled();
+        expect(gameSfxMocks.playWagerArmSfx).toHaveBeenCalledTimes(1);
+        expect(run).not.toBe(useAppStore.getState().run);
     });
 });
 

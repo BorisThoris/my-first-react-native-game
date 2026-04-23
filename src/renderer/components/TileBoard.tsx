@@ -44,11 +44,11 @@ import { BOARD_LAYOUT_VIEWPORT_PADDING, TILE_SPACING } from './tileShatter';
 import { computeBoardEntranceMotionBudgetMs, computeShuffleMotionBudgetMs } from './shuffleFlipAnimation';
 import { preloadTileTextureImages } from './tileTextures';
 
-/** Minimum time the pre-board “shuffling” motif stays visible while GPU warm-up runs in parallel. */
-const BOARD_PRESTAGE_DWELL_MS = 420;
+/** Minimum time the pre-board “gather / release” motif stays visible while GPU warm-up runs in parallel. */
+const BOARD_PRESTAGE_DWELL_MS = 360;
 
 /** Decorative deck cards in the prestaging overlay (must match `--prestage-cards` in CSS math). */
-const PRESTAGE_CARD_COUNT = 10;
+const PRESTAGE_CARD_COUNT = 8;
 
 export type TileBoardClientRect = {
     bottom: number;

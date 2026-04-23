@@ -5,7 +5,10 @@ import {
     playGambitCommitSfx,
     playFloorClearSfx,
     playMatchSfx,
+    playRelicOfferOpenSfx,
+    playRelicPickSfx,
     playShuffleSfx,
+    playWagerArmSfx,
     sfxGainFromSettings
 } from './gameSfx';
 
@@ -188,5 +191,38 @@ describe('gameSfx', () => {
         });
 
         expect(createOscillator).toHaveBeenCalled();
+    });
+
+    it('supports dedicated relic and wager cues', () => {
+        const createOscillator = vi.fn(() => ({
+            type: 'sine' as OscillatorType,
+            frequency: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+            connect: vi.fn(),
+            start: vi.fn(),
+            stop: vi.fn(),
+            addEventListener: vi.fn()
+        }));
+        const createGain = vi.fn(() => ({
+            gain: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+            connect: vi.fn()
+        }));
+
+        vi.stubGlobal(
+            'AudioContext',
+            class {
+                currentTime = 0;
+                destination = {};
+                createOscillator = createOscillator;
+                createGain = createGain;
+                close = (): Promise<void> => Promise.resolve();
+            }
+        );
+
+        const gain = sfxGainFromSettings(1, 1);
+        playRelicOfferOpenSfx(gain);
+        playRelicPickSfx(gain);
+        playWagerArmSfx(gain);
+
+        expect(createOscillator).toHaveBeenCalledTimes(3);
     });
 });

@@ -1,5 +1,5 @@
 /**
- * Shared procedural chill-loop DSP: drum/pad layers + full mix + loop-safe timing.
+ * Shared procedural loop DSP: drum/pad layers + full mix + loop-safe timing.
  * Used by `generate-procedural-sfx-wavs.mjs`.
  */
 
@@ -152,7 +152,7 @@ export function mixSparseArp(buffer, barStart, sr, barSamples, chordFreqs, mixGa
     }
 }
 
-/** Am | F | C | G — roots + pad chord stacks (same as chill-loop music). */
+/** Am | F | C | G — roots + pad chord stacks (same as placeholder music). */
 export function getChillChordProgression() {
     return [
         { root: 55, pad: [110, 130.81, 164.81, 220] },
@@ -170,7 +170,7 @@ export function assertIntegralSamplesPerQuarter(sr, bpm) {
     return spq;
 }
 
-/** Same dynamics as full chill-loop mix (for per-stem consistency). */
+/** Same dynamics as the full placeholder mix (for per-stem consistency). */
 export function normaliseChillBuffer(buffer) {
     const gentleCompress = (samples, thresh, ratio) => {
         for (let i = 0; i < samples.length; i += 1) {

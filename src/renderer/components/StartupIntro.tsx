@@ -27,6 +27,8 @@ import { preloadCardRankOpentypeFont } from '../cardFace/opentypeCardRankFont';
 import { getMotionPermissionButtonLabels, shouldOfferDeviceMotionPermission } from '../platformTilt/platformTiltPermissionUi';
 import type { TiltVector } from '../platformTilt/platformTiltTypes';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
+import { playIntroStingSfx, resumeUiSfxContext, uiSfxGainFromSettings } from '../audio/uiSfx';
+import { useAppStore } from '../store/useAppStore';
 import { RENDERER_THEME } from '../styles/theme';
 import {
     createSeededRandom,
@@ -590,6 +592,7 @@ const RelicIntroScene = ({
 };
 
 const StartupIntro = ({ graphicsQuality, onComplete, reduceMotion }: StartupIntroProps) => {
+    const settings = useAppStore((state) => state.settings);
     const [renderMode, setRenderMode] = useState<IntroRenderMode>(() => (hasWebGLSupport() ? 'three' : 'fallback'));
     const [textureSet, setTextureSet] = useState<RelicTextureSet | null>(null);
     const [assetsReady, setAssetsReady] = useState(false);
@@ -626,14 +629,17 @@ const StartupIntro = ({ graphicsQuality, onComplete, reduceMotion }: StartupIntr
             }) as CSSProperties,
         [enterDurationMs, exitDurationMs]
     );
+    const uiGain = uiSfxGainFromSettings(settings.masterVolume, settings.sfxVolume);
     const completeIntro = useCallback(() => {
         if (completedRef.current) {
             return;
         }
 
         completedRef.current = true;
+        resumeUiSfxContext();
+        playIntroStingSfx(uiGain);
         onComplete();
-    }, [onComplete]);
+    }, [onComplete, uiGain]);
     const beginExit = useCallback(() => {
         if (completedRef.current || exitStartedRef.current) {
             return;

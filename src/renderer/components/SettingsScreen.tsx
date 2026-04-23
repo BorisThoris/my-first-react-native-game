@@ -22,6 +22,14 @@ import {
 import { focusFirstTabbableOrContainer, handleTabFocusTrapEvent } from '../a11y/focusables';
 import { popModalFocusSnapshot, pushModalFocusSnapshot } from '../a11y/modalFocusReturnStack';
 import { useViewportSize } from '../hooks/useViewportSize';
+import {
+    playUiBackSfx,
+    playUiClickSfx,
+    playUiConfirmSfx,
+    playUiCounterSfx,
+    resumeUiSfxContext,
+    uiSfxGainFromSettings
+} from '../audio/uiSfx';
 import { useAppStore } from '../store/useAppStore';
 import { Eyebrow, Panel, ScreenTitle, UiButton } from '../ui';
 import { pairProximityUiStrings } from '../ui/strings/pairProximityUi';
@@ -286,6 +294,7 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
     const eyebrow = isModal ? 'Paused' : 'Preferences';
     const isDirty = JSON.stringify(draft) !== JSON.stringify(settings);
     const [unsavedBackOpen, setUnsavedBackOpen] = useState(false);
+    const lastCounterTickAtRef = useRef(0);
     const isPhoneViewport = viewportWidth <= VIEWPORT_MOBILE_MAX;
     const isShortLandscapeShell = isShortLandscapeViewport(viewportWidth, viewportHeight);
     const stackedSettingsShell = isPhoneViewport || isNarrowShortLandscapeForMenuStack(viewportWidth, viewportHeight);
@@ -306,6 +315,28 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
     const showSubsectionNav = subsectionOneAtATime && subsectionOptions.length > 1;
     const showSubsection = (id: SettingsSubsection): boolean =>
         !subsectionOneAtATime || activeSubsection === id;
+    const uiGain = uiSfxGainFromSettings(settings.masterVolume, settings.sfxVolume);
+    const playUiClick = (): void => {
+        resumeUiSfxContext();
+        playUiClickSfx(uiGain);
+    };
+    const playUiConfirm = (): void => {
+        resumeUiSfxContext();
+        playUiConfirmSfx(uiGain);
+    };
+    const playUiCounter = (): void => {
+        const now = Date.now();
+        if (now - lastCounterTickAtRef.current < 70) {
+            return;
+        }
+        lastCounterTickAtRef.current = now;
+        resumeUiSfxContext();
+        playUiCounterSfx(uiGain);
+    };
+    const playUiBack = (): void => {
+        resumeUiSfxContext();
+        playUiBackSfx(uiGain);
+    };
 
     useEffect(() => {
         setDraft(settings);
@@ -349,6 +380,14 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
     }, [isModal]);
 
     const patchSettings = <Key extends keyof Settings>(key: Key, value: Settings[Key]): void => {
+        if (draft[key] === value) {
+            return;
+        }
+        if (typeof value === 'string') {
+            playUiClick();
+        } else {
+            playUiCounter();
+        }
         setDraft((current) => ({
             ...current,
             [key]: value
@@ -356,10 +395,12 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
     };
 
     const handleSave = (): void => {
+        playUiConfirm();
         void updateSettings(draft);
     };
 
     const handleBack = (): void => {
+        playUiBack();
         if (isDirty) {
             setUnsavedBackOpen(true);
             return;
@@ -368,6 +409,7 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
     };
 
     const handleResetToDefaults = (): void => {
+        playUiConfirm();
         const next: Settings = {
             ...DEFAULT_SETTINGS,
             debugFlags: { ...DEFAULT_SETTINGS.debugFlags }
@@ -389,6 +431,7 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
     };
 
     const handlePickSaveImport = (): void => {
+        playUiClick();
         saveImportInputRef.current?.click();
     };
 
@@ -479,7 +522,10 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                                                 aria-pressed={activeCategory === category.id}
                                                 className={`${styles.categoryButton} ${activeCategory === category.id ? styles.categoryButtonActive : ''}`.trim()}
                                                 key={category.id}
-                                                onClick={() => setActiveCategory(category.id)}
+                                                onClick={() => {
+                                                    playUiClick();
+                                                    setActiveCategory(category.id);
+                                                }}
                                                 type="button"
                                             >
                                                 <span className={styles.categoryLabel}>{category.label}</span>
@@ -514,7 +560,10 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                                                     aria-pressed={activeSubsection === option.id}
                                                     className={`${styles.subsectionButton} ${activeSubsection === option.id ? styles.subsectionButtonActive : ''}`.trim()}
                                                     key={option.id}
-                                                    onClick={() => setActiveSubsection(option.id)}
+                                                    onClick={() => {
+                                                        playUiClick();
+                                                        setActiveSubsection(option.id);
+                                                    }}
                                                     type="button"
                                                 >
                                                     {option.label}
@@ -829,7 +878,10 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                                                 />
                                                 <div className={styles.saveTransferActions}>
                                                     <UiButton
-                                                        onClick={handleExportSaveJson}
+                                                        onClick={() => {
+                                                            playUiConfirm();
+                                                            handleExportSaveJson();
+                                                        }}
                                                         size={footerButtonSize}
                                                         type="button"
                                                         variant="secondary"
@@ -898,6 +950,7 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                         {
                             label: 'Save',
                             onClick: () => {
+                                playUiConfirm();
                                 void updateSettings(draft);
                                 setUnsavedBackOpen(false);
                                 closeSettings();
@@ -907,6 +960,7 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                         {
                             label: 'Discard',
                             onClick: () => {
+                                playUiBack();
                                 setUnsavedBackOpen(false);
                                 closeSettings();
                             },
@@ -914,7 +968,10 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                         },
                         {
                             label: 'Cancel',
-                            onClick: () => setUnsavedBackOpen(false),
+                            onClick: () => {
+                                playUiBack();
+                                setUnsavedBackOpen(false);
+                            },
                             variant: 'secondary'
                         }
                     ]}

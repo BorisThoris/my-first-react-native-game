@@ -39,7 +39,6 @@ interface SampleVoice {
 }
 
 const buffers = new Map<SfxSampleKey, AudioBuffer>();
-let preloadPromise: Promise<void> | null = null;
 let preloadStarted = false;
 
 const activeSampleVoices: SampleVoice[] = [];
@@ -214,7 +213,7 @@ export function maybePreloadSampledSfx(): void {
         return;
     }
     preloadStarted = true;
-    preloadPromise = preloadSampledSfx().catch(() => undefined);
+    void preloadSampledSfx().catch(() => undefined);
 }
 
 export function silenceAllSampleVoices(): void {
@@ -229,6 +228,5 @@ export function silenceAllSampleVoices(): void {
 export function resetSampledSfxForTests(): void {
     silenceAllSampleVoices();
     buffers.clear();
-    preloadPromise = null;
     preloadStarted = false;
 }

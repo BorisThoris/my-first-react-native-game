@@ -170,22 +170,24 @@
     align-items: center;
     justify-content: center;
     pointer-events: none;
-    background: radial-gradient(ellipse 85% 70% at 50% 45%, rgba(12, 16, 28, 0.35) 0%, rgba(4, 6, 12, 0.72) 100%);
-    backdrop-filter: blur(6px);
+    background:
+        radial-gradient(ellipse 78% 62% at 50% 42%, rgba(18, 24, 40, 0.18) 0%, rgba(18, 24, 40, 0.06) 34%, transparent 64%),
+        radial-gradient(ellipse 120% 92% at 50% 50%, rgba(5, 8, 14, 0.56) 0%, rgba(4, 6, 12, 0.82) 100%);
+    backdrop-filter: blur(7px) saturate(1.04);
 }
 
 .prestageDeck {
-    --prestage-cycle: 3.1s;
+    --prestage-cycle: 1.85s;
     --prestage-cards: 10;
 
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: min(82vmin, 40rem);
-    height: min(54vmin, 30rem);
-    perspective: 1400px;
-    perspective-origin: 50% 42%;
+    width: min(76vmin, 34rem);
+    height: min(48vmin, 24rem);
+    perspective: 1650px;
+    perspective-origin: 50% 46%;
     transform-style: preserve-3d;
 }
 
@@ -201,29 +203,30 @@
     content: '';
     position: absolute;
     left: 50%;
-    bottom: 6%;
+    bottom: 10%;
     z-index: 0;
-    width: min(48vmin, 20rem);
-    height: min(14vmin, 5.5rem);
-    transform: translate3d(-50%, 0, -80px) rotateX(78deg);
+    width: min(42vmin, 17rem);
+    height: min(11vmin, 4.4rem);
+    transform: translate3d(-50%, 0, -74px) rotateX(78deg);
     transform-origin: center center;
-    background: radial-gradient(ellipse 80% 100% at 50% 50%, rgba(0, 0, 0, 0.55) 0%, transparent 68%);
+    background: radial-gradient(ellipse 78% 100% at 50% 50%, rgba(0, 0, 0, 0.46) 0%, transparent 72%);
     pointer-events: none;
-    filter: blur(3px);
+    filter: blur(6px);
 }
 
 /*
- * Premium card-back + 3D shuffle orbit (staggered identical path per card).
+ * Premium card-back gather / release motion. Cards stay compact and aligned so the effect reads as preparation,
+ * not a decorative carousel.
  */
 .prestageCard {
     --card-w: min(30vw, 12rem);
-    --stack-x: calc(var(--deck-i, 0) * 3.5px);
-    --stack-y: calc(var(--deck-i, 0) * -5px);
-    --stack-z: calc(var(--deck-i, 0) * -5px);
+    --stack-x: calc(var(--deck-i, 0) * 2.4px - 8px);
+    --stack-y: calc(var(--deck-i, 0) * -3px + 6px);
+    --stack-z: calc(var(--deck-i, 0) * -4.5px);
 
     position: absolute;
     left: 50%;
-    top: 48%;
+    top: 50%;
     z-index: calc(20 + var(--deck-i, 0));
     width: var(--card-w);
     aspect-ratio: 63 / 88;
@@ -233,18 +236,17 @@
     border-radius: clamp(0.45rem, 1.5vmin, 0.65rem);
     border: 1px solid rgba(255, 240, 210, 0.14);
     background:
-        radial-gradient(ellipse 120% 90% at 50% 18%, rgba(255, 255, 255, 0.14) 0%, transparent 42%),
-        radial-gradient(ellipse 70% 55% at 50% 100%, rgba(0, 0, 0, 0.35) 0%, transparent 55%),
+        radial-gradient(ellipse 110% 84% at 50% 18%, rgba(255, 255, 255, 0.12) 0%, transparent 42%),
+        radial-gradient(ellipse 72% 56% at 50% 100%, rgba(0, 0, 0, 0.3) 0%, transparent 55%),
         linear-gradient(155deg, #3d4a68 0%, #252d44 38%, #161c2e 72%, #0e121f 100%);
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.12),
-        inset 0 -2px 10px rgba(0, 0, 0, 0.35),
-        0 2px 0 rgba(0, 0, 0, 0.25);
-    filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.42));
-    transform-origin: 50% 92%;
+        inset 0 -2px 10px rgba(0, 0, 0, 0.35);
+    filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.32));
+    transform-origin: 50% 84%;
     transform-style: preserve-3d;
-    animation: tileBoardPrestageShowcase var(--prestage-cycle) cubic-bezier(0.45, 0.02, 0.22, 1) infinite;
-    animation-delay: calc((var(--deck-i, 0) / var(--prestage-cards)) * var(--prestage-cycle));
+    animation: tileBoardPrestageGather var(--prestage-cycle) cubic-bezier(0.27, 0.05, 0.16, 1) infinite both;
+    animation-delay: calc((var(--deck-i, 0) / var(--prestage-cards)) * 90ms);
 }
 
 .prestageCard::before {
@@ -271,7 +273,7 @@
     position: absolute;
     inset: 22%;
     border-radius: 4px;
-    opacity: 0.85;
+    opacity: 0.72;
     background:
         repeating-linear-gradient(
             -45deg,
@@ -296,73 +298,44 @@
     pointer-events: none;
 }
 
-@keyframes tileBoardPrestageShowcase {
+@keyframes tileBoardPrestageGather {
     0% {
-        transform: translate3d(var(--stack-x), calc(var(--stack-y) - 14px), var(--stack-z))
-            rotateX(48deg) rotateY(-42deg) rotateZ(-10deg);
-    }
-
-    9% {
-        transform: translate3d(calc(var(--stack-x) + 18px), calc(var(--stack-y) - 38px), calc(var(--stack-z) + 46px))
-            rotateX(32deg) rotateY(-22deg) rotateZ(-4deg);
+        transform: translate3d(calc(var(--stack-x) - 14px), calc(var(--stack-y) + 16px), calc(var(--stack-z) - 12px))
+            rotateX(54deg) rotateY(-26deg) rotateZ(-9deg);
+        opacity: 0.16;
     }
 
     18% {
-        transform: translate3d(calc(var(--stack-x) + 38px), calc(var(--stack-y) - 58px), calc(var(--stack-z) + 88px))
-            rotateX(12deg) rotateY(8deg) rotateZ(8deg);
+        transform: translate3d(calc(var(--stack-x) - 6px), calc(var(--stack-y) + 6px), calc(var(--stack-z) - 2px))
+            rotateX(50deg) rotateY(-18deg) rotateZ(-6deg);
+        opacity: 0.7;
     }
 
-    27% {
-        transform: translate3d(calc(var(--stack-x) + min(11vmin, 5.5rem)), calc(var(--stack-y) - 42px), calc(var(--stack-z) + 102px))
-            rotateX(-8deg) rotateY(38deg) rotateZ(18deg);
+    40% {
+        transform: translate3d(calc(var(--stack-x) + 3px), calc(var(--stack-y) - 12px), calc(var(--stack-z) + 18px))
+            rotateX(42deg) rotateY(-4deg) rotateZ(-1deg);
+        opacity: 0.96;
     }
 
-    36% {
-        transform: translate3d(calc(var(--stack-x) + min(14vmin, 7rem)), calc(var(--stack-y) + 8px), calc(var(--stack-z) + 92px))
-            rotateX(-6deg) rotateY(48deg) rotateZ(22deg);
-    }
-
-    45% {
-        transform: translate3d(calc(var(--stack-x) + min(13vmin, 6.5rem)), calc(var(--stack-y) + 42px), calc(var(--stack-z) + 72px))
-            rotateX(10deg) rotateY(36deg) rotateZ(14deg);
-    }
-
-    55% {
-        transform: translate3d(calc(var(--stack-x) + min(9vmin, 4.75rem)), calc(var(--stack-y) + 56px), calc(var(--stack-z) + 48px))
-            rotateX(28deg) rotateY(14deg) rotateZ(4deg);
-    }
-
-    64% {
-        transform: translate3d(calc(var(--stack-x) + min(4vmin, 2.25rem)), calc(var(--stack-y) + 62px), calc(var(--stack-z) + 22px))
-            rotateX(38deg) rotateY(-12deg) rotateZ(-8deg);
-    }
-
-    73% {
-        transform: translate3d(calc(var(--stack-x) + 8px), calc(var(--stack-y) + 68px), calc(var(--stack-z) + 4px))
-            rotateX(42deg) rotateY(-26deg) rotateZ(-14deg);
-    }
-
-    82% {
-        transform: translate3d(calc(var(--stack-x) + 2px), calc(var(--stack-y) + 74px), calc(var(--stack-z) - 16px))
-            rotateX(46deg) rotateY(-34deg) rotateZ(-12deg);
-    }
-
-    91% {
-        transform: translate3d(var(--stack-x), calc(var(--stack-y) + 78px), calc(var(--stack-z) - 26px))
-            rotateX(50deg) rotateY(-38deg) rotateZ(-8deg);
+    60% {
+        transform: translate3d(calc(var(--stack-x) + 8px), calc(var(--stack-y) - 26px), calc(var(--stack-z) + 34px))
+            rotateX(30deg) rotateY(10deg) rotateZ(3deg);
+        opacity: 1;
     }
 
     100% {
-        transform: translate3d(var(--stack-x), calc(var(--stack-y) + 82px), calc(var(--stack-z) - 32px))
-            rotateX(52deg) rotateY(-40deg) rotateZ(-6deg);
+        transform: translate3d(calc(var(--stack-x) + 14px), calc(var(--stack-y) - 42px), calc(var(--stack-z) + 42px))
+            rotateX(18deg) rotateY(20deg) rotateZ(6deg);
+        opacity: 0;
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .prestageCard {
         animation: none;
-        filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.35));
+        opacity: 1;
+        filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.28));
         transform: translate3d(var(--stack-x), var(--stack-y), var(--stack-z))
-            rotateX(44deg) rotateY(-32deg) rotateZ(calc(-8deg + var(--deck-i, 0) * 1.1deg));
+            rotateX(44deg) rotateY(-24deg) rotateZ(calc(-5deg + var(--deck-i, 0) * 0.65deg));
     }
 }

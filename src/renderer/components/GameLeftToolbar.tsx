@@ -13,6 +13,13 @@ import {
 } from '../a11y/toolbarRoving';
 import { GAMEPLAY_TOOLBAR_ICONS } from '../assets/ui/icons';
 import { UiButton } from '../ui';
+import {
+    playMenuOpenSfx,
+    playUiClickSfx,
+    resumeUiSfxContext,
+    uiSfxGainFromSettings
+} from '../audio/uiSfx';
+import { useAppStore } from '../store/useAppStore';
 import type { TileBoardHandle } from './TileBoard';
 import styles from './GameScreen.module.css';
 
@@ -91,6 +98,7 @@ const GameLeftToolbar = ({
     triggerDebugReveal,
     shuffleBoard
 }: GameLeftToolbarProps) => {
+    const settings = useAppStore((state) => state.settings);
     const asideRef = useRef<HTMLElement | null>(null);
     const controlsToolbarRef = useRef<HTMLDivElement | null>(null);
     const powersToolbarRef = useRef<HTMLDivElement | null>(null);
@@ -156,6 +164,15 @@ const GameLeftToolbar = ({
         pinVowCap != null
             ? `Pin hidden tiles (max ${maxPinnedTiles} on board). Pin vow: ${run.pinsPlacedCountThisRun} of ${pinVowCap} placements used.`
             : `Pin up to ${maxPinnedTiles} hidden tiles for planning`;
+    const uiGain = uiSfxGainFromSettings(settings.masterVolume, settings.sfxVolume);
+    const playUiClick = (): void => {
+        resumeUiSfxContext();
+        playUiClickSfx(uiGain);
+    };
+    const playMenuOpen = (): void => {
+        resumeUiSfxContext();
+        playMenuOpenSfx(uiGain);
+    };
 
     return (
         <aside
@@ -175,7 +192,10 @@ const GameLeftToolbar = ({
                     aria-label="Fit board"
                     className={styles.iconAction}
                     data-testid="game-toolbar-fit"
-                    onClick={onViewportReset}
+                    onClick={() => {
+                        playUiClick();
+                        onViewportReset();
+                    }}
                     title="Fit board"
                     type="button"
                 >
@@ -185,7 +205,10 @@ const GameLeftToolbar = ({
                     aria-label="Run settings (toolbar)"
                     className={styles.iconAction}
                     data-testid="game-toolbar-settings"
-                    onClick={() => openSettingsPlaying()}
+                    onClick={() => {
+                        playMenuOpen();
+                        openSettingsPlaying();
+                    }}
                     title="Settings"
                     type="button"
                 >
@@ -195,7 +218,10 @@ const GameLeftToolbar = ({
                     aria-label="Open codex"
                     className={styles.iconAction}
                     data-testid="game-toolbar-codex"
-                    onClick={() => openCodexFromPlaying()}
+                    onClick={() => {
+                        playMenuOpen();
+                        openCodexFromPlaying();
+                    }}
                     title="Codex"
                     type="button"
                 >
@@ -205,7 +231,10 @@ const GameLeftToolbar = ({
                     aria-label="Open inventory"
                     className={styles.iconAction}
                     data-testid="game-toolbar-inventory"
-                    onClick={() => openInventoryFromPlaying()}
+                    onClick={() => {
+                        playMenuOpen();
+                        openInventoryFromPlaying();
+                    }}
                     title="Inventory"
                     type="button"
                 >
@@ -215,7 +244,10 @@ const GameLeftToolbar = ({
                     aria-label="Return to main menu"
                     className={styles.iconAction}
                     data-testid="game-toolbar-main-menu"
-                    onClick={onRequestAbandonRun}
+                    onClick={() => {
+                        playMenuOpen();
+                        onRequestAbandonRun();
+                    }}
                     title="Main menu"
                     type="button"
                 >
@@ -233,7 +265,10 @@ const GameLeftToolbar = ({
                         aria-expanded={rulesHintsExpanded}
                         aria-label={rulesHintsExpanded ? 'Hide rule tips' : 'Show rule tips'}
                         className={styles.rulesToggle}
-                        onClick={() => setRulesHintsExpanded((v) => !v)}
+                        onClick={() => {
+                            playUiClick();
+                            setRulesHintsExpanded((v) => !v);
+                        }}
                         type="button"
                     >
                         {rulesHintsExpanded ? 'Hide' : 'Rules'}

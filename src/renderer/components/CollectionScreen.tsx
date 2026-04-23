@@ -9,21 +9,29 @@ import {
 import { RELIC_CATALOG } from '../../shared/game-catalog';
 import { ACHIEVEMENT_IDS } from '../../shared/save-data';
 import { CALLSIGN_SYMBOLS, LETTER_SYMBOLS as LETTER_TILES, NUMBER_SYMBOLS } from '../../shared/tile-symbol-catalog';
+import { playUiBackSfx, resumeUiSfxContext, uiSfxGainFromSettings } from '../audio/uiSfx';
 import { Eyebrow, MetaFrame, Panel, ScreenTitle, UiButton } from '../ui';
 import { useAppStore } from '../store/useAppStore';
 import metaStyles from './MetaScreen.module.css';
 import styles from './CollectionScreen.module.css';
 
 const CollectionScreen = () => {
-    const { closeSubscreen, saveData } = useAppStore(
+    const { closeSubscreen, saveData, settings } = useAppStore(
         useShallow((state) => ({
             closeSubscreen: state.closeSubscreen,
-            saveData: state.saveData
+            saveData: state.saveData,
+            settings: state.settings
         }))
     );
     const ps = saveData.playerStats;
     const summary = saveData.lastRunSummary;
     const honorEarned = new Set(eligibleHonorUnlockIds(saveData));
+    const uiGain = uiSfxGainFromSettings(settings.masterVolume, settings.sfxVolume);
+    const handleBack = (): void => {
+        resumeUiSfxContext();
+        playUiBackSfx(uiGain);
+        closeSubscreen();
+    };
 
     return (
         <section aria-label="Collection" className={`${metaStyles.shell} ${metaStyles.shellMetaStage}`} role="region">
@@ -38,7 +46,7 @@ const CollectionScreen = () => {
                         used on the board.
                     </p>
                 </div>
-                <UiButton size="md" variant="secondary" onClick={closeSubscreen} type="button">
+                <UiButton size="md" variant="secondary" onClick={handleBack} type="button">
                     Back
                 </UiButton>
             </header>

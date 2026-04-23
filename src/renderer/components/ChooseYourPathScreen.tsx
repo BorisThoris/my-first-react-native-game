@@ -27,6 +27,15 @@ import {
 import { resolveModePosterUrl } from '../assets/ui/modeArt';
 import { UI_ART } from '../assets/ui';
 import { Eyebrow, MetaFrame, ScreenTitle, UiButton } from '../ui';
+import {
+    playMenuOpenSfx,
+    playUiBackSfx,
+    playUiClickSfx,
+    playUiConfirmSfx,
+    playUiCounterSfx,
+    resumeUiSfxContext,
+    uiSfxGainFromSettings
+} from '../audio/uiSfx';
 import { useAppStore } from '../store/useAppStore';
 import OverlayModal from './OverlayModal';
 import metaStyles from './MetaScreen.module.css';
@@ -89,7 +98,8 @@ const ChooseYourPathScreen = () => {
         startPuzzleRunFromImport,
         startRun,
         startScholarContractRun,
-        startWildRun
+        startWildRun,
+        settings
     } = useAppStore(
         useShallow((state) => ({
             bestFloorNoPowers: state.saveData.playerStats?.bestFloorNoPowers ?? 0,
@@ -106,7 +116,8 @@ const ChooseYourPathScreen = () => {
             startPuzzleRunFromImport: state.startPuzzleRunFromImport,
             startRun: state.startRun,
             startScholarContractRun: state.startScholarContractRun,
-            startWildRun: state.startWildRun
+            startWildRun: state.startWildRun,
+            settings: state.settings
         }))
     );
     const [nowMs, setNowMs] = useState(() => Date.now());
@@ -134,6 +145,27 @@ const ChooseYourPathScreen = () => {
         padding: pathFitPadding
     });
     const pathShellFitZoom = rawPathFitZoom;
+    const uiGain = uiSfxGainFromSettings(settings.masterVolume, settings.sfxVolume);
+    const playUiClick = useCallback((): void => {
+        resumeUiSfxContext();
+        playUiClickSfx(uiGain);
+    }, [uiGain]);
+    const playUiConfirm = useCallback((): void => {
+        resumeUiSfxContext();
+        playUiConfirmSfx(uiGain);
+    }, [uiGain]);
+    const playUiCounter = useCallback((): void => {
+        resumeUiSfxContext();
+        playUiCounterSfx(uiGain);
+    }, [uiGain]);
+    const playUiBack = useCallback((): void => {
+        resumeUiSfxContext();
+        playUiBackSfx(uiGain);
+    }, [uiGain]);
+    const playMenuOpen = useCallback((): void => {
+        resumeUiSfxContext();
+        playMenuOpenSfx(uiGain);
+    }, [uiGain]);
 
     const [libraryQuery, setLibraryQuery] = useState('');
     const [librarySearchOpen, setLibrarySearchOpen] = useState(false);
@@ -239,6 +271,7 @@ const ChooseYourPathScreen = () => {
     }, [librarySearchOpen]);
 
     const toggleMeditationMutator = (id: MutatorId): void => {
+        playUiCounter();
         setMeditationSelection((prev) => {
             const next = new Set(prev);
             if (next.has(id)) {
@@ -251,12 +284,16 @@ const ChooseYourPathScreen = () => {
     };
 
     const openImportModal = (): void => {
+        playMenuOpen();
         setImportModalOpen(true);
         setImportJsonText('');
         setImportError(null);
     };
 
-    const closeImportModal = (): void => {
+    const closeImportModal = (withSound = true): void => {
+        if (withSound) {
+            playUiBack();
+        }
         setImportModalOpen(false);
         setImportJsonText('');
         setImportError(null);
@@ -265,7 +302,8 @@ const ChooseYourPathScreen = () => {
     const submitImport = (): void => {
         const ok = importRunFromClipboard(importJsonText);
         if (ok) {
-            closeImportModal();
+            playUiConfirm();
+            closeImportModal(false);
             return;
         }
         setImportError('Could not import that payload. Check the JSON and try again.');
@@ -327,6 +365,7 @@ const ChooseYourPathScreen = () => {
                 startPinVowRun();
                 return;
             case 'meditationSetup':
+                playMenuOpen();
                 setMeditationOpen(true);
                 return;
             case 'importRunModal':
@@ -339,8 +378,9 @@ const ChooseYourPathScreen = () => {
     };
 
     const closeLibraryDetail = useCallback((): void => {
+        playUiBack();
         setLibraryDetailMode(null);
-    }, []);
+    }, [playUiBack]);
 
     const cardVariantClass = (def: RunModeDefinition): string => {
         if (def.id === 'classic') {
@@ -448,7 +488,10 @@ const ChooseYourPathScreen = () => {
                 className={`${styles.card} ${styles.libraryTileCard} ${variant}`}
                 data-testid={def.testId}
                 type="button"
-                onClick={() => setLibraryDetailMode(def)}
+                onClick={() => {
+                    playMenuOpen();
+                    setLibraryDetailMode(def);
+                }}
             >
                 <span className={styles.cardPoster} aria-hidden="true">
                     <img alt="" src={poster} />
@@ -501,6 +544,7 @@ const ChooseYourPathScreen = () => {
                         label: 'Set up run…',
                         onClick: (): void => {
                             closeLibraryDetail();
+                            playMenuOpen();
                             setMeditationOpen(true);
                         },
                         variant: 'primary' as const
@@ -565,7 +609,10 @@ const ChooseYourPathScreen = () => {
                                         className={styles.pathBackButton}
                                         data-testid="choose-path-inline-back"
                                         type="button"
-                                        onClick={closeSubscreen}
+                                        onClick={() => {
+                                            playUiBack();
+                                            closeSubscreen();
+                                        }}
                                     >
                                         <BackChevronIcon className={styles.pathBackIcon} />
                                         <span>Back</span>
@@ -659,7 +706,10 @@ const ChooseYourPathScreen = () => {
                                                         }
                                                         className={`${styles.librarySearchIconBtn} ${hasLibrarySearchQuery && !librarySearchOpen ? styles.librarySearchIconBtnFiltered : ''}`.trim()}
                                                         type="button"
-                                                        onClick={() => setLibrarySearchOpen((open) => !open)}
+                                                        onClick={() => {
+                                                            playUiClick();
+                                                            setLibrarySearchOpen((open) => !open);
+                                                        }}
                                                     >
                                                         <LibrarySearchMagnifierIcon className={styles.librarySearchIconGlyph} />
                                                     </button>
@@ -691,6 +741,7 @@ const ChooseYourPathScreen = () => {
                                                                 className={`${styles.libraryDot} ${i === libraryPageIndex ? styles.libraryDotActive : ''}`}
                                                                 type="button"
                                                                 onClick={() => {
+                                                                    playUiClick();
                                                                     const el = libraryScrollerRef.current;
                                                                     if (!el) {
                                                                         return;
@@ -843,7 +894,10 @@ const ChooseYourPathScreen = () => {
                     actions={[
                         {
                             label: 'Cancel',
-                            onClick: () => setMeditationOpen(false),
+                            onClick: () => {
+                                playUiBack();
+                                setMeditationOpen(false);
+                            },
                             variant: 'secondary'
                         },
                         {

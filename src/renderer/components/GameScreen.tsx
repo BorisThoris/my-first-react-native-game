@@ -55,7 +55,14 @@ import MainMenuBackground from './MainMenuBackground';
 import OverlayModal from './OverlayModal';
 import RelicDraftOfferPanel from './RelicDraftOfferPanel';
 import TileBoard, { type TileBoardHandle } from './TileBoard';
-import { sfxGainFromSettings } from '../audio/gameSfx';
+import { playRelicOfferOpenSfx, resumeAudioContext, sfxGainFromSettings } from '../audio/gameSfx';
+import {
+    playMenuOpenSfx,
+    playUiBackSfx,
+    playUiClickSfx,
+    resumeUiSfxContext,
+    uiSfxGainFromSettings
+} from '../audio/uiSfx';
 import { GAMEPLAY_VISUAL_CSS_VARS } from './gameplayVisualConfig';
 import styles from './GameScreen.module.css';
 import {
@@ -344,6 +351,10 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         () => sfxGainFromSettings(settingsMasterVolume, settingsSfxVolume),
         [settingsMasterVolume, settingsSfxVolume]
     );
+    const uiGain = useMemo(
+        () => uiSfxGainFromSettings(settingsMasterVolume, settingsSfxVolume),
+        [settingsMasterVolume, settingsSfxVolume]
+    );
     const seenAchievementToastIdsRef = useRef<Set<string>>(new Set());
     const pickupToastSnapshotRef = useRef<{
         level: number;
@@ -398,6 +409,28 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
 
     const relicDraftProgressText = run.relicOffer ? relicDraftProgressLine(run.relicOffer) : null;
     const relicBonusFootnoteLines = run.relicOffer ? buildRelicDraftBonusFootnoteLines(run) : [];
+    const previousRelicOfferOpenRef = useRef(false);
+    const playMenuOpen = (): void => {
+        resumeUiSfxContext();
+        playMenuOpenSfx(uiGain);
+    };
+    const playUiBack = (): void => {
+        resumeUiSfxContext();
+        playUiBackSfx(uiGain);
+    };
+    const playUiClick = (): void => {
+        resumeUiSfxContext();
+        playUiClickSfx(uiGain);
+    };
+
+    useEffect(() => {
+        const relicOfferOpen = Boolean(run.relicOffer);
+        if (relicOfferOpen && !previousRelicOfferOpenRef.current) {
+            void resumeAudioContext();
+            playRelicOfferOpenSfx(shuffleSfxGain);
+        }
+        previousRelicOfferOpenRef.current = relicOfferOpen;
+    }, [run.relicOffer, shuffleSfxGain]);
 
     /** Pause / resume: toolbar control removed — **P** toggles pause when gameplay is active (not when meta overlays suppress status). */
     useEffect(() => {
@@ -475,6 +508,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
             }
             if (event.key === 'Escape' && shortcutsHelpOpen) {
                 event.preventDefault();
+                playUiBack();
                 setShortcutsHelpOpen(false);
                 return;
             }
@@ -483,12 +517,13 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
             }
             if (event.code === 'F1' || event.key === '?') {
                 event.preventDefault();
+                playMenuOpen();
                 setShortcutsHelpOpen(true);
             }
         };
         document.addEventListener('keydown', onKeyDown, true);
         return () => document.removeEventListener('keydown', onKeyDown, true);
-    }, [shortcutsHelpOpen, suppressStatusOverlays]);
+    }, [shortcutsHelpOpen, suppressStatusOverlays, uiGain]);
 
     useEffect(() => {
         const floorClearedModalBlocksToasts =
@@ -908,7 +943,10 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         flashPairDisabled={flashPairDisabled}
                         flashPairTitle={flashPairTitle}
                         maxPinnedTiles={MAX_PINNED_TILES}
-                        onRequestAbandonRun={() => setAbandonRunConfirmOpen(true)}
+                        onRequestAbandonRun={() => {
+                            playMenuOpen();
+                            setAbandonRunConfirmOpen(true);
+                        }}
                         onViewportReset={() => setViewportResetToken((current) => current + 1)}
                         openCodexFromPlaying={openCodexFromPlaying}
                         openInventoryFromPlaying={openInventoryFromPlaying}
@@ -1075,7 +1113,14 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                     <OverlayModal
                         actions={[
                             { label: 'Resume', onClick: resume, variant: 'primary' },
-                            { label: 'Retreat', onClick: () => setAbandonRunConfirmOpen(true), variant: 'danger' }
+                            {
+                                label: 'Retreat',
+                                onClick: () => {
+                                    playMenuOpen();
+                                    setAbandonRunConfirmOpen(true);
+                                },
+                                variant: 'danger'
+                            }
                         ]}
                         headerPlateTone="pause"
                         ornamentalHeaderPlate
@@ -1127,7 +1172,10 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                             { label: 'Continue', onClick: continueToNextLevel, variant: 'primary' },
                             {
                                 label: 'Main Menu',
-                                onClick: () => setAbandonRunConfirmOpen(true),
+                                onClick: () => {
+                                    playMenuOpen();
+                                    setAbandonRunConfirmOpen(true);
+                                },
                                 variant: 'secondary'
                             }
                         ]}
@@ -1165,7 +1213,10 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                         </span>
                                         <button
                                             className={styles.endlessRiskWagerButton}
-                                            onClick={acceptEndlessRiskWager}
+                                            onClick={() => {
+                                                playUiClick();
+                                                acceptEndlessRiskWager();
+                                            }}
                                             type="button"
                                         >
                                             Arm wager
@@ -1208,7 +1259,10 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         actions={[
                             {
                                 label: 'Close',
-                                onClick: () => setShortcutsHelpOpen(false),
+                                onClick: () => {
+                                    playUiBack();
+                                    setShortcutsHelpOpen(false);
+                                },
                                 variant: 'secondary'
                             }
                         ]}
@@ -1234,12 +1288,16 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         actions={[
                             {
                                 label: 'Cancel',
-                                onClick: () => setAbandonRunConfirmOpen(false),
+                                onClick: () => {
+                                    playUiBack();
+                                    setAbandonRunConfirmOpen(false);
+                                },
                                 variant: 'secondary'
                             },
                             {
                                 label: 'Abandon run',
                                 onClick: () => {
+                                    playUiBack();
                                     setAbandonRunConfirmOpen(false);
                                     goToMenu();
                                 },

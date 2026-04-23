@@ -86,11 +86,19 @@ import {
     playFloorClearSfx,
     playPeekPowerSfx,
     playPowerArmSfx,
+    playRelicPickSfx,
     playResolveSfx,
     playStrayPowerSfx,
+    playWagerArmSfx,
     resumeAudioContext,
     sfxGainFromSettings
 } from '../audio/gameSfx';
+import {
+    playPauseOpenSfx,
+    playPauseResumeSfx,
+    playRunStartSfx,
+    resumeUiSfxContext
+} from '../audio/uiSfx';
 
 /** Session-only cache so imported puzzle boards survive in-run restart. */
 const importPuzzleTilesById = new Map<string, Tile[]>();
@@ -277,6 +285,11 @@ const getRemainingMs = (timer: ActiveTimer | null, fallback: number | null): num
 const sfxGainFromStore = (): number => {
     const { settings } = useAppStore.getState();
     return sfxGainFromSettings(settings.masterVolume, settings.sfxVolume);
+};
+
+const playRunStartUiSfxFromStore = (): void => {
+    void resumeUiSfxContext();
+    playRunStartSfx(sfxGainFromStore());
 };
 
 const applyResolveBoardTurn = (run: RunState): void => {
@@ -594,6 +607,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             get().settings
         );
         trackEvent('run_start', { mode: run.gameMode, practice: run.practiceMode });
+        playRunStartUiSfxFromStore();
 
         set({
             view: 'playing',
@@ -616,6 +630,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             get().settings
         );
         trackEvent('run_start', { mode: run.gameMode, practice: run.practiceMode });
+        playRunStartUiSfxFromStore();
         set({
             view: 'playing',
             newlyUnlockedAchievements: [],
@@ -636,6 +651,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             get().settings
         );
         trackEvent('run_start', { mode: run.gameMode, practice: run.practiceMode });
+        playRunStartUiSfxFromStore();
         set({
             view: 'playing',
             newlyUnlockedAchievements: [],
@@ -670,6 +686,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             puzzleId,
             puzzleImport: true
         });
+        playRunStartUiSfxFromStore();
         set({
             view: 'playing',
             newlyUnlockedAchievements: [],
@@ -695,6 +712,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             get().settings
         );
         trackEvent('run_start', { mode: run.gameMode, practice: run.practiceMode, puzzleId: puzzle.id });
+        playRunStartUiSfxFromStore();
         set({
             view: 'playing',
             newlyUnlockedAchievements: [],
@@ -715,6 +733,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             get().settings
         );
         trackEvent('run_start', { mode: run.gameMode, practice: run.practiceMode });
+        playRunStartUiSfxFromStore();
         set({
             view: 'playing',
             newlyUnlockedAchievements: [],
@@ -743,6 +762,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             get().settings
         );
         trackEvent('run_start', { mode: run.gameMode, practice: run.practiceMode, scholar: true });
+        playRunStartUiSfxFromStore();
         set({
             view: 'playing',
             newlyUnlockedAchievements: [],
@@ -763,6 +783,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             get().settings
         );
         trackEvent('run_start', { mode: run.gameMode, practice: run.practiceMode });
+        playRunStartUiSfxFromStore();
         set({
             view: 'playing',
             newlyUnlockedAchievements: [],
@@ -788,6 +809,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             meditation_focus_count: mutators.length,
             meditation_focus: mutators.length > 0 ? mutators.join(',') : undefined
         });
+        playRunStartUiSfxFromStore();
         set({
             view: 'playing',
             newlyUnlockedAchievements: [],
@@ -811,6 +833,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             get().settings
         );
         trackEvent('run_start', { mode: run.gameMode, practice: run.practiceMode, pinVow: true });
+        playRunStartUiSfxFromStore();
         set({
             view: 'playing',
             newlyUnlockedAchievements: [],
@@ -831,6 +854,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             get().settings
         );
         trackEvent('run_start', { mode: run.gameMode, practice: run.practiceMode, wild: true });
+        playRunStartUiSfxFromStore();
         set({
             view: 'playing',
             newlyUnlockedAchievements: [],
@@ -855,6 +879,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             get().settings
         );
         trackEvent('run_start', { mode: run.gameMode, practice: run.practiceMode, imported: true });
+        playRunStartUiSfxFromStore();
         set({
             view: 'playing',
             newlyUnlockedAchievements: [],
@@ -875,6 +900,8 @@ export const useAppStore = create<AppState>((set, get) => ({
             return;
         }
         clearAllTimers();
+        void resumeAudioContext();
+        playRelicPickSfx(sfxGainFromStore());
         const nextRun = completeRelicPickAndAdvance(run, relicId);
         let nextSave = mergeRelicPickStat(get().saveData, relicId);
         nextSave = normalizeSaveData(nextSave);
@@ -1281,6 +1308,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
         const nextRun = applyFlashPair(run);
         if (nextRun !== run) {
+            void resumeAudioContext();
+            playPowerArmSfx(sfxGainFromStore() * 0.78);
             set({ run: nextRun });
         }
     },
@@ -1322,6 +1351,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 
         const pausedRun = freezeRun(run);
         clearAllTimers();
+        void resumeUiSfxContext();
+        playPauseOpenSfx(sfxGainFromStore());
         set({ run: pausedRun, ...BOARD_FLOATER_POP_CLEAR });
     },
 
@@ -1332,6 +1363,8 @@ export const useAppStore = create<AppState>((set, get) => ({
             return;
         }
 
+        void resumeUiSfxContext();
+        playPauseResumeSfx(sfxGainFromStore());
         set({ run: resumeRunWithTimers(run) });
     },
 
@@ -1342,6 +1375,8 @@ export const useAppStore = create<AppState>((set, get) => ({
             return;
         }
 
+        void resumeAudioContext();
+        playWagerArmSfx(sfxGainFromStore());
         set({ run: acceptEndlessRiskWagerRule(run) });
     },
 
@@ -1434,6 +1469,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         run = patchRunFromUserSettings(run, settings);
 
         trackEvent('run_start', { mode: run.gameMode, practice: run.practiceMode, restarted: true });
+        playRunStartUiSfxFromStore();
 
         set({
             view: 'playing',
