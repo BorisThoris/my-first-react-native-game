@@ -5,6 +5,7 @@ import {
     useCallback,
     useEffect,
     useImperativeHandle,
+    useLayoutEffect,
     useMemo,
     useRef,
     useState,
@@ -14,7 +15,7 @@ import {
 } from 'react';
 import { flushSync } from 'react-dom';
 import type { BoardScreenSpaceAA, BoardState, GraphicsQualityPreset, RunStatus, Tile } from '../../shared/contracts';
-import { getBoardDprCap } from '../../shared/graphicsQuality';
+import { resolveAdaptiveBoardRenderQuality } from '../../shared/graphicsQuality';
 import { isNarrowShortLandscapeForMenuStack, VIEWPORT_MOBILE_MAX } from '../breakpoints';
 import { useCoarsePointer } from '../hooks/useCoarsePointer';
 import { useViewportSize } from '../hooks/useViewportSize';
@@ -42,6 +43,7 @@ import {
 } from './tileBoardViewport';
 import { BOARD_LAYOUT_VIEWPORT_PADDING, TILE_SPACING } from './tileShatter';
 import { computeBoardEntranceMotionBudgetMs, computeShuffleMotionBudgetMs } from './shuffleFlipAnimation';
+import { boardWebglPerfSampleRecordReactCommit, boardWebglPerfSampleVerboseEnabled } from '../dev/boardWebglPerfSample';
 import { preloadTileTextureImages } from './tileTextures';
 
 /** Minimum time the pre-board “gather / release” motif stays visible while GPU warm-up runs in parallel. */
@@ -376,6 +378,23 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
     const boardMotionAnimating =
         shuffleAnimating || boardEntranceAnimating || boardPreStage === 'loading';
 
+    const boardRenderDigest = useMemo(
+        () =>
+            `${board.level}|${board.tiles.map((t) => `${t.id}:${t.state}`).join(',')}|${board.flippedTileIds.join(',')}`,
+        [board.flippedTileIds, board.level, board.tiles]
+    );
+
+    useLayoutEffect(() => {
+        if (!import.meta.env.DEV || !boardWebglPerfSampleVerboseEnabled()) {
+            return;
+        }
+
+        const t0 = performance.now();
+        queueMicrotask(() => {
+            boardWebglPerfSampleRecordReactCommit(performance.now() - t0);
+        });
+    }, [boardRenderDigest]);
+
     const hiddenTileCount = useMemo(
         () => board.tiles.filter((t) => t.state === 'hidden').length,
         [board.tiles]
@@ -447,11 +466,9 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         };
 
         void (async () => {
-            try {
-                await preloadTileTextureImages();
-            } catch {
+            void preloadTileTextureImages().catch(() => {
                 /* resilient */
-            }
+            });
 
             await Promise.all([
                 new Promise<void>((resolve) => {
@@ -645,15 +662,23 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         []
     );
     const deviceDpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
-    /** Cap DPR for GPU cost (PERF-001 `graphicsQuality` + compact layout). */
-    const dpr = Math.min(deviceDpr, getBoardDprCap(graphicsQuality, compact));
-    const bloomEffective = boardBloomEnabled && graphicsQuality !== 'low';
-    const resolvedBoardAa = useMemo((): 'smaa' | 'msaa' | 'off' => {
-        if (boardScreenSpaceAA === 'auto') {
-            return reduceMotion ? 'msaa' : 'smaa';
-        }
-        return boardScreenSpaceAA;
-    }, [boardScreenSpaceAA, reduceMotion]);
+    const activeTileCount = useMemo(
+        () => board.tiles.filter((t) => t.state !== 'removed').length,
+        [board.tiles]
+    );
+    const adaptive = resolveAdaptiveBoardRenderQuality({
+        activeTileCount,
+        boardBloomEnabled: boardBloomEnabled ?? true,
+        boardHeavyMotion: boardMotionAnimating,
+        boardScreenSpaceAA: boardScreenSpaceAA ?? 'auto',
+        compact,
+        reduceMotion,
+        savedGraphicsQuality: graphicsQuality ?? 'medium'
+    });
+    /** Cap DPR for GPU cost (PERF-001 + internal adaptive motion tier). */
+    const dpr = Math.min(deviceDpr, adaptive.dprCap);
+    const bloomEffective = adaptive.bloomPostEnabled;
+    const resolvedBoardAa = adaptive.resolvedAa;
     /** MSAA on the default framebuffer; off when using SMAA post-pass or AA off. */
     const glAntialias = resolvedBoardAa === 'msaa';
     const boardWorldWidth = useMemo(

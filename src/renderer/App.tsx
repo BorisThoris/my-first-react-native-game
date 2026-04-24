@@ -18,6 +18,7 @@ import { useViewportSize } from './hooks/useViewportSize';
 import styles from './styles/App.module.css';
 import { buildRendererThemeStyle } from './styles/theme';
 import { useGameplayMusic } from './audio/gameplayMusic';
+import BlueprintExplorer from './dev/BlueprintExplorer';
 import MatchedCardRimFireSandbox from './dev/MatchedCardRimFireSandbox';
 import ProceduralIllustrationGallerySandbox from './dev/ProceduralIllustrationGallerySandbox';
 import { readDevSandboxConfig } from './dev/devSandboxParams';
@@ -191,6 +192,9 @@ const App = () => {
         }
         if (fx === 'proceduralGallery') {
             return <ProceduralIllustrationGallerySandbox />;
+        }
+        if (fx === 'projectGraph') {
+            return <BlueprintExplorer />;
         }
     }
 

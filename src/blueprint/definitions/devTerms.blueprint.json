@@ -1,0 +1,9 @@
+{
+    "blueprintVersion": 1,
+    "kind": "glossary",
+    "label": "Sample terms for Blueprint codegen (dev / tests)",
+    "entries": {
+        "blueprint_welcome": { "en": "Blueprint dev overlay" },
+        "blueprint_glossary_poc": { "en": "Glossary from JSON → generated TS" }
+    }
+}

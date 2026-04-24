@@ -2,6 +2,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
+/* Plain ESM helper (`.mjs`); no `allowJs` typings — Vite load-time only. */
+// @ts-expect-error TS7016
+import { viteDevBlueprintApi } from './scripts/vite-dev-blueprint-api.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -9,7 +12,7 @@ const boardWebglPerfSample = path.resolve(__dirname, 'src/renderer/dev/boardWebg
 const boardWebglPerfSampleStub = path.resolve(__dirname, 'src/renderer/dev/boardWebglPerfSample.stub.ts');
 
 export default defineConfig(({ mode }) => ({
-    plugins: [react()],
+    plugins: [viteDevBlueprintApi(), react()],
     resolve: {
         dedupe: ['react', 'react-dom'],
         alias: {
@@ -60,6 +63,20 @@ export default defineConfig(({ mode }) => ({
             input: {
                 main: path.resolve(__dirname, 'index.html'),
                 logoSandbox: path.resolve(__dirname, 'logo-sandbox.html')
+            },
+            output: {
+                manualChunks(id: string): string | undefined {
+                    if (id.includes('node_modules/three')) {
+                        return 'vendor-three';
+                    }
+                    if (id.includes('node_modules/@react-three/fiber') || id.includes('node_modules/@react-three/drei')) {
+                        return 'vendor-r3f';
+                    }
+                    if (id.includes('node_modules/pixi.js')) {
+                        return 'vendor-pixi';
+                    }
+                    return undefined;
+                }
             }
         }
     }

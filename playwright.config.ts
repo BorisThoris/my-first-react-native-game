@@ -18,6 +18,8 @@ export default defineConfig({
     webServer: {
         command: 'yarn vite --host 127.0.0.1 --port 5173 --strictPort',
         url: 'http://127.0.0.1:5173',
-        reuseExistingServer: !process.env.CI
+        reuseExistingServer: !process.env.CI,
+        /** Cold caches / busy agents: avoid false failures while Vite prebundles (default 60s is tight). */
+        timeout: 180_000
     }
 });

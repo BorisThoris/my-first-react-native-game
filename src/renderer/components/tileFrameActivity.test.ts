@@ -1,0 +1,306 @@
+import { describe, expect, it } from 'vitest';
+import { Group } from 'three';
+import type { Tile } from '../../shared/contracts';
+import { shouldAdvanceTileBezelThisFrame, type TileBezelActivityBag } from './tileFrameActivity';
+
+const baseTile = (overrides: Partial<Tile> = {}): Tile => ({
+    id: 't1',
+    label: 'A',
+    pairKey: 'pair-a',
+    state: 'hidden',
+    symbol: 'A',
+    ...overrides
+});
+
+const makeBag = (opts: {
+    p: TileBezelActivityBag['propsRef']['current'];
+    group?: Group;
+    refs?: Partial<
+        Pick<
+            TileBezelActivityBag,
+            | 'flipPopT0Ref'
+            | 'faceUpStructBlendRef'
+            | 'faceUpStructT0Ref'
+            | 'matchPulseRef'
+            | 'matchedVictoryBurstT0Ref'
+            | 'liftSmoothRef'
+            | 'pressingOnCardRef'
+            | 'focusDimBlendRef'
+        >
+    >;
+    lastActivityVisualGateOverride?: TileBezelActivityBag['lastActivityVisualGateRef'];
+}): TileBezelActivityBag => {
+    const group = opts.group ?? new Group();
+    const flipPopT0Ref = { current: opts.refs?.flipPopT0Ref?.current ?? null };
+    const faceUpStructBlendRef = { current: opts.refs?.faceUpStructBlendRef?.current ?? 0 };
+    const faceUpStructT0Ref = { current: opts.refs?.faceUpStructT0Ref?.current ?? null };
+    const matchPulseRef = { current: opts.refs?.matchPulseRef?.current ?? 0 };
+    const matchedVictoryBurstT0Ref = { current: opts.refs?.matchedVictoryBurstT0Ref?.current ?? null };
+    const liftSmoothRef = { current: opts.refs?.liftSmoothRef?.current ?? 0 };
+    const pressingOnCardRef = { current: opts.refs?.pressingOnCardRef?.current ?? false };
+    const focusDimBlendRef = { current: opts.refs?.focusDimBlendRef?.current ?? 0 };
+    const lastActivityVisualGateRef =
+        opts.lastActivityVisualGateOverride ?? {
+            current: {
+                textureRevision: opts.p.textureRevision,
+                keyboardFocused: opts.p.keyboardFocused,
+                focusDimmed: opts.p.focusDimmed,
+                graphicsQuality: opts.p.graphicsQuality
+            }
+        };
+
+    return {
+        propsRef: { current: opts.p },
+        groupRef: { current: group },
+        flipPopT0Ref,
+        faceUpStructBlendRef,
+        faceUpStructT0Ref,
+        matchPulseRef,
+        matchedVictoryBurstT0Ref,
+        liftSmoothRef,
+        pressingOnCardRef,
+        focusDimBlendRef,
+        lastActivityVisualGateRef
+    };
+};
+
+describe('shouldAdvanceTileBezelThisFrame', () => {
+    it('returns true while shuffle motion window is active', () => {
+        const nowMs = 1_000_000;
+        const p = {
+            reduceMotion: false,
+            faceUp: false,
+            pickable: true,
+            focusDimmed: false,
+            keyboardFocused: false,
+            graphicsQuality: 'high' as const,
+            textureRevision: 0,
+            resolvingSelection: null,
+            shuffleMotionDeadlineMs: nowMs + 500,
+            shuffleMotionBudgetMs: 400,
+            shuffleStaggerTileCount: 12,
+            boardEntranceMotionDeadlineMs: 0,
+            boardEntranceMotionBudgetMs: 0,
+            boardEntranceStaggerTileCount: 0,
+            tile: baseTile(),
+            tileFieldParallaxEnabled: false,
+            fieldAmp: 1,
+            fieldTiltRef: { current: { x: 0, y: 0 } },
+            hoverTiltRef: { current: { tileId: null, x: 0, y: 0 } },
+            transform: {
+                imperfectionRotationX: 0,
+                imperfectionRotationZ: 0,
+                layoutYaw: 0,
+                flipRotationY: Math.PI,
+                baseX: 0,
+                baseY: 0,
+                imperfectionX: 0,
+                imperfectionY: 0,
+                layoutJitterX: 0,
+                layoutJitterY: 0,
+                layoutJitterZ: 0
+            }
+        } as TileBezelActivityBag['propsRef']['current'];
+
+        const bag = makeBag({ p });
+        expect(shouldAdvanceTileBezelThisFrame(bag, 10, nowMs)).toBe(true);
+    });
+
+    it('returns false for a fully settled hidden tile with matching group pose', () => {
+        const nowMs = 1_000_000;
+        const p = {
+            reduceMotion: false,
+            faceUp: false,
+            pickable: false,
+            focusDimmed: false,
+            keyboardFocused: false,
+            graphicsQuality: 'high' as const,
+            textureRevision: 0,
+            resolvingSelection: null,
+            shuffleMotionDeadlineMs: 0,
+            shuffleMotionBudgetMs: 0,
+            shuffleStaggerTileCount: 0,
+            boardEntranceMotionDeadlineMs: 0,
+            boardEntranceMotionBudgetMs: 0,
+            boardEntranceStaggerTileCount: 0,
+            tile: baseTile(),
+            tileFieldParallaxEnabled: false,
+            fieldAmp: 1,
+            fieldTiltRef: { current: { x: 0, y: 0 } },
+            hoverTiltRef: { current: { tileId: null, x: 0, y: 0 } },
+            transform: {
+                imperfectionRotationX: 0,
+                imperfectionRotationZ: 0,
+                layoutYaw: 0,
+                flipRotationY: Math.PI,
+                baseX: 0.1,
+                baseY: -0.2,
+                imperfectionX: 0,
+                imperfectionY: 0,
+                layoutJitterX: 0,
+                layoutJitterY: 0,
+                layoutJitterZ: 0
+            }
+        } as TileBezelActivityBag['propsRef']['current'];
+
+        const group = new Group();
+        group.rotation.y = Math.PI;
+        group.position.set(0.1, -0.2, 0);
+
+        const bag = makeBag({
+            p,
+            group,
+            refs: { liftSmoothRef: { current: 0 }, faceUpStructBlendRef: { current: 0 } }
+        });
+
+        expect(shouldAdvanceTileBezelThisFrame(bag, 50, nowMs)).toBe(false);
+    });
+
+    it('reduceMotion: returns false for settled hidden tile (no rim fire)', () => {
+        const nowMs = 1_000_000;
+        const p = {
+            reduceMotion: true,
+            faceUp: false,
+            pickable: true,
+            focusDimmed: false,
+            keyboardFocused: false,
+            graphicsQuality: 'high' as const,
+            textureRevision: 0,
+            resolvingSelection: null,
+            shuffleMotionDeadlineMs: 0,
+            shuffleMotionBudgetMs: 0,
+            shuffleStaggerTileCount: 0,
+            boardEntranceMotionDeadlineMs: 0,
+            boardEntranceMotionBudgetMs: 0,
+            boardEntranceStaggerTileCount: 0,
+            tile: baseTile(),
+            tileFieldParallaxEnabled: false,
+            fieldAmp: 1,
+            fieldTiltRef: { current: { x: 0, y: 0 } },
+            hoverTiltRef: { current: { tileId: null, x: 0, y: 0 } },
+            transform: {
+                imperfectionRotationX: 0,
+                imperfectionRotationZ: 0,
+                layoutYaw: 0,
+                flipRotationY: Math.PI,
+                baseX: 0.05,
+                baseY: -0.1,
+                imperfectionX: 0,
+                imperfectionY: 0,
+                layoutJitterX: 0,
+                layoutJitterY: 0,
+                layoutJitterZ: 0
+            }
+        } as TileBezelActivityBag['propsRef']['current'];
+
+        const group = new Group();
+        group.rotation.y = Math.PI;
+        group.position.set(0.05, -0.1, 0);
+
+        const bag = makeBag({
+            p,
+            group,
+            refs: {
+                liftSmoothRef: { current: 0 },
+                faceUpStructBlendRef: { current: 0 },
+                focusDimBlendRef: { current: 0 }
+            }
+        });
+
+        expect(shouldAdvanceTileBezelThisFrame(bag, 50, nowMs)).toBe(false);
+    });
+
+    it('reduceMotion: returns true while resolving', () => {
+        const nowMs = 1_000_000;
+        const p = {
+            reduceMotion: true,
+            faceUp: true,
+            pickable: false,
+            focusDimmed: false,
+            keyboardFocused: false,
+            graphicsQuality: 'high' as const,
+            textureRevision: 0,
+            resolvingSelection: 'match' as const,
+            shuffleMotionDeadlineMs: 0,
+            shuffleMotionBudgetMs: 0,
+            shuffleStaggerTileCount: 0,
+            boardEntranceMotionDeadlineMs: 0,
+            boardEntranceMotionBudgetMs: 0,
+            boardEntranceStaggerTileCount: 0,
+            tile: baseTile({ state: 'flipped' }),
+            tileFieldParallaxEnabled: false,
+            fieldAmp: 1,
+            fieldTiltRef: { current: { x: 0, y: 0 } },
+            hoverTiltRef: { current: { tileId: null, x: 0, y: 0 } },
+            transform: {
+                imperfectionRotationX: 0,
+                imperfectionRotationZ: 0,
+                layoutYaw: 0,
+                flipRotationY: 0,
+                baseX: 0,
+                baseY: 0,
+                imperfectionX: 0,
+                imperfectionY: 0,
+                layoutJitterX: 0,
+                layoutJitterY: 0,
+                layoutJitterZ: 0
+            }
+        } as TileBezelActivityBag['propsRef']['current'];
+
+        const bag = makeBag({ p });
+        expect(shouldAdvanceTileBezelThisFrame(bag, 50, nowMs)).toBe(true);
+    });
+
+    it('reduceMotion: matched face-up medium quality keeps frames for rim-fire shader', () => {
+        const nowMs = 1_000_000;
+        const p = {
+            reduceMotion: true,
+            faceUp: true,
+            pickable: false,
+            focusDimmed: false,
+            keyboardFocused: false,
+            graphicsQuality: 'medium' as const,
+            textureRevision: 0,
+            resolvingSelection: null,
+            shuffleMotionDeadlineMs: 0,
+            shuffleMotionBudgetMs: 0,
+            shuffleStaggerTileCount: 0,
+            boardEntranceMotionDeadlineMs: 0,
+            boardEntranceMotionBudgetMs: 0,
+            boardEntranceStaggerTileCount: 0,
+            tile: baseTile({ state: 'matched' }),
+            tileFieldParallaxEnabled: false,
+            fieldAmp: 1,
+            fieldTiltRef: { current: { x: 0, y: 0 } },
+            hoverTiltRef: { current: { tileId: null, x: 0, y: 0 } },
+            transform: {
+                imperfectionRotationX: 0,
+                imperfectionRotationZ: 0,
+                layoutYaw: 0,
+                flipRotationY: 0,
+                baseX: 0,
+                baseY: 0,
+                imperfectionX: 0,
+                imperfectionY: 0,
+                layoutJitterX: 0,
+                layoutJitterY: 0,
+                layoutJitterZ: 0
+            }
+        } as TileBezelActivityBag['propsRef']['current'];
+
+        const group = new Group();
+        const bag = makeBag({
+            p,
+            group,
+            refs: {
+                faceUpStructBlendRef: { current: 1 },
+                liftSmoothRef: { current: 0.0012 },
+                focusDimBlendRef: { current: 0 }
+            }
+        });
+        group.rotation.y = 0;
+        group.position.set(0, 0, 0.0018);
+
+        expect(shouldAdvanceTileBezelThisFrame(bag, 50, nowMs)).toBe(true);
+    });
+});

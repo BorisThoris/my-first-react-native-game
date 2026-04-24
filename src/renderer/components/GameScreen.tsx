@@ -18,7 +18,7 @@ import {
 } from '../../shared/game';
 import { useNotificationStore } from '@cross-repo-libs/notifications';
 import type { CSSProperties } from 'react';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { UI_ART } from '../assets/ui';
 import { isNarrowShortLandscapeForMenuStack } from '../breakpoints';
@@ -54,7 +54,11 @@ import GameplayHudBar from './GameplayHudBar';
 import MainMenuBackground from './MainMenuBackground';
 import OverlayModal from './OverlayModal';
 import RelicDraftOfferPanel from './RelicDraftOfferPanel';
+import { useGameScreenBoardVisualSettings } from './gameScreenStoreSelectors';
 import TileBoard, { type TileBoardHandle } from './TileBoard';
+
+const MemoTileBoard = memo(TileBoard);
+const MemoGameplayHudBar = memo(GameplayHudBar);
 import { playRelicOfferOpenSfx, resumeAudioContext, sfxGainFromSettings } from '../audio/gameSfx';
 import {
     playMenuOpenSfx,
@@ -207,6 +211,19 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         }))
     );
     const saveData = useAppStore((state) => state.saveData);
+    const {
+        boardBloomEnabled: settingsBoardBloomEnabled,
+        boardPresentation: settingsBoardPresentation,
+        boardScreenSpaceAA: settingsBoardScreenSpaceAA,
+        cameraViewportModePreference: settingsCameraViewportModePreference,
+        distractionChannelEnabled: settingsDistractionChannelEnabled,
+        graphicsQuality: settingsGraphicsQuality,
+        pairProximityHintsEnabled: settingsPairProximityHintsEnabled,
+        tileFocusAssist: settingsTileFocusAssist,
+        debugAllowBoardReveal: debugAllowBoardReveal,
+        debugDisableAchievementsOnDebug: debugDisableAchievementsOnDebug,
+        debugShowDebugTools: debugShowDebugTools
+    } = useGameScreenBoardVisualSettings();
     const showTutorialPairMarkers = useMemo(
         () =>
             Boolean(
@@ -363,20 +380,9 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     } | null>(null);
     /** OVR-014: queue unlock toasts while the floor-cleared dialog is up; `continueToNextLevel` clears `newlyUnlockedAchievements` before the next paint. */
     const pendingAchievementToastIdsRef = useRef<AchievementId[]>([]);
-    const settingsDistractionChannelEnabled = useAppStore((state) => state.settings.distractionChannelEnabled);
-    const settingsTileFocusAssist = useAppStore((state) => state.settings.tileFocusAssist);
-    const settingsPairProximityHintsEnabled = useAppStore((state) => state.settings.pairProximityHintsEnabled);
-    const settingsBoardPresentation = useAppStore((state) => state.settings.boardPresentation);
-    const settingsGraphicsQuality = useAppStore((state) => state.settings.graphicsQuality);
-    const settingsBoardBloomEnabled = useAppStore((state) => state.settings.boardBloomEnabled);
     /** FX-015: WebGL bloom is medium+ when the toggle is on; add a light CSS rim only on High to avoid doubling cost on phones at Medium. */
     const boardStageCssBloomClass =
         settingsBoardBloomEnabled && settingsGraphicsQuality === 'high' ? styles.boardStageCssBloom : '';
-    const settingsBoardScreenSpaceAA = useAppStore((state) => state.settings.boardScreenSpaceAA);
-    const settingsCameraViewportModePreference = useAppStore((state) => state.settings.cameraViewportModePreference);
-    const debugAllowBoardReveal = useAppStore((state) => state.settings.debugFlags.allowBoardReveal);
-    const debugShowDebugTools = useAppStore((state) => state.settings.debugFlags.showDebugTools);
-    const debugDisableAchievementsOnDebug = useAppStore((state) => state.settings.debugFlags.disableAchievementsOnDebug);
     const toolbarDebugFlags = useMemo(
         (): Settings['debugFlags'] => ({
             allowBoardReveal: debugAllowBoardReveal,
@@ -410,18 +416,36 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const relicDraftProgressText = run.relicOffer ? relicDraftProgressLine(run.relicOffer) : null;
     const relicBonusFootnoteLines = run.relicOffer ? buildRelicDraftBonusFootnoteLines(run) : [];
     const previousRelicOfferOpenRef = useRef(false);
-    const playMenuOpen = (): void => {
+    const playMenuOpen = useCallback((): void => {
         resumeUiSfxContext();
         playMenuOpenSfx(uiGain);
-    };
-    const playUiBack = (): void => {
+    }, [uiGain]);
+    const playUiBack = useCallback((): void => {
         resumeUiSfxContext();
         playUiBackSfx(uiGain);
-    };
-    const playUiClick = (): void => {
+    }, [uiGain]);
+    const playUiClick = useCallback((): void => {
         resumeUiSfxContext();
         playUiClickSfx(uiGain);
-    };
+    }, [uiGain]);
+
+    const handleToolbarViewportReset = useCallback((): void => {
+        setViewportResetToken((current) => current + 1);
+    }, []);
+
+    const openSettingsPlayingMode = useCallback((): void => {
+        openSettings('playing');
+    }, [openSettings]);
+
+    const canRegionShuffleRowForRun = useCallback(
+        (row: number): boolean => canRegionShuffleRow(run, row),
+        [run]
+    );
+
+    const handleRequestAbandonRun = useCallback((): void => {
+        playMenuOpen();
+        setAbandonRunConfirmOpen(true);
+    }, [playMenuOpen]);
 
     useEffect(() => {
         const relicOfferOpen = Boolean(run.relicOffer);
@@ -937,20 +961,17 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         applyFlashPairPower={applyFlashPairPower}
                         boardPinMode={boardPinMode}
                         cameraViewportMode={cameraViewportMode}
-                        canRegionShuffleRow={(row) => canRegionShuffleRow(run, row)}
+                        canRegionShuffleRow={canRegionShuffleRowForRun}
                         destroyDisabled={destroyDisabled}
                         destroyPairArmed={destroyPairArmed}
                         flashPairDisabled={flashPairDisabled}
                         flashPairTitle={flashPairTitle}
                         maxPinnedTiles={MAX_PINNED_TILES}
-                        onRequestAbandonRun={() => {
-                            playMenuOpen();
-                            setAbandonRunConfirmOpen(true);
-                        }}
-                        onViewportReset={() => setViewportResetToken((current) => current + 1)}
+                        onRequestAbandonRun={handleRequestAbandonRun}
+                        onViewportReset={handleToolbarViewportReset}
                         openCodexFromPlaying={openCodexFromPlaying}
                         openInventoryFromPlaying={openInventoryFromPlaying}
-                        openSettingsPlaying={() => openSettings('playing')}
+                        openSettingsPlaying={openSettingsPlayingMode}
                         peekModeArmed={peekModeArmed}
                         regionShuffleDisabled={regionShuffleDisabled}
                         regionShuffleTitle={regionShuffleTitle}
@@ -976,7 +997,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                     <div
                         className={`${styles.mainGameColumn} ${cameraViewportMode ? styles.mobileCameraMainColumn : ''}`.trim()}
                     >
-                        <GameplayHudBar
+                        <MemoGameplayHudBar
                             cameraViewportMode={cameraViewportMode}
                             gauntletRemainingMs={gauntletRemainingMs}
                             politeHudAnnouncement={politeHudAnnouncement}
@@ -1010,7 +1031,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                             className={`${styles.boardStage} ${cameraViewportMode ? styles.boardStageCamera : ''} ${boardPresentationClass} ${boardStageCssBloomClass}`.trim()}
                         >
                             <div className={styles.boardGlow} aria-hidden="true" />
-                            <TileBoard
+                            <MemoTileBoard
                                 ref={tileBoardRef}
                                 allowGambitThirdFlip={allowGambitThirdFlip}
                                 board={run.board}

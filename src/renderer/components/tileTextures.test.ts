@@ -8,7 +8,9 @@ import {
     getIllustrationPipelineDebugState,
     getStaticCardTexturePixelSize,
     getTileFaceOverlayTexture,
-    prewarmTileFaceOverlayTextures
+    prewarmTileFaceOverlayTextures,
+    resetDemandDrivenOverlayPrewarmForTest,
+    runDemandDrivenTileFaceOverlayPrewarmSession
 } from './tileTextures';
 
 vi.mock('../cardFace/proceduralIllustration/drawProceduralTarotIllustration', () => ({
@@ -33,6 +35,7 @@ describe('tileTextures layout', () => {
     afterEach(() => {
         restoreCanvas2dMock?.();
         restoreCanvas2dMock = null;
+        resetDemandDrivenOverlayPrewarmForTest();
         clearTileTextureCachesForDebug();
     });
 
@@ -86,6 +89,36 @@ describe('tileTextures layout', () => {
             expect(state.overlayPrewarm.completedCount).toBe(2);
             expect(state.illustrationBitmap.entryCount).toBe(2);
             expect(state.overlayTexture.overlayKeyCount).toBe(0);
+        } finally {
+            window.requestIdleCallback = previousRequestIdleCallback;
+            window.cancelIdleCallback = previousCancelIdleCallback;
+        }
+    });
+
+    it('demand-driven overlay session warms illustration cache for queued pairKeys', async () => {
+        clearTileTextureCachesForDebug();
+        const previousRequestIdleCallback = window.requestIdleCallback;
+        const previousCancelIdleCallback = window.cancelIdleCallback;
+        window.requestIdleCallback = ((callback: IdleRequestCallback) => {
+            callback({
+                didTimeout: false,
+                timeRemaining: () => 50
+            } as IdleDeadline);
+            return 1;
+        }) as typeof window.requestIdleCallback;
+        window.cancelIdleCallback = (() => undefined) as typeof window.cancelIdleCallback;
+
+        try {
+            const stop = runDemandDrivenTileFaceOverlayPrewarmSession(['pair-z'], 'medium');
+            await Promise.resolve();
+            stop();
+
+            const tile = baseTile('z1', 'pair-z');
+            const cold = getTileFaceOverlayTexture(tile, 'active', 'medium');
+            const warm = getTileFaceOverlayTexture(tile, 'active', 'medium');
+            expect(cold).toBe(warm);
+            const state = getIllustrationPipelineDebugState();
+            expect(state.illustrationBitmap.entryCount).toBeGreaterThanOrEqual(1);
         } finally {
             window.requestIdleCallback = previousRequestIdleCallback;
             window.cancelIdleCallback = previousCancelIdleCallback;

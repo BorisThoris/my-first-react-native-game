@@ -118,7 +118,44 @@ For **`cover`**, set `task_type`: `"cover"`, `src_audio` to your loop/file, `cap
 ### Outputs
 
 - Rendered files under `tmp/audio/ace-step/` (default; override with `--out-dir`).
-- Manifest: `tmp/audio/ace-step/generated-ace-step-last-run.json`.
+- Manifest: `tmp/audio/ace-step/generated-ace-step-last-run.json` (top-level `variants`, `qualityPreset`, `inferenceStepsCli`, `qualityOverlay`, plus one row per **render**; `variant` is set when `--variants` > 1).
+
+### Multi-variant (A/B) batch
+
+`batch_ace_step.py` accepts **`--variants N`** (short **`-n`**, default `1`):
+
+- `N` > 1: each job is rendered `N` times with distinct seeds. Outputs go under `tmp/audio/ace-step/<jobId>/v01/`, `v02/`, …, `vNN/`. Fixed JSON seeds use an offset of `7919` per take; “random” jobs use randomness for the first take and derived seeds for the rest.
+- `N` == 1: same layout as before (`tmp/audio/ace-step/<jobId>/` with no `v##` subfolders).
+
+Example (three takes per event): **`yarn audio:ace-step:app:variants`**, or:
+
+```bash
+node scripts/audio-pipeline/run-ace-batch.mjs --jobs scripts/audio-pipeline/jobs.memory-dungeon-app-audio.json --variants 3
+```
+
+### Quality / step count
+
+`batch_ace_step.py` can apply a small **default overlay** to every job (merged **under** the job: fields in the jobs JSON still win). This mainly raises **`inference_steps`** for the turbo model (higher = usually finer detail, slower GPU). See upstream [INFERENCE.md](https://github.com/ace-step/ACE-Step-1.5/blob/main/docs/en/INFERENCE.md) for ranges.
+
+- **`--quality balanced`**: `inference_steps=8` (typical default-style step count for turbo in docs).
+- **`--quality high`**: `inference_steps=14`; if your installed `acestep` has `enable_normalization` on `GenerationParams`, it is set to `true` for a slightly more level output.
+- **`--quality max`**: `inference_steps=18`; same optional normalization.
+- **`--inference-steps N`**: if set, sets `inference_steps` in the overlay and **overrides** the step count from `--quality` (job-level `inference_steps` in JSON still wins over both).
+- **Omit** `--quality` and `--inference-steps` for the previous behavior: no quality overlay, only whatever each job and upstream defaults set.
+
+**Convenience:** `yarn audio:ace-step:app:high` runs the app batch with **`--quality high`**, `yarn audio:ace-step:app:max` with **`--quality max`**, and **`yarn audio:ace-step:app:hq-variants`** (or **`app:max-variants`**) combines quality with **`--variants 3`** for A/B listening.
+
+### Full app sound replacement (all 29 shipped assets)
+
+The Memory Dungeon app batch in [`jobs.memory-dungeon-app-audio.json`](jobs.memory-dungeon-app-audio.json) has **29** jobs; they map to the files installed by [`install-ace-app-outputs.mjs`](install-ace-app-outputs.mjs) into `src/renderer/assets/audio/sfx/`, `ui/`, and `music/`. This is the path to **replace every shipped non-procedural** cue and both music loops. Procedural fallbacks in `gameSfx.ts` / `uiSfx.ts` only play when a file is missing.
+
+1. **Machine:** set up **`.venv-audio`**, ACE-Step, checkpoints, optional `ACESTEP_PROJECT_ROOT` (see [Prerequisites](#prerequisites) and [Install ACE-Step 1.5](#install-ace-step-15-once-per-machine)). Install **ffmpeg** on PATH (required for the install/trim step). In step 6, pass **`--loudness`** to the install command if you want ffmpeg **loudnorm** on the trimmed WAVs.
+2. **References:** ensure `scripts/audio-pipeline/reference-audio/` is ready: **`yarn audio:prep-ace-app`** and/or **`yarn audio:materialize-references-from-pack`**, and optionally **`yarn audio:apply-reference-coverage -- --write`**. Renders must match right/timbre; rights are on you (see [RIGHTS.md](RIGHTS.md)).
+3. **Validate:** `yarn audio:ace-step:app:dry` (and pass any flags you will use, e.g. `node ... -- --quality high` or use `yarn` scripts below).
+4. **Generate (quality + A/B):** e.g. **`yarn audio:ace-step:app:hq-variants`** ( `--quality high` + three takes per job under `v01`/`v02`/`v03` ) or **`yarn audio:ace-step:app:max-variants`** for maximum step count. Slower and heavier on the GPU. Step counts and tradeoffs: [INFERENCE.md](https://github.com/ace-step/ACE-Step-1.5/blob/main/docs/en/INFERENCE.md).
+5. **Choose takes:** listen under `tmp/audio/ace-step/<jobId>/v##/`. Pick one variant to install (or use default **`v01`** if a single best take per job).
+6. **Install into the repo:** `yarn audio:install:ace-app-outputs -- --variant <n> --loudness` (omit `--variant` if you did not use `--variants` > 1; same variant index applies to all jobs). This overwrites the paths listed in the install map.
+7. **Playtest** in the app (master volume, SFX, loop seams for menu/run), then **commit** the new WAVs (expect a large binary diff).
 
 ## Yarn scripts
 
@@ -129,6 +166,11 @@ For **`cover`**, set `task_type`: `"cover"`, `src_audio` to your loop/file, `cap
 | `yarn audio:ace-step:smoke` | Single job [`jobs.smoke-one.json`](jobs.smoke-one.json); quick GPU path check. |
 | `yarn audio:ace-step:app` | Run full Memory Dungeon app-audio batch (gameplay, UI, menu/run loops). |
 | `yarn audio:ace-step:app:wav` | Same batch; `--audio-format wav` (skip FLAC round-trip). |
+| `yarn audio:ace-step:app:high` | Same as `app` with **`--quality high`** (higher `inference_steps`, optional norm). |
+| `yarn audio:ace-step:app:max` | Same as `app` with **`--quality max`** (highest shipped turbo step preset). |
+| `yarn audio:ace-step:app:hq-variants` | **`--quality high`** + **`--variants 3`** (production A/B batch). |
+| `yarn audio:ace-step:app:max-variants` | **`--quality max`** + **`--variants 3`**. |
+| `yarn audio:ace-step:app:variants` | Same as `app` with **`--variants 3`** (A/B under each `v##/`). |
 | `yarn audio:ace-step:app:dry` | Validate the full app-audio jobs file (no torch). |
 | `yarn audio:install:ace-app-outputs` | Copy + trim renders into `assets/audio` (needs ffmpeg). |
 | `yarn audio:materialize-references-from-pack` | Copy all `*.wav` from `--from` into `reference-audio/`; validate job refs. Pass **`-- --from dir`** [`--recursive`]. |
@@ -164,7 +206,7 @@ node scripts/audio-pipeline/run-ace-batch.mjs --dry-run --jobs scripts/audio-pip
 
 ### Full app audio (`jobs.memory-dungeon-app-audio.json`)
 
-Use [`jobs.memory-dungeon-app-audio.json`](jobs.memory-dungeon-app-audio.json) for the 21 shipped targets: 13 gameplay one-shots, 6 UI/menu one-shots, and 2 background loops. Reference WAVs live under **`reference-audio/`** — run **`yarn audio:prep-ace-app`** for procedural stubs, or replace with licensed originals (see [`reference-audio/README.md`](reference-audio/README.md)). Raw renders still need curation: trim one-shots, normalize, and copy finals into `src/renderer/assets/audio/sfx/`, `src/renderer/assets/audio/ui/`, and `src/renderer/assets/audio/music/`.
+Use [`jobs.memory-dungeon-app-audio.json`](jobs.memory-dungeon-app-audio.json) for **29** shipped targets in one batch (gameplay SFX, UI, meta one-shots, and two background loops; see the install map in [`install-ace-app-outputs.mjs`](install-ace-app-outputs.mjs)). Reference WAVs live under **`reference-audio/`** — run **`yarn audio:prep-ace-app`** for procedural stubs, or replace with licensed originals (see [`reference-audio/README.md`](reference-audio/README.md)). The install script **trims** using job `duration`; for a full replacement workflow, see [Full app sound replacement](#full-app-sound-replacement-all-29-shipped-assets) above.
 
 ```bash
 node scripts/audio-pipeline/run-ace-batch.mjs --dry-run --jobs scripts/audio-pipeline/jobs.memory-dungeon-app-audio.json
@@ -175,5 +217,12 @@ After a successful batch, install trimmed WAVs into `src/renderer/assets/audio/*
 ```bash
 yarn audio:install:ace-app-outputs
 ```
+
+1. If you used **`--variants` > 1**, listen to takes under `tmp/audio/ace-step/<id>/v##/`, then install a specific take, for example:  
+   `yarn audio:install:ace-app-outputs -- --variant 2`  
+   (installs from **`v02`** for every job; accepts `2`, `02`, or `v02`). If you omit **`--variant`** and a job folder contains **more than one** `v##` subfolder, the install script defaults to **`v01`** and prints a one-time warning. Flat outputs (no `v##` folders) are unchanged.
+2. Optional **EBU R128–style** loudness via ffmpeg’s `loudnorm` filter:  
+   `yarn audio:install:ace-app-outputs -- --loudness`  
+   (`--normalize` is an alias). Requires an ffmpeg build that includes `loudnorm`; the script fails fast on startup if the filter is missing.
 
 Dry-run install: `node scripts/audio-pipeline/install-ace-app-outputs.mjs --dry-run`. Override ACE output dir: `--ace-out path/to/ace-step`.

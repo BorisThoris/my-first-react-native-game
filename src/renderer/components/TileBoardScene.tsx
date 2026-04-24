@@ -49,7 +49,7 @@ import {
     getCardPanelNormalTexture,
     getTileFaceTexture,
     getTileFaceOverlayTexture,
-    prewarmTileFaceOverlayTextures,
+    runDemandDrivenTileFaceOverlayPrewarmSession,
     subscribeTextureImageUpdates,
     type FaceVariant
 } from './tileTextures';
@@ -67,9 +67,14 @@ import {
 } from './tileShatter';
 import type { TiltVector } from '../platformTilt/platformTiltTypes';
 import { RENDERER_THEME } from '../styles/theme';
-import { boardWebglPerfSampleAccumulate, boardWebglPerfSampleEnabled } from '../dev/boardWebglPerfSample';
+import {
+    boardWebglPerfSampleAccumulatePhases,
+    boardWebglPerfSampleEnabled,
+    boardWebglPerfSampleVerboseEnabled
+} from '../dev/boardWebglPerfSample';
 import { readTileStepLegacy } from '../dev/legacy/tileStepLegacy';
 import { getTileFieldAmplification, shouldApplyTileFieldParallax } from './tileFieldTilt';
+import { shouldAdvanceTileBezelThisFrame } from './tileFrameActivity';
 import { isTilePickable, noopMeshRaycast, pickableMeshRaycast } from './tileBoardPick';
 import { PairProximityHintPlane } from './PairProximityHintPlane';
 import { TutorialPairMarkerPlane } from './TutorialPairMarkerPlane';
@@ -638,6 +643,13 @@ interface TileBezelFrameBag {
     matchedVictoryFlameMeshRef: MutableRefObject<Mesh | null>;
     matchedVictoryBurstT0Ref: MutableRefObject<number | null>;
     prevTileMatchedRef: MutableRefObject<boolean>;
+    /** Props that affect materials without moving the group; synced at end of `advanceTileBezelFrame`. */
+    lastActivityVisualGateRef: MutableRefObject<{
+        textureRevision: number;
+        keyboardFocused: boolean;
+        focusDimmed: boolean;
+        graphicsQuality: GraphicsQualityPreset;
+    } | null>;
 }
 
 const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: number): void => {
@@ -1155,10 +1167,22 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
             bag.backCardMatRef.current.emissiveIntensity = hoverEmissiveIntensity;
         }
     }
+
+    bag.lastActivityVisualGateRef.current = {
+        textureRevision: p.textureRevision,
+        keyboardFocused: p.keyboardFocused,
+        focusDimmed: p.focusDimmed,
+        graphicsQuality: p.graphicsQuality
+    };
 };
 
 const TileBezelFrameRegistryContext = createContext<{
     register(id: string, bag: TileBezelFrameBag): void;
+    unregister(id: string): void;
+} | null>(null);
+
+const TilePickMeshRegistryContext = createContext<{
+    register(id: string, mesh: Mesh): void;
     unregister(id: string): void;
 } | null>(null);
 
@@ -1224,6 +1248,8 @@ const TileBezelInner = ({
 }: TileBezelProps) => {
     const { gl } = useThree();
     const frameRegistry = useContext(TileBezelFrameRegistryContext);
+    const pickMeshRegistry = useContext(TilePickMeshRegistryContext);
+    const pickSlabRef = useRef<Mesh | null>(null);
     const groupRef = useRef<Group | null>(null);
     const propsRef = useRef<TileBezelFramePropsSnapshot>({} as TileBezelFramePropsSnapshot);
     const bagRef = useRef<TileBezelFrameBag | null>(null);
@@ -1374,6 +1400,12 @@ const TileBezelInner = ({
         };
     }, [matchedRimFireMaterial]);
     const prevTileMatchedRef = useRef(false);
+    const lastActivityVisualGateRef = useRef<{
+        textureRevision: number;
+        keyboardFocused: boolean;
+        focusDimmed: boolean;
+        graphicsQuality: GraphicsQualityPreset;
+    } | null>(null);
 
     useLayoutEffect(() => {
         if (bagRef.current === null) {
@@ -1417,7 +1449,8 @@ const TileBezelInner = ({
                 matchedVictoryFlameMatRef,
                 matchedVictoryFlameMeshRef,
                 matchedVictoryBurstT0Ref,
-                prevTileMatchedRef
+                prevTileMatchedRef,
+                lastActivityVisualGateRef
             };
         } else {
             bagRef.current.planeGeometries = { front: frontGeometry, back: backGeometry, overlay: overlayGeometry };
@@ -1712,6 +1745,22 @@ const TileBezelInner = ({
         surfaceVariant === 'hidden' ? null : getTileFaceOverlayTexture(tile, surfaceVariant, graphicsQuality);
     const forceTextureRefreshKey = textureRevision;
 
+    useLayoutEffect(() => {
+        if (!pickMeshRegistry) {
+            return;
+        }
+
+        const mesh = pickSlabRef.current;
+
+        if (mesh) {
+            pickMeshRegistry.register(tile.id, mesh);
+        }
+
+        return () => {
+            pickMeshRegistry.unregister(tile.id);
+        };
+    }, [forceTextureRefreshKey, pickMeshRegistry, tile.id]);
+
     const halfDepth = TILE_DEPTH * 0.5;
     const faceZ = halfDepth + 0.0004;
     const overlayZ = halfDepth + 0.004;
@@ -1726,6 +1775,7 @@ const TileBezelInner = ({
             */}
             <group scale={[transform.bezelScale, transform.bezelScale, transform.bezelScale]}>
                 <mesh
+                    ref={pickSlabRef}
                     key={`card-pick-${tile.id}-${forceTextureRefreshKey}`}
                     onClick={handleCardClick}
                     onPointerDown={handleCardPointerDown}
@@ -2587,17 +2637,55 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
         wardPairKey,
         wideRecallInPlay
     ]);
+    const overlayPrewarmDemandPairKeys = useMemo(() => {
+        const keys = new Set<string>();
+
+        for (const row of tileBezelRows) {
+            const { tile, faceUp, resolvingSelection } = row;
+
+            if (faceUp) {
+                keys.add(tile.pairKey);
+            }
+
+            if (resolvingSelection != null) {
+                keys.add(tile.pairKey);
+            }
+
+            const pickable = !interactionSuppressed && isTilePickable(tile, interactive, flipLocked);
+
+            if (pickable) {
+                keys.add(tile.pairKey);
+            }
+        }
+
+        return [...keys];
+    }, [tileBezelRows, flipLocked, interactionSuppressed, interactive]);
     const boardGroupRef = useRef<Group | null>(null);
     const pickRaycasterRef = useRef<Raycaster>(new Raycaster());
     const pickPointerRef = useRef<Vector2>(new Vector2());
     const tileFrameBagsRef = useRef(new Map<string, TileBezelFrameBag>());
+    const tileFrameIdleStreakRef = useRef(new Map<string, number>());
+    const tilePickMeshesRef = useRef(new Map<string, Mesh>());
     const tileFrameRegistry = useMemo(
         () => ({
             register(id: string, bag: TileBezelFrameBag): void {
                 tileFrameBagsRef.current.set(id, bag);
+                tileFrameIdleStreakRef.current.delete(id);
             },
             unregister(id: string): void {
                 tileFrameBagsRef.current.delete(id);
+                tileFrameIdleStreakRef.current.delete(id);
+            }
+        }),
+        []
+    );
+    const pickMeshRegistry = useMemo(
+        () => ({
+            register(id: string, mesh: Mesh): void {
+                tilePickMeshesRef.current.set(id, mesh);
+            },
+            unregister(id: string): void {
+                tilePickMeshesRef.current.delete(id);
             }
         }),
         []
@@ -2605,11 +2693,9 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
 
     useEffect(() => subscribeTextureImageUpdates(() => setTextureRevision((current) => current + 1)), []);
 
-    const overlayPrewarmKey = `${board.level}:${board.tiles.map((tile) => `${tile.id}:${tile.pairKey}`).join(',')}`;
     useEffect(() => {
-        /** Only `active`: prewarming all variants was 3× canvas allocations per tile on every board. */
-        return prewarmTileFaceOverlayTextures(board.tiles, graphicsQuality, 'active');
-    }, [overlayPrewarmKey, graphicsQuality]); // eslint-disable-line react-hooks/exhaustive-deps -- overlayPrewarmKey encodes level + tile ids
+        return runDemandDrivenTileFaceOverlayPrewarmSession(overlayPrewarmDemandPairKeys, graphicsQuality);
+    }, [graphicsQuality, overlayPrewarmDemandPairKeys]);
 
     /** Chain front → back so two huge SVGLoader.parse passes never run in parallel (main-thread + memory). */
     useEffect(() => {
@@ -2690,15 +2776,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                     return null;
                 }
 
-                let tileObject: Mesh | null = null;
-                boardGroup.traverse((candidate) => {
-                    if (tileObject) {
-                        return;
-                    }
-                    if (candidate.userData?.tileId === tileId) {
-                        tileObject = candidate as Mesh;
-                    }
-                });
+                const tileObject = tilePickMeshesRef.current.get(tileId) ?? null;
 
                 if (!tileObject) {
                     return null;
@@ -2767,8 +2845,9 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                 );
                 pickRaycasterRef.current.setFromCamera(pickPointerRef.current, camera);
 
+                const pickTargets = [...tilePickMeshesRef.current.values()];
                 const hit = pickRaycasterRef.current
-                    .intersectObjects(boardGroup.children, true)
+                    .intersectObjects(pickTargets, false)
                     .find((intersection) => typeof intersection.object.userData?.tileId === 'string');
 
                 if (!hit) {
@@ -2795,15 +2874,33 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
     }, []); // eslint-disable-line react-hooks/exhaustive-deps -- mount-only; useFrame updates boardGroup each frame
 
     useFrame((state, delta) => {
-        const perfOn = boardWebglPerfSampleEnabled();
-        const t0 = perfOn ? performance.now() : 0;
+        const perfOn = boardWebglPerfSampleEnabled() || boardWebglPerfSampleVerboseEnabled();
+        let tileStepMs = 0;
+        let viewportMs = 0;
 
         if (!tileStepLegacy) {
-            for (const bag of tileFrameBagsRef.current.values()) {
-                advanceTileBezelFrame(bag, state, delta);
+            const tTile0 = perfOn ? performance.now() : 0;
+            const nowMs = performance.now();
+            const clockElapsedTime = state.clock.elapsedTime;
+
+            for (const [id, bag] of tileFrameBagsRef.current) {
+                const want = shouldAdvanceTileBezelThisFrame(bag, clockElapsedTime, nowMs);
+                const prevStreak = tileFrameIdleStreakRef.current.get(id) ?? 0;
+                const streakNext = want ? 0 : prevStreak + 1;
+                tileFrameIdleStreakRef.current.set(id, streakNext);
+                const runThis = want || streakNext <= 2;
+
+                if (runThis) {
+                    advanceTileBezelFrame(bag, state, delta);
+                }
+            }
+
+            if (perfOn) {
+                tileStepMs = performance.now() - tTile0;
             }
         }
 
+        const tViewport0 = perfOn ? performance.now() : 0;
         const boardGroup = boardGroupRef.current;
 
         if (boardGroup) {
@@ -2828,12 +2925,14 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
         }
 
         if (perfOn) {
-            boardWebglPerfSampleAccumulate(performance.now() - t0);
+            viewportMs = performance.now() - tViewport0;
+            boardWebglPerfSampleAccumulatePhases({ tileStepMs, viewportMs });
         }
     });
 
     return (
         <TileBezelFrameRegistryContext.Provider value={tileFrameRegistry}>
+        <TilePickMeshRegistryContext.Provider value={pickMeshRegistry}>
         <>
             <ambientLight color={colors.text} intensity={compact ? 0.62 : 0.72} />
             <hemisphereLight
@@ -2934,6 +3033,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                 )}
             </group>
         </>
+        </TilePickMeshRegistryContext.Provider>
         </TileBezelFrameRegistryContext.Provider>
     );
 });

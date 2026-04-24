@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { GAME_MODE_CODEX, MUTATOR_CATALOG, RELIC_CATALOG } from '../../shared/game-catalog';
 import { playUiBackSfx, resumeUiSfxContext, uiSfxGainFromSettings } from '../audio/uiSfx';
@@ -5,6 +6,7 @@ import { inventoryScreenCopy } from '../copy/inventoryScreen';
 import { Eyebrow, MetaFrame, Panel, ScreenTitle, UiButton } from '../ui';
 import { useAppStore } from '../store/useAppStore';
 import metaStyles from './MetaScreen.module.css';
+import { handleMetaBodyTocLinkClick } from './metaScreenTocNav';
 import styles from './InventoryScreen.module.css';
 
 const modeTitle = (gameMode: string): string =>
@@ -16,6 +18,7 @@ interface InventoryScreenProps {
 }
 
 const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) => {
+    const bodyScrollRef = useRef<HTMLDivElement | null>(null);
     const { closeSubscreen, run, settings } = useAppStore(
         useShallow((state) => ({
             closeSubscreen: state.closeSubscreen,
@@ -51,7 +54,7 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                         Back
                     </UiButton>
                 </header>
-                <div className={metaStyles.body}>
+                <div ref={bodyScrollRef} className={metaStyles.body}>
                     <MetaFrame data-testid="inventory-meta-frame-empty">
                         <Panel className={panelClassName} padding="lg" variant="default">
                             <p className={styles.emptyState}>
@@ -82,13 +85,23 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                 </UiButton>
             </header>
 
-            <div className={metaStyles.body}>
+            <div ref={bodyScrollRef} className={metaStyles.body}>
                 <nav aria-label="Inventory sections" className={metaStyles.inPageToc}>
-                    <a href="#inventory-run">Run</a>
-                    <a href="#inventory-relics">Relics</a>
-                    <a href="#inventory-mutators">Mutators</a>
-                    <a href="#inventory-charges">Charges</a>
-                    <a href="#inventory-contract">Contract</a>
+                    <a href="#inventory-run" onClick={(e) => handleMetaBodyTocLinkClick(bodyScrollRef, e)}>
+                        Run
+                    </a>
+                    <a href="#inventory-relics" onClick={(e) => handleMetaBodyTocLinkClick(bodyScrollRef, e)}>
+                        Relics
+                    </a>
+                    <a href="#inventory-mutators" onClick={(e) => handleMetaBodyTocLinkClick(bodyScrollRef, e)}>
+                        Mutators
+                    </a>
+                    <a href="#inventory-charges" onClick={(e) => handleMetaBodyTocLinkClick(bodyScrollRef, e)}>
+                        Charges
+                    </a>
+                    <a href="#inventory-contract" onClick={(e) => handleMetaBodyTocLinkClick(bodyScrollRef, e)}>
+                        Contract
+                    </a>
                 </nav>
                 <MetaFrame data-testid="inventory-meta-frame-run">
                     <Panel className={heroPanelClassName} padding="lg" variant="strong">

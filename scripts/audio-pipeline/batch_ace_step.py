@@ -13,10 +13,12 @@ Example:
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import os
 import subprocess
 import sys
+import zlib
 from dataclasses import fields
 from datetime import datetime, timezone
 from pathlib import Path
@@ -228,11 +230,108 @@ def parse_args() -> argparse.Namespace:
         default="flac",
         help="GenerationConfig.audio_format (flac, wav, mp3, ...).",
     )
+    p.add_argument(
+        "--variants",
+        "-n",
+        type=int,
+        default=1,
+        metavar="N",
+        help="Per job, render N times with distinct seeds into v01..vN when N>1 (default: 1).",
+    )
+    p.add_argument(
+        "--quality",
+        choices=("balanced", "high", "max"),
+        default=None,
+        help="Optional quality preset (inference_steps; high/max may enable output normalization if supported). "
+        "Omit to use no overlay. Job fields still override. See INFERENCE.md (turbo: ~8/14/18 steps).",
+    )
+    p.add_argument(
+        "--inference-steps",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Denoising steps; overrides --quality for this field. Must be >= 1 when set.",
+    )
     return p.parse_args()
+
+
+def _build_quality_overlay(
+    quality: str | None, inference_steps_cli: int | None, allowed_keys: frozenset[str]
+) -> dict[str, Any]:
+    """
+    Preset/CLI defaults merged under per-job params (job JSON wins on conflict).
+    Only keys in allowed_keys (GenerationParams) are included.
+    """
+    raw: dict[str, Any] = {}
+    if quality == "balanced":
+        raw["inference_steps"] = 8
+    elif quality == "high":
+        raw["inference_steps"] = 14
+        if "enable_normalization" in allowed_keys:
+            raw["enable_normalization"] = True
+    elif quality == "max":
+        raw["inference_steps"] = 18
+        if "enable_normalization" in allowed_keys:
+            raw["enable_normalization"] = True
+    if inference_steps_cli is not None:
+        raw["inference_steps"] = int(inference_steps_cli)
+    return {k: v for k, v in raw.items() if k in allowed_keys}
+
+
+def _print_quality_overlay_summary(overlay: dict[str, Any], quality: str | None, inf_cli: int | None) -> None:
+    if not overlay:
+        return
+    st = overlay.get("inference_steps")
+    if st is not None:
+        if inf_cli is not None:
+            line_src = "from --inference-steps"
+        elif quality:
+            line_src = f"from --quality {quality!r}"
+        else:
+            line_src = "inference"
+        print(f"Quality overlay: inference_steps={st} ({line_src}; job JSON overrides if set).")
+    for k, v in sorted((k, v) for k, v in overlay.items() if k != "inference_steps"):
+        print(f"  + {k}: {v!r}")
+
+
+def _variant_seeds(
+    base_param: dict[str, Any],
+    k: int,
+    n_variants: int,
+    job_id: str,
+) -> tuple[dict[str, Any], bool, int | list[int] | None]:
+    """
+    Return (param_dict, use_random_seed, seeds) for GenerationConfig.
+    k is 0-based variant index. When n_variants is 1, behavior matches a single unmodified job.
+    """
+    d = copy.deepcopy(base_param)
+    if n_variants <= 1:
+        raw = d.get("seed")
+        if raw is None or int(raw) < 0:
+            return d, True, None
+        return d, False, int(raw)
+
+    raw = d.get("seed")
+    fixed = raw is not None and int(raw) >= 0
+    if fixed:
+        d["seed"] = int(raw) + k * 7919
+        return d, False, int(d["seed"])
+
+    if k == 0:
+        return d, True, None
+
+    crc = zlib.crc32(job_id.encode("utf-8")) & 0xFFFFFFFF
+    sk = 1 + (crc % 1_000_000_000) + (k * 7_910_003)
+    d["seed"] = sk
+    return d, False, sk
 
 
 def main() -> None:
     args = parse_args()
+    if args.variants < 1:
+        raise SystemExit("--variants / -n must be >= 1")
+    if args.inference_steps is not None and int(args.inference_steps) < 1:
+        raise SystemExit("--inference-steps must be >= 1 when set")
     root = repo_root()
     jobs_path = args.jobs.resolve()
     entries, jobs_dir = load_jobs(jobs_path)
@@ -247,6 +346,10 @@ def main() -> None:
         print(f"Output root: {out_root}")
         print(f"Manifest: {manifest_path}")
         print(f"Entries: {len(entries)}")
+        if args.variants > 1:
+            print(
+                f"Each job will write to subfolders v01..v{args.variants:02d} under <output>/<jobId>/ (variants={args.variants})."
+            )
         for i, e in enumerate(entries[:5]):
             print(f"  [{i}] id={e.get('id')!r} task_type={e.get('task_type')!r}")
         if len(entries) > 5:
@@ -261,6 +364,12 @@ def main() -> None:
             print("Job keys validated against GenerationParams.")
         except ImportError:
             print("(Install acestep in this interpreter to validate job keys on dry-run.)")
+            allowed_keys = frozenset({"inference_steps", "enable_normalization"})
+        q_ovl = _build_quality_overlay(args.quality, args.inference_steps, allowed_keys)
+        if not q_ovl:
+            print("Quality overlay: (none); jobs use only JSON fields and upstream defaults.")
+        else:
+            _print_quality_overlay_summary(q_ovl, args.quality, args.inference_steps)
         print("dry-run OK (no torch/GPU work).")
         return
 
@@ -283,6 +392,8 @@ def main() -> None:
     set_global_gpu_config(gpu_config_boot)
 
     allowed_keys = frozenset(f.name for f in fields(GenerationParams))
+    quality_overlay = _build_quality_overlay(args.quality, args.inference_steps, allowed_keys)
+    _print_quality_overlay_summary(quality_overlay, args.quality, args.inference_steps)
 
     dit_handler = AceStepHandler()
     llm_handler = LLMHandler()
@@ -375,6 +486,8 @@ def main() -> None:
 
     results: list[dict[str, Any]] = []
 
+    n_variants = int(args.variants)
+
     for entry in entries:
         if not isinstance(entry, dict):
             raise SystemExit("Each job must be a JSON object.")
@@ -384,6 +497,7 @@ def main() -> None:
 
         validate_job_keys(entry, allowed_keys)
         param_dict = {k: v for k, v in entry.items() if k != "id"}
+        param_dict = {**quality_overlay, **param_dict}
         for key in AUDIO_PATH_KEYS:
             if key in param_dict and param_dict[key]:
                 param_dict[key] = resolve_media_path(root, jobs_dir, str(param_dict[key]))
@@ -391,58 +505,87 @@ def main() -> None:
                 if not p.is_file():
                     raise SystemExit(f'Job "{jid}": missing {key} file:\n  {param_dict[key]}')
 
-        params = GenerationParams(**param_dict)
-
-        use_rand = params.seed is None or int(params.seed) < 0
-        seeds_arg: int | list[int] | None = None if use_rand else int(params.seed)
-
-        gen_config = GenerationConfig(
-            batch_size=1,
-            allow_lm_batch=False,
-            use_random_seed=use_rand,
-            seeds=seeds_arg,
-            audio_format=args.audio_format,
-        )
-
         job_out = out_root / str(jid)
         job_out.mkdir(parents=True, exist_ok=True)
 
-        try:
-            result = generate_music(
-                dit_handler,
-                llm_handler,
-                params,
-                gen_config,
-                save_dir=str(job_out),
-            )
-        except Exception as exc:  # noqa: BLE001
-            results.append({"id": jid, "success": False, "paths": [], "error": str(exc)})
-            continue
+        for k in range(n_variants):
+            v_param, use_rand, seeds_arg = _variant_seeds(param_dict, k, n_variants, jid)
+            params = GenerationParams(**v_param)
 
-        paths_out: list[str] = []
-        if result.success:
-            for a in result.audios:
-                pth = a.get("path")
-                if pth:
-                    paths_out.append(str(pth))
-            results.append(
-                {
-                    "id": jid,
-                    "success": True,
-                    "paths": paths_out,
-                    "status_message": result.status_message,
-                    "error": None,
-                }
+            gen_config = GenerationConfig(
+                batch_size=1,
+                allow_lm_batch=False,
+                use_random_seed=use_rand,
+                seeds=seeds_arg,
+                audio_format=args.audio_format,
             )
-        else:
-            results.append(
-                {
-                    "id": jid,
-                    "success": False,
-                    "paths": paths_out,
-                    "error": result.error or result.status_message,
-                }
-            )
+
+            if n_variants > 1:
+                sub = job_out / f"v{k + 1:02d}"
+                sub.mkdir(parents=True, exist_ok=True)
+                save_dir = str(sub)
+            else:
+                save_dir = str(job_out)
+
+            variant_label = None if n_variants == 1 else k + 1
+            seed_effective: int | None
+            if use_rand and seeds_arg is None:
+                seed_effective = None
+            elif isinstance(seeds_arg, int):
+                seed_effective = seeds_arg
+            else:
+                raw_s = v_param.get("seed")
+                seed_effective = int(raw_s) if raw_s is not None and int(raw_s) >= 0 else None
+
+            try:
+                result = generate_music(
+                    dit_handler,
+                    llm_handler,
+                    params,
+                    gen_config,
+                    save_dir=save_dir,
+                )
+            except Exception as exc:  # noqa: BLE001
+                results.append(
+                    {
+                        "id": jid,
+                        "variant": variant_label,
+                        "seed": seed_effective,
+                        "success": False,
+                        "paths": [],
+                        "error": str(exc),
+                    }
+                )
+                continue
+
+            paths_out: list[str] = []
+            if result.success:
+                for a in result.audios:
+                    pth = a.get("path")
+                    if pth:
+                        paths_out.append(str(pth))
+                results.append(
+                    {
+                        "id": jid,
+                        "variant": variant_label,
+                        "seed": seed_effective,
+                        "success": True,
+                        "paths": paths_out,
+                        "status_message": result.status_message,
+                        "error": None,
+                    }
+                )
+            else:
+                results.append(
+                    {
+                        "id": jid,
+                        "variant": variant_label,
+                        "seed": seed_effective,
+                        "success": False,
+                        "paths": paths_out,
+                        "error": result.error or result.status_message,
+                    }
+                )
 
     manifest = {
         "generatedAt": datetime.now(timezone.utc).isoformat(),
@@ -450,13 +593,17 @@ def main() -> None:
         "outDir": str(out_root),
         "configPath": config_path,
         "lmModelPath": lm_model_path if init_llm else None,
+        "variants": n_variants,
+        "qualityPreset": args.quality,
+        "inferenceStepsCli": args.inference_steps,
+        "qualityOverlay": quality_overlay,
         "results": results,
     }
     out_root.mkdir(parents=True, exist_ok=True)
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     print(f"Wrote manifest: {manifest_path}")
     ok_n = sum(1 for r in results if r.get("success"))
-    print(f"Done. {ok_n}/{len(results)} jobs succeeded.")
+    print(f"Done. {ok_n}/{len(results)} renders succeeded (jobs × variants).")
 
 
 if __name__ == "__main__":

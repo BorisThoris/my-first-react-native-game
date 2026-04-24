@@ -292,8 +292,8 @@ const invalidateCachesAfterImageLoad = (id: TextureImageId): void => {
         disposeRasterFaceNormalTexture();
     } else if (id === 'cardBackNormal') {
         disposeRasterBackNormalTexture();
-    } else {
-        invalidateVersionedTileFaceTextureCaches();
+    } else if (id === 'edge' || id === 'panelRoughness' || id === 'edgeRoughness') {
+        /* Decode completes for edge/roughness PNGs — versioned tile keys already include `TILE_TEXTURE_VERSION`; avoid flushing pair illustration caches. */
     }
 };
 
@@ -1493,6 +1493,97 @@ export const prewarmTileFaceOverlayTextures = (
             };
         }
     };
+};
+
+const demandOverlayPairKeyQueue = new Set<string>();
+let demandOverlayPrewarmHandle: PrewarmScheduleHandle | null = null;
+let demandOverlayPrewarmGraphicsQuality: GraphicsQualityPreset = 'medium';
+
+const pumpDemandOverlayPrewarm = (deadline?: IdleDeadline): void => {
+    if (!canDraw()) {
+        cancelPrewarmStep(demandOverlayPrewarmHandle);
+        demandOverlayPrewarmHandle = null;
+        return;
+    }
+
+    if (demandOverlayPairKeyQueue.size === 0) {
+        cancelPrewarmStep(demandOverlayPrewarmHandle);
+        demandOverlayPrewarmHandle = null;
+        return;
+    }
+
+    syncIllustrationOverlayCacheVersion();
+    const tier = overlayDrawTierFromGraphicsQuality(demandOverlayPrewarmGraphicsQuality);
+    const palette = getCardFaceOverlayColors('active');
+    const illustrationRect = computeIllustrationPixelRect(STATIC_CARD_TEXTURE_WIDTH, STATIC_CARD_TEXTURE_HEIGHT);
+    let processed = 0;
+
+    for (const pairKey of [...demandOverlayPairKeyQueue]) {
+        if (processed >= OVERLAY_PREWARM_BATCH_SIZE) {
+            break;
+        }
+        if (deadline != null && !deadline.didTimeout && deadline.timeRemaining() <= 2) {
+            break;
+        }
+        demandOverlayPairKeyQueue.delete(pairKey);
+        prewarmProceduralIllustrationBitmap(
+            pairKey,
+            tier,
+            palette,
+            illustrationRect.width,
+            illustrationRect.height
+        );
+        processed += 1;
+    }
+
+    demandOverlayPrewarmHandle = null;
+
+    if (demandOverlayPairKeyQueue.size > 0) {
+        demandOverlayPrewarmHandle = schedulePrewarmStep(pumpDemandOverlayPrewarm);
+    }
+};
+
+/**
+ * Demand-driven overlay bitmap warm-up: enqueue only `pairKey`s the board currently cares about
+ * (face-up, pickable, resolving). Cleanup removes this session’s keys from the shared queue.
+ */
+export const runDemandDrivenTileFaceOverlayPrewarmSession = (
+    pairKeys: readonly string[],
+    graphicsQuality: GraphicsQualityPreset
+): (() => void) => {
+    if (!canDraw() || pairKeys.length === 0) {
+        return () => undefined;
+    }
+
+    syncIllustrationOverlayCacheVersion();
+    demandOverlayPrewarmGraphicsQuality = graphicsQuality;
+    const sessionKeys = new Set(pairKeys);
+
+    for (const k of pairKeys) {
+        demandOverlayPairKeyQueue.add(k);
+    }
+
+    if (demandOverlayPrewarmHandle == null) {
+        demandOverlayPrewarmHandle = schedulePrewarmStep(pumpDemandOverlayPrewarm);
+    }
+
+    return () => {
+        for (const k of sessionKeys) {
+            demandOverlayPairKeyQueue.delete(k);
+        }
+
+        if (demandOverlayPairKeyQueue.size === 0 && demandOverlayPrewarmHandle != null) {
+            cancelPrewarmStep(demandOverlayPrewarmHandle);
+            demandOverlayPrewarmHandle = null;
+        }
+    };
+};
+
+/** Test helper: clear demand queue and cancel idle pump. */
+export const resetDemandDrivenOverlayPrewarmForTest = (): void => {
+    cancelPrewarmStep(demandOverlayPrewarmHandle);
+    demandOverlayPrewarmHandle = null;
+    demandOverlayPairKeyQueue.clear();
 };
 
 export const getCardFaceStaticTexture = (): CanvasTexture | null =>

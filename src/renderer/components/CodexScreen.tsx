@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import {
     ACHIEVEMENTS,
@@ -25,6 +25,7 @@ import {
 } from '../audio/uiSfx';
 import { useAppStore } from '../store/useAppStore';
 import metaStyles from './MetaScreen.module.css';
+import { handleMetaBodyTocLinkClick } from './metaScreenTocNav';
 import styles from './CodexScreen.module.css';
 
 interface CodexScreenProps {
@@ -83,6 +84,7 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
     const shellStageClass = stackedOnGameplay ? metaStyles.shellInRunModal : metaStyles.shellMetaStage;
     const panelClassName = stackedOnGameplay ? styles.inRunPanel : '';
     const heroPanelClassName = stackedOnGameplay ? styles.inRunHeroPanel : '';
+    const bodyScrollRef = useRef<HTMLDivElement | null>(null);
     const [filterQuery, setFilterQuery] = useState('');
     const [debouncedFilterQuery, setDebouncedFilterQuery] = useState('');
     const [codexTab, setCodexTab] = useState<CodexTab>('all');
@@ -205,7 +207,7 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
                 </UiButton>
             </header>
 
-            <div className={metaStyles.body}>
+            <div ref={bodyScrollRef} className={metaStyles.body}>
                 <div className={styles.tabRail} role="tablist" aria-label="Codex browse">
                     {(
                         [
@@ -234,7 +236,11 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
 
                 <nav aria-label="Codex sections" className={metaStyles.inPageToc}>
                     {TOC.filter((item) => tocVisible(codexTab, item.kind)).map((item) => (
-                        <a href={item.href} key={item.href}>
+                        <a
+                            href={item.href}
+                            key={item.href}
+                            onClick={(e) => handleMetaBodyTocLinkClick(bodyScrollRef, e)}
+                        >
                             {item.label}
                         </a>
                     ))}

@@ -1,9 +1,13 @@
 .shell {
     position: relative;
-    min-height: 100dvh;
+    flex: 1 1 auto;
+    min-height: 0;
     min-width: 0;
     isolation: isolate;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: min(100dvh, 100svh);
 }
 
 /* META-002: cathedral plate + scrim stack matches `MainMenu.module.css` sceneLayer / scrim. */
@@ -40,9 +44,14 @@
 }
 
 .foreground {
-position: relative;
+    position: relative;
     z-index: 1;
-    min-height: 100dvh;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
     display: flex;
     flex-direction: column;
     gap: var(--ui-shell-screen-gap);

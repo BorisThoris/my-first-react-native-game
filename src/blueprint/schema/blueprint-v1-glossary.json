@@ -1,0 +1,19 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "MemoryDungeonBluepringGlossaryV1",
+    "type": "object",
+    "required": ["blueprintVersion", "kind", "entries"],
+    "properties": {
+        "blueprintVersion": { "const": 1 },
+        "kind": { "const": "glossary" },
+        "label": { "type": "string" },
+        "entries": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "object",
+                "required": ["en"],
+                "properties": { "en": { "type": "string" } }
+            }
+        }
+    }
+}

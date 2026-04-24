@@ -1,5 +1,6 @@
 import type { RunState, Settings } from '../../shared/contracts';
 import {
+    memo,
     useEffect,
     useLayoutEffect,
     useRef,
@@ -7,6 +8,7 @@ import {
     type RefObject,
     type SetStateAction
 } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import {
     handleVerticalToolbarKeyDown,
     syncVerticalToolbarTabIndices
@@ -61,7 +63,7 @@ interface GameLeftToolbarProps {
     triggerDebugReveal: () => void;
 }
 
-const GameLeftToolbar = ({
+const GameLeftToolbar = memo(function GameLeftToolbar({
     cameraViewportMode,
     run,
     debugFlags,
@@ -97,8 +99,13 @@ const GameLeftToolbar = ({
     undoResolvingFlip,
     triggerDebugReveal,
     shuffleBoard
-}: GameLeftToolbarProps) => {
-    const settings = useAppStore((state) => state.settings);
+}: GameLeftToolbarProps) {
+    const { masterVolume, sfxVolume } = useAppStore(
+        useShallow((state) => ({
+            masterVolume: state.settings.masterVolume,
+            sfxVolume: state.settings.sfxVolume
+        }))
+    );
     const asideRef = useRef<HTMLElement | null>(null);
     const controlsToolbarRef = useRef<HTMLDivElement | null>(null);
     const powersToolbarRef = useRef<HTMLDivElement | null>(null);
@@ -164,7 +171,7 @@ const GameLeftToolbar = ({
         pinVowCap != null
             ? `Pin hidden tiles (max ${maxPinnedTiles} on board). Pin vow: ${run.pinsPlacedCountThisRun} of ${pinVowCap} placements used.`
             : `Pin up to ${maxPinnedTiles} hidden tiles for planning`;
-    const uiGain = uiSfxGainFromSettings(settings.masterVolume, settings.sfxVolume);
+    const uiGain = uiSfxGainFromSettings(masterVolume, sfxVolume);
     const playUiClick = (): void => {
         resumeUiSfxContext();
         playUiClickSfx(uiGain);
@@ -495,6 +502,8 @@ const GameLeftToolbar = ({
             ) : null}
         </aside>
     );
-};
+});
+
+GameLeftToolbar.displayName = 'GameLeftToolbar';
 
 export default GameLeftToolbar;

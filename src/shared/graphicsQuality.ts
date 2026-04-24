@@ -1,4 +1,7 @@
-import type { GraphicsQualityPreset } from './contracts';
+import type { BoardScreenSpaceAA, GraphicsQualityPreset } from './contracts';
+
+/** Tile count at/above which internal adaptive quality may cap DPR and post-FX during heavy board motion. */
+export const ADAPTIVE_BOARD_QUALITY_LARGE_TILE_THRESHOLD = 40;
 
 /**
  * Consolidated tier mapping for tests and docs — keep in sync with `TileBoard`, `TileBoardScene`, `MainMenuBackground`.
@@ -38,3 +41,48 @@ export const getGraphicsQualityTierSnapshot = (quality: GraphicsQualityPreset): 
     boardAnisotropyCap: getBoardAnisotropyCap(quality),
     tileBoardBloomPostPath: quality !== 'low'
 });
+
+/**
+ * Internal-only: during shuffle, entrance, or prestage loading on large boards, cap DPR and disable bloom + SMAA
+ * to keep frame time predictable. Restores saved-tier behavior when motion clears.
+ */
+export const resolveAdaptiveBoardRenderQuality = (input: {
+    savedGraphicsQuality: GraphicsQualityPreset;
+    /** Shuffle or entrance animation, or prestaging GPU warm-up (`TileBoard` `boardPreStage === 'loading'`). */
+    boardHeavyMotion: boolean;
+    activeTileCount: number;
+    compact: boolean;
+    boardBloomEnabled: boolean;
+    boardScreenSpaceAA: BoardScreenSpaceAA;
+    reduceMotion: boolean;
+}): { dprCap: number; bloomPostEnabled: boolean; resolvedAa: 'smaa' | 'msaa' | 'off' } => {
+    const baseDpr = getBoardDprCap(input.savedGraphicsQuality, input.compact);
+    const largeBoard = input.activeTileCount >= ADAPTIVE_BOARD_QUALITY_LARGE_TILE_THRESHOLD;
+    const adapt = input.boardHeavyMotion && largeBoard && input.savedGraphicsQuality !== 'low';
+
+    let dprCap = baseDpr;
+
+    if (adapt) {
+        if (input.savedGraphicsQuality === 'medium') {
+            dprCap = Math.min(dprCap, input.compact ? 1.45 : 1.28);
+        } else {
+            dprCap = Math.min(dprCap, input.compact ? 1.78 : 1.58);
+        }
+    }
+
+    const bloomPostEnabled =
+        input.boardBloomEnabled && input.savedGraphicsQuality !== 'low' && !adapt;
+
+    let resolvedAa: 'smaa' | 'msaa' | 'off' =
+        input.boardScreenSpaceAA === 'auto'
+            ? input.reduceMotion
+                ? 'msaa'
+                : 'smaa'
+            : input.boardScreenSpaceAA;
+
+    if (adapt && resolvedAa === 'smaa') {
+        resolvedAa = 'msaa';
+    }
+
+    return { dprCap, bloomPostEnabled, resolvedAa };
+};

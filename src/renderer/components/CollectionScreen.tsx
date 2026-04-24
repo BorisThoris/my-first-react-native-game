@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { ACHIEVEMENT_BY_ID } from '../../shared/achievements';
 import type { RelicId } from '../../shared/contracts';
@@ -13,9 +14,11 @@ import { playUiBackSfx, resumeUiSfxContext, uiSfxGainFromSettings } from '../aud
 import { Eyebrow, MetaFrame, Panel, ScreenTitle, UiButton } from '../ui';
 import { useAppStore } from '../store/useAppStore';
 import metaStyles from './MetaScreen.module.css';
+import { handleMetaBodyTocLinkClick } from './metaScreenTocNav';
 import styles from './CollectionScreen.module.css';
 
 const CollectionScreen = () => {
+    const bodyScrollRef = useRef<HTMLDivElement | null>(null);
     const { closeSubscreen, saveData, settings } = useAppStore(
         useShallow((state) => ({
             closeSubscreen: state.closeSubscreen,
@@ -51,14 +54,26 @@ const CollectionScreen = () => {
                 </UiButton>
             </header>
 
-            <div className={metaStyles.body}>
+            <div ref={bodyScrollRef} className={metaStyles.body} data-testid="meta-screen-body">
                 <nav aria-label="Collection sections" className={metaStyles.inPageToc}>
-                    <a href="#collection-achievements">Achievements</a>
-                    <a href="#collection-honors">Honors</a>
-                    <a href="#collection-relics">Relics</a>
-                    <a href="#collection-bests">Bests</a>
-                    <a href="#collection-daily">Daily</a>
-                    <a href="#collection-symbols">Symbols</a>
+                    <a href="#collection-achievements" onClick={(e) => handleMetaBodyTocLinkClick(bodyScrollRef, e)}>
+                        Achievements
+                    </a>
+                    <a href="#collection-honors" onClick={(e) => handleMetaBodyTocLinkClick(bodyScrollRef, e)}>
+                        Honors
+                    </a>
+                    <a href="#collection-relics" onClick={(e) => handleMetaBodyTocLinkClick(bodyScrollRef, e)}>
+                        Relics
+                    </a>
+                    <a href="#collection-bests" onClick={(e) => handleMetaBodyTocLinkClick(bodyScrollRef, e)}>
+                        Bests
+                    </a>
+                    <a href="#collection-daily" onClick={(e) => handleMetaBodyTocLinkClick(bodyScrollRef, e)}>
+                        Daily
+                    </a>
+                    <a href="#collection-symbols" onClick={(e) => handleMetaBodyTocLinkClick(bodyScrollRef, e)}>
+                        Symbols
+                    </a>
                 </nav>
                 <MetaFrame data-testid="collection-meta-frame-achievements">
                     <Panel padding="lg" variant="strong">

@@ -30,4 +30,23 @@ describe('boardWebglPerfSample', () => {
     it('accumulate does not throw', () => {
         expect(() => perfReal.boardWebglPerfSampleAccumulate(0.5)).not.toThrow();
     });
+
+    it('verbose flag reads perfBoardVerbose in dev', () => {
+        window.localStorage.setItem('perfBoardVerbose', '1');
+        if (import.meta.env.DEV) {
+            expect(perfReal.boardWebglPerfSampleVerboseEnabled()).toBe(true);
+        } else {
+            expect(perfReal.boardWebglPerfSampleVerboseEnabled()).toBe(false);
+        }
+    });
+
+    it('accumulatePhases does not throw', () => {
+        expect(() =>
+            perfReal.boardWebglPerfSampleAccumulatePhases({ tileStepMs: 0.2, viewportMs: 0.05 })
+        ).not.toThrow();
+    });
+
+    it('recordReactCommit does not throw', () => {
+        expect(() => perfReal.boardWebglPerfSampleRecordReactCommit(0.12)).not.toThrow();
+    });
 });
