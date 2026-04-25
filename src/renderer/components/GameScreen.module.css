@@ -1821,11 +1821,11 @@
 .mobileCameraLeftToolbar {
     /* Above .mobileCameraHud (z-index 3) so rail controls stay tappable on narrow viewports. */
     z-index: 8;
-    width: calc(var(--gameplay-rail-width, 3.38rem) - 0.1rem);
-    gap: 0.34rem;
-    padding-top: calc(env(safe-area-inset-top, 0px) + 0.3rem);
-    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.35rem);
-    padding-left: calc(env(safe-area-inset-left, 0px) + 0.18rem);
+    width: calc(var(--gameplay-rail-width, 3.38rem) - 0.42rem);
+    gap: 0.24rem;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 0.2rem);
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.26rem);
+    padding-left: calc(env(safe-area-inset-left, 0px) + 0.1rem);
     padding-right: 0.12rem;
     align-self: stretch;
     justify-content: flex-start;
@@ -1835,20 +1835,20 @@
     position: relative;
     z-index: 3;
     padding:
-        calc(env(safe-area-inset-top, 0px) + 0.28rem)
-        calc(env(safe-area-inset-right, 0px) + 0.42rem)
+        calc(env(safe-area-inset-top, 0px) + 0.16rem)
+        calc(env(safe-area-inset-right, 0px) + 0.32rem)
         0
-        0.3rem;
+        0.2rem;
 }
 
 .mobileCameraHud .floatingDeck {
-    padding: 0.24rem 0.32rem 0.28rem;
+    padding: 0.18rem 0.26rem 0.22rem;
 }
 
 .mobileCameraHud .hudSegment,
 .mobileCameraHud .statPillCompact {
-    min-height: 2.95rem;
-    padding: 0.26rem 0.42rem 0.34rem;
+    min-height: 2.42rem;
+    padding: 0.18rem 0.34rem 0.24rem;
 }
 
 .mobileCameraHud .floorBadgeHexFrame {
@@ -1900,8 +1900,8 @@
 }
 
 .mobileCameraHud .hudScoreSegment {
-    min-width: 7.6rem;
-    background-size: 132px 48px;
+    min-width: 6.8rem;
+    background-size: 118px 42px;
     background-position: center -4px;
 }
 
@@ -1947,10 +1947,10 @@
 }
 
 .mobileCameraLeftToolbar .iconAction {
-    width: calc(var(--gameplay-rail-button-size, 2.8rem) - 0.02rem);
-    height: calc(var(--gameplay-rail-button-size, 2.8rem) - 0.02rem);
-    min-width: calc(var(--gameplay-rail-button-size, 2.8rem) - 0.02rem);
-    min-height: calc(var(--gameplay-rail-button-size, 2.8rem) - 0.02rem);
+    width: calc(var(--gameplay-rail-button-size, 2.8rem) - 0.28rem);
+    height: calc(var(--gameplay-rail-button-size, 2.8rem) - 0.28rem);
+    min-width: calc(var(--gameplay-rail-button-size, 2.8rem) - 0.28rem);
+    min-height: calc(var(--gameplay-rail-button-size, 2.8rem) - 0.28rem);
 }
 
 .mobileCameraLeftToolbar .toolbarGlyphImg {

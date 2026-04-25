@@ -29,7 +29,8 @@ export interface TileBoardScreenPoint {
 const BOARD_CAMERA_FIT_ZOOM = 1;
 const MOBILE_CAMERA_MIN_ZOOM = 0.01;
 const MOBILE_CAMERA_MAX_ZOOM = 2.8;
-export const MOBILE_CAMERA_FIT_MARGIN = 0.92;
+/** REG-001: phone camera mode is board-first; keep fitted boards close to the safe viewport edges. */
+export const MOBILE_CAMERA_FIT_MARGIN = 1.02;
 export const COMPACT_BOARD_FIT_MARGIN = 0.72;
 export const ROOMY_BOARD_FIT_MARGIN = 0.85;
 

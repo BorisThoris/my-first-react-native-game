@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
     createRafCoalescedViewportNotifier,
+    getBoardFitZoom,
+    MOBILE_CAMERA_FIT_MARGIN,
     screenPointToWorld,
     type TileBoardScreenPoint
 } from './tileBoardViewport';
@@ -43,5 +45,18 @@ describe('tileBoardViewport', () => {
         expect(flushed).toEqual([{ w: 300, h: 70 }]);
 
         vi.unstubAllGlobals();
+    });
+
+    it('REG-001 keeps mobile camera fit board-first on phone portrait', () => {
+        const zoom = getBoardFitZoom({
+            boardHeight: 640,
+            boardWidth: 360,
+            margin: MOBILE_CAMERA_FIT_MARGIN,
+            viewportHeight: 740,
+            viewportWidth: 360
+        });
+
+        expect(MOBILE_CAMERA_FIT_MARGIN).toBeGreaterThan(1);
+        expect(zoom).toBeCloseTo((360 * MOBILE_CAMERA_FIT_MARGIN) / 360, 5);
     });
 });
