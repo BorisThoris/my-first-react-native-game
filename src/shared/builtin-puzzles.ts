@@ -9,6 +9,7 @@
  * |---------------|------------------|--------------------|
  * | starter_pairs | no               | no                 |
  * | mirror_craft  | no               | no                 |
+ * | glyph_cross   | no               | no                 |
  */
 import type { BuiltinPuzzleDefinition, Tile } from './contracts';
 import { isValidPuzzleImportTileSet } from './puzzle-import';
@@ -26,6 +27,9 @@ export const BUILTIN_PUZZLES: Record<string, BuiltinPuzzleDefinition> = {
     starter_pairs: {
         id: 'starter_pairs',
         title: 'Starter 2×2',
+        packId: 'tutorial',
+        author: 'Memory Dungeon',
+        version: 1,
         difficulty: 'starter',
         tags: ['tutorial', 'tiny'],
         goal: 'clear_all',
@@ -35,6 +39,9 @@ export const BUILTIN_PUZZLES: Record<string, BuiltinPuzzleDefinition> = {
     mirror_craft: {
         id: 'mirror_craft',
         title: 'Mirror craft 3×2',
+        packId: 'beginner',
+        author: 'Memory Dungeon',
+        version: 1,
         difficulty: 'standard',
         tags: ['mirror', 'symbols'],
         goal: 'clear_all',
@@ -46,6 +53,27 @@ export const BUILTIN_PUZZLES: Record<string, BuiltinPuzzleDefinition> = {
             t('m2b', 'mk1', 'β', 1),
             t('m3a', 'mk2', 'γ', 2),
             t('m3b', 'mk2', 'γ', 2)
+        ]
+    },
+    glyph_cross: {
+        id: 'glyph_cross',
+        title: 'Glyph Cross 4×2',
+        packId: 'challenge',
+        author: 'Memory Dungeon',
+        version: 1,
+        difficulty: 'advanced',
+        tags: ['challenge', 'glyphs', 'pattern'],
+        goal: 'perfect_clear',
+        goalText: 'Clear four glyph pairs with zero mistakes.',
+        tiles: [
+            t('g1a', 'gk0', 'AL', 0),
+            t('g1b', 'gk0', 'AL', 0),
+            t('g2a', 'gk1', 'BR', 1),
+            t('g2b', 'gk1', 'BR', 1),
+            t('g3a', 'gk2', 'CR', 2),
+            t('g3b', 'gk2', 'CR', 2),
+            t('g4a', 'gk3', 'DK', 3),
+            t('g4b', 'gk3', 'DK', 3)
         ]
     }
 };

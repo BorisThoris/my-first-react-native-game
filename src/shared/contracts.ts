@@ -78,6 +78,7 @@ export type GameMode = 'endless' | 'daily' | 'puzzle' | 'gauntlet' | 'meditation
 
 export type PuzzleDifficulty = 'starter' | 'standard' | 'advanced';
 export type PuzzleGoal = 'clear_all' | 'perfect_clear' | 'flip_par';
+export type PuzzlePackId = 'tutorial' | 'beginner' | 'challenge' | 'experimental';
 
 export interface PuzzleCompletionRecord {
     completed: boolean;
@@ -88,10 +89,13 @@ export interface PuzzleCompletionRecord {
 export interface BuiltinPuzzleDefinition {
     id: string;
     title: string;
+    packId: PuzzlePackId;
     difficulty: PuzzleDifficulty;
     tags: string[];
     goal: PuzzleGoal;
     goalText: string;
+    author: string;
+    version: number;
     tiles: Tile[];
 }
 

@@ -1,4 +1,4 @@
-import type { PuzzleDifficulty, PuzzleGoal, Tile } from './contracts';
+import type { PuzzleDifficulty, PuzzleGoal, PuzzlePackId, Tile } from './contracts';
 import type { SaveData } from './contracts';
 import { BUILTIN_PUZZLES } from './builtin-puzzles';
 
@@ -54,6 +54,13 @@ export interface PuzzleImportResult {
     errors: string[];
 }
 
+export interface PuzzlePackSummary {
+    id: PuzzlePackId;
+    title: string;
+    description: string;
+    puzzleIds: string[];
+}
+
 const VALID_GOALS = new Set<PuzzleGoal>(['clear_all', 'perfect_clear', 'flip_par']);
 const VALID_DIFFICULTIES = new Set<PuzzleDifficulty>(['starter', 'standard', 'advanced']);
 
@@ -80,10 +87,32 @@ export const validatePuzzleImportPayload = (payload: PuzzleImportPayload): Puzzl
     return { ok: errors.length === 0, errors };
 };
 
+export const PUZZLE_PACKS: readonly PuzzlePackSummary[] = [
+    {
+        id: 'tutorial',
+        title: 'Tutorial pack',
+        description: 'Tiny and beginner boards for first clears.',
+        puzzleIds: ['starter_pairs']
+    },
+    {
+        id: 'beginner',
+        title: 'Beginner pack',
+        description: 'Readable handcrafted boards that introduce mirrored symbols.',
+        puzzleIds: ['mirror_craft']
+    },
+    {
+        id: 'challenge',
+        title: 'Challenge pack',
+        description: 'Advanced authored patterns for long-tail mastery.',
+        puzzleIds: ['glyph_cross']
+    }
+];
+
 export const getPuzzleLibraryRows = (save: SaveData) =>
     Object.values(BUILTIN_PUZZLES).map((puzzle) => {
         const completion = save.playerStats?.puzzleCompletions?.[puzzle.id];
         const completed = completion?.completed === true;
+        const pack = PUZZLE_PACKS.find((candidate) => candidate.puzzleIds.includes(puzzle.id));
         return {
             id: puzzle.id,
             title: puzzle.title,
@@ -91,6 +120,9 @@ export const getPuzzleLibraryRows = (save: SaveData) =>
             goal: puzzle.goal,
             goalText: puzzle.goalText,
             tags: puzzle.tags,
+            pack: pack?.id ?? 'experimental',
+            author: puzzle.author,
+            version: puzzle.version,
             status: completed ? 'completed' : 'open',
             progress: completed ? { current: 1, target: 1 } : { current: 0, target: 1 }
         };

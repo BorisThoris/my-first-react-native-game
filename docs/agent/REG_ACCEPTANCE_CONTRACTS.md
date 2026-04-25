@@ -27,6 +27,7 @@ schema: reg | phase | status | contract | proof
 | REG-048 | 2 | done | Secondary objectives expose active/failed/completed copy, HUD state, and floor-clear completion/failure explanation. | secondary-objectives + HUD/GameScreen tests |
 | REG-049 | 2 | done | Findables expose reward copy for shard/score pickups across HUD and tile a11y without changing reward values. | findables + HUD/TileBoard tests |
 | REG-050 | 2 | done | Wild, Gauntlet, and Meditation mode cards/details/results state distinct player promises, constraints, and achievement eligibility. | run-mode catalog + GameOver tests |
+| REG-065 | 2 | done | Puzzle content tail has pack taxonomy, authored metadata, an advanced built-in board, and safe import/library validation. | puzzle-import + save-data tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

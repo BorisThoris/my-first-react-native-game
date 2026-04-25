@@ -89,8 +89,10 @@ describe('BUILTIN_PUZZLES', () => {
             }
         };
         const rows = getPuzzleLibraryRows(save);
-        expect(rows.map((row) => row.id)).toEqual(['starter_pairs', 'mirror_craft']);
+        expect(rows.map((row) => row.id)).toEqual(['starter_pairs', 'mirror_craft', 'glyph_cross']);
         expect(rows.find((row) => row.id === 'starter_pairs')?.status).toBe('completed');
         expect(rows.find((row) => row.id === 'mirror_craft')?.difficulty).toBe('standard');
+        expect(rows.find((row) => row.id === 'glyph_cross')?.pack).toBe('challenge');
+        expect(rows.find((row) => row.id === 'glyph_cross')?.author).toBe('Memory Dungeon');
     });
 });
