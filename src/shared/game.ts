@@ -52,7 +52,6 @@ import {
     type WeakerShuffleMode
 } from './contracts';
 import {
-    FLOOR_SCHEDULE_RULES_VERSION,
     pickFloorScheduleEntry,
     usesEndlessFloorSchedule
 } from './floor-mutator-schedule';
