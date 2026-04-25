@@ -8,7 +8,7 @@ describe('REG-069 run map route nodes', () => {
         const b = generateRunMapChoices({ runSeed: 69_001, rulesVersion: GAME_RULES_VERSION, currentFloor: 2 });
 
         expect(a).toEqual(b);
-        expect(a.map((node) => node.kind)).toEqual(['combat', 'shop']);
+        expect(a.map((node) => node.kind)).toEqual(['combat', 'shop', 'event']);
         expect(a[1]).toMatchObject({
             label: 'Vendor alcove',
             offlineOnly: true,
@@ -23,5 +23,17 @@ describe('REG-069 run map route nodes', () => {
         expect(state.selectedNodeId).toBeNull();
         expect(selected.selectedNodeId).toBe(state.nextNodes[1]!.id);
         expect(chooseRunMapNode(state, 'missing')).toBe(state);
+    });
+
+    it('surfaces deterministic treasure and secret hooks on the route map', () => {
+        const treasure = generateRunMapChoices({ runSeed: 75_001, rulesVersion: GAME_RULES_VERSION, currentFloor: 3 });
+        const secret = generateRunMapChoices({ runSeed: 75_001, rulesVersion: GAME_RULES_VERSION, currentFloor: 6 });
+
+        expect(treasure.map((node) => node.kind)).toContain('treasure');
+        expect(treasure.find((node) => node.kind === 'treasure')).toMatchObject({
+            label: 'Treasure gallery',
+            unlocksSystems: ['REG-017', 'REG-069', 'REG-075']
+        });
+        expect(secret.find((node) => node.kind === 'event')?.detail).toContain('secret-room hook');
     });
 });

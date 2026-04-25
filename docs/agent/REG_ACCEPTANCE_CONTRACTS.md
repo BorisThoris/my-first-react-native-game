@@ -35,6 +35,7 @@ schema: reg | phase | status | contract | proof
 | REG-072 | 2 | done | Shop wallet pacing exposes deterministic floor earnings, current wallet, sink total, and run-end expiry. | game wallet tests |
 | REG-073 | 2 | done | Rest/shrine services define local heal, favor bargain, costs, risk types, and disabled reasons without adding persisted state. | rest-shrine tests |
 | REG-074 | 2 | done | Random event rooms expose deterministic seed-based event selection, choice rewards, risk labels, and no-op invalid choices. | run-events tests |
+| REG-075 | 2 | done | Treasure/secret bonus rewards expose deterministic seed-based reveal rules, anti-grind one-claim tokens, economy-safe payouts, and route-map treasure hooks. | bonus-rewards + run-map tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

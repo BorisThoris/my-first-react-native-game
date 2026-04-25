@@ -53,17 +53,30 @@ const labelForKind = (kind: RunMapNodeKind): string => {
 };
 
 const systemsForKind = (kind: RunMapNodeKind): string[] =>
-    kind === 'shop' ? ['REG-015', 'REG-070', 'REG-071'] : ['REG-017', 'REG-069'];
+    kind === 'shop'
+        ? ['REG-015', 'REG-070', 'REG-071']
+        : kind === 'event'
+          ? ['REG-017', 'REG-069', 'REG-074']
+          : kind === 'treasure'
+            ? ['REG-017', 'REG-069', 'REG-075']
+            : ['REG-017', 'REG-069'];
+
+const kindFromRouteChoice = (choice: RouteChoice, fallbackFloor: number): RunMapNodeKind => {
+    if (choice.routeType === 'mystery' && choice.detail.toLowerCase().includes('treasure')) {
+        return 'treasure';
+    }
+    return kindFromRouteType(choice.routeType, fallbackFloor);
+};
 
 export const routeChoiceToMapNode = (choice: RouteChoice, fallbackFloor: number): RunMapNode => ({
     id: choice.id,
     floor: fallbackFloor,
     routeType: choice.routeType,
-    kind: kindFromRouteType(choice.routeType, fallbackFloor),
-    label: labelForKind(kindFromRouteType(choice.routeType, fallbackFloor)),
+    kind: kindFromRouteChoice(choice, fallbackFloor),
+    label: labelForKind(kindFromRouteChoice(choice, fallbackFloor)),
     detail: choice.detail,
     offlineOnly: true,
-    unlocksSystems: systemsForKind(kindFromRouteType(choice.routeType, fallbackFloor))
+    unlocksSystems: systemsForKind(kindFromRouteChoice(choice, fallbackFloor))
 });
 
 export const generateRunMapChoices = ({
@@ -92,7 +105,16 @@ export const generateRunMapChoices = ({
                 ? 'Higher pressure route hook with vendor access after the next floor.'
                 : 'Higher pressure route hook for future shop, elite, or bonus rewards.'
     };
-    return [safe, greed].map((choice) => routeChoiceToMapNode(choice, nextFloor));
+    const mystery: RouteChoice = {
+        id: `${base}:mystery`,
+        routeType: 'mystery',
+        label: 'Mystery route',
+        detail:
+            nextFloor % 4 === 0
+                ? 'Hidden treasure or secret-room hook with capped bonus rewards.'
+                : 'Random event and secret-room hook with replayable local RNG.'
+    };
+    return [safe, greed, mystery].map((choice) => routeChoiceToMapNode(choice, nextFloor));
 };
 
 export const createRunMapState = (seed: number, rulesVersion: number, currentFloor: number): RunMapState => ({
