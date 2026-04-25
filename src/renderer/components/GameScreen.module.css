@@ -749,6 +749,19 @@
     gap: var(--gameplay-hud-context-gap, 0.28rem);
 }
 
+.hudDensityPrimary {
+    color: var(--theme-gold-bright);
+}
+
+.hudDensitySecondary {
+    opacity: var(--gameplay-hud-context-tone, 0.84);
+}
+
+.hudDensityTertiary {
+    opacity: 0.66;
+    filter: saturate(0.82);
+}
+
 .hudDeck .hudStripRightInnerColumn .statPillCompact {
     min-height: var(--gameplay-hud-context-pill-min-height, 2.35rem);
     padding: var(--gameplay-hud-context-pill-padding, 0.22rem 0.45rem 0.26rem);
