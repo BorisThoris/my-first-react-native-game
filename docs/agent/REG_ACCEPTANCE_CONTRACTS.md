@@ -45,6 +45,7 @@ schema: reg | phase | status | contract | proof
 | REG-082 | 2 | done | Quest campaign ladder exposes authored local quest steps, contract requirements, progress/status rows, failure/retry rules, and Main Menu surfacing. | quest-campaign tests |
 | REG-083 | 2 | done | Daily/weekly/season archive rows expose offline UTC identities, local streak/history summaries, share strings without PII, and Collection archive surfacing. | daily-archive tests |
 | REG-084 | 2 | done | Puzzle packs expose medal rows, curation tier/order, completion progress, unlock status, and local-only author/version metadata. | puzzle-import tests |
+| REG-085 | 2 | done | Run history exposes local journal/build/replay rows from RunSummary/RunState without creating a second save file or leaking PII. | run-history tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { ACHIEVEMENTS } from '../../shared/achievements';
 import { MUTATOR_CATALOG, RELIC_CATALOG } from '../../shared/game-catalog';
 import type { MutatorId, RelicId, RunState } from '../../shared/contracts';
+import { buildRunJournalEntry } from '../../shared/run-history';
 import { useShallow } from 'zustand/react/shallow';
 import { UI_ART } from '../assets/ui';
 import { playGameOverOpenSfx, playUiBackSfx, resumeUiSfxContext, uiSfxGainFromSettings } from '../audio/uiSfx';
@@ -77,6 +78,7 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
         .filter((achievement): achievement is (typeof ACHIEVEMENTS)[number] => Boolean(achievement));
 
     const flipCount = run.flipHistory?.length ?? 0;
+    const journalEntry = buildRunJournalEntry(run);
     const metaItems = [
         ...(summary.activeMutators?.map((id) => mutatorLabel(id)) ?? []),
         ...(summary.relicIds?.map((id) => relicLabel(id)) ?? [])
@@ -222,6 +224,9 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
                             </strong>
                             <p className={styles.panelCopy}>{runModeIdentityLine(summary)}</p>
                             <p className={styles.panelCopy}>{gameOverScreenCopy.flipHistoryCopy(flipCount)}</p>
+                            <p className={styles.panelCopy}>
+                                Journal {journalEntry.journalId}: {journalEntry.buildSummary} · {journalEntry.replayLabel}
+                            </p>
                         </Panel>
                     </aside>
                 </div>
