@@ -1025,6 +1025,9 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                             >
                                 <strong className={styles.endlessChapterTitle}>{currentArchetype!.title}</strong>
                                 <span className={styles.endlessChapterHint}>{currentArchetype!.hint}</span>
+                                <span className={styles.endlessChapterRisk}>
+                                    {currentArchetype!.theme}: {currentArchetype!.riskProfile}
+                                </span>
                                 <span className={styles.endlessChapterObjective}>
                                     Objective: {currentFeaturedObjectiveLabel!}
                                 </span>

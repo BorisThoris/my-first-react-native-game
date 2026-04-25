@@ -571,7 +571,9 @@ describe('GameScreen (OVR-014)', () => {
         );
 
         expect(getByTestId('endless-chapter-banner')).toBeTruthy();
+        expect(getByTestId('endless-chapter-banner').getAttribute('data-chapter-theme')).toBe('Survey');
         expect(getByText('Survey Hall')).toBeTruthy();
+        expect(getByText(/Wide-recall pressure/)).toBeTruthy();
         expect(getByText(/Objective: Flip par/)).toBeTruthy();
     });
 
