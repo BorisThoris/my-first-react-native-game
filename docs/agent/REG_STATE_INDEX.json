@@ -449,7 +449,7 @@
     "phase": 1,
     "lane": "default",
     "dependencies": [],
-    "commit": "pending",
+    "commit": "ce88cf2",
     "updated": "2026-04-25"
   },
   "REG-034": {
@@ -709,7 +709,7 @@
       "REG-033",
       "REG-068"
     ],
-    "commit": "pending",
+    "commit": "ce88cf2",
     "updated": "2026-04-25"
   },
   "REG-053": {
