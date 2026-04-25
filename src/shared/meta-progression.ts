@@ -5,6 +5,7 @@ export type MetaProgressionTrack = 'permanent_upgrade' | 'cosmetic';
 export type MetaProgressionStatus = 'owned' | 'available' | 'locked';
 export type LegacyMetaProgressionStatus = 'unlocked' | 'in_progress' | 'locked' | 'owned';
 export type MetaCurrencyId = 'honor_marks';
+export type MetaUpgradeModeRule = 'disabled_in_daily' | 'visible_in_classic' | 'cosmetic_only';
 
 export interface MetaProgressionRow {
     id: string;
@@ -20,6 +21,8 @@ export interface MetaProgressionRow {
     localOnly: true;
     unlockTag?: string;
     gate: string;
+    source: string;
+    modeRule: MetaUpgradeModeRule;
 }
 
 export interface PermanentUpgradeRow {
@@ -40,6 +43,24 @@ export interface CosmeticTrackRow {
     owned: number;
     progress: { current: number; target: number };
     gameplayAffecting: false;
+}
+
+export interface MetaProgressionSummary {
+    honorMarks: number;
+    owned: number;
+    available: number;
+    locked: number;
+    gameplayUpgradesOwned: number;
+    cosmeticOwned: number;
+}
+
+export interface MetaProgressionBoard {
+    level: number;
+    levelProgress: { current: number; target: number };
+    nextReward: MetaProgressionRow | null;
+    longTermGoal: MetaProgressionRow | null;
+    rows: MetaProgressionRow[];
+    summary: MetaProgressionSummary;
 }
 
 const totalRelicPicks = (save: SaveData): number =>
@@ -76,7 +97,9 @@ export const getPermanentUpgradeRows = (save: SaveData): MetaProgressionRow[] =>
             cost: 7,
             gameplayAffecting: true,
             localOnly: true,
-            gate: 'Clear seven Daily Challenge floors. No online account required.'
+            gate: 'Clear seven Daily Challenge floors. No online account required.',
+            source: 'Daily archive completions',
+            modeRule: 'disabled_in_daily'
         },
         {
             id: 'upgrade_scholar_prep_slot',
@@ -90,7 +113,9 @@ export const getPermanentUpgradeRows = (save: SaveData): MetaProgressionRow[] =>
             cost: 12,
             gameplayAffecting: true,
             localOnly: true,
-            gate: 'Deferred: requires REG-016 feature flag and balance pass before enabling.'
+            gate: 'Deferred: requires REG-016 feature flag and balance pass before enabling.',
+            source: 'No-powers mastery',
+            modeRule: 'visible_in_classic'
         }
     ];
 };
@@ -111,7 +136,9 @@ export const getMetaCosmeticTrackRows = (save: SaveData): MetaProgressionRow[] =
             gameplayAffecting: false,
             localOnly: true,
             unlockTag: cosmeticUnlockTag(cosmetic.id),
-            gate: cosmetic.unlockSource
+            gate: cosmetic.unlockSource,
+            source: cosmetic.unlockSource,
+            modeRule: 'cosmetic_only'
         }));
 
 export const getMetaProgressionRows = (save: SaveData): MetaProgressionRow[] => [
@@ -130,6 +157,30 @@ export const getMetaProgressionSummary = (
         locked: rows.filter((row) => row.status === 'locked').length,
         gameplayUpgradesOwned: rows.filter((row) => row.track === 'permanent_upgrade' && row.status === 'owned').length,
         cosmeticOwned: rows.filter((row) => row.track === 'cosmetic' && row.status === 'owned').length
+    };
+};
+
+export const getMetaProgressionBoard = (save: SaveData): MetaProgressionBoard => {
+    const rows = getMetaProgressionRows(save);
+    const summary = getMetaProgressionSummary(save);
+    const honorMarks = summary.honorMarks;
+    const nextReward =
+        rows.find((row) => row.status === 'available') ??
+        rows.find((row) => row.status === 'locked' && row.progress.current > 0) ??
+        rows.find((row) => row.status === 'locked') ??
+        null;
+    const longTermGoal =
+        rows.find((row) => row.id === 'upgrade_scholar_prep_slot') ??
+        rows.find((row) => row.status !== 'owned') ??
+        null;
+
+    return {
+        level: Math.max(1, Math.floor(honorMarks / 5) + 1),
+        levelProgress: { current: honorMarks % 5, target: 5 },
+        nextReward,
+        longTermGoal,
+        rows,
+        summary
     };
 };
 

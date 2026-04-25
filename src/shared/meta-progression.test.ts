@@ -3,6 +3,8 @@ import { createDefaultSaveData } from './save-data';
 import {
     buildPermanentUpgradeRows,
     getCosmeticTrackRows,
+    getMetaProgressionBoard,
+    getMetaProgressionRows,
     metaProgressionSummary
 } from './meta-progression';
 
@@ -43,5 +45,45 @@ describe('REG-080 permanent upgrade tree and cosmetic track', () => {
             upgradesUnlocked: 1,
             cosmeticTrackOwned: 4
         });
+    });
+
+    it('REG-016 exposes level, next reward, long-term goal, and explicit mode rules', () => {
+        const save = createDefaultSaveData();
+        save.achievements.ACH_FIRST_CLEAR = true;
+        save.playerStats = {
+            ...save.playerStats!,
+            dailiesCompleted: 4,
+            bestFloorNoPowers: 2,
+            relicPickCounts: {
+                extra_shuffle_charge: 3
+            }
+        };
+
+        const board = getMetaProgressionBoard(save);
+        expect(board.level).toBeGreaterThan(1);
+        expect(board.levelProgress.target).toBe(5);
+        expect(board.nextReward?.id).toBe('upgrade_relic_shrine_extra_pick');
+        expect(board.nextReward?.source).toBe('Daily archive completions');
+        expect(board.nextReward?.modeRule).toBe('disabled_in_daily');
+        expect(board.longTermGoal?.id).toBe('upgrade_scholar_prep_slot');
+        expect(board.rows.every((row) => row.localOnly)).toBe(true);
+    });
+
+    it('REG-016 keeps cosmetic rewards visual-only and gameplay upgrades explicitly flagged', () => {
+        const save = createDefaultSaveData();
+        save.playerStats = {
+            ...save.playerStats!,
+            dailiesCompleted: 7,
+            relicShrineExtraPickUnlocked: true
+        };
+
+        const rows = getMetaProgressionRows(save);
+        const week = rows.find((row) => row.id === 'upgrade_relic_shrine_extra_pick');
+        expect(week).toMatchObject({
+            gameplayAffecting: true,
+            modeRule: 'disabled_in_daily',
+            status: 'owned'
+        });
+        expect(rows.filter((row) => row.track === 'cosmetic').every((row) => row.gameplayAffecting === false)).toBe(true);
     });
 });

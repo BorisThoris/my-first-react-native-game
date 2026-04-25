@@ -221,7 +221,7 @@
     "updated": "2026-04-25"
   },
   "REG-016": {
-    "status": "open",
+    "status": "done",
     "phase": 3,
     "lane": "trackB",
     "dependencies": [
@@ -230,7 +230,7 @@
       "REG-088",
       "REG-089"
     ],
-    "commit": null,
+    "commit": "PENDING_REG_016",
     "updated": "2026-04-25"
   },
   "REG-017": {

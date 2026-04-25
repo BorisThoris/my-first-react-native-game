@@ -59,7 +59,8 @@ schema: reg | phase | status | contract | proof
 | REG-014 | 3 | done | Design-system density tokens expose compact/roomy panel/button/shell spacing tiers so major screens share dead-space language without one-off padding. | theme tests + typecheck |
 | REG-028 | 3 | done | Short/mobile viewport matrix is centralized with expected compact, stack, camera, settings, and modal behaviors for high-traffic screens. | breakpoints/viewport matrix tests |
 | REG-034 | 3 | done | Startup intro exposes a single hydration/skip/asset contract: keyboard and pointer skip request an exit, slow assets show readable pending/fallback state, focus returns to menu root, and menu pointer interaction remains blocked underneath. | startup intro contract/component tests + targeted e2e |
-| REG-044 | 3 | in_progress | Navigation return behavior is defined by a bounded route contract: menu/meta settings retain return targets, in-run meta overlays freeze/resume run state, invalid/null-run closes route to menu, and tests cover store plus navigation e2e flows. | navigation model/store tests + navigation-flow e2e |
+| REG-044 | 3 | done | Navigation return behavior is defined by a bounded route contract: menu/meta settings retain return targets, in-run meta overlays freeze/resume run state, invalid/null-run closes route to menu, and tests cover store plus navigation e2e flows. | navigation model/store tests + navigation-flow e2e |
+| REG-016 | 3 | done | Meta progression exposes profile level, next reward, long-term goal, reward sources, and explicit gameplay-affecting vs cosmetic-only mode rules without a save schema bump. | meta-progression + save/store tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

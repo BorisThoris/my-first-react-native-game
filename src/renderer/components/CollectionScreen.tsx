@@ -15,7 +15,7 @@ import {
 } from '../../shared/honorUnlocks';
 import { RELIC_CATALOG } from '../../shared/game-catalog';
 import { getDailyArchiveRows, getDailyArchiveSummary } from '../../shared/daily-archive';
-import { getMetaCosmeticTrackRows, getPermanentUpgradeRows } from '../../shared/meta-progression';
+import { getMetaCosmeticTrackRows, getMetaProgressionBoard, getPermanentUpgradeRows } from '../../shared/meta-progression';
 import { ACHIEVEMENT_IDS } from '../../shared/save-data';
 import {
     CALLSIGN_SYMBOLS,
@@ -42,6 +42,7 @@ const CollectionScreen = () => {
     const ps = saveData.playerStats;
     const summary = saveData.lastRunSummary;
     const honorEarned = new Set(eligibleHonorUnlockIds(saveData));
+    const metaProgressionBoard = getMetaProgressionBoard(saveData);
     const permanentUpgradeRows = getPermanentUpgradeRows(saveData);
     const cosmeticTrackRows = getMetaCosmeticTrackRows(saveData);
     const dailyArchiveRows = getDailyArchiveRows(saveData);
@@ -187,6 +188,20 @@ const CollectionScreen = () => {
                             <p className={metaStyles.subtitle}>
                                 Permanent rows are local save milestones only. Gameplay-affecting upgrades are capped and earned from play; cosmetic track rows stay visual-only.
                             </p>
+                            <div className={metaStyles.archiveCatalogGrid} data-testid="collection-meta-progression-board">
+                                <div className={metaStyles.archiveCatalogRow}>
+                                    <p className={metaStyles.archiveCatalogRowTitle}>Profile level {metaProgressionBoard.level}</p>
+                                    <span>{metaProgressionBoard.levelProgress.current}/{metaProgressionBoard.levelProgress.target} honor marks to next profile level</span>
+                                </div>
+                                <div className={metaStyles.archiveCatalogRow}>
+                                    <p className={metaStyles.archiveCatalogRowTitle}>Next reward</p>
+                                    <span>{metaProgressionBoard.nextReward ? `${metaProgressionBoard.nextReward.title} · ${metaProgressionBoard.nextReward.source}` : 'All visible rewards owned'}</span>
+                                </div>
+                                <div className={metaStyles.archiveCatalogRow}>
+                                    <p className={metaStyles.archiveCatalogRowTitle}>Long-term goal</p>
+                                    <span>{metaProgressionBoard.longTermGoal ? `${metaProgressionBoard.longTermGoal.title} · ${metaProgressionBoard.longTermGoal.gate}` : 'No open local goals'}</span>
+                                </div>
+                            </div>
                             <div className={`${styles.grid} ${metaStyles.metaLongList}`}>
                                 {permanentUpgradeRows.map((row) => (
                                     <div
@@ -196,6 +211,8 @@ const CollectionScreen = () => {
                                         <strong>{row.title}</strong>
                                         <p className={metaStyles.subtitle}>{row.description}</p>
                                         <span className={styles.symbolMeta}>{row.status} · {row.progress.current}/{row.progress.target}</span>
+                                        <span className={styles.symbolMeta}>Source: {row.source}</span>
+                                        <span className={styles.symbolMeta}>Mode rule: {row.modeRule}</span>
                                         <span className={styles.symbolMeta}>{row.gate}</span>
                                     </div>
                                 ))}
@@ -209,6 +226,7 @@ const CollectionScreen = () => {
                                         <span className={styles.symbolMeta}>
                                             {row.reward} · {row.progress.current}/{row.progress.target}
                                         </span>
+                                        <span className={styles.symbolMeta}>Source: {row.source}</span>
                                         <span className={styles.symbolMeta}>Visual only: {row.gameplayAffecting ? 'No' : 'Yes'}</span>
                                     </div>
                                 ))}
