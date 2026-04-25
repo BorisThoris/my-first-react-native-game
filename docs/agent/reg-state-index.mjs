@@ -59,7 +59,7 @@ for (let reg = 0; reg <= 160; reg += 1) {
         : [52, 68].includes(reg)
           ? 'ce88cf2'
           : reg === 87
-            ? 'pending'
+            ? '6e85d10'
             : reg === 89
               ? 'a735170'
               : null,
