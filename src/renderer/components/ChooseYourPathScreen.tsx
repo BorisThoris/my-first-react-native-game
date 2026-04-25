@@ -5,7 +5,6 @@ import {
     useMemo,
     useRef,
     useState,
-    type ChangeEvent,
     type CSSProperties,
     type ReactElement
 } from 'react';
@@ -87,7 +86,6 @@ const ChooseYourPathScreen = () => {
         bestFloorNoPowers,
         bestScore,
         closeSubscreen,
-        importRunFromClipboard,
         startDailyRun,
         startGauntletRun,
         startMeditationRun,
@@ -95,7 +93,6 @@ const ChooseYourPathScreen = () => {
         startPinVowRun,
         startPracticeRun,
         startPuzzleRun,
-        startPuzzleRunFromImport,
         startRun,
         startScholarContractRun,
         startWildRun,
@@ -105,7 +102,6 @@ const ChooseYourPathScreen = () => {
             bestFloorNoPowers: state.saveData.playerStats?.bestFloorNoPowers ?? 0,
             bestScore: state.saveData.bestScore,
             closeSubscreen: state.closeSubscreen,
-            importRunFromClipboard: state.importRunFromClipboard,
             startDailyRun: state.startDailyRun,
             startGauntletRun: state.startGauntletRun,
             startMeditationRun: state.startMeditationRun,
@@ -113,7 +109,6 @@ const ChooseYourPathScreen = () => {
             startPinVowRun: state.startPinVowRun,
             startPracticeRun: state.startPracticeRun,
             startPuzzleRun: state.startPuzzleRun,
-            startPuzzleRunFromImport: state.startPuzzleRunFromImport,
             startRun: state.startRun,
             startScholarContractRun: state.startScholarContractRun,
             startWildRun: state.startWildRun,
@@ -123,7 +118,6 @@ const ChooseYourPathScreen = () => {
     const [nowMs, setNowMs] = useState(() => Date.now());
     const dailyCountdown = formatNextUtcReset(nowMs);
     const pathFitMeasureRef = useRef<HTMLDivElement | null>(null);
-    const puzzleImportInputRef = useRef<HTMLInputElement | null>(null);
     const librarySearchInputRef = useRef<HTMLInputElement | null>(null);
     const libraryScrollerRef = useRef<HTMLDivElement | null>(null);
     const {
@@ -175,10 +169,6 @@ const ChooseYourPathScreen = () => {
     const [libraryDetailMode, setLibraryDetailMode] = useState<RunModeDefinition | null>(null);
     const [meditationOpen, setMeditationOpen] = useState(false);
     const [meditationSelection, setMeditationSelection] = useState<Set<MutatorId>>(() => new Set());
-    const [importModalOpen, setImportModalOpen] = useState(false);
-    const [importJsonText, setImportJsonText] = useState('');
-    const [importError, setImportError] = useState<string | null>(null);
-    const [puzzleImportError, setPuzzleImportError] = useState<string | null>(null);
 
     const heroModes = useMemo((): readonly RunModeDefinition[] => choosePathHeroModes(), []);
 
@@ -283,59 +273,6 @@ const ChooseYourPathScreen = () => {
         });
     };
 
-    const openImportModal = (): void => {
-        playMenuOpen();
-        setImportModalOpen(true);
-        setImportJsonText('');
-        setImportError(null);
-    };
-
-    const closeImportModal = (withSound = true): void => {
-        if (withSound) {
-            playUiBack();
-        }
-        setImportModalOpen(false);
-        setImportJsonText('');
-        setImportError(null);
-    };
-
-    const submitImport = (): void => {
-        const ok = importRunFromClipboard(importJsonText);
-        if (ok) {
-            playUiConfirm();
-            closeImportModal(false);
-            return;
-        }
-        setImportError('Could not import that payload. Check the JSON and try again.');
-    };
-
-    const openPuzzleImportPicker = (): void => {
-        setPuzzleImportError(null);
-        puzzleImportInputRef.current?.click();
-    };
-
-    const onPuzzleImportSelected = (event: ChangeEvent<HTMLInputElement>): void => {
-        const file = event.target.files?.[0];
-        event.target.value = '';
-        if (!file) {
-            return;
-        }
-        const reader = new FileReader();
-        reader.onload = (): void => {
-            const text = typeof reader.result === 'string' ? reader.result : '';
-            const ok = startPuzzleRunFromImport(text);
-            if (ok) {
-                setPuzzleImportError(null);
-            } else {
-                setPuzzleImportError('Invalid puzzle JSON. Expected a title (optional) and a tiles array with valid pairs.');
-            }
-        };
-        reader.onerror = (): void => {
-            setPuzzleImportError('Could not read that file.');
-        };
-        reader.readAsText(file);
-    };
-
     const runModeAction = (def: RunModeDefinition): void => {
         const { action } = def;
         switch (action.type) {
@@ -368,12 +305,6 @@ const ChooseYourPathScreen = () => {
                 playMenuOpen();
                 setMeditationOpen(true);
                 return;
-            case 'importRunModal':
-                openImportModal();
-                return;
-            case 'importPuzzleFile':
-                openPuzzleImportPicker();
-                return;
         }
     };
 
@@ -391,9 +322,6 @@ const ChooseYourPathScreen = () => {
         }
         if (def.id === 'endless') {
             return `${styles.cardEndless} ${styles.cardDisabled}`;
-        }
-        if (def.group === 'utilities') {
-            return styles.cardUtility;
         }
         if (def.action.type === 'gauntlet') {
             return styles.cardGauntlet;
@@ -514,30 +442,6 @@ const ChooseYourPathScreen = () => {
             return [closeAct];
         }
         switch (def.action.type) {
-            case 'importRunModal':
-                return [
-                    {
-                        label: 'Import run…',
-                        onClick: (): void => {
-                            closeLibraryDetail();
-                            openImportModal();
-                        },
-                        variant: 'primary' as const
-                    },
-                    closeAct
-                ];
-            case 'importPuzzleFile':
-                return [
-                    {
-                        label: 'Choose puzzle file…',
-                        onClick: (): void => {
-                            closeLibraryDetail();
-                            openPuzzleImportPicker();
-                        },
-                        variant: 'primary' as const
-                    },
-                    closeAct
-                ];
             case 'meditationSetup':
                 return [
                     {
@@ -577,15 +481,6 @@ const ChooseYourPathScreen = () => {
             className={`${metaStyles.shell} ${styles.pathShell} ${pathTouchCompact ? styles.compactPathShell : ''} ${isShortLandscapeShell ? styles.shortTouchLandscapeShell : ''}`.trim()}
             role="region"
         >
-            <input
-                accept="application/json,.json"
-                aria-hidden
-                ref={puzzleImportInputRef}
-                style={{ display: 'none' }}
-                tabIndex={-1}
-                type="file"
-                onChange={onPuzzleImportSelected}
-            />
             <div
                 aria-hidden="true"
                 className={styles.sceneBaseLayer}
@@ -806,11 +701,6 @@ const ChooseYourPathScreen = () => {
                                             </div>
                                         </>
                                     )}
-                                    {puzzleImportError ? (
-                                        <p className={styles.importError} data-testid="puzzle-import-error" role="status">
-                                            {puzzleImportError}
-                                        </p>
-                                    ) : null}
                                 </section>
                             </div>
                         </div>
@@ -845,47 +735,6 @@ const ChooseYourPathScreen = () => {
                                 </UiButton>
                             ))}
                         </div>
-                    ) : null}
-                </OverlayModal>
-            ) : null}
-            {importModalOpen ? (
-                <OverlayModal
-                    actions={[
-                        {
-                            label: 'Cancel',
-                            onClick: closeImportModal,
-                            variant: 'secondary'
-                        },
-                        {
-                            label: 'Import',
-                            disabled: importJsonText.trim().length === 0,
-                            onClick: submitImport,
-                            variant: 'primary'
-                        }
-                    ]}
-                    subtitle="Paste a Memory Dungeon run JSON (from Copy run export on game over)."
-                    testId="run-import-modal"
-                    title="Import run"
-                >
-                    <textarea
-                        aria-invalid={importError ? 'true' : undefined}
-                        aria-label="Run export JSON"
-                        className={styles.importJsonField}
-                        data-testid="run-import-json"
-                        onChange={(event) => {
-                            setImportJsonText(event.target.value);
-                            if (importError) {
-                                setImportError(null);
-                            }
-                        }}
-                        placeholder='Example: {"v":1,"seed":0,"rules":7,"mode":"endless","mutators":[]}'
-                        spellCheck={false}
-                        value={importJsonText}
-                    />
-                    {importError ? (
-                        <p className={styles.importError} data-testid="run-import-error" role="alert">
-                            {importError}
-                        </p>
                     ) : null}
                 </OverlayModal>
             ) : null}

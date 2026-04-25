@@ -1,18 +1,16 @@
-import { useEffect, useId, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import {
-    SAVE_SCHEMA_VERSION,
     type BoardPresentationMode,
     type BoardScreenSpaceAA,
     type CameraViewportModePreference,
     type DisplayMode,
     type GraphicsQualityPreset,
-    type SaveData,
     type Settings,
     type WeakerShuffleMode
 } from '../../shared/contracts';
 import { FEATURE_CLOUD_SAVE } from '../../shared/feature-flags';
-import { DEFAULT_SETTINGS, normalizeSaveData } from '../../shared/save-data';
+import { DEFAULT_SETTINGS } from '../../shared/save-data';
 import {
     isNarrowShortLandscapeForMenuStack,
     isShortLandscapeViewport,
@@ -264,8 +262,6 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
         clearPersistenceWriteNotice,
         closeSettings,
         persistenceWriteNotice,
-        replaceSaveData,
-        saveData,
         settings,
         updateSettings
     } = useAppStore(
@@ -273,15 +269,11 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
             clearPersistenceWriteNotice: state.clearPersistenceWriteNotice,
             closeSettings: state.closeSettings,
             persistenceWriteNotice: state.persistenceWriteNotice,
-            replaceSaveData: state.replaceSaveData,
-            saveData: state.saveData,
             settings: state.settings,
             updateSettings: state.updateSettings
         }))
     );
     const [draft, setDraft] = useState<Settings>(settings);
-    const saveImportInputRef = useRef<HTMLInputElement | null>(null);
-    const [saveTransferMessage, setSaveTransferMessage] = useState<string | null>(null);
     const [activeCategory, setActiveCategory] = useState<SettingsCategory>('gameplay');
     const [activeSubsection, setActiveSubsection] = useState<SettingsSubsection>(
         DEFAULT_SUBSECTION_BY_CATEGORY.gameplay
@@ -416,50 +408,6 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
         };
         setDraft(next);
         void updateSettings(next);
-    };
-
-    const handleExportSaveJson = (): void => {
-        const payload = JSON.stringify(saveData, null, 2);
-        const blob = new Blob([payload], { type: 'application/json;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement('a');
-        anchor.href = url;
-        anchor.download = `memory-dungeon-save-v${saveData.schemaVersion}.json`;
-        anchor.click();
-        URL.revokeObjectURL(url);
-        setSaveTransferMessage('Save exported. Store the file somewhere safe.');
-    };
-
-    const handlePickSaveImport = (): void => {
-        playUiClick();
-        saveImportInputRef.current?.click();
-    };
-
-    const handleSaveImportSelected = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
-        const file = event.target.files?.[0];
-        event.target.value = '';
-        if (!file) {
-            return;
-        }
-        try {
-            const text = await file.text();
-            const parsed = JSON.parse(text) as unknown;
-            if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-                setSaveTransferMessage('Import failed: file is not a JSON object.');
-                return;
-            }
-            const raw = parsed as Partial<SaveData>;
-            const versionNote =
-                raw.schemaVersion != null && raw.schemaVersion !== SAVE_SCHEMA_VERSION
-                    ? `Schema v${String(raw.schemaVersion)} → normalized as v${SAVE_SCHEMA_VERSION}. `
-                    : '';
-            const normalized = normalizeSaveData(raw as SaveData);
-            await replaceSaveData(normalized);
-            setDraft(normalized.settings);
-            setSaveTransferMessage(`${versionNote}Save imported and stored.`);
-        } catch {
-            setSaveTransferMessage('Import failed: could not read or parse the file.');
-        }
     };
 
     return (
@@ -859,47 +807,7 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                                                 </p>
                                                 {!FEATURE_CLOUD_SAVE ? (
                                                     <p className={styles.headerCopy}>
-                                                        Saves stay on this device; there is no cloud sync in this build. Use
-                                                        export/import below for backups.
-                                                    </p>
-                                                ) : null}
-                                                <p className={styles.headerCopy}>
-                                                    Backup or restore progress as JSON (settings, achievements, and stats).
-                                                    Files from other builds are normalized on import; schema mismatches are
-                                                    called out below.
-                                                </p>
-                                                <input
-                                                    accept="application/json,.json"
-                                                    className={styles.visuallyHidden}
-                                                    onChange={handleSaveImportSelected}
-                                                    ref={saveImportInputRef}
-                                                    tabIndex={-1}
-                                                    type="file"
-                                                />
-                                                <div className={styles.saveTransferActions}>
-                                                    <UiButton
-                                                        onClick={() => {
-                                                            playUiConfirm();
-                                                            handleExportSaveJson();
-                                                        }}
-                                                        size={footerButtonSize}
-                                                        type="button"
-                                                        variant="secondary"
-                                                    >
-                                                        Export save…
-                                                    </UiButton>
-                                                    <UiButton
-                                                        onClick={handlePickSaveImport}
-                                                        size={footerButtonSize}
-                                                        type="button"
-                                                        variant="secondary"
-                                                    >
-                                                        Import save…
-                                                    </UiButton>
-                                                </div>
-                                                {saveTransferMessage ? (
-                                                    <p className={styles.headerCopy} role="status">
-                                                        {saveTransferMessage}
+                                                        Saves stay on this device; there is no cloud sync in this build.
                                                     </p>
                                                 ) : null}
                                             </SettingsSection>

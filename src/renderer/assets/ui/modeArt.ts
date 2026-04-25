@@ -15,9 +15,7 @@ export const MODE_CARD_ART = {
     practice: modePlaceholderUrl,
     scholar: modePlaceholderUrl,
     pin_vow: modePlaceholderUrl,
-    meditation: modePlaceholderUrl,
-    import_run: modePlaceholderUrl,
-    import_puzzle: modePlaceholderUrl
+    meditation: modePlaceholderUrl
 } as const;
 
 export type ModePosterKey = keyof typeof MODE_CARD_ART;

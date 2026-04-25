@@ -95,28 +95,4 @@ test.describe('Navigation shells', () => {
         await expect(page.getByRole('heading', { name: /level 1/i })).toBeVisible();
     });
 
-    test('Import JSON modal shows inline error for invalid payload and starts run for valid export', async ({ page }) => {
-        await openMainMenuFromSave(page, true);
-        await page.getByRole('button', { name: /^play$/i }).click();
-        await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
-        await page.getByTestId('main-menu-low-cta').scrollIntoViewIfNeeded();
-        await page.getByTestId('main-menu-low-cta').click();
-        const libraryDetail = page.getByTestId('library-mode-detail-modal');
-        await expect(libraryDetail).toBeVisible();
-        await libraryDetail.getByRole('button', { name: /import run/i }).click();
-        const modal = page.getByTestId('run-import-modal');
-        await expect(modal).toBeVisible();
-        await expect(page.getByRole('button', { name: /^import$/i })).toBeDisabled();
-
-        await page.getByTestId('run-import-json').fill('{not valid json');
-        await page.getByRole('button', { name: /^import$/i }).click();
-        await expect(page.getByTestId('run-import-error')).toContainText(/could not import/i);
-
-        const validPayload =
-            '{"v":1,"seed":999001,"rules":7,"mode":"endless","mutators":[]}';
-        await page.getByTestId('run-import-json').fill(validPayload);
-        await page.getByRole('button', { name: /^import$/i }).click();
-        await expect(modal).toBeHidden({ timeout: 20_000 });
-        await expect(page.getByRole('heading', { name: /level 1/i })).toBeAttached({ timeout: 20_000 });
-    });
 });

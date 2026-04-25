@@ -30,20 +30,17 @@ for (const slot of stressSizes) {
             await expectLocatorFullyInWindowViewport(page, primary);
         });
 
-        test('choose your path: import + locked CTAs fully in viewport', async ({ page }) => {
+        test('choose your path: locked Endless CTA fully in viewport', async ({ page }) => {
             await openMainMenuFromSave(page, true);
             await mainMenuPlayButton(page).click();
             await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
             await expectNoHorizontalOverflow(page);
             await expectAppScrollportHasNoVerticalOverflow(page);
-            const importRun = page.getByTestId('main-menu-low-cta');
             const lockedEndless = page.getByTestId('choose-path-low-cta');
             await expect(lockedEndless).toBeVisible();
             await page.getByTestId('choose-path-more-modes').scrollIntoViewIfNeeded();
-            await importRun.scrollIntoViewIfNeeded();
-            await expect(importRun).toBeVisible();
+            await lockedEndless.scrollIntoViewIfNeeded();
             await expectLocatorFullyInWindowViewport(page, lockedEndless);
-            await expectLocatorFullyInWindowViewport(page, importRun);
         });
     });
 }

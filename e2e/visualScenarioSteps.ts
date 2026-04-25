@@ -118,9 +118,8 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
                 expect(libraryScrollMetrics.scrollbarWidth).toBe('thin');
             }
             await expectChoosePathLibraryDensity(page);
-            await page.getByTestId('main-menu-low-cta').scrollIntoViewIfNeeded();
+            await page.getByTestId('choose-path-low-cta').scrollIntoViewIfNeeded();
             await expectLocatorFullyInWindowViewport(page, page.getByTestId('choose-path-low-cta'));
-            await expectLocatorFullyInWindowViewport(page, page.getByTestId('main-menu-low-cta'));
             await expectCoarsePointerTarget(page, classicRun);
             await capture('01a-choose-your-path');
         }

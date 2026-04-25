@@ -58,7 +58,6 @@ import {
 } from './floor-mutator-schedule';
 import { DAILY_MUTATOR_TABLE, hasMutator } from './mutators';
 import { getRelicDraftOptionReasons, needsRelicPick, relicMilestoneIndexForFloor, rollRelicOptions } from './relics';
-import type { RunExportPayload } from './run-export';
 import {
     createMulberry32,
     deriveDailyMutatorIndex,
@@ -1196,22 +1195,6 @@ export const createGauntletRun = (
         gauntletDurationMs,
         ...extra
     });
-
-export const createRunFromExportPayload = (
-    bestScore: number,
-    payload: RunExportPayload,
-    extra: Partial<CreateRunOptions> = {}
-): RunState => {
-    const usesScheduledEndless = payload.mode === 'endless' && payload.rules >= FLOOR_SCHEDULE_RULES_VERSION;
-    return createNewRun(bestScore, {
-        runSeed: payload.seed,
-        gameMode: payload.mode,
-        ...(usesScheduledEndless ? {} : { activeMutators: payload.mutators }),
-        initialRelicIds: payload.relics ?? [],
-        runRulesVersionOverride: payload.rules,
-        ...extra
-    });
-};
 
 export const createPuzzleRun = (
     bestScore: number,

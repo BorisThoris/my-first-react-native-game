@@ -9,7 +9,6 @@ import type {
     SaveData,
     Settings,
     SubscreenReturnView,
-    Tile,
     ViewState
 } from '../../shared/contracts';
 import { BUILTIN_PUZZLES } from '../../shared/builtin-puzzles';
@@ -30,7 +29,6 @@ import {
     createMeditationRun,
     createNewRun,
     createPuzzleRun,
-    createRunFromExportPayload,
     createWildRun,
     createRunSummary,
     disableDebugPeek,
@@ -45,8 +43,6 @@ import {
     togglePinnedTile,
     toggleStrayRemoveArmed
 } from '../../shared/game';
-import { parsePuzzleImportJson } from '../../shared/puzzle-import';
-import { parseRunImport } from '../../shared/run-export';
 import { trackEvent } from '../../shared/telemetry';
 import {
     shouldScheduleDebugRevealTimerOnResume,
@@ -100,9 +96,6 @@ import {
     resumeUiSfxContext
 } from '../audio/uiSfx';
 
-/** Session-only cache so imported puzzle boards survive in-run restart. */
-const importPuzzleTilesById = new Map<string, Tile[]>();
-
 const metaRelicOpts = (save: SaveData) => ({
     metaRelicDraftExtraPerMilestone: metaRelicDraftExtraPerMilestoneFromSave(save)
 });
@@ -143,14 +136,12 @@ interface AppState {
     startDailyRun: () => void;
     startGauntletRun: (durationMs?: number) => void;
     startPuzzleRun: (puzzleId: string) => void;
-    startPuzzleRunFromImport: (rawJson: string) => boolean;
     startPracticeRun: () => void;
     startScholarContractRun: () => void;
     startMeditationRun: () => void;
     startMeditationRunWithMutators: (mutators: MutatorId[]) => void;
     startPinVowRun: () => void;
     startWildRun: () => void;
-    importRunFromClipboard: (raw: string) => boolean;
     pickRelic: (relicId: RelicId) => void;
     dismissPowersFtue: () => Promise<void>;
     goToMenu: () => void;
@@ -164,8 +155,6 @@ interface AppState {
     openSettings: (returnView?: SubscreenReturnView) => void;
     closeSettings: () => void;
     updateSettings: (settings: Settings) => Promise<void>;
-    /** Full save replace (import). Normalizes and persists. */
-    replaceSaveData: (data: SaveData) => Promise<void>;
     dismissHowToPlay: () => Promise<void>;
     pressTile: (tileId: string) => void;
     togglePeekMode: () => void;
@@ -665,42 +654,6 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
     },
 
-    startPuzzleRunFromImport: (rawJson) => {
-        const parsed = parsePuzzleImportJson(rawJson);
-        if (!parsed) {
-            return false;
-        }
-        const puzzleId = `import:${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-        importPuzzleTilesById.set(
-            puzzleId,
-            parsed.tiles.map((t) => ({ ...t }))
-        );
-        clearAllTimers();
-        const run = patchRunFromUserSettings(
-            createPuzzleRun(get().saveData.bestScore, puzzleId, parsed.tiles, 1, metaRelicOpts(get().saveData)),
-            get().settings
-        );
-        trackEvent('run_start', {
-            mode: run.gameMode,
-            practice: run.practiceMode,
-            puzzleId,
-            puzzleImport: true
-        });
-        playRunStartUiSfxFromStore();
-        set({
-            view: 'playing',
-            newlyUnlockedAchievements: [],
-            boardPinMode: false,
-            destroyPairArmed: false,
-            peekModeArmed: false,
-            run
-        });
-        if (run.timerState.memorizeRemainingMs !== null) {
-            scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
-        }
-        return true;
-    },
-
     startPuzzleRun: (puzzleId) => {
         const puzzle = BUILTIN_PUZZLES[puzzleId];
         if (!puzzle) {
@@ -866,32 +819,6 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (run.timerState.memorizeRemainingMs !== null) {
             scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
         }
-    },
-
-    importRunFromClipboard: (raw) => {
-        const payload = parseRunImport(raw.trim());
-        if (!payload) {
-            return false;
-        }
-        clearAllTimers();
-        const run = patchRunFromUserSettings(
-            createRunFromExportPayload(get().saveData.bestScore, payload, metaRelicOpts(get().saveData)),
-            get().settings
-        );
-        trackEvent('run_start', { mode: run.gameMode, practice: run.practiceMode, imported: true });
-        playRunStartUiSfxFromStore();
-        set({
-            view: 'playing',
-            newlyUnlockedAchievements: [],
-            boardPinMode: false,
-            destroyPairArmed: false,
-            peekModeArmed: false,
-            run
-        });
-        if (run.timerState.memorizeRemainingMs !== null) {
-            scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
-        }
-        return true;
     },
 
     pickRelic: (relicId) => {
@@ -1071,15 +998,6 @@ export const useAppStore = create<AppState>((set, get) => ({
             settings: persistedSettings,
             saveData: nextSave
         });
-    },
-
-    replaceSaveData: async (data) => {
-        const nextSave = normalizeSaveData(data);
-        set({
-            saveData: nextSave,
-            settings: nextSave.settings
-        });
-        await persistSaveData(nextSave);
     },
 
     dismissHowToPlay: async () => {
@@ -1439,13 +1357,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         } else if (prev?.gameMode === 'gauntlet') {
             run = createGauntletRun(best, prev.gauntletSessionDurationMs ?? 10 * 60 * 1000, meta);
         } else if (prev?.gameMode === 'puzzle' && prev.puzzleId) {
-            const imported = importPuzzleTilesById.get(prev.puzzleId);
-            if (imported) {
-                run = createPuzzleRun(best, prev.puzzleId, imported, 1, meta);
-            } else {
-                const puzzle = BUILTIN_PUZZLES[prev.puzzleId];
-                run = puzzle ? createPuzzleRun(best, puzzle.id, puzzle.tiles, 1, meta) : createNewRun(best, meta);
-            }
+            const puzzle = BUILTIN_PUZZLES[prev.puzzleId];
+            run = puzzle ? createPuzzleRun(best, puzzle.id, puzzle.tiles, 1, meta) : createNewRun(best, meta);
         } else if (prev?.gameMode === 'meditation') {
             run = createMeditationRun(
                 best,

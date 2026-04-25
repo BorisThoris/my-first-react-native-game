@@ -1,5 +1,4 @@
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { RunState } from '../../shared/contracts';
 import { createNewRun, createRunSummary, finishMemorizePhase } from '../../shared/game';
@@ -9,7 +8,6 @@ import GameOverScreen from './GameOverScreen';
 const uiSfxMocks = vi.hoisted(() => ({
     playGameOverOpenSfx: vi.fn(),
     playUiBackSfx: vi.fn(),
-    playUiCopySfx: vi.fn(),
     resumeUiSfxContext: vi.fn(),
     uiSfxGainFromSettings: () => 1
 }));
@@ -75,22 +73,8 @@ describe('GameOverScreen (REF-031)', () => {
         expect(screen.getByRole('heading', { level: 2, name: 'New archive entries' })).toBeInTheDocument();
     });
 
-    it('plays game-over open on mount and copy cue on successful export', async () => {
-        const user = userEvent.setup();
-        const writeText = vi.fn().mockResolvedValue(undefined);
-        vi.stubGlobal('navigator', {
-            clipboard: {
-                writeText
-            }
-        });
-
+    it('plays game-over open on mount', () => {
         render(<GameOverScreen run={gameOverRunFixture()} />);
-
         expect(uiSfxMocks.playGameOverOpenSfx).toHaveBeenCalledTimes(1);
-
-        await user.click(screen.getByRole('button', { name: gameOverScreenCopy.runExportCopyButton }));
-
-        expect(writeText).toHaveBeenCalledTimes(1);
-        expect(uiSfxMocks.playUiCopySfx).toHaveBeenCalledTimes(1);
     });
 });

@@ -1,17 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { ACHIEVEMENTS } from '../../shared/achievements';
 import { MUTATOR_CATALOG, RELIC_CATALOG } from '../../shared/game-catalog';
 import type { MutatorId, RelicId, RunState } from '../../shared/contracts';
-import { serializeRunPayloadFromSummary } from '../../shared/run-export';
 import { useShallow } from 'zustand/react/shallow';
 import { UI_ART } from '../assets/ui';
-import {
-    playGameOverOpenSfx,
-    playUiBackSfx,
-    playUiCopySfx,
-    resumeUiSfxContext,
-    uiSfxGainFromSettings
-} from '../audio/uiSfx';
+import { playGameOverOpenSfx, playUiBackSfx, resumeUiSfxContext, uiSfxGainFromSettings } from '../audio/uiSfx';
 import { gameOverScreenCopy } from '../copy/gameOverScreen';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
@@ -30,7 +23,6 @@ const relicLabel = (id: RelicId): string => RELIC_CATALOG[id].title;
 
 const GameOverScreen = ({ run }: GameOverScreenProps) => {
     const shellRef = useRef<HTMLElement | null>(null);
-    const [copyHint, setCopyHint] = useState<string | null>(null);
     const { height, width } = useViewportSize();
     const { goToMenu, restartRun, settings } = useAppStore(
         useShallow((state) => ({
@@ -61,14 +53,6 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
         playGameOverOpenSfx(uiGain);
     }, [uiGain]);
 
-    useEffect(() => {
-        if (copyHint !== gameOverScreenCopy.runExportSuccess) return;
-        const id = window.setTimeout(() => {
-            setCopyHint((current) => (current === gameOverScreenCopy.runExportSuccess ? null : current));
-        }, 4500);
-        return () => window.clearTimeout(id);
-    }, [copyHint]);
-
     if (!summary) {
         return null;
     }
@@ -77,27 +61,11 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
         .map((achievementId) => ACHIEVEMENTS.find((achievement) => achievement.id === achievementId))
         .filter((achievement): achievement is (typeof ACHIEVEMENTS)[number] => Boolean(achievement));
 
-    const sharePayload = serializeRunPayloadFromSummary(summary);
     const flipCount = run.flipHistory?.length ?? 0;
     const metaItems = [
         ...(summary.activeMutators?.map((id) => mutatorLabel(id)) ?? []),
         ...(summary.relicIds?.map((id) => relicLabel(id)) ?? [])
     ];
-
-    const copyRunExport = async (): Promise<void> => {
-        if (!sharePayload) {
-            setCopyHint(gameOverScreenCopy.runExportUnavailable);
-            return;
-        }
-        try {
-            await navigator.clipboard.writeText(sharePayload);
-            resumeUiSfxContext();
-            playUiCopySfx(uiGain);
-            setCopyHint(gameOverScreenCopy.runExportSuccess);
-        } catch {
-            setCopyHint(gameOverScreenCopy.runExportClipboardFail);
-        }
-    };
 
     return (
         <section className={styles.shell} ref={shellRef}>
@@ -259,48 +227,21 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
                     </Panel>
                 ) : null}
 
-                <Panel className={styles.detailsPanel} padding="md" variant="muted">
-                    <details className={styles.exportDetails}>
-                        <summary>{gameOverScreenCopy.runExportDetailsSummary}</summary>
-                        <div className={styles.exportBody}>
-                            <UiButton
-                                disabled={!sharePayload}
-                                size="md"
-                                title={!sharePayload ? gameOverScreenCopy.runExportUnavailable : undefined}
-                                variant="secondary"
-                                onClick={() => void copyRunExport()}
-                            >
-                                {gameOverScreenCopy.runExportCopyButton}
-                            </UiButton>
-                            {copyHint ? (
-                                <p className={styles.copyHint} role="status" aria-live="polite">
-                                    {copyHint}
-                                </p>
-                            ) : null}
-                            {sharePayload ? (
-                                <pre className={styles.sharePre} tabIndex={0}>
-                                    {sharePayload}
-                                </pre>
-                            ) : (
-                                <p className={styles.copyHint}>{gameOverScreenCopy.runExportUnavailable}</p>
-                            )}
-
-                            {(run.flipHistory?.length ?? 0) > 0 ? (
-                                <details className={styles.timelineDetails}>
-                                    <summary>{gameOverScreenCopy.flipTimelineSummary}</summary>
-                                    <ol className={styles.ghostSteps}>
-                                        {run.flipHistory.map((id, index) => (
-                                            <li key={`${id}-${index}`}>
-                                                <span className={styles.ghostStepIndex}>{index + 1}</span>
-                                                <code>{id}</code>
-                                            </li>
-                                        ))}
-                                    </ol>
-                                </details>
-                            ) : null}
-                        </div>
-                    </details>
-                </Panel>
+                {(run.flipHistory?.length ?? 0) > 0 ? (
+                    <Panel className={styles.detailsPanel} padding="md" variant="muted">
+                        <details className={styles.timelineDetails}>
+                            <summary>{gameOverScreenCopy.flipTimelineSummary}</summary>
+                            <ol className={styles.ghostSteps}>
+                                {run.flipHistory!.map((id, index) => (
+                                    <li key={`${id}-${index}`}>
+                                        <span className={styles.ghostStepIndex}>{index + 1}</span>
+                                        <code>{id}</code>
+                                    </li>
+                                ))}
+                            </ol>
+                        </details>
+                    </Panel>
+                ) : null}
             </div>
         </section>
     );

@@ -3,7 +3,7 @@
  * Kept separate from `GameMode` in contracts — entries may share an underlying mode with flags.
  */
 
-export type RunModeGroup = 'core' | 'time_attack' | 'puzzle' | 'training' | 'utilities';
+export type RunModeGroup = 'core' | 'time_attack' | 'puzzle' | 'training';
 
 export type RunModeAvailability = 'available' | 'locked' | 'disabled';
 
@@ -21,9 +21,7 @@ export type RunModeAction =
     | { type: 'startPracticeRun' }
     | { type: 'startScholarContractRun' }
     | { type: 'startPinVowRun' }
-    | { type: 'meditationSetup' }
-    | { type: 'importRunModal' }
-    | { type: 'importPuzzleFile' };
+    | { type: 'meditationSetup' };
 
 export interface RunModeDefinition {
     id: string;
@@ -43,16 +41,14 @@ export const RUN_MODE_GROUP_ORDER: readonly RunModeGroup[] = [
     'core',
     'time_attack',
     'puzzle',
-    'training',
-    'utilities'
+    'training'
 ] as const;
 
 export const RUN_MODE_GROUP_LABEL: Record<RunModeGroup, string> = {
     core: 'Core modes',
     time_attack: 'Time attack',
     puzzle: 'Puzzle',
-    training: 'Training & contracts',
-    utilities: 'Utilities'
+    training: 'Training & contracts'
 };
 
 export const RUN_MODE_CATALOG: readonly RunModeDefinition[] = [
@@ -162,25 +158,6 @@ export const RUN_MODE_CATALOG: readonly RunModeDefinition[] = [
         availability: 'available',
         posterKey: 'meditation',
         action: { type: 'meditationSetup' }
-    },
-    {
-        id: 'import_run',
-        title: 'Import run JSON',
-        shortDescription: 'Paste a Memory Dungeon run export to replay or continue.',
-        group: 'utilities',
-        availability: 'available',
-        posterKey: 'import_run',
-        testId: 'main-menu-low-cta',
-        action: { type: 'importRunModal' }
-    },
-    {
-        id: 'import_puzzle',
-        title: 'Import puzzle JSON',
-        shortDescription: 'Load a custom puzzle from a JSON file.',
-        group: 'utilities',
-        availability: 'available',
-        posterKey: 'import_puzzle',
-        action: { type: 'importPuzzleFile' }
     }
 ] as const;
 
@@ -204,7 +181,7 @@ export function choosePathHeroModes(): readonly RunModeDefinition[] {
     });
 }
 
-/** All modes below the hero row (Gauntlet, puzzles, training, utilities), stable catalog order. */
+/** All modes below the hero row (Gauntlet, puzzles, training), stable catalog order. */
 export function choosePathLibraryModes(): readonly RunModeDefinition[] {
     return RUN_MODE_CATALOG.filter((m) => !CHOOSE_PATH_HERO_ID_SET.has(m.id));
 }

@@ -18,8 +18,6 @@ export const gameOverScreenCopy = {
     mainMenuLabel: 'Main Menu',
     mainMenuAriaLabel: 'Return to the main menu',
     runSnapshotKicker: 'Run snapshot',
-    runExportDetailsSummary: 'Advanced — export and replay',
-    runExportCopyButton: 'Copy run export (JSON)',
     statLabels: {
         highestFloor: 'Highest Floor',
         bestStreak: 'Best Streak',
@@ -38,9 +36,6 @@ export const gameOverScreenCopy = {
         flipCount > 0
             ? `${flipCount} flips recorded locally for this session.`
             : 'No flip history stored for this run.',
-    runExportSuccess: 'Run export copied to clipboard.',
-    runExportClipboardFail: 'Clipboard unavailable. Select and copy the JSON in the block below.',
-    runExportUnavailable: "This summary doesn't include seed and rules, so it can't be exported for replay.",
     achievementEyebrow: 'Unlocked',
     achievementHeading: 'New archive entries',
     flipTimelineSummary: 'Flip timeline'

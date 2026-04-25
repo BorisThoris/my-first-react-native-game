@@ -256,7 +256,6 @@
     line-height: 1.45;
 }
 
-.exportDetails summary,
 .timelineDetails summary {
     cursor: pointer;
     font-size: 0.72rem;
@@ -266,36 +265,8 @@
     color: var(--theme-text-subtle);
 }
 
-.exportBody {
-    display: grid;
-    gap: 0.7rem;
-    margin-top: 0.85rem;
-}
-
-.copyHint {
-    margin: 0;
-    color: var(--theme-gold-bright);
-    font-size: 0.84rem;
-}
-
-.sharePre {
-    margin: 0;
-    padding: 0.65rem 0.75rem;
-    max-height: 7rem;
-    overflow: hidden;
-    width: 100%;
-    box-sizing: border-box;
-    font-size: 0.66rem;
-    line-height: 1.4;
-    border-radius: var(--ui-radius-md);
-    background: var(--theme-panel-solid);
-    border: 1px solid var(--theme-card-border-muted);
-    color: var(--theme-text-subtle);
-    word-break: break-all;
-}
-
 .timelineDetails {
-    margin-top: 0.25rem;
+    margin: 0;
 }
 
 .ghostSteps {
@@ -375,10 +346,6 @@
 
     .summaryGrid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .sharePre {
-        font-size: 0.62rem;
     }
 
     .ghostSteps {
