@@ -153,7 +153,8 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                             </p>
                             {equippedCosmetic ? (
                                 <p className={styles.cosmeticNote}>
-                                    Cosmetic theme: <strong>{equippedCosmetic.title}</strong> ({equippedCosmetic.slot}, visual only)
+                                    Cosmetic theme: <strong>{equippedCosmetic.title ?? equippedCosmetic.label}</strong> (
+                                    {equippedCosmetic.slot}; fallback: {equippedCosmetic.fallback})
                                 </p>
                             ) : null}
                         </div>

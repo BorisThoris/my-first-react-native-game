@@ -639,9 +639,9 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                                                     />
                                                     <PlaceholderControl
                                                         honestFuturePlaceholder
-                                                        hint="Alternate card art sets are not selectable yet; asset slots only."
+                                                        hint="Card-back cosmetics are tracked in Collection and Inventory; live board theme switching is deferred until REG-066 rendering assets are wired."
                                                         label="Card theme"
-                                                        options={['Crimson', 'Violet', 'Emerald', 'Steel']}
+                                                        options={['Classic Card Back', 'Relic Gold Card Back (locked)']}
                                                     />
                                                 </div>
                                             </SettingsSection>
