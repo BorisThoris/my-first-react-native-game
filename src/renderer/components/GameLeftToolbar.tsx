@@ -64,6 +64,12 @@ interface GameLeftToolbarProps {
     triggerDebugReveal: () => void;
 }
 
+const iconLabel = (label: string) => (
+    <span aria-hidden="true" className={styles.toolbarFlyoutLabel}>
+        {label}
+    </span>
+);
+
 const GameLeftToolbar = memo(function GameLeftToolbar({
     cameraViewportMode,
     run,
@@ -187,6 +193,9 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
         <aside
             aria-label="Game actions"
             className={`${styles.leftToolbar} ${cameraViewportMode ? styles.mobileCameraLeftToolbar : ''}`.trim()}
+            data-rail-density={cameraViewportMode ? 'compact' : 'desktop'}
+            data-rail-model="icon-rail-with-flyout-labels"
+            data-testid="game-left-rail"
             ref={asideRef}
         >
             <div
@@ -209,6 +218,7 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                     type="button"
                 >
                     <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.fitBoard} />
+                    <span aria-hidden="true" className={styles.toolbarFlyoutLabel}>Fit board</span>
                 </button>
                 <button
                     aria-label="Run settings (toolbar)"
@@ -222,6 +232,7 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                     type="button"
                 >
                     <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.settings} />
+                    <span aria-hidden="true" className={styles.toolbarFlyoutLabel}>Settings</span>
                 </button>
                 <button
                     aria-label="Open codex"
@@ -235,6 +246,7 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                     type="button"
                 >
                     <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.codexBook} />
+                    <span aria-hidden="true" className={styles.toolbarFlyoutLabel}>Codex</span>
                 </button>
                 <button
                     aria-label="Open inventory"
@@ -248,6 +260,7 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                     type="button"
                 >
                     <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.inventoryBag} />
+                    <span aria-hidden="true" className={styles.toolbarFlyoutLabel}>Inventory</span>
                 </button>
                 <button
                     aria-label="Return to main menu"
@@ -261,6 +274,7 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                     type="button"
                 >
                     <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.mainMenu} />
+                    <span aria-hidden="true" className={styles.toolbarFlyoutLabel}>Main menu</span>
                 </button>
                 {import.meta.env.DEV && debugFlags.showDebugTools && debugFlags.allowBoardReveal ? (
                     <UiButton className={styles.toolbarDebugBtn} size="sm" variant="debug" onClick={triggerDebugReveal}>
@@ -313,6 +327,9 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                         type="button"
                     >
                         <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.shuffle} />
+                        <span aria-hidden="true" className={styles.toolbarFlyoutLabel}>
+                            Shuffle
+                        </span>
                         <span
                             className={`${styles.powerBadge} ${
                                 run.shuffleCharges > 0 ? styles.powerBadgeCharged : styles.powerBadgeDepleted
@@ -381,6 +398,9 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                         type="button"
                     >
                         <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.pin} />
+                        <span aria-hidden="true" className={styles.toolbarFlyoutLabel}>
+                            Pin
+                        </span>
                     </button>
                     <button
                         aria-label={`Destroy a hidden pair. Charges: ${run.destroyPairCharges}. ${destroyPairArmed ? 'Tap a tile' : 'Arm then tap a tile'}`}
@@ -398,6 +418,9 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                         type="button"
                     >
                         <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.destroy} />
+                        <span aria-hidden="true" className={styles.toolbarFlyoutLabel}>
+                            Destroy
+                        </span>
                         <span
                             className={`${styles.powerBadge} ${
                                 run.destroyPairCharges > 0 ? styles.powerBadgeCharged : styles.powerBadgeDepleted
@@ -422,6 +445,9 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                         type="button"
                     >
                         <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.peek} />
+                        <span aria-hidden="true" className={styles.toolbarFlyoutLabel}>
+                            Peek
+                        </span>
                         <span
                             className={`${styles.powerBadge} ${
                                 run.peekCharges > 0 ? styles.powerBadgeCharged : styles.powerBadgeDepleted
@@ -446,6 +472,9 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                         >
                             <span className={styles.toolbarFlashGlyph} aria-hidden="true">
                                 ⚡
+                            </span>
+                            <span aria-hidden="true" className={styles.toolbarFlyoutLabel}>
+                                Flash
                             </span>
                             <span
                                 className={`${styles.powerBadge} ${
@@ -472,6 +501,9 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                         type="button"
                     >
                         <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.stray} />
+                        <span aria-hidden="true" className={styles.toolbarFlyoutLabel}>
+                            Stray
+                        </span>
                         <span
                             className={`${styles.powerBadge} ${
                                 run.strayRemoveCharges > 0 ? styles.powerBadgeCharged : styles.powerBadgeDepleted
@@ -508,6 +540,7 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                         type="button"
                     >
                         <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.undo} />
+                        <span aria-hidden="true" className={styles.toolbarFlyoutLabel}>Undo</span>
                     </button>
                 </div>
             ) : null}

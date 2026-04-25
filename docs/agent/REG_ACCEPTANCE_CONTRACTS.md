@@ -49,6 +49,7 @@ schema: reg | phase | status | contract | proof
 | REG-086 | 2 | done | Balance simulation exposes deterministic offline economy/drop-rate baselines for shop gold, findables, boss cadence, and relic offer rarity drift. | balance-simulation tests |
 | REG-001 | 3 | done | Mobile gameplay chrome gives board-first ratio: tighter HUD/rail footprint, larger camera fit margin, and safe touch targets for common phone portraits. | tileBoardViewport tests + typecheck |
 | REG-002 | 3 | done | Desktop gameplay stage uses denser play-dais spacing and wider fit budget to reduce dead space while preserving HUD/toolbar interaction. | tileBoardViewport tests + typecheck |
+| REG-003 | 3 | done | Gameplay side rail is a canonical icon spine with integrated chrome, desktop flyout labels, compact mobile footprint, and unchanged keyboard focus order. | GameScreen + typecheck tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.
