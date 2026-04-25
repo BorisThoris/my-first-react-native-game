@@ -185,7 +185,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const compactTouchChrome = isPhoneViewport || isNarrowShortLandscapeForMenuStack(width, height);
     const [viewportResetToken, setViewportResetToken] = useState(0);
     const [gauntletNowMs, setGauntletNowMs] = useState(() => Date.now());
-    const [rulesHintsExpanded, setRulesHintsExpanded] = useState(() => !compactTouchChrome);
+    const [rulesHintsExpanded, setRulesHintsExpanded] = useState(false);
     const [abandonRunConfirmOpen, setAbandonRunConfirmOpen] = useState(false);
     const [shortcutsHelpOpen, setShortcutsHelpOpen] = useState(false);
     useEffect(() => {
@@ -257,6 +257,12 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
             ),
         [run.board, saveData.powersFtueSeen]
     );
+    const rulesHintNudge =
+        showTutorialPairMarkers
+            ? 'First run: match identical symbols. Pair markers fade after floor 2.'
+            : run.activeMutators.length > 0 && run.board?.matchedPairs === 0
+              ? `New pressure: ${run.activeMutators.map((id) => MUTATOR_CATALOG[id]?.title ?? id).join(', ')}.`
+              : null;
     const { boardPinMode, destroyPairArmed, peekModeArmed } = useAppStore(
         useShallow((state) => ({
             boardPinMode: state.boardPinMode,
@@ -882,6 +888,11 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         (run.status === 'memorize' || run.status === 'playing') &&
         run.board.matchedPairs === 0 &&
         run.stats.tries === 0;
+    useEffect(() => {
+        if (showTutorialPairMarkers && showForgivenessHint && !compactTouchChrome) {
+            setRulesHintsExpanded(true);
+        }
+    }, [compactTouchChrome, showForgivenessHint, showTutorialPairMarkers]);
     const showBoardPowerBar = run.status === 'playing';
     const shuffleDisabled = !canShuffleBoard(run);
     const regionShuffleDisabled = !canRegionShuffle(run);
@@ -997,6 +1008,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         peekModeArmed={peekModeArmed}
                         regionShuffleDisabled={regionShuffleDisabled}
                         regionShuffleTitle={regionShuffleTitle}
+                        rulesHintNudge={rulesHintNudge}
                         rulesHintsExpanded={rulesHintsExpanded}
                         run={run}
                         setRulesHintsExpanded={setRulesHintsExpanded}

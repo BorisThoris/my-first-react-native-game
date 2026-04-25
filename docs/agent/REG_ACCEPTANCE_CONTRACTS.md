@@ -51,6 +51,7 @@ schema: reg | phase | status | contract | proof
 | REG-002 | 3 | done | Desktop gameplay stage uses denser play-dais spacing and wider fit budget to reduce dead space while preserving HUD/toolbar interaction. | tileBoardViewport tests + typecheck |
 | REG-003 | 3 | done | Gameplay side rail is a canonical icon spine with integrated chrome, desktop flyout labels, compact mobile footprint, and unchanged keyboard focus order. | GameScreen + typecheck tests |
 | REG-004 | 3 | done | Gameplay HUD defines primary/secondary/tertiary hierarchy with score/floor/lives first, tactical context second, and passive stats collapsed into an accessible details drawer. | GameplayHudBar tests |
+| REG-005 | 3 | done | In-game rules hints use progressive disclosure: hidden by default after FTUE, explicit Rules toggle, contextual first-exposure nudges, and shortcut help remains available. | GameScreen tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

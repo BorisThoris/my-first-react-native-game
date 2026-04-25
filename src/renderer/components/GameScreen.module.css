@@ -312,6 +312,24 @@
     border-color: color-mix(in srgb, var(--theme-gold-bright) 26%, var(--theme-hud-accent-border-strong));
 }
 
+.ruleDisclosureNudge {
+    width: min(11rem, calc(100dvi - 5rem));
+    margin: 0.28rem 0 0;
+    padding: 0.34rem 0.44rem;
+    border-radius: var(--ui-radius-sm);
+    border: 1px solid color-mix(in srgb, var(--theme-cyan) 22%, transparent);
+    background: color-mix(in srgb, var(--theme-void) 72%, transparent);
+    color: var(--theme-text-muted);
+    font-size: 0.66rem;
+    line-height: 1.25;
+    text-align: left;
+}
+
+.mobileCameraLeftToolbar .ruleDisclosureNudge {
+    width: min(8.75rem, calc(100dvi - 4.2rem));
+    font-size: 0.6rem;
+}
+
 .toolbarDebugBtn {
     width: 100%;
     max-width: 2.85rem;

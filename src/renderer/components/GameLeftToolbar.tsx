@@ -31,6 +31,7 @@ interface GameLeftToolbarProps {
     run: RunState;
     debugFlags: Settings['debugFlags'];
     showForgivenessHint: boolean;
+    rulesHintNudge: string | null;
     rulesHintsExpanded: boolean;
     setRulesHintsExpanded: Dispatch<SetStateAction<boolean>>;
     showBoardPowerBar: boolean;
@@ -75,6 +76,7 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
     run,
     debugFlags,
     showForgivenessHint,
+    rulesHintNudge,
     rulesHintsExpanded,
     setRulesHintsExpanded,
     showBoardPowerBar,
@@ -296,6 +298,11 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                     >
                         {rulesHintsExpanded ? 'Hide' : 'Rules'}
                     </button>
+                    {rulesHintsExpanded && rulesHintNudge ? (
+                        <p className={styles.ruleDisclosureNudge} data-testid="gameplay-rules-nudge">
+                            {rulesHintNudge}
+                        </p>
+                    ) : null}
                 </div>
             ) : null}
             {showBoardPowerBar ? (
