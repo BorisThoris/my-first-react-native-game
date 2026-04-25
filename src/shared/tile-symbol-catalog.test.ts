@@ -5,6 +5,7 @@ import {
     CALLSIGN_SYMBOLS,
     LETTER_SYMBOLS,
     NUMBER_SYMBOLS,
+    getSymbolBandReadabilityRows,
     getSymbolSetForLevel,
     getSymbolSetIndexForLevel
 } from './tile-symbol-catalog';
@@ -33,5 +34,12 @@ describe('tile-symbol-catalog', () => {
         const board = buildBoard(17, { runSeed: 42_001, runRulesVersion: GAME_RULES_VERSION });
         const callsignSymbols = new Set(CALLSIGN_SYMBOLS.map((entry) => entry.symbol));
         expect(board.tiles.some((tile) => callsignSymbols.has(tile.symbol))).toBe(true);
+    });
+
+    it('keeps symbol bands readable and avoids known confusable glyphs', () => {
+        const rows = getSymbolBandReadabilityRows();
+        expect(rows.map((row) => row.band)).toEqual(['numeric', 'letters', 'callsigns']);
+        expect(rows.every((row) => row.maxLabelLength <= 7)).toBe(true);
+        expect(rows.flatMap((row) => row.forbiddenConfusables)).toEqual([]);
     });
 });

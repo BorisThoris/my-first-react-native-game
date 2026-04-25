@@ -34,6 +34,8 @@ Current defaults (floor level = run floor):
 
 `category_letters` mutator still forces the letter hybrid set regardless of level. Changing the two `SYMBOL_BAND_*` constants requires updating [`tile-symbol-catalog.test.ts`](../src/shared/tile-symbol-catalog.test.ts) bracket expectations and bumping `GAME_RULES_VERSION` if pair generation semantics change.
 
+REG-047 readability guardrails now live in `tile-symbol-catalog.ts`: each band exposes a readability purpose, target difficulty, max label length, and confusable-token denylist. Current catalog tests assert labels stay within each band limit, symbols remain unique, and common distractors (`O`, `0`, `I`, `1`, `l`) do not appear together in a band.
+
 ## Relic roster (cross-check `src/shared/relics.ts` + `game.ts`)
 
 Shipped pool ids: `extra_shuffle_charge`, `first_shuffle_free_per_floor`, `memorize_bonus_ms`, `destroy_bank_plus_one`, `combo_shard_plus_step`, `memorize_under_short_memorize`, `parasite_ward_once`, `region_shuffle_free_first`, `peek_charge_plus_one`, `stray_charge_plus_one`, `pin_cap_plus_one`, `guard_token_plus_one`, `shrine_echo`, `chapter_compass`, `wager_surety`, `parasite_ledger`.

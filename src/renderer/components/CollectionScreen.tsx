@@ -15,7 +15,12 @@ import {
 } from '../../shared/honorUnlocks';
 import { RELIC_CATALOG } from '../../shared/game-catalog';
 import { ACHIEVEMENT_IDS } from '../../shared/save-data';
-import { CALLSIGN_SYMBOLS, LETTER_SYMBOLS as LETTER_TILES, NUMBER_SYMBOLS } from '../../shared/tile-symbol-catalog';
+import {
+    CALLSIGN_SYMBOLS,
+    LETTER_SYMBOLS as LETTER_TILES,
+    NUMBER_SYMBOLS,
+    SYMBOL_BAND_READABILITY_PROFILES
+} from '../../shared/tile-symbol-catalog';
 import { playUiBackSfx, resumeUiSfxContext, uiSfxGainFromSettings } from '../audio/uiSfx';
 import { Eyebrow, MetaFrame, Panel, ScreenTitle, UiButton } from '../ui';
 import { useAppStore } from '../store/useAppStore';
@@ -234,6 +239,15 @@ const CollectionScreen = () => {
                         <p className={metaStyles.subtitle}>
                             Tiles rotate through these sets by floor band. Letter-only mutator uses the hybrid letter band.
                         </p>
+                        <div className={styles.symbolProfileGrid}>
+                            {SYMBOL_BAND_READABILITY_PROFILES.map((profile) => (
+                                <div className={styles.symbolProfileCard} key={profile.id}>
+                                    <strong>{profile.title}</strong>
+                                    <span>{profile.levelRange}</span>
+                                    <p>{profile.purpose}</p>
+                                </div>
+                            ))}
+                        </div>
                         <p className={styles.setLabel}>Band A — letters + digits</p>
                         <div className={styles.symbolGrid}>
                             {LETTER_TILES.map((entry) => (
