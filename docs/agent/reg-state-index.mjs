@@ -38,6 +38,7 @@ const dependenciesFor = (reg, phase) => {
 
 const statusOverrides = new Map([
   [1, 'done'],
+  [2, 'done'],
   [15, 'done'],
   [18, 'done'],
   [19, 'done'],
@@ -95,6 +96,8 @@ for (let reg = 0; reg <= 160; reg += 1) {
     commit:
       reg === 1
         ? '9b7d03f'
+      : reg === 2
+        ? 'pending'
         : reg === 24
           ? '7daefab'
         : reg === 18

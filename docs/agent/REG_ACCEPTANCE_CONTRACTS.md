@@ -48,6 +48,7 @@ schema: reg | phase | status | contract | proof
 | REG-085 | 2 | done | Run history exposes local journal/build/replay rows from RunSummary/RunState without creating a second save file or leaking PII. | run-history tests |
 | REG-086 | 2 | done | Balance simulation exposes deterministic offline economy/drop-rate baselines for shop gold, findables, boss cadence, and relic offer rarity drift. | balance-simulation tests |
 | REG-001 | 3 | done | Mobile gameplay chrome gives board-first ratio: tighter HUD/rail footprint, larger camera fit margin, and safe touch targets for common phone portraits. | tileBoardViewport tests + typecheck |
+| REG-002 | 3 | done | Desktop gameplay stage uses denser play-dais spacing and wider fit budget to reduce dead space while preserving HUD/toolbar interaction. | tileBoardViewport tests + typecheck |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

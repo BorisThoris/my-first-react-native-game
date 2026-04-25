@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+    DESKTOP_STAGE_FIT_MARGIN,
     createRafCoalescedViewportNotifier,
     getBoardFitZoom,
     MOBILE_CAMERA_FIT_MARGIN,
@@ -58,5 +59,19 @@ describe('tileBoardViewport', () => {
 
         expect(MOBILE_CAMERA_FIT_MARGIN).toBeGreaterThan(1);
         expect(zoom).toBeCloseTo((360 * MOBILE_CAMERA_FIT_MARGIN) / 360, 5);
+    });
+
+    it('REG-002 keeps desktop stage dense without using the mobile bleed margin', () => {
+        const zoom = getBoardFitZoom({
+            boardHeight: 640,
+            boardWidth: 640,
+            margin: DESKTOP_STAGE_FIT_MARGIN,
+            viewportHeight: 768,
+            viewportWidth: 900
+        });
+
+        expect(DESKTOP_STAGE_FIT_MARGIN).toBeGreaterThan(0.9);
+        expect(DESKTOP_STAGE_FIT_MARGIN).toBeLessThan(MOBILE_CAMERA_FIT_MARGIN);
+        expect(zoom).toBeCloseTo((768 * DESKTOP_STAGE_FIT_MARGIN) / 640, 5);
     });
 });

@@ -32,7 +32,9 @@ const MOBILE_CAMERA_MAX_ZOOM = 2.8;
 /** REG-001: phone camera mode is board-first; keep fitted boards close to the safe viewport edges. */
 export const MOBILE_CAMERA_FIT_MARGIN = 1.02;
 export const COMPACT_BOARD_FIT_MARGIN = 0.72;
-export const ROOMY_BOARD_FIT_MARGIN = 0.85;
+/** REG-002: desktop stage should feel dense and board-forward without the mobile bleed margin. */
+export const DESKTOP_STAGE_FIT_MARGIN = 0.94;
+export const ROOMY_BOARD_FIT_MARGIN = DESKTOP_STAGE_FIT_MARGIN;
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
 
