@@ -37,4 +37,13 @@ describe('SettingsScreen', () => {
 
         expect(useAppStore.getState().closeSettings).toHaveBeenCalled();
     });
+
+    it('REG-006 keeps mobile settings footer reachable in stacked layout', () => {
+        render(<SettingsScreen presentation="modal" />);
+
+        const shell = screen.getByTestId('settings-modal-shell');
+        expect(shell).toHaveAttribute('data-settings-layout', 'wide-short');
+        expect(screen.getByTestId('settings-shell-footer')).toHaveTextContent('Back');
+        expect(screen.getByTestId('settings-shell-footer')).toHaveTextContent('Save');
+    });
 });

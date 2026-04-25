@@ -52,6 +52,7 @@ schema: reg | phase | status | contract | proof
 | REG-003 | 3 | done | Gameplay side rail is a canonical icon spine with integrated chrome, desktop flyout labels, compact mobile footprint, and unchanged keyboard focus order. | GameScreen + typecheck tests |
 | REG-004 | 3 | done | Gameplay HUD defines primary/secondary/tertiary hierarchy with score/floor/lives first, tactical context second, and passive stats collapsed into an accessible details drawer. | GameplayHudBar tests |
 | REG-005 | 3 | done | In-game rules hints use progressive disclosure: hidden by default after FTUE, explicit Rules toggle, contextual first-exposure nudges, and shortcut help remains available. | GameScreen tests |
+| REG-006 | 3 | done | Settings page/modal keeps phone and short-view footer actions sticky, body scrollable, and dense category/subsection controls reachable without schema changes. | SettingsScreen tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

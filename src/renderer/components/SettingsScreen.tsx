@@ -826,7 +826,7 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                                         ) : null}
                                     </div>
 
-                                    <footer className={styles.footer}>
+                                    <footer className={styles.footer} data-testid="settings-shell-footer">
                                         <div className={styles.footerActions}>
                                             <UiButton
                                                 onClick={handleBack}
