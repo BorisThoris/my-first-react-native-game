@@ -229,6 +229,14 @@
 
 ---
 
+## `docs/product/`
+
+| File | Summary |
+|------|---------|
+| [COMPLETE_PRODUCT_DEFINITION_OF_DONE.md](../product/COMPLETE_PRODUCT_DEFINITION_OF_DONE.md) | REG-068 complete-product DoD, scope bar, phase gates, and per-slice verification checklist |
+
+---
+
 ## `docs/refinement-tasks/` (REF backlog)
 
 | File | Summary |

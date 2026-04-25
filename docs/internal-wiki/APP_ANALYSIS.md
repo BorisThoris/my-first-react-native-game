@@ -16,6 +16,7 @@
 | Rules | Pure TS in **`src/shared/game.ts`** on **`RunState`** — not in IPC or main |
 | UI | **`src/renderer/`** — Zustand **`useAppStore`**, R3F board (**`TileBoard` / `TileBoardScene`**) |
 | Shell | **`src/main/`** persistence + Steam; **`src/preload/`** bridge; **`src/shared/ipc-channels.ts`** canonical IPC names + legacy aliases in **`main/ipc.ts`** |
+| Product DoD | REG-068 ship gate: [Complete product definition of done](../product/COMPLETE_PRODUCT_DEFINITION_OF_DONE.md) — offline-first v1, mobile/shell quality required, online leaderboards deferred |
 
 ---
 
@@ -59,6 +60,7 @@ Bump **`GAME_RULES_VERSION`** when pair generation, scoring, or player-facing ru
 
 ## Gameplay & product bullets (compressed)
 
+- **Ship gate:** REG-068’s reusable acceptance bar lives in [Complete product definition of done](../product/COMPLETE_PRODUCT_DEFINITION_OF_DONE.md). Use it before opening broad run-map/economy work, and keep REG-119 as the later close-the-loop acceptance report.
 - **Modes:** Classic, daily, endless (floor schedule), gauntlet, meditation, puzzle — mode gates live in shared helpers + `game.ts` constructors; endless uses **`pickFloorScheduleEntry`** / **`usesEndlessFloorSchedule`** when rules version ≥ schedule version.
 - **Powers & meta:** `powersUsedThisRun` gates **Perfect Memory** (`ACH_PERFECT_CLEAR`); pins do not set the flag — see encyclopedia + `RunState` JSDoc. Inventory exposes a **muted hint** via `copy/inventoryScreen.ts` aligned with that contract.
 - **Achievements:** Seven `AchievementId` values — Steam mapping 1:1 in `main/steam.ts`; unlock path **save locally then Steam** (see § Achievements ↔ Steam parity below). **Honors** (local titles) live in `honorUnlocks.ts` and `saveData.unlocks` `honor:*` tags.
