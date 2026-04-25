@@ -23,9 +23,9 @@
 
 | Constant | Location | Value (last audit) |
 |----------|----------|---------------------|
-| `GAME_RULES_VERSION` | `contracts.ts` | **9** |
+| `GAME_RULES_VERSION` | `contracts.ts` | **14** |
 | `SAVE_SCHEMA_VERSION` | `contracts.ts` | **5** |
-| `FLOOR_SCHEDULE_RULES_VERSION` | `floor-mutator-schedule.ts` | **2** |
+| `FLOOR_SCHEDULE_RULES_VERSION` | `floor-mutator-schedule.ts` | **3** |
 
 Bump **`GAME_RULES_VERSION`** when pair generation, scoring, or player-facing rules change; **`SAVE_SCHEMA_VERSION`** when save merge/migration changes; **`FLOOR_SCHEDULE_RULES_VERSION`** when endless floor mutator **schedule** rules change — and extend **`floor-mutator-schedule.test.ts`** per the module header checklist.
 
@@ -72,8 +72,8 @@ Bump **`GAME_RULES_VERSION`** when pair generation, scoring, or player-facing ru
 
 | Layer | Signal |
 |-------|--------|
-| Unit / integration | **Vitest** — `yarn test`; shared tests colocated under `src/shared/*.test.ts` (indicative: **21** test files — re-count after merges) |
-| E2E | **Playwright** — indicative **27** `e2e/*.spec.ts` files; curated gate **`yarn test:e2e:renderer-qa`** (see [E2E_AND_QA.md](./E2E_AND_QA.md)) |
+| Unit / integration | **Vitest** — `yarn test`; **75** `src/**/*.test.ts` + **4** `packages/notifications/src/*.test.ts` (same graph as [TOOLING.md](./TOOLING.md) Vitest discovery — re-count after merges) |
+| E2E | **Playwright** — indicative **29** `e2e/*.spec.ts` files; curated gate **`yarn test:e2e:renderer-qa`** (see [E2E_AND_QA.md](./E2E_AND_QA.md)) |
 | CI local | **`yarn fullcheck`** = lint (+ test extension guard) + typecheck + vitest |
 | Headless sim | **`yarn sim:endless`** — scripted endless sampling (`scripts/sim-endless.ts`) |
 
@@ -83,7 +83,7 @@ Bump **`GAME_RULES_VERSION`** when pair generation, scoring, or player-facing ru
 
 ## Documentation surface
 
-- **`docs/**/*.md`:** indicative **~295** files (2026-04-19 recount) — index in [DOCS_CATALOG.md](./DOCS_CATALOG.md); polish rollup [GAMEPLAY_POLISH_AND_GAPS.md](../gameplay/GAMEPLAY_POLISH_AND_GAPS.md).
+- **`docs/**/*.md`:** indicative **~295** files (2026-04-25 recount) — index in [DOCS_CATALOG.md](./DOCS_CATALOG.md); polish rollup [GAMEPLAY_POLISH_AND_GAPS.md](../gameplay/GAMEPLAY_POLISH_AND_GAPS.md).
 - **Internal wiki:** [README.md](./README.md).
 
 **Wiki alignment notes:** [GAMEPLAY_POLISH §16](../gameplay/GAMEPLAY_POLISH_AND_GAPS.md) and [epic-mutators Schedules](../gameplay/epic-mutators.md) reference **`floor-mutator-schedule.test.ts`**. **`copy/inventoryScreen.ts`** documents Perfect Memory eligibility next to “Powers used this run”.
@@ -138,7 +138,9 @@ Bump **`GAME_RULES_VERSION`** when pair generation, scoring, or player-facing ru
 
 **Round 4 (wiki + tree sync):** `main.tsx` → [`initRendererShell.tsx`](../../src/renderer/initRendererShell.tsx) (`bootstrapWebRenderer`, `PlatformTiltProvider`) · seeded procedural tarot illustration (`cardFace/proceduralIllustration/`: `illustrationSeed`, roll tables, `drawProceduralTarotIllustration`, manifest/cache key) · `textureVersion` / overlay cache invalidation · `keyboard/gameplayShortcuts.ts` · `dev/legacy/tileStepLegacy` (paths no longer under `dev/` root) · Playwright: `tile-card-face-illustration-regression`, `tile-card-face-illustration-benchmark`, `tile-card-face-overlay-regression`, `a11y-scoped-routes` · package scripts `test:e2e:illustration-regression`, `test:e2e:a11y`, `benchmark:illustration-regression`, `regenerate:illustration-regression` · re-count `docs/**/*.md` when [DOCS_CATALOG.md](./DOCS_CATALOG.md) is audited.
 
-**Round 5 (2026-04-19 turbo wiki pass):** Merged parallel slices into [SOURCE_MAP](./SOURCE_MAP.md) (`desktop-client.ts`, main `*.test.ts`, dev regression row → `hashPairKey`), [TOOLING](./TOOLING.md) (`build:cloudflare`, bake/plates/manifest scripts, **`yarn bake:procedural-set` not in default CI**), [visualization-work/README](../visualization-work/README.md) → [multiple-agents](./multiple-agents.md); corrected bootstrap order + **schema vs `textureVersion`** bumps in executive map / findings; [REF-020](../refinement-tasks/REF-020.md) Related; doc count **~293** ([DOCS_CATALOG](./DOCS_CATALOG.md)).
+**Round 5 (2026-04-19 turbo wiki pass):** Merged parallel slices into [SOURCE_MAP](./SOURCE_MAP.md) (`desktop-client.ts`, main `*.test.ts`, dev regression row → `hashPairKey`), [TOOLING](./TOOLING.md) (`build:cloudflare`, bake/plates/manifest scripts, **`yarn bake:procedural-set` not in default CI**), [visualization-work/README](../visualization-work/README.md) → [multiple-agents](./multiple-agents.md); corrected bootstrap order + **schema vs `textureVersion`** bumps in executive map / findings; [REF-020](../refinement-tasks/REF-020.md) Related; doc count **~293** (snapshot for that pass — superseded by Round 6; [DOCS_CATALOG](./DOCS_CATALOG.md)).
+
+**Round 6 (2026-04-25 wiki refresh):** Reconciled **version stamps** to `contracts.ts` / `floor-mutator-schedule.ts` (`GAME_RULES_VERSION` **14**, `FLOOR_SCHEDULE_RULES_VERSION` **3**). Re-counted **Vitest** (**75** `src/**/*.test.ts` + **4** `packages/notifications` tests) and **Playwright** (29 `e2e/*.spec.ts`); doc inventory **~295** `docs/**/*.md`. Extended [DOCS_CATALOG](./DOCS_CATALOG.md) (root memos, `epics/`, `refinement-tasks/`, `ui-design-reference` note, `visual-capture/improvement-workqueue`) and aligned [COVERAGE](./COVERAGE.md) + [E2E_AND_QA](./E2E_AND_QA.md). Regenerated [mechanics auto-appendix](../gameplay/GAMEPLAY_MECHANICS_CATALOG.auto-appendix.md) via `yarn docs:mechanics-appendix`.
 
 ---
 
@@ -159,3 +161,5 @@ Structured slice audit merged into [SOURCE_MAP](./SOURCE_MAP.md) + wiki hygiene:
 ## Maintenance
 
 When navigation, major modules, or versioning change: update [SOURCE_MAP.md](./SOURCE_MAP.md) and [ARCHITECTURE.md](./ARCHITECTURE.md) first, then refresh **version stamps** and **indicative counts** in **this file** — do **not** spawn new dated narrative analysis docs; fold discoveries here or into authoritative topic files.
+
+**Branch health is separate from wiki counts:** `yarn verify` (typecheck + Vitest) is the product-truth check; a red `tsc` or test failure is engineering debt, not refuted by updated stamps in this page alone.

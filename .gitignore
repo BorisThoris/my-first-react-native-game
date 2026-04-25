@@ -27,3 +27,7 @@ steam_appid.txt.bak
 
 # Local clone for pip install -e (see scripts/audio-pipeline/install-acestep.ps1)
 /third_party/ACE-Step-1.5/
+
+# Python (e.g. scripts/audio-pipeline)
+**/__pycache__/
+*.pyc

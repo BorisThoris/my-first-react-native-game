@@ -36,6 +36,8 @@
 | `hud-inspect.spec.ts` | HUD inspection |
 | `logo-intro-sandbox.spec.ts` | Logo intro sandbox |
 | `cyp-review-capture.spec.ts` | Choose Your Path “review” layout metrics (inline back, scroller height bounds) |
+| `gambit-mismatch-floater.spec.ts` | Gambit third-flip / mismatch floater after triple-no-match resolve (dev `gambitTripleMissSetup` fixture) |
+| `procedural-gallery-smoke.spec.ts` | Procedural illustration gallery sandbox (`?devSandbox=1&fx=proceduralGallery`) |
 | `ui-screenshots.spec.ts` | Local UI screenshots → `tmp/` (see [e2e/README](../../e2e/README.md)) |
 
 ## Helpers (not specs)

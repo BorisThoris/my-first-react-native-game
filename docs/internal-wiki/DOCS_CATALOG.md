@@ -2,7 +2,7 @@
 
 **Purpose:** Every `.md` under `docs/` is listed so nothing is “orphaned” from the internal wiki. **One-line summaries** are for navigation; authoritative detail stays in each file.
 
-**Count:** ~295 markdown files under `docs/` (2026-04-19; exact count drifts as files are added; re-count when the catalog is audited — PowerShell: `(Get-ChildItem -Path docs -Recurse -Filter *.md).Count`).
+**Count:** **295** markdown files under `docs/` (2026-04-25; exact count drifts as files are added; re-count when the catalog is audited — PowerShell: `(Get-ChildItem -Path docs -Recurse -Filter *.md).Count`).
 
 ---
 
@@ -20,6 +20,7 @@
 | File | Summary |
 |------|---------|
 | [BALANCE_NOTES.md](../BALANCE_NOTES.md) | Numeric balance notes |
+| [BLUEPRINT_FRAMEWORK.md](../BLUEPRINT_FRAMEWORK.md) | Dev import graph + glossary blueprint codegen (`yarn graph:project`, `yarn blueprint:codegen`) |
 | [COLLECTIBLE_SYSTEM.md](../COLLECTIBLE_SYSTEM.md) | Collectibles design |
 | [DOC_CHECKBOX_INVENTORY.md](../DOC_CHECKBOX_INVENTORY.md) | Doc checkbox audit counts (maintenance) |
 | [FINDABLES.md](../FINDABLES.md) | Findables mechanic |
@@ -43,6 +44,8 @@
 | [STRAY_TILE.md](../STRAY_TILE.md) | Stray tile mechanic |
 | [SYMBOL_GUIDELINES.md](../SYMBOL_GUIDELINES.md) | Symbol art / semantics guidelines |
 | [VIEWPORT_FIT_UI.md](../VIEWPORT_FIT_UI.md) | Viewport fit / shell behavior |
+| [AUDIO_ASSET_INVENTORY.md](../AUDIO_ASSET_INVENTORY.md) | Shipped WAV roles, ACE batch, references, procedural fallbacks |
+| [AUDIO_INTERACTION_MATRIX.md](../AUDIO_INTERACTION_MATRIX.md) | Per-screen SFX map (reuse / new / silent) |
 | [AUDIO_INTEGRATION.md](../AUDIO_INTEGRATION.md) | Web Audio procedural **gameplay SFX** wiring (`gameSfx.ts`, store hooks) |
 | [gameplay/RUN_SESSION_DEBUG.md](../gameplay/RUN_SESSION_DEBUG.md) | Timer ownership and debugging run session |
 
@@ -211,6 +214,9 @@
 |------|---------|
 | [README.md](../visual-capture/README.md) | Capture workflow + AUDIT checklist completion policy |
 | [INVENTORY.md](../visual-capture/INVENTORY.md) | Generated inventory |
+| [improvement-workqueue/README.md](../visual-capture/improvement-workqueue/README.md) | UI improvement workqueue index |
+| [improvement-workqueue/INDEX.md](../visual-capture/improvement-workqueue/INDEX.md) | Workqueue item index |
+| [improvement-workqueue/UI-001.md](../visual-capture/improvement-workqueue/UI-001.md) … [UI-003.md](../visual-capture/improvement-workqueue/UI-003.md) | Tracked UI follow-ups |
 | `*/landscape/AUDIT.md`, `*/portrait/AUDIT.md` | Per-device/orientation audit notes (desktop-1280, desktop-1440, ipad-11, iphone-14-pro, iphone-se, laptop-1366, phone-large, pixel-7) |
 
 ---
@@ -220,6 +226,43 @@
 | File | Summary |
 |------|---------|
 | [README.md](../wip-assets/README.md) | WIP asset buckets and policy |
+
+---
+
+## `docs/refinement-tasks/` (REF backlog)
+
+| File | Summary |
+|------|---------|
+| [README.md](../refinement-tasks/README.md) | Triage index + process (links [INDEX.md](../refinement-tasks/INDEX.md)) |
+| [INDEX.md](../refinement-tasks/INDEX.md) | Master list of `REF-###.md` task files |
+| [COMPLETION.md](../refinement-tasks/COMPLETION.md) | Backlog completion log |
+| [EXPLICIT_50_AGENTS.md](../refinement-tasks/EXPLICIT_50_AGENTS.md) | 50-scoped agent prompt pack |
+| [EXPLICIT_100_AGENTS.md](../refinement-tasks/EXPLICIT_100_AGENTS.md) | 100-scoped agent prompt pack |
+| `REF-*.md` (individual tasks) | One file per refinement item — see [INDEX.md](../refinement-tasks/INDEX.md) (105 markdown files in this tree) |
+
+---
+
+## `docs/epics/`
+
+| File | Summary |
+|------|---------|
+| [relic-draft-fluid-system/README.md](../epics/relic-draft-fluid-system/README.md) | Relic draft fluid system epic index |
+| [relic-draft-fluid-system/01-visual-language.md](../epics/relic-draft-fluid-system/01-visual-language.md) | Visual language |
+| [relic-draft-fluid-system/02-state-machine.md](../epics/relic-draft-fluid-system/02-state-machine.md) | State machine |
+| [relic-draft-fluid-system/03-bonus-sources.md](../epics/relic-draft-fluid-system/03-bonus-sources.md) | Bonus sources |
+| [relic-draft-fluid-system/04-pickup-matrix.md](../epics/relic-draft-fluid-system/04-pickup-matrix.md) | Pickup matrix |
+| [relic-draft-fluid-system/05-ui-ultra-refinement.md](../epics/relic-draft-fluid-system/05-ui-ultra-refinement.md) | UI ultra-refinement |
+| [relic-draft-fluid-system/tasks/README.md](../epics/relic-draft-fluid-system/tasks/README.md) | RDUI task index |
+| [relic-draft-fluid-system/tasks/RDUI-001.md](../epics/relic-draft-fluid-system/tasks/RDUI-001.md) … [RDUI-008.md](../epics/relic-draft-fluid-system/tasks/RDUI-008.md) | Relic draft UI task slices |
+| [relic-draft-fluid-system/tasks/EXPLICIT_50_RDUI_AGENTS.md](../epics/relic-draft-fluid-system/tasks/EXPLICIT_50_RDUI_AGENTS.md) | 50-scoped parallel-agent prompts (RDUI) |
+
+---
+
+## `docs/ui-design-reference/` (non-markdown)
+
+| Note | Summary |
+|------|---------|
+| Binary / image reference stills | No `.md` index in this folder — capture workflows use [visual-capture/README.md](../visual-capture/README.md) and [ui-design-reference](../ui-design-reference/) as asset output; not line-indexed like markdown elsewhere in [COVERAGE.md](./COVERAGE.md). |
 
 ---
 
