@@ -1,6 +1,7 @@
 import type { RelicId, RunSummary, SaveData } from '../../shared/contracts';
 import { countEligibleHonors, totalHonorUnlocks } from '../../shared/honorUnlocks';
 import { RELIC_CATALOG } from '../../shared/game-catalog';
+import { getObjectiveBoardItems } from '../../shared/objective-board';
 import { formatNextUtcReset } from '../../shared/utc-countdown';
 import { useEffect, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
@@ -109,6 +110,7 @@ const MainMenu = ({
         ? `${lastRunSummary.totalScore.toLocaleString()} score / Floor ${lastRunSummary.highestLevel} / ${lastRunSummary.bestStreak} streak`
         : 'No descent recorded yet.';
     const dailyCountdown = formatNextUtcReset(nowMs);
+    const objectiveBoard = getObjectiveBoardItems(saveData);
     const uiGain = uiSfxGainFromSettings(saveData.settings.masterVolume, saveData.settings.sfxVolume);
     const playUiClick = (): void => {
         resumeUiSfxContext();
@@ -161,6 +163,26 @@ const MainMenu = ({
             </details>
         </Panel>
     ) : null;
+
+    const objectivePanel = (
+        <Panel className={styles.supportPanel} padding="lg" variant="accent">
+            <Eyebrow tone="tight">Objective Board</Eyebrow>
+            <ScreenTitle as="h2" className={styles.supportHeading} role="screen">
+                Mastery goals
+            </ScreenTitle>
+            <div className={styles.objectiveList} data-testid="main-menu-objective-board">
+                {objectiveBoard.map((objective) => (
+                    <div className={styles.objectiveItem} data-status={objective.status} key={objective.id}>
+                        <strong>{objective.title}</strong>
+                        <span>
+                            {objective.progress.current}/{objective.progress.target} · {objective.status}
+                        </span>
+                        <p>{objective.reward}</p>
+                    </div>
+                ))}
+            </div>
+        </Panel>
+    );
 
     const howToPanel = showHowToPlay ? (
         <Panel className={styles.supportPanel} padding="lg" variant="accent">
@@ -425,11 +447,13 @@ const MainMenu = ({
                                 ) : null}
 
                                 {prioritizeModesInHero && !(ultraCompactPhone && showHowToPlay) ? howToPanel : null}
+                                {prioritizeModesInHero && showBottomCards ? objectivePanel : null}
                             </main>
 
                             {!prioritizeModesInHero ? (
                                 <aside className={styles.supportColumn}>
                                     {archivePanel}
+                                    {objectivePanel}
                                     {howToPanel}
                                 </aside>
                             ) : null}
