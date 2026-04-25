@@ -672,7 +672,7 @@
     "updated": "2026-04-25"
   },
   "REG-050": {
-    "status": "open",
+    "status": "done",
     "phase": 2,
     "lane": "default",
     "dependencies": [
@@ -681,7 +681,7 @@
       "REG-088",
       "REG-089"
     ],
-    "commit": null,
+    "commit": "pending",
     "updated": "2026-04-25"
   },
   "REG-051": {

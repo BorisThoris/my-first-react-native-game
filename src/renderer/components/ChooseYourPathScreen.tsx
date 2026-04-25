@@ -379,6 +379,8 @@ const ChooseYourPathScreen = () => {
                     <img alt="" src={poster} />
                 </span>
                 <span className={styles.cardBodyWrap}>
+                    {def.promise ? <span className={styles.modeIdentityPill}>{def.promise}</span> : null}
+                    {def.availabilityDetail ? <span className={styles.modeIdentityPill}>{def.availabilityDetail}</span> : null}
                     {def.id === 'daily' ? <span className={styles.badge}>Featured</span> : null}
                     {isLocked ? <span className={`${styles.badge} ${styles.lockedBadge}`}>Locked</span> : null}
                     <span className={styles.cardTitle}>{def.title}</span>
@@ -720,6 +722,15 @@ const ChooseYourPathScreen = () => {
                     title={libraryDetailMode.title}
                 >
                     <p className={styles.libraryDetailDescription}>{libraryDetailMode.shortDescription}</p>
+                    {libraryDetailMode.promise ? (
+                        <p className={styles.libraryDetailPromise}>{libraryDetailMode.promise}</p>
+                    ) : null}
+                    {libraryDetailMode.eligibilityNote ? (
+                        <p className={styles.libraryDetailMuted}>{libraryDetailMode.eligibilityNote}</p>
+                    ) : null}
+                    {libraryDetailMode.availabilityDetail ? (
+                        <p className={styles.libraryDetailIdentity}>{libraryDetailMode.availabilityDetail}</p>
+                    ) : null}
                     {libraryDetailMode.availability !== 'available' ? (
                         <p className={styles.libraryDetailMuted}>
                             This mode is intentionally locked for v1. Classic Run is the playable escalating local

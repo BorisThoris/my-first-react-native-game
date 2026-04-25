@@ -21,6 +21,21 @@ const mutatorLabel = (id: MutatorId): string => MUTATOR_CATALOG[id].title;
 
 const relicLabel = (id: RelicId): string => RELIC_CATALOG[id].title;
 
+const runModeIdentityLine = (summary: NonNullable<RunState['lastRunSummary']>): string => {
+    switch (summary.gameMode) {
+        case 'gauntlet':
+            return gameOverScreenCopy.modeIdentity.gauntlet;
+        case 'meditation':
+            return gameOverScreenCopy.modeIdentity.meditation;
+        case 'puzzle':
+            return gameOverScreenCopy.modeIdentity.puzzle;
+        case 'daily':
+            return gameOverScreenCopy.modeIdentity.daily;
+        default:
+            return gameOverScreenCopy.modeIdentity.classic;
+    }
+};
+
 const GameOverScreen = ({ run }: GameOverScreenProps) => {
     const shellRef = useRef<HTMLElement | null>(null);
     const { height, width } = useViewportSize();
@@ -205,6 +220,7 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
                                           ? gameOverScreenCopy.runModeHeadings.puzzle
                                           : gameOverScreenCopy.runModeHeadings.classic}
                             </strong>
+                            <p className={styles.panelCopy}>{runModeIdentityLine(summary)}</p>
                             <p className={styles.panelCopy}>{gameOverScreenCopy.flipHistoryCopy(flipCount)}</p>
                         </Panel>
                     </aside>

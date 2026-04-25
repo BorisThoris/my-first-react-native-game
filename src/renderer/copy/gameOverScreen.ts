@@ -32,6 +32,13 @@ export const gameOverScreenCopy = {
         puzzle: 'Puzzle descent',
         classic: 'Classic descent'
     },
+    modeIdentity: {
+        gauntlet: 'Timed pressure: achievements still count, but the wall-clock can end the run.',
+        meditation: 'Focused comfort: calmer memorize pacing for study and mutator practice.',
+        puzzle: 'Curated challenge: fixed board and local completion tracking.',
+        daily: 'Shared UTC seed: local-only comparison, no online leaderboard.',
+        classic: 'Long-run core: routes, shop gold, relics, and featured objectives.'
+    },
     flipHistoryCopy: (flipCount: number) =>
         flipCount > 0
             ? `${flipCount} flips recorded locally for this session.`

@@ -29,6 +29,12 @@ export interface RunModeDefinition {
     id: string;
     title: string;
     shortDescription: string;
+    /** REG-050: player promise that differentiates why this mode exists. */
+    promise?: string;
+    /** REG-050: how achievements/local stats are treated for this mode. */
+    eligibilityNote?: string;
+    identityTag?: string;
+    outcomeSummary?: string;
     /** Extra availability/rules detail for locked or staged modes. */
     availabilityDetail?: string;
     group: RunModeGroup;
@@ -91,7 +97,11 @@ export const RUN_MODE_CATALOG: readonly RunModeDefinition[] = [
     {
         id: 'gauntlet',
         title: 'Gauntlet',
-        shortDescription: 'Race the clock in a timed descent. Pick a duration to begin.',
+        shortDescription: 'Timed pressure run: pick 5, 10, or 15 minutes and race clean floors before the clock seals.',
+        identityTag: 'Clock pressure',
+        promise: 'Timed mastery — same memory loop, but every decision competes with the countdown.',
+        eligibilityNote: 'Achievements stay eligible unless debug/assist rules lock a specific achievement; local honors track Gauntlet proof.',
+        outcomeSummary: 'Gauntlet results emphasize timed floor clears and local pressure mastery.',
         group: 'time_attack',
         availability: 'available',
         posterKey: 'gauntlet',
@@ -134,7 +144,11 @@ export const RUN_MODE_CATALOG: readonly RunModeDefinition[] = [
     {
         id: 'wild',
         title: 'Wild Run',
-        shortDescription: 'Wild mutators and pacing for unpredictable descents.',
+        shortDescription: 'Chaos lab: joker matching, sticky fingers, short memorize, and dense pickups for power discovery.',
+        identityTag: 'Chaos lab',
+        promise: 'Experiment with volatile tools and wild matching; expect swingy floors and fast discoveries.',
+        eligibilityNote: 'Practice-adjacent chaos run; perfect-memory style achievements are blocked by wild/power use, but local run stats still record.',
+        outcomeSummary: 'Wild results highlight volatile mutators, joker matching, and discovery.',
         group: 'training',
         availability: 'available',
         posterKey: 'wild',
@@ -143,7 +157,9 @@ export const RUN_MODE_CATALOG: readonly RunModeDefinition[] = [
     {
         id: 'practice',
         title: 'Practice',
-        shortDescription: 'Standard rules with practice pacing; experiment without pressure.',
+        shortDescription: 'Low-pressure lab for learning powers, tiles, and routes without chasing mastery rewards.',
+        promise: 'Learn and test — a safe place to rehearse the core loop.',
+        eligibilityNote: 'Practice disables achievements so experimentation cannot pollute mastery runs.',
         group: 'training',
         availability: 'available',
         posterKey: 'practice',
@@ -152,7 +168,9 @@ export const RUN_MODE_CATALOG: readonly RunModeDefinition[] = [
     {
         id: 'scholar',
         title: 'Scholar',
-        shortDescription: 'Contract: no shuffle, no destroy — read the board carefully.',
+        shortDescription: 'Mastery contract: no shuffle, no destroy — prove the read without damage-control tools.',
+        promise: 'Purist memory — planning and recall over rescue buttons.',
+        eligibilityNote: 'Achievements remain eligible; the contract also grants an extra relic choice at shrines.',
         group: 'training',
         availability: 'available',
         posterKey: 'scholar',
@@ -161,7 +179,9 @@ export const RUN_MODE_CATALOG: readonly RunModeDefinition[] = [
     {
         id: 'pin_vow',
         title: 'Pin vow',
-        shortDescription: 'Limited pins across the run — plan each mark.',
+        shortDescription: 'Planning constraint: only ten pin placements across the run, so every mark matters.',
+        promise: 'Precise planning — spend marks intentionally and preserve spatial memory.',
+        eligibilityNote: 'Achievements remain eligible; pins are Perfect Memory-safe, but the placement cap is strict.',
         group: 'training',
         availability: 'available',
         posterKey: 'pin_vow',
@@ -170,7 +190,11 @@ export const RUN_MODE_CATALOG: readonly RunModeDefinition[] = [
     {
         id: 'meditation',
         title: 'Meditation',
-        shortDescription: 'Optional mutators for a focused study run, or start calm.',
+        shortDescription: 'Comfort practice: calmer pacing, longer memorize windows, and optional focused mutator study.',
+        identityTag: 'Calm practice',
+        promise: 'Focused comfort — study patterns without the usual pressure spike.',
+        eligibilityNote: 'Achievements remain eligible when rules allow, but Meditation is positioned as practice/comfort first.',
+        outcomeSummary: 'Meditation results emphasize comfort practice and focused study.',
         group: 'training',
         availability: 'available',
         posterKey: 'meditation',
