@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import { scrubTelemetryPayload, setTelemetrySink, trackEvent } from './telemetry';
+import {
+    classifyTelemetryEvent,
+    scrubTelemetryPayload,
+    setTelemetrySink,
+    telemetryPolicyForEvent,
+    trackEvent
+} from './telemetry';
 
 describe('telemetry (REF-067)', () => {
     it('scrubs forbidden keys, truncates long strings, and redacts path-like values', () => {
@@ -29,5 +35,27 @@ describe('telemetry (REF-067)', () => {
         expect(fn).toHaveBeenCalledTimes(1);
         expect(fn.mock.calls[0]![0]).toBe('run_start');
         expect(fn.mock.calls[0]![1]).toEqual({ mode: 'daily' });
+    });
+
+    it('classifies event policy without online competitive submissions', () => {
+        expect(classifyTelemetryEvent('run_start')).toBe('balance_playtest');
+        expect(classifyTelemetryEvent('save_write_failed')).toBe('local_debug');
+        expect(classifyTelemetryEvent('crash_renderer')).toBe('crash_error');
+        expect(classifyTelemetryEvent('leaderboard_submit')).toBe('online_competitive_submission');
+
+        expect(telemetryPolicyForEvent('run_complete')).toEqual({
+            category: 'balance_playtest',
+            sink: 'local_dev_or_opt_in_remote',
+            piiAllowed: false,
+            remoteAllowedByDefault: false,
+            leaderboardSeparated: true
+        });
+        expect(telemetryPolicyForEvent('leaderboard_submit')).toEqual({
+            category: 'online_competitive_submission',
+            sink: 'deferred_out_of_scope_v1',
+            piiAllowed: false,
+            remoteAllowedByDefault: false,
+            leaderboardSeparated: true
+        });
     });
 });

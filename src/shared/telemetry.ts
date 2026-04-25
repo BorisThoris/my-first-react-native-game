@@ -1,12 +1,71 @@
 /**
- * Privacy-first telemetry hook (K1). Default is no-op; host can install a sink (e.g. Plausible) without changing call sites.
- * Payloads are scrubbed before delivery: forbidden keys dropped, strings truncated, filesystem-like paths redacted.
+ * Privacy-first telemetry hook (K1 / REG-063).
+ *
+ * v1 policy:
+ * - default runtime is local/no-op; no remote sink is installed in production by this module.
+ * - events are balance/debug signals, not competitive leaderboard submissions.
+ * - payloads are scrubbed before delivery: forbidden keys dropped, strings truncated, filesystem-like paths redacted.
  */
 export type TelemetryPayload = Record<string, string | number | boolean | null | undefined>;
 
 export type TelemetrySink = (event: string, payload: TelemetryPayload) => void;
+export type TelemetryCategory =
+    | 'local_debug'
+    | 'balance_playtest'
+    | 'crash_error'
+    | 'online_competitive_submission';
+
+export interface TelemetryPolicy {
+    defaultSink: 'none';
+    remoteCollectionEnabled: false;
+    consentRequiredBeforeRemoteSink: true;
+    leaderboardSubmissionsShareSink: false;
+    allowedCategories: readonly Exclude<TelemetryCategory, 'online_competitive_submission'>[];
+    deferredCategories: readonly Extract<TelemetryCategory, 'online_competitive_submission'>[];
+}
 
 let sink: TelemetrySink | null = null;
+
+export const TELEMETRY_POLICY: TelemetryPolicy = {
+    defaultSink: 'none',
+    remoteCollectionEnabled: false,
+    consentRequiredBeforeRemoteSink: true,
+    leaderboardSubmissionsShareSink: false,
+    allowedCategories: ['local_debug', 'balance_playtest', 'crash_error'],
+    deferredCategories: ['online_competitive_submission']
+} as const;
+
+export const classifyTelemetryEvent = (event: string): TelemetryCategory => {
+    if (event.startsWith('leaderboard_')) {
+        return 'online_competitive_submission';
+    }
+    if (event.startsWith('crash_') || event.startsWith('error_')) {
+        return 'crash_error';
+    }
+    if (event.startsWith('save_') || event.startsWith('settings_')) {
+        return 'local_debug';
+    }
+    return 'balance_playtest';
+};
+
+export const telemetryPolicyForEvent = (
+    event: string
+): {
+    category: TelemetryCategory;
+    sink: 'local_dev_or_opt_in_remote' | 'deferred_out_of_scope_v1';
+    piiAllowed: false;
+    remoteAllowedByDefault: false;
+    leaderboardSeparated: true;
+} => {
+    const category = classifyTelemetryEvent(event);
+    return {
+        category,
+        sink: category === 'online_competitive_submission' ? 'deferred_out_of_scope_v1' : 'local_dev_or_opt_in_remote',
+        piiAllowed: false,
+        remoteAllowedByDefault: false,
+        leaderboardSeparated: true
+    };
+};
 
 /** Keys that must never leave the client in structured telemetry (PII / secrets). */
 const FORBIDDEN_TELEMETRY_KEYS = new Set([
