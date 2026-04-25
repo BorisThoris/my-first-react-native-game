@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { GAME_RULES_VERSION, type BoardState, type MutatorId, type RunState, type Tile } from './contracts';
 import { BUILTIN_PUZZLES } from './builtin-puzzles';
 import {
+    applyRegionShuffle,
+    applyShuffle,
     buildBoard,
+    canRegionShuffleRow,
+    canShuffleBoard,
     collectDestroyEligibleTileIds,
     collectPeekEligibleTileIds,
     countFullyHiddenPairs,
@@ -239,5 +243,32 @@ describe('REG-087 action eligibility edge cases', () => {
 
         expect(issueCodes(board)).toContain('wild_singleton_unmatched_without_route');
         expect(inspectBoardFairness(board).hasCompletionRoute).toBe(false);
+    });
+
+    it('preserves completion routes after full shuffle and row shuffle assists', () => {
+        const fullShuffleRun = playableRun(createNewRun(0, { runSeed: 80_870 }));
+        expect(canShuffleBoard(fullShuffleRun)).toBe(true);
+        const afterFullShuffle = applyShuffle(fullShuffleRun);
+
+        expect(afterFullShuffle).not.toBe(fullShuffleRun);
+        expectRunFair(afterFullShuffle);
+
+        const rowShuffleRun = playableRun(
+            createNewRun(0, {
+                runSeed: 80_871,
+                initialRelicIds: ['region_shuffle_free_first'],
+                weakerShuffleMode: 'rows_only'
+            })
+        );
+        const shuffledRow = Array.from({ length: rowShuffleRun.board?.rows ?? 0 }, (_, row) => row).find((row) =>
+            canRegionShuffleRow(rowShuffleRun, row)
+        );
+
+        expect(shuffledRow).toBeTypeOf('number');
+        const afterRowShuffle = applyRegionShuffle(rowShuffleRun, shuffledRow!);
+
+        expect(afterRowShuffle).not.toBe(rowShuffleRun);
+        expectRunFair(afterRowShuffle);
+        expect(afterRowShuffle.regionShuffleRowArmed).toBeNull();
     });
 });

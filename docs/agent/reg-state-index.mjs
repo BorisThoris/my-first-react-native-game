@@ -40,6 +40,7 @@ const statusOverrides = new Map([
   [33, 'done'],
   [52, 'deferred'],
   [68, 'done'],
+  [87, 'done'],
   [89, 'done']
 ]);
 
@@ -52,7 +53,16 @@ for (let reg = 0; reg <= 160; reg += 1) {
     phase,
     lane: trackA.has(reg) ? 'trackA' : trackB.has(reg) ? 'trackB' : 'default',
     dependencies: dependenciesFor(reg, phase).map((dep) => `REG-${String(dep).padStart(3, '0')}`),
-    commit: reg === 33 ? 'e704f8a' : [52, 68].includes(reg) ? 'ce88cf2' : reg === 89 ? 'a735170' : null,
+    commit:
+      reg === 33
+        ? 'e704f8a'
+        : [52, 68].includes(reg)
+          ? 'ce88cf2'
+          : reg === 87
+            ? 'pending'
+            : reg === 89
+              ? 'a735170'
+              : null,
     updated: '2026-04-25'
   };
 }

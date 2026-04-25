@@ -1177,13 +1177,13 @@
     "updated": "2026-04-25"
   },
   "REG-087": {
-    "status": "open",
+    "status": "done",
     "phase": 1,
     "lane": "default",
     "dependencies": [
       "REG-033"
     ],
-    "commit": null,
+    "commit": "pending",
     "updated": "2026-04-25"
   },
   "REG-088": {
