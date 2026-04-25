@@ -16,6 +16,7 @@ import { useViewportSize } from '../hooks/useViewportSize';
 import { useShallow } from 'zustand/react/shallow';
 import { formatNextUtcReset } from '../../shared/utc-countdown';
 import type { MutatorId } from '../../shared/contracts';
+import { getChallengeModeGateRows, type ChallengeModeGateRow } from '../../shared/challenge-progression';
 import { MUTATOR_CATALOG } from '../../shared/mutators';
 import {
     choosePathHeroModes,
@@ -96,6 +97,7 @@ const ChooseYourPathScreen = () => {
         startRun,
         startScholarContractRun,
         startWildRun,
+        saveData,
         settings
     } = useAppStore(
         useShallow((state) => ({
@@ -112,6 +114,7 @@ const ChooseYourPathScreen = () => {
             startRun: state.startRun,
             startScholarContractRun: state.startScholarContractRun,
             startWildRun: state.startWildRun,
+            saveData: state.saveData,
             settings: state.settings
         }))
     );
@@ -169,6 +172,7 @@ const ChooseYourPathScreen = () => {
     const [libraryDetailMode, setLibraryDetailMode] = useState<RunModeDefinition | null>(null);
     const [meditationOpen, setMeditationOpen] = useState(false);
     const [meditationSelection, setMeditationSelection] = useState<Set<MutatorId>>(() => new Set());
+    const challengeGateRows = getChallengeModeGateRows(saveData);
 
     const heroModes = useMemo((): readonly RunModeDefinition[] => choosePathHeroModes(), []);
 
@@ -730,6 +734,16 @@ const ChooseYourPathScreen = () => {
                     ) : null}
                     {libraryDetailMode.availabilityDetail ? (
                         <p className={styles.libraryDetailIdentity}>{libraryDetailMode.availabilityDetail}</p>
+                    ) : null}
+                    {challengeGateRows.find((row) => row.modeId === libraryDetailMode.id) ? (
+                        <p className={styles.libraryDetailIdentity}>
+                            Gate: {challengeGateRows.find((row) => row.modeId === libraryDetailMode.id)?.entryCondition} ·{' '}
+                            {challengeGateRows.find((row) => row.modeId === libraryDetailMode.id)?.progress.current}/
+                            {challengeGateRows.find((row) => row.modeId === libraryDetailMode.id)?.progress.target} ·{' '}
+                            {challengeGateRows.find((row) => row.modeId === libraryDetailMode.id)?.status === 'available'
+                                ? 'Unlocked locally'
+                                : 'Locked locally'}
+                        </p>
                     ) : null}
                     {libraryDetailMode.availability !== 'available' ? (
                         <p className={styles.libraryDetailMuted}>

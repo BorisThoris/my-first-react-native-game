@@ -41,6 +41,7 @@ schema: reg | phase | status | contract | proof
 | REG-078 | 2 | done | Relic draft services expose shop-gold costs, once-per-round reroll/ban/upgrade availability, deterministic offer mutation, and disabled failure copy. | relics/game/GameScreen tests |
 | REG-079 | 2 | done | Run inventory exposes run-scoped loadout slots, consumable stack caps, mutation timing, and offline/non-persistent constraints in rules and Inventory UI. | run-inventory + InventoryScreen tests |
 | REG-080 | 2 | done | Permanent meta track exposes local-only upgrade/cosmetic rows, progress gates, unlock tags, no pay-to-skip currency, and Collection surfacing. | meta-progression + cosmetics tests |
+| REG-081 | 2 | done | Challenge modes expose offline save-derived gate rows, lock/available states, eligibility notes, and Choose Path detail copy for Gauntlet, puzzles, and contracts. | challenge-progression + run-mode catalog tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.
