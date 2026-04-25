@@ -94,7 +94,7 @@ for (let reg = 0; reg <= 160; reg += 1) {
     dependencies: dependenciesFor(reg, phase).map((dep) => `REG-${String(dep).padStart(3, '0')}`),
     commit:
       reg === 1
-        ? 'pending'
+        ? '9b7d03f'
         : reg === 24
           ? '7daefab'
         : reg === 18
