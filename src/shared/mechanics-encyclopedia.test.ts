@@ -30,7 +30,7 @@ function assertCatalogEntry<T extends { id: string; title: string; description: 
 
 describe('mechanics-encyclopedia', () => {
     it('ENCYCLOPEDIA_VERSION is monotonic (bump when doc set changes)', () => {
-        expect(ENCYCLOPEDIA_VERSION).toBeGreaterThanOrEqual(4);
+        expect(ENCYCLOPEDIA_VERSION).toBeGreaterThanOrEqual(11);
     });
 
     it('ACHIEVEMENT_CATALOG has an entry per AchievementId with id/title/description aligned to keys', () => {

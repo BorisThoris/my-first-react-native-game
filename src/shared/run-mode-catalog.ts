@@ -27,6 +27,8 @@ export interface RunModeDefinition {
     id: string;
     title: string;
     shortDescription: string;
+    /** Extra availability/rules detail for locked or staged modes. */
+    availabilityDetail?: string;
     group: RunModeGroup;
     availability: RunModeAvailability;
     /** Key into mode poster map (`modeArt.ts`). */
@@ -55,7 +57,9 @@ export const RUN_MODE_CATALOG: readonly RunModeDefinition[] = [
     {
         id: 'classic',
         title: 'Classic Run',
-        shortDescription: 'Procedural floors, relic milestones, and escalating pair counts.',
+        shortDescription: 'Shippable endless-style descent: procedural floors, route choices, shop gold, relic milestones, and escalating pair counts.',
+        availabilityDetail:
+            'This is the live long-run ruleset for v1. It uses the internal endless simulation but is branded Classic until the future ultra-long Endless variant ships.',
         group: 'core',
         availability: 'available',
         posterKey: 'classic',
@@ -73,7 +77,9 @@ export const RUN_MODE_CATALOG: readonly RunModeDefinition[] = [
     {
         id: 'endless',
         title: 'Endless Mode',
-        shortDescription: 'Future ruleset for ultra-long descents. Not playable yet.',
+        shortDescription: 'Upcoming ultra-long variant. Locked intentionally while long-form balance, rewards, and fatigue rules are tuned.',
+        availabilityDetail:
+            'Staged for a later balance pass: Classic already provides procedural long-run play; this card is not an unlock requirement or broken button.',
         group: 'core',
         availability: 'locked',
         posterKey: 'endless',

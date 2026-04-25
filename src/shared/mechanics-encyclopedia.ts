@@ -8,7 +8,7 @@
 import type { AchievementId, GameMode, MutatorId, RelicId } from './contracts';
 
 /** Monotonic reference doc version (increment when the encyclopedia meaningfully changes). */
-export const ENCYCLOPEDIA_VERSION = 10 as const;
+export const ENCYCLOPEDIA_VERSION = 11 as const;
 
 export interface RelicDefinition {
     id: RelicId;
@@ -48,7 +48,7 @@ export type EncyclopediaTopic = CodexCoreTopic;
 export const VISUAL_ENDLESS_MODE_LOCKED = {
     title: 'Endless Mode',
     description:
-        'A future ruleset for ultra-long descents. Not playable yet—balance and relic cadence are still in design.'
+        'A staged future ruleset for ultra-long descents. Classic already uses endless-style floors; this separate mode stays locked until its distinct scoring and reward cadence are tuned.'
 } as const;
 
 /**

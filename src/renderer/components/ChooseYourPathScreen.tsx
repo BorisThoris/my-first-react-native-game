@@ -383,6 +383,11 @@ const ChooseYourPathScreen = () => {
                     {isLocked ? <span className={`${styles.badge} ${styles.lockedBadge}`}>Locked</span> : null}
                     <span className={styles.cardTitle}>{def.title}</span>
                     <p className={styles.cardBody}>{def.shortDescription}</p>
+                        {isLocked ? (
+                            <p className={styles.cardBody}>
+                                Planned post-v1 mode; Classic currently owns the long local descent loop.
+                            </p>
+                        ) : null}
                     {def.id === 'classic' ? (
                         <div className={styles.cardFooter}>
                             <span className={styles.cardStatLine}>
@@ -716,7 +721,11 @@ const ChooseYourPathScreen = () => {
                 >
                     <p className={styles.libraryDetailDescription}>{libraryDetailMode.shortDescription}</p>
                     {libraryDetailMode.availability !== 'available' ? (
-                        <p className={styles.libraryDetailMuted}>This mode is not available from here yet.</p>
+                        <p className={styles.libraryDetailMuted}>
+                            This mode is intentionally locked for v1. Classic Run is the playable escalating local
+                            descent; this card reserves a future ultra-long ruleset after balance, relic cadence, and
+                            route/shop pacing are final.
+                        </p>
                     ) : null}
                     {libraryDetailMode.action.type === 'gauntlet' && libraryDetailMode.availability === 'available' ? (
                         <div aria-label="Gauntlet duration" className={styles.libraryDetailGauntlet} role="group">
