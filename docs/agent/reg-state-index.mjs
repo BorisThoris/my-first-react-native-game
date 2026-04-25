@@ -65,6 +65,7 @@ const statusOverrides = new Map([
   [80, 'done'],
   [81, 'done'],
   [82, 'done'],
+  [83, 'done'],
   [45, 'done'],
   [24, 'done'],
   [33, 'done'],
@@ -146,6 +147,8 @@ for (let reg = 0; reg <= 160; reg += 1) {
             ? 'ec72c06'
           : reg === 82
             ? '51076b8'
+          : reg === 83
+            ? 'pending'
               : reg === 15
                   ? 'a1d84fa'
                   : reg === 17

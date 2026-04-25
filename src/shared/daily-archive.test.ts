@@ -1,0 +1,74 @@
+import { describe, expect, it } from 'vitest';
+import { createDefaultSaveData } from './save-data';
+import {
+    buildDailyArchiveShareString,
+    getDailyArchiveRows,
+    getDailyArchiveSummary,
+    seasonKeyForDaily,
+    weekKeyForDaily
+} from './daily-archive';
+
+describe('REG-083 daily weekly season archive', () => {
+    it('derives offline daily, weekly, and season archive rows from local save data', () => {
+        const save = createDefaultSaveData();
+        save.playerStats = {
+            ...save.playerStats!,
+            dailiesCompleted: 8,
+            dailyStreakCosmetic: 4,
+            lastDailyDateKeyUtc: '20260425'
+        };
+        save.lastRunSummary = {
+            totalScore: 2500,
+            bestScore: 3000,
+            levelsCleared: 2,
+            highestLevel: 3,
+            achievementsEnabled: true,
+            unlockedAchievements: [],
+            bestStreak: 5,
+            perfectClears: 1,
+            gameMode: 'daily',
+            dailyDateKeyUtc: '20260425',
+            runSeed: 123,
+            runRulesVersion: 15
+        };
+
+        const rows = getDailyArchiveRows(save);
+        expect(rows.map((row) => row.archiveType)).toEqual(['daily', 'weekly', 'season']);
+        expect(rows[0]).toMatchObject({
+            archiveKey: '20260425',
+            status: 'completed',
+            localOnly: true,
+            onlineLeaderboardDeferred: true
+        });
+        expect(rows[1]?.archiveKey).toBe(weekKeyForDaily('20260425'));
+        expect(rows[2]?.archiveKey).toBe(seasonKeyForDaily('20260425'));
+        expect(getDailyArchiveSummary(save)).toMatchObject({
+            completedDailies: 8,
+            currentStreak: 4,
+            lastDailyDateKeyUtc: '20260425',
+            onlineRequired: false
+        });
+    });
+
+    it('builds privacy-safe local share strings without competitive rank', () => {
+        const save = createDefaultSaveData();
+        save.playerStats = { ...save.playerStats!, dailiesCompleted: 1, lastDailyDateKeyUtc: '20260425' };
+        save.lastRunSummary = {
+            totalScore: 900,
+            bestScore: 900,
+            levelsCleared: 1,
+            highestLevel: 2,
+            achievementsEnabled: true,
+            unlockedAchievements: [],
+            bestStreak: 3,
+            perfectClears: 0,
+            gameMode: 'daily',
+            dailyDateKeyUtc: '20260425'
+        };
+
+        const share = buildDailyArchiveShareString(save);
+        expect(share).toContain('Daily 20260425');
+        expect(share).toContain('local-only');
+        expect(share).not.toMatch(/rank|leaderboard|account/i);
+    });
+});

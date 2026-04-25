@@ -14,6 +14,7 @@ import {
     HONOR_UNLOCK_ORDER
 } from '../../shared/honorUnlocks';
 import { RELIC_CATALOG } from '../../shared/game-catalog';
+import { getDailyArchiveRows, getDailyArchiveSummary } from '../../shared/daily-archive';
 import { getMetaCosmeticTrackRows, getPermanentUpgradeRows } from '../../shared/meta-progression';
 import { ACHIEVEMENT_IDS } from '../../shared/save-data';
 import {
@@ -43,6 +44,8 @@ const CollectionScreen = () => {
     const honorEarned = new Set(eligibleHonorUnlockIds(saveData));
     const permanentUpgradeRows = getPermanentUpgradeRows(saveData);
     const cosmeticTrackRows = getMetaCosmeticTrackRows(saveData);
+    const dailyArchiveRows = getDailyArchiveRows(saveData);
+    const dailyArchiveSummary = getDailyArchiveSummary(saveData);
     const uiGain = uiSfxGainFromSettings(settings.masterVolume, settings.sfxVolume);
     const handleBack = (): void => {
         resumeUiSfxContext();
@@ -272,6 +275,22 @@ const CollectionScreen = () => {
                             <span>
                                 Streak (cosmetic)<strong>{ps?.dailyStreakCosmetic ?? 0}</strong>
                             </span>
+                            <span>
+                                Weekly archive<strong>{dailyArchiveRows.find((row) => row.scope === 'weekly')?.key}</strong>
+                            </span>
+                            <span>
+                                Season archive<strong>{dailyArchiveRows.find((row) => row.scope === 'season')?.key}</strong>
+                            </span>
+                        </div>
+                        <div className={`${styles.grid} ${metaStyles.metaLongList}`}>
+                            {dailyArchiveRows.map((row) => (
+                                <div className={styles.achievementCard} key={row.key}>
+                                    <strong>{row.title}</strong>
+                                    <p className={metaStyles.subtitle}>{row.comparisonString}</p>
+                                    <span className={styles.symbolMeta}>{row.scope} · {row.key}</span>
+                                    <span className={styles.symbolMeta}>Local only · online boards deferred</span>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </Panel>
