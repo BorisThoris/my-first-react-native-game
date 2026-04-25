@@ -34,6 +34,14 @@ export type RelicDraftTag =
     | 'favor'
     | 'draft';
 
+export type RelicBuildArchetype =
+    | 'memory_control'
+    | 'board_control'
+    | 'combo_sustain'
+    | 'safe_reveal'
+    | 'risk_favor'
+    | 'chapter_draft';
+
 type RelicContractForbid = keyof Pick<ContractFlags, 'noShuffle' | 'noDestroy'>;
 
 export interface RelicDraftContext {
@@ -51,8 +59,19 @@ export interface RelicDraftRow {
     /** Base weight before tier scaling (tune relative odds at tier 0). */
     weight: number;
     tags: RelicDraftTag[];
+    /** REG-019: player-facing build identity buckets surfaced in drafts/Codex. */
+    archetypes: RelicBuildArchetype[];
     forbiddenWithContract?: RelicContractForbid[];
 }
+
+export const RELIC_BUILD_ARCHETYPE_LABELS: Record<RelicBuildArchetype, string> = {
+    memory_control: 'Memory control',
+    board_control: 'Board control',
+    combo_sustain: 'Combo sustain',
+    safe_reveal: 'Safe reveal',
+    risk_favor: 'Risk / Favor',
+    chapter_draft: 'Chapter draft'
+};
 
 /**
  * Single source for draft odds. Add new `RelicId` here and in `game.ts` / encyclopedia.
@@ -63,38 +82,52 @@ export const RELIC_DRAFT: Record<RelicId, RelicDraftRow> = {
         rarity: 'common',
         weight: 100,
         tags: ['shuffle'],
+        archetypes: ['board_control'],
         forbiddenWithContract: ['noShuffle']
     },
     first_shuffle_free_per_floor: {
         rarity: 'common',
         weight: 88,
         tags: ['shuffle'],
+        archetypes: ['board_control'],
         forbiddenWithContract: ['noShuffle']
     },
-    memorize_bonus_ms: { rarity: 'common', weight: 92, tags: ['memorize'] },
-    memorize_under_short_memorize: { rarity: 'uncommon', weight: 52, tags: ['memorize'] },
+    memorize_bonus_ms: { rarity: 'common', weight: 92, tags: ['memorize'], archetypes: ['memory_control'] },
+    memorize_under_short_memorize: { rarity: 'uncommon', weight: 52, tags: ['memorize'], archetypes: ['memory_control'] },
     region_shuffle_free_first: {
         rarity: 'common',
         weight: 85,
         tags: ['shuffle'],
+        archetypes: ['board_control'],
         forbiddenWithContract: ['noShuffle']
     },
     destroy_bank_plus_one: {
         rarity: 'uncommon',
         weight: 55,
         tags: ['destroy'],
+        archetypes: ['board_control'],
         forbiddenWithContract: ['noDestroy']
     },
-    combo_shard_plus_step: { rarity: 'uncommon', weight: 48, tags: ['combo', 'parasite'] },
-    parasite_ward_once: { rarity: 'rare', weight: 28, tags: ['parasite'] },
-    peek_charge_plus_one: { rarity: 'uncommon', weight: 50, tags: ['peek', 'wager'] },
-    stray_charge_plus_one: { rarity: 'rare', weight: 26, tags: ['search'] },
-    pin_cap_plus_one: { rarity: 'rare', weight: 24, tags: ['pin'] },
-    guard_token_plus_one: { rarity: 'rare', weight: 30, tags: ['guard', 'parasite', 'wager'] },
-    shrine_echo: { rarity: 'uncommon', weight: 36, tags: ['favor', 'wager'] },
-    chapter_compass: { rarity: 'uncommon', weight: 34, tags: ['draft'] },
-    wager_surety: { rarity: 'rare', weight: 22, tags: ['wager'] },
-    parasite_ledger: { rarity: 'uncommon', weight: 38, tags: ['parasite'] }
+    combo_shard_plus_step: {
+        rarity: 'uncommon',
+        weight: 48,
+        tags: ['combo', 'parasite'],
+        archetypes: ['combo_sustain']
+    },
+    parasite_ward_once: { rarity: 'rare', weight: 28, tags: ['parasite'], archetypes: ['combo_sustain'] },
+    peek_charge_plus_one: { rarity: 'uncommon', weight: 50, tags: ['peek', 'wager'], archetypes: ['safe_reveal', 'risk_favor'] },
+    stray_charge_plus_one: { rarity: 'rare', weight: 26, tags: ['search'], archetypes: ['safe_reveal'] },
+    pin_cap_plus_one: { rarity: 'rare', weight: 24, tags: ['pin'], archetypes: ['safe_reveal'] },
+    guard_token_plus_one: {
+        rarity: 'rare',
+        weight: 30,
+        tags: ['guard', 'parasite', 'wager'],
+        archetypes: ['combo_sustain', 'risk_favor']
+    },
+    shrine_echo: { rarity: 'uncommon', weight: 36, tags: ['favor', 'wager'], archetypes: ['risk_favor'] },
+    chapter_compass: { rarity: 'uncommon', weight: 34, tags: ['draft'], archetypes: ['chapter_draft'] },
+    wager_surety: { rarity: 'rare', weight: 22, tags: ['wager'], archetypes: ['risk_favor'] },
+    parasite_ledger: { rarity: 'uncommon', weight: 38, tags: ['parasite'], archetypes: ['combo_sustain', 'chapter_draft'] }
 };
 
 /** Stable iteration order for docs / balance checks. */
@@ -155,6 +188,26 @@ export const effectiveRelicDraftWeight = (id: RelicId, tierIndex: number): numbe
 };
 
 export const getRelicDraftRow = (id: RelicId): RelicDraftRow => RELIC_DRAFT[id];
+
+export const getRelicBuildArchetypes = (id: RelicId): RelicBuildArchetype[] => [...RELIC_DRAFT[id].archetypes];
+
+export const getRelicArchetypeLabels = (id: RelicId): string[] =>
+    getRelicBuildArchetypes(id).map((archetype) => RELIC_BUILD_ARCHETYPE_LABELS[archetype]);
+
+export const getRelicArchetypeSummary = (id: RelicId): string =>
+    getRelicArchetypeLabels(id).join(' / ');
+
+export const getRelicBuildArchetypeSummaries = (): {
+    id: RelicBuildArchetype;
+    label: string;
+    relicIds: RelicId[];
+}[] =>
+    (Object.keys(RELIC_BUILD_ARCHETYPE_LABELS) as RelicBuildArchetype[]).map((id) => ({
+        id,
+        label: RELIC_BUILD_ARCHETYPE_LABELS[id],
+        relicIds: RELIC_POOL.filter((relicId) => RELIC_DRAFT[relicId].archetypes.includes(id))
+    }));
+
 
 export const getRelicDraftContext = (run: RunState, clearedFloor: number): RelicDraftContext => {
     const isScheduledEndless = isScheduledEndlessDraftRun(run);

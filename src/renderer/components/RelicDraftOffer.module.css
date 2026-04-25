@@ -146,6 +146,18 @@
     background: color-mix(in srgb, var(--theme-amber) 10%, transparent);
 }
 
+.archetype {
+    align-self: flex-start;
+    margin-top: -0.12rem;
+    padding: 0.1rem 0.34rem;
+    border: 1px solid color-mix(in srgb, var(--theme-cyan) 34%, transparent);
+    border-radius: var(--ui-radius-sm);
+    font-size: var(--ui-font-caption);
+    font-weight: 700;
+    color: color-mix(in srgb, var(--theme-cyan-bright) 82%, white);
+    background: color-mix(in srgb, var(--theme-cyan) 8%, transparent);
+}
+
 :global([data-reduce-motion='false']) .card_rare::after {
     content: '';
     position: absolute;

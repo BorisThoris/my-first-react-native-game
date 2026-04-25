@@ -6,6 +6,7 @@ import {
     MAX_RELIC_PICKS_PER_RUN,
     getContextualRelicDraftWeight,
     getRelicDraftContext,
+    getRelicBuildArchetypeSummaries,
     getRelicDraftOptionReasons,
     isRelicDraftEligible,
     effectiveRelicDraftWeight,
@@ -88,6 +89,22 @@ describe('effectiveRelicDraftWeight', () => {
 });
 
 describe('rollRelicOptions', () => {
+    it('REG-019 groups relics into at least three multi-relic build archetypes', () => {
+        const summaries = getRelicBuildArchetypeSummaries();
+        const multiRelicArchetypes = summaries.filter((summary) => summary.relicIds.length >= 2);
+
+        expect(multiRelicArchetypes.length).toBeGreaterThanOrEqual(3);
+        expect(summaries.find((summary) => summary.id === 'combo_sustain')?.relicIds).toEqual(
+            expect.arrayContaining(['combo_shard_plus_step', 'guard_token_plus_one'])
+        );
+        expect(summaries.find((summary) => summary.id === 'safe_reveal')?.relicIds).toEqual(
+            expect.arrayContaining(['peek_charge_plus_one', 'stray_charge_plus_one'])
+        );
+        expect(summaries.find((summary) => summary.id === 'risk_favor')?.relicIds).toEqual(
+            expect.arrayContaining(['shrine_echo', 'wager_surety'])
+        );
+    });
+
     it('is deterministic for the same seed, tier, floor, and pickRound', () => {
         const run = createNewRun(0);
         const a = rollRelicOptions(run, 2, 9, 0);

@@ -7,7 +7,12 @@ import {
     type KeyboardEvent
 } from 'react';
 import type { RelicId } from '../../shared/contracts';
-import { getRelicDraftRow, relicDraftRarityLabel, type RelicDraftRarity } from '../../shared/relics';
+import {
+    getRelicArchetypeLabels,
+    getRelicDraftRow,
+    relicDraftRarityLabel,
+    type RelicDraftRarity
+} from '../../shared/relics';
 import { relicDraftRoundAdvancedAnnouncement } from '../copy/relicDraftOffer';
 import styles from './RelicDraftOffer.module.css';
 
@@ -149,6 +154,7 @@ const RelicDraftOfferPanel = ({
                     const row = getRelicDraftRow(id);
                     const desc = descriptionById[id] ?? id;
                     const reason = reasonById?.[id];
+                    const archetypes = getRelicArchetypeLabels(id);
                     const ariaTier = relicDraftRarityLabel(row.rarity);
                     const staggerStyle: CSSProperties = {
                         '--relic-card-stagger': index
@@ -164,6 +170,7 @@ const RelicDraftOfferPanel = ({
                         >
                             <span aria-hidden className={styles.runeStrip} />
                             {reason ? <span className={styles.reason}>{reason}</span> : null}
+                            <span className={styles.archetypes}>{archetypes.join(' · ')}</span>
                             <p className={styles.body}>{desc}</p>
                         </button>
                     );
