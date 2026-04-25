@@ -6,7 +6,7 @@
  * Balance cross-check: `docs/BALANCE_NOTES.md` (Relic roster) — update when adding IDs or changing memorize /
  * charge numbers; `relicBalanceDoc.test.ts` guards key doc strings.
  */
-import type { ContractFlags, MutatorId, RelicId, RunState } from './contracts';
+import type { ContractFlags, MutatorId, RelicId, RelicOfferServiceId, RelicOfferServiceState, RunState } from './contracts';
 import { pickFloorScheduleEntry, usesEndlessFloorSchedule } from './floor-mutator-schedule';
 import { hashStringToSeed } from './rng';
 import { pickWeightedWithoutReplacement } from './weightedPick';
@@ -389,7 +389,6 @@ export const needsRelicPick = (run: RunState): boolean => {
 };
 
 const DRAFT_OPTION_COUNT = 3;
-
 /**
  * @param clearedFloor — level just cleared; included in RNG seed for stable options per floor.
  * @param pickRound — increments within one milestone visit when the player takes multiple relics (reroll trio).
@@ -457,3 +456,176 @@ export const getRelicDraftOptionReasons = (
     }
     return Object.keys(reasons).length > 0 ? reasons : undefined;
 };
+
+const RELIC_OFFER_SERVICE_CATALOG: Record<
+    RelicOfferServiceId,
+    { label: string; description: string; cost: number }
+> = {
+    reroll_offer: {
+        label: 'Reroll offer',
+        description: 'Spend shop gold to roll a fresh relic trio once this draft round.',
+        cost: 1
+    },
+    ban_option: {
+        label: 'Ban option',
+        description: 'Spend shop gold to remove the first visible relic from this visit.',
+        cost: 1
+    },
+    upgrade_offer: {
+        label: 'Upgrade offer',
+        description: 'Spend shop gold to bias the visible choices toward uncommon and rare relics.',
+        cost: 2
+    }
+};
+
+const relicOfferServiceUseCount = (run: RunState, serviceId: RelicOfferServiceId): number =>
+    run.relicOffer?.serviceUses?.[serviceId] ?? 0;
+
+export const createRelicOfferServices = (run: RunState): RelicOfferServiceState[] => {
+    const offer = run.relicOffer;
+    return (Object.keys(RELIC_OFFER_SERVICE_CATALOG) as RelicOfferServiceId[]).map((serviceId) => {
+        const base = RELIC_OFFER_SERVICE_CATALOG[serviceId];
+        let unavailableReason: string | null = null;
+        if (!offer) {
+            unavailableReason = 'No relic offer is open.';
+        } else if (relicOfferServiceUseCount(run, serviceId) > 0) {
+            unavailableReason = 'Already used this relic service during this visit.';
+        } else if (run.shopGold < base.cost) {
+            unavailableReason = 'Not enough shop gold.';
+        } else if (serviceId === 'ban_option' && offer.options.length <= 1) {
+            unavailableReason = 'Only one relic option remains.';
+        } else if (serviceId === 'upgrade_offer' && offer.upgradedOffer) {
+            unavailableReason = 'Offer already upgraded.';
+        }
+        return {
+            serviceId,
+            ...base,
+            available: unavailableReason === null,
+            unavailableReason,
+            usedThisRound: relicOfferServiceUseCount(run, serviceId)
+        };
+    });
+};
+
+export interface RelicOfferServiceAction extends RelicOfferServiceState {
+    effectPreview: string;
+}
+
+export const getRelicOfferServiceActions = (run: RunState): RelicOfferServiceAction[] =>
+    createRelicOfferServices(run).map((service) => ({
+        ...service,
+        effectPreview:
+            service.serviceId === 'reroll_offer'
+                ? 'Fresh choices'
+                : service.serviceId === 'ban_option'
+                  ? 'Remove one option'
+                  : 'Favor rare picks'
+    }));
+
+export const withRelicOfferServiceActions = <T extends RunState['relicOffer']>(run: RunState, offer: T): T =>
+    offer
+        ? {
+              ...offer,
+              services: getRelicOfferServiceActions({ ...run, relicOffer: offer })
+          }
+        : offer;
+
+export interface RelicOfferServiceResult {
+    run: RunState;
+    applied: boolean;
+    serviceId: RelicOfferServiceId;
+    reason?: 'no_offer' | 'unavailable';
+}
+
+const upgradedRelicOptions = (
+    run: RunState,
+    tierIndex: number,
+    clearedFloor: number,
+    pickRound: number,
+    bannedRelicIds: readonly RelicId[]
+): RelicId[] => {
+    const available = RELIC_POOL.filter((id) => isRelicDraftEligible(id, run) && !bannedRelicIds.includes(id));
+    const preferred = available.filter((id) => RELIC_DRAFT[id].rarity !== 'common');
+    const seed = hashStringToSeed(`relicUpgrade:${run.runSeed}:${tierIndex}:${clearedFloor}:${pickRound}`);
+    const rng = makeRng(seed);
+    const context = getRelicDraftContext(run, clearedFloor);
+    const first = pickWeightedWithoutReplacement(
+        rng,
+        preferred.map((id) => ({
+            value: id,
+            weight: getContextualRelicDraftWeight(id, context, tierIndex) * 1.5
+        })),
+        Math.min(2, preferred.length)
+    );
+    const rest = pickWeightedWithoutReplacement(
+        rng,
+        available
+            .filter((id) => !first.includes(id))
+            .map((id) => ({ value: id, weight: getContextualRelicDraftWeight(id, context, tierIndex) })),
+        DRAFT_OPTION_COUNT - first.length
+    );
+    return [...first, ...rest];
+};
+
+export const applyRelicOfferService = (
+    run: RunState,
+    serviceId: RelicOfferServiceId,
+    targetRelicId?: RelicId
+): RelicOfferServiceResult => {
+    const offer = run.relicOffer;
+    if (!offer || !run.lastLevelResult) {
+        return { run, applied: false, serviceId, reason: 'no_offer' };
+    }
+    const service = createRelicOfferServices(run).find((row) => row.serviceId === serviceId);
+    if (!service?.available) {
+        return { run: { ...run, relicOffer: { ...offer, services: createRelicOfferServices(run) } }, applied: false, serviceId, reason: 'unavailable' };
+    }
+    const cleared = run.lastLevelResult.level;
+    const tierIndex = relicMilestoneIndexForFloor(cleared);
+    if (tierIndex === null) {
+        return { run, applied: false, serviceId, reason: 'no_offer' };
+    }
+
+    const serviceUses = { ...(offer.serviceUses ?? {}), [serviceId]: relicOfferServiceUseCount(run, serviceId) + 1 };
+    const bannedRelicIds = [...(offer.bannedRelicIds ?? [])];
+    let pickRound = offer.pickRound;
+    let upgradedOffer = offer.upgradedOffer ?? false;
+    let options = [...offer.options];
+    const paidRun: RunState = { ...run, shopGold: run.shopGold - service.cost };
+
+    if (serviceId === 'ban_option') {
+        const banTarget = targetRelicId && options.includes(targetRelicId) ? targetRelicId : options[0]!;
+        bannedRelicIds.push(banTarget);
+        options = options.filter((id) => id !== banTarget);
+        if (options.length < DRAFT_OPTION_COUNT) {
+            const refill = rollRelicOptions(paidRun, tierIndex, cleared, pickRound + 1).filter(
+                (id) => !bannedRelicIds.includes(id) && !options.includes(id)
+            );
+            options = [...options, ...refill].slice(0, DRAFT_OPTION_COUNT);
+        }
+    } else if (serviceId === 'reroll_offer') {
+        pickRound += 1;
+        options = rollRelicOptions(paidRun, tierIndex, cleared, pickRound).filter((id) => !bannedRelicIds.includes(id));
+    } else {
+        upgradedOffer = true;
+        pickRound += 1;
+        options = upgradedRelicOptions(paidRun, tierIndex, cleared, pickRound, bannedRelicIds);
+    }
+
+    const nextOffer = {
+        ...offer,
+        options,
+        pickRound,
+        serviceUses,
+        bannedRelicIds,
+        upgradedOffer,
+        contextualOptionReasons: getRelicDraftOptionReasons(paidRun, cleared, options)
+    };
+    const nextRun = { ...paidRun, relicOffer: nextOffer };
+    return {
+        run: { ...nextRun, relicOffer: { ...nextOffer, services: createRelicOfferServices(nextRun) } },
+        applied: true,
+        serviceId
+    };
+};
+

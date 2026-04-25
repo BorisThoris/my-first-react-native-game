@@ -157,10 +157,30 @@ export interface RelicOfferState {
     picksRemaining: number;
     /** Reroll counter for deterministic `rollRelicOptions` within this visit. */
     pickRound: number;
+    /** REG-078: relic-offer service bookkeeping; scoped to this draft visit and never persisted. */
+    serviceUses?: Partial<Record<RelicOfferServiceId, number>>;
+    /** REG-078: option ids removed from the current visit by ban service. */
+    bannedRelicIds?: RelicId[];
+    /** REG-078: whether the current option set was upgraded toward higher rarity. */
+    upgradedOffer?: boolean;
+    /** REG-078: derived service rows for UI/buttons; safe to rebuild from RunState. */
+    services?: RelicOfferServiceState[];
     /** Display-only source marker for bonus picks banked from endless featured-objective favor. */
     favorBonusPicks?: number;
     /** Display-only reason copy for chapter-aligned options in the current draft round. */
     contextualOptionReasons?: Partial<Record<RelicId, string>>;
+}
+
+export type RelicOfferServiceId = 'reroll_offer' | 'ban_option' | 'upgrade_offer';
+
+export interface RelicOfferServiceState {
+    serviceId: RelicOfferServiceId;
+    label: string;
+    description: string;
+    cost: number;
+    available: boolean;
+    unavailableReason: string | null;
+    usedThisRound: number;
 }
 
 export type RunShopItemId = 'heal_life' | 'peek_charge' | 'destroy_charge';

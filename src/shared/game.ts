@@ -45,6 +45,7 @@ import {
     type MutatorId,
     type Rating,
     type RelicId,
+    type RelicOfferServiceId,
     type ResumableRunStatus,
     type RunShopItemId,
     type RunShopOfferState,
@@ -60,7 +61,15 @@ import {
     usesEndlessFloorSchedule
 } from './floor-mutator-schedule';
 import { DAILY_MUTATOR_TABLE, hasMutator } from './mutators';
-import { getRelicDraftOptionReasons, needsRelicPick, relicMilestoneIndexForFloor, rollRelicOptions } from './relics';
+import {
+    applyRelicOfferService,
+    createRelicOfferServices,
+    getRelicOfferServiceActions,
+    getRelicDraftOptionReasons,
+    needsRelicPick,
+    relicMilestoneIndexForFloor,
+    rollRelicOptions
+} from './relics';
 import {
     createMulberry32,
     deriveDailyMutatorIndex,
@@ -1689,6 +1698,15 @@ export const openRelicOffer = (run: RunState): RunState => {
             options,
             picksRemaining,
             pickRound: 0,
+            services: getRelicOfferServiceActions({
+                ...run,
+                relicOffer: {
+                    tier: tierIndex + 1,
+                    options,
+                    picksRemaining,
+                    pickRound: 0
+                }
+            }),
             favorBonusPicks: run.favorBonusRelicPicksNextOffer,
             contextualOptionReasons
         }
@@ -1739,6 +1757,18 @@ export const completeRelicPickAndAdvance = (run: RunState, relicId: RelicId): Ru
                 options: newOptions,
                 picksRemaining: remainingAfter,
                 pickRound: newPickRound,
+                serviceUses: offer.serviceUses,
+                bannedRelicIds: offer.bannedRelicIds,
+                upgradedOffer: offer.upgradedOffer,
+                services: getRelicOfferServiceActions({
+                    ...next,
+                    relicOffer: {
+                        ...offer,
+                        options: newOptions,
+                        picksRemaining: remainingAfter,
+                        pickRound: newPickRound
+                    }
+                }),
                 favorBonusPicks: offer.favorBonusPicks,
                 contextualOptionReasons
             }
@@ -1752,6 +1782,17 @@ export const completeRelicPickAndAdvance = (run: RunState, relicId: RelicId): Ru
     };
     return advanceToNextLevel(next);
 };
+
+export const applyRelicOfferServiceToRun = (
+    run: RunState,
+    serviceId: RelicOfferServiceId,
+    targetRelicId?: RelicId
+): RunState => {
+    const result = applyRelicOfferService(run, serviceId, targetRelicId);
+    return result.applied ? result.run : run;
+};
+
+export const useRelicOfferService = applyRelicOfferServiceToRun;
 
 export const finishMemorizePhase = (run: RunState): RunState =>
     run.status !== 'memorize'

@@ -5,6 +5,7 @@ import type {
     AchievementId,
     MutatorId,
     RelicId,
+    RelicOfferServiceId,
     RunState,
     SaveData,
     Settings,
@@ -40,6 +41,7 @@ import {
     pauseRun,
     purchaseShopOffer as purchaseShopOfferRule,
     rerollShopOffers as rerollShopOffersRule,
+    useRelicOfferService as useRelicOfferServiceRule,
     resolveBoardTurn,
     resumeRun,
     togglePinnedTile,
@@ -145,6 +147,7 @@ interface AppState {
     startPinVowRun: () => void;
     startWildRun: () => void;
     pickRelic: (relicId: RelicId) => void;
+    applyRelicOfferService: (serviceId: RelicOfferServiceId, targetRelicId?: RelicId) => void;
     dismissPowersFtue: () => Promise<void>;
     goToMenu: () => void;
     openModeSelect: () => void;
@@ -849,6 +852,14 @@ export const useAppStore = create<AppState>((set, get) => ({
             scheduleMemorizeTimer(nextRun.timerState.memorizeRemainingMs);
         }
         void persistSaveData(nextSave);
+    },
+
+    applyRelicOfferService: (serviceId, targetRelicId) => {
+        const { run } = get();
+        if (!run?.relicOffer) {
+            return;
+        }
+        set({ run: useRelicOfferServiceRule(run, serviceId, targetRelicId) });
     },
 
     dismissPowersFtue: async () => {

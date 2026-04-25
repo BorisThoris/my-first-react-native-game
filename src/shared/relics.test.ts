@@ -3,10 +3,13 @@ import type { RunState } from './contracts';
 import { createDailyRun, createNewRun } from './game';
 import { pickFloorScheduleEntry } from './floor-mutator-schedule';
 import {
+    applyRelicOfferService,
+    createRelicOfferServices,
     MAX_RELIC_PICKS_PER_RUN,
     getContextualRelicDraftWeight,
     getRelicDraftContext,
     getRelicBuildArchetypeSummaries,
+    getRelicDraftRow,
     getRelicDraftOptionReasons,
     isRelicDraftEligible,
     effectiveRelicDraftWeight,
@@ -253,5 +256,52 @@ describe('rollRelicOptions', () => {
                 expect(options.some((id) => reasons[id] != null)).toBe(true);
             }
         }
+    });
+});
+
+describe('REG-078 relic offer services', () => {
+    const openOfferRun = (): RunState => {
+        const run = levelCompleteRun(3, 0, { shopGold: 5, runSeed: 78_001 });
+        const offer = {
+            tier: 1,
+            options: rollRelicOptions(run, 0, 3, 0),
+            picksRemaining: 1,
+            pickRound: 0
+        };
+        return { ...run, relicOffer: offer };
+    };
+
+    it('exposes reroll, ban, and upgrade services with costs and availability', () => {
+        const run = openOfferRun();
+        const rows = createRelicOfferServices(run);
+
+        expect(rows.map((row) => row.serviceId)).toEqual(['reroll_offer', 'ban_option', 'upgrade_offer']);
+        expect(rows.every((row) => row.available && row.cost > 0)).toBe(true);
+        expect(createRelicOfferServices({ ...run, shopGold: 0 }).every((row) => !row.available)).toBe(true);
+    });
+
+    it('rerolls and bans deterministically while charging shop gold once per round', () => {
+        const run = openOfferRun();
+        const rerolled = applyRelicOfferService(run, 'reroll_offer');
+        expect(rerolled.applied).toBe(true);
+        expect(rerolled.run.shopGold).toBe(run.shopGold - 1);
+        expect(rerolled.run.relicOffer?.options).not.toEqual(run.relicOffer?.options);
+        expect(applyRelicOfferService(rerolled.run, 'reroll_offer').applied).toBe(false);
+
+        const banned = applyRelicOfferService(openOfferRun(), 'ban_option', run.relicOffer!.options[1]);
+        expect(banned.applied).toBe(true);
+        expect(banned.run.relicOffer?.bannedRelicIds).toContain(run.relicOffer!.options[1]);
+        expect(banned.run.relicOffer?.options).not.toContain(run.relicOffer!.options[1]);
+    });
+
+    it('upgrade service biases visible options toward uncommon or rare relics', () => {
+        const run = openOfferRun();
+        const upgraded = applyRelicOfferService(run, 'upgrade_offer');
+
+        expect(upgraded.applied).toBe(true);
+        expect(upgraded.run.shopGold).toBe(run.shopGold - 2);
+        expect(upgraded.run.relicOffer?.upgradedOffer).toBe(true);
+        const rarities = upgraded.run.relicOffer!.options.map((id) => getRelicDraftRow(id).rarity);
+        expect(rarities.some((rarity) => rarity !== 'common')).toBe(true);
     });
 });

@@ -6,11 +6,12 @@ import {
     type CSSProperties,
     type KeyboardEvent
 } from 'react';
-import type { RelicId } from '../../shared/contracts';
+import type { RelicId, RelicOfferServiceState } from '../../shared/contracts';
 import {
     getRelicArchetypeLabels,
     getRelicDraftRow,
     relicDraftRarityLabel,
+    type RelicOfferServiceAction,
     type RelicDraftRarity
 } from '../../shared/relics';
 import { relicDraftRoundAdvancedAnnouncement } from '../copy/relicDraftOffer';
@@ -38,6 +39,8 @@ interface RelicDraftOfferPanelProps {
     descriptionById: Record<RelicId, string>;
     reasonById?: Partial<Record<RelicId, string>>;
     onPick: (id: RelicId) => void;
+    serviceActions?: (RelicOfferServiceAction | RelicOfferServiceState)[];
+    onUseService?: (serviceId: RelicOfferServiceAction['serviceId'], targetRelicId?: RelicId) => void;
     /** Advances when options reroll mid-visit (multi-pick). */
     pickRound: number;
 }
@@ -47,11 +50,22 @@ const RelicDraftOfferPanel = ({
     descriptionById,
     reasonById,
     onPick,
+    serviceActions: rawServiceActions = [],
+    onUseService,
     pickRound
 }: RelicDraftOfferPanelProps) => {
     const gridRef = useRef<HTMLDivElement>(null);
     const prevPickRoundRef = useRef<number | null>(null);
     const [politeMessage, setPoliteMessage] = useState('');
+    const serviceActions = rawServiceActions.map((service) => ({
+        ...service,
+        effectPreview:
+            service.serviceId === 'reroll_offer'
+                ? 'Fresh choices'
+                : service.serviceId === 'ban_option'
+                  ? 'Remove one option'
+                  : 'Favor rare picks'
+    }));
 
     useEffect(() => {
         const prev = prevPickRoundRef.current;
@@ -176,6 +190,25 @@ const RelicDraftOfferPanel = ({
                     );
                 })}
             </div>
+            {serviceActions.length > 0 ? (
+                <div className={styles.serviceRow} data-testid="relic-offer-services">
+                    {serviceActions.map((service) => (
+                        <button
+                            className={styles.serviceButton}
+                            disabled={!service.available}
+                            key={service.serviceId}
+                            onClick={() => onUseService?.(service.serviceId, optionIds[0])}
+                            title={service.unavailableReason ?? service.description}
+                            type="button"
+                        >
+                            <span>{service.label}</span>
+                            <small>
+                                {service.cost}g · {service.available ? service.effectPreview : service.unavailableReason}
+                            </small>
+                        </button>
+                    ))}
+                </div>
+            ) : null}
         </div>
     );
 };

@@ -38,6 +38,7 @@ schema: reg | phase | status | contract | proof
 | REG-075 | 2 | done | Treasure/secret bonus rewards expose deterministic seed-based reveal rules, anti-grind one-claim tokens, economy-safe payouts, and route-map treasure hooks. | bonus-rewards + run-map tests |
 | REG-076 | 2 | done | Boss and elite floors expose identity tiers, telegraph copy, reward pressure, placeholder slots, and HUD-readable boss/elite tags. | boss-encounters + floor schedule/HUD tests |
 | REG-077 | 2 | done | Endless floors expose stable act, biome, cycle-floor, progress, and gate metadata through schedule helpers, HUD copy, and Codex text. | floor schedule + HUD tests |
+| REG-078 | 2 | done | Relic draft services expose shop-gold costs, once-per-round reroll/ban/upgrade availability, deterministic offer mutation, and disabled failure copy. | relics/game/GameScreen tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

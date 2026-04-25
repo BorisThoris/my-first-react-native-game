@@ -217,6 +217,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
             goToMenu: state.goToMenu,
             purchaseShopOffer: state.purchaseShopOffer,
             rerollShopOffers: state.rerollShopOffers,
+            applyRelicOfferService: state.applyRelicOfferService,
             openCodexFromPlaying: state.openCodexFromPlaying,
             openInventoryFromPlaying: state.openInventoryFromPlaying,
             openSettings: state.openSettings,
@@ -426,6 +427,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         openInventoryFromPlaying,
         openSettings,
         pause,
+        applyRelicOfferService,
         pickRelic,
         resume,
         shuffleBoard,
@@ -1202,10 +1204,12 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         ) : null}
                         <RelicDraftOfferPanel
                             descriptionById={relicEffectLabels}
+                            onUseService={applyRelicOfferService}
                             onPick={pickRelic}
                             optionIds={run.relicOffer.options}
                             pickRound={run.relicOffer.pickRound}
                             reasonById={run.relicOffer.contextualOptionReasons}
+                            serviceActions={run.relicOffer.services}
                         />
                     </OverlayModal>
                 ) : null}
