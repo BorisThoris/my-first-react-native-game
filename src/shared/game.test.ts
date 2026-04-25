@@ -11,6 +11,7 @@ import {
     GAME_RULES_VERSION,
     MATCH_DELAY_MS,
     MAX_DESTROY_PAIR_BANK,
+    MAX_LIVES,
     SHIFTING_BOUNTY_MATCH_BONUS,
     SHIFTING_WARD_MATCH_PENALTY
 } from './contracts';
@@ -32,6 +33,7 @@ import {
     computeRelicOfferPickBudget,
     completeRelicPickAndAdvance,
     countFullyHiddenPairs,
+    createRunShopOffers,
     createDailyRun,
     createNewRun,
     createWildRun,
@@ -289,6 +291,28 @@ describe('REG-015 run shop wallet', () => {
         expect(rerolled.shopOffers.map((offer) => offer.id)).not.toEqual(idsBefore);
         expect(rerollShopOffers(rerolled)).toBe(rerolled);
         expect(canRerollShopOffers({ ...cleared, shopGold: 0 })).toBe(false);
+    });
+
+    it('REG-071 exposes item catalog compatibility and stack caps', () => {
+        const fullLifeBase = playPerfectFloors(createNewRun(0, { echoFeedbackEnabled: false, runSeed: 71_001 }), 1);
+        const fullLife = {
+            ...fullLifeBase,
+            lives: MAX_LIVES,
+            shopOffers: createRunShopOffers({ ...fullLifeBase, lives: MAX_LIVES })
+        };
+        const heal = fullLife.shopOffers.find((offer) => offer.itemId === 'heal_life')!;
+        expect(heal.compatible).toBe(false);
+        expect(heal.unavailableReason).toBe('Life already full.');
+
+        const damaged = { ...fullLife, lives: 3 };
+        const healAvailable = createRunShopOffers(damaged).find((offer) => offer.itemId === 'heal_life')!;
+        expect(healAvailable.compatible).toBe(true);
+        expect(purchaseShopOffer({ ...damaged, shopOffers: [healAvailable], shopGold: 99 }, healAvailable.id).lives).toBe(4);
+
+        const cappedDestroy = { ...fullLife, destroyPairCharges: MAX_DESTROY_PAIR_BANK };
+        const destroyOffer = createRunShopOffers(cappedDestroy).find((offer) => offer.itemId === 'destroy_charge')!;
+        expect(destroyOffer.compatible).toBe(false);
+        expect(destroyOffer.unavailableReason).toContain('bank full');
     });
 });
 

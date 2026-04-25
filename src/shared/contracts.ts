@@ -164,16 +164,23 @@ export interface RelicOfferState {
 }
 
 export type RunShopItemId = 'heal_life' | 'peek_charge' | 'destroy_charge';
+export type RunShopItemCategory = 'consumable' | 'service';
+export type RunShopOfferAvailability = 'available' | 'sold_out' | 'insufficient_funds' | 'incompatible';
 
 export interface RunShopOfferState {
     id: string;
     itemId: RunShopItemId;
+    category: RunShopItemCategory;
     label: string;
     description: string;
     cost: number;
     baseCost: number;
     stock: number;
     maxStock: number;
+    stackLimit: number | null;
+    compatibleWhen: 'owned' | 'not_capped';
+    compatible: boolean;
+    unavailableReason: string | null;
     purchased: boolean;
 }
 

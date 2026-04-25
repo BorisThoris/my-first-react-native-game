@@ -174,45 +174,74 @@ export const generateRouteChoices = (run: RunState, nextLevel: number): NonNulla
     ];
 };
 
-export const SHOP_ITEM_CATALOG: Record<RunShopItemId, Omit<RunShopOfferState, 'id' | 'purchased'>> = {
+export const SHOP_ITEM_CATALOG: Record<
+    RunShopItemId,
+    Omit<RunShopOfferState, 'id' | 'purchased' | 'compatible' | 'unavailableReason'>
+> = {
     heal_life: {
         itemId: 'heal_life',
         label: 'Mend a life',
         description: 'Restore 1 life now, capped by max lives.',
+        category: 'consumable',
+        compatibleWhen: 'owned',
         baseCost: 2,
         cost: 2,
         stock: 1,
-        maxStock: 1
+        maxStock: 1,
+        stackLimit: MAX_LIVES
     },
     peek_charge: {
         itemId: 'peek_charge',
         label: 'Peek charge',
         description: 'Add 1 peek charge for this run.',
+        category: 'service',
+        compatibleWhen: 'owned',
         baseCost: 1,
         cost: 1,
         stock: 1,
-        maxStock: 1
+        maxStock: 1,
+        stackLimit: null
     },
     destroy_charge: {
         itemId: 'destroy_charge',
         label: 'Destroy charge',
         description: 'Add 1 destroy charge, capped by the current bank limit.',
+        category: 'service',
+        compatibleWhen: 'not_capped',
         baseCost: 2,
         cost: 2,
         stock: 1,
-        maxStock: 1
+        maxStock: 1,
+        stackLimit: MAX_DESTROY_PAIR_BANK
     }
 };
 
 const shopRerollCostForFloor = (level: number): number => 1 + Math.floor(Math.max(0, level - 1) / 3);
 
+const getShopOfferCompatibility = (
+    run: RunState,
+    itemId: RunShopItemId
+): Pick<RunShopOfferState, 'compatible' | 'unavailableReason'> => {
+    if (itemId === 'heal_life' && run.lives >= MAX_LIVES) {
+        return { compatible: false, unavailableReason: 'Life already full.' };
+    }
+    if (itemId === 'destroy_charge' && run.destroyPairCharges >= MAX_DESTROY_PAIR_BANK) {
+        return { compatible: false, unavailableReason: 'Destroy bank full.' };
+    }
+    return { compatible: true, unavailableReason: null };
+};
+
 export const createRunShopOffers = (run: RunState): RunShopOfferState[] => {
     const ids: RunShopItemId[] = ['heal_life', 'peek_charge', 'destroy_charge'];
-    return ids.map((itemId, index) => ({
-        ...SHOP_ITEM_CATALOG[itemId],
-        id: `${run.runRulesVersion}:${run.runSeed}:${run.board?.level ?? run.stats.highestLevel}:shop:${run.shopRerolls}:${index}`,
-        purchased: false
-    }));
+    return ids.map((itemId, index) => {
+        const base = SHOP_ITEM_CATALOG[itemId];
+        return {
+            ...base,
+            ...getShopOfferCompatibility(run, itemId),
+            id: `${run.runRulesVersion}:${run.runSeed}:${run.board?.level ?? run.stats.highestLevel}:shop:${run.shopRerolls}:${index}`,
+            purchased: false
+        };
+    });
 };
 
 export const canRerollShopOffers = (run: RunState): boolean =>

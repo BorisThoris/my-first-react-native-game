@@ -1268,6 +1268,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                             <div className={styles.endlessRiskWagerPanel} data-testid="shop-offer-panel">
                                 <strong>Vendor alcove · {run.shopGold} gold</strong>
                                 <span>Spend floor-clear gold on temporary run services. Gold resets after the run.</span>
+                                <span>Reroll stock once per visit if you want a fresh vendor spread.</span>
                                 <div className={styles.routeChoiceActions}>
                                     {run.shopOffers.map((offer) => (
                                         <button
@@ -1283,6 +1284,17 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                             {offer.purchased ? 'Bought' : `Buy ${offer.label} · ${offer.cost}g`}
                                         </button>
                                     ))}
+                                    <button
+                                        className={styles.endlessRiskWagerButton}
+                                        disabled={run.shopRerolls >= 1 || run.shopGold < Math.min(...run.shopOffers.map((offer) => offer.baseCost))}
+                                        onClick={() => {
+                                            playUiClick();
+                                            rerollShopOffers();
+                                        }}
+                                        type="button"
+                                    >
+                                        {run.shopRerolls >= 1 ? 'Rerolled' : 'Reroll stock'}
+                                    </button>
                                 </div>
                             </div>
                         ) : null}

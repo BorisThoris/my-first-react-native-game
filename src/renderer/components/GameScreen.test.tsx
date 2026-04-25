@@ -588,12 +588,17 @@ describe('GameScreen (OVR-014)', () => {
                 {
                     id: 'test-shop-peek',
                     itemId: 'peek_charge',
+                    category: 'service',
                     label: 'Peek charge',
                     description: 'Add 1 peek charge for this run.',
                     baseCost: 2,
                     cost: 2,
                     stock: 1,
                     maxStock: 1,
+                    stackLimit: null,
+                    compatibleWhen: 'owned',
+                    compatible: true,
+                    unavailableReason: null,
                     purchased: false
                 }
             ],
