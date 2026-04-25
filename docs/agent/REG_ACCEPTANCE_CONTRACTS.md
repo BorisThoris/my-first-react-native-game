@@ -34,6 +34,7 @@ schema: reg | phase | status | contract | proof
 | REG-071 | 2 | done | Shop catalog rows include item families, compatibility, stack caps, and service effects for heal, peek, destroy, and discount services. | game catalog tests + floor-clear UI tests |
 | REG-072 | 2 | done | Shop wallet pacing exposes deterministic floor earnings, current wallet, sink total, and run-end expiry. | game wallet tests |
 | REG-073 | 2 | done | Rest/shrine services define local heal, favor bargain, costs, risk types, and disabled reasons without adding persisted state. | rest-shrine tests |
+| REG-074 | 2 | done | Random event rooms expose deterministic seed-based event selection, choice rewards, risk labels, and no-op invalid choices. | run-events tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.
