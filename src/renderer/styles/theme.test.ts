@@ -1,6 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { buildRendererThemeStyle } from './theme';
+import { RENDERER_THEME, buildRendererThemeStyle } from './theme';
 
+describe('REG-014 design-system density tokens', () => {
+    it('defines shared density tokens for shells, cards, controls, and lists', () => {
+        expect(RENDERER_THEME.cssVars['--ui-density-panel-pad-md']).toBe('var(--ui-card-pad-md)');
+        expect(RENDERER_THEME.cssVars['--ui-density-control-pad-y']).toBe('0.72rem');
+        expect(RENDERER_THEME.cssVars['--ui-density-list-gap']).toBe('var(--theme-space-sm)');
+    });
+
+    it('tightens density tokens under compact theme mode without changing touch target minimum', () => {
+        const compact = buildRendererThemeStyle(1, 'compact') as Record<string, string | number>;
+        expect(compact['--ui-density-control-pad-y']).toBe('0.62rem');
+        expect(compact['--ui-density-list-gap']).toBe('0.42rem');
+        expect(compact['--ui-touch-target-min']).toBe(RENDERER_THEME.cssVars['--ui-touch-target-min']);
+    });
+});
 describe('buildRendererThemeStyle', () => {
     it('deepens modal scrim tokens when reduce motion is enabled (OVR-015)', () => {
         const motionOn = buildRendererThemeStyle(1, 'roomy', false);

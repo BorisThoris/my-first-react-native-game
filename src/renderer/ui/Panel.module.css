@@ -53,15 +53,15 @@
 }
 
 .paddingMd {
-    padding: var(--ui-card-pad-md);
+    padding: var(--ui-density-panel-pad-md, var(--ui-card-pad-md));
 }
 
 .paddingLg {
-    padding: var(--ui-card-pad-lg);
+    padding: var(--ui-density-panel-pad-lg, var(--ui-card-pad-lg));
 }
 
 .paddingSection {
-    padding: var(--ui-card-pad-md);
+    padding: var(--ui-density-panel-pad-section, var(--ui-density-panel-pad-md, var(--ui-card-pad-md)));
 }
 
 .overflowAuto {

@@ -56,6 +56,7 @@ schema: reg | phase | status | contract | proof
 | REG-007 | 3 | done | Game-over mobile layout keeps score/outcome and replay/menu actions above the fold, with detailed stat grids moved behind a post-run details disclosure. | GameOverScreen tests |
 | REG-008 | 3 | done | Overlay modal shell uses explicit decision/sheet classes, internal scroll body, sticky safe-area action footer, and stable focus-trap behavior on mobile. | OverlayModal tests |
 | REG-009 | 3 | done | Main menu mobile/landscape density exposes compact quick-action hierarchy, primary Play prominence, and non-competing secondary meta links. | MainMenu tests |
+| REG-014 | 3 | done | Design-system density tokens expose compact/roomy panel/button/shell spacing tiers so major screens share dead-space language without one-off padding. | theme tests + typecheck |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

@@ -323,7 +323,23 @@ export const RENDERER_THEME = {
         '--ui-shell-screen-gap': 'var(--theme-space-xl)',
         '--ui-card-pad-md': 'clamp(0.95rem, 2vw, 1.2rem)',
         '--ui-card-pad-lg': 'clamp(1.05rem, 2.2vw, 1.45rem)',
-        '--ui-footer-action-gap': 'var(--theme-space-md)'
+        '--ui-footer-action-gap': 'var(--theme-space-md)',
+
+        /*
+         * REG-014 — density audit tokens. Component modules should prefer these aliases over one-off
+         * padding/gap values when a surface does not have a deliberate gameplay exception.
+         */
+        '--ui-density-panel-gap': 'var(--theme-space-md)',
+        '--ui-density-list-gap': 'var(--theme-space-sm)',
+        '--ui-density-field-gap': 'var(--theme-space-md)',
+        '--ui-density-control-gap': '0.55rem',
+        '--ui-density-control-pad-y': '0.72rem',
+        '--ui-density-panel-pad-md': 'var(--ui-card-pad-md)',
+        '--ui-density-panel-pad-lg': 'var(--ui-card-pad-lg)',
+        '--ui-density-panel-pad-section': 'var(--ui-card-pad-md)',
+        '--ui-density-card-pad-md': 'var(--ui-card-pad-md)',
+        '--ui-density-card-pad-lg': 'var(--ui-card-pad-lg)',
+        '--ui-density-shell-max': 'min(1180px, 100%)'
     } as const
 } as const;
 
@@ -342,7 +358,18 @@ const RENDERER_THEME_UI_SPACE_COMPACT = {
     '--ui-shell-screen-gap': '0.78rem',
     '--ui-card-pad-md': '0.92rem',
     '--ui-card-pad-lg': '1.02rem',
-    '--ui-footer-action-gap': '0.65rem'
+    '--ui-footer-action-gap': '0.65rem',
+    '--ui-density-panel-gap': '0.55rem',
+    '--ui-density-list-gap': '0.42rem',
+    '--ui-density-field-gap': '0.55rem',
+    '--ui-density-control-gap': '0.42rem',
+    '--ui-density-control-pad-y': '0.62rem',
+    '--ui-density-panel-pad-md': '0.92rem',
+    '--ui-density-panel-pad-lg': '1.02rem',
+    '--ui-density-panel-pad-section': '0.92rem',
+    '--ui-density-card-pad-md': '0.92rem',
+    '--ui-density-card-pad-lg': '1.02rem',
+    '--ui-density-shell-max': 'min(1120px, 100%)'
 } as const;
 
 export type RendererThemeVars = typeof RENDERER_THEME.cssVars;
