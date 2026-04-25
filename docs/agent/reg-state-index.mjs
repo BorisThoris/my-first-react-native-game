@@ -45,7 +45,8 @@ const statusOverrides = new Map([
   [68, 'done'],
   [87, 'done'],
   [88, 'done'],
-  [89, 'done']
+  [89, 'done'],
+  [17, 'done']
 ]);
 
 const index = {};
@@ -60,7 +61,9 @@ for (let reg = 0; reg <= 160; reg += 1) {
     commit:
       reg === 24
         ? '7daefab'
-        : reg === 33
+        : reg === 17
+          ? 'pending'
+          : reg === 33
           ? 'e704f8a'
           : reg === 40
             ? '73d5072'

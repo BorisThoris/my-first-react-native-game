@@ -316,6 +316,17 @@ export interface LevelResult {
     endlessRiskWagerOutcome?: EndlessRiskWagerOutcome;
     endlessRiskWagerFavorGained?: number;
     endlessRiskWagerStreakLost?: number;
+    /** REG-017: deterministic local route options for the next floor; UI-only until map/shop nodes land. */
+    routeChoices?: RouteChoice[];
+}
+
+export type RouteNodeType = 'safe' | 'greed' | 'mystery';
+
+export interface RouteChoice {
+    id: string;
+    routeType: RouteNodeType;
+    label: string;
+    detail: string;
 }
 
 export interface RunSummary {

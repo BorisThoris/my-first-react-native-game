@@ -152,6 +152,24 @@ const createTimerState = (overrides?: Partial<RunState['timerState']>): RunState
     ...overrides
 });
 
+export const generateRouteChoices = (run: RunState, nextLevel: number): NonNullable<LevelResult['routeChoices']> => {
+    const baseId = `${run.runRulesVersion}:${run.runSeed}:${nextLevel}`;
+    return [
+        {
+            id: `${baseId}:safe`,
+            routeType: 'safe',
+            label: 'Safe passage',
+            detail: 'Standard next floor. Keep the run curve predictable.'
+        },
+        {
+            id: `${baseId}:greed`,
+            routeType: 'greed',
+            label: 'Greedy route',
+            detail: 'Higher pressure route hook for future shop, elite, or bonus rewards.'
+        }
+    ];
+};
+
 const getSymbolSetForLevel = (level: number): readonly SymbolEntry[] => getSymbolSetForLevelFromCatalog(level);
 
 export const getMemorizeDuration = (level: number): number => {
@@ -1757,6 +1775,8 @@ const finalizeLevel = (run: RunState, board: BoardState): RunState => {
     const lives = Math.min(MAX_LIVES, run.lives + clearLifeGained);
     const totalRelicFavorGained = relicFavorGained + endlessRiskWagerFavorGained;
     const relicFavor = gainRelicFavor(run, totalRelicFavorGained);
+    const routeChoices: LevelResult['routeChoices'] =
+        run.gameMode === 'endless' && board.level > 0 ? generateRouteChoices(run, board.level + 1) : undefined;
     const parasiteFloors =
         featuredObjectiveId != null &&
         featuredObjectiveCompleted &&
@@ -1784,7 +1804,8 @@ const finalizeLevel = (run: RunState, board: BoardState): RunState => {
         endlessRiskWagerOutcome,
         endlessRiskWagerFavorGained:
             endlessRiskWagerFavorGained > 0 ? endlessRiskWagerFavorGained : undefined,
-        endlessRiskWagerStreakLost
+        endlessRiskWagerStreakLost,
+        routeChoices
     };
 
     return {

@@ -220,6 +220,30 @@ describe('REG-088 first-run to first-win rules path', () => {
     });
 });
 
+describe('REG-017 route choices', () => {
+    it('adds deterministic local route options to eligible endless floor clears', () => {
+        const finished = playPerfectFloors(createNewRun(0, { echoFeedbackEnabled: false, runSeed: 17_001 }), 1);
+
+        expect(finished.lastLevelResult?.routeChoices).toEqual([
+            {
+                id: '14:17001:2:safe',
+                routeType: 'safe',
+                label: 'Safe passage',
+                detail: 'Standard next floor. Keep the run curve predictable.'
+            },
+            {
+                id: '14:17001:2:greed',
+                routeType: 'greed',
+                label: 'Greedy route',
+                detail: 'Higher pressure route hook for future shop, elite, or bonus rewards.'
+            }
+        ]);
+        expect(playPerfectFloors(createNewRun(0, { echoFeedbackEnabled: false, runSeed: 17_001 }), 1).lastLevelResult?.routeChoices).toEqual(
+            finished.lastLevelResult?.routeChoices
+        );
+    });
+});
+
 describe('endless chapters and featured objectives', () => {
     it('awards only the featured objective bonus on endless floors', () => {
         const started = finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false }));

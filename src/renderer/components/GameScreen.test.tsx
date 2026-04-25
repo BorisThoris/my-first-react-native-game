@@ -619,6 +619,21 @@ describe('GameScreen (OVR-014)', () => {
                 featuredObjectiveStreakBonus: 10,
                 objectiveBonusScore: 30,
                 bonusTags: ['flip_par', 'objective_streak']
+                ,
+                routeChoices: [
+                    {
+                        id: '14:1:2:safe',
+                        routeType: 'safe',
+                        label: 'Safe passage',
+                        detail: 'Standard next floor. Keep the run curve predictable.'
+                    },
+                    {
+                        id: '14:1:2:greed',
+                        routeType: 'greed',
+                        label: 'Greedy route',
+                        detail: 'Higher pressure route hook for future shop, elite, or bonus rewards.'
+                    }
+                ]
             }
         };
 
@@ -635,6 +650,9 @@ describe('GameScreen (OVR-014)', () => {
         expect(getByText('Favor gained: +1')).toBeTruthy();
         expect(getByText(/Extra relic pick banked/)).toBeTruthy();
         expect(getByText(/Next: Speed Trial/)).toBeTruthy();
+        expect(screen.getByTestId('route-choice-panel')).toHaveTextContent('Choose next route');
+        expect(screen.getByRole('button', { name: 'Safe passage' })).toBeTruthy();
+        expect(screen.getByRole('button', { name: 'Greedy route' })).toBeTruthy();
     });
 
     it('shows and arms an endless risk wager when the cleared streak is eligible', () => {

@@ -1214,6 +1214,28 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         {objectiveBonusLine ? <p className={styles.modalNote}>{objectiveBonusLine}</p> : null}
                         {bonusTagsLine ? <p className={styles.modalNote}>{bonusTagsLine}</p> : null}
                         {nextFloorPreviewLine ? <p className={styles.modalNote}>{nextFloorPreviewLine}</p> : null}
+                        {run.lastLevelResult.routeChoices ? (
+                            <div className={styles.endlessRiskWagerPanel} data-testid="route-choice-panel">
+                                <strong>Choose next route</strong>
+                                <span>
+                                    {run.lastLevelResult.routeChoices
+                                        .map((option) => `${option.label}: ${option.detail}`)
+                                        .join(' · ')}
+                                </span>
+                                <div className={styles.routeChoiceActions}>
+                                    {run.lastLevelResult.routeChoices.map((option) => (
+                                        <button
+                                            className={styles.endlessRiskWagerButton}
+                                            key={option.id}
+                                            onClick={continueToNextLevel}
+                                            type="button"
+                                        >
+                                            {option.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : null}
                         {endlessRiskWagerOfferAvailable || acceptedEndlessRiskWager ? (
                             <div className={styles.endlessRiskWagerPanel} data-testid="endless-risk-wager-panel">
                                 {acceptedEndlessRiskWager ? (

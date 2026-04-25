@@ -380,6 +380,12 @@
     background: color-mix(in srgb, var(--theme-gold-deep) 42%, var(--theme-hud-accent-fill-strong));
 }
 
+.routeChoiceActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
 .ftueDismiss {
     margin-left: auto;
     padding: 0.25rem 0.55rem;
