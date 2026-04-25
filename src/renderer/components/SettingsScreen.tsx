@@ -621,7 +621,7 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                                                 <div className={styles.toggleStack} data-testid="settings-gameplay-reference">
                                                     <PlaceholderControl
                                                         honestFuturePlaceholder
-                                                        hint="No difficulty setting in save data yet; the run uses the shipped balance curve."
+                                                        hint="Reference only: shipped balance is the Standard profile (4/5 lives, first mismatch grace, softened memorize curve)."
                                                         label="Difficulty"
                                                         options={['Easy', 'Normal', 'Hard', 'Nightmare']}
                                                     />

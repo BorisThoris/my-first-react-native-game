@@ -44,7 +44,7 @@ const statusOverrides = new Map([
   [21, 'done'],
   [22, 'done'],
   [25, 'done'],
-  [45, 'done'],
+  [46, 'done'],
   [45, 'done'],
   [24, 'done'],
   [33, 'done'],
@@ -84,25 +84,27 @@ for (let reg = 0; reg <= 160; reg += 1) {
             ? '0fe3422'
         : reg === 45
           ? '965bfd8'
-                : reg === 15
-                  ? 'a1d84fa'
-                  : reg === 17
-                    ? '8b9aca5'
-          : reg === 33
-          ? 'e704f8a'
-          : reg === 40
-            ? '73d5072'
-          : reg === 63
-            ? '2872acd'
-            : [52, 68].includes(reg)
-              ? 'ce88cf2'
-              : reg === 87
-                ? '6e85d10'
-                : reg === 88
-                  ? '7e1d512'
-                  : reg === 89
-                    ? 'a735170'
-                    : null,
+          : reg === 46
+            ? 'pending'
+            : reg === 15
+              ? 'a1d84fa'
+              : reg === 17
+                ? '8b9aca5'
+                : reg === 33
+                  ? 'e704f8a'
+                  : reg === 40
+                    ? '73d5072'
+                    : reg === 63
+                      ? '2872acd'
+                      : [52, 68].includes(reg)
+                        ? 'ce88cf2'
+                        : reg === 87
+                          ? '6e85d10'
+                          : reg === 88
+                            ? '7e1d512'
+                            : reg === 89
+                              ? 'a735170'
+                              : null,
     updated: '2026-04-25'
   };
 }

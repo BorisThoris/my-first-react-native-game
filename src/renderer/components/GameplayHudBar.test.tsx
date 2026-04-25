@@ -73,6 +73,7 @@ describe('GameplayHudBar', () => {
         expect(screen.getByTestId('hud-shuffle-charges').getAttribute('title')).toContain('Search');
         expect(screen.getByTestId('hud-destroy-charges').getAttribute('title')).toContain('Damage control');
         expect(screen.getByTestId('hud-peek-charges').getAttribute('title')).toContain('Recall');
+        expect(screen.getByTestId('hud-difficulty-profile')).toHaveTextContent('Standard');
         expect(screen.getByTestId('hud-combo-shards').getAttribute('title')).toContain('Temporary run currency');
     });
 

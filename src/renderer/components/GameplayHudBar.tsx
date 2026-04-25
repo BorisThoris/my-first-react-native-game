@@ -6,6 +6,7 @@ import {
     getFloorArchetypeDefinition,
     usesEndlessFloorSchedule
 } from '../../shared/floor-mutator-schedule';
+import { getDefaultDifficultyProfile } from '../../shared/difficulty-profile';
 import { getRunEconomyEntry } from '../../shared/run-economy';
 import codexBookUrl from '../assets/ui/icons/icon-codex-book-v1.svg?url';
 import scoreParasiteCrystalUrl from '../assets/ui/icons/icon-score-parasite-crystal.svg?url';
@@ -153,6 +154,7 @@ const GameplayHudBar = ({
             : 0;
     const archetype = getFloorArchetypeDefinition(board.floorArchetypeId);
     const featuredObjectiveLabel = getFeaturedObjectiveLabel(board.featuredObjectiveId);
+    const difficultyProfile = getDefaultDifficultyProfile();
     const contextChips: { className: string; key: string; label: string; testId: string; title: string; glyph: ReactNode }[] = [];
     if (run.gameMode === 'gauntlet') {
         contextChips.push({
@@ -582,6 +584,14 @@ const GameplayHudBar = ({
                                         <span className={styles.statVal}>Meditation</span>
                                     </div>
                                 ) : null}
+                                <div
+                                    className={styles.statPillCompact}
+                                    data-testid="hud-difficulty-profile"
+                                    title={`${difficultyProfile.label}: ${difficultyProfile.playerCopy}`}
+                                >
+                                    <span className={styles.statKey}>Difficulty</span>
+                                    <span className={styles.statVal}>{difficultyProfile.label}</span>
+                                </div>
                                 {run.wildMenuRun ? (
                                     <div className={styles.statPillCompact} title="Wild joker run">
                                         <span className={styles.statKey}>Wild</span>
