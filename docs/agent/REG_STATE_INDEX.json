@@ -1073,7 +1073,7 @@
     "updated": "2026-04-25"
   },
   "REG-079": {
-    "status": "open",
+    "status": "done",
     "phase": 2,
     "lane": "default",
     "dependencies": [
@@ -1082,7 +1082,7 @@
       "REG-088",
       "REG-089"
     ],
-    "commit": null,
+    "commit": "pending",
     "updated": "2026-04-25"
   },
   "REG-080": {

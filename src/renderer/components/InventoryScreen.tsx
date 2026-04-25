@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { GAME_MODE_CODEX, MUTATOR_CATALOG, RELIC_CATALOG } from '../../shared/game-catalog';
 import { getCosmeticCollectionRows } from '../../shared/cosmetics';
+import { getRunInventoryRows, getRunLoadoutSummary } from '../../shared/run-inventory';
 import { getRunEconomyRows } from '../../shared/run-economy';
 import { playUiBackSfx, resumeUiSfxContext, uiSfxGainFromSettings } from '../audio/uiSfx';
 import { inventoryScreenCopy } from '../copy/inventoryScreen';
@@ -72,6 +73,8 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
 
     const contract = run.activeContract;
     const economyRows = getRunEconomyRows(run);
+    const inventoryRows = getRunInventoryRows(run);
+    const loadoutSummary = getRunLoadoutSummary(run);
     const equippedCosmetic = getCosmeticCollectionRows(useAppStore.getState().saveData).find((row) => row.equipped);
 
     return (
@@ -144,6 +147,17 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                                         </span>
                                     </div>
                                 ) : null}
+                                <div className={styles.kvRow}>
+                                    <span>
+                                        Loadout slots<strong>{loadoutSummary.equipped}/{loadoutSummary.capacity}</strong>
+                                    </span>
+                                    <span>
+                                        Consumable stacks<strong>{loadoutSummary.totalStacks}</strong>
+                                    </span>
+                                    <span>
+                                        Mid-run mutable<strong>{loadoutSummary.midRunMutable ? 'Yes' : 'No'}</strong>
+                                    </span>
+                                </div>
                             </div>
                             <p className={metaStyles.subtitle}>
                                 {inventoryScreenCopy.perfectMemoryPowersHint(
@@ -157,6 +171,26 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                                     {equippedCosmetic.slot}; fallback: {equippedCosmetic.fallback})
                                 </p>
                             ) : null}
+                        </div>
+                    </Panel>
+                </MetaFrame>
+
+                <MetaFrame data-testid="inventory-meta-frame-consumables">
+                    <Panel className={panelClassName} padding="lg" variant="default">
+                        <div className={`${styles.loadoutSection} ${metaStyles.sectionAnchor}`} id="inventory-consumables">
+                            <h2 className={styles.sectionTitle}>Run consumables and loadout</h2>
+                            <div className={metaStyles.archiveCatalogGrid}>
+                                {inventoryRows.map((row) => (
+                                    <div className={metaStyles.archiveCatalogRow} key={row.slotId}>
+                                        <p className={metaStyles.archiveCatalogRowTitle}>
+                                            {row.label}: {row.quantity}/{row.maxStack}
+                                        </p>
+                                        <p className={metaStyles.subtitle}>
+                                            {row.mutability}. {row.source} → {row.useWindow}. {row.effectPreview}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </Panel>
                 </MetaFrame>
