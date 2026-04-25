@@ -308,6 +308,10 @@
     font-size: 1rem;
 }
 
+.ctaIcon {
+    display: none;
+}
+
 .ctaHint {
     font-family: var(--ui-font-body-family);
     font-size: 0.8rem;
@@ -688,6 +692,25 @@
 
 .shortTouchLandscapeShell .ctaTitle {
     font-size: 0.78rem;
+}
+
+.shortTouchLandscapeShell .ctaContent {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+.shortTouchLandscapeShell .ctaIcon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: var(--ui-radius-sm);
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 18%, transparent);
+    color: var(--theme-rune);
+    background: color-mix(in srgb, var(--theme-void) 34%, transparent);
 }
 
 .shortTouchLandscapeShell .bottomCards {

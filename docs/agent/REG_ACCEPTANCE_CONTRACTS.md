@@ -55,6 +55,7 @@ schema: reg | phase | status | contract | proof
 | REG-006 | 3 | done | Settings page/modal keeps phone and short-view footer actions sticky, body scrollable, and dense category/subsection controls reachable without schema changes. | SettingsScreen tests |
 | REG-007 | 3 | done | Game-over mobile layout keeps score/outcome and replay/menu actions above the fold, with detailed stat grids moved behind a post-run details disclosure. | GameOverScreen tests |
 | REG-008 | 3 | done | Overlay modal shell uses explicit decision/sheet classes, internal scroll body, sticky safe-area action footer, and stable focus-trap behavior on mobile. | OverlayModal tests |
+| REG-009 | 3 | done | Main menu mobile/landscape density exposes compact quick-action hierarchy, primary Play prominence, and non-competing secondary meta links. | MainMenu tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

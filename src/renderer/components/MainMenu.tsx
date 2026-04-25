@@ -114,6 +114,36 @@ const MainMenu = ({
     const dailyCountdown = formatNextUtcReset(nowMs);
     const objectiveBoard = getObjectiveBoardItems(saveData);
     const questRows = getQuestCampaignRows(saveData);
+    const secondaryActions = [
+        {
+            ariaLabel: 'Collection',
+            hint: 'Achievements, relics, and run history',
+            label: 'Collection',
+            onClick: onOpenCollection,
+            variant: 'secondary' as const
+        },
+        {
+            ariaLabel: 'Inventory',
+            hint: 'Expedition loadout when you are in a run',
+            label: 'Inventory',
+            onClick: onOpenInventory,
+            variant: 'ghost' as const
+        },
+        {
+            ariaLabel: 'Codex',
+            hint: 'Rules, relics, mutators, and mode reference',
+            label: 'Codex',
+            onClick: onOpenCodex,
+            variant: 'ghost' as const
+        },
+        {
+            ariaLabel: 'Settings',
+            hint: 'Video, audio, controls, accessibility',
+            label: 'Settings',
+            onClick: onOpenSettings,
+            variant: 'secondary' as const
+        }
+    ];
     const uiGain = uiSfxGainFromSettings(saveData.settings.masterVolume, saveData.settings.sfxVolume);
     const playUiClick = (): void => {
         resumeUiSfxContext();
@@ -333,70 +363,27 @@ const MainMenu = ({
                                                     <span className={styles.ctaHint}>Gauntlet, puzzles, training modes, and more</span>
                                                 </span>
                                             </UiButton>
-                                            <UiButton
-                                                aria-label="Collection"
-                                                className={styles.ctaButton}
-                                                fullWidth
-                                                size={ctaSize}
-                                                variant="secondary"
-                                                onClick={() => {
-                                                    playMenuOpen();
-                                                    onOpenCollection();
-                                                }}
-                                            >
-                                                <span className={styles.ctaContent}>
-                                                    <span className={styles.ctaTitle}>Collection</span>
-                                                    <span className={styles.ctaHint}>Achievements, relics, and run history</span>
-                                                </span>
-                                            </UiButton>
-                                            <UiButton
-                                                aria-label="Inventory"
-                                                className={styles.ctaButton}
-                                                fullWidth
-                                                size={ctaSize}
-                                                variant="ghost"
-                                                onClick={() => {
-                                                    playMenuOpen();
-                                                    onOpenInventory();
-                                                }}
-                                            >
-                                                <span className={styles.ctaContent}>
-                                                    <span className={styles.ctaTitle}>Inventory</span>
-                                                    <span className={styles.ctaHint}>Expedition loadout when you are in a run</span>
-                                                </span>
-                                            </UiButton>
-                                            <UiButton
-                                                aria-label="Codex"
-                                                className={styles.ctaButton}
-                                                fullWidth
-                                                size={ctaSize}
-                                                variant="ghost"
-                                                onClick={() => {
-                                                    playMenuOpen();
-                                                    onOpenCodex();
-                                                }}
-                                            >
-                                                <span className={styles.ctaContent}>
-                                                    <span className={styles.ctaTitle}>Codex</span>
-                                                    <span className={styles.ctaHint}>Rules, relics, mutators, and mode reference</span>
-                                                </span>
-                                            </UiButton>
-                                            <UiButton
-                                                aria-label="Settings"
-                                                className={styles.ctaButton}
-                                                fullWidth
-                                                size={ctaSize}
-                                                variant="secondary"
-                                                onClick={() => {
-                                                    playMenuOpen();
-                                                    onOpenSettings();
-                                                }}
-                                            >
-                                                <span className={styles.ctaContent}>
-                                                    <span className={styles.ctaTitle}>Settings</span>
-                                                    <span className={styles.ctaHint}>Video, audio, controls, accessibility</span>
-                                                </span>
-                                            </UiButton>
+                                            <div className={styles.secondaryActionGrid} data-testid="main-menu-secondary-actions">
+                                                {secondaryActions.map((action) => (
+                                                    <UiButton
+                                                        aria-label={action.ariaLabel}
+                                                        className={`${styles.ctaButton} ${styles.secondaryCtaButton}`}
+                                                        fullWidth
+                                                        key={action.ariaLabel}
+                                                        size={ctaSize}
+                                                        variant={action.variant}
+                                                        onClick={() => {
+                                                            playMenuOpen();
+                                                            action.onClick();
+                                                        }}
+                                                    >
+                                                        <span className={styles.ctaContent}>
+                                                            <span className={styles.ctaTitle}>{action.label}</span>
+                                                            <span className={styles.ctaHint}>{action.hint}</span>
+                                                        </span>
+                                                    </UiButton>
+                                                ))}
+                                            </div>
                                             <UiButton
                                                 aria-label="Exit Game"
                                                 className={styles.ctaButton}
