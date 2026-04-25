@@ -90,8 +90,8 @@ for (let reg = 0; reg <= 160; reg += 1) {
             ? '1ee0e33'
           : reg === 47
             ? 'feaf75d'
-            : reg === 48
-              ? 'pending'
+          : reg === 48
+            ? 'f947c6b'
               : reg === 15
                 ? 'a1d84fa'
                 : reg === 17
