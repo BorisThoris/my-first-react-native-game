@@ -46,6 +46,7 @@ import {
     getMemorizeDurationForRun,
     getMismatchFloaterAnchorTileIds,
     getPresentationMutatorMatchPenalty,
+    getShopWalletPacing,
     getWildTileIdFromBoard,
     grantBonusRelicPickNextOffer,
     isBoardComplete,
@@ -313,6 +314,16 @@ describe('REG-015 run shop wallet', () => {
         const destroyOffer = createRunShopOffers(cappedDestroy).find((offer) => offer.itemId === 'destroy_charge')!;
         expect(destroyOffer.compatible).toBe(false);
         expect(destroyOffer.unavailableReason).toContain('bank full');
+    });
+
+    it('REG-072 exposes wallet pacing and sink totals for QA', () => {
+        const cleared = playPerfectFloors(createNewRun(0, { echoFeedbackEnabled: false, runSeed: 72_001 }), 2);
+        const pacing = getShopWalletPacing(cleared);
+
+        expect(pacing.earnedThisFloor).toBe(FLOOR_CLEAR_GOLD_BASE + 1);
+        expect(pacing.totalWallet).toBe(cleared.shopGold);
+        expect(pacing.sinkCostTotal).toBe(cleared.shopOffers.reduce((sum, offer) => sum + offer.cost, 0));
+        expect(pacing.conversionAtRunEnd).toBe('unspent_shop_gold_expires');
     });
 });
 

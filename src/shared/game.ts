@@ -216,7 +216,38 @@ export const SHOP_ITEM_CATALOG: Record<
     }
 };
 
-const shopRerollCostForFloor = (level: number): number => 1 + Math.floor(Math.max(0, level - 1) / 3);
+export const getShopGoldRewardForFloor = (level: number): number =>
+    FLOOR_CLEAR_GOLD_BASE + Math.max(0, Math.floor(level) - 1);
+
+export const getShopRerollCostForFloor = (level: number): number =>
+    1 + Math.floor(Math.max(0, Math.floor(level) - 1) / 3);
+
+export const getShopWalletPacing = (run: RunState): {
+    earnedThisFloor: number;
+    totalWallet: number;
+    sinkCostTotal: number;
+    conversionAtRunEnd: 'unspent_shop_gold_expires';
+} => {
+    const level = run.board?.level ?? run.stats.highestLevel;
+    return {
+        earnedThisFloor: getShopGoldRewardForFloor(level),
+        totalWallet: run.shopGold,
+        sinkCostTotal: run.shopOffers.reduce((sum, offer) => sum + offer.cost, 0),
+        conversionAtRunEnd: 'unspent_shop_gold_expires'
+    };
+};
+
+export const getRunShopWalletPacing = (run: RunState): {
+    earnedThisFloor: number;
+    totalWallet: number;
+    sinkCostTotal: number;
+    conversionAtRunEnd: 'unspent_shop_gold_expires';
+} => ({
+    earnedThisFloor: getShopGoldRewardForFloor(run.board?.level ?? run.stats.highestLevel),
+    totalWallet: run.shopGold,
+    sinkCostTotal: run.shopOffers.reduce((sum, offer) => sum + offer.cost, 0),
+    conversionAtRunEnd: 'unspent_shop_gold_expires'
+});
 
 const getShopOfferCompatibility = (
     run: RunState,
@@ -248,13 +279,13 @@ export const canRerollShopOffers = (run: RunState): boolean =>
     run.status === 'levelComplete' &&
     run.shopOffers.length > 0 &&
     run.shopRerolls < 1 &&
-    run.shopGold >= shopRerollCostForFloor(run.board?.level ?? run.stats.highestLevel);
+    run.shopGold >= getShopRerollCostForFloor(run.board?.level ?? run.stats.highestLevel);
 
 export const rerollShopOffers = (run: RunState): RunState => {
     if (!canRerollShopOffers(run)) {
         return run;
     }
-    const cost = shopRerollCostForFloor(run.board?.level ?? run.stats.highestLevel);
+    const cost = getShopRerollCostForFloor(run.board?.level ?? run.stats.highestLevel);
     const nextRun = { ...run, shopGold: run.shopGold - cost, shopRerolls: run.shopRerolls + 1 };
     return { ...nextRun, shopOffers: createRunShopOffers(nextRun) };
 };
@@ -1936,7 +1967,7 @@ const finalizeLevel = (run: RunState, board: BoardState): RunState => {
         bonusRelicPicksNextOffer: relicFavor.bonusRelicPicksNextOffer,
         favorBonusRelicPicksNextOffer: relicFavor.favorBonusRelicPicksNextOffer,
         relicFavorProgress: relicFavor.relicFavorProgress,
-        shopGold: run.shopGold + FLOOR_CLEAR_GOLD_BASE + Math.max(0, board.level - 1),
+        shopGold: run.shopGold + getShopGoldRewardForFloor(board.level),
         shopOffers: run.shopOffers.length > 0 ? run.shopOffers : createRunShopOffers(run),
         parasiteFloors,
         featuredObjectiveStreak,

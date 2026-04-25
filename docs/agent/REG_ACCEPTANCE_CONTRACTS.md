@@ -32,6 +32,7 @@ schema: reg | phase | status | contract | proof
 | REG-069 | 2 | done | Route graph contract names deterministic combat/shop/elite/rest node hooks, seed identity, and default selected node without new online state. | run-map tests |
 | REG-070 | 2 | done | Vendor offers expose base/scaled cost, stock, sold-out state, and one local reroll with gold-gated failure UX. | game + floor-clear UI tests |
 | REG-071 | 2 | done | Shop catalog rows include item families, compatibility, stack caps, and service effects for heal, peek, destroy, and discount services. | game catalog tests + floor-clear UI tests |
+| REG-072 | 2 | done | Shop wallet pacing exposes deterministic floor earnings, current wallet, sink total, and run-end expiry. | game wallet tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.
