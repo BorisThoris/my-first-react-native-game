@@ -44,6 +44,7 @@ schema: reg | phase | status | contract | proof
 | REG-081 | 2 | done | Challenge modes expose offline save-derived gate rows, lock/available states, eligibility notes, and Choose Path detail copy for Gauntlet, puzzles, and contracts. | challenge-progression + run-mode catalog tests |
 | REG-082 | 2 | done | Quest campaign ladder exposes authored local quest steps, contract requirements, progress/status rows, failure/retry rules, and Main Menu surfacing. | quest-campaign tests |
 | REG-083 | 2 | done | Daily/weekly/season archive rows expose offline UTC identities, local streak/history summaries, share strings without PII, and Collection archive surfacing. | daily-archive tests |
+| REG-084 | 2 | done | Puzzle packs expose medal rows, curation tier/order, completion progress, unlock status, and local-only author/version metadata. | puzzle-import tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

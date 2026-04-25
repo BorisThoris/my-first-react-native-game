@@ -61,6 +61,40 @@ export interface PuzzlePackSummary {
     puzzleIds: string[];
 }
 
+export type PuzzleMedal = 'none' | 'bronze' | 'silver' | 'gold';
+
+export interface PuzzleProgressionRow {
+    id: string;
+    title: string;
+    packId: PuzzlePackId;
+    packTitle: string;
+    medal: PuzzleMedal;
+    completed: boolean;
+    bestMistakes: number | null;
+    bestScore: number;
+    curation: {
+        author: string;
+        version: number;
+        difficulty: PuzzleDifficulty;
+        tags: string[];
+        goal: PuzzleGoal;
+        goalText: string;
+    };
+    unlockRule: string;
+    offlineOnly: true;
+}
+
+export interface PuzzlePackProgressRow extends PuzzlePackSummary {
+    completedCount: number;
+    totalCount: number;
+    medal: PuzzleMedal;
+    locked: boolean;
+    curated: true;
+    curationNote: string;
+    progressLabel: string;
+    offlineOnly: true;
+}
+
 const VALID_GOALS = new Set<PuzzleGoal>(['clear_all', 'perfect_clear', 'flip_par']);
 const VALID_DIFFICULTIES = new Set<PuzzleDifficulty>(['starter', 'standard', 'advanced']);
 
@@ -125,5 +159,97 @@ export const getPuzzleLibraryRows = (save: SaveData) =>
             version: puzzle.version,
             status: completed ? 'completed' : 'open',
             progress: completed ? { current: 1, target: 1 } : { current: 0, target: 1 }
+        };
+    });
+
+type PuzzleCompletionLike = NonNullable<SaveData['playerStats']>['puzzleCompletions'] extends infer C
+    ? C extends Record<string, infer R>
+        ? R | undefined
+        : never
+    : never;
+
+export const medalForPuzzleCompletion = (completion: PuzzleCompletionLike): PuzzleMedal => {
+    if (!completion || completion.completed !== true) {
+        return 'none';
+    }
+    if (completion.bestMistakes === 0) {
+        return 'gold';
+    }
+    if (completion.bestMistakes != null && completion.bestMistakes <= 2) {
+        return 'silver';
+    }
+    return 'bronze';
+};
+
+const packMedal = (save: SaveData, pack: PuzzlePackSummary): PuzzleMedal => {
+    const medals = pack.puzzleIds.map((id) => medalForPuzzleCompletion(save.playerStats?.puzzleCompletions?.[id]));
+    if (medals.every((medal) => medal === 'gold')) {
+        return 'gold';
+    }
+    if (medals.every((medal) => medal === 'gold' || medal === 'silver')) {
+        return 'silver';
+    }
+    if (medals.some((medal) => medal !== 'none')) {
+        return 'bronze';
+    }
+    return 'none';
+};
+
+export const getPuzzlePackProgressRows = (save: SaveData): PuzzlePackProgressRow[] =>
+    PUZZLE_PACKS.map((pack) => {
+        const completedCount = pack.puzzleIds.filter((id) => save.playerStats?.puzzleCompletions?.[id]?.completed === true).length;
+        return {
+            ...pack,
+            completedCount,
+            totalCount: pack.puzzleIds.length,
+            medal: packMedal(save, pack),
+            locked: false,
+            curated: true,
+            progressLabel: `${completedCount}/${pack.puzzleIds.length} solved`,
+            curationNote:
+                pack.id === 'tutorial'
+                    ? 'Starter curation: tiny boards teach the format.'
+                    : pack.id === 'beginner'
+                      ? 'Beginner curation: readable handcrafted symbol layouts.'
+                      : 'Challenge curation: advanced authored patterns after starter mastery.',
+            offlineOnly: true
+        };
+    });
+
+const packForPuzzle = (puzzleId: string): PuzzlePackSummary =>
+    PUZZLE_PACKS.find((candidate) => candidate.puzzleIds.includes(puzzleId)) ?? {
+        id: 'experimental',
+        title: 'Experimental pack',
+        description: 'Imported or uncategorized local puzzle content.',
+        puzzleIds: [puzzleId]
+    };
+
+export const getPuzzleProgressionRows = (save: SaveData): PuzzleProgressionRow[] =>
+    Object.values(BUILTIN_PUZZLES).map((puzzle) => {
+        const pack = packForPuzzle(puzzle.id);
+        const completion = save.playerStats?.puzzleCompletions?.[puzzle.id];
+        const medal = medalForPuzzleCompletion(completion);
+        return {
+            id: puzzle.id,
+            title: puzzle.title,
+            packId: pack.id,
+            packTitle: pack.title,
+            medal,
+            completed: completion?.completed === true,
+            bestMistakes: completion?.bestMistakes ?? null,
+            bestScore: completion?.bestScore ?? 0,
+            curation: {
+                author: puzzle.author,
+                version: puzzle.version,
+                difficulty: puzzle.difficulty,
+                tags: puzzle.tags,
+                goal: puzzle.goal,
+                goalText: puzzle.goalText
+            },
+            unlockRule:
+                puzzle.difficulty === 'advanced'
+                    ? 'Recommended after clearing a starter or beginner puzzle; available offline in v1.'
+                    : 'Available offline from the puzzle shelf.',
+            offlineOnly: true
         };
     });

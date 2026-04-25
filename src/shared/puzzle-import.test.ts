@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BUILTIN_PUZZLES } from './builtin-puzzles';
 import { createDefaultSaveData } from './save-data';
-import { getPuzzleLibraryRows, isValidPuzzleImportTileSet, validatePuzzleImportPayload } from './puzzle-import';
+import { getPuzzleLibraryRows, getPuzzlePackProgressRows, isValidPuzzleImportTileSet, validatePuzzleImportPayload } from './puzzle-import';
 
 const minimalValidTiles = [
     { id: 'a1', pairKey: 'p1', symbol: 'A', label: 'a', state: 'hidden' as const },
@@ -94,5 +94,22 @@ describe('BUILTIN_PUZZLES', () => {
         expect(rows.find((row) => row.id === 'mirror_craft')?.difficulty).toBe('standard');
         expect(rows.find((row) => row.id === 'glyph_cross')?.pack).toBe('challenge');
         expect(rows.find((row) => row.id === 'glyph_cross')?.author).toBe('Memory Dungeon');
+    });
+
+    it('REG-084 derives pack progression medals and curation gates', () => {
+        const save = createDefaultSaveData();
+        save.playerStats = {
+            ...save.playerStats!,
+            puzzleCompletions: {
+                starter_pairs: { completed: true, bestMistakes: 0, bestScore: 120 },
+                mirror_craft: { completed: true, bestMistakes: 2, bestScore: 90 }
+            }
+        };
+        const packs = getPuzzlePackProgressRows(save);
+
+        expect(packs.find((pack) => pack.id === 'tutorial')?.medal).toBe('gold');
+        expect(packs.find((pack) => pack.id === 'beginner')?.medal).toBe('silver');
+        expect(packs.find((pack) => pack.id === 'challenge')?.locked).toBe(false);
+        expect(packs.every((pack) => pack.offlineOnly)).toBe(true);
     });
 });
