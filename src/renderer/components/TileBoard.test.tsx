@@ -208,7 +208,7 @@ describe('TileBoard touch and click controls', () => {
 
         fireEvent.focus(screen.getByTestId('tile-board-application'));
         await waitFor(() => {
-            expect(screen.getByText(/Shard spark pickup: matching this pair grants one combo shard/i)).toBeInTheDocument();
+            expect(screen.getByText(/Shard spark pickup: \+1 combo shard/i)).toBeInTheDocument();
         });
     });
 

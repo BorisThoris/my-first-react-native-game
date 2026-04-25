@@ -15,6 +15,7 @@ import {
 } from 'react';
 import { flushSync } from 'react-dom';
 import type { BoardScreenSpaceAA, BoardState, GraphicsQualityPreset, RunStatus, Tile } from '../../shared/contracts';
+import { getFindableRewardText } from '../../shared/findables';
 import { resolveAdaptiveBoardRenderQuality } from '../../shared/graphicsQuality';
 import { isNarrowShortLandscapeForMenuStack, VIEWPORT_MOBILE_MAX } from '../breakpoints';
 import { useCoarsePointer } from '../hooks/useCoarsePointer';
@@ -178,12 +179,7 @@ const getTileAriaLabel = (tile: Tile, faceUp: boolean, row: number, column: numb
             ? `Decoy trap tile, row ${row}, column ${column}. It never forms a pair.`
             : `Tile ${tile.label}, row ${row}, column ${column}`
         : `Hidden tile, row ${row}, column ${column}`;
-    const findableNote =
-        tile.findableKind && faceUp && tile.state !== 'matched'
-            ? tile.findableKind === 'shard_spark'
-                ? ' Shard spark pickup: matching this pair grants one combo shard.'
-                : ' Score glint pickup: matching this pair grants twenty-five score.'
-            : '';
+    const findableNote = tile.findableKind && faceUp && tile.state !== 'matched' ? ` ${getFindableRewardText(tile.findableKind)}` : '';
     return `${base}${findableNote}`;
 };
 

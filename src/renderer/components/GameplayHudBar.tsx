@@ -8,6 +8,7 @@ import {
 } from '../../shared/floor-mutator-schedule';
 import { getSecondaryObjectiveStatusRows } from '../../shared/secondary-objectives';
 import { getDefaultDifficultyProfile } from '../../shared/difficulty-profile';
+import { getFindableKindLabel, getFindableRewardCopy } from '../../shared/findables';
 import { getRunEconomyEntry } from '../../shared/run-economy';
 import codexBookUrl from '../assets/ui/icons/icon-codex-book-v1.svg?url';
 import scoreParasiteCrystalUrl from '../assets/ui/icons/icon-score-parasite-crystal.svg?url';
@@ -518,7 +519,7 @@ const GameplayHudBar = ({
                                     <div
                                         className={styles.statPillCompact}
                                         data-testid="hud-findables-claimed"
-                                        title="Pickup progress this floor. Shard spark grants +1 combo shard; score glint grants +25 score."
+                                        title={`Pickup progress this floor. ${getFindableKindLabel('shard_spark')}: ${getFindableRewardCopy('shard_spark')}; ${getFindableKindLabel('score_glint')}: ${getFindableRewardCopy('score_glint')}. Destroy forfeits pickups; shuffle preserves them.`}
                                     >
                                         <span className={styles.statKey}>Pickups</span>
                                         <span className={styles.statVal}>

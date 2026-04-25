@@ -25,6 +25,7 @@ schema: reg | phase | status | contract | proof
 | REG-046 | 2 | done | Default forgiveness profile is explicit: softened memorize curve, first-miss grace, clean/perfect life recovery, and fixed daily comparability. | difficulty-profile + HUD tests |
 | REG-047 | 2 | done | Symbol bands expose readability profiles and validation catches duplicate/confusable labels before mobile-facing drift. | tile-symbol catalog tests |
 | REG-048 | 2 | done | Secondary objectives expose active/failed/completed copy, HUD state, and floor-clear completion/failure explanation. | secondary-objectives + HUD/GameScreen tests |
+| REG-049 | 2 | done | Findables expose reward copy for shard/score pickups across HUD and tile a11y without changing reward values. | findables + HUD/TileBoard tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.
