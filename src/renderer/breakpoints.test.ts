@@ -7,6 +7,7 @@ import {
     VIEWPORT_LANDSCAPE_STACK_MAX_WIDTH,
     VIEWPORT_SHORT_LANDSCAPE_MAX_HEIGHT
 } from './breakpoints';
+import { HIGH_TRAFFIC_VIEWPORT_MATRIX, getViewportRegressionExpectations } from './viewportMatrix';
 
 describe('isShortLandscapeViewport', () => {
     it('is true for 1280×720 HD landscape', () => {
@@ -60,5 +61,37 @@ describe('safeSubscribeWindowResize', () => {
         expect(typeof unsub).toBe('function');
         unsub();
         unsub();
+    });
+});
+
+describe('REG-028 high-traffic viewport regression matrix', () => {
+    it('covers phone portrait, phone landscape, tablet, short desktop, and desktop baselines', () => {
+        expect(HIGH_TRAFFIC_VIEWPORT_MATRIX.map((entry) => entry.id)).toEqual([
+            'phone_360x740',
+            'phone_390x844',
+            'phone_430x932',
+            'phone_landscape_844x390',
+            'tablet_768x1024',
+            'short_desktop_1024x768',
+            'short_wide_1366x640',
+            'desktop_1440x900'
+        ]);
+        expect(HIGH_TRAFFIC_VIEWPORT_MATRIX.every((entry) => entry.mustShowPrimaryAction)).toBe(true);
+    });
+
+    it('derives screen-specific layout expectations without screenshots', () => {
+        const phoneLandscape = getViewportRegressionExpectations('phone_landscape_844x390');
+        expect(phoneLandscape).toMatchObject({
+            compactDensity: true,
+            menuStacks: true,
+            settingsLayout: 'short-stacked'
+        });
+
+        const shortWide = getViewportRegressionExpectations('short_wide_1366x640');
+        expect(shortWide).toMatchObject({
+            compactDensity: true,
+            menuStacks: false,
+            settingsLayout: 'wide-short'
+        });
     });
 });
