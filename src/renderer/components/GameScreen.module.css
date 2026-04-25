@@ -393,6 +393,27 @@
     gap: 0.45rem;
 }
 
+.powerTeachingPanel {
+    display: grid;
+    gap: 0.32rem;
+    width: 100%;
+    padding: 0.48rem;
+    border-radius: var(--ui-radius-md);
+    border: 1px solid color-mix(in srgb, var(--theme-cyan) 18%, transparent);
+    background: color-mix(in srgb, var(--theme-void) 58%, transparent);
+}
+
+.powerTeachingRow {
+    display: grid;
+    gap: 0.06rem;
+    font-size: 0.66rem;
+    color: var(--theme-text-muted);
+}
+
+.powerTeachingRow strong {
+    color: var(--theme-cyan-bright);
+}
+
 .ftueDismiss {
     margin-left: auto;
     padding: 0.25rem 0.55rem;

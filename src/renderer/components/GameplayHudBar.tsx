@@ -530,7 +530,7 @@ const GameplayHudBar = ({
                                             title={
                                                 run.activeContract?.noShuffle
                                                     ? 'Scholar contract: full-board shuffle is locked.'
-                                                    : `Shuffle charges: ${run.shuffleCharges}. Uses a run charge; breaks Scholar-style and some perfect-memory rules when used.`
+                                                    : `Search — Shuffle charges: ${run.shuffleCharges}. Uses a run charge; breaks Scholar-style and some perfect-memory rules when used.`
                                             }
                                         >
                                             <span className={styles.statKey}>Shuffle</span>
@@ -544,7 +544,7 @@ const GameplayHudBar = ({
                                             title={
                                                 run.activeContract?.noDestroy
                                                     ? 'Scholar contract: destroy pair is locked.'
-                                                    : `Destroy charges: ${run.destroyPairCharges}. Spend to remove a fully hidden pair with no match score — forfeits pickups on that pair. Clean clears can refill the bank.`
+                                                    : `Damage control — Destroy charges: ${run.destroyPairCharges}. Spend to remove a fully hidden pair with no match score — forfeits pickups on that pair. Clean clears can refill the bank.`
                                             }
                                         >
                                             <span className={styles.statKey}>Destroy</span>
@@ -555,7 +555,7 @@ const GameplayHudBar = ({
                                         <div
                                             className={styles.statPillCompact}
                                             data-testid="hud-peek-charges"
-                                            title={`Peek charges: ${run.peekCharges}. Arm peek in the toolbar, then tap a tile for a brief reveal.`}
+                                            title={`Recall — Peek charges: ${run.peekCharges}. Arm peek in the toolbar, then tap a tile for a brief reveal.`}
                                         >
                                             <span className={styles.statKey}>Peek</span>
                                             <span className={styles.statVal}>{run.peekCharges}</span>

@@ -1,4 +1,5 @@
 import type { RunState, Settings } from '../../shared/contracts';
+import { getPowerVerbTeachingRows } from '../../shared/power-verbs';
 import {
     memo,
     useEffect,
@@ -180,6 +181,7 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
         resumeUiSfxContext();
         playMenuOpenSfx(uiGain);
     };
+    const powerTeachingRows = getPowerVerbTeachingRows(run);
 
     return (
         <aside
@@ -478,6 +480,15 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                             {run.strayRemoveCharges}
                         </span>
                     </button>
+                    <div className={styles.powerTeachingPanel} data-testid="power-teaching-panel">
+                        {powerTeachingRows.map((row) => (
+                            <div className={styles.powerTeachingRow} key={row.id}>
+                                <strong>{row.label}</strong>
+                                <span>{row.job}</span>
+                                <small>{row.disabledReason ?? row.cost}</small>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             ) : null}
             {run.status === 'resolving' && run.undoUsesThisFloor > 0 ? (
