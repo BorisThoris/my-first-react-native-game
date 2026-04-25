@@ -66,6 +66,8 @@ for (let reg = 0; reg <= 160; reg += 1) {
             ? '6e85d10'
             : reg === 88
               ? '7e1d512'
+            : reg === 24
+              ? '7daefab'
               : reg === 89
                 ? 'a735170'
                 : null,
