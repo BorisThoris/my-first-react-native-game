@@ -356,6 +356,60 @@ describe('useAppStore timers', () => {
         expect(gameSfxMocks.playWagerArmSfx).toHaveBeenCalledTimes(1);
         expect(run).not.toBe(useAppStore.getState().run);
     });
+
+    it('REG-088: first classic run can clear, continue, end locally, and persist first-win progress', async () => {
+        useAppStore.getState().startRun();
+        expect(useAppStore.getState().view).toBe('playing');
+
+        const memorizeDuration = useAppStore.getState().run?.timerState.memorizeRemainingMs ?? 0;
+        await vi.advanceTimersByTimeAsync(memorizeDuration + 1);
+        expect(useAppStore.getState().run?.status).toBe('playing');
+
+        for (let floor = 1; floor <= 2; floor += 1) {
+            let run = useAppStore.getState().run;
+            expect(run?.board?.level).toBe(floor);
+
+            const pairGroups = new Map<string, string[]>();
+            for (const tile of run!.board!.tiles) {
+                if (tile.pairKey === '__decoy__' || tile.pairKey === '__wild__') {
+                    continue;
+                }
+                const ids = pairGroups.get(tile.pairKey) ?? [];
+                ids.push(tile.id);
+                pairGroups.set(tile.pairKey, ids);
+            }
+
+            for (const ids of [...pairGroups.values()].filter((group) => group.length === 2)) {
+                useAppStore.getState().pressTile(ids[0]!);
+                useAppStore.getState().pressTile(ids[1]!);
+            }
+
+            run = useAppStore.getState().run;
+            expect(run?.status).toBe('levelComplete');
+            expect(run?.lastLevelResult?.perfect).toBe(true);
+
+            if (floor === 1) {
+                useAppStore.getState().continueToNextLevel();
+                const nextMemorizeMs = useAppStore.getState().run?.timerState.memorizeRemainingMs ?? 0;
+                await vi.advanceTimersByTimeAsync(nextMemorizeMs + 1);
+                expect(useAppStore.getState().run?.status).toBe('playing');
+            }
+        }
+
+        const state = useAppStore.getState();
+        expect(state.view).toBe('playing');
+        expect(state.run?.status).toBe('levelComplete');
+        expect(state.saveData.bestScore).toBeGreaterThan(0);
+        expect(state.saveData.achievements.ACH_FIRST_CLEAR).toBe(true);
+        expect(state.newlyUnlockedAchievements).toEqual([]);
+        expect(state.run?.stats.highestLevel).toBe(2);
+        expect(state.run?.stats.levelsCleared).toBe(2);
+        expect(state.run?.achievementsEnabled).toBe(true);
+
+        useAppStore.getState().endRun();
+        expect(useAppStore.getState().view).toBe('menu');
+        expect(useAppStore.getState().run).toBeNull();
+    });
 });
 
 describe('useAppStore scholar contract', () => {

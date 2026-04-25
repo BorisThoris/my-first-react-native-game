@@ -184,6 +184,17 @@ const clearRealPairs = (run: RunState): RunState => {
     return current;
 };
 
+const playPerfectFloors = (run: RunState, count: number): RunState => {
+    let current = finishMemorizePhase(run);
+    for (let floor = 0; floor < count; floor += 1) {
+        current = clearRealPairs(current);
+        if (floor < count - 1) {
+            current = finishMemorizePhase(advanceToNextLevel(current));
+        }
+    }
+    return current;
+};
+
 describe('createDailyRun', () => {
     it('uses daily mode, one table mutator, and a UTC date key', () => {
         const run = createDailyRun(0);
@@ -191,6 +202,21 @@ describe('createDailyRun', () => {
         expect(run.activeMutators).toHaveLength(1);
         expect(DAILY_MUTATOR_TABLE).toContain(run.activeMutators[0]);
         expect(run.dailyDateKeyUtc).toMatch(/^\d{8}$/);
+    });
+});
+
+describe('REG-088 first-run to first-win rules path', () => {
+    it('clears the first two classic floors with local progress and achievements enabled', () => {
+        const finished = playPerfectFloors(createNewRun(0, { echoFeedbackEnabled: false, runSeed: 88_001 }), 2);
+
+        expect(finished.status).toBe('levelComplete');
+        expect(finished.gameMode).toBe('endless');
+        expect(finished.practiceMode).toBe(false);
+        expect(finished.achievementsEnabled).toBe(true);
+        expect(finished.stats.levelsCleared).toBe(2);
+        expect(finished.stats.highestLevel).toBe(2);
+        expect(finished.lastLevelResult?.perfect).toBe(true);
+        expect(finished.stats.totalScore).toBeGreaterThan(0);
     });
 });
 

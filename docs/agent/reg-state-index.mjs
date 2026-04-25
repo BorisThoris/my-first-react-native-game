@@ -41,6 +41,7 @@ const statusOverrides = new Map([
   [52, 'deferred'],
   [68, 'done'],
   [87, 'done'],
+  [88, 'done'],
   [89, 'done']
 ]);
 
@@ -60,9 +61,11 @@ for (let reg = 0; reg <= 160; reg += 1) {
           ? 'ce88cf2'
           : reg === 87
             ? '6e85d10'
-            : reg === 89
-              ? 'a735170'
-              : null,
+            : reg === 88
+              ? 'pending'
+              : reg === 89
+                ? 'a735170'
+                : null,
     updated: '2026-04-25'
   };
 }
