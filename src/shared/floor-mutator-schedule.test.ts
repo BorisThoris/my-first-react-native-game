@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
     FLOOR_SCHEDULE_RULES_VERSION,
+    getFloorChapterIdentity,
     pickFloorScheduleEntry,
     usesEndlessFloorSchedule
 } from './floor-mutator-schedule';
@@ -30,7 +31,9 @@ describe('pickFloorScheduleEntry', () => {
             floorArchetypeId: null,
             featuredObjectiveId: null,
             title: null,
-            hint: null
+            hint: null,
+            theme: null,
+            riskProfile: null
         });
     });
 
@@ -41,7 +44,9 @@ describe('pickFloorScheduleEntry', () => {
             floorArchetypeId: null,
             featuredObjectiveId: null,
             title: null,
-            hint: null
+            hint: null,
+            theme: null,
+            riskProfile: null
         });
     });
 
@@ -51,28 +56,48 @@ describe('pickFloorScheduleEntry', () => {
             floorTag: 'normal',
             floorArchetypeId: 'survey_hall',
             featuredObjectiveId: 'flip_par',
-            title: 'Survey Hall'
+            title: 'Survey Hall',
+            theme: 'Survey'
         });
         expect(pickFloorScheduleEntry(0, rv, 3, 'endless')).toMatchObject({
             mutators: ['findables_floor'],
             floorTag: 'breather',
             floorArchetypeId: 'treasure_gallery',
             featuredObjectiveId: 'scholar_style',
-            title: 'Treasure Gallery'
+            title: 'Treasure Gallery',
+            theme: 'Treasure'
         });
         expect(pickFloorScheduleEntry(0, rv, 7, 'endless')).toMatchObject({
             floorTag: 'boss',
             floorArchetypeId: 'trap_hall',
             featuredObjectiveId: 'glass_witness',
-            title: 'Trap Hall'
+            title: 'Trap Hall',
+            theme: 'Trap'
         });
         expect(pickFloorScheduleEntry(0, rv, 12, 'endless')).toMatchObject({
             mutators: ['shifting_spotlight'],
             floorTag: 'normal',
             floorArchetypeId: 'spotlight_hunt',
             featuredObjectiveId: 'cursed_last',
-            title: 'Spotlight Hunt'
+            title: 'Spotlight Hunt',
+            theme: 'Spotlight'
         });
+    });
+
+    it('groups scheduled floors into at least three deterministic chapter themes', () => {
+        const themes = new Set<string>();
+        for (let level = 1; level <= 12; level += 1) {
+            const entry = pickFloorScheduleEntry(20260425, rv, level, 'endless');
+            const identity = getFloorChapterIdentity(entry);
+            expect(identity.mutatorTitles.length).toBe(entry.mutators.length);
+            if (identity.chapterTheme) {
+                themes.add(identity.chapterTheme);
+            }
+        }
+        expect(themes.size).toBeGreaterThanOrEqual(3);
+        expect([...themes]).toEqual(
+            expect.arrayContaining(['Survey', 'Treasure', 'Trap', 'Spotlight'])
+        );
     });
 
     const cycleLen = 12;

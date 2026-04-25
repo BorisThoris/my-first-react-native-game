@@ -339,6 +339,13 @@
     color: color-mix(in srgb, var(--theme-rune) 88%, white);
 }
 
+.endlessChapterMutators {
+    flex-basis: 100%;
+    font-size: 0.68rem;
+    font-weight: 650;
+    color: color-mix(in srgb, var(--theme-cyan-bright) 76%, white);
+}
+
 .endlessRiskWagerPanel {
     display: grid;
     gap: 0.35rem;

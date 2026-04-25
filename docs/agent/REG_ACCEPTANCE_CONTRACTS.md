@@ -17,6 +17,7 @@ schema: reg | phase | status | contract | proof
 | REG-015 | 2 | done | Runs earn temporary shop gold, expose local vendor offers, and can spend once on eligible floor-clear shops without durable economy changes. | game + floor-clear UI tests |
 | REG-018 | 2 | done | Visual Endless remains intentionally locked/upcoming while Classic owns playable procedural endless progression copy. | run-mode catalog + encyclopedia tests |
 | REG-019 | 2 | done | Relic draft data exposes build archetypes and UI surfaces those archetype tags alongside contextual reasons. | relic tests + draft UI tests |
+| REG-020 | 2 | done | Endless chapter schedule exposes chapter themes and UI telegraphs active mutator roles before/during floors. | floor schedule + GameScreen tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

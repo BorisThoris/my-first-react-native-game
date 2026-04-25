@@ -17,57 +17,83 @@ import { createMulberry32, hashStringToSeed } from './rng';
  *    [SOURCE_MAP.md](../../docs/internal-wiki/SOURCE_MAP.md) if schedule behavior is summarized there.
  * 4. Player-facing changelog: mention whether endless uses the scripted floor schedule (`usesEndlessFloorSchedule`).
  */
-export const FLOOR_SCHEDULE_RULES_VERSION = 3;
+export const FLOOR_SCHEDULE_RULES_VERSION = 4;
 
 export interface FloorArchetypeDefinition {
     title: string;
     hint: string;
+    /** REG-020: short player-facing chapter band for pre-floor telegraphing. */
+    theme: string;
+    /** REG-020: action-oriented risk note shown before/during a floor. */
+    riskProfile: string;
 }
 
 export const FLOOR_ARCHETYPE_CATALOG: Record<FloorArchetypeId, FloorArchetypeDefinition> = {
     survey_hall: {
         title: 'Survey Hall',
-        hint: 'Read the board fast and stay on flip par.'
+        hint: 'Read the board fast and stay on flip par.',
+        theme: 'Survey',
+        riskProfile: 'Wide-recall pressure; prioritize efficient pair routes.'
     },
     speed_trial: {
         title: 'Speed Trial',
-        hint: 'The study window is short. Clear with confidence.'
+        hint: 'The study window is short. Clear with confidence.',
+        theme: 'Speed',
+        riskProfile: 'Short memorize; commit quickly after the reveal.'
     },
     treasure_gallery: {
         title: 'Treasure Gallery',
-        hint: 'Pickup pairs are dense here. Clean play keeps Scholar style alive.'
+        hint: 'Pickup pairs are dense here. Clean play keeps Scholar style alive.',
+        theme: 'Treasure',
+        riskProfile: 'Pickup-rich breather; avoid destroy if you want rewards.'
     },
     shadow_read: {
         title: 'Shadow Read',
-        hint: 'Silhouettes hide detail. Leave the cursed pair for last.'
+        hint: 'Silhouettes hide detail. Leave the cursed pair for last.',
+        theme: 'Shadow',
+        riskProfile: 'Silhouette pressure; identify the cursed pair before clearing.'
     },
     anchor_chain: {
         title: 'Anchor Chain',
-        hint: 'Track the anchor cadence and preserve the cursed-last line.'
+        hint: 'Track the anchor cadence and preserve the cursed-last line.',
+        theme: 'Anchor',
+        riskProfile: 'N-back anchor cadence; use pins/peek only when needed.'
     },
     trap_hall: {
         title: 'Trap Hall',
-        hint: 'A glass decoy stalks the board. Keep it out of every miss.'
+        hint: 'A glass decoy stalks the board. Keep it out of every miss.',
+        theme: 'Trap',
+        riskProfile: 'Glass decoy plus sticky pressure; do not drag the trap into a miss.'
     },
     script_room: {
         title: 'Script Room',
-        hint: 'Letters replace the usual read. Finish within par.'
+        hint: 'Letters replace the usual read. Finish within par.',
+        theme: 'Script',
+        riskProfile: 'Letter-symbol read; lean on shape/category memory.'
     },
     rush_recall: {
         title: 'Rush Recall',
-        hint: 'Short study and wide recall collide. Boss floors reward sharp clears.'
+        hint: 'Short study and wide recall collide. Boss floors reward sharp clears.',
+        theme: 'Rush',
+        riskProfile: 'Boss pressure with short study and wider recall.'
     },
     parasite_tithe: {
         title: 'Parasite Tithe',
-        hint: 'The parasite taxes slow descents. Play clean and bank favor.'
+        hint: 'The parasite taxes slow descents. Play clean and bank favor.',
+        theme: 'Parasite',
+        riskProfile: 'Parasite clock; sustain relics and guard tokens matter.'
     },
     spotlight_hunt: {
         title: 'Spotlight Hunt',
-        hint: 'Ward and bounty drift after every turn. Save the cursed pair for last.'
+        hint: 'Ward and bounty drift after every turn. Save the cursed pair for last.',
+        theme: 'Spotlight',
+        riskProfile: 'Ward/bounty rotation; re-evaluate targets after each resolve.'
     },
     breather: {
         title: 'Breather',
-        hint: 'A calmer floor to steady the board and bank favor.'
+        hint: 'A calmer floor to steady the board and bank favor.',
+        theme: 'Breather',
+        riskProfile: 'Lower pressure; rebuild resources and protect streaks.'
     }
 };
 
@@ -97,6 +123,8 @@ export interface FloorScheduleEntry {
     featuredObjectiveId: FeaturedObjectiveId | null;
     title: string | null;
     hint: string | null;
+    theme: string | null;
+    riskProfile: string | null;
 }
 
 const EMPTY_FLOOR_SCHEDULE_ENTRY: FloorScheduleEntry = {
@@ -105,7 +133,9 @@ const EMPTY_FLOOR_SCHEDULE_ENTRY: FloorScheduleEntry = {
     floorArchetypeId: null,
     featuredObjectiveId: null,
     title: null,
-    hint: null
+    hint: null,
+    theme: null,
+    riskProfile: null
 };
 
 const makeEntry = (
@@ -121,7 +151,9 @@ const makeEntry = (
         floorArchetypeId,
         featuredObjectiveId,
         title: archetype.title,
-        hint: archetype.hint
+        hint: archetype.hint,
+        theme: archetype.theme,
+        riskProfile: archetype.riskProfile
     };
 };
 
@@ -150,6 +182,18 @@ export const getFloorArchetypeDefinition = (
 
 export const getFeaturedObjectiveLabel = (id: FeaturedObjectiveId | null): string | null =>
     id ? FEATURED_OBJECTIVE_LABELS[id] : null;
+
+export const getFloorChapterIdentity = (
+    entry: FloorScheduleEntry
+): {
+    chapterTheme: string | null;
+    riskProfile: string | null;
+    mutatorTitles: string[];
+} => ({
+    chapterTheme: entry.theme,
+    riskProfile: entry.riskProfile,
+    mutatorTitles: entry.mutators.map((id) => id.replace(/_/g, ' '))
+});
 
 /**
  * Deterministic mutators + pacing tag for endless (rules v3+).

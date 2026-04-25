@@ -1018,7 +1018,11 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         ) : null}
 
                         {showEndlessChapterBanner ? (
-                            <div className={styles.endlessChapterBanner} data-testid="endless-chapter-banner">
+                            <div
+                                className={styles.endlessChapterBanner}
+                                data-chapter-theme={currentArchetype!.theme}
+                                data-testid="endless-chapter-banner"
+                            >
                                 <strong className={styles.endlessChapterTitle}>{currentArchetype!.title}</strong>
                                 <span className={styles.endlessChapterHint}>{currentArchetype!.hint}</span>
                                 <span className={styles.endlessChapterObjective}>

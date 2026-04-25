@@ -328,7 +328,8 @@ export const CODEX_CORE_TOPICS: CodexCoreTopic[] = [
     {
         id: 'mutators',
         title: 'Mutators',
-        description: 'Daily and special runs can add mutators that change memorize timing, scoring pressure, or tile sets.'
+        description:
+            'Classic chapters telegraph mutators before play: the banner names the chapter theme, active pressure, featured objective, and pacing tag so the player knows how to adapt.'
     }
 ];
 
