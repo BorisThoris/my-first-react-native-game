@@ -39,6 +39,7 @@ import {
     openRelicOffer,
     pauseRun,
     purchaseShopOffer as purchaseShopOfferRule,
+    rerollShopOffers as rerollShopOffersRule,
     resolveBoardTurn,
     resumeRun,
     togglePinnedTile,
@@ -171,6 +172,7 @@ interface AppState {
     resume: () => void;
     acceptEndlessRiskWager: () => void;
     purchaseShopOffer: (offerId: string) => void;
+    rerollShopOffers: () => void;
     continueToNextLevel: () => void;
     restartRun: () => void;
     endRun: () => void;
@@ -1306,6 +1308,14 @@ export const useAppStore = create<AppState>((set, get) => ({
             return;
         }
         set({ run: purchaseShopOfferRule(run, offerId) });
+    },
+
+    rerollShopOffers: () => {
+        const { run } = get();
+        if (!run || run.status !== 'levelComplete') {
+            return;
+        }
+        set({ run: rerollShopOffersRule(run) });
     },
 
     continueToNextLevel: () => {

@@ -590,7 +590,10 @@ describe('GameScreen (OVR-014)', () => {
                     itemId: 'peek_charge',
                     label: 'Peek charge',
                     description: 'Add 1 peek charge for this run.',
+                    baseCost: 2,
                     cost: 2,
+                    stock: 1,
+                    maxStock: 1,
                     purchased: false
                 }
             ],

@@ -171,6 +171,9 @@ export interface RunShopOfferState {
     label: string;
     description: string;
     cost: number;
+    baseCost: number;
+    stock: number;
+    maxStock: number;
     purchased: boolean;
 }
 
@@ -435,6 +438,8 @@ export interface RunState {
     shopGold: number;
     /** REG-015/070/071: deterministic local vendor offers available from floor-clear overlays. */
     shopOffers: RunShopOfferState[];
+    /** REG-070: one local reroll per floor-clear shop visit. */
+    shopRerolls: number;
     /** Endless-only consecutive featured-objective clears. Normal misses decay this; risk-wager misses reset it. */
     featuredObjectiveStreak: number;
     /** Endless-only risk wager armed from a level-complete modal for the next floor. */

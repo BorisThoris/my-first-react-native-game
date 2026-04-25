@@ -179,29 +179,55 @@ export const SHOP_ITEM_CATALOG: Record<RunShopItemId, Omit<RunShopOfferState, 'i
         itemId: 'heal_life',
         label: 'Mend a life',
         description: 'Restore 1 life now, capped by max lives.',
-        cost: 2
+        baseCost: 2,
+        cost: 2,
+        stock: 1,
+        maxStock: 1
     },
     peek_charge: {
         itemId: 'peek_charge',
         label: 'Peek charge',
         description: 'Add 1 peek charge for this run.',
-        cost: 1
+        baseCost: 1,
+        cost: 1,
+        stock: 1,
+        maxStock: 1
     },
     destroy_charge: {
         itemId: 'destroy_charge',
         label: 'Destroy charge',
         description: 'Add 1 destroy charge, capped by the current bank limit.',
-        cost: 2
+        baseCost: 2,
+        cost: 2,
+        stock: 1,
+        maxStock: 1
     }
 };
+
+const shopRerollCostForFloor = (level: number): number => 1 + Math.floor(Math.max(0, level - 1) / 3);
 
 export const createRunShopOffers = (run: RunState): RunShopOfferState[] => {
     const ids: RunShopItemId[] = ['heal_life', 'peek_charge', 'destroy_charge'];
     return ids.map((itemId, index) => ({
         ...SHOP_ITEM_CATALOG[itemId],
-        id: `${run.runRulesVersion}:${run.runSeed}:${run.board?.level ?? run.stats.highestLevel}:shop:${index}`,
+        id: `${run.runRulesVersion}:${run.runSeed}:${run.board?.level ?? run.stats.highestLevel}:shop:${run.shopRerolls}:${index}`,
         purchased: false
     }));
+};
+
+export const canRerollShopOffers = (run: RunState): boolean =>
+    run.status === 'levelComplete' &&
+    run.shopOffers.length > 0 &&
+    run.shopRerolls < 1 &&
+    run.shopGold >= shopRerollCostForFloor(run.board?.level ?? run.stats.highestLevel);
+
+export const rerollShopOffers = (run: RunState): RunState => {
+    if (!canRerollShopOffers(run)) {
+        return run;
+    }
+    const cost = shopRerollCostForFloor(run.board?.level ?? run.stats.highestLevel);
+    const nextRun = { ...run, shopGold: run.shopGold - cost, shopRerolls: run.shopRerolls + 1 };
+    return { ...nextRun, shopOffers: createRunShopOffers(nextRun) };
 };
 
 export const purchaseShopOffer = (run: RunState, offerId: string): RunState => {
@@ -1400,6 +1426,7 @@ export const createNewRun = (bestScore: number, options: CreateRunOptions = {}):
         relicFavorProgress: 0,
         shopGold: 0,
         shopOffers: [],
+        shopRerolls: 0,
         featuredObjectiveStreak: 0,
         endlessRiskWager: null,
         metaRelicDraftExtraPerMilestone: options.metaRelicDraftExtraPerMilestone ?? 0,
@@ -2599,6 +2626,8 @@ export const advanceToNextLevel = (run: RunState): RunState => {
         flashPairRevealedTileIds: [],
         regionShuffleRowArmed: null,
         regionShuffleCharges: INITIAL_REGION_SHUFFLE_CHARGES,
+        shopOffers: [],
+        shopRerolls: 0,
         wildTileId: getWildTileIdFromBoard(nextBoard),
         timerState: createTimerState({ memorizeRemainingMs: status === 'memorize' ? memorizeWithBonus : null }),
         lastLevelResult: null,

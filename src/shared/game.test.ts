@@ -50,6 +50,8 @@ import {
     isGauntletExpired,
     openRelicOffer,
     purchaseShopOffer,
+    rerollShopOffers,
+    canRerollShopOffers,
     resolveBoardTurn,
     tilesArePairMatch,
     togglePinnedTile,
@@ -266,9 +268,27 @@ describe('REG-015 run shop wallet', () => {
         const rebuy = purchaseShopOffer(boughtPeek, peekOffer.id);
         expect(rebuy).toBe(boughtPeek);
 
+        const rerolled = rerollShopOffers({ ...cleared, shopGold: 6 });
+        expect(rerolled.shopRerolls).toBe(1);
+        expect(rerolled.shopGold).toBeLessThan(6);
+        expect(rerolled.shopOffers.map((offer) => offer.id)).not.toEqual(cleared.shopOffers.map((offer) => offer.id));
+        expect(rerollShopOffers(rerolled)).toBe(rerolled);
+
         const broke = purchaseShopOffer({ ...cleared, shopGold: 0 }, cleared.shopOffers[1]!.id);
         expect(broke.shopGold).toBe(0);
         expect(broke.shopOffers[1]!.purchased).toBe(false);
+    });
+
+    it('REG-070 rerolls shop stock once with deterministic pricing', () => {
+        const cleared = playPerfectFloors(createNewRun(0, { echoFeedbackEnabled: false, runSeed: 70_001 }), 1);
+        const idsBefore = cleared.shopOffers.map((offer) => offer.id);
+        const rerolled = rerollShopOffers(cleared);
+
+        expect(rerolled.shopRerolls).toBe(1);
+        expect(rerolled.shopGold).toBe(cleared.shopGold - 1);
+        expect(rerolled.shopOffers.map((offer) => offer.id)).not.toEqual(idsBefore);
+        expect(rerollShopOffers(rerolled)).toBe(rerolled);
+        expect(canRerollShopOffers({ ...cleared, shopGold: 0 })).toBe(false);
     });
 });
 

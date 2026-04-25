@@ -30,6 +30,7 @@ schema: reg | phase | status | contract | proof
 | REG-065 | 2 | done | Puzzle content tail has pack taxonomy, authored metadata, an advanced built-in board, and safe import/library validation. | puzzle-import + save-data tests |
 | REG-066 | 2 | done | Card-back theme slots are real cosmetic rows with asset/fallback contracts while selection persistence remains deferred. | cosmetics tests + Settings/Inventory typecheck |
 | REG-069 | 2 | done | Route graph contract names deterministic combat/shop/elite/rest node hooks, seed identity, and default selected node without new online state. | run-map tests |
+| REG-070 | 2 | done | Vendor offers expose base/scaled cost, stock, sold-out state, and one local reroll with gold-gated failure UX. | game + floor-clear UI tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.
