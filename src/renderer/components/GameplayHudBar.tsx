@@ -412,13 +412,33 @@ const GameplayHudBar = ({
                             <div className={`${styles.hudSegment} ${styles.hudMetaSegment}`}>
                                 <span className={styles.statKey}>Mode</span>
                                 <span className={styles.statVal}>{hudModeLabel}</span>
+                                {endlessChapterActive && board.actTitle ? (
+                                    <span
+                                        className={styles.statSubline}
+                                        data-testid="hud-chapter-act"
+                                        title={board.biomeTone ?? 'Endless act and biome'}
+                                    >
+                                        {board.actTitle} · {board.biomeTitle} · {board.actFloorNumber}/
+                                        {board.actFloorCount}
+                                    </span>
+                                ) : null}
                                 {endlessChapterActive && archetype ? (
                                     <span
                                         className={styles.statSubline}
                                         data-testid="hud-endless-archetype"
-                                        title={archetype.hint}
+                                        title={[
+                                            board.actTitle,
+                                            board.biomeTitle,
+                                            board.actFloorNumber != null && board.actFloorCount != null
+                                                ? `Act floor ${board.actFloorNumber}/${board.actFloorCount}`
+                                                : null,
+                                            archetype.hint
+                                        ]
+                                            .filter(Boolean)
+                                            .join(' — ')}
                                     >
                                         {archetype.title}
+                                        {board.actTitle ? ` · ${board.actTitle}` : ''}
                                     </span>
                                 ) : null}
                                 {nBackLabel ? <span className={styles.statSubline}>{nBackLabel}</span> : null}

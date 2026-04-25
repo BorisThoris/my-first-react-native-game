@@ -125,17 +125,96 @@ export interface FloorScheduleEntry {
     floorTag: FloorTag;
     floorArchetypeId: FloorArchetypeId | null;
     featuredObjectiveId: FeaturedObjectiveId | null;
+    cycleFloor: number | null;
+    actId: ChapterActId | null;
+    actTitle: string | null;
+    actFloorNumber: number | null;
+    actFloorCount: number | null;
+    biomeId: ChapterBiomeId | null;
+    biomeTitle: string | null;
+    biomeTone: string | null;
     title: string | null;
     hint: string | null;
     theme: string | null;
     riskProfile: string | null;
 }
 
+export type ChapterActId = 'act_1_survey' | 'act_2_shadow' | 'act_3_convergence';
+export type ChapterBiomeId = 'lantern_academy' | 'shadow_archive' | 'spire_convergence';
+
+export interface ChapterActBiomeDefinition {
+    actId: ChapterActId;
+    actTitle: string;
+    firstCycleFloor: number;
+    lastCycleFloor: number;
+    biomeId: ChapterBiomeId;
+    biomeTitle: string;
+    biomeTone: string;
+    gateRule: string;
+}
+
+export const CHAPTER_ACT_BIOME_STRUCTURE: readonly ChapterActBiomeDefinition[] = [
+    {
+        actId: 'act_1_survey',
+        actTitle: 'Act I — Survey Grounds',
+        firstCycleFloor: 1,
+        lastCycleFloor: 4,
+        biomeId: 'lantern_academy',
+        biomeTitle: 'Lantern Academy',
+        biomeTone: 'Readable halls, early treasure, and silhouette onboarding.',
+        gateRule: 'Floors 1-4 of each endless cycle.'
+    },
+    {
+        actId: 'act_2_shadow',
+        actTitle: 'Act II — Shadow Archive',
+        firstCycleFloor: 5,
+        lastCycleFloor: 8,
+        biomeId: 'shadow_archive',
+        biomeTitle: 'Shadow Archive',
+        biomeTone: 'Anchor tracking, breather recovery, trap boss, and script pressure.',
+        gateRule: 'Floors 5-8 of each endless cycle.'
+    },
+    {
+        actId: 'act_3_convergence',
+        actTitle: 'Act III — Spire Convergence',
+        firstCycleFloor: 9,
+        lastCycleFloor: 12,
+        biomeId: 'spire_convergence',
+        biomeTitle: 'Spire Convergence',
+        biomeTone: 'Boss recall, treasure reset, parasite sustain, and spotlight finale.',
+        gateRule: 'Floors 9-12 of each endless cycle.'
+    }
+] as const;
+
+export const ENDLESS_CYCLE_FLOOR_COUNT = 12;
+
+export const getChapterActBiomeForCycleFloor = (
+    cycleFloor: number
+): (ChapterActBiomeDefinition & { actFloorNumber: number; actFloorCount: number }) => {
+    const normalized = ((Math.max(1, cycleFloor) - 1) % ENDLESS_CYCLE_FLOOR_COUNT) + 1;
+    const definition = CHAPTER_ACT_BIOME_STRUCTURE.find(
+        (act) => normalized >= act.firstCycleFloor && normalized <= act.lastCycleFloor
+    )!;
+    return {
+        ...definition,
+        actFloorNumber: normalized - definition.firstCycleFloor + 1,
+        actFloorCount: definition.lastCycleFloor - definition.firstCycleFloor + 1
+    };
+};
+
 const EMPTY_FLOOR_SCHEDULE_ENTRY: FloorScheduleEntry = {
     mutators: [],
     floorTag: 'normal',
     floorArchetypeId: null,
     featuredObjectiveId: null,
+    cycleFloor: null,
+    actId: null,
+    actTitle: null,
+    actFloorNumber: null,
+    actFloorCount: null,
+    biomeId: null,
+    biomeTitle: null,
+    biomeTone: null,
     title: null,
     hint: null,
     theme: null,
@@ -143,17 +222,27 @@ const EMPTY_FLOOR_SCHEDULE_ENTRY: FloorScheduleEntry = {
 };
 
 const makeEntry = (
+    cycleFloor: number,
     floorArchetypeId: FloorArchetypeId,
     featuredObjectiveId: FeaturedObjectiveId,
     mutators: MutatorId[],
     floorTag: FloorTag
 ): FloorScheduleEntry => {
     const archetype = FLOOR_ARCHETYPE_CATALOG[floorArchetypeId];
+    const actBiome = getChapterActBiomeForCycleFloor(cycleFloor);
     return {
         mutators,
         floorTag,
         floorArchetypeId,
         featuredObjectiveId,
+        cycleFloor,
+        actId: actBiome.actId,
+        actTitle: actBiome.actTitle,
+        actFloorNumber: actBiome.actFloorNumber,
+        actFloorCount: actBiome.actFloorCount,
+        biomeId: actBiome.biomeId,
+        biomeTitle: actBiome.biomeTitle,
+        biomeTone: actBiome.biomeTone,
         title: archetype.title,
         hint: archetype.hint,
         theme: archetype.theme,
@@ -166,18 +255,18 @@ const makeEntry = (
  * `wide_recall`, `silhouette_twist`, and `distraction_channel` pair with renderer styling and flat per-match penalties in `game.ts`.
  */
 const ENDLESS_FLOOR_CYCLE: FloorScheduleEntry[] = [
-    makeEntry('survey_hall', 'flip_par', ['wide_recall'], 'normal'),
-    makeEntry('speed_trial', 'flip_par', ['short_memorize'], 'normal'),
-    makeEntry('treasure_gallery', 'scholar_style', ['findables_floor'], 'breather'),
-    makeEntry('shadow_read', 'cursed_last', ['silhouette_twist'], 'normal'),
-    makeEntry('anchor_chain', 'cursed_last', ['n_back_anchor'], 'normal'),
-    makeEntry('breather', 'scholar_style', [], 'breather'),
-    makeEntry('trap_hall', 'glass_witness', ['glass_floor', 'sticky_fingers'], 'boss'),
-    makeEntry('script_room', 'flip_par', ['category_letters'], 'normal'),
-    makeEntry('rush_recall', 'flip_par', ['short_memorize', 'wide_recall'], 'boss'),
-    makeEntry('treasure_gallery', 'scholar_style', ['findables_floor'], 'breather'),
-    makeEntry('parasite_tithe', 'scholar_style', ['score_parasite'], 'normal'),
-    makeEntry('spotlight_hunt', 'cursed_last', ['shifting_spotlight'], 'normal')
+    makeEntry(1, 'survey_hall', 'flip_par', ['wide_recall'], 'normal'),
+    makeEntry(2, 'speed_trial', 'flip_par', ['short_memorize'], 'normal'),
+    makeEntry(3, 'treasure_gallery', 'scholar_style', ['findables_floor'], 'breather'),
+    makeEntry(4, 'shadow_read', 'cursed_last', ['silhouette_twist'], 'normal'),
+    makeEntry(5, 'anchor_chain', 'cursed_last', ['n_back_anchor'], 'normal'),
+    makeEntry(6, 'breather', 'scholar_style', [], 'breather'),
+    makeEntry(7, 'trap_hall', 'glass_witness', ['glass_floor', 'sticky_fingers'], 'boss'),
+    makeEntry(8, 'script_room', 'flip_par', ['category_letters'], 'normal'),
+    makeEntry(9, 'rush_recall', 'flip_par', ['short_memorize', 'wide_recall'], 'boss'),
+    makeEntry(10, 'treasure_gallery', 'scholar_style', ['findables_floor'], 'breather'),
+    makeEntry(11, 'parasite_tithe', 'scholar_style', ['score_parasite'], 'normal'),
+    makeEntry(12, 'spotlight_hunt', 'cursed_last', ['shifting_spotlight'], 'normal')
 ];
 
 export const getFloorArchetypeDefinition = (
@@ -191,10 +280,19 @@ export const getFloorChapterIdentity = (
     entry: FloorScheduleEntry
 ): {
     chapterTheme: string | null;
+    actTitle: string | null;
+    biomeTitle: string | null;
+    actProgress: string | null;
     riskProfile: string | null;
     mutatorTitles: string[];
 } => ({
     chapterTheme: entry.theme,
+    actTitle: entry.actTitle,
+    biomeTitle: entry.biomeTitle,
+    actProgress:
+        entry.actFloorNumber != null && entry.actFloorCount != null
+            ? `${entry.actFloorNumber}/${entry.actFloorCount}`
+            : null,
     riskProfile: entry.riskProfile,
     mutatorTitles: entry.mutators.map((id) => id.replace(/_/g, ' '))
 });

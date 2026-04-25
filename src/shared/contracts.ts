@@ -320,6 +320,14 @@ export interface BoardState {
     floorArchetypeId: FloorArchetypeId | null;
     /** Endless-only visible goal for this floor; null outside the schedule. */
     featuredObjectiveId: FeaturedObjectiveId | null;
+    /** REG-077: 1-based position within the 12-floor authored endless cycle. */
+    cycleFloor?: number | null;
+    /** REG-077: player-facing act/biome metadata for HUD, Codex, and deterministic test routing. */
+    actTitle?: string | null;
+    actFloorNumber?: number | null;
+    actFloorCount?: number | null;
+    biomeTitle?: string | null;
+    biomeTone?: string | null;
 }
 
 export interface SessionStats {

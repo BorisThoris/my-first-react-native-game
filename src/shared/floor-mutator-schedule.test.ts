@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+    CHAPTER_ACT_BIOME_STRUCTURE,
+    ENDLESS_CYCLE_FLOOR_COUNT,
     FLOOR_SCHEDULE_RULES_VERSION,
+    getChapterActBiomeForCycleFloor,
     getFloorChapterIdentity,
     pickFloorScheduleEntry,
     usesEndlessFloorSchedule
@@ -30,6 +33,14 @@ describe('pickFloorScheduleEntry', () => {
             floorTag: 'normal',
             floorArchetypeId: null,
             featuredObjectiveId: null,
+            cycleFloor: null,
+            actId: null,
+            actTitle: null,
+            actFloorNumber: null,
+            actFloorCount: null,
+            biomeId: null,
+            biomeTitle: null,
+            biomeTone: null,
             title: null,
             hint: null,
             theme: null,
@@ -43,6 +54,14 @@ describe('pickFloorScheduleEntry', () => {
             floorTag: 'normal',
             floorArchetypeId: null,
             featuredObjectiveId: null,
+            cycleFloor: null,
+            actId: null,
+            actTitle: null,
+            actFloorNumber: null,
+            actFloorCount: null,
+            biomeId: null,
+            biomeTitle: null,
+            biomeTone: null,
             title: null,
             hint: null,
             theme: null,
@@ -57,7 +76,11 @@ describe('pickFloorScheduleEntry', () => {
             floorArchetypeId: 'survey_hall',
             featuredObjectiveId: 'flip_par',
             title: 'Survey Hall',
-            theme: 'Survey'
+            theme: 'Survey',
+            actTitle: 'Act I — Survey Grounds',
+            biomeTitle: 'Lantern Academy',
+            actFloorNumber: 1,
+            actFloorCount: 4
         });
         expect(pickFloorScheduleEntry(0, rv, 3, 'endless')).toMatchObject({
             mutators: ['findables_floor'],
@@ -72,7 +95,9 @@ describe('pickFloorScheduleEntry', () => {
             floorArchetypeId: 'trap_hall',
             featuredObjectiveId: 'glass_witness',
             title: 'Trap Hall',
-            theme: 'Trap'
+            theme: 'Trap',
+            actTitle: 'Act II — Shadow Archive',
+            biomeTitle: 'Shadow Archive'
         });
         expect(pickFloorScheduleEntry(0, rv, 12, 'endless')).toMatchObject({
             mutators: ['shifting_spotlight'],
@@ -98,6 +123,27 @@ describe('pickFloorScheduleEntry', () => {
         expect([...themes]).toEqual(
             expect.arrayContaining(['Survey', 'Treasure', 'Trap', 'Spotlight'])
         );
+    });
+
+    it('defines stable three-act biome gates across the twelve-floor cycle', () => {
+        expect(ENDLESS_CYCLE_FLOOR_COUNT).toBe(12);
+        expect(CHAPTER_ACT_BIOME_STRUCTURE.map((act) => `${act.actTitle}:${act.firstCycleFloor}-${act.lastCycleFloor}`)).toEqual([
+            'Act I — Survey Grounds:1-4',
+            'Act II — Shadow Archive:5-8',
+            'Act III — Spire Convergence:9-12'
+        ]);
+
+        expect(getChapterActBiomeForCycleFloor(9)).toMatchObject({
+            actId: 'act_3_convergence',
+            biomeId: 'spire_convergence',
+            actFloorNumber: 1,
+            actFloorCount: 4
+        });
+        expect(getChapterActBiomeForCycleFloor(13)).toMatchObject({
+            actId: 'act_1_survey',
+            biomeId: 'lantern_academy',
+            actFloorNumber: 1
+        });
     });
 
     const cycleLen = 12;

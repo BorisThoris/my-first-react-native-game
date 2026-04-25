@@ -28,6 +28,8 @@ describe('GameplayHudBar', () => {
         );
 
         expect(screen.getByTestId('hud-endless-archetype').textContent).toContain('Survey Hall');
+        expect(screen.getByTestId('hud-endless-archetype').getAttribute('title')).toContain('Act I');
+        expect(screen.getByTestId('hud-endless-archetype').getAttribute('title')).toContain('Lantern Academy');
         const objectivePill = screen.getByTestId('hud-featured-objective');
         expect(objectivePill.textContent).toContain('Flip par');
         expect(objectivePill.getAttribute('title')).toMatch(/match resolutions/i);

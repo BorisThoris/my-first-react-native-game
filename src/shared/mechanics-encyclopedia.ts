@@ -513,7 +513,7 @@ export const ENCYCLOPEDIA_SETTINGS_AND_ASSISTS_TOPICS: readonly EncyclopediaTopi
         id: 'meta_floor_cycle_boss',
         title: 'Endless floor cycle & boss tags',
         description:
-            'In **Classic Run** with the modern floor schedule, each level draws a named **chapter**, **active mutators**, a **featured objective**, and a **pacing tag** (normal, breather, or **boss**) from a **repeating cycle**. **Boss**-tagged clears apply the boss **score multiplier**; some boss steps may add presentation mutators for variation.'
+            'In **Classic Run** with the modern floor schedule, each level draws a named **chapter**, **act**, **biome**, **active mutators**, a **featured objective**, and a **pacing tag** (normal, breather, or **boss**) from a **12-floor repeating cycle**. The cycle is grouped into Act I / Lantern Academy (floors 1–4), Act II / Shadow Archive (floors 5–8), and Act III / Spire Convergence (floors 9–12). **Boss**-tagged clears apply the boss **score multiplier**; some boss steps may add presentation mutators for variation.'
     },
     {
         id: 'dev_debug_peek',

@@ -55,6 +55,7 @@ import {
     type WeakerShuffleMode
 } from './contracts';
 import {
+    getChapterActBiomeForCycleFloor,
     pickFloorScheduleEntry,
     usesEndlessFloorSchedule
 } from './floor-mutator-schedule';
@@ -477,6 +478,7 @@ export interface BuildBoardOptions {
     floorTag?: FloorTag;
     floorArchetypeId?: FloorArchetypeId | null;
     featuredObjectiveId?: FeaturedObjectiveId | null;
+    cycleFloor?: number | null;
 }
 
 const createTiles = (
@@ -694,6 +696,8 @@ export const buildBoard = (level: number, options: BuildBoardOptions = {}): Boar
     const mutators = options.activeMutators ?? [];
     const floorArchetypeId = options.floorArchetypeId ?? null;
     const featuredObjectiveId = options.featuredObjectiveId ?? null;
+    const cycleFloor = options.cycleFloor ?? null;
+    const actBiome = cycleFloor != null ? getChapterActBiomeForCycleFloor(cycleFloor) : null;
 
     if (options.fixedTiles && options.fixedTiles.length > 0) {
         const tiles = options.fixedTiles.map((t) => ({ ...t }));
@@ -715,7 +719,13 @@ export const buildBoard = (level: number, options: BuildBoardOptions = {}): Boar
             wardPairKey: null,
             bountyPairKey: null,
             floorArchetypeId,
-            featuredObjectiveId
+            featuredObjectiveId,
+            cycleFloor,
+            actTitle: actBiome?.actTitle ?? null,
+            actFloorNumber: actBiome?.actFloorNumber ?? null,
+            actFloorCount: actBiome?.actFloorCount ?? null,
+            biomeTitle: actBiome?.biomeTitle ?? null,
+            biomeTone: actBiome?.biomeTone ?? null
         };
     }
 
@@ -745,7 +755,13 @@ export const buildBoard = (level: number, options: BuildBoardOptions = {}): Boar
         floorTag: options.floorTag ?? 'normal',
         cursedPairKey,
         floorArchetypeId,
-        featuredObjectiveId
+        featuredObjectiveId,
+        cycleFloor,
+        actTitle: actBiome?.actTitle ?? null,
+        actFloorNumber: actBiome?.actFloorNumber ?? null,
+        actFloorCount: actBiome?.actFloorCount ?? null,
+        biomeTitle: actBiome?.biomeTitle ?? null,
+        biomeTone: actBiome?.biomeTone ?? null
     };
     if (!mutators.includes('shifting_spotlight')) {
         return { ...baseBoard, wardPairKey: null, bountyPairKey: null };
@@ -1430,6 +1446,7 @@ export const createNewRun = (bestScore: number, options: CreateRunOptions = {}):
     let initialFloorTag: FloorTag = 'normal';
     let initialFloorArchetypeId: FloorArchetypeId | null = null;
     let initialFeaturedObjectiveId: FeaturedObjectiveId | null = null;
+    let initialCycleFloor: number | null = null;
     if (
         gameMode === 'endless' &&
         usesEndlessFloorSchedule(gameMode, rulesVersion) &&
@@ -1441,6 +1458,7 @@ export const createNewRun = (bestScore: number, options: CreateRunOptions = {}):
         initialFloorTag = entry.floorTag;
         initialFloorArchetypeId = entry.floorArchetypeId;
         initialFeaturedObjectiveId = entry.featuredObjectiveId;
+        initialCycleFloor = entry.cycleFloor;
     }
     const weakerShuffleMode: WeakerShuffleMode = options.weakerShuffleMode ?? 'full';
     const shuffleScoreTaxActive = options.shuffleScoreTaxActive ?? false;
@@ -1455,7 +1473,8 @@ export const createNewRun = (bestScore: number, options: CreateRunOptions = {}):
             includeWildTile: enableWildJoker,
             floorTag: initialFloorTag,
             floorArchetypeId: initialFloorArchetypeId,
-            featuredObjectiveId: initialFeaturedObjectiveId
+            featuredObjectiveId: initialFeaturedObjectiveId,
+            cycleFloor: initialCycleFloor
         });
 
     const run: RunState = {
@@ -2620,12 +2639,14 @@ export const advanceToNextLevel = (run: RunState): RunState => {
     let nextFloorTag: FloorTag = 'normal';
     let nextFloorArchetypeId: FloorArchetypeId | null = null;
     let nextFeaturedObjectiveId: FeaturedObjectiveId | null = null;
+    let nextCycleFloor: number | null = null;
     if (usesEndlessFloorSchedule(run.gameMode, run.runRulesVersion) && !run.wildMenuRun) {
         const entry = pickFloorScheduleEntry(run.runSeed, run.runRulesVersion, nextLevelNum, run.gameMode);
         nextActiveMutators = entry.mutators;
         nextFloorTag = entry.floorTag;
         nextFloorArchetypeId = entry.floorArchetypeId;
         nextFeaturedObjectiveId = entry.featuredObjectiveId;
+        nextCycleFloor = entry.cycleFloor;
     }
 
     let parasiteFloors = run.parasiteFloors + 1;
@@ -2647,7 +2668,8 @@ export const advanceToNextLevel = (run: RunState): RunState => {
         includeWildTile: run.wildMatchesRemaining > 0,
         floorTag: nextFloorTag,
         floorArchetypeId: nextFloorArchetypeId,
-        featuredObjectiveId: nextFeaturedObjectiveId
+        featuredObjectiveId: nextFeaturedObjectiveId,
+        cycleFloor: nextCycleFloor
     });
     const runForNextMemorize: RunState = { ...run, activeMutators: nextActiveMutators };
     const baseMemorizeMs = getMemorizeDurationForRun(runForNextMemorize, nextBoard.level);
