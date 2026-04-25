@@ -64,6 +64,20 @@ routes:
       - "if responsive/mobile layout changed: yarn test:e2e:visual:smoke"
       - "if navigation/gameplay flow changed: yarn test:e2e:renderer-qa"
       - "if a11y semantics changed: yarn test:e2e:a11y"
+  startup_intro_boot:
+    triggers:
+      - src/renderer/App.tsx
+      - src/renderer/components/StartupIntro.tsx
+      - src/renderer/components/startupIntro*.ts
+      - src/renderer/components/StartupIntro.module.css
+      - e2e/startup-intro-contract.spec.ts
+    required:
+      - yarn vitest run src/renderer/components/startupIntro.test.ts src/renderer/components/startupIntroContract.test.ts src/renderer/components/startupIntroComponent.test.tsx src/renderer/App.test.tsx
+      - yarn typecheck
+      - yarn test
+      - yarn playwright test e2e/startup-intro-contract.spec.ts --workers=1
+    conditional:
+      - "when visual snapshots change: yarn playwright test e2e/menu-boot-visual.spec.ts --workers=1"
   electron_ipc:
     triggers:
       - src/main/**

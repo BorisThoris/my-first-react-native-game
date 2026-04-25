@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PlatformTiltProvider } from '../platformTilt/PlatformTiltProvider';
 import StartupIntro from './StartupIntro';
 import { getIntroExitDurationMs } from './startupIntroConfig';
+import { STARTUP_INTRO_ASSET_FAILSAFE_MS } from './startupIntroContract';
 
 const uiSfxMocks = vi.hoisted(() => ({
     playIntroStingSfx: vi.fn(),
@@ -109,6 +110,24 @@ describe('StartupIntro', () => {
         expect(onComplete).toHaveBeenCalledTimes(1);
     });
 
+    it.each(['Enter', 'Escape', ' ', 'Spacebar'])('starts the skip contract from %s', async (key) => {
+        const onComplete = vi.fn();
+
+        renderIntro(<StartupIntro onComplete={onComplete} reduceMotion={true} />);
+
+        await flushIntroPreload();
+
+        fireEvent.keyDown(window, { key });
+
+        expect(screen.getByTestId('startup-intro-overlay')).toHaveAttribute('data-skip-state', 'requested');
+
+        act(() => {
+            vi.advanceTimersByTime(getIntroExitDurationMs(true));
+        });
+
+        expect(onComplete).toHaveBeenCalledTimes(1);
+    });
+
     it('skips when the intro overlay is clicked', async () => {
         const onComplete = vi.fn();
 
@@ -125,6 +144,35 @@ describe('StartupIntro', () => {
 
         act(() => {
             vi.advanceTimersByTime(getIntroExitDurationMs(false));
+        });
+
+        expect(onComplete).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps a readable skip-pending state during slow asset loads, then completes through fallback', async () => {
+        const onComplete = vi.fn();
+        mockHasWebGLSupport.mockReturnValue(true);
+        mockPreloadStartupCriticalAssets.mockImplementationOnce(
+            () => new Promise(() => {})
+        );
+
+        renderIntro(<StartupIntro onComplete={onComplete} reduceMotion={true} />);
+
+        expect(screen.getByTestId('startup-intro-loading-state')).toHaveTextContent(/preparing intro assets/i);
+
+        fireEvent.keyDown(window, { key: 'Enter' });
+
+        expect(screen.getByTestId('startup-intro-overlay')).toHaveAttribute('data-assets', 'loading');
+        expect(screen.getByTestId('startup-intro-loading-state')).toHaveTextContent(/skip requested/i);
+
+        act(() => {
+            vi.advanceTimersByTime(STARTUP_INTRO_ASSET_FAILSAFE_MS);
+        });
+
+        expect(screen.getByTestId('startup-intro-overlay')).toHaveAttribute('data-render-mode', 'fallback');
+
+        act(() => {
+            vi.advanceTimersByTime(getIntroExitDurationMs(true));
         });
 
         expect(onComplete).toHaveBeenCalledTimes(1);

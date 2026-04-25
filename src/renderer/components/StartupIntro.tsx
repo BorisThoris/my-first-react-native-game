@@ -39,6 +39,10 @@ import {
 } from './startupIntroConfig';
 import { handleTabFocusTrapEvent } from '../a11y/focusables';
 import { hasWebGLSupport, type RelicTextureSet } from './startupIntroTextures';
+import {
+    resolveStartupIntroOverlayContract,
+    STARTUP_INTRO_ASSET_FAILSAFE_MS
+} from './startupIntroContract';
 import styles from './StartupIntro.module.css';
 
 interface StartupIntroProps {
@@ -786,9 +790,9 @@ const StartupIntro = ({ graphicsQuality, onComplete, reduceMotion }: StartupIntr
 
     useEffect(() => {
         let cancelled = false;
+        let settled = false;
         const webgl = hasWebGLSupport();
-
-        void preloadStartupCriticalAssets({ relicSvgUrl, webgl }).then(({ relicTextureSet }) => {
+        const finishWith = (relicTextureSet: RelicTextureSet | null): void => {
             if (cancelled) {
                 relicTextureSet?.dispose();
                 return;
@@ -805,10 +809,37 @@ const StartupIntro = ({ graphicsQuality, onComplete, reduceMotion }: StartupIntr
             assetsReadyRef.current = true;
             setAssetsReady(true);
             tryBeginExitWhenReady();
-        });
+        };
+        const failSafeTimeout = window.setTimeout(() => {
+            if (settled) {
+                return;
+            }
+            settled = true;
+            finishWith(null);
+        }, STARTUP_INTRO_ASSET_FAILSAFE_MS);
+
+        void preloadStartupCriticalAssets({ relicSvgUrl, webgl })
+            .then(({ relicTextureSet }) => {
+                if (settled) {
+                    relicTextureSet?.dispose();
+                    return;
+                }
+                settled = true;
+                window.clearTimeout(failSafeTimeout);
+                finishWith(relicTextureSet);
+            })
+            .catch(() => {
+                if (settled) {
+                    return;
+                }
+                settled = true;
+                window.clearTimeout(failSafeTimeout);
+                finishWith(null);
+            });
 
         return () => {
             cancelled = true;
+            window.clearTimeout(failSafeTimeout);
         };
     }, [tryBeginExitWhenReady]);
 
@@ -833,6 +864,11 @@ const StartupIntro = ({ graphicsQuality, onComplete, reduceMotion }: StartupIntr
         touchPrimary
     });
     const introMotionLabels = getMotionPermissionButtonLabels(permission, 'intro');
+    const overlayContract = resolveStartupIntroOverlayContract({
+        assetsReady,
+        renderMode,
+        skipPending
+    });
 
     return (
         <section
@@ -840,9 +876,11 @@ const StartupIntro = ({ graphicsQuality, onComplete, reduceMotion }: StartupIntr
             aria-label="Startup relic intro"
             aria-modal="true"
             className={styles.overlay}
+            data-assets={overlayContract.assetState}
             data-phase={phase}
             data-preset={variant.preset}
             data-render-mode={renderMode}
+            data-skip-state={overlayContract.skipState}
             data-testid="startup-intro-overlay"
             onPointerDown={handlePointerDown}
             ref={overlayRef}
@@ -850,9 +888,9 @@ const StartupIntro = ({ graphicsQuality, onComplete, reduceMotion }: StartupIntr
             style={timingStyle}
             tabIndex={-1}
         >
-            {skipPending && !assetsReady ? (
-                <div aria-live="polite" className={styles.loadingHint}>
-                    Preparing assets…
+            {overlayContract.loadingLabel ? (
+                <div aria-live="polite" className={styles.loadingHint} data-testid="startup-intro-loading-state">
+                    {overlayContract.loadingLabel}
                 </div>
             ) : null}
             <div aria-hidden="true" className={styles.chromaticVeil} />

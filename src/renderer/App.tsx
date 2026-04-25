@@ -13,6 +13,7 @@ import { GAMEPLAY_VISUAL_CSS_VARS } from './components/gameplayVisualConfig';
 import metaScreenStyles from './components/MetaScreen.module.css';
 import StartupIntro from './components/StartupIntro';
 import type { IntroPlaybackState } from './components/startupIntroConfig';
+import { resolveStartupIntroAppContract } from './components/startupIntroContract';
 import { VIEWPORT_MOBILE_MAX, VIEWPORT_TABLET_MAX } from './breakpoints';
 import { useViewportSize } from './hooks/useViewportSize';
 import styles from './styles/App.module.css';
@@ -117,11 +118,15 @@ const App = () => {
             (view === 'codex' && subscreenReturnView === 'menu'))
             ? 'off'
             : 'on';
-    const introOverlayVisible =
-        introPlayback === 'pending' && (!hydrated || (hydrated && view === 'menu'));
+    const startupIntroContract = resolveStartupIntroAppContract({
+        hydrated,
+        introPlayback,
+        view
+    });
+    const introOverlayVisible = startupIntroContract.overlayVisible;
     const showMainMenu = hydrated && view === 'menu';
-    const showMenuShell = showMainMenu || (!hydrated && introPlayback === 'pending');
-    const menuShellBlurred = showMainMenu && introOverlayVisible;
+    const showMenuShell = startupIntroContract.renderMenuShell;
+    const menuShellBlurred = showMainMenu && startupIntroContract.menuPointerState === 'blocked';
 
     const devSandboxAppliedRef = useRef(false);
 
@@ -227,7 +232,9 @@ const App = () => {
                     <div
                         aria-hidden={introOverlayVisible}
                         className={`${styles.menuLayer} ${menuShellBlurred ? styles.menuLayerIntro : ''}`}
-                        data-e2e-menu-pointer={menuShellBlurred ? 'blocked' : 'interactive'}
+                        data-e2e-menu-pointer={startupIntroContract.menuPointerState}
+                        data-startup-hydration={startupIntroContract.hydrationState}
+                        data-startup-return-focus={startupIntroContract.returnFocusTestId}
                         data-testid="main-menu-focus-root"
                         tabIndex={-1}
                     >

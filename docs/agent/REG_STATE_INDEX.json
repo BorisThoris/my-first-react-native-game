@@ -123,7 +123,7 @@
       "REG-088",
       "REG-089"
     ],
-    "commit": "TBD",
+    "commit": "3d970f7",
     "updated": "2026-04-25"
   },
   "REG-010": {
@@ -449,11 +449,11 @@
     "phase": 1,
     "lane": "default",
     "dependencies": [],
-    "commit": "ce88cf2",
+    "commit": "e704f8a",
     "updated": "2026-04-25"
   },
   "REG-034": {
-    "status": "open",
+    "status": "done",
     "phase": 3,
     "lane": "trackA",
     "dependencies": [
@@ -462,7 +462,7 @@
       "REG-088",
       "REG-089"
     ],
-    "commit": null,
+    "commit": "PENDING_REG_034",
     "updated": "2026-04-25"
   },
   "REG-035": {
@@ -939,7 +939,7 @@
     "dependencies": [
       "REG-033"
     ],
-    "commit": "6e85d10",
+    "commit": "ce88cf2",
     "updated": "2026-04-25"
   },
   "REG-069": {
@@ -1183,7 +1183,7 @@
     "dependencies": [
       "REG-033"
     ],
-    "commit": "7e1d512",
+    "commit": "6e85d10",
     "updated": "2026-04-25"
   },
   "REG-088": {
@@ -1193,7 +1193,7 @@
     "dependencies": [
       "REG-033"
     ],
-    "commit": "3d970f7",
+    "commit": "7e1d512",
     "updated": "2026-04-25"
   },
   "REG-089": {

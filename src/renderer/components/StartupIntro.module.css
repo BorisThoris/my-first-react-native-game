@@ -83,6 +83,22 @@
     pointer-events: none;
 }
 
+.loadingHint::before {
+    content: '';
+    display: inline-block;
+    width: 0.55em;
+    height: 0.55em;
+    margin-right: 0.45rem;
+    border-radius: 999px;
+    background: var(--theme-border-cyan);
+    box-shadow: 0 0 14px var(--theme-glow-cyan-soft);
+}
+
+.overlay[data-skip-state='requested'] .loadingHint {
+    color: var(--theme-text);
+    border-color: color-mix(in srgb, var(--theme-border-cyan) 78%, transparent);
+}
+
 .motionCta {
     position: absolute;
     top: clamp(0.75rem, 2vw, 1.25rem);
