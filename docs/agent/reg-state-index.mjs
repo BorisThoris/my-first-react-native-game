@@ -129,6 +129,8 @@ for (let reg = 0; reg <= 160; reg += 1) {
         ? '167e0b1'
       : reg === 34
         ? '78f1801'
+      : reg === 44
+        ? '4c0f6d7'
         : reg === 24
           ? '7daefab'
         : reg === 18
