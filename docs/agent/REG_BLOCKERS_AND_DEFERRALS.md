@@ -12,7 +12,7 @@
       "reason": "v1 scope excludes mandatory online accounts, server-backed realtime services, and competitive online leaderboards",
       "unblock_condition": "product reopens an online phase with backend trust, privacy, anti-cheat, and service ownership",
       "offline_portion_done": "local history and share/export may proceed under REG-041/REG-083 without server authority",
-      "created_commit": null
+      "created_commit": "pending"
     },
     {
       "reg": "REG-060",

@@ -221,7 +221,7 @@ const MainMenu = ({
                                 <div className={styles.metaCard}>
                                     <span className={styles.metaLabel}>Best Score</span>
                                     <strong className={styles.metaValue}>
-                                        {bestScore > 0 ? bestScore.toLocaleString() : 'Unranked'}
+                                        {bestScore > 0 ? bestScore.toLocaleString() : 'No local score'}
                                     </strong>
                                 </div>
                             </MetaFrame>

@@ -702,14 +702,14 @@
     "updated": "2026-04-25"
   },
   "REG-052": {
-    "status": "open",
+    "status": "deferred",
     "phase": 1,
     "lane": "default",
     "dependencies": [
       "REG-033",
       "REG-068"
     ],
-    "commit": null,
+    "commit": "pending",
     "updated": "2026-04-25"
   },
   "REG-053": {
@@ -933,13 +933,13 @@
     "updated": "2026-04-25"
   },
   "REG-068": {
-    "status": "open",
+    "status": "done",
     "phase": 1,
     "lane": "default",
     "dependencies": [
       "REG-033"
     ],
-    "commit": null,
+    "commit": "pending",
     "updated": "2026-04-25"
   },
   "REG-069": {
