@@ -62,7 +62,7 @@ for (let reg = 0; reg <= 160; reg += 1) {
           : reg === 87
             ? '6e85d10'
             : reg === 88
-              ? 'pending'
+              ? '7e1d512'
               : reg === 89
                 ? 'a735170'
                 : null,
