@@ -10,6 +10,7 @@ import {
 describe('REG-024 run economy taxonomy', () => {
     it('keeps runtime rewards separated by persistence and purpose', () => {
         expect(RUN_ECONOMY_DEFINITIONS.map((entry) => entry.id)).toEqual([
+            'shop_gold',
             'score',
             'combo_shards',
             'guard_tokens',
@@ -17,6 +18,7 @@ describe('REG-024 run economy taxonomy', () => {
             'findable_pickups',
             'assist_charges'
         ]);
+        expect(runEconomyDefinitionById.shop_gold.persistence).toBe('temporary_run');
         expect(runEconomyDefinitionById.score.persistence).toBe('run_summary');
         expect(runEconomyDefinitionById.combo_shards.persistence).toBe('temporary_run');
         expect(runEconomyDefinitionById.relic_favor.sink).toContain('extra relic pick');
@@ -39,6 +41,7 @@ describe('REG-024 run economy taxonomy', () => {
 
         expect(snapshot.score.value).toBe('120');
         expect(snapshot.temporaryRunCurrencies.map((entry) => entry.id)).toEqual([
+            'shop_gold',
             'combo_shards',
             'guard_tokens',
             'relic_favor',
@@ -46,6 +49,7 @@ describe('REG-024 run economy taxonomy', () => {
             'assist_charges'
         ]);
         expect(getRunEconomyRows(run).map((row) => `${row.key}:${row.value}`)).toEqual([
+            'shop_gold:0',
             'score:120',
             'combo_shards:1/2',
             'guard_tokens:1/2',

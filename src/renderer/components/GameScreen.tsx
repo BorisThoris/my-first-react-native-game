@@ -194,6 +194,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
             continueToNextLevel: state.continueToNextLevel,
             dismissPowersFtue: state.dismissPowersFtue,
             goToMenu: state.goToMenu,
+            purchaseShopOffer: state.purchaseShopOffer,
             openCodexFromPlaying: state.openCodexFromPlaying,
             openInventoryFromPlaying: state.openInventoryFromPlaying,
             openSettings: state.openSettings,
@@ -397,6 +398,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         continueToNextLevel,
         dismissPowersFtue,
         goToMenu,
+        purchaseShopOffer,
         openCodexFromPlaying,
         openInventoryFromPlaying,
         openSettings,
@@ -1231,6 +1233,28 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                             type="button"
                                         >
                                             {option.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : null}
+                        {run.shopOffers.length > 0 ? (
+                            <div className={styles.endlessRiskWagerPanel} data-testid="shop-offer-panel">
+                                <strong>Vendor alcove · {run.shopGold} gold</strong>
+                                <span>Spend floor-clear gold on temporary run services. Gold resets after the run.</span>
+                                <div className={styles.routeChoiceActions}>
+                                    {run.shopOffers.map((offer) => (
+                                        <button
+                                            className={styles.endlessRiskWagerButton}
+                                            disabled={offer.purchased || run.shopGold < offer.cost}
+                                            key={offer.id}
+                                            onClick={() => {
+                                                playUiClick();
+                                                purchaseShopOffer(offer.id);
+                                            }}
+                                            type="button"
+                                        >
+                                            {offer.purchased ? 'Bought' : `Buy ${offer.label} · ${offer.cost}g`}
                                         </button>
                                     ))}
                                 </div>

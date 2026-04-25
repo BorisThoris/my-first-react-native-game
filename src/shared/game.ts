@@ -12,6 +12,7 @@ import {
     FEATURED_OBJECTIVE_STREAK_BONUS_MAX,
     FEATURED_OBJECTIVE_STREAK_BONUS_PER_STEP,
     FLIP_PAR_BONUS_SCORE,
+    FLOOR_CLEAR_GOLD_BASE,
     GAME_RULES_VERSION,
     SHIFTING_BOUNTY_MATCH_BONUS,
     SHIFTING_WARD_MATCH_PENALTY,
@@ -45,6 +46,8 @@ import {
     type Rating,
     type RelicId,
     type ResumableRunStatus,
+    type RunShopItemId,
+    type RunShopOfferState,
     type RunState,
     type RunStatus,
     type SessionStats,
@@ -79,6 +82,7 @@ const COMBO_SHARDS_PER_LIFE = 3;
 export const DECOY_PAIR_KEY = '__decoy__';
 export const WILD_PAIR_KEY = '__wild__';
 const PICKUP_BASELINE_RULES_VERSION = 8;
+const FLOOR_CLEAR_GOLD_PER_LEVEL = 1;
 
 /** When the board includes a wild joker, returns its tile id (for `RunState.wildTileId`); otherwise null. */
 export const getWildTileIdFromBoard = (board: BoardState): string | null =>
@@ -168,6 +172,65 @@ export const generateRouteChoices = (run: RunState, nextLevel: number): NonNulla
             detail: 'Higher pressure route hook for future shop, elite, or bonus rewards.'
         }
     ];
+};
+
+export const SHOP_ITEM_CATALOG: Record<RunShopItemId, Omit<RunShopOfferState, 'id' | 'purchased'>> = {
+    heal_life: {
+        itemId: 'heal_life',
+        label: 'Mend a life',
+        description: 'Restore 1 life now, capped by max lives.',
+        cost: 2
+    },
+    peek_charge: {
+        itemId: 'peek_charge',
+        label: 'Peek charge',
+        description: 'Add 1 peek charge for this run.',
+        cost: 1
+    },
+    destroy_charge: {
+        itemId: 'destroy_charge',
+        label: 'Destroy charge',
+        description: 'Add 1 destroy charge, capped by the current bank limit.',
+        cost: 2
+    }
+};
+
+export const createRunShopOffers = (run: RunState): RunShopOfferState[] => {
+    const ids: RunShopItemId[] = ['heal_life', 'peek_charge', 'destroy_charge'];
+    return ids.map((itemId, index) => ({
+        ...SHOP_ITEM_CATALOG[itemId],
+        id: `${run.runRulesVersion}:${run.runSeed}:${run.board?.level ?? run.stats.highestLevel}:shop:${index}`,
+        purchased: false
+    }));
+};
+
+export const purchaseShopOffer = (run: RunState, offerId: string): RunState => {
+    const offer = run.shopOffers.find((item) => item.id === offerId);
+    if (!offer || offer.purchased || run.shopGold < offer.cost) {
+        return run;
+    }
+
+    let next: RunState = {
+        ...run,
+        shopGold: run.shopGold - offer.cost,
+        shopOffers: run.shopOffers.map((item) => (item.id === offerId ? { ...item, purchased: true } : item))
+    };
+
+    switch (offer.itemId) {
+        case 'heal_life':
+            next = { ...next, lives: Math.min(MAX_LIVES, next.lives + 1) };
+            break;
+        case 'peek_charge':
+            next = { ...next, peekCharges: next.peekCharges + 1 };
+            break;
+        case 'destroy_charge':
+            next = { ...next, destroyPairCharges: Math.min(MAX_DESTROY_PAIR_BANK, next.destroyPairCharges + 1) };
+            break;
+        default:
+            break;
+    }
+
+    return next;
 };
 
 const getSymbolSetForLevel = (level: number): readonly SymbolEntry[] => getSymbolSetForLevelFromCatalog(level);
@@ -1335,6 +1398,8 @@ export const createNewRun = (bestScore: number, options: CreateRunOptions = {}):
         bonusRelicPicksNextOffer: 0,
         favorBonusRelicPicksNextOffer: 0,
         relicFavorProgress: 0,
+        shopGold: 0,
+        shopOffers: [],
         featuredObjectiveStreak: 0,
         endlessRiskWager: null,
         metaRelicDraftExtraPerMilestone: options.metaRelicDraftExtraPerMilestone ?? 0,
@@ -1815,6 +1880,8 @@ const finalizeLevel = (run: RunState, board: BoardState): RunState => {
         bonusRelicPicksNextOffer: relicFavor.bonusRelicPicksNextOffer,
         favorBonusRelicPicksNextOffer: relicFavor.favorBonusRelicPicksNextOffer,
         relicFavorProgress: relicFavor.relicFavorProgress,
+        shopGold: run.shopGold + FLOOR_CLEAR_GOLD_BASE + Math.max(0, board.level - 1),
+        shopOffers: run.shopOffers.length > 0 ? run.shopOffers : createRunShopOffers(run),
         parasiteFloors,
         featuredObjectiveStreak,
         endlessRiskWager: activeEndlessRiskWager ? null : run.endlessRiskWager,

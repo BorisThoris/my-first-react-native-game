@@ -38,6 +38,7 @@ import {
     isGauntletExpired,
     openRelicOffer,
     pauseRun,
+    purchaseShopOffer as purchaseShopOfferRule,
     resolveBoardTurn,
     resumeRun,
     togglePinnedTile,
@@ -169,6 +170,7 @@ interface AppState {
     pause: () => void;
     resume: () => void;
     acceptEndlessRiskWager: () => void;
+    purchaseShopOffer: (offerId: string) => void;
     continueToNextLevel: () => void;
     restartRun: () => void;
     endRun: () => void;
@@ -1296,6 +1298,14 @@ export const useAppStore = create<AppState>((set, get) => ({
         void resumeAudioContext();
         playWagerArmSfx(sfxGainFromStore());
         set({ run: acceptEndlessRiskWagerRule(run) });
+    },
+
+    purchaseShopOffer: (offerId) => {
+        const { run } = get();
+        if (!run || run.status !== 'levelComplete') {
+            return;
+        }
+        set({ run: purchaseShopOfferRule(run, offerId) });
     },
 
     continueToNextLevel: () => {

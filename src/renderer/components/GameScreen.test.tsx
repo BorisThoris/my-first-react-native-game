@@ -416,7 +416,7 @@ describe('GameScreen (OVR-014)', () => {
         render(
             <PlatformTiltProvider>
                 <NotificationHost>
-                    <GameScreen achievements={[]} run={run} />
+            <GameScreen achievements={[]} run={{ ...run, shopGold: 5, shopOffers: [] }} />
                 </NotificationHost>
             </PlatformTiltProvider>
         );
@@ -581,6 +581,17 @@ describe('GameScreen (OVR-014)', () => {
             ...baseRun,
             status: 'levelComplete',
             relicOffer: null,
+            shopGold: 5,
+            shopOffers: [
+                {
+                    id: 'test-shop-peek',
+                    itemId: 'peek_charge',
+                    label: 'Peek charge',
+                    description: 'Add 1 peek charge for this run.',
+                    cost: 2,
+                    purchased: false
+                }
+            ],
             relicFavorProgress: 0,
             bonusRelicPicksNextOffer: 1,
             favorBonusRelicPicksNextOffer: 1,
@@ -653,6 +664,8 @@ describe('GameScreen (OVR-014)', () => {
         expect(screen.getByTestId('route-choice-panel')).toHaveTextContent('Choose next route');
         expect(screen.getByRole('button', { name: 'Safe passage' })).toBeTruthy();
         expect(screen.getByRole('button', { name: 'Greedy route' })).toBeTruthy();
+        expect(screen.getByTestId('shop-offer-panel')).toHaveTextContent('Vendor alcove');
+        expect(screen.getByText(/Vendor alcove · 5 gold/)).toBeTruthy();
     });
 
     it('shows and arms an endless risk wager when the cleared streak is eligible', () => {

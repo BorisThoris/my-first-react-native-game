@@ -22,6 +22,15 @@ export interface RunEconomyRow extends RunEconomyDefinition {
 
 export const RUN_ECONOMY_DEFINITIONS = [
     {
+        id: 'shop_gold',
+        label: 'Shop gold',
+        bucket: 'temporary_run',
+        purpose: 'Temporary run currency for vendor purchases.',
+        source: 'floor clears',
+        sink: 'buy local vendor services; resets at run end',
+        persistence: 'temporary_run'
+    },
+    {
         id: 'score',
         label: 'Score',
         bucket: 'score',
@@ -95,6 +104,8 @@ export const runEconomyDefinitionById = RUN_ECONOMY_DEFINITIONS.reduce<Record<st
 
 const valueFor = (run: RunState, id: string): string => {
     switch (id) {
+        case 'shop_gold':
+            return String(run.shopGold);
         case 'score':
             return String(run.stats.totalScore);
         case 'combo_shards':
@@ -114,6 +125,8 @@ const valueFor = (run: RunState, id: string): string => {
 
 const numericValueFor = (run: RunState, id: string): number => {
     switch (id) {
+        case 'shop_gold':
+            return run.shopGold;
         case 'score':
             return run.stats.totalScore;
         case 'combo_shards':

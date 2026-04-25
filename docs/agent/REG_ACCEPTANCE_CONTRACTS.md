@@ -14,6 +14,7 @@ schema: reg | phase | status | contract | proof
 | REG-040 | 1 | done | Save write failures expose a health state, safe recovery action labels, and repeated-failure guidance without PII. | persistBridge tests + main persistence error tests |
 | REG-063 | 1 | done | Telemetry distinguishes local debug sinks from remote collection, scrubs PII/path/secrets, and keeps leaderboards separate. | telemetry tests |
 | REG-017 | 2 | done | Eligible endless floor clears expose deterministic local route choices before continuing; route hooks remain offline and shop-ready. | game + floor-clear UI tests |
+| REG-015 | 2 | done | Runs earn temporary shop gold, expose local vendor offers, and can spend once on eligible floor-clear shops without durable economy changes. | game + floor-clear UI tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

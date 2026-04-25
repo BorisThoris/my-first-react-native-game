@@ -8,7 +8,7 @@
  */
 export const SAVE_SCHEMA_VERSION = 5;
 /** Bump when generation rules change (tile order, mutators, pair layout). */
-export const GAME_RULES_VERSION = 14;
+export const GAME_RULES_VERSION = 15;
 export const INITIAL_LIVES = 4;
 /** Hard cap on life total during a run; HUD renders this many heart slots (PLAY-004 — honest max, not mock’s three). */
 export const MAX_LIVES = 5;
@@ -18,6 +18,8 @@ export const FEATURED_OBJECTIVE_STREAK_BONUS_MAX = 50;
 export const FEATURED_OBJECTIVE_STREAK_MISS_DECAY = 1;
 export const ENDLESS_RISK_WAGER_MIN_STREAK = 2;
 export const ENDLESS_RISK_WAGER_BONUS_FAVOR = 2;
+/** REG-015: temporary run-only shop wallet earned on floor clear. Never persisted outside RunState. */
+export const FLOOR_CLEAR_GOLD_BASE = 3;
 /** Minimum value for Settings → Gameplay → Resolve Delay — keep in sync with `SettingsScreen` slider `min`. */
 export const RESOLVE_DELAY_MULTIPLIER_MIN = 0.5;
 export const DEBUG_REVEAL_MS = 1500;
@@ -136,6 +138,17 @@ export interface RelicOfferState {
     favorBonusPicks?: number;
     /** Display-only reason copy for chapter-aligned options in the current draft round. */
     contextualOptionReasons?: Partial<Record<RelicId, string>>;
+}
+
+export type RunShopItemId = 'heal_life' | 'peek_charge' | 'destroy_charge';
+
+export interface RunShopOfferState {
+    id: string;
+    itemId: RunShopItemId;
+    label: string;
+    description: string;
+    cost: number;
+    purchased: boolean;
 }
 
 export interface EndlessRiskWagerState {
@@ -395,6 +408,10 @@ export interface RunState {
     favorBonusRelicPicksNextOffer: number;
     /** Endless-only favor bank from featured objectives; every 3 converts to +1 extra relic pick. */
     relicFavorProgress: number;
+    /** REG-015: temporary run-only vendor currency; resets on new run and never persists to SaveData. */
+    shopGold: number;
+    /** REG-015/070/071: deterministic local vendor offers available from floor-clear overlays. */
+    shopOffers: RunShopOfferState[];
     /** Endless-only consecutive featured-objective clears. Normal misses decay this; risk-wager misses reset it. */
     featuredObjectiveStreak: number;
     /** Endless-only risk wager armed from a level-complete modal for the next floor. */

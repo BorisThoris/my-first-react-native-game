@@ -7,6 +7,7 @@ import {
     FINDABLE_MATCH_COMBO_SHARDS,
     FINDABLE_MATCH_SCORE,
     FLIP_PAR_BONUS_SCORE,
+    FLOOR_CLEAR_GOLD_BASE,
     GAME_RULES_VERSION,
     MATCH_DELAY_MS,
     MAX_DESTROY_PAIR_BANK,
@@ -48,6 +49,7 @@ import {
     isBoardComplete,
     isGauntletExpired,
     openRelicOffer,
+    purchaseShopOffer,
     resolveBoardTurn,
     tilesArePairMatch,
     togglePinnedTile,
@@ -226,13 +228,13 @@ describe('REG-017 route choices', () => {
 
         expect(finished.lastLevelResult?.routeChoices).toEqual([
             {
-                id: '14:17001:2:safe',
+                id: '15:17001:2:safe',
                 routeType: 'safe',
                 label: 'Safe passage',
                 detail: 'Standard next floor. Keep the run curve predictable.'
             },
             {
-                id: '14:17001:2:greed',
+                id: '15:17001:2:greed',
                 routeType: 'greed',
                 label: 'Greedy route',
                 detail: 'Higher pressure route hook for future shop, elite, or bonus rewards.'
@@ -241,6 +243,32 @@ describe('REG-017 route choices', () => {
         expect(playPerfectFloors(createNewRun(0, { echoFeedbackEnabled: false, runSeed: 17_001 }), 1).lastLevelResult?.routeChoices).toEqual(
             finished.lastLevelResult?.routeChoices
         );
+    });
+});
+
+describe('REG-015 run shop wallet', () => {
+    it('earns temporary shop gold on floor clear and can buy one-shot services', () => {
+        const cleared = playPerfectFloors(createNewRun(0, { echoFeedbackEnabled: false, runSeed: 15_001 }), 1);
+
+        expect(cleared.shopGold).toBeGreaterThanOrEqual(FLOOR_CLEAR_GOLD_BASE);
+        expect(cleared.shopOffers.map((offer) => offer.itemId).sort()).toEqual([
+            'destroy_charge',
+            'heal_life',
+            'peek_charge'
+        ]);
+
+        const peekOffer = cleared.shopOffers.find((offer) => offer.itemId === 'peek_charge')!;
+        const boughtPeek = purchaseShopOffer(cleared, peekOffer.id);
+        expect(boughtPeek.peekCharges).toBe(cleared.peekCharges + 1);
+        expect(boughtPeek.shopGold).toBe(cleared.shopGold - peekOffer.cost);
+        expect(boughtPeek.shopOffers.find((offer) => offer.id === peekOffer.id)?.purchased).toBe(true);
+
+        const rebuy = purchaseShopOffer(boughtPeek, peekOffer.id);
+        expect(rebuy).toBe(boughtPeek);
+
+        const broke = purchaseShopOffer({ ...cleared, shopGold: 0 }, cleared.shopOffers[1]!.id);
+        expect(broke.shopGold).toBe(0);
+        expect(broke.shopOffers[1]!.purchased).toBe(false);
     });
 });
 
