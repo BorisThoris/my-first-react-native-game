@@ -4,9 +4,20 @@ import { desktopClient } from '../desktop-client';
 
 let consecutiveWriteFailures = 0;
 
-type WriteFailDetail = { consecutive: number; op: 'game' | 'settings' };
+export type PersistenceWriteOperation = 'game' | 'settings';
+export type SaveHealthStatus = 'ok' | 'transient_write_failed' | 'repeated_write_failed';
+
+export interface SaveHealthSnapshot {
+    status: SaveHealthStatus;
+    consecutiveFailures: number;
+    operation: PersistenceWriteOperation | null;
+    recoveryActions: string[];
+}
+
+type WriteFailDetail = { consecutive: number; op: PersistenceWriteOperation };
 
 let onWriteFail: ((detail: WriteFailDetail) => void) | null = null;
+let lastFailedOperation: PersistenceWriteOperation | null = null;
 
 /** Wired once from `useAppStore` so we can surface disk errors without circular imports. */
 export const registerPersistenceWriteFailureHandler = (fn: ((detail: WriteFailDetail) => void) | null): void => {
@@ -14,17 +25,50 @@ export const registerPersistenceWriteFailureHandler = (fn: ((detail: WriteFailDe
 };
 
 const SHORT_NOTICE =
-    'Could not write save data. Progress may not persist after closing the game until this is fixed.';
+    'Save write failed. Current progress remains in memory, but may not persist after closing until the next successful save.';
 const REPEATED_NOTICE =
-    'Save keeps failing. Check disk space and file permissions, or close other programs that might lock the save file.';
+    'Save keeps failing. Keep the app open; progress and setting changes may not persist after closing. Check disk space or file permissions, close programs locking the save, then trigger another save.';
+
+const resetSaveHealth = (): void => {
+    consecutiveWriteFailures = 0;
+    lastFailedOperation = null;
+};
+
+export const createSaveHealthSnapshot = (detail: { consecutive: number; op: PersistenceWriteOperation | null }): SaveHealthSnapshot => ({
+    status:
+        detail.consecutive === 0
+            ? 'ok'
+            : detail.consecutive >= 2
+              ? 'repeated_write_failed'
+              : 'transient_write_failed',
+    consecutiveFailures: detail.consecutive,
+    operation: detail.op,
+    recoveryActions:
+        detail.consecutive >= 2
+            ? ['keep_session_open', 'retry_next_save', 'check_disk_space', 'check_file_permissions', 'close_locking_programs']
+            : detail.consecutive === 1
+              ? ['keep_session_open', 'retry_next_save', 'check_disk_space']
+              : []
+});
+
+export const getSaveHealthSnapshot = (): SaveHealthSnapshot =>
+    createSaveHealthSnapshot({ consecutive: consecutiveWriteFailures, op: lastFailedOperation });
+
+export const saveHealthCopyForSnapshot = (snapshot: SaveHealthSnapshot): string =>
+    snapshot.status === 'repeated_write_failed'
+        ? REPEATED_NOTICE
+        : snapshot.status === 'transient_write_failed'
+          ? SHORT_NOTICE
+          : 'Save system healthy.';
 
 export const persistSaveData = async (saveData: SaveData): Promise<SaveData> => {
     try {
         const out = normalizeSaveData(await desktopClient.saveGame(saveData));
-        consecutiveWriteFailures = 0;
+        resetSaveHealth();
         return out;
     } catch (error) {
         consecutiveWriteFailures += 1;
+        lastFailedOperation = 'game';
         console.error('[persist] saveGame failed', error);
         onWriteFail?.({
             consecutive: consecutiveWriteFailures,
@@ -37,10 +81,11 @@ export const persistSaveData = async (saveData: SaveData): Promise<SaveData> => 
 export const persistSaveSettings = async (settings: Settings): Promise<Settings> => {
     try {
         const out = await desktopClient.saveSettings(settings);
-        consecutiveWriteFailures = 0;
+        resetSaveHealth();
         return out;
     } catch (error) {
         consecutiveWriteFailures += 1;
+        lastFailedOperation = 'settings';
         console.error('[persist] saveSettings failed', error);
         onWriteFail?.({
             consecutive: consecutiveWriteFailures,
@@ -51,4 +96,4 @@ export const persistSaveSettings = async (settings: Settings): Promise<Settings>
 };
 
 export const persistenceNoticeForConsecutiveFailures = (consecutive: number): string =>
-    consecutive >= 2 ? REPEATED_NOTICE : SHORT_NOTICE;
+    saveHealthCopyForSnapshot(createSaveHealthSnapshot({ consecutive, op: lastFailedOperation }));
