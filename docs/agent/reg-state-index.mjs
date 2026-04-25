@@ -58,22 +58,20 @@ for (let reg = 0; reg <= 160; reg += 1) {
     dependencies: dependenciesFor(reg, phase).map((dep) => `REG-${String(dep).padStart(3, '0')}`),
     commit:
       reg === 24
-        ? 'pending'
+        ? '7daefab'
         : reg === 33
-        ? 'e704f8a'
-        : [52, 68].includes(reg)
-          ? 'ce88cf2'
+          ? 'e704f8a'
           : reg === 40
-            ? 'pending'
-            : reg === 87
-            ? '6e85d10'
-            : reg === 88
-              ? '7e1d512'
-            : reg === 24
-              ? '7daefab'
-              : reg === 89
-                ? 'a735170'
-                : null,
+            ? '73d5072'
+            : [52, 68].includes(reg)
+              ? 'ce88cf2'
+              : reg === 87
+                ? '6e85d10'
+                : reg === 88
+                  ? '7e1d512'
+                  : reg === 89
+                    ? 'a735170'
+                    : null,
     updated: '2026-04-25'
   };
 }
