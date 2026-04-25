@@ -10,6 +10,7 @@ schema: reg | phase | status | contract | proof
 | REG-087 | 1 | done | Softlock/fairness P0 gate has deterministic tests for generated boards and high-risk mechanics; REG-120+ remains deep matrix. | targeted shared tests |
 | REG-088 | 1 | done | New player can go from first launch/menu to an early successful run loop with clear local progress and no online dependency. | unit/component + routed e2e if UI changes |
 | REG-089 | 1 | done | Save/rules/floor-schedule changes route through local-only version gate with validation commands and migration rules. | version-gate tests |
+| REG-024 | 1 | done | Run economy separates score, temporary run currencies, temporary bonuses, durable stats/unlocks, and future shop wallet reset rules. | run-economy tests + HUD/inventory surfacing |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

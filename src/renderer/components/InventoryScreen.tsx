@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { GAME_MODE_CODEX, MUTATOR_CATALOG, RELIC_CATALOG } from '../../shared/game-catalog';
+import { getRunEconomyRows } from '../../shared/run-economy';
 import { playUiBackSfx, resumeUiSfxContext, uiSfxGainFromSettings } from '../audio/uiSfx';
 import { inventoryScreenCopy } from '../copy/inventoryScreen';
 import { Eyebrow, MetaFrame, Panel, ScreenTitle, UiButton } from '../ui';
@@ -69,6 +70,7 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
     }
 
     const contract = run.activeContract;
+    const economyRows = getRunEconomyRows(run);
 
     return (
         <section aria-label="Inventory" className={shellClassName} role="region">
@@ -98,6 +100,9 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                     </a>
                     <a href="#inventory-charges" onClick={(e) => handleMetaBodyTocLinkClick(bodyScrollRef, e)}>
                         Charges
+                    </a>
+                    <a href="#inventory-economy" onClick={(e) => handleMetaBodyTocLinkClick(bodyScrollRef, e)}>
+                        Economy
                     </a>
                     <a href="#inventory-contract" onClick={(e) => handleMetaBodyTocLinkClick(bodyScrollRef, e)}>
                         Contract
@@ -252,6 +257,24 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                         ) : (
                             <p className={styles.empty}>No scholar contract on this run.</p>
                         )}
+                    </div>
+                </Panel>
+
+                <Panel className={panelClassName} padding="lg" variant="default">
+                    <div className={`${styles.loadoutSection} ${metaStyles.sectionAnchor}`} id="inventory-economy">
+                        <h2 className={styles.sectionTitle}>Run economy</h2>
+                        <div className={metaStyles.archiveCatalogGrid}>
+                            {economyRows.map((row) => (
+                                <div className={metaStyles.archiveCatalogRow} key={row.key}>
+                                    <p className={metaStyles.archiveCatalogRowTitle}>
+                                        {row.label}: {row.value}
+                                    </p>
+                                    <p className={metaStyles.subtitle}>
+                                        {row.persistence}. {row.sink}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </Panel>
             </div>

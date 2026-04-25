@@ -6,6 +6,7 @@ import {
     getFloorArchetypeDefinition,
     usesEndlessFloorSchedule
 } from '../../shared/floor-mutator-schedule';
+import { getRunEconomyEntry } from '../../shared/run-economy';
 import codexBookUrl from '../assets/ui/icons/icon-codex-book-v1.svg?url';
 import scoreParasiteCrystalUrl from '../assets/ui/icons/icon-score-parasite-crystal.svg?url';
 import shuffleIconUrl from '../assets/ui/icons/icon-shuffle-v1.svg?url';
@@ -39,6 +40,9 @@ const getMutatorChipTitle = (id: MutatorId): string => {
     }
     return MUTATOR_HUD_LABELS[id] ?? id;
 };
+
+const temporaryCurrencyPurpose = (run: RunState, currencyId: string): string | undefined =>
+    getRunEconomyEntry(run, currencyId)?.purpose;
 
 const mutatorChipStyle = (id: MutatorId): string | undefined => {
     switch (id) {
@@ -299,7 +303,11 @@ const GameplayHudBar = ({
                             </span>
                         </div>
                         <div className={styles.hudStripDivider} aria-hidden="true" />
-                        <div className={`${styles.hudSegment} ${styles.statPill} ${styles.hudShardsSegment}`}>
+                        <div
+                            className={`${styles.hudSegment} ${styles.statPill} ${styles.hudShardsSegment}`}
+                            data-testid="hud-combo-shards"
+                            title={temporaryCurrencyPurpose(run, 'combo_shards')}
+                        >
                             <span className={styles.statKey}>Shards</span>
                             <span className={`${styles.statVal} ${styles.hudShardsValue}`}>{run.stats.comboShards}</span>
                             <span className={styles.statSubline}>Guards {run.stats.guardTokens}</span>
@@ -461,7 +469,7 @@ const GameplayHudBar = ({
                                     <div
                                         className={styles.statPillCompact}
                                         data-testid="hud-favor-progress"
-                                        title="Every 3 favor banks an extra relic pick for the next shrine"
+                                        title={temporaryCurrencyPurpose(run, 'relic_favor')}
                                     >
                                         <span className={styles.statKey}>Favor</span>
                                         <span className={styles.statVal}>{run.relicFavorProgress}/3</span>

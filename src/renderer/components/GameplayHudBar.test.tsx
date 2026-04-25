@@ -31,6 +31,7 @@ describe('GameplayHudBar', () => {
         expect(objectivePill.textContent).toContain('Flip par');
         expect(objectivePill.getAttribute('title')).toMatch(/match resolutions/i);
         expect(screen.getByTestId('hud-favor-progress').textContent).toContain('2/3');
+        expect(screen.getByTestId('hud-favor-progress').getAttribute('title')).toContain('Temporary run currency');
         expect(screen.getByTestId('hud-featured-streak').textContent).toContain('x3');
         expect(screen.getByTestId('hud-endless-risk-wager').textContent).toContain('+2 Favor');
     });
@@ -69,6 +70,7 @@ describe('GameplayHudBar', () => {
         expect(screen.getByTestId('hud-shuffle-charges').textContent).toContain('Shuffle');
         expect(screen.getByTestId('hud-destroy-charges').textContent).toContain('Destroy');
         expect(screen.getByTestId('hud-peek-charges').textContent).toContain('Peek');
+        expect(screen.getByTestId('hud-combo-shards').getAttribute('title')).toContain('Temporary run currency');
     });
 
     it('shows Perfect Memory eligible when achievements track and no assist power was used', () => {
