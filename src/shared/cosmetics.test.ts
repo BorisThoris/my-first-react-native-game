@@ -3,6 +3,7 @@ import { createDefaultSaveData } from './save-data';
 import {
     CARD_THEME_CATALOG,
     COSMETIC_CATALOG,
+    getCosmeticTrackRows,
     getCardThemeRows,
     getCosmeticRows,
     resolveEquippedCardTheme,
@@ -41,5 +42,15 @@ describe('REG-025 cosmetics catalog', () => {
         expect(rows.find((row) => row.id === 'classic_card_back')?.equipped).toBe(true);
         expect(rows.find((row) => row.id === 'relic_gold_card_back')?.status).toBe('owned');
         expect(rows.find((row) => row.id === 'relic_gold_card_back')?.asset.back).toBe('/src/renderer/assets/textures/cards/back.svg');
+    });
+
+    it('REG-080 maps cosmetics onto a local visual-only progression track', () => {
+        const save = createDefaultSaveData();
+        save.unlocks = ['cosmetic:crest_daily_bronze'];
+
+        const rows = getCosmeticTrackRows(save);
+        expect(rows.map((row) => row.trackId)).toEqual(['starter', 'daily', 'mastery', 'relic']);
+        expect(rows.find((row) => row.trackId === 'daily')?.owned).toBe(1);
+        expect(rows.every((row) => row.gameplayAffecting === false)).toBe(true);
     });
 });

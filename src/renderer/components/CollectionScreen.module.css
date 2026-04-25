@@ -104,6 +104,31 @@
     margin-left: 0.35rem;
 }
 
+.trackSummary {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.trackProgress {
+    width: 100%;
+    height: 0.42rem;
+    overflow: hidden;
+    border-radius: 999px;
+    border: 1px solid var(--theme-divider-hairline);
+    background: color-mix(in srgb, var(--theme-panel-alt) 80%, black);
+}
+
+.trackProgressFill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--theme-cyan) 75%, white),
+        color-mix(in srgb, var(--theme-gold) 75%, white)
+    );
+}
+
 @media (max-width: 760px) {
     .section {
         gap: var(--theme-space-sm);

@@ -14,6 +14,7 @@ import {
     HONOR_UNLOCK_ORDER
 } from '../../shared/honorUnlocks';
 import { RELIC_CATALOG } from '../../shared/game-catalog';
+import { getMetaCosmeticTrackRows, getPermanentUpgradeRows } from '../../shared/meta-progression';
 import { ACHIEVEMENT_IDS } from '../../shared/save-data';
 import {
     CALLSIGN_SYMBOLS,
@@ -40,6 +41,8 @@ const CollectionScreen = () => {
     const ps = saveData.playerStats;
     const summary = saveData.lastRunSummary;
     const honorEarned = new Set(eligibleHonorUnlockIds(saveData));
+    const permanentUpgradeRows = getPermanentUpgradeRows(saveData);
+    const cosmeticTrackRows = getMetaCosmeticTrackRows(saveData);
     const uiGain = uiSfxGainFromSettings(settings.masterVolume, settings.sfxVolume);
     const handleBack = (): void => {
         resumeUiSfxContext();
@@ -75,6 +78,9 @@ const CollectionScreen = () => {
                     </a>
                     <a href="#collection-cosmetics" onClick={(e) => handleMetaBodyTocLinkClick(bodyScrollRef, e)}>
                         Cosmetics
+                    </a>
+                    <a href="#collection-meta-upgrades" onClick={(e) => handleMetaBodyTocLinkClick(bodyScrollRef, e)}>
+                        Meta upgrades
                     </a>
                     <a href="#collection-relics" onClick={(e) => handleMetaBodyTocLinkClick(bodyScrollRef, e)}>
                         Relics
@@ -166,6 +172,43 @@ const CollectionScreen = () => {
                                         </div>
                                     );
                                 })}
+                            </div>
+                        </div>
+                    </Panel>
+                </MetaFrame>
+
+                <MetaFrame data-testid="collection-meta-frame-meta-upgrades">
+                    <Panel padding="lg" variant="default">
+                        <div className={`${styles.section} ${metaStyles.sectionAnchor}`} id="collection-meta-upgrades">
+                            <h2 className={styles.sectionTitle}>Permanent upgrades and cosmetic track</h2>
+                            <p className={metaStyles.subtitle}>
+                                Permanent rows are local save milestones only. Gameplay-affecting upgrades are capped and earned from play; cosmetic track rows stay visual-only.
+                            </p>
+                            <div className={`${styles.grid} ${metaStyles.metaLongList}`}>
+                                {permanentUpgradeRows.map((row) => (
+                                    <div
+                                        className={`${styles.achievementCard} ${row.status === 'owned' ? styles.achievementUnlocked : styles.achievementLocked}`}
+                                        key={row.id}
+                                    >
+                                        <strong>{row.title}</strong>
+                                        <p className={metaStyles.subtitle}>{row.description}</p>
+                                        <span className={styles.symbolMeta}>{row.status} · {row.progress.current}/{row.progress.target}</span>
+                                        <span className={styles.symbolMeta}>{row.gate}</span>
+                                    </div>
+                                ))}
+                                {cosmeticTrackRows.map((row) => (
+                                    <div
+                                        className={`${styles.achievementCard} ${row.status === 'owned' ? styles.cosmeticOwned : styles.cosmeticLocked}`}
+                                        key={row.id}
+                                    >
+                                        <strong>{row.title}</strong>
+                                        <p className={metaStyles.subtitle}>{row.description}</p>
+                                        <span className={styles.symbolMeta}>
+                                            {row.reward} · {row.progress.current}/{row.progress.target}
+                                        </span>
+                                        <span className={styles.symbolMeta}>Visual only: {row.gameplayAffecting ? 'No' : 'Yes'}</span>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </Panel>
