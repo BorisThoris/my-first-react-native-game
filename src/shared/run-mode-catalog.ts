@@ -8,6 +8,8 @@ export type RunModeGroup = 'core' | 'time_attack' | 'puzzle' | 'training';
 export type RunModeAvailability = 'available' | 'locked' | 'disabled';
 
 /** Discriminated actions — no store imports; renderer maps these to `useAppStore` methods. */
+export type PuzzleRunModeId = 'starter_pairs' | 'mirror_craft' | 'glyph_cross';
+
 export type RunModeAction =
     | { type: 'startRun' }
     | { type: 'startDailyRun' }
@@ -16,7 +18,7 @@ export type RunModeAction =
           type: 'gauntlet';
           presets: ReadonlyArray<{ label: string; durationMs: number }>;
       }
-    | { type: 'puzzle'; puzzleId: 'starter_pairs' | 'mirror_craft' }
+    | { type: 'puzzle'; puzzleId: PuzzleRunModeId }
     | { type: 'startWildRun' }
     | { type: 'startPracticeRun' }
     | { type: 'startScholarContractRun' }
@@ -114,11 +116,20 @@ export const RUN_MODE_CATALOG: readonly RunModeDefinition[] = [
     {
         id: 'puzzle_mirror',
         title: 'Mirror Puzzle',
-        shortDescription: 'Built-in mirror craft layout.',
+        shortDescription: 'Intermediate mirror craft layout.',
         group: 'puzzle',
         availability: 'available',
         posterKey: 'mirror_puzzle',
         action: { type: 'puzzle', puzzleId: 'mirror_craft' }
+    },
+    {
+        id: 'puzzle_glyph_cross',
+        title: 'Glyph Cross',
+        shortDescription: 'Advanced 4×2 glyph pattern puzzle.',
+        group: 'puzzle',
+        availability: 'available',
+        posterKey: 'puzzle',
+        action: { type: 'puzzle', puzzleId: 'glyph_cross' }
     },
     {
         id: 'wild',

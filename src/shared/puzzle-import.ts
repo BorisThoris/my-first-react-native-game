@@ -1,4 +1,6 @@
-import type { Tile } from './contracts';
+import type { PuzzleDifficulty, PuzzleGoal, Tile } from './contracts';
+import type { SaveData } from './contracts';
+import { BUILTIN_PUZZLES } from './builtin-puzzles';
 
 /** Keep in sync with `game.ts` glass decoy key. */
 const DECOY_PAIR_KEY = '__decoy__';
@@ -38,3 +40,58 @@ export const isValidPuzzleImportTileSet = (tiles: Tile[]): boolean => {
     }
     return true;
 };
+
+export interface PuzzleImportPayload {
+    title?: unknown;
+    goal?: unknown;
+    difficulty?: unknown;
+    tags?: unknown;
+    tiles?: unknown;
+}
+
+export interface PuzzleImportResult {
+    ok: boolean;
+    errors: string[];
+}
+
+const VALID_GOALS = new Set<PuzzleGoal>(['clear_all', 'perfect_clear', 'flip_par']);
+const VALID_DIFFICULTIES = new Set<PuzzleDifficulty>(['starter', 'standard', 'advanced']);
+
+export const validatePuzzleImportPayload = (payload: PuzzleImportPayload): PuzzleImportResult => {
+    const errors: string[] = [];
+    if (typeof payload.title !== 'string' || payload.title.trim().length < 3) {
+        errors.push('title must be a string with at least 3 characters');
+    }
+    if (typeof payload.goal !== 'string' || !VALID_GOALS.has(payload.goal as PuzzleGoal)) {
+        errors.push('goal must be one of clear_board, perfect_clear, limited_mistakes');
+    }
+    if (typeof payload.difficulty !== 'string' || !VALID_DIFFICULTIES.has(payload.difficulty as PuzzleDifficulty)) {
+        errors.push('difficulty must be intro, standard, or advanced');
+    }
+    if (
+        payload.tags !== undefined &&
+        (!Array.isArray(payload.tags) || !payload.tags.every((tag) => typeof tag === 'string' && tag.trim().length > 0))
+    ) {
+        errors.push('tags must be non-empty strings when provided');
+    }
+    if (!Array.isArray(payload.tiles) || !isValidPuzzleImportTileSet(payload.tiles as Tile[])) {
+        errors.push('tiles must contain 4-64 tiles with exactly two tiles per non-decoy pairKey');
+    }
+    return { ok: errors.length === 0, errors };
+};
+
+export const getPuzzleLibraryRows = (save: SaveData) =>
+    Object.values(BUILTIN_PUZZLES).map((puzzle) => {
+        const completion = save.playerStats?.puzzleCompletions?.[puzzle.id];
+        const completed = completion?.completed === true;
+        return {
+            id: puzzle.id,
+            title: puzzle.title,
+            difficulty: puzzle.difficulty,
+            goal: puzzle.goal,
+            goalText: puzzle.goalText,
+            tags: puzzle.tags,
+            status: completed ? 'completed' : 'open',
+            progress: completed ? { current: 1, target: 1 } : { current: 0, target: 1 }
+        };
+    });

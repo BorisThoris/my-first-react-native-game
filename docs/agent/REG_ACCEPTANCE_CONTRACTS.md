@@ -19,6 +19,7 @@ schema: reg | phase | status | contract | proof
 | REG-019 | 2 | done | Relic draft data exposes build archetypes and UI surfaces those archetype tags alongside contextual reasons. | relic tests + draft UI tests |
 | REG-020 | 2 | done | Endless chapter schedule exposes chapter themes and UI telegraphs active mutator roles before/during floors. | floor schedule + GameScreen tests |
 | REG-021 | 2 | done | Main menu exposes active/completed/locked local objective board rows from save-derived mastery progress. | objective-board tests + menu surface |
+| REG-022 | 2 | done | Built-in puzzle library has metadata/progress rows, persisted local completion slots, and import validation errors. | puzzle-import + save-data tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

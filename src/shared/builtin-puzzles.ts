@@ -10,7 +10,7 @@
  * | starter_pairs | no               | no                 |
  * | mirror_craft  | no               | no                 |
  */
-import type { Tile } from './contracts';
+import type { BuiltinPuzzleDefinition, Tile } from './contracts';
 import { isValidPuzzleImportTileSet } from './puzzle-import';
 
 const t = (id: string, pairKey: string, symbol: string, atomicVariant?: number): Tile => ({
@@ -22,15 +22,23 @@ const t = (id: string, pairKey: string, symbol: string, atomicVariant?: number):
     ...(atomicVariant !== undefined ? { atomicVariant } : {})
 });
 
-export const BUILTIN_PUZZLES: Record<string, { id: string; title: string; tiles: Tile[] }> = {
+export const BUILTIN_PUZZLES: Record<string, BuiltinPuzzleDefinition> = {
     starter_pairs: {
         id: 'starter_pairs',
         title: 'Starter 2×2',
+        difficulty: 'starter',
+        tags: ['tutorial', 'tiny'],
+        goal: 'clear_all',
+        goalText: 'Clear both pairs. Learn the puzzle format without mutators.',
         tiles: [t('s1a', 'p0', 'A'), t('s1b', 'p0', 'A'), t('s2a', 'p1', 'B'), t('s2b', 'p1', 'B')]
     },
     mirror_craft: {
         id: 'mirror_craft',
         title: 'Mirror craft 3×2',
+        difficulty: 'standard',
+        tags: ['mirror', 'symbols'],
+        goal: 'clear_all',
+        goalText: 'Clear three mirrored glyph pairs with no procedural pressure.',
         tiles: [
             t('m1a', 'mk0', 'α', 0),
             t('m1b', 'mk0', 'α', 0),

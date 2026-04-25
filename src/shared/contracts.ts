@@ -76,6 +76,25 @@ export type SubscreenReturnView = Exclude<ViewState, 'boot' | 'settings'>;
 
 export type GameMode = 'endless' | 'daily' | 'puzzle' | 'gauntlet' | 'meditation';
 
+export type PuzzleDifficulty = 'starter' | 'standard' | 'advanced';
+export type PuzzleGoal = 'clear_all' | 'perfect_clear' | 'flip_par';
+
+export interface PuzzleCompletionRecord {
+    completed: boolean;
+    bestMistakes: number | null;
+    bestScore: number;
+}
+
+export interface BuiltinPuzzleDefinition {
+    id: string;
+    title: string;
+    difficulty: PuzzleDifficulty;
+    tags: string[];
+    goal: PuzzleGoal;
+    goalText: string;
+    tiles: Tile[];
+}
+
 export type MutatorId =
     | 'glass_floor'
     | 'sticky_fingers'
@@ -515,6 +534,8 @@ export interface PlayerStatsPersisted {
     /** Cosmetic streak: consecutive UTC days with at least one daily completed. */
     dailyStreakCosmetic: number;
     relicPickCounts: Partial<Record<RelicId, number>>;
+    /** REG-022: local puzzle completion records by builtin/import puzzle id. */
+    puzzleCompletions?: Record<string, PuzzleCompletionRecord>;
     /** Spaced encore: pairKeys seen on previous completed run (no PII). */
     encorePairKeysLastRun: string[];
     /** Meta: +1 relic pick at each milestone draft (unlocked after 7 dailies or migration from achievement). */

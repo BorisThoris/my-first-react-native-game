@@ -68,6 +68,7 @@ const defaultPlayerStats = (): PlayerStatsPersisted => ({
     dailyStreakCosmetic: 0,
     relicPickCounts: {},
     encorePairKeysLastRun: [],
+    puzzleCompletions: {},
     relicShrineExtraPickUnlocked: false
 });
 
@@ -173,6 +174,10 @@ export const normalizeSaveData = (input?: Partial<SaveData> | null): SaveData =>
             encorePairKeysLastRun: Array.isArray(input.playerStats?.encorePairKeysLastRun)
                 ? input.playerStats.encorePairKeysLastRun
                 : defaultPlayerStats().encorePairKeysLastRun,
+            puzzleCompletions:
+                input.playerStats?.puzzleCompletions && typeof input.playerStats.puzzleCompletions === 'object'
+                    ? input.playerStats.puzzleCompletions
+                    : defaultPlayerStats().puzzleCompletions,
             relicShrineExtraPickUnlocked
         },
         unlocks: Array.isArray(input.unlocks) ? input.unlocks : defaults.unlocks ?? [],

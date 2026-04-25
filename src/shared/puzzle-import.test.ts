@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BUILTIN_PUZZLES } from './builtin-puzzles';
-import { isValidPuzzleImportTileSet } from './puzzle-import';
+import { createDefaultSaveData } from './save-data';
+import { getPuzzleLibraryRows, isValidPuzzleImportTileSet, validatePuzzleImportPayload } from './puzzle-import';
 
 const minimalValidTiles = [
     { id: 'a1', pairKey: 'p1', symbol: 'A', label: 'a', state: 'hidden' as const },
@@ -51,6 +52,25 @@ describe('isValidPuzzleImportTileSet', () => {
         ];
         expect(isValidPuzzleImportTileSet(tiles)).toBe(false);
     });
+
+    it('validates import payload metadata with useful errors', () => {
+        expect(
+            validatePuzzleImportPayload({
+                title: 'Tiny',
+                goal: 'clear_all',
+                difficulty: 'starter',
+                tiles: minimalValidTiles
+            }).ok
+        ).toBe(true);
+        expect(validatePuzzleImportPayload({ title: '', goal: 'clear_all', difficulty: 'starter', tiles: minimalValidTiles })).toEqual({
+            ok: false,
+            errors: ['title must be a string with at least 3 characters']
+        });
+        expect(validatePuzzleImportPayload({ title: 'Broken', goal: 'clear_all', difficulty: 'starter', tiles: [] })).toEqual({
+            ok: false,
+            errors: ['tiles must contain 4-64 tiles with exactly two tiles per non-decoy pairKey']
+        });
+    });
 });
 
 describe('BUILTIN_PUZZLES', () => {
@@ -58,5 +78,19 @@ describe('BUILTIN_PUZZLES', () => {
         for (const puzzle of Object.values(BUILTIN_PUZZLES)) {
             expect(isValidPuzzleImportTileSet(puzzle.tiles)).toBe(true);
         }
+    });
+
+    it('projects visible puzzle library progress rows', () => {
+        const save = createDefaultSaveData();
+        save.playerStats = {
+            ...save.playerStats!,
+            puzzleCompletions: {
+                starter_pairs: { completed: true, bestMistakes: 0, bestScore: 120 }
+            }
+        };
+        const rows = getPuzzleLibraryRows(save);
+        expect(rows.map((row) => row.id)).toEqual(['starter_pairs', 'mirror_craft']);
+        expect(rows.find((row) => row.id === 'starter_pairs')?.status).toBe('completed');
+        expect(rows.find((row) => row.id === 'mirror_craft')?.difficulty).toBe('standard');
     });
 });
