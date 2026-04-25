@@ -14,6 +14,7 @@ import {
     type WeakerShuffleMode
 } from './contracts';
 import { utcDateKeyMinusOneDay } from './rng';
+import { evaluateSaveMigrationGate } from './version-gate';
 
 export const DEFAULT_SETTINGS: Settings = {
     masterVolume: 0.8,
@@ -92,6 +93,7 @@ export const normalizeSaveData = (input?: Partial<SaveData> | null): SaveData =>
     if (!input) {
         return defaults;
     }
+    const migrationGate = evaluateSaveMigrationGate(input);
 
     const mergedSettingsBase: Settings = {
         ...defaults.settings,
@@ -164,7 +166,7 @@ export const normalizeSaveData = (input?: Partial<SaveData> | null): SaveData =>
             boardPresentation
         },
         onboardingDismissed: typeof input.onboardingDismissed === 'boolean' ? input.onboardingDismissed : defaults.onboardingDismissed,
-        lastRunSummary: input.lastRunSummary ?? defaults.lastRunSummary,
+        lastRunSummary: migrationGate.keepLastRunSummary ? (input.lastRunSummary ?? defaults.lastRunSummary) : null,
         playerStats: {
             ...defaultPlayerStats(),
             ...(input.playerStats ?? {}),

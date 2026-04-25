@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { SAVE_SCHEMA_VERSION } from './contracts';
+import { GAME_RULES_VERSION, SAVE_SCHEMA_VERSION } from './contracts';
 import { createAchievementState, DEFAULT_SETTINGS, normalizeSaveData } from './save-data';
 import type { SaveData } from './contracts';
+import {
+    CURRENT_VERSION_GATE,
+    evaluateVersionGate,
+    formatVersionGateSummary,
+    shouldBumpForChange,
+    type VersionedSurfaceChange
+} from './version-gate';
 
 const assertNoUndefinedDeep = (value: unknown, path: string): void => {
     if (value === undefined) {
@@ -140,5 +147,59 @@ describe('save normalization', () => {
             expect(normalized.schemaVersion, name).toBe(SAVE_SCHEMA_VERSION);
             assertNoUndefinedDeep(normalized, `${name}.`);
         }
+    });
+});
+
+describe('REG-089 version gate', () => {
+    it('summarizes current local version surfaces for release checks', () => {
+        expect(CURRENT_VERSION_GATE.saveSchemaVersion).toBe(SAVE_SCHEMA_VERSION);
+        expect(CURRENT_VERSION_GATE.gameRulesVersion).toBe(GAME_RULES_VERSION);
+        expect(formatVersionGateSummary(CURRENT_VERSION_GATE)).toContain(
+            `SAVE_SCHEMA_VERSION=${SAVE_SCHEMA_VERSION}`
+        );
+    });
+
+    it('maps gameplay and schedule changes to rules-version checks without online authority', () => {
+        const changes: VersionedSurfaceChange[] = ['board_generation', 'floor_schedule'];
+        const decision = evaluateVersionGate(changes);
+
+        expect(decision.requiresGameRulesVersionBump).toBe(true);
+        expect(decision.requiresFloorScheduleRulesVersionBump).toBe(true);
+        expect(decision.requiresSaveSchemaVersionBump).toBe(false);
+        expect(decision.requiresOnlineAuthority).toBe(false);
+        expect(decision.requiredChecks).toEqual(
+            expect.arrayContaining([
+                'Update deterministic board/floor tests and replay fixtures that depend on GAME_RULES_VERSION.',
+                'Run or update floor-mutator-schedule tests for FLOOR_SCHEDULE_RULES_VERSION.'
+            ])
+        );
+    });
+
+    it('maps persisted save shape changes to save migration checks', () => {
+        const decision = evaluateVersionGate(['save_shape']);
+
+        expect(decision.requiresSaveSchemaVersionBump).toBe(true);
+        expect(decision.requiresGameRulesVersionBump).toBe(false);
+        expect(decision.requiredChecks).toContain(
+            'Add or update normalizeSaveData migration fixtures for legacy / partial saves.'
+        );
+    });
+
+    it('keeps copy-only and UI-only changes out of version bumps', () => {
+        const decision = evaluateVersionGate(['ui_only', 'copy_only']);
+
+        expect(decision.requiresSaveSchemaVersionBump).toBe(false);
+        expect(decision.requiresGameRulesVersionBump).toBe(false);
+        expect(decision.requiresFloorScheduleRulesVersionBump).toBe(false);
+        expect(decision.requiredChecks).toContain(
+            'No version bump required; keep verification scoped to touched UI/copy surfaces.'
+        );
+    });
+
+    it('exposes single-change bump decisions for implementation bots', () => {
+        expect(shouldBumpForChange('save_shape').save).toBe(true);
+        expect(shouldBumpForChange('board_generation').rules).toBe(true);
+        expect(shouldBumpForChange('floor_schedule').floorSchedule).toBe(true);
+        expect(shouldBumpForChange('ui_only').save).toBe(false);
     });
 });
