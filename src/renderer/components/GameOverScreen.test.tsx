@@ -53,8 +53,8 @@ describe('GameOverScreen (REF-031)', () => {
         expect(polite).toHaveAttribute('aria-live', 'polite');
         expect(polite).toHaveTextContent(/Expedition complete/);
 
-        expect(screen.getByRole('button', { name: 'Play Again — start a new run after this expedition' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Return to the main menu' })).toBeInTheDocument();
+        expect(screen.getAllByRole('button', { name: 'Play Again — start a new run after this expedition' })[0]).toBeInTheDocument();
+        expect(screen.getAllByRole('button', { name: 'Return to the main menu' })[0]).toBeInTheDocument();
     });
 
     it('uses a second-level heading for unlocked achievements', () => {
@@ -76,5 +76,15 @@ describe('GameOverScreen (REF-031)', () => {
     it('plays game-over open on mount', () => {
         render(<GameOverScreen run={gameOverRunFixture()} />);
         expect(uiSfxMocks.playGameOverOpenSfx).toHaveBeenCalledTimes(1);
+    });
+
+    it('REG-007 keeps primary retry actions in the above-fold mobile summary block', () => {
+        render(<GameOverScreen run={gameOverRunFixture()} />);
+
+        const topSummary = screen.getByTestId('game-over-above-fold-summary');
+        expect(topSummary).toHaveTextContent('score');
+        expect(topSummary).toHaveTextContent('Play Again');
+        expect(topSummary).toHaveTextContent('Main Menu');
+        expect(screen.getByText(/Journal/)).toBeInTheDocument();
     });
 });

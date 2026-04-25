@@ -110,6 +110,39 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
                 >
                     {politeRunSummaryText}
                 </p>
+                <section
+                    aria-label="Run result and next actions"
+                    className={styles.mobileActionDock}
+                    data-testid="game-over-above-fold-summary"
+                >
+                    <div className={styles.mobileOutcomeCopy}>
+                        <strong>{summary.totalScore.toLocaleString()} score</strong>
+                        <span>Floor {summary.highestLevel} · {summary.levelsCleared} clears · {summary.bestStreak} streak</span>
+                    </div>
+                    <UiButton
+                        fullWidth
+                        aria-label="Mobile Play Again — start a new run after this expedition"
+                        size="lg"
+                        variant="primary"
+                        onClick={restartRun}
+                    >
+                        {gameOverScreenCopy.playAgainLabel}
+                    </UiButton>
+                    <UiButton
+                        fullWidth
+                        aria-label="Mobile return to the main menu"
+                        size="lg"
+                        variant="secondary"
+                        onClick={() => {
+                            resumeUiSfxContext();
+                            playUiBackSfx(uiGain);
+                            goToMenu();
+                        }}
+                    >
+                        {gameOverScreenCopy.mainMenuLabel}
+                    </UiButton>
+                </section>
+
                 <div className={styles.layout}>
                     <Panel className={styles.heroPanel} padding="lg" variant="strong">
                         <div className={styles.heroLockup}>
@@ -189,6 +222,7 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
                                     aria-label={gameOverScreenCopy.playAgainAriaLabel}
                                     size="lg"
                                     variant="primary"
+                                    className={styles.desktopActionButton}
                                     onClick={restartRun}
                                 >
                                     {gameOverScreenCopy.playAgainLabel}
@@ -198,6 +232,7 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
                                     aria-label={gameOverScreenCopy.mainMenuAriaLabel}
                                     size="lg"
                                     variant="secondary"
+                                    className={styles.desktopActionButton}
                                     onClick={() => {
                                         resumeUiSfxContext();
                                         playUiBackSfx(uiGain);
@@ -250,7 +285,7 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
 
                 {(run.flipHistory?.length ?? 0) > 0 ? (
                     <Panel className={styles.detailsPanel} padding="md" variant="muted">
-                        <details className={styles.timelineDetails}>
+                        <details className={styles.timelineDetails} data-testid="game-over-detail-drawer">
                             <summary>{gameOverScreenCopy.flipTimelineSummary}</summary>
                             <ol className={styles.ghostSteps}>
                                 {run.flipHistory!.map((id, index) => (

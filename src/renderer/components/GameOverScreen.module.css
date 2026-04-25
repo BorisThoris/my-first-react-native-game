@@ -174,6 +174,11 @@
     gap: var(--theme-space-sm);
 }
 
+.mobileActionDock,
+.mobileOutcomeSummary {
+    display: none;
+}
+
 .actionHeader {
     display: flex;
     align-items: center;
@@ -213,6 +218,14 @@
     display: grid;
     gap: var(--ui-footer-action-gap);
     margin-top: 1rem;
+}
+
+.mobileActionDock {
+    display: none;
+}
+
+.aboveFoldSummary {
+    display: none;
 }
 
 .achievementPanel,
@@ -313,19 +326,41 @@
 
 @media (max-width: 760px) {
     .foreground {
-        gap: var(--theme-space-sm);
+        gap: 0.55rem;
+        padding-block:
+            max(0.42rem, env(safe-area-inset-top, 0px))
+            max(0.56rem, env(safe-area-inset-bottom, 0px));
+    }
+
+    .layout {
+        gap: 0.55rem;
     }
 
     .heroPanel,
     .actionPanel,
     .achievementPanel,
     .detailsPanel {
-        padding: var(--ui-card-pad-md);
+        padding: 0.7rem;
         transform: none;
     }
 
+    .heroLockup {
+        gap: 0.34rem;
+    }
+
+    .brandCrest,
+    .divider,
+    .metaStrip,
+    .note {
+        display: none;
+    }
+
+    .scoreHero {
+        margin-top: 0.15rem;
+    }
+
     .scoreHeroValue {
-        font-size: clamp(2rem, 11vw, 2.6rem);
+        font-size: clamp(1.82rem, 9.5vw, 2.35rem);
     }
 
     .copy,
@@ -346,6 +381,33 @@
 
     .summaryGrid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.42rem;
+        margin-top: 0.55rem;
+    }
+
+    .sideRail {
+        gap: 0.55rem;
+    }
+
+    .actionPanel:first-child {
+        order: -1;
+        position: sticky;
+        top: max(0.35rem, env(safe-area-inset-top, 0px));
+        z-index: 2;
+    }
+
+    .actionHeader {
+        gap: 0.5rem;
+    }
+
+    .actionSeal {
+        width: 2rem;
+        height: 2rem;
+    }
+
+    .actionButtons {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-top: 0.62rem;
     }
 
     .ghostSteps {
