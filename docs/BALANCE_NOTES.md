@@ -17,6 +17,7 @@ After meaningful mutator/relic changes: run three scripted seeds (arcade, daily,
 ## Automated sanity (REF-098 / schedule)
 
 - `yarn sim:endless --floors=1000 --seed=42001` — CSV summary of `floorTag` and mutator counts over a long endless slice; use after edits to `floor-mutator-schedule.ts` or `FLOOR_SCHEDULE_RULES_VERSION`. Spot-check that `breather` / `boss` tags appear at expected cadence for the cycle.
+- REG-086 lightweight balance snapshot lives in `src/shared/balance-simulation.ts`. It is offline-only and checks floor schedule, shop wallet pacing, findable target ranges, and relic draft rarity mix without server authority or competitive leaderboard data.
 
 ## Release playtest script (quick bar)
 
