@@ -99,6 +99,13 @@ import {
     playRunStartSfx,
     resumeUiSfxContext
 } from '../audio/uiSfx';
+import {
+    isInRunMetaView,
+    isMenuDestinationView,
+    resolveNavigationTransition,
+    resolveSettingsCloseTarget,
+    resolveSubscreenCloseTarget
+} from './navigationModel';
 
 const metaRelicOpts = (save: SaveData) => ({
     metaRelicDraftExtraPerMilestone: metaRelicDraftExtraPerMilestoneFromSave(save)
@@ -889,19 +896,23 @@ export const useAppStore = create<AppState>((set, get) => ({
     },
 
     openModeSelect: () => {
-        set({ view: 'modeSelect', subscreenReturnView: 'menu' });
+        const transition = resolveNavigationTransition(get(), 'openModeSelect');
+        set({ view: transition.view, subscreenReturnView: transition.subscreenReturnView });
     },
 
     openCollection: () => {
-        set({ view: 'collection', subscreenReturnView: 'menu' });
+        const transition = resolveNavigationTransition(get(), 'openCollection');
+        set({ view: transition.view, subscreenReturnView: transition.subscreenReturnView });
     },
 
     openInventoryFromMenu: () => {
-        set({ view: 'inventory', subscreenReturnView: 'menu' });
+        const transition = resolveNavigationTransition(get(), 'openInventoryFromMenu');
+        set({ view: transition.view, subscreenReturnView: transition.subscreenReturnView });
     },
 
     openCodexFromMenu: () => {
-        set({ view: 'codex', subscreenReturnView: 'menu' });
+        const transition = resolveNavigationTransition(get(), 'openCodexFromMenu');
+        set({ view: transition.view, subscreenReturnView: transition.subscreenReturnView });
     },
 
     openInventoryFromPlaying: () => {
@@ -911,9 +922,10 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
         const nextRun = freezeRunSnapshotForPlayingMetaOverlay(run);
         clearAllTimers();
+        const transition = resolveNavigationTransition(get(), 'openInventoryFromPlaying');
         set({
-            view: 'inventory',
-            subscreenReturnView: 'playing',
+            view: transition.view,
+            subscreenReturnView: transition.subscreenReturnView,
             run: nextRun
         });
     },
@@ -925,81 +937,68 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
         const nextRun = freezeRunSnapshotForPlayingMetaOverlay(run);
         clearAllTimers();
+        const transition = resolveNavigationTransition(get(), 'openCodexFromPlaying');
         set({
-            view: 'codex',
-            subscreenReturnView: 'playing',
+            view: transition.view,
+            subscreenReturnView: transition.subscreenReturnView,
             run: nextRun
         });
     },
 
     closeSubscreen: () => {
         const { subscreenReturnView, run, view } = get();
+        const transition = resolveNavigationTransition(get(), 'closeSubscreen');
 
-        if (subscreenReturnView === 'playing' && (view === 'inventory' || view === 'codex')) {
-            /*
-             * SIDE-014 — If `run` was cleared while inventory/codex stayed logical (should not happen in
-             * normal play), never set `view: 'playing'` with a null run (blank shell). `goToMenu`
-             * resets return pointers and matches abandon-exit cleanup.
-             */
-            if (!run) {
-                get().goToMenu();
-                return;
-            }
-            const nextRun = run.status === 'paused' ? resumeRunWithTimers(run) : run;
+        if (transition.resumeRun) {
+            const nextRun = run?.status === 'paused' ? resumeRunWithTimers(run) : run;
             set({
-                view: 'playing',
-                run: nextRun
+                view: transition.view,
+                subscreenReturnView: transition.subscreenReturnView,
+                run: nextRun ?? null
             });
             return;
         }
 
-        if (subscreenReturnView === 'playing' && !run) {
-            get().goToMenu();
-            return;
-        }
-
-        set({ view: subscreenReturnView });
+        set({ view: transition.view, subscreenReturnView: transition.subscreenReturnView });
     },
 
     openSettings: (returnView = 'menu') => {
-        const { run } = get();
+        const { run, view } = get();
+        const transition = resolveNavigationTransition(get(), 'openSettings', returnView);
 
-        if (returnView === 'playing' && run) {
+        if (transition.freezeRun && run) {
             const nextRun = freezeRunSnapshotForPlayingMetaOverlay(run);
 
             clearAllTimers();
             set({
-                view: 'settings',
-                settingsReturnView: returnView,
+                view: transition.view,
+                settingsReturnView: transition.settingsReturnView,
                 run: nextRun
             });
             return;
         }
 
         set({
-            view: 'settings',
-            settingsReturnView: returnView
+            view: transition.view,
+            settingsReturnView: transition.settingsReturnView
         });
     },
 
     closeSettings: () => {
-        const { settingsReturnView, run } = get();
+        const { settingsReturnView, run, view } = get();
+        const transition = resolveNavigationTransition(get(), 'closeSettings');
 
-        if (settingsReturnView === 'playing') {
-            if (!run) {
-                get().goToMenu();
-                return;
-            }
-            const nextRun = run.status === 'paused' ? resumeRunWithTimers(run) : run;
-
+        if (transition.resumeRun) {
+            const nextRun = run?.status === 'paused' ? resumeRunWithTimers(run) : run;
             set({
-                view: 'playing',
-                run: nextRun
+                view: transition.view,
+                settingsReturnView: transition.settingsReturnView,
+                run: nextRun ?? null
             });
             return;
         }
 
-        set({ view: settingsReturnView });
+        set({ view: transition.view, settingsReturnView: transition.settingsReturnView });
     },
 
     updateSettings: async (settings) => {

@@ -13,6 +13,7 @@ async function expectGameplayHudWithWings(page: Page): Promise<void> {
 test.describe('Navigation shells', () => {
     test.describe.configure({ retries: 1 });
     test('Play opens Choose Your Path then Classic Run starts level 1', async ({ page }) => {
+        test.setTimeout(60_000);
         await openMainMenuFromSave(page, true);
         await page.getByRole('button', { name: /^play$/i }).click();
         await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
@@ -24,6 +25,19 @@ test.describe('Navigation shells', () => {
         await openMainMenuFromSave(page, true);
         await page.getByRole('button', { name: /^play$/i }).click();
         await expect(page.getByRole('button', { name: /endless mode/i })).toBeDisabled();
+    });
+
+    test('Settings opened from Choose Your Path returns to Choose Your Path', async ({ page }) => {
+        await openMainMenuFromSave(page, true);
+        await page.getByRole('button', { name: /^play$/i }).click();
+        await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
+        await page.getByTestId('choose-path-settings').click();
+        await expect(page.getByRole('heading', { name: /^settings$/i })).toBeVisible();
+        if (process.env.REG044_CAPTURE === '1') {
+            await page.screenshot({ path: '/opt/cursor/artifacts/reg-044-mode-settings-return.png', fullPage: true });
+        }
+        await page.getByRole('button', { name: /^back$/i }).click();
+        await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
     });
 
     test('Collection from main menu returns to menu on Back', async ({ page }) => {

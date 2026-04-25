@@ -2,6 +2,12 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { buildBoard, countFindablePairs } from '../../shared/game';
 import { createDefaultSaveData } from '../../shared/save-data';
 import { BOARD_FLOATER_POP_CLEAR } from './matchScorePop';
+import {
+    getNavigationRouteContract,
+    isRunStatusResumableAfterMetaOverlay,
+    resolveSettingsCloseTarget,
+    resolveSubscreenCloseTarget
+} from './navigationModel';
 import { useAppStore } from './useAppStore';
 
 const gameSfxMocks = vi.hoisted(() => ({
@@ -290,6 +296,34 @@ describe('useAppStore timers', () => {
         expect(useAppStore.getState().view).toBe('menu');
         expect(useAppStore.getState().run).toBeNull();
         expect(useAppStore.getState().settingsReturnView).toBe('menu');
+    });
+
+    it('REG-044: menu meta screens can open settings and return to the intended surface', () => {
+        useAppStore.getState().openModeSelect();
+        expect(useAppStore.getState().view).toBe('modeSelect');
+
+        useAppStore.getState().openSettings('modeSelect');
+        expect(useAppStore.getState().view).toBe('settings');
+        expect(useAppStore.getState().settingsReturnView).toBe('modeSelect');
+
+        useAppStore.getState().closeSettings();
+        expect(useAppStore.getState().view).toBe('modeSelect');
+        expect(useAppStore.getState().run).toBeNull();
+
+        useAppStore.getState().openCollection();
+        useAppStore.getState().openSettings('collection');
+        expect(useAppStore.getState().settingsReturnView).toBe('collection');
+
+        useAppStore.getState().closeSettings();
+        expect(useAppStore.getState().view).toBe('collection');
+    });
+
+    it('REG-044: impossible nested settings return targets normalize to menu', () => {
+        const invalidSettingsReturn = 'settings' as unknown as Parameters<typeof useAppStore.getState>['length'];
+        useAppStore.getState().openSettings(invalidSettingsReturn as never);
+        expect(useAppStore.getState().settingsReturnView).toBe('menu');
+        useAppStore.getState().closeSettings();
+        expect(useAppStore.getState().view).toBe('menu');
     });
 
     it('plays pause and resume cues from store transitions', async () => {

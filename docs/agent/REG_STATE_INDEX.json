@@ -594,7 +594,7 @@
     "updated": "2026-04-25"
   },
   "REG-044": {
-    "status": "open",
+    "status": "done",
     "phase": 3,
     "lane": "trackA",
     "dependencies": [

@@ -87,6 +87,7 @@ const ChooseYourPathScreen = () => {
         bestFloorNoPowers,
         bestScore,
         closeSubscreen,
+        openSettings,
         startDailyRun,
         startGauntletRun,
         startMeditationRun,
@@ -104,6 +105,7 @@ const ChooseYourPathScreen = () => {
             bestFloorNoPowers: state.saveData.playerStats?.bestFloorNoPowers ?? 0,
             bestScore: state.saveData.bestScore,
             closeSubscreen: state.closeSubscreen,
+            openSettings: state.openSettings,
             startDailyRun: state.startDailyRun,
             startGauntletRun: state.startGauntletRun,
             startMeditationRun: state.startMeditationRun,
@@ -522,6 +524,17 @@ const ChooseYourPathScreen = () => {
                                     >
                                         <BackChevronIcon className={styles.pathBackIcon} />
                                         <span>Back</span>
+                                    </button>
+                                    <button
+                                        className={styles.pathBackButton}
+                                        data-testid="choose-path-settings"
+                                        type="button"
+                                        onClick={() => {
+                                            playMenuOpen();
+                                            openSettings('modeSelect');
+                                        }}
+                                    >
+                                        <span>Settings</span>
                                     </button>
                                     <Eyebrow tone="menu">Start a run</Eyebrow>
                                     <ScreenTitle as="h1" role="display">

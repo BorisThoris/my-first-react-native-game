@@ -49,6 +49,7 @@ const statusOverrides = new Map([
   [14, 'done'],
   [28, 'done'],
   [34, 'done'],
+  [44, 'done'],
   [15, 'done'],
   [18, 'done'],
   [19, 'done'],

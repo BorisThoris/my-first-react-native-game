@@ -15,6 +15,12 @@ Core views: `boot` | `menu` | `modeSelect` | `playing` | `collection` | `invento
 | **`subscreenReturnView`** | Where **Back** / `closeSubscreen` returns when `view` is `inventory` or `codex` (`menu` or `playing`). |
 | **`settingsReturnView`** | Where **Save/Back** from `SettingsScreen` returns (`menu`, `playing`, etc.). |
 
+`src/renderer/store/navigationModel.ts` is the executable route contract for these pointers. The current product model intentionally remains a bounded single return-pointer architecture (not a general stack): menu/meta pages can open Settings with an explicit return target, while in-run inventory/codex/settings are the only overlays allowed to freeze and later resume a run.
+
+## Settings from meta screens (`NAV-006`)
+
+Mode Select may open Settings with `settingsReturnView: 'modeSelect'`; Back/Save returns to Choose Your Path rather than the main menu. Collection/Inventory/Codex can use the same route contract if product adds entry buttons. `settingsReturnView: 'settings'` is normalized back to `menu` to avoid self-return loops.
+
 ## Run freeze
 
 Opening inventory/codex/settings from **playing** calls **`freezeRun`** + **`clearAllTimers`**; closing resumes with **`resumeRunWithTimers`** when appropriate. Documented in store methods in [`useAppStore.ts`](../../src/renderer/store/useAppStore.ts).
