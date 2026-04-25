@@ -26,6 +26,8 @@ export interface FloorArchetypeDefinition {
     theme: string;
     /** REG-020: action-oriented risk note shown before/during a floor. */
     riskProfile: string;
+    /** REG-076: encounter identity hook for boss/elite presentation rows. */
+    encounterRole?: 'boss' | 'elite';
 }
 
 export const FLOOR_ARCHETYPE_CATALOG: Record<FloorArchetypeId, FloorArchetypeDefinition> = {
@@ -63,7 +65,8 @@ export const FLOOR_ARCHETYPE_CATALOG: Record<FloorArchetypeId, FloorArchetypeDef
         title: 'Trap Hall',
         hint: 'A glass decoy stalks the board. Keep it out of every miss.',
         theme: 'Trap',
-        riskProfile: 'Glass decoy plus sticky pressure; do not drag the trap into a miss.'
+        riskProfile: 'Glass decoy plus sticky pressure; do not drag the trap into a miss.',
+        encounterRole: 'boss'
     },
     script_room: {
         title: 'Script Room',
@@ -75,7 +78,8 @@ export const FLOOR_ARCHETYPE_CATALOG: Record<FloorArchetypeId, FloorArchetypeDef
         title: 'Rush Recall',
         hint: 'Short study and wide recall collide. Boss floors reward sharp clears.',
         theme: 'Rush',
-        riskProfile: 'Boss pressure with short study and wider recall.'
+        riskProfile: 'Boss pressure with short study and wider recall.',
+        encounterRole: 'boss'
     },
     parasite_tithe: {
         title: 'Parasite Tithe',

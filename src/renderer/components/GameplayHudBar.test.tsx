@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import type { FloorArchetypeId, FeaturedObjectiveId, RunState } from '../../shared/contracts';
 import { createDailyRun, createNewRun, finishMemorizePhase } from '../../shared/game';
 import GameplayHudBar from './GameplayHudBar';
 
@@ -34,6 +35,34 @@ describe('GameplayHudBar', () => {
         expect(screen.getByTestId('hud-favor-progress').getAttribute('title')).toContain('Temporary run currency');
         expect(screen.getByTestId('hud-featured-streak').textContent).toContain('x3');
         expect(screen.getByTestId('hud-endless-risk-wager').textContent).toContain('+2 Favor');
+    });
+
+    it('shows boss encounter identity on boss-tagged floors', () => {
+        const baseRun = finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false }));
+        const run: RunState = {
+            ...baseRun,
+            gameMode: 'endless' as const,
+            board: {
+                ...baseRun.board!,
+                floorTag: 'boss' as const,
+                floorArchetypeId: 'rush_recall' as FloorArchetypeId,
+                featuredObjectiveId: 'flip_par' as FeaturedObjectiveId
+            },
+            activeMutators: ['short_memorize' as const, 'wide_recall' as const]
+        };
+
+        render(
+            <GameplayHudBar
+                cameraViewportMode={false}
+                gauntletRemainingMs={null}
+                politeHudAnnouncement=""
+                run={run}
+            />
+        );
+
+        expect(screen.getByTestId('hud-encounter-identity').textContent).toContain('Boss');
+        expect(screen.getByTestId('hud-encounter-identity').getAttribute('title')).toContain('Boss pressure');
+        expect(screen.getByTestId('hud-encounter-identity').getAttribute('title')).toContain('Placeholder');
     });
 
     it('does not show favor UI on non-endless runs', () => {

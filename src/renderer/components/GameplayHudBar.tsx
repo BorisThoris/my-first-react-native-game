@@ -1,4 +1,5 @@
 import { useId, type ReactNode } from 'react';
+import { getBossEncounterIdentityForFloor } from '../../shared/boss-encounters';
 import { MAX_LIVES, type MutatorId, type RunState } from '../../shared/contracts';
 import {
     getFeaturedObjectiveHudTooltip,
@@ -158,6 +159,11 @@ const GameplayHudBar = ({
     const featuredObjectiveLabel = getFeaturedObjectiveLabel(board.featuredObjectiveId);
     const difficultyProfile = getDefaultDifficultyProfile();
     const secondaryObjectiveRows = getSecondaryObjectiveStatusRows(run);
+    const encounterIdentity = getBossEncounterIdentityForFloor(board.floorTag ?? 'normal', {
+        floorArchetypeId: board.floorArchetypeId,
+        mutators: run.activeMutators,
+        riskProfile: archetype?.riskProfile ?? null
+    });
     const contextChips: { className: string; key: string; label: string; testId: string; title: string; glyph: ReactNode }[] = [];
     if (run.gameMode === 'gauntlet') {
         contextChips.push({
@@ -266,12 +272,12 @@ const GameplayHudBar = ({
                                     strokeWidth="0.85"
                                 />
                             </svg>
-                            <div className={`${styles.hudSegment} ${styles.floorBadge}`} title="Current floor">
+                            <div className={`${styles.hudSegment} ${styles.floorBadge}`} title={encounterIdentity?.readabilityChecklist ?? 'Current floor'}>
                                 <span className={styles.floorLabel}>Floor</span>
                                 <span className={styles.floorValue}>{board.level}</span>
                                 {board.floorTag === 'boss' ? (
-                                    <span className={styles.floorTagPill} title="Boss floor scoring">
-                                        Boss
+                                    <span className={styles.floorTagPill} data-testid="hud-encounter-identity" title={encounterIdentity?.payoffCopy ?? 'Boss floor scoring'}>
+                                        {encounterIdentity?.label ?? 'Boss'}
                                     </span>
                                 ) : board.floorTag === 'breather' ? (
                                     <span className={styles.floorTagPill} title="Breather floor">
