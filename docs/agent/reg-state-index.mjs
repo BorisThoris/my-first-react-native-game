@@ -103,7 +103,7 @@ for (let reg = 0; reg <= 160; reg += 1) {
       : reg === 3
         ? 'e014db8'
       : reg === 4
-        ? 'TBD'
+        ? 'b737cf7'
         : reg === 24
           ? '7daefab'
         : reg === 18
