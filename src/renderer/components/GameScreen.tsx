@@ -7,6 +7,7 @@ import {
     type Settings
 } from '../../shared/contracts';
 import { computeFocusDimmedTileIds } from '../../shared/focusDimmedTileIds';
+import { formatLevelResultObjectiveLine } from '../../shared/secondary-objectives';
 import {
     canOfferEndlessRiskWager,
     canRegionShuffle,
@@ -136,6 +137,26 @@ const formatBonusTagsLine = (tags: string[] | undefined): string | null => {
         return null;
     }
     return tags.map((t) => BONUS_TAG_LABELS[t] ?? t).join(' · ');
+};
+
+const featuredObjectiveFailReason = (run: RunState): string | null => {
+    const id = run.lastLevelResult?.featuredObjectiveId;
+    if (!id || run.lastLevelResult?.featuredObjectiveCompleted) {
+        return null;
+    }
+    if (id === 'scholar_style') {
+        return 'Failed: shuffle or destroy was used this floor.';
+    }
+    if (id === 'glass_witness') {
+        return 'Failed: the glass decoy entered a mismatch.';
+    }
+    if (id === 'cursed_last') {
+        return 'Failed: the cursed pair was cleared before the last real pair.';
+    }
+    if (id === 'flip_par') {
+        return 'Failed: match resolutions exceeded the floor par.';
+    }
+    return null;
 };
 
 const countFavorBonusPicksBanked = (favorProgressAfter: number, favorGain: number): number => {
@@ -703,13 +724,8 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         run.gameMode === 'endless' && usesEndlessFloorSchedule(run.gameMode, run.runRulesVersion);
     const currentArchetype = getFloorArchetypeDefinition(run.board?.floorArchetypeId ?? null);
     const currentFeaturedObjectiveLabel = getFeaturedObjectiveLabel(run.board?.featuredObjectiveId ?? null);
-    const levelResultObjectiveLabel = getFeaturedObjectiveLabel(run.lastLevelResult?.featuredObjectiveId ?? null);
-    const featuredObjectiveResultLine =
-        run.lastLevelResult?.featuredObjectiveId && levelResultObjectiveLabel
-            ? `${levelResultObjectiveLabel}: ${
-                  run.lastLevelResult.featuredObjectiveCompleted ? 'Complete' : 'Missed'
-              }`
-            : null;
+    const featuredObjectiveResultLine = run.lastLevelResult ? formatLevelResultObjectiveLine(run.lastLevelResult) : null;
+    const featuredObjectiveFailureLine = featuredObjectiveFailReason(run);
     const favorGained = run.lastLevelResult?.relicFavorGained ?? 0;
     const favorGainLine =
         run.lastLevelResult?.featuredObjectiveId != null ? `Favor gained: +${favorGained}` : null;
@@ -1216,6 +1232,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                     >
                         {clearLifeBonusLabel ? <p className={styles.modalNote}>{clearLifeBonusLabel}</p> : null}
                         {featuredObjectiveResultLine ? <p className={styles.modalNote}>{featuredObjectiveResultLine}</p> : null}
+                        {featuredObjectiveFailureLine ? <p className={styles.modalNote}>{featuredObjectiveFailureLine}</p> : null}
                         {featuredObjectiveStreakLine ? <p className={styles.modalNote}>{featuredObjectiveStreakLine}</p> : null}
                         {endlessRiskWagerOutcomeLine ? <p className={styles.modalNote}>{endlessRiskWagerOutcomeLine}</p> : null}
                         {favorGainLine ? <p className={styles.modalNote}>{favorGainLine}</p> : null}

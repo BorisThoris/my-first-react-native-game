@@ -6,6 +6,7 @@ import {
     getFloorArchetypeDefinition,
     usesEndlessFloorSchedule
 } from '../../shared/floor-mutator-schedule';
+import { getSecondaryObjectiveStatusRows } from '../../shared/secondary-objectives';
 import { getDefaultDifficultyProfile } from '../../shared/difficulty-profile';
 import { getRunEconomyEntry } from '../../shared/run-economy';
 import codexBookUrl from '../assets/ui/icons/icon-codex-book-v1.svg?url';
@@ -155,6 +156,7 @@ const GameplayHudBar = ({
     const archetype = getFloorArchetypeDefinition(board.floorArchetypeId);
     const featuredObjectiveLabel = getFeaturedObjectiveLabel(board.featuredObjectiveId);
     const difficultyProfile = getDefaultDifficultyProfile();
+    const secondaryObjectiveRows = getSecondaryObjectiveStatusRows(run);
     const contextChips: { className: string; key: string; label: string; testId: string; title: string; glyph: ReactNode }[] = [];
     if (run.gameMode === 'gauntlet') {
         contextChips.push({
@@ -467,6 +469,17 @@ const GameplayHudBar = ({
                                         <span className={styles.statVal}>{featuredObjectiveLabel}</span>
                                     </div>
                                 ) : null}
+                                {secondaryObjectiveRows.map((row) => (
+                                    <div
+                                        className={styles.statPillCompact}
+                                        data-testid={`hud-secondary-objective-${row.id}`}
+                                        key={row.id}
+                                        title={row.detail}
+                                    >
+                                        <span className={styles.statKey}>{row.label}</span>
+                                        <span className={styles.statVal}>{row.status}</span>
+                                    </div>
+                                ))}
                                 {endlessChapterActive ? (
                                     <div
                                         className={styles.statPillCompact}

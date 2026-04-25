@@ -658,7 +658,7 @@ describe('GameScreen (OVR-014)', () => {
             </PlatformTiltProvider>
         );
 
-        expect(getByText('Flip par: Complete')).toBeTruthy();
+        expect(getByText(/Flip par: Complete/)).toBeTruthy();
         expect(getByText('Objective streak: x2 (+10)')).toBeTruthy();
         expect(getByText('Favor gained: +1')).toBeTruthy();
         expect(getByText(/Extra relic pick banked/)).toBeTruthy();
