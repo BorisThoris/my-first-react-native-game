@@ -32,6 +32,16 @@ interface OverlayModalProps {
     headerPlateTone?: OverlayModalHeaderPlateTone;
 }
 
+const modalKindFor = (actions: readonly ModalAction[], hasChildren: boolean): 'alert' | 'decision' | 'sheet' => {
+    if (actions.length === 0) {
+        return 'sheet';
+    }
+    if (actions.length <= 1 && !hasChildren) {
+        return 'alert';
+    }
+    return 'decision';
+};
+
 const headerPlateToneClass = (tone: OverlayModalHeaderPlateTone): string => {
     if (tone === 'success') {
         return styles.headerPlateFrameSuccess;
@@ -98,6 +108,7 @@ const OverlayModal = ({
     const subtitleId = useId();
     const bodyId = useId();
     const describedBy = [subtitle ? subtitleId : null, children ? bodyId : null].filter(Boolean).join(' ') || undefined;
+    const modalKind = modalKindFor(actions, Boolean(children));
 
     /* OVR-010: initial focus + restore — same lifecycle pattern as Settings modal (`presentation="modal"`). */
     useEffect(() => {
@@ -150,6 +161,8 @@ const OverlayModal = ({
                 className={`${styles.modal} ${overlayToneClass(headerPlateTone)} ${
                     actions.length === 0 ? styles.modalNoActions : ''
                 }`.trim()}
+                data-modal-kind={modalKind}
+                data-overlay-size={modalKind}
                 data-testid={testId}
                 ref={modalRef}
                 role="dialog"
@@ -177,14 +190,14 @@ const OverlayModal = ({
                         </p>
                     )}
                     {children && (
-                        <div className={styles.body} id={bodyId}>
+                        <div className={styles.body} data-testid="overlay-modal-body" id={bodyId}>
                             {children}
                         </div>
                     )}
                 </div>
 
                 {actions.length > 0 ? (
-                    <div className={styles.actions}>
+                    <div className={styles.actions} data-testid="overlay-modal-actions">
                         {actions.map((action) => (
                             <UiButton
                                 className={styles.modalAction}

@@ -101,7 +101,7 @@
     "updated": "2026-04-25"
   },
   "REG-008": {
-    "status": "open",
+    "status": "done",
     "phase": 3,
     "lane": "trackA",
     "dependencies": [
@@ -110,7 +110,7 @@
       "REG-088",
       "REG-089"
     ],
-    "commit": null,
+    "commit": "pending",
     "updated": "2026-04-25"
   },
   "REG-009": {

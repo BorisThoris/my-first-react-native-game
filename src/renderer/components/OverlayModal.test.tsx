@@ -28,4 +28,23 @@ describe('OverlayModal (REF-061)', () => {
         await user.tab();
         expect(document.activeElement).toBe(continueBtn);
     });
+
+    it('REG-008 exposes mobile-safe scroll body and sticky action footer hooks', () => {
+        render(
+            <OverlayModal
+                actions={[
+                    { label: 'Confirm', onClick: () => {} },
+                    { label: 'Cancel', onClick: () => {}, variant: 'secondary' }
+                ]}
+                testId="unit-modal"
+                title="Floor cleared"
+            >
+                <p>Detailed reward, objective, relic, and shop text can scroll inside the controlled modal body.</p>
+            </OverlayModal>
+        );
+
+        expect(screen.getByTestId('overlay-modal-body')).toHaveTextContent('Detailed reward');
+        expect(screen.getByTestId('overlay-modal-actions')).toHaveTextContent('Confirm');
+        expect(screen.getByTestId('unit-modal')).toHaveAttribute('data-overlay-size', 'decision');
+    });
 });
