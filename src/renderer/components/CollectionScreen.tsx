@@ -3,6 +3,12 @@ import { useShallow } from 'zustand/react/shallow';
 import { ACHIEVEMENT_BY_ID } from '../../shared/achievements';
 import type { RelicId } from '../../shared/contracts';
 import {
+    COSMETIC_CATALOG,
+    cosmeticUnlockTag,
+    getOwnedCosmeticIds,
+    getEquippedCosmeticId
+} from '../../shared/cosmetics';
+import {
     eligibleHonorUnlockIds,
     HONOR_UNLOCK_CATALOG,
     HONOR_UNLOCK_ORDER
@@ -62,6 +68,9 @@ const CollectionScreen = () => {
                     <a href="#collection-honors" onClick={(e) => handleMetaBodyTocLinkClick(bodyScrollRef, e)}>
                         Honors
                     </a>
+                    <a href="#collection-cosmetics" onClick={(e) => handleMetaBodyTocLinkClick(bodyScrollRef, e)}>
+                        Cosmetics
+                    </a>
                     <a href="#collection-relics" onClick={(e) => handleMetaBodyTocLinkClick(bodyScrollRef, e)}>
                         Relics
                     </a>
@@ -119,6 +128,36 @@ const CollectionScreen = () => {
                                             <strong>{def.title}</strong>
                                             <p className={metaStyles.subtitle}>{def.description}</p>
                                             <span className={styles.symbolMeta}>{unlocked ? 'Earned' : 'Locked'}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </Panel>
+                </MetaFrame>
+
+                <MetaFrame data-testid="collection-meta-frame-cosmetics">
+                    <Panel padding="lg" variant="default">
+                        <div className={`${styles.section} ${metaStyles.sectionAnchor}`} id="collection-cosmetics">
+                            <h2 className={styles.sectionTitle}>Cosmetics</h2>
+                            <p className={metaStyles.subtitle}>
+                                Cosmetic slots are visual-only. Owned/equipped state uses local unlock tags; no gameplay power is attached.
+                            </p>
+                            <div className={`${styles.grid} ${metaStyles.metaLongList}`}>
+                                {(Object.values(COSMETIC_CATALOG)).map((cosmetic) => {
+                                    const owned = getOwnedCosmeticIds(saveData).includes(cosmetic.id);
+                                    const equipped = getEquippedCosmeticId(saveData, cosmetic.slot) === cosmetic.id;
+                                    return (
+                                        <div
+                                            className={`${styles.achievementCard} ${owned ? styles.achievementUnlocked : styles.achievementLocked}`}
+                                            key={cosmetic.id}
+                                        >
+                                            <strong>{cosmetic.title}</strong>
+                                            <p className={metaStyles.subtitle}>{cosmetic.description}</p>
+                                            <span className={styles.symbolMeta}>
+                                                {equipped ? 'Equipped' : owned ? 'Owned' : `Locked · ${cosmetic.unlockHint}`}
+                                            </span>
+                                            <span className={styles.symbolMeta}>{cosmeticUnlockTag(cosmetic.id)}</span>
                                         </div>
                                     );
                                 })}

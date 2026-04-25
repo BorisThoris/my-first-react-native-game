@@ -46,6 +46,18 @@
     box-shadow: inset 0 1px 0 color-mix(in srgb, var(--theme-gold-bright) 10%, transparent);
 }
 
+.cosmeticEquipped {
+    border-color: color-mix(in srgb, var(--theme-cyan) 42%, var(--theme-divider-hairline));
+}
+
+.cosmeticOwned {
+    border-color: color-mix(in srgb, var(--theme-gold) 32%, var(--theme-divider-hairline));
+}
+
+.cosmeticLocked {
+    opacity: 0.58;
+}
+
 .symbolGrid {
     display: flex;
     flex-wrap: wrap;

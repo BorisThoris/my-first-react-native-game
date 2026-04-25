@@ -20,6 +20,7 @@ schema: reg | phase | status | contract | proof
 | REG-020 | 2 | done | Endless chapter schedule exposes chapter themes and UI telegraphs active mutator roles before/during floors. | floor schedule + GameScreen tests |
 | REG-021 | 2 | done | Main menu exposes active/completed/locked local objective board rows from save-derived mastery progress. | objective-board tests + menu surface |
 | REG-022 | 2 | done | Built-in puzzle library has metadata/progress rows, persisted local completion slots, and import validation errors. | puzzle-import + save-data tests |
+| REG-025 | 2 | done | Cosmetics are scoped to visual-only unlock tags with collection/inventory owned/locked/equipped surfaces and fallbacks. | cosmetics tests + UI typecheck |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

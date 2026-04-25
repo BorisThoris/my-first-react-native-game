@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { GAME_MODE_CODEX, MUTATOR_CATALOG, RELIC_CATALOG } from '../../shared/game-catalog';
+import { getCosmeticCollectionRows } from '../../shared/cosmetics';
 import { getRunEconomyRows } from '../../shared/run-economy';
 import { playUiBackSfx, resumeUiSfxContext, uiSfxGainFromSettings } from '../audio/uiSfx';
 import { inventoryScreenCopy } from '../copy/inventoryScreen';
@@ -71,6 +72,7 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
 
     const contract = run.activeContract;
     const economyRows = getRunEconomyRows(run);
+    const equippedCosmetic = getCosmeticCollectionRows(useAppStore.getState().saveData).find((row) => row.equipped);
 
     return (
         <section aria-label="Inventory" className={shellClassName} role="region">
@@ -149,6 +151,11 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                                     run.powersUsedThisRun
                                 )}
                             </p>
+                            {equippedCosmetic ? (
+                                <p className={styles.cosmeticNote}>
+                                    Cosmetic theme: <strong>{equippedCosmetic.title}</strong> ({equippedCosmetic.slot}, visual only)
+                                </p>
+                            ) : null}
                         </div>
                     </Panel>
                 </MetaFrame>
