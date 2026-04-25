@@ -42,6 +42,7 @@ schema: reg | phase | status | contract | proof
 | REG-079 | 2 | done | Run inventory exposes run-scoped loadout slots, consumable stack caps, mutation timing, and offline/non-persistent constraints in rules and Inventory UI. | run-inventory + InventoryScreen tests |
 | REG-080 | 2 | done | Permanent meta track exposes local-only upgrade/cosmetic rows, progress gates, unlock tags, no pay-to-skip currency, and Collection surfacing. | meta-progression + cosmetics tests |
 | REG-081 | 2 | done | Challenge modes expose offline save-derived gate rows, lock/available states, eligibility notes, and Choose Path detail copy for Gauntlet, puzzles, and contracts. | challenge-progression + run-mode catalog tests |
+| REG-082 | 2 | done | Quest campaign ladder exposes authored local quest steps, contract requirements, progress/status rows, failure/retry rules, and Main Menu surfacing. | quest-campaign tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

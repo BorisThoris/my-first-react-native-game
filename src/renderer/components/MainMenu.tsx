@@ -2,6 +2,8 @@ import type { RelicId, RunSummary, SaveData } from '../../shared/contracts';
 import { countEligibleHonors, totalHonorUnlocks } from '../../shared/honorUnlocks';
 import { RELIC_CATALOG } from '../../shared/game-catalog';
 import { getObjectiveBoardItems } from '../../shared/objective-board';
+import { buildQuestCampaignRows } from '../../shared/quest-campaign';
+import { getQuestCampaignRows } from '../../shared/quest-campaign';
 import { formatNextUtcReset } from '../../shared/utc-countdown';
 import { useEffect, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
@@ -111,6 +113,7 @@ const MainMenu = ({
         : 'No descent recorded yet.';
     const dailyCountdown = formatNextUtcReset(nowMs);
     const objectiveBoard = getObjectiveBoardItems(saveData);
+    const questRows = getQuestCampaignRows(saveData);
     const uiGain = uiSfxGainFromSettings(saveData.settings.masterVolume, saveData.settings.sfxVolume);
     const playUiClick = (): void => {
         resumeUiSfxContext();
