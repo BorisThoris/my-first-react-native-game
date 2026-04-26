@@ -1,7 +1,7 @@
 # REG-001: Mobile Gameplay HUD Board Ratio
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

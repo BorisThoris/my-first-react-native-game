@@ -1,7 +1,7 @@
 # REG-021: Quests Contracts Objective Board
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

@@ -16,7 +16,7 @@ import { useViewportSize } from '../hooks/useViewportSize';
 import { useShallow } from 'zustand/react/shallow';
 import { formatNextUtcReset } from '../../shared/utc-countdown';
 import type { MutatorId } from '../../shared/contracts';
-import { getChallengeModeGateRows, type ChallengeModeGateRow } from '../../shared/challenge-progression';
+import { getChallengeModeGateRows } from '../../shared/challenge-progression';
 import { buildDailyResultsLoopRows, getDailyStreakEthicsRow } from '../../shared/daily-archive';
 import { MUTATOR_CATALOG } from '../../shared/mutators';
 import {
@@ -34,7 +34,6 @@ import {
     playMenuOpenSfx,
     playUiBackSfx,
     playUiClickSfx,
-    playUiConfirmSfx,
     playUiCounterSfx,
     resumeUiSfxContext,
     uiSfxGainFromSettings
@@ -153,10 +152,6 @@ const ChooseYourPathScreen = () => {
     const playUiClick = useCallback((): void => {
         resumeUiSfxContext();
         playUiClickSfx(uiGain);
-    }, [uiGain]);
-    const playUiConfirm = useCallback((): void => {
-        resumeUiSfxContext();
-        playUiConfirmSfx(uiGain);
     }, [uiGain]);
     const playUiCounter = useCallback((): void => {
         resumeUiSfxContext();

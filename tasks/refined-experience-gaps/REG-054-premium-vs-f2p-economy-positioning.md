@@ -1,7 +1,7 @@
 # REG-054: Premium Vs F2P Economy Positioning
 
 ## Status
-Open
+Done
 
 ## Priority
 P2

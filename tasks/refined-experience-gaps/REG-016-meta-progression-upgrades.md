@@ -1,7 +1,7 @@
 # REG-016: Meta Progression Upgrades
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

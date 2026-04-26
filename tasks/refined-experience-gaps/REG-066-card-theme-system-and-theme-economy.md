@@ -1,7 +1,7 @@
 # REG-066: Card Theme System And Theme Economy
 
 ## Status
-Open
+Done
 
 ## Priority
 P2

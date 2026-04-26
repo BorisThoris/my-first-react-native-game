@@ -1,7 +1,7 @@
 # REG-079: Run inventory consumable and loadout model
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

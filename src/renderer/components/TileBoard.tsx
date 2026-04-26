@@ -429,7 +429,9 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
     useEffect(() => {
         if (reduceMotion) {
             prevBoardEntranceKeyRef.current = boardEntranceKey;
-            setBoardPreStage('idle');
+            queueMicrotask(() => {
+                setBoardPreStage('idle');
+            });
             return;
         }
         if (prevBoardEntranceKeyRef.current === boardEntranceKey) {
@@ -438,7 +440,9 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
 
         prestageRunIdRef.current += 1;
         const runId = prestageRunIdRef.current;
-        setBoardPreStage('loading');
+        queueMicrotask(() => {
+            setBoardPreStage('loading');
+        });
 
         const armEntrance = (): void => {
             const tileCountForBudget = board.tiles.filter((t) => t.state !== 'removed').length;
@@ -491,7 +495,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         return () => {
             prestageRunIdRef.current += 1;
         };
-    }, [boardEntranceKey, reduceMotion]);
+    }, [board.tiles, boardEntranceKey, reduceMotion]);
 
     useEffect(
         () => () => {
@@ -821,7 +825,16 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                 }
             }
         },
-        [allowGambitThirdFlip, board, boardGraphicsOk, focusedTileId, handleTileSelect, interactive, setFocusedTileId]
+        [
+            allowGambitThirdFlip,
+            board,
+            boardGraphicsOk,
+            focusedTileId,
+            guidedTargetTileIds,
+            handleTileSelect,
+            interactive,
+            setFocusedTileId
+        ]
     );
 
     /**

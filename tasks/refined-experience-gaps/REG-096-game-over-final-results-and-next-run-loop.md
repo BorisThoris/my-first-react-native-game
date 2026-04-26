@@ -1,7 +1,7 @@
 # REG-096: Game over final results and next run loop
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

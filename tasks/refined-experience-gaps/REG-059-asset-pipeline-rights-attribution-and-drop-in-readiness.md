@@ -1,7 +1,7 @@
 # REG-059: Asset Pipeline Rights Attribution And Drop-In Readiness
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

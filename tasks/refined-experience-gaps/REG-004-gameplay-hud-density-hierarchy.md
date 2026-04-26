@@ -1,7 +1,7 @@
 # REG-004: Gameplay HUD Density Hierarchy
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

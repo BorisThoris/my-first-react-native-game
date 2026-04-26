@@ -1,7 +1,7 @@
 # REG-080: Permanent upgrade tree and cosmetic track
 
 ## Status
-Open
+Done
 
 ## Priority
 P2

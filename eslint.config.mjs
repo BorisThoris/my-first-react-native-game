@@ -19,6 +19,9 @@ export default tseslint.config(
             'docs/**',
             '.idea/**',
             '.expo/**',
+            '.venv*/**',
+            '**/.venv*/**',
+            'third_party/**',
             'scripts/**/*.mjs',
             'scripts/**/*.cjs'
         ]

@@ -1,7 +1,7 @@
 # REG-008: Overlays Mobile Height And Hierarchy
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

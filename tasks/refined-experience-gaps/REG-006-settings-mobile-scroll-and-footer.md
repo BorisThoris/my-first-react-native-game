@@ -1,7 +1,7 @@
 # REG-006: Settings Mobile Scroll And Footer
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

@@ -1,7 +1,7 @@
 # REG-003: Gameplay Sidebar Integration
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

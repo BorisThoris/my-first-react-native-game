@@ -1,7 +1,7 @@
 # REG-092: Settings final control center
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

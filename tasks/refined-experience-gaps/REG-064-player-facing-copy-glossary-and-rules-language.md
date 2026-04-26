@@ -1,7 +1,7 @@
 # REG-064: Player Facing Copy Glossary And Rules Language
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

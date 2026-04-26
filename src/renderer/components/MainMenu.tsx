@@ -6,7 +6,6 @@ import { getFirstRunHelpCenterRows } from '../../shared/first-run-help-center';
 import { getMainMenuHubQualityRows } from '../../shared/main-menu-hub-quality';
 import { getObjectiveBoardItems } from '../../shared/objective-board';
 import { getProfileSummaryRows } from '../../shared/profile-summary';
-import { getQuestCampaignRows } from '../../shared/quest-campaign';
 import { getDailyStreakEthicsRow } from '../../shared/daily-archive';
 import { formatNextUtcReset } from '../../shared/utc-countdown';
 import { useEffect, useRef, useState } from 'react';
@@ -119,7 +118,6 @@ const MainMenu = ({
     const dailyStreakEthics = getDailyStreakEthicsRow(saveData, nowMs);
     const objectiveBoard = getObjectiveBoardItems(saveData);
     const helpCenterRows = getFirstRunHelpCenterRows(saveData);
-    const questRows = getQuestCampaignRows(saveData);
     const profileSummary = getProfileSummaryRows(saveData);
     const hubQualityRows = getMainMenuHubQualityRows(saveData, lastRunSummary);
     const profileTitle = getEquippedCosmeticId(saveData, 'title') === 'title_ascendant_v' ? 'Ascendant V' : 'Seeker';

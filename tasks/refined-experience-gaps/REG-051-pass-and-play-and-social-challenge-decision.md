@@ -1,7 +1,7 @@
 # REG-051: Pass And Play And Social Challenge Decision
 
 ## Status
-Open
+Done
 
 ## Priority
 P2

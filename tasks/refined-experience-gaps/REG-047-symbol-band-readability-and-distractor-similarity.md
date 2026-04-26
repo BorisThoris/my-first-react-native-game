@@ -1,7 +1,7 @@
 # REG-047: Symbol Band Readability And Distractor Similarity
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

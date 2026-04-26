@@ -1,7 +1,7 @@
 # REG-084: Puzzle pack progression medals and curation
 
 ## Status
-Open
+Done
 
 ## Priority
 P2

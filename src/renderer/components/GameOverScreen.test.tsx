@@ -4,7 +4,6 @@ import type { RunState } from '../../shared/contracts';
 import { createNewRun, createRunSummary, finishMemorizePhase } from '../../shared/game';
 import { createDefaultSaveData } from '../../shared/save-data';
 import { getGameOverNextRunRows } from '../../shared/game-over-next-run';
-import { gameOverScreenCopy } from '../copy/gameOverScreen';
 import GameOverScreen from './GameOverScreen';
 
 const uiSfxMocks = vi.hoisted(() => ({

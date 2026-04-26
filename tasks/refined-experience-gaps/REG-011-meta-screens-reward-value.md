@@ -1,7 +1,7 @@
 # REG-011: Meta Screens Reward Value
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

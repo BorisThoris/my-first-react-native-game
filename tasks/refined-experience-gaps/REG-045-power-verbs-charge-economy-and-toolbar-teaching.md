@@ -1,7 +1,7 @@
 # REG-045: Power Verbs Charge Economy And Toolbar Teaching
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

@@ -111,7 +111,7 @@ export const runBalanceSimulation = ({
             };
         })
     );
-    const shopGoldBySeed = safeSeeds.map((seed) =>
+    const shopGoldBySeed = safeSeeds.map(() =>
         floorNumbers.reduce((sum, floor) => sum + getShopGoldRewardForFloor(floor), 0)
     );
     const shopVisits = floorNumbers.filter((floor) => floor % 3 === 0).length;

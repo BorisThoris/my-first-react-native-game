@@ -41,7 +41,7 @@ import {
     pauseRun,
     purchaseShopOffer as purchaseShopOfferRule,
     rerollShopOffers as rerollShopOffersRule,
-    useRelicOfferService as useRelicOfferServiceRule,
+    applyRelicOfferServiceToRun,
     resolveBoardTurn,
     resumeRun,
     togglePinnedTile,
@@ -99,13 +99,7 @@ import {
     playRunStartSfx,
     resumeUiSfxContext
 } from '../audio/uiSfx';
-import {
-    isInRunMetaView,
-    isMenuDestinationView,
-    resolveNavigationTransition,
-    resolveSettingsCloseTarget,
-    resolveSubscreenCloseTarget
-} from './navigationModel';
+import { resolveNavigationTransition } from './navigationModel';
 
 const metaRelicOpts = (save: SaveData) => ({
     metaRelicDraftExtraPerMilestone: metaRelicDraftExtraPerMilestoneFromSave(save)
@@ -866,7 +860,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (!run?.relicOffer) {
             return;
         }
-        set({ run: useRelicOfferServiceRule(run, serviceId, targetRelicId) });
+        set({ run: applyRelicOfferServiceToRun(run, serviceId, targetRelicId) });
     },
 
     dismissPowersFtue: async () => {
@@ -946,7 +940,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     },
 
     closeSubscreen: () => {
-        const { subscreenReturnView, run, view } = get();
+        const { run } = get();
         const transition = resolveNavigationTransition(get(), 'closeSubscreen');
 
         if (transition.resumeRun) {
@@ -963,7 +957,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     },
 
     openSettings: (returnView = 'menu') => {
-        const { run, view } = get();
+        const { run } = get();
         const transition = resolveNavigationTransition(get(), 'openSettings', returnView);
 
         if (transition.freezeRun && run) {
@@ -985,7 +979,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     },
 
     closeSettings: () => {
-        const { settingsReturnView, run, view } = get();
+        const { run } = get();
         const transition = resolveNavigationTransition(get(), 'closeSettings');
 
         if (transition.resumeRun) {

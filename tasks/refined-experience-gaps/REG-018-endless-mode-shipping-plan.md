@@ -1,7 +1,7 @@
 # REG-018: Endless Mode Shipping Plan
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

@@ -1,7 +1,7 @@
 # REG-067: Device Motion Haptics And Platform Permissions
 
 ## Status
-Open
+Done
 
 ## Priority
 P2

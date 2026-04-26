@@ -1,7 +1,7 @@
 # REG-002: Desktop Gameplay Stage Dead Space
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

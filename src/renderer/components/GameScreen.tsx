@@ -314,7 +314,8 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     useLayoutEffect(() => {
         if (!boardFloaterPayload) {
             /* Floater teardown must track payload removal synchronously before paint (tests + hit-testing). */
-            setBoardFloaterPos(null); // eslint-disable-line react-hooks/set-state-in-effect -- layout sync
+            // eslint-disable-next-line react-hooks/set-state-in-effect -- layout sync in useLayoutEffect
+            setBoardFloaterPos(null);
             return;
         }
 
@@ -585,7 +586,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         };
         document.addEventListener('keydown', onKeyDown, true);
         return () => document.removeEventListener('keydown', onKeyDown, true);
-    }, [shortcutsHelpOpen, suppressStatusOverlays, uiGain]);
+    }, [playMenuOpen, playUiBack, shortcutsHelpOpen, suppressStatusOverlays, uiGain]);
 
     useEffect(() => {
         const floorClearedModalBlocksToasts =
@@ -826,14 +827,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
             run.destroyPairCharges > 0 &&
             !run.activeContract?.noDestroy &&
             run.board!.flippedTileIds.length === 0,
-        [
-            run.board,
-            run.status,
-            destroyPairArmed,
-            run.destroyPairCharges,
-            run.activeContract?.noDestroy,
-            run.board?.flippedTileIds.length
-        ]
+        [run.board, run.status, destroyPairArmed, run.destroyPairCharges, run.activeContract?.noDestroy]
     );
 
     const peekPowerVisualActive = useMemo(
@@ -843,7 +837,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
             peekModeArmed &&
             run.peekCharges > 0 &&
             run.board!.flippedTileIds.length === 0,
-        [run.board, run.status, peekModeArmed, run.peekCharges, run.board?.flippedTileIds.length]
+        [run.board, run.status, peekModeArmed, run.peekCharges]
     );
 
     const strayPowerVisualActive = useMemo(
@@ -853,7 +847,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
             run.strayRemoveArmed &&
             run.strayRemoveCharges > 0 &&
             run.board!.flippedTileIds.length === 0,
-        [run.board, run.status, run.strayRemoveArmed, run.strayRemoveCharges, run.board?.flippedTileIds.length]
+        [run.board, run.status, run.strayRemoveArmed, run.strayRemoveCharges]
     );
 
     const pinModeBoardHintActive = useMemo(
@@ -888,6 +882,21 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         return next;
     }, [run.board, strayPowerVisualActive]);
 
+    const showForgivenessHint = Boolean(
+        run.board &&
+            run.board.level <= 3 &&
+            (run.status === 'memorize' || run.status === 'playing') &&
+            run.board.matchedPairs === 0 &&
+            run.stats.tries === 0
+    );
+    useEffect(() => {
+        if (showTutorialPairMarkers && showForgivenessHint && !compactTouchChrome) {
+            queueMicrotask(() => {
+                setRulesHintsExpanded(true);
+            });
+        }
+    }, [compactTouchChrome, showForgivenessHint, showTutorialPairMarkers]);
+
     if (!run.board) {
         return null;
     }
@@ -897,16 +906,6 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         currentArchetype &&
         currentFeaturedObjectiveLabel &&
         (run.status === 'memorize' || (run.status === 'playing' && run.board.matchedPairs === 0));
-    const showForgivenessHint =
-        run.board.level <= 3 &&
-        (run.status === 'memorize' || run.status === 'playing') &&
-        run.board.matchedPairs === 0 &&
-        run.stats.tries === 0;
-    useEffect(() => {
-        if (showTutorialPairMarkers && showForgivenessHint && !compactTouchChrome) {
-            setRulesHintsExpanded(true);
-        }
-    }, [compactTouchChrome, showForgivenessHint, showTutorialPairMarkers]);
     const showBoardPowerBar = run.status === 'playing';
     const shuffleDisabled = !canShuffleBoard(run);
     const regionShuffleDisabled = !canRegionShuffle(run);

@@ -1,7 +1,7 @@
 # REG-049: Findables Pickup Readability And Reward Tuning
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

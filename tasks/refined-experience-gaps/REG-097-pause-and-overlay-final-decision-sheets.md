@@ -1,7 +1,7 @@
 # REG-097: Pause and overlay final decision sheets
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

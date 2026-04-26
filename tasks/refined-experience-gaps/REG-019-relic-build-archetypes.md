@@ -1,7 +1,7 @@
 # REG-019: Relic Build Archetypes
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

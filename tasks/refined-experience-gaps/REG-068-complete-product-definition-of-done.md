@@ -1,7 +1,7 @@
 # REG-068: Complete product definition of done
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

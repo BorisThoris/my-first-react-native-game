@@ -1,7 +1,7 @@
 # REG-072: Wallet run currency sinks and reward pacing
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

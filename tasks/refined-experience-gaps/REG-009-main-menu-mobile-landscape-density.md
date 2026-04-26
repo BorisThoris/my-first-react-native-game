@@ -1,7 +1,7 @@
 # REG-009: Main Menu Mobile Landscape Density
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

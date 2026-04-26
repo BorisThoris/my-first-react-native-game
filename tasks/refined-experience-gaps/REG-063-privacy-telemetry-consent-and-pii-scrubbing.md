@@ -1,7 +1,7 @@
 # REG-063: Privacy Telemetry Consent And PII Scrubbing
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

@@ -1,7 +1,7 @@
 # REG-044: Meta Navigation Backstack And Return Model
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

@@ -1,7 +1,7 @@
 # REG-026: Playable Onboarding
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

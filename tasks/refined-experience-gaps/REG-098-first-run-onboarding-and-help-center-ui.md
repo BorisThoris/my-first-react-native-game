@@ -1,7 +1,7 @@
 # REG-098: First run onboarding and help center UI
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

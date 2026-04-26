@@ -1,7 +1,7 @@
 # REG-082: Quest contract and campaign ladder
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

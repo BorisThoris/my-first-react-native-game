@@ -1,7 +1,7 @@
 # REG-035: Main Menu Profile Social Community Strip
 
 ## Status
-Open
+Done
 
 ## Priority
 P2

@@ -1,7 +1,7 @@
 # REG-010: Choose Path Discoverability
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

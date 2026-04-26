@@ -1,7 +1,7 @@
 # REG-005: In-Game Rules Hints Disclosure
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

@@ -15,7 +15,7 @@ import {
 } from '../../shared/honorUnlocks';
 import { RELIC_CATALOG } from '../../shared/game-catalog';
 import { getCollectionGalleryRows } from '../../shared/collection-reward-gallery';
-import { getDailyArchiveRows, getDailyArchiveSummary } from '../../shared/daily-archive';
+import { getDailyArchiveRows } from '../../shared/daily-archive';
 import { getMetaCosmeticTrackRows, getMetaProgressionBoard, getPermanentUpgradeRows } from '../../shared/meta-progression';
 import { getCollectionRewardSignals } from '../../shared/meta-reward-signals';
 import { ACHIEVEMENT_IDS } from '../../shared/save-data';
@@ -50,7 +50,6 @@ const CollectionScreen = () => {
     const permanentUpgradeRows = getPermanentUpgradeRows(saveData);
     const cosmeticTrackRows = getMetaCosmeticTrackRows(saveData);
     const dailyArchiveRows = getDailyArchiveRows(saveData);
-    const dailyArchiveSummary = getDailyArchiveSummary(saveData);
     const uiGain = uiSfxGainFromSettings(settings.masterVolume, settings.sfxVolume);
     const handleBack = (): void => {
         resumeUiSfxContext();

@@ -1,7 +1,7 @@
 # REG-088: Playable first run to first win campaign
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

@@ -1,7 +1,7 @@
 # REG-014: Design System Dead Space Audit
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

@@ -1,6 +1,5 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { createDefaultSaveData } from '../../shared/save-data';
 import ChooseYourPathScreen from './ChooseYourPathScreen';
 
 const viewportSnapshot = { width: 390, height: 844 };

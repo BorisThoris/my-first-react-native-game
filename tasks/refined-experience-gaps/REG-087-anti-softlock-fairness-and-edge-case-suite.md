@@ -1,7 +1,7 @@
 # REG-087: Anti-softlock fairness and edge case suite
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

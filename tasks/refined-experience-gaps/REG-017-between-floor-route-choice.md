@@ -1,7 +1,7 @@
 # REG-017: Between-Floor Route Choice
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

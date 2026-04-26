@@ -1,7 +1,7 @@
 # REG-095: Codex final knowledge base
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

@@ -1,7 +1,7 @@
 # REG-077: Chapter act floor and biome structure
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

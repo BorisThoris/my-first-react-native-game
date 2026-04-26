@@ -1,7 +1,7 @@
 # REG-081: Challenge mode progression and unlock gates
 
 ## Status
-Open
+Done
 
 ## Priority
 P2

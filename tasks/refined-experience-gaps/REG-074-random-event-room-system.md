@@ -1,7 +1,7 @@
 # REG-074: Random event room system
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

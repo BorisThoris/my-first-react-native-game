@@ -1,7 +1,7 @@
 # REG-023: Daily Weekly Results Loop
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

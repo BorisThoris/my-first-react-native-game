@@ -1,7 +1,7 @@
 # REG-101: Copy tone rules language and microcopy pass
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

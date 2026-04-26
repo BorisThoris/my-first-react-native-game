@@ -1,7 +1,7 @@
 # REG-065: Long Content Tail Level Pack And Puzzle Curation
 
 ## Status
-Open
+Done
 
 ## Priority
 P2

@@ -1,7 +1,7 @@
 # REG-100: Empty loading error and locked states
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

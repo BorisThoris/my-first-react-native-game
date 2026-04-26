@@ -1,7 +1,7 @@
 # REG-075: Treasure chest secret room and bonus rewards
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

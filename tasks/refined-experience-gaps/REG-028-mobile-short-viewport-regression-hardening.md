@@ -1,7 +1,7 @@
 # REG-028: Mobile Short Viewport Regression Hardening
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

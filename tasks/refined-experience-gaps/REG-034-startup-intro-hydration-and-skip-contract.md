@@ -1,7 +1,7 @@
 # REG-034: Startup Intro Hydration And Skip Contract
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

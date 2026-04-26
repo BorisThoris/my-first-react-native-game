@@ -1,7 +1,7 @@
 # REG-073: Rest shrine heal and risk services
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

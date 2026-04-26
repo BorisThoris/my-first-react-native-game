@@ -19,13 +19,16 @@ export const getPlatformPolishPolicy = ({
     hasDeviceOrientationRequest: boolean;
     reduceMotion: boolean;
     touchPrimary: boolean;
-}): PlatformPolishPolicy => ({
+}): PlatformPolishPolicy => {
+    void reduceMotion;
+    return {
     motionCapability: touchPrimary && hasDeviceOrientationRequest ? 'touch_motion' : touchPrimary ? 'unsupported' : 'desktop_pointer',
     hapticsCapability: 'no_op_v1',
     permissionGate: 'user_initiated_only',
     reducedMotionBehavior: 'suppress_motion_and_hide_permission_cta',
     essentialFeedbackPolicy: 'visual_audio_first_haptics_optional'
-});
+    };
+};
 
 export const getPlatformMotionCapabilityRows = (): Array<{
     id: 'desktop_pointer' | 'touch_motion' | 'haptics';

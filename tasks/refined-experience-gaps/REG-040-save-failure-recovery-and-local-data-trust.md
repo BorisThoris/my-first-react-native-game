@@ -1,7 +1,7 @@
 # REG-040: Save Failure Recovery And Local Data Trust
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

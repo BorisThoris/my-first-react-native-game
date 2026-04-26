@@ -1,7 +1,7 @@
 # REG-071: Shop item catalog consumables and services
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

@@ -1,7 +1,7 @@
 # REG-046: Forgiveness Difficulty Profiles And Fairness Tuning
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

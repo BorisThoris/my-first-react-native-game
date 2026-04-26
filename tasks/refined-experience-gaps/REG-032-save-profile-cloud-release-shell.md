@@ -1,7 +1,7 @@
 # REG-032: Save Profile Cloud Release Shell
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

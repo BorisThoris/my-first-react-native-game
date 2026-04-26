@@ -1,7 +1,7 @@
 # REG-007: Mobile Game Over Above Fold
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

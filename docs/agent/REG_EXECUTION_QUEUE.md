@@ -5,6 +5,9 @@ selection_rule: lowest_phase_then_gate_then_priority_then_id
 scope: offline_local_steam_mobile_v1
 online_policy: implement_offline_portion_defer_server_required_remainder
 
+current_state: queue_drained_2026_04_26
+execution_truth: Use `docs/agent/REG_STATE_INDEX.json` (generated from `reg-state-index.mjs`) and `docs/agent/REG_ACCEPTANCE_CONTRACTS.md` for live per-REG status, commits, and deferrals. The `next_unblocked` list below is kept as a historical handoff map, not a live work queue.
+
 gates:
   before_unbounded_REG_069_plus: [REG-068, REG-087, REG-088, REG-089]
   closeout_only: [REG-119]

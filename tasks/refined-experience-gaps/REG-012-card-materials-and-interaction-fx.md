@@ -1,7 +1,7 @@
 # REG-012: Card Materials And Interaction FX
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

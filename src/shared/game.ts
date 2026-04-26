@@ -63,7 +63,6 @@ import {
 import { DAILY_MUTATOR_TABLE, hasMutator } from './mutators';
 import {
     applyRelicOfferService,
-    createRelicOfferServices,
     getRelicOfferServiceActions,
     getRelicDraftOptionReasons,
     needsRelicPick,
@@ -92,7 +91,6 @@ const COMBO_SHARDS_PER_LIFE = 3;
 export const DECOY_PAIR_KEY = '__decoy__';
 export const WILD_PAIR_KEY = '__wild__';
 const PICKUP_BASELINE_RULES_VERSION = 8;
-const FLOOR_CLEAR_GOLD_PER_LEVEL = 1;
 
 /** When the board includes a wild joker, returns its tile id (for `RunState.wildTileId`); otherwise null. */
 export const getWildTileIdFromBoard = (board: BoardState): string | null =>

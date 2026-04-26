@@ -1,7 +1,7 @@
 # REG-076: Boss and elite encounter identity
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

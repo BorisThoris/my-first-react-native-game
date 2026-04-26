@@ -1,7 +1,7 @@
 # REG-015: Shop And Run Currency System
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

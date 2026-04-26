@@ -1,7 +1,7 @@
 # REG-094: Inventory final loadout and run prep screen
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

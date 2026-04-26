@@ -1,7 +1,7 @@
 # REG-091: Main menu final hub layout
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

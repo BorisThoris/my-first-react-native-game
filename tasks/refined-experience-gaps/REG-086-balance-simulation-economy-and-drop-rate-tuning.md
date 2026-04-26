@@ -1,7 +1,7 @@
 # REG-086: Balance simulation economy and drop rate tuning
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

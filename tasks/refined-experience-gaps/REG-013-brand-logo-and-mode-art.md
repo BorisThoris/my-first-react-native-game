@@ -1,7 +1,7 @@
 # REG-013: Brand Logo And Mode Art
 
 ## Status
-Open
+Done
 
 ## Priority
 P2

@@ -1,7 +1,7 @@
 # REG-024: Economy Unification
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

@@ -1,7 +1,7 @@
 # REG-093: Collection final reward gallery
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

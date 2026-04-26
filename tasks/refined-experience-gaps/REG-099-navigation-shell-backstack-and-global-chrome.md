@@ -1,7 +1,7 @@
 # REG-099: Navigation shell backstack and global chrome
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

@@ -1,7 +1,7 @@
 # REG-070: Shop vendor stock pricing and rerolls
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

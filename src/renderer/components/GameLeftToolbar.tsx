@@ -66,12 +66,6 @@ interface GameLeftToolbarProps {
     triggerDebugReveal: () => void;
 }
 
-const iconLabel = (label: string) => (
-    <span aria-hidden="true" className={styles.toolbarFlyoutLabel}>
-        {label}
-    </span>
-);
-
 const GameLeftToolbar = memo(function GameLeftToolbar({
     cameraViewportMode,
     run,

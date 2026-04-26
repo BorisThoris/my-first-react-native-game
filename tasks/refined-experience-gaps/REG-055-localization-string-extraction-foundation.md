@@ -1,7 +1,7 @@
 # REG-055: Localization String Extraction Foundation
 
 ## Status
-Open
+Done
 
 ## Priority
 P2

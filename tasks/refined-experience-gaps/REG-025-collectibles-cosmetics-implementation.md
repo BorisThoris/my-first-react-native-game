@@ -1,7 +1,7 @@
 # REG-025: Collectibles Cosmetics Implementation
 
 ## Status
-Open
+Done
 
 ## Priority
 P2

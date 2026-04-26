@@ -1,7 +1,7 @@
 # REG-038: Music Loop And Adaptive Audio Depth
 
 ## Status
-Open
+Done
 
 ## Priority
 P2

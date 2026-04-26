@@ -1,7 +1,7 @@
 # REG-102: Responsive layout final device grid
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

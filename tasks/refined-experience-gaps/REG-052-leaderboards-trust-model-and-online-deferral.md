@@ -1,7 +1,7 @@
 # REG-052: Leaderboards Trust Model And Online Deferral
 
 ## Status
-Open
+Deferred
 
 ## Priority
 P2

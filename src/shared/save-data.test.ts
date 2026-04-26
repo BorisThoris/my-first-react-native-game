@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GAME_RULES_VERSION, SAVE_SCHEMA_VERSION } from './contracts';
-import { createAchievementState, createDefaultSaveData, DEFAULT_SETTINGS, mergeDailyComplete, normalizeSaveData } from './save-data';
+import { createAchievementState, DEFAULT_SETTINGS, mergeDailyComplete, normalizeSaveData } from './save-data';
 import type { SaveData } from './contracts';
 import {
     CURRENT_VERSION_GATE,

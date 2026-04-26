@@ -1,7 +1,7 @@
 # REG-022: Puzzle Library And Authoring Flow
 
 ## Status
-Open
+Done
 
 ## Priority
 P2

@@ -1,7 +1,7 @@
 # REG-048: Secondary Objectives Bonus Clarity
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

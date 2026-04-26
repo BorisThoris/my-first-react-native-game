@@ -1,7 +1,7 @@
 # REG-050: Wild Gauntlet Meditation Mode Identity
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

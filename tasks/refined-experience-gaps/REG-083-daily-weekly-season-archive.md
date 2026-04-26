@@ -1,7 +1,7 @@
 # REG-083: Daily weekly season archive
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

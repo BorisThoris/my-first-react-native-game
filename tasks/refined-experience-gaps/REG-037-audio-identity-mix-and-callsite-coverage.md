@@ -1,7 +1,7 @@
 # REG-037: Audio Identity Mix And Callsite Coverage
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

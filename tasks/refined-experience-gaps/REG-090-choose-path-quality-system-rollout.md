@@ -1,7 +1,7 @@
 # REG-090: Choose path quality system rollout
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

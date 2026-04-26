@@ -1,7 +1,7 @@
 # REG-036: Reference Settings Controls Model Plan
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

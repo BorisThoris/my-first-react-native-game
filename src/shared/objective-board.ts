@@ -77,7 +77,6 @@ export const buildObjectiveBoardRows = (save: SaveData): ObjectiveBoardRow[] => 
 
 export const getObjectiveBoardItems = (save: SaveData): ObjectiveBoardItem[] => {
     const ps = save.playerStats;
-    const relicPicks = relicPickTotal(save);
     const firstClear = save.achievements.ACH_FIRST_CLEAR;
     const dailies = ps?.dailiesCompleted ?? 0;
     const bestNoPowers = ps?.bestFloorNoPowers ?? 0;

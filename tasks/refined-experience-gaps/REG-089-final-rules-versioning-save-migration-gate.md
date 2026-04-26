@@ -1,7 +1,7 @@
 # REG-089: Final rules versioning and save migration gate
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

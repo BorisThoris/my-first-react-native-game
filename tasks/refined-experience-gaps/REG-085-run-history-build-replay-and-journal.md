@@ -1,7 +1,7 @@
 # REG-085: Run history build replay and journal
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

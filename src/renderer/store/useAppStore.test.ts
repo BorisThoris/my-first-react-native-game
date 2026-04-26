@@ -2,12 +2,6 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { buildBoard, countFindablePairs } from '../../shared/game';
 import { createDefaultSaveData } from '../../shared/save-data';
 import { BOARD_FLOATER_POP_CLEAR } from './matchScorePop';
-import {
-    getNavigationRouteContract,
-    isRunStatusResumableAfterMetaOverlay,
-    resolveSettingsCloseTarget,
-    resolveSubscreenCloseTarget
-} from './navigationModel';
 import { useAppStore } from './useAppStore';
 
 const gameSfxMocks = vi.hoisted(() => ({

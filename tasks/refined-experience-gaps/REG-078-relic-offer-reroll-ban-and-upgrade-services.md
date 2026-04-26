@@ -1,7 +1,7 @@
 # REG-078: Relic offer reroll ban and upgrade services
 
 ## Status
-Open
+Done
 
 ## Priority
 P1
