@@ -245,6 +245,14 @@
     color: var(--theme-rune);
 }
 
+.metaSubValue {
+    display: block;
+    margin-top: 0.1rem;
+    color: var(--theme-text-muted);
+    font-size: 0.62rem;
+    line-height: 1.2;
+}
+
 .layout {
     position: relative;
     z-index: 1;

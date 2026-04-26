@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GAME_RULES_VERSION, SAVE_SCHEMA_VERSION } from './contracts';
-import { createAchievementState, DEFAULT_SETTINGS, normalizeSaveData } from './save-data';
+import { createAchievementState, createDefaultSaveData, DEFAULT_SETTINGS, mergeDailyComplete, normalizeSaveData } from './save-data';
 import type { SaveData } from './contracts';
 import {
     CURRENT_VERSION_GATE,
@@ -117,6 +117,19 @@ describe('save normalization', () => {
             }
         });
         expect(fromCount.playerStats?.relicShrineExtraPickUnlocked).toBe(true);
+    });
+
+    it('REG-053 tracks UTC daily streaks without freeze currency or pressure fields', () => {
+        const first = mergeDailyComplete(normalizeSaveData({}), '20260425');
+        expect(first.playerStats?.dailyStreakCosmetic).toBe(1);
+        expect(first.playerStats?.lastDailyDateKeyUtc).toBe('20260425');
+
+        const second = mergeDailyComplete(first, '20260426');
+        expect(second.playerStats?.dailyStreakCosmetic).toBe(2);
+
+        const missedDay = mergeDailyComplete(second, '20260428');
+        expect(missedDay.playerStats?.dailyStreakCosmetic).toBe(1);
+        expect(Object.keys(missedDay.playerStats ?? {})).not.toContain('streakFreezeCount');
     });
 
     it('table-driven legacy / partial fixtures normalize without undefined leaks (REF-065)', () => {

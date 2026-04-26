@@ -3,6 +3,7 @@ import { createDefaultSaveData } from './save-data';
 import {
     buildDailyArchiveShareString,
     buildDailyResultsLoopRows,
+    getDailyStreakEthicsRow,
     getDailyArchiveRows,
     getDailyArchiveSummary,
     seasonKeyForDaily,
@@ -105,5 +106,22 @@ describe('REG-083 daily weekly season archive', () => {
         expect(rows[0]?.shareString).toContain('Daily 20260425');
         expect(rows[1]?.shareString).toContain(`Weekly ${weekKeyForDaily('20260425')}`);
         expect(rows[0]?.repeatAttemptRule).toMatch(/local history/i);
+    });
+
+    it('REG-053 explains friendly UTC streak and no-freeze ethics', () => {
+        const save = createDefaultSaveData();
+        save.playerStats = {
+            ...save.playerStats!,
+            dailiesCompleted: 5,
+            dailyStreakCosmetic: 2,
+            lastDailyDateKeyUtc: '20260425'
+        };
+
+        const row = getDailyStreakEthicsRow(save, Date.UTC(2026, 3, 26, 1));
+        expect(row.currentStreak).toBe(2);
+        expect(row.freezePolicy).toBe('not_supported_v1');
+        expect(row.missedDayRule).toMatch(/optional|reset/i);
+        expect(row.rewardCopy).toMatch(/cosmetic/i);
+        expect(row.utcResetKey).toBe('20260426');
     });
 });

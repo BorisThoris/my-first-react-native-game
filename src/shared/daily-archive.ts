@@ -1,4 +1,5 @@
 import type { SaveData } from './contracts';
+import { getDailyStreakEthicsState } from './save-data';
 
 export type DailyArchiveScope = 'daily' | 'weekly' | 'season';
 
@@ -37,6 +38,23 @@ export interface DailyResultsLoopRow {
     repeatAttemptRule: string;
     localOnly: true;
     onlineLeaderboardDeferred: true;
+}
+
+export interface DailyStreakEthicsRow {
+    id: 'current_streak' | 'next_reset' | 'missed_day' | 'reward_limit';
+    label: string;
+    value: string;
+    description: string;
+    ethicalTone: 'low_pressure';
+    localOnly: true;
+}
+
+export interface DailyStreakEthicsSummary {
+    currentStreak: number;
+    freezePolicy: 'not_supported_v1';
+    missedDayRule: string;
+    rewardCopy: string;
+    utcResetKey: string;
 }
 
 const parseDateKeyUtc = (dateKey: string | null | undefined): Date | null => {
@@ -202,3 +220,57 @@ export const buildDailyResultsLoopRows = (save: SaveData, nowMs: number = Date.n
 };
 
 export const getDailyResultsLoopRows = buildDailyResultsLoopRows;
+
+export const getDailyStreakEthicsRows = (save: SaveData, nowMs: number = Date.now()): DailyStreakEthicsRow[] => {
+    const summary = getDailyStreakEthicsRow(save, nowMs);
+    const archive = getDailyArchiveSummary(save, nowMs);
+    return [
+        {
+            id: 'current_streak',
+            label: 'Current streak',
+            value: String(summary.currentStreak),
+            description: 'Cosmetic UTC-day streak from local Daily Challenge clears.',
+            ethicalTone: 'low_pressure',
+            localOnly: true
+        },
+        {
+            id: 'next_reset',
+            label: 'Next reset',
+            value: archive.rows[0]?.key ?? 'today',
+            description: 'Daily identity uses UTC midnight, not local timezone pressure.',
+            ethicalTone: 'low_pressure',
+            localOnly: true
+        },
+        {
+            id: 'missed_day',
+            label: 'Missed-day rule',
+            value: summary.missedDayRule,
+            description: 'Missed days reset the cosmetic streak; no penalty blocks Classic or core progression.',
+            ethicalTone: 'low_pressure',
+            localOnly: true
+        },
+        {
+            id: 'reward_limit',
+            label: 'Reward limit',
+            value: summary.rewardCopy,
+            description: 'Rewards are profile/honor motivation and never required for run fairness.',
+            ethicalTone: 'low_pressure',
+            localOnly: true
+        }
+    ];
+};
+
+export const getDailyStreakEthicsRow = (save: SaveData, nowMs: number = Date.now()): DailyStreakEthicsSummary => {
+    const todayKey = dailyArchiveDateKeyForTimestamp(nowMs);
+    const state = getDailyStreakEthicsState(save, todayKey);
+    return {
+        currentStreak: state.currentStreak,
+        freezePolicy: 'not_supported_v1',
+        missedDayRule:
+            state.missedDayBehavior === 'reset_to_one_on_next_completion'
+                ? 'Missed days reset the cosmetic streak only; no core fairness is lost.'
+                : 'Optional UTC streak; no pressure or penalty.',
+        rewardCopy: 'Rewards are cosmetic/profile motivation only, never required for core run fairness.',
+        utcResetKey: state.nextResetUtcKey
+    };
+};

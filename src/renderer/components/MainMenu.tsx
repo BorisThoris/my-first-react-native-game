@@ -5,6 +5,7 @@ import { RELIC_CATALOG } from '../../shared/game-catalog';
 import { getObjectiveBoardItems } from '../../shared/objective-board';
 import { getProfileSummaryRows } from '../../shared/profile-summary';
 import { getQuestCampaignRows } from '../../shared/quest-campaign';
+import { getDailyStreakEthicsRow } from '../../shared/daily-archive';
 import { formatNextUtcReset } from '../../shared/utc-countdown';
 import { useEffect, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
@@ -113,6 +114,7 @@ const MainMenu = ({
         ? `${lastRunSummary.totalScore.toLocaleString()} score / Floor ${lastRunSummary.highestLevel} / ${lastRunSummary.bestStreak} streak`
         : 'No descent recorded yet.';
     const dailyCountdown = formatNextUtcReset(nowMs);
+    const dailyStreakEthics = getDailyStreakEthicsRow(saveData, nowMs);
     const objectiveBoard = getObjectiveBoardItems(saveData);
     const questRows = getQuestCampaignRows(saveData);
     const profileSummary = getProfileSummaryRows(saveData);
@@ -309,6 +311,7 @@ const MainMenu = ({
                                     <strong className={styles.metaValue}>
                                         {saveData.playerStats?.dailyStreakCosmetic ?? 0}
                                     </strong>
+                                    <span className={styles.metaSubValue}>{dailyStreakEthics.missedDayRule}</span>
                                 </div>
                             </MetaFrame>
                             <MetaFrame className={styles.metaPlaqueFrame}>
@@ -461,6 +464,7 @@ const MainMenu = ({
                                             </div>
                                             <p className={styles.panelBodyCopy}>
                                                 UTC seed rotation. Mutators, relic pacing, and floor pressure shift with each day.
+                                                {` ${dailyStreakEthics.rewardCopy}`}
                                             </p>
                                         </Panel>
 

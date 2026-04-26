@@ -16,6 +16,18 @@ import {
 import { utcDateKeyMinusOneDay } from './rng';
 import { evaluateSaveMigrationGate } from './version-gate';
 
+export type DailyStreakFreezePolicy = 'not_supported';
+
+export interface DailyStreakEthicsState {
+    currentStreak: number;
+    nextResetUtcKey: string;
+    missedDayBehavior: 'reset_to_one_on_next_completion' | 'no_clear_recorded_yet';
+    freezePolicy: DailyStreakFreezePolicy;
+    rewardLimit: 'cosmetic_and_meta_only';
+    tone: 'friendly_no_shame';
+    copy: string;
+}
+
 export const DEFAULT_SETTINGS: Settings = {
     masterVolume: 0.8,
     musicVolume: 0.55,
@@ -205,6 +217,30 @@ export const mergeDailyComplete = (save: SaveData, completedDateKeyUtc: string):
             relicShrineExtraPickUnlocked: newDailies >= 7 || ps.relicShrineExtraPickUnlocked === true
         }
     });
+};
+
+export const getDailyStreakEthicsState = (save: SaveData, todayDateKeyUtc: string): DailyStreakEthicsState => {
+    const ps = save.playerStats ?? defaultPlayerStats();
+    const alreadyCompletedToday = ps.lastDailyDateKeyUtc === todayDateKeyUtc;
+    const continuedFromYesterday = ps.lastDailyDateKeyUtc === utcDateKeyMinusOneDay(todayDateKeyUtc);
+    const noClearYet = ps.lastDailyDateKeyUtc == null || ps.dailiesCompleted <= 0;
+    const missedDayBehavior: DailyStreakEthicsState['missedDayBehavior'] =
+        noClearYet || alreadyCompletedToday || continuedFromYesterday
+            ? 'no_clear_recorded_yet'
+            : 'reset_to_one_on_next_completion';
+
+    return {
+        currentStreak: ps.dailyStreakCosmetic,
+        nextResetUtcKey: todayDateKeyUtc,
+        missedDayBehavior,
+        freezePolicy: 'not_supported',
+        rewardLimit: 'cosmetic_and_meta_only',
+        tone: 'friendly_no_shame',
+        copy:
+            missedDayBehavior === 'reset_to_one_on_next_completion'
+                ? 'Missed days simply reset the cosmetic streak on the next clear. No core run fairness is lost.'
+                : 'Daily streaks are optional local motivation. Clear today before UTC reset if you want to extend it.'
+    };
 };
 
 export const mergeBestFloorNoPowers = (save: SaveData, floor: number): SaveData => {
