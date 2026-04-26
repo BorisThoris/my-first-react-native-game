@@ -8,6 +8,7 @@ import {
     degreeTiltToProcessed,
     degreesToNormalizedTilt,
     deviceOrientationToDegreeTilt,
+    hapticFeedbackIsNonEssential,
     remapTiltForScreenAngle,
     subtractBaselineDegrees,
     zeroTilt
@@ -99,5 +100,13 @@ describe('applyDeadzoneTilt', () => {
 
         expect(o.y).toBe(0);
         expect(o.x).toBeGreaterThan(0.9);
+    });
+});
+
+describe('REG-067 haptic policy', () => {
+    it('keeps haptics optional and non-essential', () => {
+        expect(hapticFeedbackIsNonEssential({ hapticsAvailable: true, reduceMotion: false })).toBe(true);
+        expect(hapticFeedbackIsNonEssential({ hapticsAvailable: false, reduceMotion: false })).toBe(true);
+        expect(hapticFeedbackIsNonEssential({ hapticsAvailable: true, reduceMotion: true })).toBe(true);
     });
 });

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { getMotionPermissionButtonLabels, shouldOfferDeviceMotionPermission } from './platformTiltPermissionUi';
+import {
+    getMotionPermissionButtonLabels,
+    getPlatformMotionCapabilityRows,
+    motionHapticsCarryEssentialFeedback,
+    shouldOfferDeviceMotionPermission
+} from './platformTiltPermissionUi';
 
 describe('shouldOfferDeviceMotionPermission', () => {
     it('is false when touch is not primary', () => {
@@ -67,5 +72,15 @@ describe('getMotionPermissionButtonLabels', () => {
         const board = getMotionPermissionButtonLabels('denied', 'board');
         expect(board.buttonText).toBe('Try again');
         expect(board.ariaLabel).toMatch(/again/i);
+    });
+});
+
+describe('REG-067 platform motion/haptics policy', () => {
+    it('documents optional platform support and no essential haptics', () => {
+        const rows = getPlatformMotionCapabilityRows();
+        expect(rows.find((row) => row.id === 'touch_motion')?.permissionModel).toBe('user_initiated');
+        expect(rows.find((row) => row.id === 'haptics')?.supported).toBe(false);
+        expect(rows.every((row) => row.reducedMotionBehavior.length > 0)).toBe(true);
+        expect(motionHapticsCarryEssentialFeedback()).toBe(false);
     });
 });

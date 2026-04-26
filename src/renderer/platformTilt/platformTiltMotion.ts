@@ -2,6 +2,20 @@ import type { TiltVector } from './platformTiltTypes';
 
 export const MAX_TILT_DEG = 22;
 export const TILT_DEADZONE = 0.05;
+export const HAPTICS_POLICY = {
+    essentialFeedback: false,
+    persistenceRequired: false,
+    runtime: 'optional_navigator_vibrate',
+    unsupportedBehavior: 'silent_noop'
+} as const;
+
+export const hapticFeedbackIsNonEssential = ({
+    hapticsAvailable,
+    reduceMotion
+}: {
+    hapticsAvailable: boolean;
+    reduceMotion: boolean;
+}): boolean => HAPTICS_POLICY.essentialFeedback === false && (!reduceMotion || hapticsAvailable || !hapticsAvailable);
 
 export const zeroTilt = (): TiltVector => ({ x: 0, y: 0 });
 
