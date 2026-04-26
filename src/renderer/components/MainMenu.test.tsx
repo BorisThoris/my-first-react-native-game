@@ -61,4 +61,27 @@ describe('MainMenu REG-009 mobile landscape density', () => {
         expect(screen.getByTestId('main-menu-hub-quality-strip')).toHaveTextContent(/Trust/i);
         expect(screen.getByTestId('main-menu-profile-strip')).toHaveTextContent(/Single-device save/i);
     });
+
+    it('REG-098 surfaces skippable first-run help center beats', () => {
+        render(
+            <MainMenu
+                bestScore={0}
+                lastRunSummary={null}
+                onDismissHowToPlay={async () => undefined}
+                onOpenCodex={vi.fn()}
+                onOpenCollection={vi.fn()}
+                onOpenInventory={vi.fn()}
+                onOpenSettings={vi.fn()}
+                onPlay={vi.fn()}
+                reduceMotion
+                saveData={createDefaultSaveData()}
+                showHowToPlay
+                steamConnected={false}
+            />
+        );
+
+        const help = screen.getByTestId('main-menu-help-center');
+        expect(help).toHaveTextContent(/Flip and match/);
+        expect(screen.getByText(/Skippable\/replayable help center/i)).toBeInTheDocument();
+    });
 });

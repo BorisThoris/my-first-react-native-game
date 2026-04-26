@@ -177,9 +177,8 @@ describe('desktop app flow', () => {
         expect(
             await screen.findByRole('heading', { name: /read, match, and protect the streak/i })
         ).toBeInTheDocument();
-        expect(
-            screen.getByText(/every 2-pair chain earns a shard\. three shards restore one life\./i)
-        ).toBeInTheDocument();
+        expect(screen.getByText(/score and recover/i)).toBeInTheDocument();
+        expect(screen.getByText(/Codex is the deeper reference/i)).toBeInTheDocument();
 
         await user.click(screen.getByRole('button', { name: /dismiss/i }));
 

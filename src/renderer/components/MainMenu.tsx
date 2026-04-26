@@ -2,6 +2,7 @@ import type { RelicId, RunSummary, SaveData } from '../../shared/contracts';
 import { getEquippedCosmeticId } from '../../shared/cosmetics';
 import { countEligibleHonors, totalHonorUnlocks } from '../../shared/honorUnlocks';
 import { RELIC_CATALOG } from '../../shared/game-catalog';
+import { getFirstRunHelpCenterRows } from '../../shared/first-run-help-center';
 import { getMainMenuHubQualityRows } from '../../shared/main-menu-hub-quality';
 import { getObjectiveBoardItems } from '../../shared/objective-board';
 import { getProfileSummaryRows } from '../../shared/profile-summary';
@@ -117,6 +118,7 @@ const MainMenu = ({
     const dailyCountdown = formatNextUtcReset(nowMs);
     const dailyStreakEthics = getDailyStreakEthicsRow(saveData, nowMs);
     const objectiveBoard = getObjectiveBoardItems(saveData);
+    const helpCenterRows = getFirstRunHelpCenterRows(saveData);
     const questRows = getQuestCampaignRows(saveData);
     const profileSummary = getProfileSummaryRows(saveData);
     const hubQualityRows = getMainMenuHubQualityRows(saveData, lastRunSummary);
@@ -250,10 +252,13 @@ const MainMenu = ({
             <ScreenTitle as="h2" className={styles.supportHeading} role="screen">
                 Read, match, and protect the streak
             </ScreenTitle>
-            <div className={styles.howToGrid}>
-                <p>The board opens face-up for a short memorize window before the tiles hide again.</p>
-                <p>Every clean pair grows score and streak. Wrong pairs cut the chain instead of wiping it.</p>
-                <p>Every 2-pair chain earns a shard. Three shards restore one life.</p>
+            <p className={styles.emptyState}>Skippable/replayable help center · guided prompts continue inside the first run.</p>
+            <div className={styles.howToGrid} data-testid="main-menu-help-center">
+                {helpCenterRows.map((row) => (
+                    <p key={row.id}>
+                        <strong>{row.title}:</strong> {row.body}
+                    </p>
+                ))}
             </div>
             <UiButton
                 fullWidth

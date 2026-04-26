@@ -87,6 +87,7 @@ schema: reg | phase | status | contract | proof
 | REG-095 | 4 | done | Codex has a final knowledge-base summary for guide depth, table depth, local deep links, and filter recovery derived from mechanics encyclopedia sources without changing run state. | codex-knowledge-base + Codex tests |
 | REG-096 | 4 | done | Game Over surfaces a next-run loop with run-it-back, build recap, local share, and next-goal rows derived from local summary/run data, keeping Play Again/Main Menu above fold and no online ranking. | game-over-next-run + GameOver tests |
 | REG-097 | 4 | done | Overlay decision sheets expose policy for alert/decision/sheet kinds with sticky one-hand action rails, keyboard/focus contracts, existing chrome, and no final licensed asset requirement. | overlay-decision-policy + OverlayModal tests |
+| REG-098 | 4 | done | Main Menu help center replaces wall-of-text onboarding with skippable/replayable guided beats, points deeper help to Codex/Collection, and preserves gameplay first-run prompts from REG-026. | first-run-help-center + MainMenu/App tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.
