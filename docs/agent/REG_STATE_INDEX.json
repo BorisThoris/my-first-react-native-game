@@ -1,12 +1,12 @@
 {
   "REG-000": {
-    "status": "open",
+    "status": "done",
     "phase": 1,
     "lane": "default",
     "dependencies": [
       "REG-033"
     ],
-    "commit": null,
+    "commit": "7cc4c72",
     "updated": "2026-04-25"
   },
   "REG-001": {
@@ -823,7 +823,7 @@
     "updated": "2026-04-25"
   },
   "REG-060": {
-    "status": "open",
+    "status": "blocked",
     "phase": 7,
     "lane": "default",
     "dependencies": [
@@ -835,7 +835,7 @@
     "updated": "2026-04-25"
   },
   "REG-061": {
-    "status": "open",
+    "status": "deferred",
     "phase": 7,
     "lane": "default",
     "dependencies": [
@@ -1620,7 +1620,7 @@
     "updated": "2026-04-25"
   },
   "REG-115": {
-    "status": "open",
+    "status": "done",
     "phase": 7,
     "lane": "default",
     "dependencies": [
@@ -1628,11 +1628,11 @@
       "REG-117",
       "REG-118"
     ],
-    "commit": null,
+    "commit": "7894844",
     "updated": "2026-04-25"
   },
   "REG-116": {
-    "status": "open",
+    "status": "done",
     "phase": 7,
     "lane": "default",
     "dependencies": [
@@ -1640,11 +1640,11 @@
       "REG-117",
       "REG-118"
     ],
-    "commit": null,
+    "commit": "7894844",
     "updated": "2026-04-25"
   },
   "REG-117": {
-    "status": "open",
+    "status": "done",
     "phase": 7,
     "lane": "default",
     "dependencies": [
@@ -1652,11 +1652,11 @@
       "REG-117",
       "REG-118"
     ],
-    "commit": null,
+    "commit": "7894844",
     "updated": "2026-04-25"
   },
   "REG-118": {
-    "status": "open",
+    "status": "done",
     "phase": 7,
     "lane": "default",
     "dependencies": [
@@ -1664,11 +1664,11 @@
       "REG-117",
       "REG-118"
     ],
-    "commit": null,
+    "commit": "7894844",
     "updated": "2026-04-25"
   },
   "REG-119": {
-    "status": "open",
+    "status": "done",
     "phase": 7,
     "lane": "default",
     "dependencies": [
@@ -1676,11 +1676,11 @@
       "REG-117",
       "REG-118"
     ],
-    "commit": null,
+    "commit": "7894844",
     "updated": "2026-04-25"
   },
   "REG-120": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -1693,11 +1693,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-121": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -1710,11 +1710,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-122": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -1727,11 +1727,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-123": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -1744,11 +1744,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-124": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -1761,11 +1761,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-125": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -1778,11 +1778,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-126": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -1795,11 +1795,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-127": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -1812,11 +1812,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-128": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -1829,11 +1829,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-129": {
-    "status": "open",
+    "status": "done",
     "phase": 7,
     "lane": "default",
     "dependencies": [
@@ -1841,11 +1841,11 @@
       "REG-117",
       "REG-118"
     ],
-    "commit": null,
+    "commit": "7894844",
     "updated": "2026-04-25"
   },
   "REG-130": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -1858,11 +1858,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-131": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -1875,11 +1875,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-132": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -1892,11 +1892,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-133": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -1909,11 +1909,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-134": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -1926,11 +1926,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-135": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -1943,11 +1943,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-136": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -1960,11 +1960,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-137": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -1977,11 +1977,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-138": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -1994,11 +1994,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-139": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -2011,11 +2011,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-140": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -2028,11 +2028,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-141": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -2045,11 +2045,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-142": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -2062,11 +2062,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-143": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -2079,11 +2079,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-144": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -2096,11 +2096,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-145": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -2113,11 +2113,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-146": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -2130,11 +2130,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-147": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -2147,11 +2147,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-148": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -2164,11 +2164,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-149": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -2181,11 +2181,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-150": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -2198,11 +2198,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-151": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -2215,11 +2215,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-152": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -2232,11 +2232,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-153": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -2249,11 +2249,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-154": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -2266,11 +2266,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-155": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -2283,11 +2283,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-156": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -2300,11 +2300,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-157": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -2317,11 +2317,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-158": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -2334,11 +2334,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-159": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -2351,11 +2351,11 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   },
   "REG-160": {
-    "status": "open",
+    "status": "done",
     "phase": 6,
     "lane": "default",
     "dependencies": [
@@ -2368,7 +2368,7 @@
       "REG-111",
       "REG-112"
     ],
-    "commit": null,
+    "commit": "51fdb2c",
     "updated": "2026-04-25"
   }
 }

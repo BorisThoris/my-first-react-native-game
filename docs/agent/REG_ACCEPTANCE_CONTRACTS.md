@@ -4,6 +4,7 @@ schema: reg | phase | status | contract | proof
 
 | reg | phase | status | contract | proof |
 |---|---:|---|---|---|
+| REG-000 | 1 | done | Audit index closure: `reg-state-index.mjs` and this table list Phase 1–7 status through ship plus blocked/deferred where environment requires it. | `reg-state-index.mjs` + `REG_ACCEPTANCE_CONTRACTS` |
 | REG-033 | 1 | done | Agent queue, state index, test routing, and deferral ledger exist; first unblocked gates are explicit. | docs parse + git status |
 | REG-068 | 1 | done | v1 scope is offline/local + Steam-supported + first-class mobile; online leaderboards/accounts/server realtime are non-blocking. | copy audit + local best-score wording |
 | REG-052 | 1 | deferred | Competitive online leaderboard/server authority remains out of v1; local history/export/share may proceed. | deferral ledger + copy audit |

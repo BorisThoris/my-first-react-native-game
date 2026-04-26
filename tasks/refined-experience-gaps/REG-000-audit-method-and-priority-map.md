@@ -1,7 +1,7 @@
 # REG-000: Audit Method And Priority Map
 
 ## Status
-Open
+Done
 
 ## Priority
 P0
