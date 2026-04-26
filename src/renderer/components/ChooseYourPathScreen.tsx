@@ -25,6 +25,7 @@ import {
     RUN_MODE_GROUP_LABEL,
     type RunModeDefinition
 } from '../../shared/run-mode-catalog';
+import { buildRunModeDiscoveryState } from '../../shared/run-mode-discovery';
 import { resolveModePosterUrl } from '../assets/ui/modeArt';
 import { UI_ART } from '../assets/ui';
 import { Eyebrow, MetaFrame, ScreenTitle, UiButton } from '../ui';
@@ -190,7 +191,6 @@ const ChooseYourPathScreen = () => {
             (m) => m.title.toLowerCase().includes(q) || m.shortDescription.toLowerCase().includes(q)
         );
     }, [libraryQuery]);
-
     const libraryPages = useMemo(() => {
         if (filteredLibraryModes.length === 0 || cardsPerPage < 1) {
             return [];
@@ -204,6 +204,14 @@ const ChooseYourPathScreen = () => {
 
     const libraryPageCount = libraryPages.length;
     const hasLibrarySearchQuery = libraryQuery.trim().length > 0;
+    const discoveryState = buildRunModeDiscoveryState({
+        availableModeCount: [...heroModes, ...filteredLibraryModes].filter((mode) => mode.availability === 'available').length,
+        filteredCount: filteredLibraryModes.length,
+        pageCount: libraryPageCount,
+        pageIndex: libraryPageIndex,
+        query: libraryQuery
+    });
+    const selectedMode = libraryDetailMode ?? heroModes.find((mode) => mode.availability === 'available') ?? null;
 
     useLayoutEffect(() => {
         const el = libraryScrollerRef.current;
@@ -341,6 +349,7 @@ const ChooseYourPathScreen = () => {
         const poster = resolveModePosterUrl(def.posterKey);
         const variant = cardVariantClass(def);
         const isLocked = def.availability === 'locked';
+        const isPrimarySelected = def.id === selectedMode?.id;
         const testId = def.testId;
 
         if (def.action.type === 'gauntlet') {
@@ -378,6 +387,7 @@ const ChooseYourPathScreen = () => {
         return (
             <button
                 className={`${styles.card} ${variant}`}
+                data-selected-mode={isPrimarySelected ? 'true' : undefined}
                 data-testid={testId}
                 disabled={isLocked}
                 type="button"
@@ -389,6 +399,7 @@ const ChooseYourPathScreen = () => {
                 <span className={styles.cardBodyWrap}>
                     {def.promise ? <span className={styles.modeIdentityPill}>{def.promise}</span> : null}
                     {def.availabilityDetail ? <span className={styles.modeIdentityPill}>{def.availabilityDetail}</span> : null}
+                    {isPrimarySelected ? <span className={styles.badge}>Selected start</span> : null}
                     {def.id === 'daily' ? <span className={styles.badge}>Featured</span> : null}
                     {isLocked ? <span className={`${styles.badge} ${styles.lockedBadge}`}>Locked</span> : null}
                     <span className={styles.cardTitle}>{def.title}</span>
@@ -435,10 +446,12 @@ const ChooseYourPathScreen = () => {
         const poster = resolveModePosterUrl(def.posterKey);
         const variant = cardVariantClass(def);
         const groupLabel = RUN_MODE_GROUP_LABEL[def.group];
+        const isSelected = def.id === selectedMode?.id;
         return (
             <button
                 aria-label={`${def.title}. Open details.`}
                 className={`${styles.card} ${styles.libraryTileCard} ${variant}`}
+                data-selected-mode={isSelected ? 'true' : undefined}
                 data-testid={def.testId}
                 type="button"
                 onClick={() => {
@@ -556,6 +569,21 @@ const ChooseYourPathScreen = () => {
                                         Featured paths first. Tap a mode in More modes for full details and Play. Drag or
                                         swipe the row to browse. Use the search icon to filter.
                                     </p>
+                                    <div className={styles.discoveryStrip} data-testid="choose-path-discovery-strip">
+                                        <span>{discoveryState.searchState}</span>
+                                        <span>{discoveryState.browseHint}</span>
+                                        <strong>Selected: {selectedMode?.title ?? 'None'}</strong>
+                                        {selectedMode?.availability === 'available' && selectedMode.action.type !== 'gauntlet' ? (
+                                            <UiButton
+                                                size="md"
+                                                type="button"
+                                                variant="primary"
+                                                onClick={() => runModeAction(selectedMode)}
+                                            >
+                                                Start selected
+                                            </UiButton>
+                                        ) : null}
+                                    </div>
                                 </div>
                             </header>
 

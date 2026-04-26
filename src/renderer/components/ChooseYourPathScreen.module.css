@@ -102,6 +102,32 @@
     gap: 0.3rem;
 }
 
+.discoveryPanel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--theme-space-sm);
+    align-items: center;
+    margin-top: var(--theme-space-xs);
+    padding: var(--theme-space-sm);
+    border-radius: var(--ui-radius-md);
+    border: 1px solid color-mix(in srgb, var(--theme-cyan) 24%, var(--theme-divider-hairline));
+    background: color-mix(in srgb, var(--theme-panel-solid) 78%, transparent);
+}
+
+.discoveryPanel strong,
+.discoveryPanel span {
+    display: block;
+}
+
+.discoveryPanel span {
+    color: var(--theme-text-muted);
+    font-size: var(--ui-font-caption);
+}
+
+.discoveryStartButton {
+    white-space: nowrap;
+}
+
 .pathStackHeader .pathBackButton {
     width: auto;
 }
