@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createDefaultSaveData } from './save-data';
 import {
     buildDailyArchiveShareString,
+    buildDailyResultsLoopRows,
     getDailyArchiveRows,
     getDailyArchiveSummary,
     seasonKeyForDaily,
@@ -70,5 +71,39 @@ describe('REG-083 daily weekly season archive', () => {
         expect(share).toContain('Daily 20260425');
         expect(share).toContain('local-only');
         expect(share).not.toMatch(/rank|leaderboard|account/i);
+    });
+
+    it('REG-023 builds local daily and weekly results loop rows', () => {
+        const save = createDefaultSaveData();
+        save.bestScore = 1200;
+        save.playerStats = {
+            ...save.playerStats!,
+            dailiesCompleted: 3,
+            dailyStreakCosmetic: 2,
+            lastDailyDateKeyUtc: '20260425'
+        };
+        save.lastRunSummary = {
+            totalScore: 950,
+            bestScore: 1200,
+            levelsCleared: 2,
+            highestLevel: 4,
+            achievementsEnabled: true,
+            unlockedAchievements: [],
+            bestStreak: 5,
+            perfectClears: 1,
+            gameMode: 'daily',
+            dailyDateKeyUtc: '20260425'
+        };
+
+        const rows = buildDailyResultsLoopRows(save);
+        expect(rows.map((row) => row.scope)).toEqual(['daily', 'weekly']);
+        expect(rows[0]).toMatchObject({
+            currentAttempt: '950 score · floor 4 · 2 clear(s)',
+            localOnly: true,
+            onlineLeaderboardDeferred: true
+        });
+        expect(rows[0]?.shareString).toContain('Daily 20260425');
+        expect(rows[1]?.shareString).toContain(`Weekly ${weekKeyForDaily('20260425')}`);
+        expect(rows[0]?.repeatAttemptRule).toMatch(/local history/i);
     });
 });

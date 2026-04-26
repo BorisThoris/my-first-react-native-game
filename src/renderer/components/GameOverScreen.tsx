@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { ACHIEVEMENTS } from '../../shared/achievements';
 import { MUTATOR_CATALOG, RELIC_CATALOG } from '../../shared/game-catalog';
 import type { MutatorId, RelicId, RunState } from '../../shared/contracts';
+import { buildDailyResultsLoopRows } from '../../shared/daily-archive';
 import { buildRunJournalEntry } from '../../shared/run-history';
 import { useShallow } from 'zustand/react/shallow';
 import { UI_ART } from '../assets/ui';
@@ -40,10 +41,11 @@ const runModeIdentityLine = (summary: NonNullable<RunState['lastRunSummary']>): 
 const GameOverScreen = ({ run }: GameOverScreenProps) => {
     const shellRef = useRef<HTMLElement | null>(null);
     const { height, width } = useViewportSize();
-    const { goToMenu, restartRun, settings } = useAppStore(
+    const { goToMenu, restartRun, saveData, settings } = useAppStore(
         useShallow((state) => ({
             goToMenu: state.goToMenu,
             restartRun: state.restartRun,
+            saveData: state.saveData,
             settings: state.settings
         }))
     );
@@ -54,6 +56,9 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
         strength: 1
     });
     const summary = run.lastRunSummary;
+    const dailyResultsRows = useMemo(() => buildDailyResultsLoopRows(saveData), [saveData]);
+    const dailyResultRow =
+        summary?.gameMode === 'daily' ? dailyResultsRows.find((row) => row.scope === 'daily') : null;
 
     const politeRunSummaryText = useMemo(
         () =>
@@ -258,6 +263,11 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
                                           : gameOverScreenCopy.runModeHeadings.classic}
                             </strong>
                             <p className={styles.panelCopy}>{runModeIdentityLine(summary)}</p>
+                            {dailyResultRow ? (
+                                <p className={styles.panelCopy}>
+                                    Share: {dailyResultRow.shareString} · {dailyResultRow.repeatAttemptRule}
+                                </p>
+                            ) : null}
                             <p className={styles.panelCopy}>{gameOverScreenCopy.flipHistoryCopy(flipCount)}</p>
                             <p className={styles.panelCopy}>
                                 Journal {journalEntry.journalId}: {journalEntry.buildSummary} · {journalEntry.replayLabel}

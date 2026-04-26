@@ -27,6 +27,18 @@ export interface DailyArchiveSummary {
     onlineRequired?: false;
 }
 
+export interface DailyResultsLoopRow {
+    scope: DailyArchiveScope;
+    key: string;
+    title: string;
+    currentAttempt: string;
+    personalBest: string;
+    shareString: string;
+    repeatAttemptRule: string;
+    localOnly: true;
+    onlineLeaderboardDeferred: true;
+}
+
 const parseDateKeyUtc = (dateKey: string | null | undefined): Date | null => {
     if (!dateKey || !/^\d{8}$/.test(dateKey)) {
         return null;
@@ -141,3 +153,52 @@ export const buildDailyArchiveShareString = (save: SaveData): string => {
     const score = last?.gameMode === 'daily' ? ` · ${last.totalScore} pts · ${last.levelsCleared} clear(s)` : '';
     return `Daily ${daily.key}${score} · ${summary.dailiesCompleted} local-only daily clear(s) · streak ${summary.streak}`;
 };
+
+export const buildDailyResultsShareString = (
+    save: SaveData,
+    scope: Extract<DailyArchiveScope, 'daily' | 'weekly'>,
+    nowMs: number = Date.now()
+): string => {
+    if (scope === 'daily') {
+        return buildDailyArchiveShareString(save);
+    }
+    const summary = getDailyArchiveSummary(save, nowMs);
+    const weekly = summary.rows.find((row) => row.scope === 'weekly')!;
+    return `Weekly ${weekly.key} · ${summary.dailiesCompleted} local daily clear(s) · streak ${summary.streak}`;
+};
+
+export const buildDailyResultsLoopRows = (save: SaveData, nowMs: number = Date.now()): DailyResultsLoopRow[] => {
+    const summary = getDailyArchiveSummary(save, nowMs);
+    const last = save.lastRunSummary;
+    const dailyScore = last?.gameMode === 'daily' ? last.totalScore : null;
+    const dailyFloor = last?.gameMode === 'daily' ? last.highestLevel : null;
+
+    return summary.rows
+        .filter((row): row is DailyArchiveIdentity & { scope: 'daily' | 'weekly' } => row.scope === 'daily' || row.scope === 'weekly')
+        .map((row) => {
+            const currentAttempt =
+                row.scope === 'daily' && dailyScore !== null
+                    ? `${dailyScore} score · floor ${dailyFloor ?? 0} · ${last?.levelsCleared ?? 0} clear(s)`
+                    : 'No current local attempt recorded for this window';
+            const personalBest =
+                row.scope === 'daily'
+                    ? `${save.bestScore} all-mode best · ${summary.dailiesCompleted} daily clear(s)`
+                    : `${summary.dailiesCompleted} cumulative daily clear(s) this local profile`;
+            const shareString = buildDailyResultsShareString(save, row.scope, nowMs);
+
+            return {
+                scope: row.scope,
+                key: row.key,
+                title: row.scope === 'daily' ? 'Daily result loop' : 'Weekly rollup',
+                currentAttempt,
+                personalBest,
+                shareString,
+                repeatAttemptRule:
+                    'Repeat attempts update local history and share strings only; online leaderboard submission is deferred for v1.',
+                localOnly: true,
+                onlineLeaderboardDeferred: true
+            };
+        });
+};
+
+export const getDailyResultsLoopRows = buildDailyResultsLoopRows;

@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { RunState } from '../../shared/contracts';
 import { createNewRun, createRunSummary, finishMemorizePhase } from '../../shared/game';
+import { createDefaultSaveData } from '../../shared/save-data';
 import { gameOverScreenCopy } from '../copy/gameOverScreen';
 import GameOverScreen from './GameOverScreen';
 
@@ -28,6 +29,7 @@ vi.mock('../store/useAppStore', () => ({
         selector({
             goToMenu: vi.fn(),
             restartRun: vi.fn(),
+            saveData: createDefaultSaveData(),
             settings: {
                 reduceMotion: true,
                 graphicsQuality: 'high',

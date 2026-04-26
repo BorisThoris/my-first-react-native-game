@@ -17,6 +17,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { formatNextUtcReset } from '../../shared/utc-countdown';
 import type { MutatorId } from '../../shared/contracts';
 import { getChallengeModeGateRows, type ChallengeModeGateRow } from '../../shared/challenge-progression';
+import { buildDailyResultsLoopRows } from '../../shared/daily-archive';
 import { MUTATOR_CATALOG } from '../../shared/mutators';
 import {
     choosePathHeroModes,
@@ -122,6 +123,7 @@ const ChooseYourPathScreen = () => {
     );
     const [nowMs, setNowMs] = useState(() => Date.now());
     const dailyCountdown = formatNextUtcReset(nowMs);
+    const dailyResultsLoopRows = buildDailyResultsLoopRows(saveData, nowMs);
     const pathFitMeasureRef = useRef<HTMLDivElement | null>(null);
     const librarySearchInputRef = useRef<HTMLInputElement | null>(null);
     const libraryScrollerRef = useRef<HTMLDivElement | null>(null);
@@ -412,7 +414,17 @@ const ChooseYourPathScreen = () => {
                             </span>
                         </div>
                     ) : null}
-                    {def.id === 'daily' ? <div className={styles.cardFooter}>Next rotation in {dailyCountdown}</div> : null}
+                    {def.id === 'daily' ? (
+                        <div className={styles.cardFooter} data-testid="choose-path-daily-results-loop">
+                            <span>Next rotation in {dailyCountdown}</span>
+                            {dailyResultsLoopRows.slice(0, 2).map((row) => (
+                                <span className={styles.cardStatLine} key={`${row.scope}-${row.key}`}>
+                                    <span className={styles.cardStatValue}>{row.key}</span>
+                                    <span className={styles.cardStatLabel}>{row.scope} · {row.personalBest}</span>
+                                </span>
+                            ))}
+                        </div>
+                    ) : null}
                     {def.id === 'endless' ? <div className={styles.cardFooter}>Best floor: —</div> : null}
                 </span>
             </button>
