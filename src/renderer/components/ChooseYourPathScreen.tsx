@@ -26,7 +26,7 @@ import {
     type RunModeDefinition
 } from '../../shared/run-mode-catalog';
 import { buildRunModeDiscoveryState } from '../../shared/run-mode-discovery';
-import { resolveModePosterUrl } from '../assets/ui/modeArt';
+import { isModePosterFallback, resolveModePosterUrl } from '../assets/ui/modeArt';
 import { UI_ART } from '../assets/ui';
 import { Eyebrow, MetaFrame, ScreenTitle, UiButton } from '../ui';
 import {
@@ -393,7 +393,11 @@ const ChooseYourPathScreen = () => {
                 type="button"
                 onClick={() => runModeAction(def)}
             >
-                <span className={styles.cardPoster} aria-hidden="true">
+                <span
+                    className={styles.cardPoster}
+                    aria-hidden="true"
+                    data-mode-art-fallback={isModePosterFallback(def.posterKey) ? 'true' : 'false'}
+                >
                     <img alt="" src={poster} />
                 </span>
                 <span className={styles.cardBodyWrap}>
@@ -401,6 +405,7 @@ const ChooseYourPathScreen = () => {
                     {def.availabilityDetail ? <span className={styles.modeIdentityPill}>{def.availabilityDetail}</span> : null}
                     {isPrimarySelected ? <span className={styles.badge}>Selected start</span> : null}
                     {def.id === 'daily' ? <span className={styles.badge}>Featured</span> : null}
+                    {isModePosterFallback(def.posterKey) ? <span className={styles.badge}>Emblem art</span> : null}
                     {isLocked ? <span className={`${styles.badge} ${styles.lockedBadge}`}>Locked</span> : null}
                     <span className={styles.cardTitle}>{def.title}</span>
                     <p className={styles.cardBody}>{def.shortDescription}</p>
@@ -459,11 +464,18 @@ const ChooseYourPathScreen = () => {
                     setLibraryDetailMode(def);
                 }}
             >
-                <span className={styles.cardPoster} aria-hidden="true">
+                <span
+                    className={styles.cardPoster}
+                    aria-hidden="true"
+                    data-mode-art-fallback={isModePosterFallback(def.posterKey) ? 'true' : 'false'}
+                >
                     <img alt="" src={poster} />
                 </span>
                 <span className={styles.cardBodyWrap}>
-                    <span className={styles.libraryTileKicker}>{groupLabel}</span>
+                    <span className={styles.libraryTileKicker}>
+                        {groupLabel}
+                        {isModePosterFallback(def.posterKey) ? ' · emblem art' : ''}
+                    </span>
                     <span className={`${styles.cardTitle} ${styles.libraryTileTitle}`}>{def.title}</span>
                     <p className={`${styles.cardBody} ${styles.libraryTileBody}`}>{def.shortDescription}</p>
                 </span>

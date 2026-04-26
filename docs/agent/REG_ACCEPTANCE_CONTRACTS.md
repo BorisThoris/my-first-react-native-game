@@ -69,6 +69,7 @@ schema: reg | phase | status | contract | proof
 | REG-010 | 4 | done | Choose Path has an above-fold selected-mode/start strip, explicit browse/search/page state, inline locked-mode explanation, and tested discovery copy for filtered/empty library states. | run-mode-discovery + ChoosePath tests |
 | REG-011 | 4 | done | Collection, Inventory, and Codex each expose an active reward/progress signal from real save/run data, including next goals, build value, empty-state recovery, and local-only learning/deep-link prompts without new persistence. | meta-reward-signals + Inventory tests |
 | REG-012 | 4 | done | Card interaction feedback has explicit material tokens for match, mismatch, invalid, and combo states, with distinct motion budgets and reduced-motion fallbacks aligned to existing WebGL/audio feedback paths. | gameplayVisualConfig + graphicsQuality tests |
+| REG-013 | 4 | done | Brand/mode art has a production-intent poster manifest with custom vs fallback status, explicit fallback copy, catalog coverage tests, and Choose Path fallback badges for non-bespoke mode art. | modeArt + ChoosePath tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

@@ -17,7 +17,7 @@ Per [docs/new_design/ASSET_AND_ART_PIPELINE.md](../../docs/new_design/ASSET_AND_
 | `ui/backgrounds/bg-mode-classic-v1.png` | Mode card poster | AI-generated | Classic / blue-silver gate |
 | `ui/backgrounds/bg-mode-daily-v1.png` | Mode card poster | AI-generated | Daily / purple crystal featured |
 | `ui/backgrounds/bg-mode-endless-v1.png` | Mode card poster (locked) | AI-generated | Endless / ember gate, darker |
-| `ui/backgrounds/bg-mode-placeholder-v1.png` | Mode card poster (fallback) | Copy of `bg-mode-endless-v1.png` until per-mode art ships | Wired in `modeArt.ts` for catalog keys (gauntlet, wild, imports, etc.). Replace the file or add keyed PNGs and point `MODE_CARD_ART` at them. |
+| `ui/backgrounds/bg-mode-placeholder-v1.png` | Mode card poster (fallback) | Copy of `bg-mode-endless-v1.png` until per-mode art ships | Wired in `modeArt.ts` for catalog keys (gauntlet, wild, imports, etc.) with per-key emblem/tone metadata so placeholder use is deliberate, not missing art. Replace the file or add keyed PNGs and point `MODE_CARD_ART` at them. |
 | `ui/backgrounds/bg-choose-path-stage-ambient-v2.png` | Choose Your Path hero layer (**shipped**) | AI / external (`image_gen.mjs`); path wired from [`ui/index.ts`](ui/index.ts) | `ChooseYourPathScreen` soft-light layer over gameplay base. |
 | `ui/backgrounds/bg-choose-path-stage-v1.png` | Choose Your Path procedural **preview** (optional) | `node scripts/generate-choose-path-background.mjs` | Mid-res procedural plate (~800×500); **not** imported by default — swap into `UI_ART.choosePathScene` or replace `ambient-v2` when iterating. |
 | `ui/brand-crest.svg` | Menu crest | Authored SVG | Crystal sigil in gold frame; reused on **GameOver** hero lockup (**META-002**). |
