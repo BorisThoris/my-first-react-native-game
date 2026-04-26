@@ -314,7 +314,7 @@ for (let reg = 0; reg <= 160; reg += 1) {
       : [60, 61].includes(reg)
         ? null
       : reg === 0
-        ? '7cc4c72'
+        ? '8cbdf3a'
         : reg === 24
           ? '7daefab'
         : reg === 18
