@@ -1,5 +1,4 @@
 import type { SaveData } from './contracts';
-import { getCosmeticTrackRows as getLegacyCosmeticTrackRows } from './meta-progression';
 
 export type CosmeticSlot = 'title' | 'crest' | 'card_back';
 export type CardThemeId = 'classic_card_back' | 'relic_gold_card_back';
@@ -204,24 +203,5 @@ export const getEquippedCardTheme = (save: SaveData): CardThemeRow =>
 
 export const resolveEquippedCardTheme = getEquippedCardTheme;
 
-export const getCosmeticProgressTrackRows = getLegacyCosmeticTrackRows;
-export const getCosmeticTrackRows = (save: SaveData) => {
-    const legacyRows = getLegacyCosmeticTrackRows(save);
-    const trackIds = ['starter', 'daily', 'mastery', 'relic'] as const;
-    return trackIds.map((trackId) => {
-        const matching =
-            trackId === 'starter'
-                ? deriveCosmeticStates(save).filter((row) => row.defaultOwned)
-                : trackId === 'daily'
-                  ? legacyRows.filter((row) => row.cosmeticId === 'crest_daily_bronze')
-                  : trackId === 'mastery'
-                    ? legacyRows.filter((row) => row.cosmeticId === 'title_ascendant_v')
-                    : legacyRows.filter((row) => row.cosmeticId === 'card_back_relic_gold');
-        return {
-            trackId,
-            owned: matching.filter((row) => row.status === 'owned').length,
-            total: matching.length,
-            gameplayAffecting: false
-        };
-    });
-};
+/** Re-exported from meta-progression (implementation there avoids a circular import). */
+export { getCosmeticTrackDefinitionRows as getCosmeticProgressTrackRows, getCosmeticTrackProgressSummary as getCosmeticTrackRows } from './meta-progression';

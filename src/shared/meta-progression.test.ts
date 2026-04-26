@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createDefaultSaveData } from './save-data';
 import {
     buildPermanentUpgradeRows,
-    getCosmeticTrackRows,
+    getCosmeticTrackDefinitionRows,
     getMetaProgressionBoard,
     getMetaProgressionRows,
     metaProgressionSummary
@@ -37,7 +37,7 @@ describe('REG-080 permanent upgrade tree and cosmetic track', () => {
             bestFloorNoPowers: 4
         };
 
-        const rows = getCosmeticTrackRows(save);
+        const rows = getCosmeticTrackDefinitionRows(save);
         expect(rows.find((row) => row.cosmeticId === 'crest_daily_bronze')?.status).toBe('owned');
         expect(rows.find((row) => row.cosmeticId === 'title_ascendant_v')?.status).toBe('in_progress');
         expect(rows.every((row) => row.gameplayAffecting === false)).toBe(true);

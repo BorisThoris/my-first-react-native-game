@@ -1,5 +1,11 @@
 import type { SaveData } from './contracts';
-import { COSMETIC_CATALOG, cosmeticIsOwned, cosmeticUnlockTag, type CosmeticId } from './cosmetics';
+import {
+    COSMETIC_CATALOG,
+    cosmeticIsOwned,
+    cosmeticUnlockTag,
+    deriveCosmeticStates,
+    type CosmeticId
+} from './cosmetics';
 
 export type MetaProgressionTrack = 'permanent_upgrade' | 'cosmetic';
 export type MetaProgressionStatus = 'owned' | 'available' | 'locked';
@@ -221,7 +227,8 @@ export const buildPermanentUpgradeRows = (save: SaveData): PermanentUpgradeRow[]
     ];
 };
 
-export const getCosmeticTrackRows = (save: SaveData): CosmeticTrackRow[] => [
+/** One row per cosmetic track (daily/mastery/relic gating) — not the aggregate summary from `getCosmeticTrackProgressSummary`. */
+export const getCosmeticTrackDefinitionRows = (save: SaveData): CosmeticTrackRow[] => [
     {
         trackId: 'starter',
         cosmeticId: 'title_seeker',
@@ -260,10 +267,32 @@ export const getCosmeticTrackRows = (save: SaveData): CosmeticTrackRow[] => [
     }
 ];
 
+/** Aggregate owned/total per track for collection UI. Lives here to avoid a cosmetics ↔ meta-progression import cycle. */
+export const getCosmeticTrackProgressSummary = (save: SaveData) => {
+    const legacyRows = getCosmeticTrackDefinitionRows(save);
+    const trackIds = ['starter', 'daily', 'mastery', 'relic'] as const;
+    return trackIds.map((trackId) => {
+        const matching =
+            trackId === 'starter'
+                ? deriveCosmeticStates(save).filter((row) => row.defaultOwned)
+                : trackId === 'daily'
+                  ? legacyRows.filter((row) => row.cosmeticId === 'crest_daily_bronze')
+                  : trackId === 'mastery'
+                    ? legacyRows.filter((row) => row.cosmeticId === 'title_ascendant_v')
+                    : legacyRows.filter((row) => row.cosmeticId === 'card_back_relic_gold');
+        return {
+            trackId,
+            owned: matching.filter((row) => row.status === 'owned').length,
+            total: matching.length,
+            gameplayAffecting: false
+        };
+    });
+};
+
 export const metaProgressionSummary = (save: SaveData): {
     upgradesUnlocked: number;
     cosmeticTrackOwned: number;
 } => ({
     upgradesUnlocked: buildPermanentUpgradeRows(save).filter((row) => row.status === 'unlocked').length,
-    cosmeticTrackOwned: getCosmeticTrackRows(save).length
+    cosmeticTrackOwned: getCosmeticTrackDefinitionRows(save).length
 });
