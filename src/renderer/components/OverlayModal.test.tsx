@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import OverlayModal from './OverlayModal';
+import { getOverlayDecisionPolicyRows } from '../../shared/overlay-decision-policy';
 
 describe('OverlayModal (REF-061)', () => {
     it('Tab cycles only between modal actions while the dialog is open', async () => {
@@ -46,5 +47,22 @@ describe('OverlayModal (REF-061)', () => {
         expect(screen.getByTestId('overlay-modal-body')).toHaveTextContent('Detailed reward');
         expect(screen.getByTestId('overlay-modal-actions')).toHaveTextContent('Confirm');
         expect(screen.getByTestId('unit-modal')).toHaveAttribute('data-overlay-size', 'decision');
+    });
+
+    it('REG-097 exposes decision sheet policy for keyboard and one-hand paths', () => {
+        render(
+            <OverlayModal
+                actions={[
+                    { label: 'Resume', onClick: () => {} },
+                    { label: 'Main Menu', onClick: () => {}, variant: 'secondary' }
+                ]}
+                testId="unit-modal"
+                title="Run paused"
+            />
+        );
+
+        expect(getOverlayDecisionPolicyRows().map((row) => row.modalKind)).toEqual(['alert', 'decision', 'sheet']);
+        expect(screen.getByTestId('unit-modal')).toHaveAttribute('data-keyboard-contract', 'Tab trap + initial focus + focus restore');
+        expect(screen.getByTestId('unit-modal')).toHaveAttribute('data-one-hand-placement', 'sticky action rail / mobile bottom-safe area');
     });
 });

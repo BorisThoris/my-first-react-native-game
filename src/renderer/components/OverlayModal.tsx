@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { focusFirstTabbableOrContainer, handleTabFocusTrapEvent } from '../a11y/focusables';
 import { popModalFocusSnapshot, pushModalFocusSnapshot } from '../a11y/modalFocusReturnStack';
 import { popVerticalToolbarRovingPause, pushVerticalToolbarRovingPause } from '../a11y/toolbarRoving';
+import { getOverlayDecisionPolicyRow } from '../../shared/overlay-decision-policy';
 import { MetaFrame, ScreenTitle, UiButton, type UiButtonVariant } from '../ui';
 import styles from './OverlayModal.module.css';
 
@@ -109,6 +110,7 @@ const OverlayModal = ({
     const bodyId = useId();
     const describedBy = [subtitle ? subtitleId : null, children ? bodyId : null].filter(Boolean).join(' ') || undefined;
     const modalKind = modalKindFor(actions, Boolean(children));
+    const decisionPolicy = getOverlayDecisionPolicyRow(modalKind);
 
     /* OVR-010: initial focus + restore — same lifecycle pattern as Settings modal (`presentation="modal"`). */
     useEffect(() => {
@@ -163,6 +165,9 @@ const OverlayModal = ({
                 }`.trim()}
                 data-modal-kind={modalKind}
                 data-overlay-size={modalKind}
+                data-keyboard-contract={decisionPolicy.keyboardPath}
+                data-stack-contract={decisionPolicy.backBehavior}
+                data-one-hand-placement={decisionPolicy.oneHandPlacement}
                 data-testid={testId}
                 ref={modalRef}
                 role="dialog"
@@ -198,6 +203,9 @@ const OverlayModal = ({
 
                 {actions.length > 0 ? (
                     <div className={styles.actions} data-testid="overlay-modal-actions">
+                        <span className={styles.actionPolicyLabel} data-testid="overlay-modal-policy">
+                            {decisionPolicy.modalKind}: {decisionPolicy.keyboardPath}
+                        </span>
                         {actions.map((action) => (
                             <UiButton
                                 className={styles.modalAction}

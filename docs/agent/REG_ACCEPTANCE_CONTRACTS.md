@@ -86,6 +86,7 @@ schema: reg | phase | status | contract | proof
 | REG-094 | 4 | done | Inventory has a run-prep board that summarizes active run setup, loadout capacity, mutable windows, and next prep action from REG-079 run inventory data while staying read-only/offline. | inventory-prep + Inventory tests |
 | REG-095 | 4 | done | Codex has a final knowledge-base summary for guide depth, table depth, local deep links, and filter recovery derived from mechanics encyclopedia sources without changing run state. | codex-knowledge-base + Codex tests |
 | REG-096 | 4 | done | Game Over surfaces a next-run loop with run-it-back, build recap, local share, and next-goal rows derived from local summary/run data, keeping Play Again/Main Menu above fold and no online ranking. | game-over-next-run + GameOver tests |
+| REG-097 | 4 | done | Overlay decision sheets expose policy for alert/decision/sheet kinds with sticky one-hand action rails, keyboard/focus contracts, existing chrome, and no final licensed asset requirement. | overlay-decision-policy + OverlayModal tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.
