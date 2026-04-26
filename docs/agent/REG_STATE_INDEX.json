@@ -363,7 +363,7 @@
     "updated": "2026-04-25"
   },
   "REG-027": {
-    "status": "open",
+    "status": "done",
     "phase": 5,
     "lane": "default",
     "dependencies": [
@@ -373,7 +373,7 @@
       "REG-104",
       "REG-108"
     ],
-    "commit": null,
+    "commit": "ecad9c9",
     "updated": "2026-04-25"
   },
   "REG-028": {
@@ -390,7 +390,7 @@
     "updated": "2026-04-25"
   },
   "REG-029": {
-    "status": "open",
+    "status": "done",
     "phase": 5,
     "lane": "default",
     "dependencies": [
@@ -400,11 +400,11 @@
       "REG-104",
       "REG-108"
     ],
-    "commit": null,
+    "commit": "ecad9c9",
     "updated": "2026-04-25"
   },
   "REG-030": {
-    "status": "open",
+    "status": "done",
     "phase": 5,
     "lane": "default",
     "dependencies": [
@@ -414,11 +414,11 @@
       "REG-104",
       "REG-108"
     ],
-    "commit": null,
+    "commit": "ecad9c9",
     "updated": "2026-04-25"
   },
   "REG-031": {
-    "status": "open",
+    "status": "done",
     "phase": 5,
     "lane": "default",
     "dependencies": [
@@ -428,7 +428,7 @@
       "REG-104",
       "REG-108"
     ],
-    "commit": null,
+    "commit": "ecad9c9",
     "updated": "2026-04-25"
   },
   "REG-032": {
@@ -526,7 +526,7 @@
     "updated": "2026-04-25"
   },
   "REG-039": {
-    "status": "open",
+    "status": "done",
     "phase": 5,
     "lane": "default",
     "dependencies": [
@@ -536,7 +536,7 @@
       "REG-104",
       "REG-108"
     ],
-    "commit": null,
+    "commit": "ecad9c9",
     "updated": "2026-04-25"
   },
   "REG-040": {
@@ -552,7 +552,7 @@
     "updated": "2026-04-25"
   },
   "REG-041": {
-    "status": "open",
+    "status": "done",
     "phase": 5,
     "lane": "default",
     "dependencies": [
@@ -562,11 +562,11 @@
       "REG-104",
       "REG-108"
     ],
-    "commit": null,
+    "commit": "ecad9c9",
     "updated": "2026-04-25"
   },
   "REG-042": {
-    "status": "open",
+    "status": "done",
     "phase": 5,
     "lane": "default",
     "dependencies": [
@@ -576,11 +576,11 @@
       "REG-104",
       "REG-108"
     ],
-    "commit": null,
+    "commit": "ecad9c9",
     "updated": "2026-04-25"
   },
   "REG-043": {
-    "status": "open",
+    "status": "done",
     "phase": 5,
     "lane": "default",
     "dependencies": [
@@ -590,7 +590,7 @@
       "REG-104",
       "REG-108"
     ],
-    "commit": null,
+    "commit": "ecad9c9",
     "updated": "2026-04-25"
   },
   "REG-044": {
@@ -764,7 +764,7 @@
     "updated": "2026-04-25"
   },
   "REG-056": {
-    "status": "open",
+    "status": "done",
     "phase": 5,
     "lane": "default",
     "dependencies": [
@@ -774,11 +774,11 @@
       "REG-104",
       "REG-108"
     ],
-    "commit": null,
+    "commit": "ecad9c9",
     "updated": "2026-04-25"
   },
   "REG-057": {
-    "status": "open",
+    "status": "done",
     "phase": 5,
     "lane": "default",
     "dependencies": [
@@ -788,11 +788,11 @@
       "REG-104",
       "REG-108"
     ],
-    "commit": null,
+    "commit": "ecad9c9",
     "updated": "2026-04-25"
   },
   "REG-058": {
-    "status": "open",
+    "status": "done",
     "phase": 5,
     "lane": "default",
     "dependencies": [
@@ -802,7 +802,7 @@
       "REG-104",
       "REG-108"
     ],
-    "commit": null,
+    "commit": "ecad9c9",
     "updated": "2026-04-25"
   },
   "REG-059": {
@@ -847,7 +847,7 @@
     "updated": "2026-04-25"
   },
   "REG-062": {
-    "status": "open",
+    "status": "done",
     "phase": 5,
     "lane": "default",
     "dependencies": [
@@ -857,7 +857,7 @@
       "REG-104",
       "REG-108"
     ],
-    "commit": null,
+    "commit": "ecad9c9",
     "updated": "2026-04-25"
   },
   "REG-063": {
@@ -1530,7 +1530,7 @@
     "updated": "2026-04-25"
   },
   "REG-109": {
-    "status": "open",
+    "status": "done",
     "phase": 5,
     "lane": "default",
     "dependencies": [
@@ -1540,11 +1540,11 @@
       "REG-104",
       "REG-108"
     ],
-    "commit": null,
+    "commit": "ecad9c9",
     "updated": "2026-04-25"
   },
   "REG-110": {
-    "status": "open",
+    "status": "done",
     "phase": 5,
     "lane": "default",
     "dependencies": [
@@ -1554,11 +1554,11 @@
       "REG-104",
       "REG-108"
     ],
-    "commit": null,
+    "commit": "ecad9c9",
     "updated": "2026-04-25"
   },
   "REG-111": {
-    "status": "open",
+    "status": "done",
     "phase": 5,
     "lane": "default",
     "dependencies": [
@@ -1568,11 +1568,11 @@
       "REG-104",
       "REG-108"
     ],
-    "commit": null,
+    "commit": "ecad9c9",
     "updated": "2026-04-25"
   },
   "REG-112": {
-    "status": "open",
+    "status": "done",
     "phase": 5,
     "lane": "default",
     "dependencies": [
@@ -1582,7 +1582,7 @@
       "REG-104",
       "REG-108"
     ],
-    "commit": null,
+    "commit": "ecad9c9",
     "updated": "2026-04-25"
   },
   "REG-113": {

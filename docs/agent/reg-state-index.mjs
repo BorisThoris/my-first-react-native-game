@@ -132,7 +132,23 @@ const statusOverrides = new Map([
   [107, 'done'],
   [108, 'done'],
   [113, 'done'],
-  [114, 'done']
+  [114, 'done'],
+  [27, 'done'],
+  [29, 'done'],
+  [30, 'done'],
+  [31, 'done'],
+  [39, 'done'],
+  [41, 'done'],
+  [42, 'done'],
+  [43, 'done'],
+  [56, 'done'],
+  [57, 'done'],
+  [58, 'done'],
+  [62, 'done'],
+  [109, 'done'],
+  [110, 'done'],
+  [111, 'done'],
+  [112, 'done']
 ]);
 
 const index = {};
@@ -237,6 +253,8 @@ for (let reg = 0; reg <= 160; reg += 1) {
         ? 'b810594'
       : [103, 104, 105, 106, 107, 108, 113, 114].includes(reg)
         ? '77f6fde'
+      : [27, 29, 30, 31, 39, 41, 42, 43, 56, 57, 58, 62, 109, 110, 111, 112].includes(reg)
+        ? 'ecad9c9'
         : reg === 24
           ? '7daefab'
         : reg === 18
