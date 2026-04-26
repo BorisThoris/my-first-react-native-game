@@ -11,6 +11,7 @@ import {
 } from '../../shared/contracts';
 import { FEATURE_CLOUD_SAVE } from '../../shared/feature-flags';
 import { getProfileSummaryRows, getSaveTrustRows } from '../../shared/profile-summary';
+import { getPremiumEconomyPolicyRows } from '../../shared/premium-economy-policy';
 import { getReferenceOnlySettingsRows } from '../../shared/settings-control-model';
 import { DEFAULT_SETTINGS } from '../../shared/save-data';
 import {
@@ -290,6 +291,7 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
     const eyebrow = isModal ? 'Paused' : 'Preferences';
     const profileSummaryRows = getProfileSummaryRows(saveData);
     const saveTrustRows = getSaveTrustRows(saveData);
+    const premiumEconomyRows = getPremiumEconomyPolicyRows();
     const referenceControlRows = getReferenceOnlySettingsRows();
     const isDirty = JSON.stringify(draft) !== JSON.stringify(settings);
     const [unsavedBackOpen, setUnsavedBackOpen] = useState(false);
@@ -826,6 +828,15 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                                                             <strong>{row.label}</strong>
                                                             <span>{row.status}</span>
                                                             <em>{row.description}</em>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <div className={styles.profileSummaryGrid} data-testid="settings-premium-economy-policy">
+                                                    {premiumEconomyRows.map((row) => (
+                                                        <div className={styles.profileSummaryRow} key={row.id}>
+                                                            <strong>{row.title}</strong>
+                                                            <span>{row.status}</span>
+                                                            <em>{row.copy}</em>
                                                         </div>
                                                     ))}
                                                 </div>

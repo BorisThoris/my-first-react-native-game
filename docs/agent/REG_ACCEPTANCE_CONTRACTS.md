@@ -74,6 +74,7 @@ schema: reg | phase | status | contract | proof
 | REG-038 | 4 | done | Music loop state derives menu calm/run focus/pressure/release/silent layers from view/run/hidden state, pauses on meta/pause/game-over, and keeps adaptive intensity observation-only with existing music volume settings. | gameplayMusic tests |
 | REG-051 | 4 | done | Social layer decision is share-only/offline for v1: no pass-and-play fields are persisted, online challenges remain REG-052-deferred, and Choose Path copy explicitly states local/share-string scope. | social-play-scope + ChoosePath tests |
 | REG-053 | 4 | done | Daily streaks use friendly UTC rules with no freeze bank in v1, missed-day reset copy avoids shame/pressure, rewards are cosmetic/profile-only, and menu/Choose Path explain reset timing and non-punitive behavior. | daily-archive + save-data + menu/ChoosePath tests |
+| REG-054 | 4 | done | Economy stance is premium/offline-first: ads/IAP/subscriptions/pay-to-win are prohibited, core fairness/accessibility/powers are never monetized, shop gold remains a run system, and future monetization requires a separate product decision. | premium-economy-policy + Settings tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

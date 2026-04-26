@@ -72,4 +72,16 @@ describe('SettingsScreen', () => {
         expect(reference).toHaveTextContent(/GAME_RULES_VERSION/);
         expect(reference).toHaveTextContent(/Card theme/);
     });
+
+    it('REG-054 surfaces premium economy policy without ad or IAP promises', async () => {
+        const user = userEvent.setup();
+        render(<SettingsScreen presentation="page" />);
+
+        await user.click(screen.getByRole('button', { name: /about/i }));
+        const policy = screen.getByTestId('settings-premium-economy-policy');
+        expect(policy).toHaveTextContent(/Premium offline-first/);
+        expect(policy).toHaveTextContent(/Fairness is never monetized/);
+        expect(policy).toHaveTextContent(/No rewarded ads/);
+        expect(policy).not.toHaveTextContent(/buy gems|microtransaction|premium currency/i);
+    });
 });
