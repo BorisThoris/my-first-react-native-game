@@ -178,7 +178,7 @@ for (let reg = 0; reg <= 160; reg += 1) {
       : reg === 54
         ? 'ba37742'
       : reg === 55
-        ? 'PENDING_REG_055'
+        ? '1a9cb4d'
         : reg === 24
           ? '7daefab'
         : reg === 18
