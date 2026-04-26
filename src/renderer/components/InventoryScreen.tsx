@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { GAME_MODE_CODEX, MUTATOR_CATALOG, RELIC_CATALOG } from '../../shared/game-catalog';
 import { getCosmeticCollectionRows } from '../../shared/cosmetics';
+import { getInventoryRewardSignal } from '../../shared/meta-reward-signals';
 import { getRunInventoryRows, getRunLoadoutSummary } from '../../shared/run-inventory';
 import { getRunEconomyRows } from '../../shared/run-economy';
 import { playUiBackSfx, resumeUiSfxContext, uiSfxGainFromSettings } from '../audio/uiSfx';
@@ -75,6 +76,7 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
     const economyRows = getRunEconomyRows(run);
     const inventoryRows = getRunInventoryRows(run);
     const loadoutSummary = getRunLoadoutSummary(run);
+    const rewardSignal = getInventoryRewardSignal(run);
     const equippedCosmetic = getCosmeticCollectionRows(useAppStore.getState().saveData).find((row) => row.equipped);
 
     return (
@@ -117,6 +119,13 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                     <Panel className={heroPanelClassName} padding="lg" variant="strong">
                         <div className={`${styles.loadoutBoard} ${metaStyles.sectionAnchor}`} id="inventory-run">
                             <h2 className={styles.sectionTitle}>Run snapshot</h2>
+                            <div className={metaStyles.archiveCatalogGrid} data-testid="inventory-reward-signal">
+                                <div className={metaStyles.archiveCatalogRow}>
+                                    <p className={metaStyles.archiveCatalogRowTitle}>{rewardSignal.title}</p>
+                                    <p className={metaStyles.subtitle}>{rewardSignal.body}</p>
+                                    <span className={styles.cosmeticNote}>{rewardSignal.cta}</span>
+                                </div>
+                            </div>
                             <div className={styles.kv}>
                                 <div className={styles.kvRow}>
                                     <span>

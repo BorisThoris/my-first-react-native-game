@@ -16,6 +16,7 @@ import {
     VISUAL_ENDLESS_MODE_LOCKED
 } from '../../shared/game-catalog';
 import type { MutatorId, RelicId } from '../../shared/contracts';
+import { getCodexRewardSignal } from '../../shared/meta-reward-signals';
 import { Eyebrow, MetaFrame, Panel, ScreenTitle, UiButton } from '../ui';
 import {
     playUiBackSfx,
@@ -75,9 +76,10 @@ function tocVisible(tab: CodexTab, kind: TocKind): boolean {
 }
 
 const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
-    const { closeSubscreen, settings } = useAppStore(
+    const { closeSubscreen, saveData, settings } = useAppStore(
         useShallow((state) => ({
             closeSubscreen: state.closeSubscreen,
+            saveData: state.saveData,
             settings: state.settings
         }))
     );
@@ -88,6 +90,7 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
     const [filterQuery, setFilterQuery] = useState('');
     const [debouncedFilterQuery, setDebouncedFilterQuery] = useState('');
     const [codexTab, setCodexTab] = useState<CodexTab>('all');
+    const codexRewardSignal = getCodexRewardSignal(saveData);
     const uiGain = uiSfxGainFromSettings(settings.masterVolume, settings.sfxVolume);
     const playUiClick = (): void => {
         resumeUiSfxContext();
@@ -245,6 +248,14 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
                         </a>
                     ))}
                 </nav>
+
+                <MetaFrame data-testid="codex-reward-signal">
+                    <Panel className={heroPanelClassName} padding="md" variant="strong">
+                        <strong>{codexRewardSignal.title}</strong>
+                        <p className={metaStyles.subtitle}>{codexRewardSignal.body}</p>
+                        <p className={metaStyles.subtitle}>{codexRewardSignal.cta}</p>
+                    </Panel>
+                </MetaFrame>
 
                 <div className={styles.filterRow}>
                     <label className={styles.filterLabel} htmlFor="codex-filter-query">

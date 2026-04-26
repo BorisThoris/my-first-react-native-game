@@ -16,6 +16,7 @@ import {
 import { RELIC_CATALOG } from '../../shared/game-catalog';
 import { getDailyArchiveRows, getDailyArchiveSummary } from '../../shared/daily-archive';
 import { getMetaCosmeticTrackRows, getMetaProgressionBoard, getPermanentUpgradeRows } from '../../shared/meta-progression';
+import { getCollectionRewardSignals } from '../../shared/meta-reward-signals';
 import { ACHIEVEMENT_IDS } from '../../shared/save-data';
 import {
     CALLSIGN_SYMBOLS,
@@ -43,6 +44,7 @@ const CollectionScreen = () => {
     const summary = saveData.lastRunSummary;
     const honorEarned = new Set(eligibleHonorUnlockIds(saveData));
     const metaProgressionBoard = getMetaProgressionBoard(saveData);
+    const rewardSignals = getCollectionRewardSignals(saveData);
     const permanentUpgradeRows = getPermanentUpgradeRows(saveData);
     const cosmeticTrackRows = getMetaCosmeticTrackRows(saveData);
     const dailyArchiveRows = getDailyArchiveRows(saveData);
@@ -146,6 +148,26 @@ const CollectionScreen = () => {
                                         </div>
                                     );
                                 })}
+                            </div>
+                        </div>
+                    </Panel>
+                </MetaFrame>
+
+                <MetaFrame data-testid="collection-meta-frame-reward-signals">
+                    <Panel padding="lg" variant="strong">
+                        <div className={styles.section}>
+                            <h2 className={styles.sectionTitle}>Reward signals</h2>
+                            <p className={metaStyles.subtitle}>
+                                Runs feed durable local progress: next goal, recent reward, and missing discovery are shown here.
+                            </p>
+                            <div className={metaStyles.archiveCatalogGrid}>
+                                {rewardSignals.map((signal) => (
+                                    <div className={metaStyles.archiveCatalogRow} key={signal.id}>
+                                        <p className={metaStyles.archiveCatalogRowTitle}>{signal.title}</p>
+                                        <p className={metaStyles.subtitle}>{signal.body}</p>
+                                        <span className={styles.symbolMeta}>{signal.cta}</span>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </Panel>

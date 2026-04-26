@@ -67,6 +67,7 @@ schema: reg | phase | status | contract | proof
 | REG-035 | 3 | done | Main menu profile/community strip uses real SaveData-derived level/title/crest/bests, clearly states community/social links are offline/local in v1, and preserves mobile density without fake online affordances. | profile-summary + MainMenu/Settings tests |
 | REG-036 | 3 | done | Reference settings controls are modeled as live vs future placeholders; difficulty/timer/max-lives/card-theme rows remain disabled, non-persisted, and documented with migration, achievements, daily fairness, and rules-version implications. | settings-control-model + Settings tests |
 | REG-010 | 4 | done | Choose Path has an above-fold selected-mode/start strip, explicit browse/search/page state, inline locked-mode explanation, and tested discovery copy for filtered/empty library states. | run-mode-discovery + ChoosePath tests |
+| REG-011 | 4 | done | Collection, Inventory, and Codex each expose an active reward/progress signal from real save/run data, including next goals, build value, empty-state recovery, and local-only learning/deep-link prompts without new persistence. | meta-reward-signals + Inventory tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.
