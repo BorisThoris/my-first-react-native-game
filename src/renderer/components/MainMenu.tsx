@@ -1,4 +1,5 @@
 import type { RelicId, RunSummary, SaveData } from '../../shared/contracts';
+import { getEquippedCosmeticId } from '../../shared/cosmetics';
 import { countEligibleHonors, totalHonorUnlocks } from '../../shared/honorUnlocks';
 import { RELIC_CATALOG } from '../../shared/game-catalog';
 import { getObjectiveBoardItems } from '../../shared/objective-board';
@@ -115,6 +116,8 @@ const MainMenu = ({
     const objectiveBoard = getObjectiveBoardItems(saveData);
     const questRows = getQuestCampaignRows(saveData);
     const profileSummary = getProfileSummaryRows(saveData);
+    const profileTitle = getEquippedCosmeticId(saveData, 'title') === 'title_ascendant_v' ? 'Ascendant V' : 'Seeker';
+    const profileCrest = getEquippedCosmeticId(saveData, 'crest') === 'crest_daily_bronze' ? 'Daily Bronze' : 'Lantern';
     const secondaryActions = [
         {
             ariaLabel: 'Collection',
@@ -177,6 +180,27 @@ const MainMenu = ({
                         <strong className={styles.archiveValue}>{row.value}</strong>
                     </div>
                 ))}
+            </div>
+            <div className={styles.profileStrip} data-testid="main-menu-profile-strip">
+                <div className={styles.profileIdentity}>
+                    <span className={styles.profileAvatar}>{profileCrest.slice(0, 1)}</span>
+                    <div>
+                        <strong>{profileTitle}</strong>
+                        <span>Local profile · no social account required</span>
+                    </div>
+                </div>
+                <div className={styles.profileStripStats}>
+                    {profileSummary.slice(0, 3).map((row) => (
+                        <span key={row.id}>
+                            {row.label}
+                            <strong>{row.value}</strong>
+                        </span>
+                    ))}
+                </div>
+                <div className={styles.communityStrip} aria-label="Community links policy">
+                    <span>Community links</span>
+                    <strong>Steam/forum/support deferred until real destinations ship</strong>
+                </div>
             </div>
             <details className={styles.relicDetails}>
                 <summary>Most-picked relics</summary>
@@ -324,6 +348,26 @@ const MainMenu = ({
                                 </button>
                             </div>
                         ) : null}
+
+                        <MetaFrame className={styles.profileStripFrame} data-testid="main-menu-profile-strip">
+                            <section className={styles.profileStrip} aria-label="Local profile summary">
+                                <div className={styles.profileIdentity}>
+                                    <span className={styles.profileCrest}>{profileCrest}</span>
+                                    <div>
+                                        <span className={styles.metaLabel}>Local profile</span>
+                                        <strong className={styles.profileName}>{profileTitle}</strong>
+                                    </div>
+                                </div>
+                                <div className={styles.profileStats}>
+                                    {profileSummary.slice(0, 4).map((row) => (
+                                        <span className={styles.profileStat} key={row.id}>
+                                            {row.label}<strong>{row.value}</strong>
+                                        </span>
+                                    ))}
+                                </div>
+                                <span className={styles.profileOfflineNote}>Single-device save · no online social feed</span>
+                            </section>
+                        </MetaFrame>
 
                         <div className={styles.layout}>
                             <main className={styles.heroColumn}>

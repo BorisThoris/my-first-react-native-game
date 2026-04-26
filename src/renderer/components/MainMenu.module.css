@@ -145,6 +145,68 @@
     outline-offset: 2px;
 }
 
+.profileStrip {
+    position: relative;
+    z-index: 3;
+    display: grid;
+    grid-template-columns: minmax(12rem, 0.9fr) minmax(0, 1.6fr) minmax(12rem, 0.9fr);
+    gap: var(--theme-space-sm);
+    align-items: stretch;
+    margin-top: var(--theme-space-sm);
+    padding: var(--theme-space-sm);
+    border: 1px solid color-mix(in srgb, var(--theme-gold) 20%, var(--theme-border));
+    border-radius: var(--ui-radius-lg);
+    background: color-mix(in srgb, var(--theme-panel-solid) 76%, transparent);
+}
+
+.profileIdentity,
+.profileStat,
+.communityPolicy {
+    min-width: 0;
+    padding: var(--theme-space-sm) var(--theme-space-md);
+    border-radius: var(--ui-radius-md);
+    background: color-mix(in srgb, var(--theme-panel-alt) 72%, transparent);
+}
+
+.profileIdentity {
+    display: grid;
+    gap: 0.12rem;
+}
+
+.profileTitle {
+    color: var(--theme-rune);
+    font-family: var(--ui-font-display-family);
+    font-size: 1rem;
+}
+
+.profileStats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--theme-space-xs);
+}
+
+.profileStat span,
+.communityPolicy span {
+    display: block;
+    color: var(--theme-text-muted);
+    font-size: 0.68rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.profileStat strong {
+    display: block;
+    color: var(--theme-text);
+    font-size: 0.86rem;
+}
+
+.communityPolicy p {
+    margin: 0.1rem 0 0;
+    color: var(--theme-text-muted);
+    font-size: 0.78rem;
+    line-height: 1.25;
+}
+
 /* META-012 — hub stat plaques (MetaFrame cornice sizes to `.metaCard` via measured radius). */
 .metaPlaqueFrame {
     width: 100%;
@@ -526,6 +588,14 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.touchCompactShell .profileStrip {
+    grid-template-columns: 1fr;
+}
+
+.touchCompactShell .profileStats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .touchCompactShell .metaValue {
     font-size: 0.92rem;
 }
@@ -645,6 +715,19 @@
 
 .shortTouchLandscapeShell .metaCard {
     padding: 0.34rem 0.5rem;
+}
+
+.shortTouchLandscapeShell .profileStrip {
+    grid-template-columns: minmax(8rem, 0.75fr) minmax(0, 1.25fr);
+    padding: 0.35rem;
+}
+
+.shortTouchLandscapeShell .profileStats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.shortTouchLandscapeShell .communityPolicy {
+    display: none;
 }
 
 .shortTouchLandscapeShell .metaLabel {
@@ -943,6 +1026,11 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .profileStrip,
+    .profileStats {
+        grid-template-columns: 1fr;
+    }
+
     .tagline {
         font-size: 0.88rem;
     }
@@ -962,6 +1050,10 @@
 
     .metaRow {
         grid-template-columns: 1fr;
+    }
+
+    .profileStrip {
+        display: none;
     }
 
     .ctaTitle {
