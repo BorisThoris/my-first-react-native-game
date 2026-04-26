@@ -18,6 +18,7 @@ import {
 import { getCodexKnowledgeBaseRows } from '../../shared/codex-knowledge-base';
 import type { MutatorId, RelicId } from '../../shared/contracts';
 import { getCodexRewardSignal } from '../../shared/meta-reward-signals';
+import { getUiStateCopy } from '../../shared/ui-state-copy';
 import { Eyebrow, MetaFrame, Panel, ScreenTitle, UiButton } from '../ui';
 import {
     playUiBackSfx,
@@ -177,6 +178,7 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
 
     const showGuidePanel = (count: number): boolean => tabAllows('guide') && showWhenFiltered(count);
     const showTablePanel = (count: number): boolean => tabAllows('table') && showWhenFiltered(count);
+    const filterEmptyCopy = getUiStateCopy('codex_filter_empty');
 
     return (
         <section
@@ -290,7 +292,9 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
                 </div>
 
                 {!anyFilterMatch ? (
-                    <p className={styles.filterEmpty}>No topics match this filter.</p>
+                    <p className={styles.filterEmpty}>
+                        {filterEmptyCopy.message} {filterEmptyCopy.actionLabel}.
+                    </p>
                 ) : null}
 
                 <div id="codex-main-column">

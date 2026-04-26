@@ -6,6 +6,7 @@ import { getInventoryPrepRows } from '../../shared/inventory-prep';
 import { getInventoryRewardSignal } from '../../shared/meta-reward-signals';
 import { getRunInventoryRows, getRunLoadoutSummary } from '../../shared/run-inventory';
 import { getRunEconomyRows } from '../../shared/run-economy';
+import { getUiStateCopy } from '../../shared/ui-state-copy';
 import { playUiBackSfx, resumeUiSfxContext, uiSfxGainFromSettings } from '../audio/uiSfx';
 import { inventoryScreenCopy } from '../copy/inventoryScreen';
 import { Eyebrow, MetaFrame, Panel, ScreenTitle, UiButton } from '../ui';
@@ -45,6 +46,7 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
     };
 
     if (!run) {
+        const emptyState = getUiStateCopy('inventory_no_run');
         return (
             <section aria-label="Inventory" className={shellClassName} role="region">
                 <header className={metaStyles.header}>
@@ -63,8 +65,7 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                     <MetaFrame data-testid="inventory-meta-frame-empty">
                         <Panel className={panelClassName} padding="lg" variant="default">
                             <p className={styles.emptyState}>
-                                Loadout appears here once a descent is in progress. Return to the hub, pick a mode, and
-                                jump in to see relics, mutators, and charges for that run.
+                                {emptyState.message} {emptyState.actionLabel}.
                             </p>
                         </Panel>
                     </MetaFrame>
@@ -234,7 +235,9 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                                     })}
                                 </div>
                             ) : (
-                                <p className={styles.empty}>No relics claimed yet this run.</p>
+                                <p className={styles.empty}>
+                                    {getUiStateCopy('inventory_no_relics').message} {getUiStateCopy('inventory_no_relics').actionLabel}.
+                                </p>
                             )}
                         </div>
                     </Panel>
@@ -259,7 +262,7 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                                     })}
                                 </div>
                             ) : (
-                                <p className={styles.empty}>No mutators on this run.</p>
+                                <p className={styles.empty}>{getUiStateCopy('inventory_no_mutators').message}</p>
                             )}
                         </div>
                     </Panel>
@@ -317,7 +320,7 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                                 <li>Max mismatches: {contract.maxMismatches === null ? 'None' : contract.maxMismatches}</li>
                             </ul>
                         ) : (
-                            <p className={styles.empty}>No scholar contract on this run.</p>
+                            <p className={styles.empty}>{getUiStateCopy('inventory_no_contract').message}</p>
                         )}
                     </div>
                 </Panel>
