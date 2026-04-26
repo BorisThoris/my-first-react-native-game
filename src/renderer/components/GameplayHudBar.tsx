@@ -15,6 +15,7 @@ import codexBookUrl from '../assets/ui/icons/icon-codex-book-v1.svg?url';
 import scoreParasiteCrystalUrl from '../assets/ui/icons/icon-score-parasite-crystal.svg?url';
 import shuffleIconUrl from '../assets/ui/icons/icon-shuffle-v1.svg?url';
 import { PERFECT_MEMORY_BASE_RULES, perfectMemoryHudKind } from '../copy/perfectMemory';
+import { REG106_HUD_IA } from '../gameplay/regPhase4PlayContract';
 import styles from './GameScreen.module.css';
 
 const MUTATOR_HUD_LABELS: Record<MutatorId, string> = {
@@ -224,6 +225,8 @@ const GameplayHudBar = ({
     return (
         <header
             className={`${styles.hudRow} ${cameraViewportMode ? styles.mobileCameraHud : ''}`}
+            data-reg-hud-ia="v1"
+            data-reg-hud-primary-lanes={REG106_HUD_IA.primary.join(',')}
             data-testid="game-hud"
         >
             <div className={`${styles.floatingDeck} ${styles.statsDeck} ${styles.hudDeck}`} role="group" aria-label="Run stats">

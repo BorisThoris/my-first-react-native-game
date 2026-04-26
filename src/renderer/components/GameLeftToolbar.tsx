@@ -23,6 +23,7 @@ import {
     uiSfxGainFromSettings
 } from '../audio/uiSfx';
 import { useAppStore } from '../store/useAppStore';
+import { REG107_POWER_TEACHING_ANCHOR } from '../gameplay/regPhase4PlayContract';
 import type { TileBoardHandle } from './TileBoard';
 import styles from './GameScreen.module.css';
 
@@ -519,7 +520,11 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                             {run.strayRemoveCharges}
                         </span>
                     </button>
-                    <div className={styles.powerTeachingPanel} data-testid="power-teaching-panel">
+                    <div
+                        className={styles.powerTeachingPanel}
+                        data-testid="power-teaching-panel"
+                        id={REG107_POWER_TEACHING_ANCHOR}
+                    >
                         {powerTeachingRows.map((row) => (
                             <div className={styles.powerTeachingRow} key={row.id}>
                                 <strong>{row.label}</strong>

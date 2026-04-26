@@ -1,7 +1,7 @@
 # REG-105: Board stage camera dais and depth finalization
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

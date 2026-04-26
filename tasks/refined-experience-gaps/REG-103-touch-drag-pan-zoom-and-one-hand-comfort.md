@@ -1,7 +1,7 @@
 # REG-103: Touch drag pan zoom and one-hand comfort
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

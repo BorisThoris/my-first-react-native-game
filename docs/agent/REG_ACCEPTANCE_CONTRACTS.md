@@ -92,6 +92,14 @@ schema: reg | phase | status | contract | proof
 | REG-100 | 4 | done | Empty/loading/error/locked state copy is centralized, actionable, local/offline-safe, and used by Inventory/Codex for no-run, no-relic, no-mutator, no-contract, and no-filter-result states. | ui-state-copy + Inventory/Codex tests |
 | REG-101 | 4 | done | Copy tone rules align player-facing microcopy with mechanics glossary, premium/offline economy language, local scope, and concise mobile wording; shop buttons use “Spend shop gold” rather than real-money verbs. | copy-tone + mechanics/GameScreen tests |
 | REG-102 | 4 | done | Responsive final device grid covers high-traffic shell screens across phone, tablet, short desktop, and desktop viewports with primary selectors, no-horizontal-scroll expectations, and layout summary helpers. | breakpoints/viewport matrix tests |
+| REG-103 | 4 | done | Touch board stage uses `touch-action: none` for custom pan/pinch; 44px-class power targets; contract module documents gesture policy. | `regPhase4PlayContract` + TileBoard |
+| REG-104 | 4 | done | Gameplay shell exposes stable `data-reg-gameplay-shell` variant (playing / paused / floor_clear) for composition tests. | GameScreen + `regPhase4PlayContract` tests |
+| REG-105 | 4 | done | Board dais and WebGL stage expose `data-reg-board-dais` / `data-reg-stage-viewport` hooks for depth/camera regression. | TileBoard + contract tests |
+| REG-106 | 4 | done | HUD exposes `data-reg-hud-primary-lanes` aligned to primary/secondary lane ids in the contract. | GameplayHudBar + `regPhase4PlayContract` |
+| REG-107 | 4 | done | Power-verb teaching rail has stable anchor id `gameplay-power-teaching-rail` for toolbar teaching rows. | GameLeftToolbar + `power-verbs` data |
+| REG-108 | 4 | done | Card material lanes documented and linked to `gameplayVisualConfig` / contract (`match`, `mismatch`, `invalid`, `combo`, `guard`). | `regPhase4PlayContract` + `gameplayVisualConfig` |
+| REG-113 | 4 | done | `REG113_PLACEHOLDER_INVENTORY` re-exports full asset drop-in category table for ship slot tracking. | `assetDropInReadiness` tests |
+| REG-114 | 4 | done | `REG114_MIX_DUCKING_TABLE` documents music duck multipliers for pause, overlays, relic draft, and run-critical SFX. | `audioMixDuckingPolicy` tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

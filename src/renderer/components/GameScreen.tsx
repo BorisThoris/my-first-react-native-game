@@ -70,6 +70,7 @@ import {
     uiSfxGainFromSettings
 } from '../audio/uiSfx';
 import { GAMEPLAY_VISUAL_CSS_VARS } from './gameplayVisualConfig';
+import { REG104_DATA_SHELL } from '../gameplay/regPhase4PlayContract';
 import styles from './GameScreen.module.css';
 import {
     MATCH_SCORE_FLOAT_FALLBACK_MARGIN_MS,
@@ -960,10 +961,13 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
             run.status === 'paused' ||
             Boolean(run.relicOffer) ||
             (run.status === 'levelComplete' && Boolean(run.lastLevelResult) && !run.relicOffer));
+    const reg104GameplayShellVariant =
+        run.status === 'paused' ? 'paused' : run.status === 'levelComplete' ? 'floor_clear' : 'playing';
     return (
         <section
             className={`${styles.shell} ${cameraViewportMode ? styles.mobileCameraShell : ''}`}
             data-mobile-camera-mode={cameraViewportMode ? 'true' : 'false'}
+            {...{ [REG104_DATA_SHELL]: reg104GameplayShellVariant }}
             data-testid="game-shell"
             ref={shellRef}
             style={GAMEPLAY_VISUAL_CSS_VARS}

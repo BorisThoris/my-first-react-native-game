@@ -1,7 +1,7 @@
 # REG-114: Audio final mix event coverage and ducking
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

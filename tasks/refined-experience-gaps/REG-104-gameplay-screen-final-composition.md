@@ -1,7 +1,7 @@
 # REG-104: Gameplay screen final composition
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

@@ -91,6 +91,9 @@ export const ASSET_DROP_IN_CATEGORIES: readonly AssetDropInCategory[] = [
 
 export const getAssetDropInCategories = (): readonly AssetDropInCategory[] => ASSET_DROP_IN_CATEGORIES;
 
+/** REG-113: single inventory handle for third-wave/ship placeholder slots (alias of the readiness table). */
+export const REG113_PLACEHOLDER_INVENTORY: readonly AssetDropInCategory[] = ASSET_DROP_IN_CATEGORIES;
+
 export const assetDropInCategoryById = (id: AssetDropInCategory['id']): AssetDropInCategory | null =>
     ASSET_DROP_IN_CATEGORIES.find((category) => category.id === id) ?? null;
 

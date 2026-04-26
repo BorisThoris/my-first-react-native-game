@@ -67,6 +67,7 @@ export const GAMEPLAY_VISUAL_CSS_VARS = {
     ['--gameplay-stage-ring-size' as string]: 'min(116%, 60rem)'
 } as CSSProperties;
 
+/** REG-108 / REG-012: material lanes align with `REG108_CARD_MATERIAL_LANES` in `regPhase4PlayContract`. */
 export const GAMEPLAY_BOARD_VISUALS = {
     faceUpHoverRimOpacityMul: {
         high: 0.56,

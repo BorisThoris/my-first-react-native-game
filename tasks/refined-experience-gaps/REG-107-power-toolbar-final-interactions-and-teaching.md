@@ -1,7 +1,7 @@
 # REG-107: Power toolbar final interactions and teaching
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

@@ -1,7 +1,7 @@
 # REG-113: Asset placeholder inventory and drop in contract
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

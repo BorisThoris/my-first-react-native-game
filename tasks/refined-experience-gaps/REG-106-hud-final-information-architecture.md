@@ -1,7 +1,7 @@
 # REG-106: HUD final information architecture
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

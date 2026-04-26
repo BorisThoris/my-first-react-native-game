@@ -46,6 +46,7 @@ import { BOARD_LAYOUT_VIEWPORT_PADDING, TILE_SPACING } from './tileShatter';
 import { computeBoardEntranceMotionBudgetMs, computeShuffleMotionBudgetMs } from './shuffleFlipAnimation';
 import { boardWebglPerfSampleRecordReactCommit, boardWebglPerfSampleVerboseEnabled } from '../dev/boardWebglPerfSample';
 import { preloadTileTextureImages } from './tileTextures';
+import { REG103_BOARD_TOUCH_ACTION, REG105_DATA_DAIS, REG105_DATA_STAGEVIEW } from '../gameplay/regPhase4PlayContract';
 
 /** Minimum time the pre-board “gather / release” motif stays visible while GPU warm-up runs in parallel. */
 const BOARD_PRESTAGE_DWELL_MS = 360;
@@ -1382,6 +1383,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
             data-board-pan-y={renderedViewportState.panY.toFixed(4)}
             data-board-zoom={renderedViewportState.zoom.toFixed(4)}
             data-gesture-active={gestureActive ? 'true' : 'false'}
+            {...{ [REG105_DATA_DAIS]: 'v1' }}
             data-mobile-camera-mode={cameraViewportMode ? 'true' : 'false'}
             data-selection-suppressed={selectionSuppressed ? 'true' : 'false'}
             data-testid="tile-board-frame"
@@ -1412,7 +1414,13 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                     role="application"
                     tabIndex={0}
                 >
-                    <div className={styles.stage} data-testid="tile-board-stage-shell" ref={stageRef}>
+                    <div
+                        className={styles.stage}
+                        data-testid="tile-board-stage-shell"
+                        {...{ [REG105_DATA_STAGEVIEW]: 'v1' }}
+                        ref={stageRef}
+                        style={{ touchAction: REG103_BOARD_TOUCH_ACTION }}
+                    >
                         {boardPreStage === 'loading' && baselineWebGl && !gpuSurfaceLost ? (
                             <div
                                 aria-hidden

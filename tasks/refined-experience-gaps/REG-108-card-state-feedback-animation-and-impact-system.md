@@ -1,7 +1,7 @@
 # REG-108: Card state feedback animation and impact system
 
 ## Status
-Open
+Done
 
 ## Priority
 P0
