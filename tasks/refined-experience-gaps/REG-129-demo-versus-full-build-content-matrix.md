@@ -1,7 +1,7 @@
 # REG-129: Demo versus full build content matrix
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

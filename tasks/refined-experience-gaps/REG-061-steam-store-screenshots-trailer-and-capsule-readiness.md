@@ -1,7 +1,7 @@
 # REG-061: Steam Store Screenshots Trailer And Capsule Readiness
 
 ## Status
-Open
+Deferred
 
 ## Priority
 P2

@@ -1,7 +1,7 @@
 # REG-118: Steam demo full product packaging checklist
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

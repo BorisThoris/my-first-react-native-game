@@ -1,7 +1,7 @@
 # REG-115: Feature flag content lock and release readiness
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

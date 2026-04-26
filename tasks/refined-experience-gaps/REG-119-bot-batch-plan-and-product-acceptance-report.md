@@ -1,7 +1,7 @@
 # REG-119: Bot batch plan and product acceptance report
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

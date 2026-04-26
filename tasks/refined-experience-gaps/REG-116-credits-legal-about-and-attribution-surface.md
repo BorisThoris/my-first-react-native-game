@@ -1,7 +1,7 @@
 # REG-116: Credits legal about and attribution surface
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

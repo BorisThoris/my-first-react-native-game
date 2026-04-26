@@ -156,6 +156,14 @@ schema: reg | phase | status | contract | proof
 | REG-158 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
 | REG-159 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
 | REG-160 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-115 | 7 | done | Offline feature lock / release readiness token. | `regPhase7Ship` |
+| REG-116 | 7 | done | Credits/legal surface route token. | `regPhase7Ship` |
+| REG-117 | 7 | done | Save trust bundle token for import/export path. | `regPhase7Ship` |
+| REG-118 | 7 | done | Demo vs full matrix checklist token. | `regPhase7Ship` |
+| REG-119 | 7 | done | Product acceptance report bridge id. | `regPhase7Ship` test |
+| REG-129 | 7 | done | Demo build matrix token. | `regPhase7Ship` |
+| REG-060 | 7 | blocked | Windows+Steam runtime smoke; blocked until host environment exists. | `REG_BLOCKERS_AND_DEFERRALS` |
+| REG-061 | 7 | deferred | Final licensed store media; deferred until assets/rights land. | `REG_BLOCKERS_AND_DEFERRALS` |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

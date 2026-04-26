@@ -1,7 +1,7 @@
 # REG-060: Steam Package Installer And Runtime Smoke
 
 ## Status
-Open
+Blocked
 
 ## Priority
 P1
