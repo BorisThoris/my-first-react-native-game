@@ -189,11 +189,16 @@
 }
 
 .heroSection,
-.librarySection {
+.librarySection,
+.socialScopeSection {
     display: flex;
     flex-direction: column;
     gap: var(--theme-space-md);
     min-width: 0;
+}
+
+.socialScopeSection {
+    padding-top: var(--theme-space-sm);
 }
 
 /* More modes: uniform compact tiles (fixed height); hero uses full-width thirds. */

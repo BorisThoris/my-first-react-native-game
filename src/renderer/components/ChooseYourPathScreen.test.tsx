@@ -64,5 +64,7 @@ describe('ChooseYourPathScreen REG-010 discoverability', () => {
         expect(discovery).toHaveTextContent(/playable mode/);
         expect(discovery).toHaveTextContent(/Page 1 of/);
         expect(screen.getByText(/Planned post-v1 mode/)).toBeInTheDocument();
+        expect(screen.getByTestId('choose-path-social-scope')).toHaveTextContent(/Share-only/);
+        expect(screen.getByTestId('choose-path-social-scope')).toHaveTextContent(/Pass-and-play/);
     });
 });

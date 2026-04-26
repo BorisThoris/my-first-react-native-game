@@ -26,6 +26,7 @@ import {
     type RunModeDefinition
 } from '../../shared/run-mode-catalog';
 import { buildRunModeDiscoveryState } from '../../shared/run-mode-discovery';
+import { getSocialPlayScopeRows } from '../../shared/social-play-scope';
 import { isModePosterFallback, resolveModePosterUrl } from '../assets/ui/modeArt';
 import { UI_ART } from '../assets/ui';
 import { Eyebrow, MetaFrame, ScreenTitle, UiButton } from '../ui';
@@ -178,6 +179,7 @@ const ChooseYourPathScreen = () => {
     const [meditationOpen, setMeditationOpen] = useState(false);
     const [meditationSelection, setMeditationSelection] = useState<Set<MutatorId>>(() => new Set());
     const challengeGateRows = getChallengeModeGateRows(saveData);
+    const socialScopeRows = getSocialPlayScopeRows();
 
     const heroModes = useMemo((): readonly RunModeDefinition[] => choosePathHeroModes(), []);
 
@@ -777,6 +779,24 @@ const ChooseYourPathScreen = () => {
                                             </div>
                                         </>
                                     )}
+                                </section>
+
+                                <section aria-label="Social play scope" className={styles.socialScopeSection}>
+                                    <Eyebrow className={styles.sectionEyebrow} tone="menu">
+                                        Social play
+                                    </Eyebrow>
+                                    <div className={metaStyles.archiveCatalogGrid} data-testid="choose-path-social-scope">
+                                        {socialScopeRows.map((row) => (
+                                            <div className={metaStyles.archiveCatalogRow} key={row.id}>
+                                                <p className={metaStyles.archiveCatalogRowTitle}>
+                                                    {row.title}: {row.status}
+                                                </p>
+                                                <p className={metaStyles.subtitle}>
+                                                    {row.description} {row.uiCopy}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </section>
                             </div>
                         </div>
