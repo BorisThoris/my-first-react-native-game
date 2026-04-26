@@ -91,6 +91,28 @@ export const GAMEPLAY_BOARD_VISUALS = {
         base: 0.24,
         pulse: 0.2
     },
+    interactionFeedback: {
+        match: {
+            material: 'ember-green victory rim + scale pulse',
+            motionMs: 220,
+            reducedMotion: 'static victory rim + emissive lift'
+        },
+        mismatch: {
+            material: 'danger tint + short recoil',
+            motionMs: 180,
+            reducedMotion: 'danger tint + rim only'
+        },
+        invalid: {
+            material: 'blocked slot dim + focus ring',
+            motionMs: 0,
+            reducedMotion: 'blocked slot dim + focus ring'
+        },
+        combo: {
+            material: 'gold shard/favor emphasis',
+            motionMs: 240,
+            reducedMotion: 'gold text/rim emphasis'
+        }
+    },
     matchedEdgeEffect: {
         band: {
             innerWidth: 0.18,
@@ -168,6 +190,65 @@ export const GAMEPLAY_CARD_VISUALS = {
     texturedBackTint: {
         end: 'rgba(8, 6, 6, 0.18)',
         start: 'rgba(62, 39, 20, 0.09)'
+    }
+} as const;
+
+export const CARD_INTERACTION_FEEDBACK = {
+    hidden: {
+        material: 'cool lacquered card back',
+        visualCue: 'readable back pattern with tutorial/hover rings when eligible',
+        audioCue: 'none',
+        motionMs: 0,
+        reducedMotionCue: 'static pattern and focus outline'
+    },
+    hover: {
+        material: 'warm lifted gilt edge',
+        visualCue: 'gold rim, slight lift, and warm tint on pickable cards',
+        audioCue: 'none',
+        motionMs: 140,
+        reducedMotionCue: 'static gold rim without lift'
+    },
+    flip: {
+        material: 'raised face plate',
+        visualCue: 'short face-up pop with structural lift',
+        audioCue: 'flip',
+        motionMs: 220,
+        reducedMotionCue: 'instant face swap with brighter face plate'
+    },
+    match: {
+        material: 'ember victory rim',
+        visualCue: 'matched edge flame, green-gold glow, and score floater',
+        audioCue: 'resolve_match',
+        motionMs: 400,
+        reducedMotionCue: 'static success rim and score floater'
+    },
+    mismatch: {
+        material: 'danger recoil face',
+        visualCue: 'red tint, danger rim, short shake, and miss floater',
+        audioCue: 'resolve_miss',
+        motionMs: 260,
+        reducedMotionCue: 'static danger tint and miss floater'
+    },
+    combo: {
+        material: 'streak reward spark',
+        visualCue: 'HUD objective/combo shard reward copy plus score emphasis',
+        audioCue: 'floor_clear_or_pickup',
+        motionMs: 320,
+        reducedMotionCue: 'text reward copy and stable score emphasis'
+    },
+    invalid: {
+        material: 'locked dull edge',
+        visualCue: 'dimmed card, blocked live-region copy, no flip',
+        audioCue: 'none',
+        motionMs: 120,
+        reducedMotionCue: 'static dim and blocked copy'
+    },
+    disabled: {
+        material: 'unavailable matte card',
+        visualCue: 'dimmed hidden card and no hover lift',
+        audioCue: 'none',
+        motionMs: 0,
+        reducedMotionCue: 'static dim state'
     }
 } as const;
 

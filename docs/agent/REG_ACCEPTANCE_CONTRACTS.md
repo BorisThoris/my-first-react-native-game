@@ -68,6 +68,7 @@ schema: reg | phase | status | contract | proof
 | REG-036 | 3 | done | Reference settings controls are modeled as live vs future placeholders; difficulty/timer/max-lives/card-theme rows remain disabled, non-persisted, and documented with migration, achievements, daily fairness, and rules-version implications. | settings-control-model + Settings tests |
 | REG-010 | 4 | done | Choose Path has an above-fold selected-mode/start strip, explicit browse/search/page state, inline locked-mode explanation, and tested discovery copy for filtered/empty library states. | run-mode-discovery + ChoosePath tests |
 | REG-011 | 4 | done | Collection, Inventory, and Codex each expose an active reward/progress signal from real save/run data, including next goals, build value, empty-state recovery, and local-only learning/deep-link prompts without new persistence. | meta-reward-signals + Inventory tests |
+| REG-012 | 4 | done | Card interaction feedback has explicit material tokens for match, mismatch, invalid, and combo states, with distinct motion budgets and reduced-motion fallbacks aligned to existing WebGL/audio feedback paths. | gameplayVisualConfig + graphicsQuality tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.
