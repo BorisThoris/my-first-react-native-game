@@ -9,12 +9,13 @@ See `src/shared/contracts.ts` and `DEFAULT_SETTINGS` in `src/shared/save-data.ts
 ## Reference-only rows (UI today)
 Rendered under **Settings → Controls → “Future tuning (not wired)”** in `SettingsScreen.tsx`:
 
-| Control (reference) | Live behavior | Notes |
-|---------------------|---------------|--------|
-| Difficulty | Disabled placeholder buttons | Copy states no live setting; balance curve is fixed. |
-| Timer Mode | Disabled placeholder | Not connected to save or rules. |
-| Max Lives | Disabled placeholder | Lives follow game rules (`MAX_LIVES` etc.). |
-| Card Theme | Disabled placeholder | Asset slots only; no theme picker in schema. |
+| Control (reference) | Live behavior | Plan row (`settings-control-model.ts`) | Notes |
+|---------------------|---------------|--------------------------------------|--------|
+| Difficulty | Disabled placeholder buttons | `difficulty` / `future_rules_variant` | Copy states no live setting; balance curve is fixed. |
+| Timer Mode | Disabled placeholder | `timer_mode` / `future_rules_variant` | Not connected to save or rules. |
+| Max Lives | Disabled placeholder | `max_lives` / `future_rules_variant` | Lives follow game rules (`MAX_LIVES` etc.). |
+| Card Theme | Disabled placeholder | `card_theme` / `cosmetic_theme` | Asset slots only; no theme picker in schema. |
+| Tutorial Hints | Disabled placeholder | `tutorial_hints` / `future_ui_preference` | Current onboarding flags are persisted (`onboardingDismissed`, `powersFtueSeen`); no independent settings toggle. |
 
 ## Honesty rule
 If a future build wires any of the above, add the field to `Settings`, migrate save data, and **remove** the disabled placeholder row for that control.

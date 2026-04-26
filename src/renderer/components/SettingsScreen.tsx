@@ -11,6 +11,7 @@ import {
 } from '../../shared/contracts';
 import { FEATURE_CLOUD_SAVE } from '../../shared/feature-flags';
 import { getProfileSummaryRows, getSaveTrustRows } from '../../shared/profile-summary';
+import { getReferenceOnlySettingsRows } from '../../shared/settings-control-model';
 import { DEFAULT_SETTINGS } from '../../shared/save-data';
 import {
     isNarrowShortLandscapeForMenuStack,
@@ -289,6 +290,7 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
     const eyebrow = isModal ? 'Paused' : 'Preferences';
     const profileSummaryRows = getProfileSummaryRows(saveData);
     const saveTrustRows = getSaveTrustRows(saveData);
+    const referenceControlRows = getReferenceOnlySettingsRows();
     const isDirty = JSON.stringify(draft) !== JSON.stringify(settings);
     const [unsavedBackOpen, setUnsavedBackOpen] = useState(false);
     const lastCounterTickAtRef = useRef(0);
@@ -624,30 +626,15 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                                                     Segments are disabled; the shipped Steam demo ignores these fields.
                                                 </p>
                                                 <div className={styles.toggleStack} data-testid="settings-gameplay-reference">
-                                                    <PlaceholderControl
-                                                        honestFuturePlaceholder
-                                                        hint="Reference only: shipped balance is the Standard profile (4/5 lives, first mismatch grace, softened memorize curve)."
-                                                        label="Difficulty"
-                                                        options={['Easy', 'Normal', 'Hard', 'Nightmare']}
-                                                    />
-                                                    <PlaceholderControl
-                                                        honestFuturePlaceholder
-                                                        hint="Timer mode is not connected to save data or run rules in this build."
-                                                        label="Timer mode"
-                                                        options={['Classic', 'Countdown', 'Relentless']}
-                                                    />
-                                                    <PlaceholderControl
-                                                        honestFuturePlaceholder
-                                                        hint="Max lives follow game constants until a future settings schema."
-                                                        label="Max lives"
-                                                        options={['2', '3', '4', '5']}
-                                                    />
-                                                    <PlaceholderControl
-                                                        honestFuturePlaceholder
-                                                        hint="Card-back cosmetics are tracked in Collection and Inventory; live board theme switching is deferred until REG-066 rendering assets are wired."
-                                                        label="Card theme"
-                                                        options={['Classic Card Back', 'Relic Gold Card Back (locked)']}
-                                                    />
+                                                    {referenceControlRows.map((row) => (
+                                                        <PlaceholderControl
+                                                            honestFuturePlaceholder={row.persistedSettingKey === null}
+                                                            hint={`${row.hint} ${row.ruleImpact}`}
+                                                            key={row.id}
+                                                            label={row.label}
+                                                            options={[...row.options]}
+                                                        />
+                                                    ))}
                                                 </div>
                                             </SettingsSection>
                                         ) : null}
@@ -671,6 +658,15 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                                                     Gameplay → Gameplay reference as honest "Coming soon" placeholders
                                                     (not persisted).
                                                 </p>
+                                                <div className={styles.saveTrustGrid} data-testid="settings-reference-control-policy">
+                                                    {referenceControlRows.map((row) => (
+                                                        <div className={styles.saveTrustRow} key={row.id}>
+                                                            <strong>{row.label}</strong>
+                                                            <span>{row.copy}</span>
+                                                            <em>{row.migrationRequiredWhenEnabled ? 'Migration required before enabling' : 'No migration while placeholder'}</em>
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </SettingsSection>
                                         ) : null}
 

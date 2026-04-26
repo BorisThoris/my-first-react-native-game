@@ -59,4 +59,17 @@ describe('SettingsScreen', () => {
         await user.click(screen.getByRole('button', { name: /^reset$/i }));
         expect(screen.getByText(/Save data, profile level, history, honors, and cosmetics are not deleted/)).toBeInTheDocument();
     });
+
+    it('REG-036 labels reference controls as non-persisted future rows', async () => {
+        const user = userEvent.setup();
+        render(<SettingsScreen presentation="page" />);
+
+        await user.click(screen.getByRole('button', { name: /^gameplay reference$/i }));
+
+        const reference = screen.getByTestId('settings-gameplay-reference');
+        expect(reference).toHaveTextContent(/Difficulty/);
+        expect(reference).toHaveTextContent(/Not in Steam demo/);
+        expect(reference).toHaveTextContent(/GAME_RULES_VERSION/);
+        expect(reference).toHaveTextContent(/Card theme/);
+    });
 });
