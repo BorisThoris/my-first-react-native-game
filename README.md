@@ -80,6 +80,8 @@ Also:
 
 Design and mutator details: [docs/MUTATORS.md](docs/MUTATORS.md), [docs/gameplay/GAMEPLAY_MECHANICS_CATALOG.md](docs/gameplay/GAMEPLAY_MECHANICS_CATALOG.md) (full rules matrix), [docs/GAMEPLAY_SYSTEMS_ANALYSIS.md](docs/GAMEPLAY_SYSTEMS_ANALYSIS.md).
 
+The full v1 ship bar is the offline-first [complete product definition of done](docs/product/COMPLETE_PRODUCT_DEFINITION_OF_DONE.md): local play, Steam where already targeted, first-class responsive/mobile UI, save trust, and staged hardening. Competitive online leaderboards, server-backed online services, and mandatory online accounts are explicitly deferred.
+
 **Internal wiki (full doc map, multi-agent upkeep, coverage methodology):** [docs/internal-wiki/README.md](docs/internal-wiki/README.md) · [docs/internal-wiki/COVERAGE.md](docs/internal-wiki/COVERAGE.md).
 
 ## Archived Legacy Code
