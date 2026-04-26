@@ -7,7 +7,12 @@ import {
     VIEWPORT_LANDSCAPE_STACK_MAX_WIDTH,
     VIEWPORT_SHORT_LANDSCAPE_MAX_HEIGHT
 } from './breakpoints';
-import { HIGH_TRAFFIC_VIEWPORT_MATRIX, getViewportRegressionExpectations } from './viewportMatrix';
+import {
+    HIGH_TRAFFIC_VIEWPORT_MATRIX,
+    RESPONSIVE_SCREEN_ROUTES,
+    getViewportRegressionExpectations,
+    responsiveMatrixFinalDeviceGridSummary
+} from './viewportMatrix';
 
 describe('isShortLandscapeViewport', () => {
     it('is true for 1280×720 HD landscape', () => {
@@ -93,5 +98,17 @@ describe('REG-028 high-traffic viewport regression matrix', () => {
             menuStacks: false,
             settingsLayout: 'wide-short'
         });
+    });
+});
+
+describe('REG-102 final responsive device grid', () => {
+    it('covers every high-traffic shell screen with at least one phone and desktop route', () => {
+        const summary = responsiveMatrixFinalDeviceGridSummary();
+        expect(summary.viewportCount).toBe(8);
+        expect(summary.screenCount).toBeGreaterThanOrEqual(7);
+        expect(summary.hasPhoneCoverage).toBe(true);
+        expect(summary.hasDesktopCoverage).toBe(true);
+        expect(summary.allScreensHavePrimarySelectors).toBe(true);
+        expect(RESPONSIVE_SCREEN_ROUTES.every((route) => route.requiredViewportIds.length > 0)).toBe(true);
     });
 });

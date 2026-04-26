@@ -91,6 +91,7 @@ schema: reg | phase | status | contract | proof
 | REG-099 | 4 | done | Navigation shell chrome/backstack invariants are machine-readable: page Back routes to menu, in-run meta preserves GameScreen, null-run recovery normalizes to menu, and game-over return stays local. | navigationModel + useAppStore tests |
 | REG-100 | 4 | done | Empty/loading/error/locked state copy is centralized, actionable, local/offline-safe, and used by Inventory/Codex for no-run, no-relic, no-mutator, no-contract, and no-filter-result states. | ui-state-copy + Inventory/Codex tests |
 | REG-101 | 4 | done | Copy tone rules align player-facing microcopy with mechanics glossary, premium/offline economy language, local scope, and concise mobile wording; shop buttons use “Spend shop gold” rather than real-money verbs. | copy-tone + mechanics/GameScreen tests |
+| REG-102 | 4 | done | Responsive final device grid covers high-traffic shell screens across phone, tablet, short desktop, and desktop viewports with primary selectors, no-horizontal-scroll expectations, and layout summary helpers. | breakpoints/viewport matrix tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.
