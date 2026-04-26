@@ -3,6 +3,7 @@ import { ACHIEVEMENTS } from '../../shared/achievements';
 import { MUTATOR_CATALOG, RELIC_CATALOG } from '../../shared/game-catalog';
 import type { MutatorId, RelicId, RunState } from '../../shared/contracts';
 import { buildDailyResultsLoopRows } from '../../shared/daily-archive';
+import { getGameOverNextRunRows } from '../../shared/game-over-next-run';
 import { buildRunJournalEntry } from '../../shared/run-history';
 import { useShallow } from 'zustand/react/shallow';
 import { UI_ART } from '../assets/ui';
@@ -84,6 +85,7 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
 
     const flipCount = run.flipHistory?.length ?? 0;
     const journalEntry = buildRunJournalEntry(run);
+    const nextRunRows = getGameOverNextRunRows(run);
     const metaItems = [
         ...(summary.activeMutators?.map((id) => mutatorLabel(id)) ?? []),
         ...(summary.relicIds?.map((id) => relicLabel(id)) ?? [])
@@ -246,6 +248,15 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
                                 >
                                     {gameOverScreenCopy.mainMenuLabel}
                                 </UiButton>
+                            </div>
+                            <div className={styles.nextRunGrid} data-testid="game-over-next-run-loop">
+                                {nextRunRows.map((row) => (
+                                    <div className={styles.nextRunCard} key={row.id}>
+                                        <strong>{row.title}</strong>
+                                        <span>{row.value}</span>
+                                        <p>{row.detail}</p>
+                                    </div>
+                                ))}
                             </div>
                         </Panel>
 

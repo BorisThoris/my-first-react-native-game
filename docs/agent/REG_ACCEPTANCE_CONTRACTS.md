@@ -85,6 +85,7 @@ schema: reg | phase | status | contract | proof
 | REG-093 | 4 | done | Collection has a final reward-gallery surface with owned, in-progress, and missing rows derived from local save achievements, profile goals, cosmetics, relic discovery, and run history, with honest local-only empty states. | collection-reward-gallery + Collection tests |
 | REG-094 | 4 | done | Inventory has a run-prep board that summarizes active run setup, loadout capacity, mutable windows, and next prep action from REG-079 run inventory data while staying read-only/offline. | inventory-prep + Inventory tests |
 | REG-095 | 4 | done | Codex has a final knowledge-base summary for guide depth, table depth, local deep links, and filter recovery derived from mechanics encyclopedia sources without changing run state. | codex-knowledge-base + Codex tests |
+| REG-096 | 4 | done | Game Over surfaces a next-run loop with run-it-back, build recap, local share, and next-goal rows derived from local summary/run data, keeping Play Again/Main Menu above fold and no online ranking. | game-over-next-run + GameOver tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

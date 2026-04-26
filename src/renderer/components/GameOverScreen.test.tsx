@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { RunState } from '../../shared/contracts';
 import { createNewRun, createRunSummary, finishMemorizePhase } from '../../shared/game';
 import { createDefaultSaveData } from '../../shared/save-data';
+import { getGameOverNextRunRows } from '../../shared/game-over-next-run';
 import { gameOverScreenCopy } from '../copy/gameOverScreen';
 import GameOverScreen from './GameOverScreen';
 
@@ -88,5 +89,15 @@ describe('GameOverScreen (REF-031)', () => {
         expect(topSummary).toHaveTextContent('Play Again');
         expect(topSummary).toHaveTextContent('Main Menu');
         expect(screen.getByText(/Journal/)).toBeInTheDocument();
+    });
+
+    it('REG-096 surfaces next-run loop reasons from local summary data', () => {
+        const rows = getGameOverNextRunRows(gameOverRunFixture());
+        expect(rows.map((row) => row.id)).toEqual(['run_it_back', 'build_recap', 'local_share', 'next_goal']);
+        expect(rows.every((row) => row.localOnly)).toBe(true);
+
+        render(<GameOverScreen run={gameOverRunFixture()} />);
+        expect(screen.getByTestId('game-over-next-run-loop')).toHaveTextContent(/Classic/);
+        expect(screen.getByTestId('game-over-next-run-loop')).toHaveTextContent(/Next goal/);
     });
 });
