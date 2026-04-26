@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
     getNavigationRouteContract,
+    getNavigationShellChromeRows,
     NAVIGATION_ROUTE_CONTRACTS,
     resolveNavigationTransition,
     resolveSettingsCloseTarget,
@@ -59,5 +60,13 @@ describe('navigationModel', () => {
             kind: 'setView',
             view: 'modeSelect'
         });
+    });
+
+    it('REG-099 documents global shell chrome and backstack invariants', () => {
+        const rows = getNavigationShellChromeRows();
+        expect(rows.map((row) => row.id)).toEqual(['page_back', 'in_run_meta', 'null_run_recovery', 'game_over_return']);
+        expect(rows.every((row) => row.localOnly)).toBe(true);
+        expect(rows.find((row) => row.id === 'null_run_recovery')?.chrome).toMatch(/menu/i);
+        expect(rows.find((row) => row.id === 'in_run_meta')?.chrome).toMatch(/Gameplay remains mounted/i);
     });
 });

@@ -1360,7 +1360,7 @@
     "updated": "2026-04-25"
   },
   "REG-099": {
-    "status": "open",
+    "status": "done",
     "phase": 4,
     "lane": "default",
     "dependencies": [
@@ -1373,7 +1373,7 @@
       "REG-028",
       "REG-044"
     ],
-    "commit": null,
+    "commit": "PENDING_REG_099",
     "updated": "2026-04-25"
   },
   "REG-100": {

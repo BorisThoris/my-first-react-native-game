@@ -21,6 +21,14 @@ export type NavigationAction =
 
 export type NavigationPresentation = 'page' | 'in-run-overlay' | 'status-overlay';
 
+export interface NavigationShellChromeContract {
+    visualView: ViewState;
+    shellChrome: 'menu_hub' | 'meta_page' | 'gameplay' | 'gameplay_modal' | 'post_run' | 'boot';
+    boardMounted: boolean;
+    fallbackView: ViewState;
+    reason: string;
+}
+
 export interface NavigationRouteContract {
     action: NavigationAction;
     from: NavigationSurface;
@@ -28,6 +36,15 @@ export interface NavigationRouteContract {
     presentation: NavigationPresentation;
     timerPolicy: 'none' | 'freeze-on-open' | 'resume-on-close' | 'no-resume';
     to: NavigationSurface;
+}
+
+export interface NavigationShellChromeRow {
+    id: 'page_back' | 'in_run_meta' | 'null_run_recovery' | 'game_over_return';
+    label: string;
+    route: string;
+    chrome: string;
+    preservesRun: boolean;
+    localOnly: true;
 }
 
 interface ResolveCloseInput {
@@ -137,6 +154,41 @@ export const getNavigationRouteContract = (
 ): NavigationRouteContract | null =>
     NAVIGATION_ROUTE_CONTRACTS.find((route) => route.from === from && route.to === to && route.action === action) ?? null;
 
+export const getNavigationShellChromeRows = (): NavigationShellChromeRow[] => [
+    {
+        id: 'page_back',
+        label: 'Page Back',
+        route: 'modeSelect/collection/inventory/codex/settings → menu',
+        chrome: 'Full meta destination with visible Back button.',
+        preservesRun: false,
+        localOnly: true
+    },
+    {
+        id: 'in_run_meta',
+        label: 'In-run meta overlay',
+        route: 'playing → inventory/codex/settings → playing',
+        chrome: 'Gameplay remains mounted underneath desk/modal chrome; run timers freeze and resume.',
+        preservesRun: true,
+        localOnly: true
+    },
+    {
+        id: 'null_run_recovery',
+        label: 'Null-run recovery',
+        route: 'inventory/codex/settings with missing run → menu',
+        chrome: 'Return pointers normalize to menu so no blank playing shell appears.',
+        preservesRun: false,
+        localOnly: true
+    },
+    {
+        id: 'game_over_return',
+        label: 'Game-over return',
+        route: 'gameOver → menu or restart',
+        chrome: 'Post-run page owns its action dock; no browser history or online route required.',
+        preservesRun: false,
+        localOnly: true
+    }
+];
+
 export const isRunStatusResumableAfterMetaOverlay = (status: RunStatus): boolean =>
     status === 'memorize' || status === 'playing' || status === 'resolving';
 
@@ -167,6 +219,35 @@ export const resolveSettingsCloseTarget = ({
 export const isMenuDestinationView = (view: ViewState): boolean => MENU_RETURN_VIEWS.has(view);
 
 export const isInRunMetaView = (view: ViewState): boolean => IN_RUN_META_VIEWS.has(view);
+
+export const getNavigationShellChromeContract = ({
+    runPresent,
+    settingsReturnView,
+    subscreenReturnView,
+    view
+}: {
+    runPresent: boolean;
+    settingsReturnView: SubscreenReturnView;
+    subscreenReturnView: SubscreenReturnView;
+    view: ViewState;
+}): NavigationShellChromeContract => {
+    if (view === 'boot') {
+        return { visualView: 'boot', shellChrome: 'boot', boardMounted: false, fallbackView: 'menu', reason: 'Hydration/intro shell.' };
+    }
+    if (view === 'gameOver') {
+        return { visualView: 'gameOver', shellChrome: 'post_run', boardMounted: false, fallbackView: 'menu', reason: 'Post-run shell owns next actions.' };
+    }
+    if (view === 'playing') {
+        return { visualView: runPresent ? 'playing' : 'menu', shellChrome: runPresent ? 'gameplay' : 'menu_hub', boardMounted: runPresent, fallbackView: 'menu', reason: runPresent ? 'Active gameplay shell.' : 'No run; fall back to menu.' };
+    }
+    if (view === 'settings' && settingsReturnView === 'playing') {
+        return { visualView: runPresent ? 'playing' : 'menu', shellChrome: runPresent ? 'gameplay_modal' : 'menu_hub', boardMounted: runPresent, fallbackView: 'menu', reason: 'Run settings overlays gameplay and freezes timers.' };
+    }
+    if ((view === 'inventory' || view === 'codex') && subscreenReturnView === 'playing') {
+        return { visualView: runPresent ? 'playing' : 'menu', shellChrome: runPresent ? 'gameplay_modal' : 'menu_hub', boardMounted: runPresent, fallbackView: 'menu', reason: 'In-run meta overlays keep gameplay mounted.' };
+    }
+    return { visualView: view, shellChrome: view === 'menu' ? 'menu_hub' : 'meta_page', boardMounted: false, fallbackView: 'menu', reason: 'Full-page menu/meta destination.' };
+};
 
 export type StoreNavigationAction =
     | 'closeSettings'
