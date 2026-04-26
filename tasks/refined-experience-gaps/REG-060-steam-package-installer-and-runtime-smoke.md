@@ -37,8 +37,9 @@ A packaged build should launch, save, play audio, connect or gracefully disconne
 - Audio and display mode work in packaged runtime.
 
 ## Verification
+- **Offline checklist (doc-only; does not close REG-060):** [docs/qa/steam-package-smoke-checklist.md](../../docs/qa/steam-package-smoke-checklist.md)
 - Run `yarn package:dir` or `yarn package:win` when implementation begins.
-- Execute manual smoke checklist on Windows.
+- Execute the manual smoke checklist on **Windows** (packaged build).
 - Record Steam connected and disconnected outcomes.
 
 ## Cross-links

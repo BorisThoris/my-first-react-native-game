@@ -37,3 +37,15 @@
   ]
 }
 ```
+
+## Program completion (offline v1)
+
+For the current **offline v1** product bar, the REG set **REG-000** through **REG-160** is **fully addressed in the repository** as recorded in [REG_STATE_INDEX.json](REG_STATE_INDEX.json) and the generator in [reg-state-index.mjs](reg-state-index.mjs). There is **no remaining open refinement backlog** in that range except the three entries above:
+
+| REG | Index status | Meaning |
+|-----|----------------|--------|
+| REG-052 | deferred | Online leaderboards and server trust are **out of scope** until product opens an online phase. |
+| REG-060 | blocked | **Packaged** Windows + Steam runtime smoke **requires a Windows x64 + Steam** host; see [../qa/steam-package-smoke-checklist.md](../qa/steam-package-smoke-checklist.md) for the **offline** checklist only (does not mark REG-060 done). |
+| REG-061 | deferred | **Final** store/trailer art requires **licensed** assets. |
+
+**Do not** mark these three as `done` in the index without satisfying each row’s `unblock_condition` in the JSON. Further work is **new initiatives** (not unfinished REG tasks).
