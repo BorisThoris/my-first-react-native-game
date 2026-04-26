@@ -1,7 +1,7 @@
 # REG-148: Hazard and trap vocabulary
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

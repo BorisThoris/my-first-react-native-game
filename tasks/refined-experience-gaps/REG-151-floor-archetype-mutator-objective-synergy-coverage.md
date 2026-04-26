@@ -1,7 +1,7 @@
 # REG-151: Floor archetype, mutator, and featured objective synergy coverage
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

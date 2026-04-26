@@ -1,7 +1,7 @@
 # REG-160: Hazard tile UI, a11y, and telegraphy
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

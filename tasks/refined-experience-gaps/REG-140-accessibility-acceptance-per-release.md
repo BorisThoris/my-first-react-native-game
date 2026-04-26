@@ -1,7 +1,7 @@
 # REG-140: Accessibility acceptance per release
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

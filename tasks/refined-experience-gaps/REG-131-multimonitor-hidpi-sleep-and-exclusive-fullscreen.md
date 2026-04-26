@@ -1,7 +1,7 @@
 # REG-131: Multimonitor HiDPI sleep and exclusive fullscreen
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

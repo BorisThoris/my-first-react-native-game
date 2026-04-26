@@ -1,7 +1,7 @@
 # REG-138: Rules encyclopedia drift and forbidden combos
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

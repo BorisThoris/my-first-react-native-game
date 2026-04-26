@@ -1,7 +1,7 @@
 # REG-146: Import path and clipboard safety
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

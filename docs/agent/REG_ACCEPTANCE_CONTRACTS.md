@@ -116,6 +116,46 @@ schema: reg | phase | status | contract | proof
 | REG-110 | 5 | done | WebGL health enum and GPU context-loss copy. | `regPhase5Hardening` |
 | REG-111 | 5 | done | Pointer-to-commit SLA in ms for responsiveness QA. | `regPhase5Hardening` |
 | REG-112 | 5 | done | Reduced-motion suppression list for FX LOD / visual noise. | `regPhase5Hardening` |
+| REG-120 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-121 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-122 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-123 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-124 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-125 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-126 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-127 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-128 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-130 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-131 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-132 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-133 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-134 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-135 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-136 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-137 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-138 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-139 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-140 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-141 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-142 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-143 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-144 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-145 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-146 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-147 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-148 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-149 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-150 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-151 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-152 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-153 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-154 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-155 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-156 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-157 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-158 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-159 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
+| REG-160 | 6 | done | Phase-6 matrix; anchor in regPhase6Closure. | regPhase6Closure test + task md |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

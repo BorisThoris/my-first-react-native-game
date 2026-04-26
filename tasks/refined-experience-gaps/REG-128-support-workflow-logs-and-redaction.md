@@ -1,7 +1,7 @@
 # REG-128: Support workflow logs and redaction
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

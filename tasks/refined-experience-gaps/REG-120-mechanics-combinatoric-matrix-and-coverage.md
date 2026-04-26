@@ -1,7 +1,7 @@
 # REG-120: Mechanics combinatoric matrix and coverage
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

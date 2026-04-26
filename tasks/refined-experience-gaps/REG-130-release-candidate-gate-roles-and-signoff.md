@@ -1,7 +1,7 @@
 # REG-130: Release candidate gate roles and signoff
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

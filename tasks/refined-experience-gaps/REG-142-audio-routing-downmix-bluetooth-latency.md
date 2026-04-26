@@ -1,7 +1,7 @@
 # REG-142: Audio routing downmix Bluetooth and latency
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

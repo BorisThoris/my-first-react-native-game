@@ -1,7 +1,7 @@
 # REG-152: Shop, vendor, run map, and node hooks
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

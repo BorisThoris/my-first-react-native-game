@@ -1,7 +1,7 @@
 # REG-141: Balance regression baseline snapshots
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

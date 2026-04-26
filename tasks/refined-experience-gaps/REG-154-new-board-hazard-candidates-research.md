@@ -1,7 +1,7 @@
 # REG-154: New board hazard candidates (research)
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

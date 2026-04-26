@@ -1,7 +1,7 @@
 # REG-132: Controller rebind conflict and focus loss
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

@@ -1,7 +1,7 @@
 # REG-121: RNG determinism replay and drift audit
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

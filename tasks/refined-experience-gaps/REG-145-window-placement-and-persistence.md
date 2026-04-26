@@ -1,7 +1,7 @@
 # REG-145: Window placement and persistence
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

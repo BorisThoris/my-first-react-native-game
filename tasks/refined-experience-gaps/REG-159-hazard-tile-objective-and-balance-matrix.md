@@ -1,7 +1,7 @@
 # REG-159: Hazard tile objective and balance matrix
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

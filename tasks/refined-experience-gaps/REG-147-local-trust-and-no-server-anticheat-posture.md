@@ -1,7 +1,7 @@
 # REG-147: Local trust and no server anticheat posture
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

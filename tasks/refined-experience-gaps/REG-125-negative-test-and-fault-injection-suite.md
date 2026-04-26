@@ -1,7 +1,7 @@
 # REG-125: Negative test and fault injection suite
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

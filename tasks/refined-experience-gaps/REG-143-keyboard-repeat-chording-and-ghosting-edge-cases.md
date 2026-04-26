@@ -1,7 +1,7 @@
 # REG-143: Keyboard repeat chording and ghosting edge cases
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

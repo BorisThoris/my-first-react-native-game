@@ -1,7 +1,7 @@
 # REG-134: Pseudo localization and string overflow QA
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

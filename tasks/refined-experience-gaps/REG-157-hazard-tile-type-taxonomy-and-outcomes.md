@@ -1,7 +1,7 @@
 # REG-157: Hazard tile type taxonomy and outcomes
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

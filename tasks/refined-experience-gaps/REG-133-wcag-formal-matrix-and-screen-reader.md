@@ -1,7 +1,7 @@
 # REG-133: WCAG formal matrix and screen reader
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

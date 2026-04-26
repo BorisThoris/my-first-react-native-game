@@ -1,7 +1,7 @@
 # REG-126: Soak test and long session stability
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

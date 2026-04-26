@@ -1,7 +1,7 @@
 # REG-135: Photosensitivity and rapid strobe audit
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

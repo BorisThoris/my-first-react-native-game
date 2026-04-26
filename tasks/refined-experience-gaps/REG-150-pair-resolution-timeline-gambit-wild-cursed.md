@@ -1,7 +1,7 @@
 # REG-150: Pair resolution timeline (gambit, wild, cursed)
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

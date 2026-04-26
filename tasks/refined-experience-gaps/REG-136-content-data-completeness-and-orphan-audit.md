@@ -1,7 +1,7 @@
 # REG-136: Content data completeness and orphan audit
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

@@ -1,7 +1,7 @@
 # REG-139: Migration fuzzing and partial corruption
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

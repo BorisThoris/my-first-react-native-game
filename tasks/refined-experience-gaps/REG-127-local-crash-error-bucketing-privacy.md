@@ -1,7 +1,7 @@
 # REG-127: Local crash error bucketing privacy
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

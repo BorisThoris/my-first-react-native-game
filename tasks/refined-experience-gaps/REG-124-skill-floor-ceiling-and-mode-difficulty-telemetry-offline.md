@@ -1,7 +1,7 @@
 # REG-124: Skill floor ceiling and mode difficulty telemetry offline
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

@@ -1,7 +1,7 @@
 # REG-122: UTC daily weekly clock rollback and boundaries
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

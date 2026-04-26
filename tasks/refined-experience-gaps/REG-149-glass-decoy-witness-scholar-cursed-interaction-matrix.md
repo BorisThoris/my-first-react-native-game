@@ -1,7 +1,7 @@
 # REG-149: Glass decoy, witness, scholar, cursed interaction matrix
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

@@ -1,7 +1,7 @@
 # REG-158: Hazard tile engine hooks and invariants
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

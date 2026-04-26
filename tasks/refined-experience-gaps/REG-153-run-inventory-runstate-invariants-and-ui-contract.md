@@ -1,7 +1,7 @@
 # REG-153: Run inventory, RunState invariants, and UI contract
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

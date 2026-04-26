@@ -1,7 +1,7 @@
 # REG-144: Laptop battery saver thermal and graphics
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

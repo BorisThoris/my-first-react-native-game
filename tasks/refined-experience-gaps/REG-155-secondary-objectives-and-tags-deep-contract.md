@@ -1,7 +1,7 @@
 # REG-155: Secondary objectives and result tags (deep contract)
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

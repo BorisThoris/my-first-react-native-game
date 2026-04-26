@@ -1,7 +1,7 @@
 # REG-137: Steam offline client edge cases
 
 ## Status
-Open
+Done
 
 ## Priority
 P0
