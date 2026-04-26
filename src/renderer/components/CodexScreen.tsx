@@ -15,6 +15,7 @@ import {
     RELIC_CATALOG,
     VISUAL_ENDLESS_MODE_LOCKED
 } from '../../shared/game-catalog';
+import { getCodexKnowledgeBaseRows } from '../../shared/codex-knowledge-base';
 import type { MutatorId, RelicId } from '../../shared/contracts';
 import { getCodexRewardSignal } from '../../shared/meta-reward-signals';
 import { Eyebrow, MetaFrame, Panel, ScreenTitle, UiButton } from '../ui';
@@ -91,6 +92,7 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
     const [debouncedFilterQuery, setDebouncedFilterQuery] = useState('');
     const [codexTab, setCodexTab] = useState<CodexTab>('all');
     const codexRewardSignal = getCodexRewardSignal(saveData);
+    const knowledgeRows = getCodexKnowledgeBaseRows();
     const uiGain = uiSfxGainFromSettings(settings.masterVolume, settings.sfxVolume);
     const playUiClick = (): void => {
         resumeUiSfxContext();
@@ -248,6 +250,20 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
                         </a>
                     ))}
                 </nav>
+
+                <MetaFrame data-testid="codex-knowledge-base-summary">
+                    <Panel className={heroPanelClassName} padding="md" variant="strong">
+                        <div className={styles.knowledgeBaseGrid}>
+                            {knowledgeRows.map((row) => (
+                                <div className={styles.knowledgeBaseCard} key={row.id}>
+                                    <strong>{row.title}</strong>
+                                    <span>{row.count}</span>
+                                    <p>{row.action}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </Panel>
+                </MetaFrame>
 
                 <MetaFrame data-testid="codex-reward-signal">
                     <Panel className={heroPanelClassName} padding="md" variant="strong">
