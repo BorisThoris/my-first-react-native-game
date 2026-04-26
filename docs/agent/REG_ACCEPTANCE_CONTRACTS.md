@@ -80,6 +80,7 @@ schema: reg | phase | status | contract | proof
 | REG-064 | 4 | done | Mechanics glossary locks preferred labels and avoided terms for lives, guard tokens, combo shards, relic Favor, shop gold, relics, mutators, contracts, findables, and Perfect Memory; encyclopedia version and appendix are updated. | mechanics encyclopedia + appendix tests |
 | REG-067 | 4 | done | Device motion polish is optional and user-initiated on touch devices, reduced motion hides/suppresses motion CTAs, unsupported platforms degrade silently, and haptics remain non-essential no-op polish in v1. | platformTilt permission/motion tests |
 | REG-090 | 4 | done | Choose Path quality rollout is defined as a machine-readable screen-quality contract with per-screen rollout order, dependencies, placeholder/asset slots, offline/leaderboard scope, and verification routing for REG-091+. | REG_090_CHOOSE_PATH_QUALITY_ROLLOUT.md + JSON parse |
+| REG-091 | 4 | done | Main Menu hub exposes mode entry, profile strip, return loop, and trust-boundary rows from real save/run data; the hub profile strip stays above fold and offline/local without fake social affordances. | main-menu-hub-quality + MainMenu tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

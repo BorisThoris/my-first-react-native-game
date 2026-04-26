@@ -58,5 +58,7 @@ describe('MainMenu REG-009 mobile landscape density', () => {
         expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Collection' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
+        expect(screen.getByTestId('main-menu-hub-quality-strip')).toHaveTextContent(/Trust/i);
+        expect(screen.getByTestId('main-menu-profile-strip')).toHaveTextContent(/Single-device save/i);
     });
 });

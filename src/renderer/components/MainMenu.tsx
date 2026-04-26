@@ -2,6 +2,7 @@ import type { RelicId, RunSummary, SaveData } from '../../shared/contracts';
 import { getEquippedCosmeticId } from '../../shared/cosmetics';
 import { countEligibleHonors, totalHonorUnlocks } from '../../shared/honorUnlocks';
 import { RELIC_CATALOG } from '../../shared/game-catalog';
+import { getMainMenuHubQualityRows } from '../../shared/main-menu-hub-quality';
 import { getObjectiveBoardItems } from '../../shared/objective-board';
 import { getProfileSummaryRows } from '../../shared/profile-summary';
 import { getQuestCampaignRows } from '../../shared/quest-campaign';
@@ -118,6 +119,7 @@ const MainMenu = ({
     const objectiveBoard = getObjectiveBoardItems(saveData);
     const questRows = getQuestCampaignRows(saveData);
     const profileSummary = getProfileSummaryRows(saveData);
+    const hubQualityRows = getMainMenuHubQualityRows(saveData, lastRunSummary);
     const profileTitle = getEquippedCosmeticId(saveData, 'title') === 'title_ascendant_v' ? 'Ascendant V' : 'Seeker';
     const profileCrest = getEquippedCosmeticId(saveData, 'crest') === 'crest_daily_bronze' ? 'Daily Bronze' : 'Lantern';
     const secondaryActions = [
@@ -371,6 +373,14 @@ const MainMenu = ({
                                 <span className={styles.profileOfflineNote}>Single-device save · no online social feed</span>
                             </section>
                         </MetaFrame>
+
+                        <div className={styles.hubQualityStrip} data-testid="main-menu-hub-quality-strip">
+                            {hubQualityRows.map((row) => (
+                                <span key={row.id}>
+                                    {row.label}<strong>{row.value}</strong>
+                                </span>
+                            ))}
+                        </div>
 
                         <div className={styles.layout}>
                             <main className={styles.heroColumn}>

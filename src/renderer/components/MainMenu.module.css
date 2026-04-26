@@ -145,14 +145,20 @@
     outline-offset: 2px;
 }
 
-.profileStrip {
+.profileStripFrame {
     position: relative;
     z-index: 3;
+    width: 100%;
+    --theme-meta-frame-outset: -0.18rem;
+    --theme-meta-frame-drop: 0 0 10px color-mix(in srgb, var(--theme-glow-gold) 32%, transparent);
+}
+
+.profileStrip {
+    position: relative;
     display: grid;
     grid-template-columns: minmax(12rem, 0.9fr) minmax(0, 1.6fr) minmax(12rem, 0.9fr);
     gap: var(--theme-space-sm);
     align-items: stretch;
-    margin-top: var(--theme-space-sm);
     padding: var(--theme-space-sm);
     border: 1px solid color-mix(in srgb, var(--theme-gold) 20%, var(--theme-border));
     border-radius: var(--ui-radius-lg);
@@ -169,23 +175,39 @@
 }
 
 .profileIdentity {
-    display: grid;
-    gap: 0.12rem;
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-sm);
 }
 
-.profileTitle {
+.profileCrest {
+    display: grid;
+    place-items: center;
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: 50%;
+    border: 1px solid color-mix(in srgb, var(--theme-gold) 34%, transparent);
+    background: color-mix(in srgb, var(--theme-void) 50%, transparent);
+    color: var(--theme-rune);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+}
+
+.profileName {
     color: var(--theme-rune);
     font-family: var(--ui-font-display-family);
     font-size: 1rem;
 }
 
-.profileStats {
+.profileStripStats {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: var(--theme-space-xs);
 }
 
-.profileStat span,
+.profileStripStats span,
+.profileStat,
 .communityPolicy span {
     display: block;
     color: var(--theme-text-muted);
@@ -194,10 +216,48 @@
     text-transform: uppercase;
 }
 
+.profileStripStats strong,
 .profileStat strong {
     display: block;
     color: var(--theme-text);
     font-size: 0.86rem;
+}
+
+.profileOfflineNote {
+    align-self: center;
+    padding: var(--theme-space-sm) var(--theme-space-md);
+    border-radius: var(--ui-radius-md);
+    background: color-mix(in srgb, var(--theme-panel-alt) 72%, transparent);
+    color: var(--theme-text-muted);
+    font-size: 0.74rem;
+    line-height: 1.25;
+}
+
+.hubQualityStrip {
+    position: relative;
+    z-index: 3;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--theme-space-xs);
+    padding: var(--theme-space-xs) var(--theme-space-sm);
+    border: 1px solid color-mix(in srgb, var(--theme-cyan) 16%, var(--theme-border));
+    border-radius: var(--ui-radius-md);
+    background: color-mix(in srgb, var(--theme-panel-solid) 64%, transparent);
+}
+
+.hubQualityStrip span {
+    color: var(--theme-text-muted);
+    font-size: 0.66rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.hubQualityStrip strong {
+    display: block;
+    color: var(--theme-text);
+    font-size: 0.8rem;
+    text-transform: none;
+    letter-spacing: 0;
 }
 
 .communityPolicy p {
