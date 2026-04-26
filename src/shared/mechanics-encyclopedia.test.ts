@@ -5,6 +5,7 @@ import {
     CODEX_CORE_TOPICS,
     ENCYCLOPEDIA_CONTRACT_TOPICS,
     ENCYCLOPEDIA_FEATURED_RUN_TOPICS,
+    MECHANICS_GLOSSARY,
     ENCYCLOPEDIA_PICKUP_AND_BOARD_TOPICS,
     ENCYCLOPEDIA_POWER_TOPICS,
     ENCYCLOPEDIA_SCORING_AND_SURVIVAL_TOPICS,
@@ -30,7 +31,14 @@ function assertCatalogEntry<T extends { id: string; title: string; description: 
 
 describe('mechanics-encyclopedia', () => {
     it('ENCYCLOPEDIA_VERSION is monotonic (bump when doc set changes)', () => {
-        expect(ENCYCLOPEDIA_VERSION).toBeGreaterThanOrEqual(11);
+        expect(ENCYCLOPEDIA_VERSION).toBeGreaterThanOrEqual(12);
+    });
+
+    it('REG-064 glossary locks preferred player-facing labels for recurring mechanics', () => {
+        expect(MECHANICS_GLOSSARY.find((row) => row.id === 'perfect_memory')?.preferredLabel).toBe('Perfect Memory');
+        expect(MECHANICS_GLOSSARY.find((row) => row.id === 'shop_gold')?.preferredLabel).toBe('shop gold');
+        expect(MECHANICS_GLOSSARY.find((row) => row.id === 'combo_shards')?.avoidLabels).toContain('paid shards');
+        expect(MECHANICS_GLOSSARY.every((row) => row.shortDefinition.length > 0)).toBe(true);
     });
 
     it('ACHIEVEMENT_CATALOG has an entry per AchievementId with id/title/description aligned to keys', () => {

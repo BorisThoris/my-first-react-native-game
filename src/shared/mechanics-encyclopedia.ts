@@ -8,7 +8,7 @@
 import type { AchievementId, GameMode, MutatorId, RelicId } from './contracts';
 
 /** Monotonic reference doc version (increment when the encyclopedia meaningfully changes). */
-export const ENCYCLOPEDIA_VERSION = 11 as const;
+export const ENCYCLOPEDIA_VERSION = 12 as const;
 
 export interface RelicDefinition {
     id: RelicId;
@@ -43,6 +43,118 @@ export interface CodexCoreTopic {
 
 /** Same shape as core topics — used for powers, pickups, board, contracts in Codex. */
 export type EncyclopediaTopic = CodexCoreTopic;
+
+export interface MechanicsGlossaryTerm {
+    id:
+        | 'lives'
+        | 'guard_tokens'
+        | 'combo_shards'
+        | 'relic_favor'
+        | 'shop_gold'
+        | 'relics'
+        | 'mutators'
+        | 'contracts'
+        | 'findables'
+        | 'perfect_memory'
+        | 'daily_challenge'
+        | 'powers';
+    preferredLabel: string;
+    shortDefinition: string;
+    avoidLabels: string[];
+    surfaces: string[];
+}
+
+export const MECHANICS_GLOSSARY_TERMS: readonly MechanicsGlossaryTerm[] = [
+    {
+        id: 'lives',
+        preferredLabel: 'Lives',
+        shortDefinition: 'Run health. Mismatches can remove lives after grace/guard protection.',
+        avoidLabels: ['hearts as currency', 'energy'],
+        surfaces: ['HUD', 'Game over', 'Settings']
+    },
+    {
+        id: 'guard_tokens',
+        preferredLabel: 'Guard tokens',
+        shortDefinition: 'Mismatch protection earned from long match streaks; capped and run-scoped.',
+        avoidLabels: ['shield currency', 'premium shield'],
+        surfaces: ['HUD', 'Inventory', 'Codex']
+    },
+    {
+        id: 'combo_shards',
+        preferredLabel: 'Combo shards',
+        shortDefinition: 'Temporary streak resource that can convert into life recovery in eligible modes.',
+        avoidLabels: ['gems', 'paid shards'],
+        surfaces: ['HUD', 'Inventory', 'Findables']
+    },
+    {
+        id: 'relic_favor',
+        preferredLabel: 'Relic Favor',
+        shortDefinition: 'Run-only progress toward relic milestone choices and shrine/reward momentum.',
+        avoidLabels: ['favor currency pack', 'premium favor'],
+        surfaces: ['HUD', 'Events', 'Bonus rewards']
+    },
+    {
+        id: 'shop_gold',
+        preferredLabel: 'shop gold',
+        shortDefinition: 'Temporary run wallet spent on vendor/rest/relic services; never durable or purchasable.',
+        avoidLabels: ['coins', 'premium gold', 'cash'],
+        surfaces: ['Shop', 'Inventory', 'Economy copy']
+    },
+    {
+        id: 'relics',
+        preferredLabel: 'Relics',
+        shortDefinition: 'Run build modifiers drafted at milestones; not permanent equipment unless a meta row says so.',
+        avoidLabels: ['items', 'gear'],
+        surfaces: ['Relic draft', 'Inventory', 'Codex']
+    },
+    {
+        id: 'mutators',
+        preferredLabel: 'Mutators',
+        shortDefinition: 'Rule modifiers that change floor pressure, presentation, scoring, or board constraints.',
+        avoidLabels: ['debuffs only', 'mods'],
+        surfaces: ['HUD', 'Codex', 'Choose Path']
+    },
+    {
+        id: 'contracts',
+        preferredLabel: 'Contracts',
+        shortDefinition: 'Optional mode constraints with explicit retry/failure rules.',
+        avoidLabels: ['quests when constraint is active'],
+        surfaces: ['Choose Path', 'Inventory', 'Codex']
+    },
+    {
+        id: 'findables',
+        preferredLabel: 'Findables',
+        shortDefinition: 'Bonus pickup pairs on the board; match to claim, Destroy forfeits.',
+        avoidLabels: ['loot boxes', 'random drops'],
+        surfaces: ['Tile a11y', 'HUD', 'Codex']
+    },
+    {
+        id: 'perfect_memory',
+        preferredLabel: 'Perfect Memory',
+        shortDefinition: 'Achievement gate: clear without mismatches and without disallowed powers that run.',
+        avoidLabels: ['perfect floor score', 'S++ only'],
+        surfaces: ['HUD', 'Game over', 'Codex']
+    },
+    {
+        id: 'daily_challenge',
+        preferredLabel: 'Daily Challenge',
+        shortDefinition: 'UTC-seeded local challenge with share strings; online rankings are deferred.',
+        avoidLabels: ['online daily leaderboard'],
+        surfaces: ['Choose Path', 'Collection', 'Game over']
+    },
+    {
+        id: 'powers',
+        preferredLabel: 'Powers',
+        shortDefinition: 'Player-triggered board tools such as shuffle, peek, destroy, pin, stray remove, and flash pair.',
+        avoidLabels: ['boosters for sale'],
+        surfaces: ['Toolbar', 'Inventory', 'Codex']
+    }
+];
+
+export const glossaryTermById = (id: MechanicsGlossaryTerm['id']): MechanicsGlossaryTerm =>
+    MECHANICS_GLOSSARY_TERMS.find((term) => term.id === id)!;
+
+export const MECHANICS_GLOSSARY = MECHANICS_GLOSSARY_TERMS;
 
 /** Product “Endless Mode” card — not yet a live ruleset; distinct from internal classic/endless. */
 export const VISUAL_ENDLESS_MODE_LOCKED = {

@@ -77,6 +77,7 @@ schema: reg | phase | status | contract | proof
 | REG-054 | 4 | done | Economy stance is premium/offline-first: ads/IAP/subscriptions/pay-to-win are prohibited, core fairness/accessibility/powers are never monetized, shop gold remains a run system, and future monetization requires a separate product decision. | premium-economy-policy + Settings tests |
 | REG-055 | 4 | done | Localization foundation records English-only v1, future react-i18next preference, stable copy owners/surface ids, no non-English UI promise, and guardrails against large new inline component copy. | localization-readiness + mechanics tests |
 | REG-059 | 4 | done | Asset drop-in readiness covers UI scenes, mode posters, logos, card textures, audio, and store media with authoritative paths, formats, manifests/barrels, fallback behavior, rights state, risk, and verification commands. | assetDropInReadiness + modeArt tests + renderer asset audit |
+| REG-064 | 4 | done | Mechanics glossary locks preferred labels and avoided terms for lives, guard tokens, combo shards, relic Favor, shop gold, relics, mutators, contracts, findables, and Perfect Memory; encyclopedia version and appendix are updated. | mechanics encyclopedia + appendix tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.
