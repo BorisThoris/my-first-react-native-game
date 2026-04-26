@@ -24,6 +24,35 @@
     background: var(--theme-panel-alt);
 }
 
+.galleryGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 0.65rem;
+}
+
+.galleryCard {
+    display: grid;
+    gap: 0.28rem;
+    padding: 0.85rem 1rem;
+    border-radius: var(--ui-radius-md);
+    border: 1px solid color-mix(in srgb, var(--theme-gold) 24%, var(--theme-divider-hairline));
+    background:
+        radial-gradient(circle at top left, color-mix(in srgb, var(--theme-gold) 12%, transparent), transparent 48%),
+        var(--theme-panel-alt);
+}
+
+.galleryBadge {
+    width: fit-content;
+    padding: 0.12rem 0.42rem;
+    border-radius: var(--ui-radius-pill);
+    background: color-mix(in srgb, var(--theme-cyan) 16%, transparent);
+    color: var(--theme-text-muted);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+}
+
 .achievementLocked {
     opacity: 0.55;
 }

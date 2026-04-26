@@ -82,6 +82,7 @@ schema: reg | phase | status | contract | proof
 | REG-090 | 4 | done | Choose Path quality rollout is defined as a machine-readable screen-quality contract with per-screen rollout order, dependencies, placeholder/asset slots, offline/leaderboard scope, and verification routing for REG-091+. | REG_090_CHOOSE_PATH_QUALITY_ROLLOUT.md + JSON parse |
 | REG-091 | 4 | done | Main Menu hub exposes mode entry, profile strip, return loop, and trust-boundary rows from real save/run data; the hub profile strip stays above fold and offline/local without fake social affordances. | main-menu-hub-quality + MainMenu tests |
 | REG-092 | 4 | done | Settings acts as a control center with live control count, honest reference placeholders, profile trust, and mobile reachability rows surfaced above categories while Settings fields remain locally persisted and mapped. | settings-control-center + Settings tests |
+| REG-093 | 4 | done | Collection has a final reward-gallery surface with owned, in-progress, and missing rows derived from local save achievements, profile goals, cosmetics, relic discovery, and run history, with honest local-only empty states. | collection-reward-gallery + Collection tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

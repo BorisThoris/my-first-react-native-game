@@ -14,6 +14,7 @@ import {
     HONOR_UNLOCK_ORDER
 } from '../../shared/honorUnlocks';
 import { RELIC_CATALOG } from '../../shared/game-catalog';
+import { getCollectionGalleryRows } from '../../shared/collection-reward-gallery';
 import { getDailyArchiveRows, getDailyArchiveSummary } from '../../shared/daily-archive';
 import { getMetaCosmeticTrackRows, getMetaProgressionBoard, getPermanentUpgradeRows } from '../../shared/meta-progression';
 import { getCollectionRewardSignals } from '../../shared/meta-reward-signals';
@@ -45,6 +46,7 @@ const CollectionScreen = () => {
     const honorEarned = new Set(eligibleHonorUnlockIds(saveData));
     const metaProgressionBoard = getMetaProgressionBoard(saveData);
     const rewardSignals = getCollectionRewardSignals(saveData);
+    const rewardGalleryRows = getCollectionGalleryRows(saveData);
     const permanentUpgradeRows = getPermanentUpgradeRows(saveData);
     const cosmeticTrackRows = getMetaCosmeticTrackRows(saveData);
     const dailyArchiveRows = getDailyArchiveRows(saveData);
@@ -84,6 +86,9 @@ const CollectionScreen = () => {
                     </a>
                     <a href="#collection-cosmetics" onClick={(e) => handleMetaBodyTocLinkClick(bodyScrollRef, e)}>
                         Cosmetics
+                    </a>
+                    <a href="#collection-gallery" onClick={(e) => handleMetaBodyTocLinkClick(bodyScrollRef, e)}>
+                        Gallery
                     </a>
                     <a href="#collection-meta-upgrades" onClick={(e) => handleMetaBodyTocLinkClick(bodyScrollRef, e)}>
                         Meta upgrades
@@ -168,6 +173,31 @@ const CollectionScreen = () => {
                                         <span className={styles.symbolMeta}>{signal.cta}</span>
                                     </div>
                                 ))}
+                            </div>
+                        </div>
+                    </Panel>
+                </MetaFrame>
+
+                <MetaFrame data-testid="collection-meta-frame-reward-gallery">
+                    <Panel padding="lg" variant="strong">
+                        <div className={`${styles.section} ${metaStyles.sectionAnchor}`} id="collection-reward-gallery">
+                            <h2 className={styles.sectionTitle}>Reward gallery</h2>
+                            <p className={metaStyles.subtitle}>
+                                Final hub gallery rows show owned, in-progress, and missing rewards from the local save.
+                            </p>
+                            <div className={`${styles.galleryGrid} ${metaStyles.metaLongList}`} data-testid="collection-reward-gallery">
+                                {rewardGalleryRows.map((row) => {
+                                    const status = row.owned >= row.total ? 'owned' : row.owned > 0 ? 'in_progress' : 'missing';
+                                    return (
+                                    <div className={styles.galleryCard} data-status={status} key={row.id}>
+                                        <span className={styles.galleryBadge}>{status.replace('_', ' ')}</span>
+                                        <strong>{row.title}</strong>
+                                        <p className={metaStyles.subtitle}>{row.description}</p>
+                                        <span className={styles.symbolMeta}>{row.owned}/{row.total}</span>
+                                        <span className={styles.symbolMeta}>{row.nextAction}</span>
+                                    </div>
+                                    );
+                                })}
                             </div>
                         </div>
                     </Panel>
