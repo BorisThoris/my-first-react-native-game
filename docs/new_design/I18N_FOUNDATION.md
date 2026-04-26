@@ -21,6 +21,19 @@ This note captures how we would introduce **non–English UI** if product asks f
 
 ## String extraction policy
 
+### Steam demo copy readiness manifest (REG-055)
+
+The current build remains **English-only**. New REG work should route player-facing copy through one of these homes before adding a localization runtime:
+
+| Copy class | Current home |
+|---|---|
+| Mechanics/Codex domain copy | `src/shared/game-catalog.ts`, `src/shared/mechanics-encyclopedia.ts` |
+| Meta/reward/profile/economy policy copy | `src/shared/*-policy.ts`, `src/shared/*-signals.ts`, `src/shared/*-summary.ts` |
+| Screen-specific renderer copy | `src/renderer/copy/*.ts` |
+| Prototype/dev-only copy | Component-local, excluded from catalogs |
+
+Machine-readable guardrails live in `src/shared/localization-readiness.ts`; tests assert the build is English-only and that the recommended stack remains `react-i18next`.
+
 1. **User-visible copy** (menus, HUD, modals, toasts, settings labels, errors shown to players) gets a **stable key** and lives in locale resources—not inline JSX literals, except trivial prototypes marked with a TODO if unavoidable.
 2. **No translated string math:** avoid `"Score: " + n`; use interpolation / ICU-style placeholders so word order can change per locale.
 3. **Shared gameplay data** (achievement titles, relic names, mutator blurbs) that already live under `src/shared` should remain **data-driven**: the English string (or template) is the **source** in a catalog module; the renderer maps the same id through i18n when non-EN ships.
