@@ -62,6 +62,7 @@ schema: reg | phase | status | contract | proof
 | REG-044 | 3 | done | Navigation return behavior is defined by a bounded route contract: menu/meta settings retain return targets, in-run meta overlays freeze/resume run state, invalid/null-run closes route to menu, and tests cover store plus navigation e2e flows. | navigation model/store tests + navigation-flow e2e |
 | REG-016 | 3 | done | Meta progression exposes profile level, next reward, long-term goal, reward sources, and explicit gameplay-affecting vs cosmetic-only mode rules without a save schema bump. | meta-progression + save/store tests |
 | REG-023 | 3 | done | Daily/weekly results loop exposes local current attempt, personal best/rollup, deterministic share strings, repeat-attempt rules, and explicit online leaderboard deferral in mode and game-over surfaces. | daily-archive + GameOver/ChoosePath tests |
+| REG-026 | 3 | done | First-run onboarding is action-gated in live gameplay: fresh profiles get prompt/target guidance from actual board state, keyboard/pointer target selection is constrained to highlighted cards when possible, and completed/dismissed profiles suppress prompts. | playable-onboarding + GameScreen/TileBoard tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

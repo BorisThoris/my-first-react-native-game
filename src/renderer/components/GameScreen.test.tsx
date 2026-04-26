@@ -36,7 +36,7 @@ vi.mock('./MainMenuBackground', () => ({ default: () => null }));
 vi.mock('./GameLeftToolbar', () => ({ default: () => null }));
 vi.mock('./GameplayHudBar', () => ({ default: () => null }));
 vi.mock('./TileBoard', () => ({
-    default: forwardRef(function TileBoardStub(_props, ref) {
+    default: forwardRef(function TileBoardStub(props: { guidedTargetTileIds?: string[] }, ref) {
         useImperativeHandle(ref, () => ({
             getTileClientRectAtGrid: () => null,
             getTileClientRectById: (tileId: string) => {
@@ -75,7 +75,9 @@ vi.mock('./TileBoard', () => ({
                 applyShuffle();
             }
         }));
-        return <div data-testid="tile-board-stub" />;
+        return (
+            <div data-guided-targets={(props.guidedTargetTileIds ?? []).join(',')} data-testid="tile-board-stub" />
+        );
     })
 }));
 vi.mock('../hooks/useViewportSize', () => ({
@@ -211,6 +213,53 @@ describe('GameScreen (OVR-014)', () => {
         expect(screen.getByText(/Arrow keys/)).toBeTruthy();
         expect(screen.getByText(/Flip the focused tile/)).toBeTruthy();
         expect(screen.getByText(GAMBIT_KEYBOARD_HELP_TIP)).toBeTruthy();
+    });
+
+    it('REG-026 surfaces action-gated playable onboarding without hiding card targets', () => {
+        const playing = finishMemorizePhase(createNewRun(0));
+        const firstPair = playing.board!.tiles.filter((tile) => tile.pairKey === playing.board!.tiles[0]!.pairKey);
+
+        const { rerender } = render(
+            <PlatformTiltProvider>
+                <NotificationHost>
+                    <GameScreen achievements={[]} run={playing} />
+                </NotificationHost>
+            </PlatformTiltProvider>
+        );
+
+        expect(screen.getByTestId('playable-onboarding-prompt')).toHaveTextContent(/Make your first match/i);
+        expect(screen.getByTestId('tile-board-stub')).toHaveAttribute(
+            'data-guided-targets',
+            firstPair.map((tile) => tile.id).join(',')
+        );
+
+        const runAfterMatch = {
+            ...playing,
+            board: {
+                ...playing.board!,
+                matchedPairs: 1,
+                tiles: playing.board!.tiles.map((tile) =>
+                    firstPair.some((target) => target.id === tile.id) ? { ...tile, state: 'matched' as const } : tile
+                )
+            },
+            stats: {
+                ...playing.stats,
+                matchesFound: 1,
+                currentStreak: 1,
+                currentLevelScore: 30,
+                totalScore: 30
+            }
+        };
+
+        rerender(
+            <PlatformTiltProvider>
+                <NotificationHost>
+                    <GameScreen achievements={[]} run={runAfterMatch} />
+                </NotificationHost>
+            </PlatformTiltProvider>
+        );
+
+        expect(screen.getByTestId('playable-onboarding-prompt')).toHaveTextContent(/Use recovery tools/i);
     });
 
     it('renders match score floater from store and clears after float window', async () => {

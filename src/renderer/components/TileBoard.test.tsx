@@ -32,6 +32,7 @@ const renderBoard = (props: {
     previewActive: boolean;
     reduceMotion: boolean;
     viewportResetToken?: number;
+    guidedTargetTileIds?: string[];
 }): ReturnType<typeof render> =>
     render(
         <PlatformTiltProvider>

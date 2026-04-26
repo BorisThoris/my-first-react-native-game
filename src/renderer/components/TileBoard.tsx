@@ -84,6 +84,8 @@ interface TileBoardProps {
     frameStyle?: CSSProperties;
     /** Hidden tiles to dim when focus-assist is on (2D fallback and WebGL scene). */
     dimmedTileIds?: ReadonlySet<string>;
+    /** REG-026: optional guided first-run target ids; keyboard focus/picking starts with these tiles. */
+    guidedTargetTileIds?: readonly string[];
     peekRevealedTileIds?: string[];
     allowGambitThirdFlip?: boolean;
     wideRecallInPlay?: boolean;
@@ -101,6 +103,8 @@ interface TileBoardProps {
      * When false, hides early-tutorial **pair marker** chrome (face-down tiles: DOM inset ring + WebGL back-face badge).
      */
     showTutorialPairMarkers?: boolean;
+    /** Guided first-run target tiles that should remain visually emphasized while prompts teach by doing. */
+    onboardingTargetTileIds?: readonly string[];
     /** Distance-to-pair badge on flipped tiles (Manhattan grid steps). */
     pairProximityHintsEnabled?: boolean;
     onTileSelect: (tileId: string) => void;
@@ -276,6 +280,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         viewportResetToken,
         frameStyle,
         dimmedTileIds,
+        guidedTargetTileIds = [],
         peekRevealedTileIds = [],
         allowGambitThirdFlip = false,
         wideRecallInPlay = false,
@@ -786,7 +791,12 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
             if (!boardGraphicsOk || !interactive) {
                 return;
             }
-            const pickable = getPickableTileIds(board, interactive, allowGambitThirdFlip);
+            const rawPickable = getPickableTileIds(board, interactive, allowGambitThirdFlip);
+            const guidedPickable =
+                guidedTargetTileIds.length > 0
+                    ? rawPickable.filter((tileId) => guidedTargetTileIds.includes(tileId))
+                    : rawPickable;
+            const pickable = guidedPickable.length > 0 ? guidedPickable : rawPickable;
             if (pickable.length === 0) {
                 return;
             }
@@ -826,7 +836,16 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                 row: number,
                 col: number
             ) => { bottom: number; height: number; left: number; right: number; top: number; width: number } | null;
+            __e2eGetTileIdAtGrid1?: (row: number, col: number) => string | null;
             __e2ePickTileAtGrid1?: (row: number, col: number) => void;
+        };
+        w.__e2eGetTileIdAtGrid1 = (row: number, col: number): string | null => {
+            const r = row - 1;
+            const c = col - 1;
+            if (r < 0 || c < 0 || r >= board.rows || c >= board.columns) {
+                return null;
+            }
+            return board.tiles[r * board.columns + c]?.id ?? null;
         };
         w.__e2eGetTileClientRectAtGrid1 = (row: number, col: number) => {
             const r = row - 1;
@@ -853,6 +872,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         };
         return () => {
             delete w.__e2eGetTileClientRectAtGrid1;
+            delete w.__e2eGetTileIdAtGrid1;
             delete w.__e2ePickTileAtGrid1;
         };
     }, [board.columns, board.rows, board.tiles, handleTileSelect]);

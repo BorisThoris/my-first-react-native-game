@@ -7,6 +7,7 @@ import {
     type Settings
 } from '../../shared/contracts';
 import { computeFocusDimmedTileIds } from '../../shared/focusDimmedTileIds';
+import { getPlayableOnboardingStep } from '../../shared/playable-onboarding';
 import { formatLevelResultObjectiveLine } from '../../shared/secondary-objectives';
 import {
     canOfferEndlessRiskWager,
@@ -257,12 +258,15 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
             ),
         [run.board, saveData.powersFtueSeen]
     );
+    const onboardingStep = getPlayableOnboardingStep(run, saveData);
+    const onboardingBoardTargetIds = useMemo(() => onboardingStep?.targetTileIds ?? [], [onboardingStep]);
     const rulesHintNudge =
-        showTutorialPairMarkers
+        onboardingStep?.prompt ??
+        (showTutorialPairMarkers
             ? 'First run: match identical symbols. Pair markers fade after floor 2.'
             : run.activeMutators.length > 0 && run.board?.matchedPairs === 0
               ? `New pressure: ${run.activeMutators.map((id) => MUTATOR_CATALOG[id]?.title ?? id).join(', ')}.`
-              : null;
+              : null);
     const { boardPinMode, destroyPairArmed, peekModeArmed } = useAppStore(
         useShallow((state) => ({
             boardPinMode: state.boardPinMode,
@@ -694,10 +698,19 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         surfaceRef: shellRef,
         strength: 1
     });
-    const focusDimmedTileIds = useMemo(
-        () => computeFocusDimmedTileIds(run.board, run.status, settingsTileFocusAssist),
-        [run.board, run.status, settingsTileFocusAssist]
-    );
+    const focusDimmedTileIds = useMemo(() => {
+        const dimmed = computeFocusDimmedTileIds(run.board, run.status, settingsTileFocusAssist) ?? new Set<string>();
+        if (
+            onboardingBoardTargetIds.length === 0 ||
+            !run.board ||
+            (run.status !== 'playing' && run.status !== 'memorize')
+        ) {
+            return dimmed;
+        }
+        const targetSet = new Set(onboardingBoardTargetIds);
+        const guidedDimmed = run.board.tiles.map((tile) => tile.id).filter((tileId) => !targetSet.has(tileId));
+        return new Set([...dimmed, ...guidedDimmed]);
+    }, [onboardingBoardTargetIds, run.board, run.status, settingsTileFocusAssist]);
     const stickyBlockedTileId = useMemo((): string | null => {
         const board = run.board;
         if (!board || run.status !== 'playing') {
@@ -1081,6 +1094,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                 bountyPairKey={run.board.bountyPairKey ?? null}
                                 debugPeekActive={run.debugPeekActive}
                                 dimmedTileIds={focusDimmedTileIds}
+                                guidedTargetTileIds={onboardingBoardTargetIds}
                                 interactive={run.status === 'playing' || gambitThirdPickActive}
                                 mobileCameraMode={cameraViewportMode}
                                 nBackAnchorPairKey={run.nBackAnchorPairKey}
@@ -1165,6 +1179,13 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                         </span>
                                     </div>
                                 </div>
+                            ) : null}
+                            {onboardingStep && run.status === 'playing' ? (
+                                <aside className={styles.playableOnboardingPrompt} data-testid="playable-onboarding-prompt">
+                                    <span className={styles.playableOnboardingStep}>{onboardingStep.title}</span>
+                                    <strong>{onboardingStep.prompt}</strong>
+                                    <p>{onboardingStep.detail}</p>
+                                </aside>
                             ) : null}
                         </div>
                     </div>
