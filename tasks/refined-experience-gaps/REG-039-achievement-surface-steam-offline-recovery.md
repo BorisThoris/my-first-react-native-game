@@ -1,7 +1,7 @@
 # REG-039: Achievement Surface Steam Offline Recovery
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

@@ -1,7 +1,7 @@
 # REG-110: Memory GPU leak and context lifecycle
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

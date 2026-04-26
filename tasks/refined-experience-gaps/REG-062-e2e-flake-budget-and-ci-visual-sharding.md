@@ -1,7 +1,7 @@
 # REG-062: E2E Flake Budget And CI Visual Sharding
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

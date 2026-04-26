@@ -1,7 +1,7 @@
 # REG-030: Telemetry And Balance Playtest Loop
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

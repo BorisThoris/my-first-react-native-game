@@ -1,7 +1,7 @@
 # REG-031: Performance Graphics Real Device Pass
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

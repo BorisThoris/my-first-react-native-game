@@ -1,7 +1,7 @@
 # REG-029: Input Accessibility And Controller Comfort
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

@@ -1,7 +1,7 @@
 # REG-027: Visual Baseline Refresh
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

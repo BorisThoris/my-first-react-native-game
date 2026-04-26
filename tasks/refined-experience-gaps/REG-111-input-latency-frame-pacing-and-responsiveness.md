@@ -1,7 +1,7 @@
 # REG-111: Input latency frame pacing and responsiveness
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

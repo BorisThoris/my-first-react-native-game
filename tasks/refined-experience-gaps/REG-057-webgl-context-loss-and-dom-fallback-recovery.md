@@ -1,7 +1,7 @@
 # REG-057: WebGL Context Loss And DOM Fallback Recovery
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

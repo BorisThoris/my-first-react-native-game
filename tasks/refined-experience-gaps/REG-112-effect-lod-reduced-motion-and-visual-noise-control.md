@@ -1,7 +1,7 @@
 # REG-112: Effect LOD reduced motion and visual noise control
 
 ## Status
-Open
+Done
 
 ## Priority
 P0

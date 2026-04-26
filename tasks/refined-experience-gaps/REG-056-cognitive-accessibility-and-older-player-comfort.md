@@ -1,7 +1,7 @@
 # REG-056: Cognitive Accessibility And Older Player Comfort
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

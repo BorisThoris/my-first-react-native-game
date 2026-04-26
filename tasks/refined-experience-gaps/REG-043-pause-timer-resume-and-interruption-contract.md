@@ -1,7 +1,7 @@
 # REG-043: Pause Timer Resume And Interruption Contract
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

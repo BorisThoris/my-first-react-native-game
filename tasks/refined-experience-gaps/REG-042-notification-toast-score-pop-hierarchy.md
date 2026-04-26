@@ -1,7 +1,7 @@
 # REG-042: Notification Toast Score Pop Hierarchy
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

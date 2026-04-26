@@ -1,7 +1,7 @@
 # REG-058: Dev Sandbox Fixtures And Story State Matrix
 
 ## Status
-Open
+Done
 
 ## Priority
 P2

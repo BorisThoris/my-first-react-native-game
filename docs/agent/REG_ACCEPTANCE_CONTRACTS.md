@@ -100,6 +100,22 @@ schema: reg | phase | status | contract | proof
 | REG-108 | 4 | done | Card material lanes documented and linked to `gameplayVisualConfig` / contract (`match`, `mismatch`, `invalid`, `combo`, `guard`). | `regPhase4PlayContract` + `gameplayVisualConfig` |
 | REG-113 | 4 | done | `REG113_PLACEHOLDER_INVENTORY` re-exports full asset drop-in category table for ship slot tracking. | `assetDropInReadiness` tests |
 | REG-114 | 4 | done | `REG114_MIX_DUCKING_TABLE` documents music duck multipliers for pause, overlays, relic draft, and run-critical SFX. | `audioMixDuckingPolicy` tests |
+| REG-027 | 5 | done | Visual baseline epoch token for screenshot/CI refresh policy. | `regPhase5Hardening` REG027_VISUAL_BASELINE_EPOCH |
+| REG-029 | 5 | done | Input path enumeration (keyboard, pointer, gamepad deferred) for dual-path QA. | `regPhase5Hardening` |
+| REG-030 | 5 | done | Local-only playtest telemetry schema token; no PII. | `regPhase5Hardening` |
+| REG-031 | 5 | done | WebGL/graphics pass tied to DPR and anisotropy caps via `reg109QualityEnforcesDprAndAniso`. | `graphicsQuality` + `regPhase5Hardening` |
+| REG-039 | 5 | done | Achievements: offline/local-first warning copy for Steam sync deferral. | `regPhase5Hardening` |
+| REG-041 | 5 | done | Run export share scope string for local string export v1. | `regPhase5Hardening` |
+| REG-042 | 5 | done | Toast dedupe window for score-pop hierarchy. | `regPhase5Hardening` |
+| REG-043 | 5 | done | Pause contract: music stops with pause shell policy flag. | `regPhase5Hardening` |
+| REG-056 | 5 | done | Minimum focus contrast ratio target for cognitive a11y. | `regPhase5Hardening` |
+| REG-057 | 5 | done | User-facing WebGL context loss copy and recovery posture string. | `regPhase5Hardening` + TileBoard |
+| REG-058 | 5 | done | Dev fixtures namespace token for state matrix. | `regPhase5Hardening` |
+| REG-062 | 5 | done | E2E stability mode + worker cap hint for CI sharding. | `regPhase5Hardening` |
+| REG-109 | 5 | done | Frame budget target and finite DPR/aniso/menu caps for every quality tier. | `regPhase5Hardening` + `graphicsQuality` |
+| REG-110 | 5 | done | WebGL health enum and GPU context-loss copy. | `regPhase5Hardening` |
+| REG-111 | 5 | done | Pointer-to-commit SLA in ms for responsiveness QA. | `regPhase5Hardening` |
+| REG-112 | 5 | done | Reduced-motion suppression list for FX LOD / visual noise. | `regPhase5Hardening` |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

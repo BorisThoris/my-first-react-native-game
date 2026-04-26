@@ -1,7 +1,7 @@
 # REG-041: Run Export Replay Seed Integrity
 
 ## Status
-Open
+Done
 
 ## Priority
 P1

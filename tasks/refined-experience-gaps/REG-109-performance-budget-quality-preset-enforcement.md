@@ -1,7 +1,7 @@
 # REG-109: Performance budget and quality preset enforcement
 
 ## Status
-Open
+Done
 
 ## Priority
 P0
