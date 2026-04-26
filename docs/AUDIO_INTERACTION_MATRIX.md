@@ -10,6 +10,15 @@ Authoritative semantic sound map for the renderer. Raw typing, passive scrolling
 | `new` | Uses one of the new dedicated 29-target cues |
 | `silent` | Intentionally no SFX |
 
+## Runtime coverage contract (REG-037)
+
+Machine-readable mirror: `src/renderer/audio/audioInteractionCoverage.ts`.
+
+- Major startup/menu/settings/gameplay/overlay/meta interactions are represented by semantic rows with call sites.
+- Repeated one-shots are capped by category in `gameSfx.ts`, `sampledSfx.ts`, and `uiSfx.ts` (`flip` 5, `match` 4, `mismatch` 4, `power` 5, `shuffle` 4, `menu` 3, `ui` 5).
+- Every audible row uses sampled WAV/OGG with procedural fallback; passive scroll/in-page anchors remain explicitly silent.
+- Reduced-motion visual mode never disables essential audio feedback; rows document `reducedMotionSafe`.
+
 ## Matrix
 
 | Screen | Interaction | Trigger location | Decision | Cue | Style | Trim | Type | Base reference |
