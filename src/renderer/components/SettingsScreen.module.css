@@ -38,6 +38,34 @@
     outline-offset: 2px;
 }
 
+.profileSummaryGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: var(--theme-space-sm);
+}
+
+.profileSummaryCard,
+.saveTrustCard {
+    padding: var(--ui-card-pad-md);
+    border-radius: var(--ui-radius-md);
+    border: 1px solid var(--theme-divider-hairline);
+    background: color-mix(in srgb, var(--theme-panel-alt) 84%, transparent);
+}
+
+.profileSummaryCard strong,
+.saveTrustCard strong {
+    display: block;
+    margin-bottom: var(--theme-space-2xs);
+}
+
+.profileSummaryCard span,
+.saveTrustCard span {
+    display: block;
+    color: var(--theme-text-muted);
+    font-size: var(--ui-font-caption);
+    line-height: 1.3;
+}
+
 .shell {
     min-height: 100dvh;
     max-height: 100dvh;

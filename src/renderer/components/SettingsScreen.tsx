@@ -10,6 +10,7 @@ import {
     type WeakerShuffleMode
 } from '../../shared/contracts';
 import { FEATURE_CLOUD_SAVE } from '../../shared/feature-flags';
+import { getProfileSummaryRows, getSaveTrustRows } from '../../shared/profile-summary';
 import { DEFAULT_SETTINGS } from '../../shared/save-data';
 import {
     isNarrowShortLandscapeForMenuStack,
@@ -263,6 +264,7 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
         closeSettings,
         persistenceWriteNotice,
         settings,
+        saveData,
         updateSettings
     } = useAppStore(
         useShallow((state) => ({
@@ -270,6 +272,7 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
             closeSettings: state.closeSettings,
             persistenceWriteNotice: state.persistenceWriteNotice,
             settings: state.settings,
+            saveData: state.saveData,
             updateSettings: state.updateSettings
         }))
     );
@@ -284,6 +287,8 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
     const titleId = useId();
     const title = isModal ? 'Run Settings' : 'Settings';
     const eyebrow = isModal ? 'Paused' : 'Preferences';
+    const profileSummaryRows = getProfileSummaryRows(saveData);
+    const saveTrustRows = getSaveTrustRows(saveData);
     const isDirty = JSON.stringify(draft) !== JSON.stringify(settings);
     const [unsavedBackOpen, setUnsavedBackOpen] = useState(false);
     const lastCounterTickAtRef = useRef(0);
@@ -810,14 +815,33 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                                                         Saves stay on this device; there is no cloud sync in this build.
                                                     </p>
                                                 ) : null}
+                                                <div className={styles.profileSummaryGrid} data-testid="settings-profile-summary">
+                                                    {profileSummaryRows.map((row) => (
+                                                        <div className={styles.profileSummaryRow} key={row.id}>
+                                                            <strong>{row.label}</strong>
+                                                            <span>{row.value}</span>
+                                                            <em>{row.source}</em>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <div className={styles.profileSummaryGrid} data-testid="settings-save-trust">
+                                                    {saveTrustRows.map((row) => (
+                                                        <div className={styles.profileSummaryRow} key={row.id}>
+                                                            <strong>{row.label}</strong>
+                                                            <span>{row.status}</span>
+                                                            <em>{row.description}</em>
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </SettingsSection>
                                         ) : null}
 
                                         {activeCategory === 'about' && showSubsection('reset') ? (
                                             <SettingsSection title="Reset">
                                                 <p className={styles.headerCopy}>
-                                                    Restore all settings to application defaults. Save data and runs are not
-                                                    deleted.
+                                                    Restore all settings to application defaults. Save data, profile level,
+                                                    history, honors, and cosmetics are not deleted; full profile reset/export
+                                                    is intentionally not enabled in this offline release shell.
                                                 </p>
                                                 <UiButton size={footerButtonSize} variant="secondary" onClick={handleResetToDefaults}>
                                                     Reset to defaults

@@ -2,7 +2,7 @@ import type { RelicId, RunSummary, SaveData } from '../../shared/contracts';
 import { countEligibleHonors, totalHonorUnlocks } from '../../shared/honorUnlocks';
 import { RELIC_CATALOG } from '../../shared/game-catalog';
 import { getObjectiveBoardItems } from '../../shared/objective-board';
-import { buildQuestCampaignRows } from '../../shared/quest-campaign';
+import { getProfileSummaryRows } from '../../shared/profile-summary';
 import { getQuestCampaignRows } from '../../shared/quest-campaign';
 import { formatNextUtcReset } from '../../shared/utc-countdown';
 import { useEffect, useRef, useState } from 'react';
@@ -114,6 +114,7 @@ const MainMenu = ({
     const dailyCountdown = formatNextUtcReset(nowMs);
     const objectiveBoard = getObjectiveBoardItems(saveData);
     const questRows = getQuestCampaignRows(saveData);
+    const profileSummary = getProfileSummaryRows(saveData);
     const secondaryActions = [
         {
             ariaLabel: 'Collection',
@@ -170,14 +171,12 @@ const MainMenu = ({
                 Profile and progress
             </ScreenTitle>
             <div className={styles.archiveStats}>
-                <div className={styles.archiveStat}>
-                    <span className={styles.archiveLabel}>Dailies Cleared</span>
-                    <strong className={styles.archiveValue}>{saveData.playerStats?.dailiesCompleted ?? 0}</strong>
-                </div>
-                <div className={styles.archiveStat}>
-                    <span className={styles.archiveLabel}>Best No-Powers Floor</span>
-                    <strong className={styles.archiveValue}>{saveData.playerStats?.bestFloorNoPowers ?? 0}</strong>
-                </div>
+                {profileSummary.map((row) => (
+                    <div className={styles.archiveStat} key={row.id}>
+                        <span className={styles.archiveLabel}>{row.label}</span>
+                        <strong className={styles.archiveValue}>{row.value}</strong>
+                    </div>
+                ))}
             </div>
             <details className={styles.relicDetails}>
                 <summary>Most-picked relics</summary>

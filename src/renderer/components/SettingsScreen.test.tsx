@@ -46,4 +46,17 @@ describe('SettingsScreen', () => {
         expect(screen.getByTestId('settings-shell-footer')).toHaveTextContent('Back');
         expect(screen.getByTestId('settings-shell-footer')).toHaveTextContent('Save');
     });
+
+    it('REG-032 explains local save scope, profile summary, and destructive reset boundaries', async () => {
+        const user = userEvent.setup();
+        render(<SettingsScreen presentation="page" />);
+
+        await user.click(screen.getByRole('button', { name: /about/i }));
+        expect(screen.getByTestId('settings-save-trust')).toHaveTextContent(/Single local profile/);
+        expect(screen.getByTestId('settings-save-trust')).toHaveTextContent(/Cloud sync/);
+        expect(screen.getByTestId('settings-profile-summary')).toHaveTextContent(/Profile level/);
+
+        await user.click(screen.getByRole('button', { name: /^reset$/i }));
+        expect(screen.getByText(/Save data, profile level, history, honors, and cosmetics are not deleted/)).toBeInTheDocument();
+    });
 });

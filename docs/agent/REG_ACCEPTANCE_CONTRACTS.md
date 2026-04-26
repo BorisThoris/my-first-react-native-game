@@ -63,6 +63,7 @@ schema: reg | phase | status | contract | proof
 | REG-016 | 3 | done | Meta progression exposes profile level, next reward, long-term goal, reward sources, and explicit gameplay-affecting vs cosmetic-only mode rules without a save schema bump. | meta-progression + save/store tests |
 | REG-023 | 3 | done | Daily/weekly results loop exposes local current attempt, personal best/rollup, deterministic share strings, repeat-attempt rules, and explicit online leaderboard deferral in mode and game-over surfaces. | daily-archive + GameOver/ChoosePath tests |
 | REG-026 | 3 | done | First-run onboarding is action-gated in live gameplay: fresh profiles get prompt/target guidance from actual board state, keyboard/pointer target selection is constrained to highlighted cards when possible, and completed/dismissed profiles suppress prompts. | playable-onboarding + GameScreen/TileBoard tests |
+| REG-032 | 3 | done | Save/profile release shell declares single local profile scope, real profile summary rows, cloud sync unavailability, export/import/backup expectations, and non-destructive reset boundaries without a schema change. | profile-summary + Settings/MainMenu tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.
