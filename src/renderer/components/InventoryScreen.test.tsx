@@ -39,5 +39,7 @@ describe('InventoryScreen REG-079 run inventory model', () => {
         expect(screen.getByText(/Mid-run mutable/)).toBeInTheDocument();
         expect(screen.getByText(/Shuffle charge:/)).toBeInTheDocument();
         expect(screen.getByText(/Loadout slots/)).toBeInTheDocument();
+        expect(screen.getByTestId('inventory-prep-strip')).toHaveTextContent(/Run prep snapshot/);
+        expect(screen.getByTestId('inventory-prep-strip')).toHaveTextContent(/Mutable windows/);
     });
 });

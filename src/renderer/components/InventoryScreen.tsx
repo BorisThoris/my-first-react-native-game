@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { GAME_MODE_CODEX, MUTATOR_CATALOG, RELIC_CATALOG } from '../../shared/game-catalog';
 import { getCosmeticCollectionRows } from '../../shared/cosmetics';
+import { getInventoryPrepRows } from '../../shared/inventory-prep';
 import { getInventoryRewardSignal } from '../../shared/meta-reward-signals';
 import { getRunInventoryRows, getRunLoadoutSummary } from '../../shared/run-inventory';
 import { getRunEconomyRows } from '../../shared/run-economy';
@@ -77,6 +78,7 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
     const inventoryRows = getRunInventoryRows(run);
     const loadoutSummary = getRunLoadoutSummary(run);
     const rewardSignal = getInventoryRewardSignal(run);
+    const prepRows = getInventoryPrepRows(run);
     const equippedCosmetic = getCosmeticCollectionRows(useAppStore.getState().saveData).find((row) => row.equipped);
 
     return (
@@ -125,6 +127,15 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                                     <p className={metaStyles.subtitle}>{rewardSignal.body}</p>
                                     <span className={styles.cosmeticNote}>{rewardSignal.cta}</span>
                                 </div>
+                            </div>
+                            <div className={styles.prepGrid} data-testid="inventory-prep-strip">
+                                {prepRows.map((row) => (
+                                    <div className={styles.prepCard} data-status={row.status} key={row.id}>
+                                        <strong>{row.title}</strong>
+                                        <span>{row.value}</span>
+                                        <p>{row.detail}</p>
+                                    </div>
+                                ))}
                             </div>
                             <div className={styles.kv}>
                                 <div className={styles.kvRow}>

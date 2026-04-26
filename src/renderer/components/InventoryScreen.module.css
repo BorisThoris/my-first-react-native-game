@@ -42,6 +42,29 @@
     gap: var(--theme-space-md);
 }
 
+.prepGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: var(--theme-space-sm);
+}
+
+.prepCard {
+    display: grid;
+    gap: 0.28rem;
+    padding: var(--ui-card-pad-md);
+    border-radius: var(--ui-radius-md);
+    border: 1px solid color-mix(in srgb, var(--theme-gold) 18%, var(--theme-divider-hairline));
+    background: color-mix(in srgb, var(--theme-panel-alt) 78%, transparent);
+}
+
+.prepCard[data-status='ready'] {
+    border-color: color-mix(in srgb, var(--theme-cyan) 30%, var(--theme-divider-hairline));
+}
+
+.prepCard strong {
+    color: var(--theme-text);
+}
+
 .inRunInventoryShell .loadoutBoard,
 .inRunInventoryShell .loadoutSection {
     gap: calc(var(--theme-space-md) - 0.12rem);
