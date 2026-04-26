@@ -1318,7 +1318,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                             }}
                                             type="button"
                                         >
-                                            {offer.purchased ? 'Bought' : `Buy ${offer.label} · ${offer.cost}g`}
+                                            {offer.purchased ? 'Claimed' : `Spend shop gold: ${offer.label} · ${offer.cost}g`}
                                         </button>
                                     ))}
                                     <button

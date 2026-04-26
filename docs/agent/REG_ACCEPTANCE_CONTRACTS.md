@@ -90,6 +90,7 @@ schema: reg | phase | status | contract | proof
 | REG-098 | 4 | done | Main Menu help center replaces wall-of-text onboarding with skippable/replayable guided beats, points deeper help to Codex/Collection, and preserves gameplay first-run prompts from REG-026. | first-run-help-center + MainMenu/App tests |
 | REG-099 | 4 | done | Navigation shell chrome/backstack invariants are machine-readable: page Back routes to menu, in-run meta preserves GameScreen, null-run recovery normalizes to menu, and game-over return stays local. | navigationModel + useAppStore tests |
 | REG-100 | 4 | done | Empty/loading/error/locked state copy is centralized, actionable, local/offline-safe, and used by Inventory/Codex for no-run, no-relic, no-mutator, no-contract, and no-filter-result states. | ui-state-copy + Inventory/Codex tests |
+| REG-101 | 4 | done | Copy tone rules align player-facing microcopy with mechanics glossary, premium/offline economy language, local scope, and concise mobile wording; shop buttons use “Spend shop gold” rather than real-money verbs. | copy-tone + mechanics/GameScreen tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

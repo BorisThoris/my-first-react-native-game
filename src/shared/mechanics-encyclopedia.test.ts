@@ -41,6 +41,12 @@ describe('mechanics-encyclopedia', () => {
         expect(MECHANICS_GLOSSARY.every((row) => row.shortDefinition.length > 0)).toBe(true);
     });
 
+    it('REG-101 glossary avoids forbidden monetization and internal labels', () => {
+        expect(MECHANICS_GLOSSARY.every((row) => row.avoidLabels.length > 0)).toBe(true);
+        expect(MECHANICS_GLOSSARY.flatMap((row) => row.avoidLabels)).not.toContain('shop currency');
+        expect(MECHANICS_GLOSSARY.find((row) => row.id === 'shop_gold')?.avoidLabels).toContain('premium gold');
+    });
+
     it('ACHIEVEMENT_CATALOG has an entry per AchievementId with id/title/description aligned to keys', () => {
         for (const id of Object.keys(ACHIEVEMENT_CATALOG) as AchievementId[]) {
             assertCatalogEntry(id, ACHIEVEMENT_CATALOG[id]);
