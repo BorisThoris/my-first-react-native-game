@@ -71,6 +71,7 @@ schema: reg | phase | status | contract | proof
 | REG-012 | 4 | done | Card interaction feedback has explicit material tokens for match, mismatch, invalid, and combo states, with distinct motion budgets and reduced-motion fallbacks aligned to existing WebGL/audio feedback paths. | gameplayVisualConfig + graphicsQuality tests |
 | REG-013 | 4 | done | Brand/mode art has a production-intent poster manifest with custom vs fallback status, explicit fallback copy, catalog coverage tests, and Choose Path fallback badges for non-bespoke mode art. | modeArt + ChoosePath tests |
 | REG-037 | 4 | done | Audio interaction matrix has a machine-readable runtime coverage map for startup/menu/settings/gameplay/overlay/meta call sites with cue, callsite, mix role, cooldown/polyphony policy, silent decisions, and reduced-motion safety. | audioInteractionCoverage + game/ui SFX tests |
+| REG-038 | 4 | done | Music loop state derives menu calm/run focus/pressure/release/silent layers from view/run/hidden state, pauses on meta/pause/game-over, and keeps adaptive intensity observation-only with existing music volume settings. | gameplayMusic tests |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

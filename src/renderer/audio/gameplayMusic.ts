@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 
 import menuLoopUrl from '../assets/audio/music/menu-loop.wav?url';
 import runLoopUrl from '../assets/audio/music/run-loop.wav?url';
+import type { RunState, ViewState } from '../../shared/contracts';
 
 const clamp01 = (v: number): number => Math.max(0, Math.min(1, v));
 
@@ -18,6 +19,76 @@ export interface GameplayMusicParams {
     /** When true, keep the element paused (e.g. other systems need exclusive control of the output). */
     suppressed?: boolean;
 }
+
+export type AdaptiveMusicLayer = 'menu_calm' | 'run_focus' | 'run_pressure' | 'run_release' | 'silent';
+
+export interface AdaptiveMusicInput {
+    hidden?: boolean;
+    run: RunState | null;
+    view: ViewState;
+}
+
+export interface AdaptiveMusicState {
+    active: boolean;
+    layer: AdaptiveMusicLayer;
+    suppressed: boolean;
+    track: 'menu' | 'run';
+    volumeMultiplier: number;
+}
+
+export const resolveAdaptiveMusicState = ({ hidden = false, run, view }: AdaptiveMusicInput): AdaptiveMusicState => {
+    if (hidden || view === 'boot' || view === 'settings' || view === 'collection' || view === 'inventory' || view === 'codex') {
+        return { active: false, layer: 'silent', suppressed: true, track: 'menu', volumeMultiplier: 0 };
+    }
+    if (view === 'menu' || view === 'modeSelect') {
+        return { active: true, layer: 'menu_calm', suppressed: false, track: 'menu', volumeMultiplier: 0.82 };
+    }
+    if (view === 'gameOver') {
+        return { active: false, layer: 'silent', suppressed: true, track: 'run', volumeMultiplier: 0 };
+    }
+    if (view === 'playing' && run) {
+        if (run.status === 'paused') {
+            return { active: false, layer: 'silent', suppressed: true, track: 'run', volumeMultiplier: 0 };
+        }
+        if (run.status === 'levelComplete') {
+            return { active: true, layer: 'run_release', suppressed: false, track: 'run', volumeMultiplier: 0.56 };
+        }
+        const gauntletPressure = run.gameMode === 'gauntlet' && run.gauntletDeadlineMs !== null;
+        const bossPressure = run.board?.floorTag === 'boss';
+        const mutatorPressure = run.activeMutators.length >= 2;
+        if (gauntletPressure || bossPressure || mutatorPressure) {
+            return { active: true, layer: 'run_pressure', suppressed: false, track: 'run', volumeMultiplier: 0.96 };
+        }
+        return { active: true, layer: 'run_focus', suppressed: false, track: 'run', volumeMultiplier: 0.74 };
+    }
+    return { active: false, layer: 'silent', suppressed: true, track: 'menu', volumeMultiplier: 0 };
+};
+
+export const getAdaptiveMusicState = ({
+    active,
+    gauntletPressure = false,
+    runStatus,
+    track
+}: {
+    active: boolean;
+    gauntletPressure?: boolean;
+    runStatus?: RunState['status'];
+    track: 'menu' | 'run';
+}): { intensity: 'calm' | 'focus' | 'pressure' | 'release' | 'silent'; shouldPlay: boolean; track: 'menu' | 'run' } => {
+    if (!active || runStatus === 'gameOver' || runStatus === 'paused') {
+        return { intensity: 'silent', shouldPlay: false, track };
+    }
+    if (track === 'menu') {
+        return { intensity: 'calm', shouldPlay: true, track };
+    }
+    if (runStatus === 'levelComplete') {
+        return { intensity: 'release', shouldPlay: true, track };
+    }
+    if (gauntletPressure) {
+        return { intensity: 'pressure', shouldPlay: true, track };
+    }
+    return { intensity: 'focus', shouldPlay: true, track };
+};
 
 /**
  * Looped background music via `HTMLAudioElement`. Volume follows **`masterVolume` × `musicVolume`**.

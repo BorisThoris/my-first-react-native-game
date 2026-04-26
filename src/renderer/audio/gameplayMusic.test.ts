@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { musicGainFromSettings, useGameplayMusic } from './gameplayMusic';
+import { getAdaptiveMusicState, musicGainFromSettings, useGameplayMusic } from './gameplayMusic';
 
 class MockAudioElement {
     static instances: MockAudioElement[] = [];
@@ -36,6 +36,31 @@ describe('musicGainFromSettings', () => {
         expect(musicGainFromSettings(0.5, 0.25)).toBe(0.125);
         expect(musicGainFromSettings(2, 0.5)).toBe(0.5);
         expect(musicGainFromSettings(-1, 0.5)).toBe(0);
+    });
+});
+
+describe('REG-038 adaptive music state', () => {
+    it('derives pressure/release/suppression from view and run state without owning gameplay', () => {
+        expect(getAdaptiveMusicState({ active: true, track: 'menu' })).toMatchObject({
+            intensity: 'calm',
+            shouldPlay: true,
+            track: 'menu'
+        });
+
+        expect(getAdaptiveMusicState({ active: true, runStatus: 'playing', track: 'run', gauntletPressure: true })).toMatchObject({
+            intensity: 'pressure',
+            shouldPlay: true
+        });
+
+        expect(getAdaptiveMusicState({ active: true, runStatus: 'levelComplete', track: 'run' })).toMatchObject({
+            intensity: 'release',
+            shouldPlay: true
+        });
+
+        expect(getAdaptiveMusicState({ active: true, runStatus: 'gameOver', track: 'run' })).toMatchObject({
+            intensity: 'silent',
+            shouldPlay: false
+        });
     });
 });
 
