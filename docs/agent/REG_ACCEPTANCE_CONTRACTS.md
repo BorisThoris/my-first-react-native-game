@@ -76,6 +76,7 @@ schema: reg | phase | status | contract | proof
 | REG-053 | 4 | done | Daily streaks use friendly UTC rules with no freeze bank in v1, missed-day reset copy avoids shame/pressure, rewards are cosmetic/profile-only, and menu/Choose Path explain reset timing and non-punitive behavior. | daily-archive + save-data + menu/ChoosePath tests |
 | REG-054 | 4 | done | Economy stance is premium/offline-first: ads/IAP/subscriptions/pay-to-win are prohibited, core fairness/accessibility/powers are never monetized, shop gold remains a run system, and future monetization requires a separate product decision. | premium-economy-policy + Settings tests |
 | REG-055 | 4 | done | Localization foundation records English-only v1, future react-i18next preference, stable copy owners/surface ids, no non-English UI promise, and guardrails against large new inline component copy. | localization-readiness + mechanics tests |
+| REG-059 | 4 | done | Asset drop-in readiness covers UI scenes, mode posters, logos, card textures, audio, and store media with authoritative paths, formats, manifests/barrels, fallback behavior, rights state, risk, and verification commands. | assetDropInReadiness + modeArt tests + renderer asset audit |
 
 default_contracts:
   runtime: implement minimal offline-capable vertical slice; no mandatory online service.

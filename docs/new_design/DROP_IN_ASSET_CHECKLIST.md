@@ -35,3 +35,8 @@ Use this when final art is ready. Swap files **or** update imports in `src/rende
 ## After swap
 - Run `yarn test` and `yarn test:e2e:visual` (or targeted specs).
 - Check `reduceMotion` and low-DPR laptops for load and sharpness.
+
+## REG-059 machine gates
+- Source paths and fallback behavior are mirrored in `src/renderer/assets/assetDropInReadiness.ts`.
+- Run `yarn audit:renderer-assets` after adding/replacing renderer files; it must report no unreferenced candidates or the candidates must be documented as intentional shelf stock in `ASSET_SOURCES.md`.
+- Every final replacement must update source/rights rows in `src/renderer/assets/ASSET_SOURCES.md` before visual baseline refresh.
