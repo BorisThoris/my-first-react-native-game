@@ -12,6 +12,7 @@ import {
 import { FEATURE_CLOUD_SAVE } from '../../shared/feature-flags';
 import { getProfileSummaryRows, getSaveTrustRows } from '../../shared/profile-summary';
 import { getPremiumEconomyPolicyRows } from '../../shared/premium-economy-policy';
+import { getSettingsControlCenterRows } from '../../shared/settings-control-center';
 import { getReferenceOnlySettingsRows } from '../../shared/settings-control-model';
 import { DEFAULT_SETTINGS } from '../../shared/save-data';
 import {
@@ -292,6 +293,7 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
     const profileSummaryRows = getProfileSummaryRows(saveData);
     const saveTrustRows = getSaveTrustRows(saveData);
     const premiumEconomyRows = getPremiumEconomyPolicyRows();
+    const controlCenterRows = getSettingsControlCenterRows();
     const referenceControlRows = getReferenceOnlySettingsRows();
     const isDirty = JSON.stringify(draft) !== JSON.stringify(settings);
     const [unsavedBackOpen, setUnsavedBackOpen] = useState(false);
@@ -503,6 +505,13 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                                             {activeCategoryMeta.label}
                                         </ScreenTitle>
                                         <p className={styles.headerCopy}>{activeCategoryMeta.note}</p>
+                                        <div className={styles.controlCenterStrip} data-testid="settings-control-center-strip">
+                                            {controlCenterRows.map((row) => (
+                                                <span key={row.id}>
+                                                    {row.label}<strong>{row.value}</strong>
+                                                </span>
+                                            ))}
+                                        </div>
                                     </header>
 
                                     {showSubsectionNav ? (

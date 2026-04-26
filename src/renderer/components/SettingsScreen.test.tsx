@@ -84,4 +84,13 @@ describe('SettingsScreen', () => {
         expect(policy).toHaveTextContent(/No rewarded ads/);
         expect(policy).not.toHaveTextContent(/buy gems|microtransaction|premium currency/i);
     });
+
+    it('REG-092 surfaces settings as a searchable control center with persistence mapping', () => {
+        render(<SettingsScreen presentation="page" />);
+
+        const strip = screen.getByTestId('settings-control-center-strip');
+        expect(strip).toHaveTextContent(/Live controls/);
+        expect(strip).toHaveTextContent(/saved preferences/);
+        expect(strip).toHaveTextContent(/Reference placeholders/);
+    });
 });

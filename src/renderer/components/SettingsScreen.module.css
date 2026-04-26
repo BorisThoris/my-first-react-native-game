@@ -435,6 +435,32 @@
     line-height: 1.45;
 }
 
+.controlCenterStrip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem;
+    margin-top: var(--theme-space-sm);
+}
+
+.controlCenterRow {
+    min-width: 0;
+    padding: 0.48rem 0.58rem;
+    border-radius: var(--ui-radius-md);
+    border: 1px solid color-mix(in srgb, var(--theme-gold) 16%, transparent);
+    background: color-mix(in srgb, var(--theme-panel-alt) 72%, transparent);
+}
+
+.controlCenterRow strong,
+.controlCenterRow span {
+    display: block;
+}
+
+.controlCenterRow span {
+    color: var(--theme-text-muted);
+    font-size: 0.72rem;
+    line-height: 1.25;
+}
+
 .subsectionNav {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(5.6rem, 1fr));
