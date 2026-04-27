@@ -5,7 +5,9 @@ export type NavigationSurface =
     | 'menu'
     | 'modeSelect'
     | 'collection'
+    | 'profile'
     | 'inventory'
+    | 'shop'
     | 'codex'
     | 'settings'
     | 'playing'
@@ -55,14 +57,17 @@ interface ResolveCloseInput {
 
 type RequestedSettingsReturnView = SubscreenReturnView | 'settings';
 
-const MENU_RETURN_VIEWS = new Set<ViewState>(['modeSelect', 'collection', 'inventory', 'codex', 'settings']);
+const MENU_RETURN_VIEWS = new Set<ViewState>(['modeSelect', 'collection', 'profile', 'inventory', 'codex', 'settings']);
 const IN_RUN_META_VIEWS = new Set<ViewState>(['inventory', 'codex', 'settings']);
+const IN_RUN_OVERLAY_VIEWS = new Set<ViewState>(['inventory', 'codex', 'settings', 'shop']);
 
 export const NAVIGATION_ROUTE_CONTRACTS: ReadonlyArray<NavigationRouteContract> = [
     { action: 'open', from: 'menu', to: 'modeSelect', presentation: 'page', preservesRun: false, timerPolicy: 'none' },
     { action: 'back', from: 'modeSelect', to: 'menu', presentation: 'page', preservesRun: false, timerPolicy: 'none' },
     { action: 'open', from: 'menu', to: 'collection', presentation: 'page', preservesRun: false, timerPolicy: 'none' },
     { action: 'back', from: 'collection', to: 'menu', presentation: 'page', preservesRun: false, timerPolicy: 'none' },
+    { action: 'open', from: 'menu', to: 'profile', presentation: 'page', preservesRun: false, timerPolicy: 'none' },
+    { action: 'back', from: 'profile', to: 'menu', presentation: 'page', preservesRun: false, timerPolicy: 'none' },
     { action: 'open', from: 'menu', to: 'inventory', presentation: 'page', preservesRun: false, timerPolicy: 'none' },
     { action: 'back', from: 'inventory', to: 'menu', presentation: 'page', preservesRun: false, timerPolicy: 'none' },
     { action: 'open', from: 'menu', to: 'codex', presentation: 'page', preservesRun: false, timerPolicy: 'none' },
@@ -80,6 +85,15 @@ export const NAVIGATION_ROUTE_CONTRACTS: ReadonlyArray<NavigationRouteContract> 
         timerPolicy: 'none'
     },
     { action: 'back', from: 'settings', to: 'collection', presentation: 'page', preservesRun: false, timerPolicy: 'none' },
+    {
+        action: 'open',
+        from: 'profile',
+        to: 'settings',
+        presentation: 'page',
+        preservesRun: false,
+        timerPolicy: 'none'
+    },
+    { action: 'back', from: 'settings', to: 'profile', presentation: 'page', preservesRun: false, timerPolicy: 'none' },
     {
         action: 'open',
         from: 'playing',
@@ -129,6 +143,22 @@ export const NAVIGATION_ROUTE_CONTRACTS: ReadonlyArray<NavigationRouteContract> 
         timerPolicy: 'resume-on-close'
     },
     {
+        action: 'open',
+        from: 'playing',
+        to: 'shop',
+        presentation: 'in-run-overlay',
+        preservesRun: true,
+        timerPolicy: 'no-resume'
+    },
+    {
+        action: 'back',
+        from: 'shop',
+        to: 'playing',
+        presentation: 'in-run-overlay',
+        preservesRun: true,
+        timerPolicy: 'no-resume'
+    },
+    {
         action: 'pause-toggle',
         from: 'playing',
         to: 'playing',
@@ -158,7 +188,7 @@ export const getNavigationShellChromeRows = (): NavigationShellChromeRow[] => [
     {
         id: 'page_back',
         label: 'Page Back',
-        route: 'modeSelect/collection/inventory/codex/settings → menu',
+        route: 'modeSelect/collection/profile/inventory/codex/settings → menu',
         chrome: 'Full meta destination with visible Back button.',
         preservesRun: false,
         localOnly: true
@@ -220,6 +250,8 @@ export const isMenuDestinationView = (view: ViewState): boolean => MENU_RETURN_V
 
 export const isInRunMetaView = (view: ViewState): boolean => IN_RUN_META_VIEWS.has(view);
 
+export const isInRunOverlayView = (view: ViewState): boolean => IN_RUN_OVERLAY_VIEWS.has(view);
+
 export const getNavigationShellChromeContract = ({
     runPresent,
     settingsReturnView,
@@ -246,6 +278,9 @@ export const getNavigationShellChromeContract = ({
     if ((view === 'inventory' || view === 'codex') && subscreenReturnView === 'playing') {
         return { visualView: runPresent ? 'playing' : 'menu', shellChrome: runPresent ? 'gameplay_modal' : 'menu_hub', boardMounted: runPresent, fallbackView: 'menu', reason: 'In-run meta overlays keep gameplay mounted.' };
     }
+    if (view === 'shop') {
+        return { visualView: runPresent ? 'playing' : 'menu', shellChrome: runPresent ? 'gameplay_modal' : 'menu_hub', boardMounted: runPresent, fallbackView: 'menu', reason: 'Shop is an in-run floor-clear destination over gameplay.' };
+    }
     return { visualView: view, shellChrome: view === 'menu' ? 'menu_hub' : 'meta_page', boardMounted: false, fallbackView: 'menu', reason: 'Full-page menu/meta destination.' };
 };
 
@@ -255,9 +290,12 @@ export type StoreNavigationAction =
     | 'openCodexFromMenu'
     | 'openCodexFromPlaying'
     | 'openCollection'
+    | 'openProfile'
     | 'openInventoryFromMenu'
     | 'openInventoryFromPlaying'
     | 'openModeSelect'
+    | 'openShopFromLevelComplete'
+    | 'closeShopToFloorSummary'
     | 'openSettings';
 
 export type StoreNavigationTransition =
@@ -289,6 +327,8 @@ export const resolveNavigationTransition = (
             return { kind: 'setView', view: 'modeSelect', subscreenReturnView: 'menu' };
         case 'openCollection':
             return { kind: 'setView', view: 'collection', subscreenReturnView: 'menu' };
+        case 'openProfile':
+            return { kind: 'setView', view: 'profile', subscreenReturnView: 'menu' };
         case 'openInventoryFromMenu':
             return { kind: 'setView', view: 'inventory', subscreenReturnView: 'menu' };
         case 'openCodexFromMenu':
@@ -301,6 +341,12 @@ export const resolveNavigationTransition = (
             return state.run && state.view === 'playing'
                 ? { kind: 'setView', view: 'codex', subscreenReturnView: 'playing', freezeRun: true }
                 : { kind: 'setView', view: state.view };
+        case 'openShopFromLevelComplete':
+            return state.run && state.view === 'playing'
+                ? { kind: 'setView', view: 'shop' }
+                : { kind: 'setView', view: state.view };
+        case 'closeShopToFloorSummary':
+            return state.run ? { kind: 'setView', view: 'playing' } : { kind: 'setView', view: 'menu' };
         case 'closeSubscreen': {
             const target = resolveSubscreenCloseTarget({
                 currentView: state.view,

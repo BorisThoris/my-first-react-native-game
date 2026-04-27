@@ -29,6 +29,11 @@ interface OverlayModalProps {
      * CSS-only under `[data-reduce-motion='false']` (see MOTION_AND_STATE_SPEC).
      */
     ornamentalHeaderPlate?: boolean;
+    /**
+     * DS-010: with `ornamentalHeaderPlate`, use a flat title band (no MetaFrame cornice) for routine summaries
+     * (e.g. floor cleared). Relic / pause keep the forged header unless this is set.
+     */
+    quietHeaderPlate?: boolean;
     /** When `ornamentalHeaderPlate` is set: chrome wash + MetaFrame glow (see {@link OverlayModalHeaderPlateTone}). */
     headerPlateTone?: OverlayModalHeaderPlateTone;
 }
@@ -61,6 +66,22 @@ const headerPlateToneClass = (tone: OverlayModalHeaderPlateTone): string => {
     }
 
     return '';
+};
+
+const quietHeaderToneClass = (tone: OverlayModalHeaderPlateTone): string => {
+    if (tone === 'success') {
+        return styles.headerQuietToneSuccess;
+    }
+    if (tone === 'pause') {
+        return styles.headerQuietTonePause;
+    }
+    if (tone === 'relic') {
+        return styles.headerQuietToneRelic;
+    }
+    if (tone === 'danger') {
+        return styles.headerQuietToneDanger;
+    }
+    return styles.headerQuietToneNeutral;
 };
 
 const overlayToneClass = (tone: OverlayModalHeaderPlateTone): string => {
@@ -102,6 +123,7 @@ const OverlayModal = ({
     actions,
     testId,
     ornamentalHeaderPlate = false,
+    quietHeaderPlate = false,
     headerPlateTone = 'neutral'
 }: OverlayModalProps) => {
     const modalRef = useRef<HTMLElement | null>(null);
@@ -174,7 +196,16 @@ const OverlayModal = ({
                 tabIndex={-1}
             >
                 <div className={styles.mainColumn}>
-                    {ornamentalHeaderPlate ? (
+                    {ornamentalHeaderPlate && quietHeaderPlate ? (
+                        <div
+                            className={`${styles.headerQuietBand} ${quietHeaderToneClass(headerPlateTone)}`.trim()}
+                            data-testid="overlay-modal-quiet-header"
+                        >
+                            <ScreenTitle as="h3" className={styles.title} id={titleId} role="modal">
+                                {title}
+                            </ScreenTitle>
+                        </div>
+                    ) : ornamentalHeaderPlate ? (
                         <MetaFrame
                             className={`${styles.headerPlateFrame} ${headerPlateToneClass(headerPlateTone)}`.trim()}
                         >

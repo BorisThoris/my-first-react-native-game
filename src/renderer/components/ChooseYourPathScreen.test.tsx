@@ -12,7 +12,11 @@ vi.mock('../hooks/useFitShellZoom', () => ({
     useFitShellZoom: () => ({ fitZoom: 1 })
 }));
 vi.mock('../hooks/useDragScroll', () => ({
-    useDragScroll: () => ({ onPointerDownCapture: vi.fn() })
+    useDragScroll: () => ({
+        onPointerDownCapture: vi.fn(),
+        onKeyDownCapture: vi.fn(),
+        tabIndex: 0 as const
+    })
 }));
 vi.mock('../desktop-client', () => ({
     desktopClient: { quitApp: vi.fn() }
@@ -63,7 +67,10 @@ describe('ChooseYourPathScreen REG-010 discoverability', () => {
         expect(discovery).toHaveTextContent(/playable mode/);
         expect(discovery).toHaveTextContent(/Page 1 of/);
         expect(screen.getByText(/Planned post-v1 mode/)).toBeInTheDocument();
-        expect(screen.getByTestId('choose-path-social-scope')).toHaveTextContent(/Share-only/);
-        expect(screen.getByTestId('choose-path-social-scope')).toHaveTextContent(/Pass-and-play/);
+        const offlineNote = screen.getByTestId('choose-path-offline-note');
+        expect(offlineNote).toHaveTextContent(/Offline-first/);
+        expect(offlineNote).toHaveTextContent(/share strings/);
+        expect(offlineNote).toHaveTextContent(/Pass-and-play/);
+        expect(offlineNote).toHaveTextContent(/Profile/);
     });
 });

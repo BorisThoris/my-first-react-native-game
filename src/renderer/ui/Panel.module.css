@@ -7,7 +7,7 @@
     overflow: hidden;
     border: 1px solid var(--theme-border);
     border-radius: var(--ui-radius-panel);
-    backdrop-filter: blur(22px) saturate(145%);
+    backdrop-filter: blur(12px) saturate(128%);
 }
 
 .root::before,
@@ -20,7 +20,7 @@
 
 .root::before {
     background: var(--theme-panel-frame);
-    opacity: 0.7;
+    opacity: 0.45;
 }
 
 .root::after {
@@ -42,9 +42,7 @@
 
 .muted {
     background: var(--theme-panel-surface-muted);
-    box-shadow:
-        0 18px 42px color-mix(in srgb, var(--theme-shadow) 44%, transparent),
-        inset 0 1px 0 color-mix(in srgb, var(--theme-text) 10%, transparent);
+    box-shadow: var(--theme-panel-shadow-muted);
 }
 
 .accent {

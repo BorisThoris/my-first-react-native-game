@@ -35,9 +35,9 @@
     gap: 0.28rem;
     padding: 0.85rem 1rem;
     border-radius: var(--ui-radius-md);
-    border: 1px solid color-mix(in srgb, var(--theme-gold) 24%, var(--theme-divider-hairline));
+    border: 1px solid color-mix(in srgb, var(--theme-gold) 18%, var(--theme-divider-hairline));
     background:
-        radial-gradient(circle at top left, color-mix(in srgb, var(--theme-gold) 12%, transparent), transparent 48%),
+        radial-gradient(circle at top left, color-mix(in srgb, var(--theme-gold) 7%, transparent), transparent 52%),
         var(--theme-panel-alt);
 }
 
@@ -58,8 +58,8 @@
 }
 
 .achievementUnlocked {
-    border-color: color-mix(in srgb, var(--theme-gold) 28%, var(--theme-divider-hairline));
-    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--theme-gold-bright) 12%, transparent);
+    border-color: color-mix(in srgb, var(--theme-gold) 20%, var(--theme-divider-hairline));
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--theme-gold-bright) 8%, transparent);
 }
 
 .relicTierLatent {

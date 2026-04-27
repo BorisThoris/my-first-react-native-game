@@ -54,7 +54,7 @@
     -webkit-overflow-scrolling: touch;
     display: flex;
     flex-direction: column;
-    gap: var(--ui-shell-screen-gap);
+    gap: max(var(--theme-space-lg), calc(var(--ui-shell-screen-gap) * 0.92));
     padding:
         max(var(--ui-shell-screen-pad-block), env(safe-area-inset-top, 0px))
         max(var(--ui-shell-screen-pad-inline), env(safe-area-inset-right, 0px))
@@ -91,7 +91,7 @@
 .brandCrest {
     width: clamp(3.75rem, 8vw, 5.25rem);
     height: auto;
-    filter: drop-shadow(0 0 22px var(--theme-glow-violet-drop));
+    filter: drop-shadow(0 0 14px var(--theme-glow-violet-drop));
 }
 
 .scoreHero {
@@ -117,7 +117,7 @@
     line-height: 1;
     letter-spacing: -0.03em;
     color: var(--theme-gold-bright);
-    text-shadow: 0 0 28px var(--theme-glow-gold-soft);
+    text-shadow: 0 0 16px var(--theme-glow-gold-soft);
     font-variant-numeric: tabular-nums;
 }
 
@@ -260,7 +260,7 @@
 }
 
 .detailsPanel {
-    opacity: 0.92;
+    opacity: 0.98;
     border: 1px solid var(--theme-card-border-muted);
 }
 

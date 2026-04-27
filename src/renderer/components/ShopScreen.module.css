@@ -1,0 +1,247 @@
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 22;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--ui-shell-screen-pad-safe);
+    background:
+        radial-gradient(ellipse 72% 46% at 50% 16%, rgba(242, 211, 157, 0.05), transparent 58%),
+        var(--gameplay-overlay-scrim-bg, var(--theme-scrim-heavy));
+    backdrop-filter: var(--gameplay-overlay-scrim-filter, blur(8px) saturate(118%));
+    overflow: hidden;
+}
+
+.shell {
+    width: min(980px, 100%);
+    max-height: min(90dvh, 100%);
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: var(--theme-space-md);
+    padding: clamp(0.78rem, 1.8vw, 1.05rem);
+    border-radius: calc(var(--ui-radius-lg) + 0.1rem);
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 16%, transparent);
+    background:
+        radial-gradient(ellipse 105% 62% at 50% 0%, rgba(242, 211, 157, 0.06), transparent 54%),
+        var(--theme-panel-surface-hero, var(--theme-panel-surface-strong));
+    box-shadow: var(--theme-panel-shadow-hero, var(--theme-panel-shadow-strong));
+    overflow: hidden;
+}
+
+.header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--theme-space-xl);
+    padding-bottom: var(--theme-space-md);
+    border-bottom: 1px solid color-mix(in srgb, var(--theme-gold-bright) 12%, transparent);
+}
+
+.headerText {
+    display: grid;
+    gap: 0.25rem;
+    max-width: 42rem;
+}
+
+.eyebrow,
+.stockCategory {
+    color: color-mix(in srgb, var(--theme-gold-bright) 82%, white);
+    font-size: var(--ui-font-label);
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.header h2,
+.stockCard h3 {
+    margin: 0;
+    color: var(--theme-text);
+    font-family: var(--theme-display-font);
+    letter-spacing: 0.02em;
+}
+
+.header h2 {
+    font-size: clamp(1.55rem, 3vw, 2.35rem);
+}
+
+.header p,
+.stockCard p {
+    margin: 0;
+    color: var(--theme-text-muted);
+    line-height: 1.42;
+}
+
+.purse {
+    flex: 0 0 auto;
+    min-width: 7.8rem;
+    display: grid;
+    gap: 0.12rem;
+    padding: 0.66rem 0.82rem;
+    border-radius: var(--ui-radius-md);
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 24%, transparent);
+    background:
+        linear-gradient(180deg, rgba(255, 243, 217, 0.06), transparent 54%),
+        color-mix(in srgb, var(--theme-gold-deep) 24%, var(--theme-void));
+    text-align: right;
+}
+
+.purse span {
+    color: var(--theme-text-muted);
+    font-size: var(--ui-font-label);
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.purse strong {
+    color: var(--theme-gold-bright);
+    font-family: var(--theme-display-font);
+    font-size: 1.45rem;
+    line-height: 1;
+}
+
+.stockGrid {
+    min-height: 0;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--theme-space-md);
+    padding-right: 0.1rem;
+}
+
+.stockCard {
+    min-width: 0;
+    display: grid;
+    align-content: start;
+    gap: 0.48rem;
+    padding: var(--ui-card-pad-md);
+    border-radius: var(--ui-radius-md);
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 11%, transparent);
+    background:
+        linear-gradient(180deg, rgba(255, 243, 217, 0.028), transparent 44%),
+        color-mix(in srgb, var(--theme-panel-solid) 68%, transparent);
+}
+
+.stockCard[data-status='available'] {
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 22%, transparent);
+    box-shadow: inset 0 1px 0 var(--theme-hud-chrome-inset);
+}
+
+.stockCard[data-status='claimed'] {
+    border-color: color-mix(in srgb, var(--theme-success) 28%, transparent);
+}
+
+.stockCard[data-status='insufficient'],
+.stockCard[data-status='incompatible'] {
+    opacity: 0.68;
+}
+
+.stockTopline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--theme-space-sm);
+}
+
+.stockCost {
+    color: var(--theme-rune);
+    font-weight: 800;
+    font-size: 0.78rem;
+}
+
+.stockAction,
+.rerollButton {
+    appearance: none;
+    border-radius: var(--ui-radius-md);
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 20%, transparent);
+    background:
+        linear-gradient(180deg, rgba(255, 243, 217, 0.05), transparent 52%),
+        color-mix(in srgb, var(--theme-gold-deep) 20%, var(--theme-void));
+    color: var(--theme-text);
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.stockAction {
+    min-height: var(--ui-touch-target-min);
+    margin-top: 0.1rem;
+    padding: 0.58rem 0.75rem;
+}
+
+.stockAction:disabled,
+.rerollButton:disabled {
+    cursor: not-allowed;
+    opacity: 0.52;
+}
+
+.footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--theme-space-lg);
+    padding-top: var(--theme-space-md);
+    border-top: 1px solid color-mix(in srgb, var(--theme-gold-bright) 10%, transparent);
+}
+
+.rerollButton {
+    min-height: var(--ui-touch-target-min);
+    display: grid;
+    gap: 0.08rem;
+    min-width: 10rem;
+    padding: 0.55rem 0.75rem;
+    text-align: left;
+}
+
+.rerollButton small {
+    color: var(--theme-text-muted);
+    font-size: 0.72rem;
+}
+
+.footerActions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--ui-footer-action-gap);
+}
+
+:global([data-reduce-motion='true']) .overlay {
+    backdrop-filter: none;
+}
+
+@media (max-width: 760px) {
+    .overlay {
+        align-items: stretch;
+        padding: max(0.55rem, env(safe-area-inset-top, 0px)) max(0.55rem, env(safe-area-inset-right, 0px))
+            max(0.55rem, env(safe-area-inset-bottom, 0px)) max(0.55rem, env(safe-area-inset-left, 0px));
+    }
+
+    .shell {
+        max-height: 100%;
+        gap: var(--theme-space-md);
+    }
+
+    .header,
+    .footer {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .purse {
+        width: 100%;
+        text-align: left;
+    }
+
+    .stockGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .footerActions {
+        flex-direction: column;
+    }
+
+    .footerActions :global(button),
+    .rerollButton {
+        width: 100%;
+    }
+}

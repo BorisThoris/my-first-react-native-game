@@ -176,12 +176,14 @@ Hero uses **`cardGrid`** (`auto-fit`, `minmax(240px, 1fr)`), so Featured cards g
 | Hook | Location |
 |------|----------|
 | `choose-path-low-cta` | Locked Endless (hero). |
+| `choose-path-offline-note` | Compact offline / share-string scope + pointer to Profile (replaces long social grid on this screen). |
 | `main-menu-low-cta` | Import run JSON (library). |
 | `choose-path-more-modes` | Library region — **scroll into view** before strict viewport assertions on short viewports. |
 
 | Flow | File |
 |------|------|
 | Menu → Play → CYP, viewport + import/endless | [`e2e/visualScenarioSteps.ts`](../../e2e/visualScenarioSteps.ts) `01a-choose-your-path` |
+| Menu → Profile | [`e2e/visualScenarioSteps.ts`](../../e2e/visualScenarioSteps.ts) `01f-profile` |
 | Viewport stress | [`e2e/viewport-fit-stress.spec.ts`](../../e2e/viewport-fit-stress.spec.ts) |
 | Wild / Scholar from CYP region | [`e2e/wild-run.spec.ts`](../../e2e/wild-run.spec.ts), [`e2e/scholar-contract.spec.ts`](../../e2e/scholar-contract.spec.ts) |
 

@@ -17,8 +17,8 @@
     display: block;
     width: 100%;
     height: 100%;
-    opacity: 0.94;
-    filter: saturate(1.03);
+    opacity: 0.88;
+    filter: saturate(1.02);
 }
 
 .atmospherePlaceholder {
@@ -37,8 +37,8 @@
         radial-gradient(circle at 54% 76%, var(--theme-shell-bloom-ember), transparent 30%),
         var(--theme-shell-fallback-vignette),
         linear-gradient(180deg, var(--theme-backdrop-doc-veil), transparent 16% 84%, var(--theme-backdrop-doc-veil)),
-        linear-gradient(90deg, color-mix(in srgb, var(--theme-backdrop-grid-line) 250%, transparent) 1px, transparent 1px),
-        linear-gradient(color-mix(in srgb, var(--theme-backdrop-grid-line) 220%, transparent) 1px, transparent 1px);
+        linear-gradient(90deg, color-mix(in srgb, var(--theme-backdrop-grid-line) 140%, transparent) 1px, transparent 1px),
+        linear-gradient(color-mix(in srgb, var(--theme-backdrop-grid-line) 120%, transparent) 1px, transparent 1px);
     background-size:
         auto,
         auto,
@@ -56,7 +56,7 @@
         calc(var(--tilt-x, 0) * -10px) calc(var(--tilt-y, 0) * -10px),
         calc(var(--tilt-x, 0) * -10px) calc(var(--tilt-y, 0) * -10px);
     mask-image: radial-gradient(circle at center, black 0, rgba(0, 0, 0, 0.96) 68%, transparent 90%);
-    opacity: 0.62;
+    opacity: 0.5;
     transform: translate3d(calc(var(--tilt-x, 0) * 14px), calc(var(--tilt-y, 0) * 12px), 0);
 }
 

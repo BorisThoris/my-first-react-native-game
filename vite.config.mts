@@ -8,6 +8,9 @@ import { viteDevBlueprintApi } from './scripts/vite-dev-blueprint-api.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+/** Renderer bundle dir; override when `dist` is locked on Windows (`yarn build:renderer:alt-out`). Electron `loadFile` still expects `dist` for release builds. */
+const rendererOutDir = (process.env.VITE_OUT_DIR ?? 'dist').trim() || 'dist';
+
 const boardWebglPerfSample = path.resolve(__dirname, 'src/renderer/dev/boardWebglPerfSample.ts');
 const boardWebglPerfSampleStub = path.resolve(__dirname, 'src/renderer/dev/boardWebglPerfSample.stub.ts');
 
@@ -57,8 +60,14 @@ export default defineConfig(({ mode }) => ({
         ]
     },
     build: {
-        outDir: 'dist',
+        outDir: rendererOutDir,
         sourcemap: true,
+        /**
+         * Windows: locked files under `dist` cause EPERM on clean or on writing the same asset name.
+         * Use `yarn build:renderer:alt-out` (writes to `dist-build`), or set `VITE_SKIP_EMPTY_OUT_DIR=1`
+         * only when empty fails but writes succeed.
+         */
+        emptyOutDir: process.env.VITE_SKIP_EMPTY_OUT_DIR !== '1',
         rollupOptions: {
             input: {
                 main: path.resolve(__dirname, 'index.html'),

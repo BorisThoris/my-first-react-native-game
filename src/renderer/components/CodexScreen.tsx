@@ -27,7 +27,9 @@ import {
     uiSfxGainFromSettings
 } from '../audio/uiSfx';
 import { useAppStore } from '../store/useAppStore';
+import inRunFramedPanel from '../ui/metaInRunFramedPanel.module.css';
 import metaStyles from './MetaScreen.module.css';
+import { getMetaSubscreenLayout } from './metaStackedShellLayout';
 import { handleMetaBodyTocLinkClick } from './metaScreenTocNav';
 import styles from './CodexScreen.module.css';
 
@@ -85,9 +87,10 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
             settings: state.settings
         }))
     );
-    const shellStageClass = stackedOnGameplay ? metaStyles.shellInRunModal : metaStyles.shellMetaStage;
-    const panelClassName = stackedOnGameplay ? styles.inRunPanel : '';
-    const heroPanelClassName = stackedOnGameplay ? styles.inRunHeroPanel : '';
+    const { shellStageClass, panelClassName, heroPanelClassName, titleLevel } = getMetaSubscreenLayout(
+        stackedOnGameplay,
+        { panel: inRunFramedPanel.inRunPanel, hero: inRunFramedPanel.inRunHeroPanel }
+    );
     const bodyScrollRef = useRef<HTMLDivElement | null>(null);
     const [filterQuery, setFilterQuery] = useState('');
     const [debouncedFilterQuery, setDebouncedFilterQuery] = useState('');
@@ -193,7 +196,7 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
             <header className={metaStyles.header}>
                 <div className={metaStyles.headerText}>
                     <Eyebrow tone="menu">Reference</Eyebrow>
-                    <ScreenTitle as={stackedOnGameplay ? 'h2' : 'h1'} role="display">
+                    <ScreenTitle as={titleLevel} role="display">
                         Codex
                     </ScreenTitle>
                     <p className={metaStyles.subtitle}>
@@ -268,7 +271,7 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
                 </MetaFrame>
 
                 <MetaFrame data-testid="codex-reward-signal">
-                    <Panel className={heroPanelClassName} padding="md" variant="strong">
+                    <Panel className={panelClassName} padding="md" variant="default">
                         <strong>{codexRewardSignal.title}</strong>
                         <p className={metaStyles.subtitle}>{codexRewardSignal.body}</p>
                         <p className={metaStyles.subtitle}>{codexRewardSignal.cta}</p>
@@ -300,7 +303,7 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
                 <div id="codex-main-column">
                     {showGuidePanel(coreFiltered.length) ? (
                         <MetaFrame data-testid="codex-meta-frame-core">
-                            <Panel className={heroPanelClassName} padding="lg" variant="strong">
+                            <Panel className={panelClassName} padding="lg" variant="default">
                                 <details
                                     className={`${styles.sectionFold} ${metaStyles.sectionAnchor}`}
                                     id="codex-core"

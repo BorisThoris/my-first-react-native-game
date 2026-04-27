@@ -29,6 +29,10 @@ describe('devSandboxParams', () => {
         expect(parseScreenParam('gameover')).toBe('gameOver');
     });
 
+    it('parseScreenParam accepts the dedicated shop screen', () => {
+        expect(parseScreenParam('shop')).toBe('shop');
+    });
+
     describe('readDevSandboxConfig', () => {
         const original = window.location.href;
 

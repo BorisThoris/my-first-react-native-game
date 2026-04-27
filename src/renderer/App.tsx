@@ -4,11 +4,13 @@ import { useShallow } from 'zustand/react/shallow';
 import ChooseYourPathScreen from './components/ChooseYourPathScreen';
 import CodexScreen from './components/CodexScreen';
 import CollectionScreen from './components/CollectionScreen';
+import ProfileScreen from './components/ProfileScreen';
 import GameOverScreen from './components/GameOverScreen';
 import GameScreen from './components/GameScreen';
 import InventoryScreen from './components/InventoryScreen';
 import MainMenu from './components/MainMenu';
 import SettingsScreen from './components/SettingsScreen';
+import ShopScreen from './components/ShopScreen';
 import { GAMEPLAY_VISUAL_CSS_VARS } from './components/gameplayVisualConfig';
 import metaScreenStyles from './components/MetaScreen.module.css';
 import StartupIntro from './components/StartupIntro';
@@ -41,6 +43,7 @@ const App = () => {
         hydrate,
         newlyUnlockedAchievements,
         openCollection,
+        openProfile,
         openCodexFromMenu,
         openInventoryFromMenu,
         openModeSelect,
@@ -50,7 +53,6 @@ const App = () => {
         settingsReturnView,
         subscreenReturnView,
         settings,
-        steamConnected,
         view
     } = useAppStore(
         useShallow((state) => ({
@@ -59,6 +61,7 @@ const App = () => {
             hydrate: state.hydrate,
             newlyUnlockedAchievements: state.newlyUnlockedAchievements,
             openCollection: state.openCollection,
+            openProfile: state.openProfile,
             openCodexFromMenu: state.openCodexFromMenu,
             openInventoryFromMenu: state.openInventoryFromMenu,
             openModeSelect: state.openModeSelect,
@@ -68,7 +71,6 @@ const App = () => {
             settingsReturnView: state.settingsReturnView,
             subscreenReturnView: state.subscreenReturnView,
             settings: state.settings,
-            steamConnected: state.steamConnected,
             view: state.view
         }))
     );
@@ -97,7 +99,8 @@ const App = () => {
         (view === 'inventory' || view === 'codex') &&
         subscreenReturnView === 'playing' &&
         run !== null;
-    const visualView = inGameSettingsOverlay || inGameShellOverlay ? 'playing' : activeView;
+    const inGameShopOverlay = hydrated && view === 'shop' && run !== null;
+    const visualView = inGameSettingsOverlay || inGameShellOverlay || inGameShopOverlay ? 'playing' : activeView;
 
     const musicShellActive = hydrated && (visualView === 'menu' || visualView === 'playing');
 
@@ -114,6 +117,7 @@ const App = () => {
             visualView === 'playing' ||
             view === 'modeSelect' ||
             view === 'collection' ||
+            view === 'profile' ||
             (view === 'inventory' && subscreenReturnView === 'menu') ||
             (view === 'codex' && subscreenReturnView === 'menu'))
             ? 'off'
@@ -169,6 +173,22 @@ const App = () => {
             }
         });
     }, [hydrated]);
+
+    /** DS-010: `ShopScreen` returns null for invalid run state; snap view back so gameplay/floor summary stays coherent. */
+    useEffect(() => {
+        if (!hydrated || view !== 'shop') {
+            return;
+        }
+        const { closeShopToFloorSummary, run: shopRun } = useAppStore.getState();
+        if (
+            !shopRun ||
+            shopRun.status !== 'levelComplete' ||
+            shopRun.relicOffer ||
+            shopRun.shopOffers.length === 0
+        ) {
+            closeShopToFloorSummary();
+        }
+    }, [hydrated, view]);
 
     /*
      * OVR-008 / HUD-013 — z-index ladder (single reference; low → high where applicable):
@@ -240,14 +260,12 @@ const App = () => {
                     >
                         {showMainMenu ? (
                             <MainMenu
-                                bestScore={saveData.bestScore}
-                                lastRunSummary={saveData.lastRunSummary}
                                 saveData={saveData}
                                 reduceMotion={settings.reduceMotion}
                                 suppressMenuBackgroundFallback={introOverlayVisible}
-                                steamConnected={steamConnected}
                                 onDismissHowToPlay={dismissHowToPlay}
                                 onOpenSettings={() => openSettings('menu')}
+                                onOpenProfile={openProfile}
                                 onOpenCollection={openCollection}
                                 onOpenCodex={openCodexFromMenu}
                                 onOpenInventory={openInventoryFromMenu}
@@ -272,17 +290,19 @@ const App = () => {
 
                 {hydrated && view === 'collection' && <CollectionScreen />}
 
+                {hydrated && view === 'profile' && <ProfileScreen />}
+
                 {hydrated && view === 'inventory' && subscreenReturnView === 'menu' && <InventoryScreen />}
 
                 {hydrated && view === 'codex' && subscreenReturnView === 'menu' && <CodexScreen />}
 
                 {hydrated && view === 'settings' && !inGameSettingsOverlay && <SettingsScreen />}
 
-                {hydrated && (view === 'playing' || inGameSettingsOverlay || inGameShellOverlay) && run && (
+                {hydrated && (view === 'playing' || inGameSettingsOverlay || inGameShellOverlay || inGameShopOverlay) && run && (
                     <GameScreen
                         achievements={newlyUnlockedAchievements}
                         run={run}
-                        suppressStatusOverlays={inGameSettingsOverlay || inGameShellOverlay}
+                        suppressStatusOverlays={inGameSettingsOverlay || inGameShellOverlay || inGameShopOverlay}
                     />
                 )}
 
@@ -306,6 +326,8 @@ const App = () => {
                         </div>
                     </div>
                 ) : null}
+
+                {inGameShopOverlay ? <ShopScreen /> : null}
 
                 {hydrated && view === 'gameOver' && run?.lastRunSummary && <GameOverScreen run={run} />}
             </main>

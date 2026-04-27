@@ -3,7 +3,7 @@
  *
  * Query keys (all optional except devSandbox gate):
  * - `devSandbox=1` — required to enable parsing; without it, other keys are ignored.
- * - `screen` — `menu` | `settings` | `playing` | `gameOver` | `modeSelect` | `collection` |
+ * - `screen` — `menu` | `settings` | `playing` | `shop` | `gameOver` | `modeSelect` | `collection` | `profile` |
  *   `inventory` | `codex` (maps to ViewState; excludes `boot`).
  * - `fixture` — when `screen=playing` (or gameOver where applicable), see `runFixtures.ts`.
  * - `skipIntro=1` — skip StartupIntro when landing on `menu` (App sets intro playback to done).
@@ -87,11 +87,13 @@ const SCREEN_MAP: Record<string, DevSandboxScreen> = {
     menu: 'menu',
     settings: 'settings',
     playing: 'playing',
+    shop: 'shop',
     gameover: 'gameOver',
     'game-over': 'gameOver',
     modeSelect: 'modeSelect',
     modeselect: 'modeSelect',
     collection: 'collection',
+    profile: 'profile',
     inventory: 'inventory',
     codex: 'codex'
 };

@@ -68,10 +68,12 @@ export type ViewState =
     | 'gameOver'
     | 'modeSelect'
     | 'collection'
+    | 'profile'
     | 'inventory'
+    | 'shop'
     | 'codex';
 
-/** Where sub-screens (mode select, collection, inventory, codex) return on Back. */
+/** Where sub-screens (mode select, collection, profile, inventory, codex) return on Back. */
 export type SubscreenReturnView = Exclude<ViewState, 'boot' | 'settings'>;
 
 export type GameMode = 'endless' | 'daily' | 'puzzle' | 'gauntlet' | 'meditation';

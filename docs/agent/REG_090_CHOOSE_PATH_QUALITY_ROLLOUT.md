@@ -8,7 +8,7 @@ online_policy: no mandatory accounts, no server realtime, no competitive online 
 
 | screen | quality bar | data contract | verification route | dependent regs |
 |---|---|---|---|---|
-| main_menu | Profile/community strip uses real local save data; Play remains dominant; no fake online links. | `SaveData`, `profile-summary`, `objective-board`, `quest-campaign` | `MainMenu.test.tsx`, visual smoke when layout changes | REG-009, REG-035, REG-091 |
+| main_menu | Play remains dominant; **Profile** opens the progress screen (stats/objectives/trust live there, not duplicated on the hub); no fake online links. | `SaveData`, `profile-summary`, `objective-board`, `quest-campaign` | `MainMenu.test.tsx`, visual `01-main-menu` / `01f-profile` | REG-009, REG-035, REG-091 |
 | choose_path | Selected mode/start action above fold; browse/search/page state; locked reasons; poster fallback badges. | `run-mode-catalog`, `run-mode-discovery`, `challenge-progression` | `ChooseYourPathScreen.test.tsx`, navigation-flow for starts | REG-010, REG-013, REG-090 |
 | collection | Reward signals, profile/meta board, honors, cosmetics, archive rows, readability rows. | `meta-progression`, `meta-reward-signals`, `daily-archive`, `cosmetics` | `meta-reward-signals.test.ts`, Collection smoke as added | REG-011, REG-016, REG-093 |
 | inventory | Run snapshot, build value, consumable/loadout stack rules, economy rows, empty start guidance. | `RunState`, `run-inventory`, `run-economy`, `meta-reward-signals` | `InventoryScreen.test.tsx` | REG-011, REG-079, REG-094 |

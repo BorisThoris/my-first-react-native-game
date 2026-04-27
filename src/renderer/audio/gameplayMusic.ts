@@ -37,7 +37,15 @@ export interface AdaptiveMusicState {
 }
 
 export const resolveAdaptiveMusicState = ({ hidden = false, run, view }: AdaptiveMusicInput): AdaptiveMusicState => {
-    if (hidden || view === 'boot' || view === 'settings' || view === 'collection' || view === 'inventory' || view === 'codex') {
+    if (
+        hidden ||
+        view === 'boot' ||
+        view === 'settings' ||
+        view === 'collection' ||
+        view === 'profile' ||
+        view === 'inventory' ||
+        view === 'codex'
+    ) {
         return { active: false, layer: 'silent', suppressed: true, track: 'menu', volumeMultiplier: 0 };
     }
     if (view === 'menu' || view === 'modeSelect') {
@@ -46,7 +54,7 @@ export const resolveAdaptiveMusicState = ({ hidden = false, run, view }: Adaptiv
     if (view === 'gameOver') {
         return { active: false, layer: 'silent', suppressed: true, track: 'run', volumeMultiplier: 0 };
     }
-    if (view === 'playing' && run) {
+    if ((view === 'playing' || view === 'shop') && run) {
         if (run.status === 'paused') {
             return { active: false, layer: 'silent', suppressed: true, track: 'run', volumeMultiplier: 0 };
         }

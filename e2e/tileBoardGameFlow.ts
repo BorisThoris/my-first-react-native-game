@@ -14,8 +14,13 @@ export interface E2eClientRect {
     width: number;
 }
 
+/** @returns Hidden count from `data-hidden-tile-count`, or `-1` when `tile-board-frame` is not mounted (avoids hanging on `getAttribute`). */
 export async function readFrameHiddenTileCount(page: Page): Promise<number> {
-    const raw = await page.getByTestId('tile-board-frame').getAttribute('data-hidden-tile-count');
+    const frame = page.getByTestId('tile-board-frame');
+    if ((await frame.count()) === 0) {
+        return -1;
+    }
+    const raw = await frame.getAttribute('data-hidden-tile-count');
     return Number.parseInt(raw ?? '0', 10);
 }
 

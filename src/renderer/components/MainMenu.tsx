@@ -1,14 +1,6 @@
-import type { RelicId, RunSummary, SaveData } from '../../shared/contracts';
-import { getEquippedCosmeticId } from '../../shared/cosmetics';
-import { countEligibleHonors, totalHonorUnlocks } from '../../shared/honorUnlocks';
-import { RELIC_CATALOG } from '../../shared/game-catalog';
+import type { SaveData } from '../../shared/contracts';
 import { getFirstRunHelpCenterRows } from '../../shared/first-run-help-center';
-import { getMainMenuHubQualityRows } from '../../shared/main-menu-hub-quality';
-import { getObjectiveBoardItems } from '../../shared/objective-board';
-import { getProfileSummaryRows } from '../../shared/profile-summary';
-import { getDailyStreakEthicsRow } from '../../shared/daily-archive';
-import { formatNextUtcReset } from '../../shared/utc-countdown';
-import { useEffect, useRef, useState } from 'react';
+import { useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { getHubShellFitPadding } from '../hooks/hubShellFit';
 import { useFitShellZoom } from '../hooks/useFitShellZoom';
@@ -17,8 +9,7 @@ import { desktopClient } from '../desktop-client';
 import {
     isNarrowShortLandscapeForMenuStack,
     isShortLandscapeViewport,
-    VIEWPORT_MOBILE_MAX,
-    VIEWPORT_TABLET_MAX
+    VIEWPORT_MOBILE_MAX
 } from '../breakpoints';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { usePlatformTiltField } from '../platformTilt/usePlatformTiltField';
@@ -35,32 +26,28 @@ import { useAppStore } from '../store/useAppStore';
 import styles from './MainMenu.module.css';
 
 interface MainMenuProps {
-    bestScore: number;
-    lastRunSummary: RunSummary | null;
     saveData: SaveData;
     reduceMotion: boolean;
     showHowToPlay: boolean;
-    steamConnected: boolean;
     suppressMenuBackgroundFallback?: boolean;
     onDismissHowToPlay: () => Promise<void>;
     onPlay: () => void;
     onOpenCollection: () => void;
+    onOpenProfile: () => void;
     onOpenCodex: () => void;
     onOpenInventory: () => void;
     onOpenSettings: () => void;
 }
 
 const MainMenu = ({
-    bestScore,
-    lastRunSummary,
     saveData,
     reduceMotion,
     showHowToPlay,
-    steamConnected,
     suppressMenuBackgroundFallback = false,
     onDismissHowToPlay,
     onPlay,
     onOpenCollection,
+    onOpenProfile,
     onOpenCodex,
     onOpenInventory,
     onOpenSettings
@@ -75,8 +62,7 @@ const MainMenu = ({
             }))
         );
     const shellRef = useRef<HTMLElement | null>(null);
-    const menuFitMeasureRef = useRef<HTMLDivElement | null>(null); /* outer box; zoom applied on inner .content */
-    const [nowMs, setNowMs] = useState(() => Date.now());
+    const menuFitMeasureRef = useRef<HTMLDivElement | null>(null);
     const { tiltRef: menuFieldTiltRef } = usePlatformTiltField({
         enabled: true,
         reduceMotion,
@@ -89,12 +75,9 @@ const MainMenu = ({
     const isShortLandscapeShell = isShortLandscapeViewport(width, height);
     const ultraCompactPhone = width <= 430 && height <= 700;
     const touchCompactLayout = isPhoneViewport || isNarrowShortLandscapeForMenuStack(width, height);
-    const prioritizeModesInHero = width <= VIEWPORT_TABLET_MAX;
-    /** Layout-only compaction for wide, short desktop (not tied to fit-zoom, which runs for all sizes). */
     const shortDesktopShell = !touchCompactLayout && width >= 1024 && height <= 760;
     const ultraShortDesktopShell = shortDesktopShell && height <= 700;
     const fitShellPadding = getHubShellFitPadding(width, height, 'menu');
-    /* App.tsx sets outer .content zoom from --ui-scale when not compact; useFitShellZoom scales the menu column only (no DOM scroll). */
     const { fitZoom: rawFitZoom } = useFitShellZoom({
         enabled: true,
         measureRef: menuFitMeasureRef,
@@ -104,30 +87,20 @@ const MainMenu = ({
     });
     const shellFitZoom = rawFitZoom;
     const ctaSize = touchCompactLayout || shortDesktopShell ? 'md' : 'lg';
-    const showArchivePanel = !prioritizeModesInHero;
-    const showBottomCards = !(ultraCompactPhone || ultraShortDesktopShell || (isShortLandscapeShell && height <= 720));
-    const relicPickEntries = saveData.playerStats
-        ? (Object.entries(saveData.playerStats.relicPickCounts) as [RelicId, number][])
-              .filter(([, count]) => count > 0)
-              .sort((left, right) => right[1] - left[1])
-        : [];
-    const lastRunLabel = lastRunSummary
-        ? `${lastRunSummary.totalScore.toLocaleString()} score / Floor ${lastRunSummary.highestLevel} / ${lastRunSummary.bestStreak} streak`
-        : 'No descent recorded yet.';
-    const dailyCountdown = formatNextUtcReset(nowMs);
-    const dailyStreakEthics = getDailyStreakEthicsRow(saveData, nowMs);
-    const objectiveBoard = getObjectiveBoardItems(saveData);
     const helpCenterRows = getFirstRunHelpCenterRows(saveData);
-    const profileSummary = getProfileSummaryRows(saveData);
-    const hubQualityRows = getMainMenuHubQualityRows(saveData, lastRunSummary);
-    const profileTitle = getEquippedCosmeticId(saveData, 'title') === 'title_ascendant_v' ? 'Ascendant V' : 'Seeker';
-    const profileCrest = getEquippedCosmeticId(saveData, 'crest') === 'crest_daily_bronze' ? 'Daily Bronze' : 'Lantern';
     const secondaryActions = [
         {
             ariaLabel: 'Collection',
             hint: 'Achievements, relics, and run history',
             label: 'Collection',
             onClick: onOpenCollection,
+            variant: 'secondary' as const
+        },
+        {
+            ariaLabel: 'Profile',
+            hint: 'Stats, dailies, objectives, and progress',
+            label: 'Profile',
+            onClick: onOpenProfile,
             variant: 'secondary' as const
         },
         {
@@ -165,84 +138,6 @@ const MainMenu = ({
         resumeUiSfxContext();
         playUiBackSfx(uiGain);
     };
-
-    useEffect(() => {
-        const id = window.setInterval(() => setNowMs(Date.now()), 1000);
-        return () => window.clearInterval(id);
-    }, []);
-
-    const archivePanel = showArchivePanel ? (
-        <Panel className={styles.supportPanel} padding="lg" variant="default">
-            <Eyebrow>Run Archive</Eyebrow>
-            <ScreenTitle as="h2" className={styles.supportHeading} role="screen">
-                Profile and progress
-            </ScreenTitle>
-            <div className={styles.archiveStats}>
-                {profileSummary.map((row) => (
-                    <div className={styles.archiveStat} key={row.id}>
-                        <span className={styles.archiveLabel}>{row.label}</span>
-                        <strong className={styles.archiveValue}>{row.value}</strong>
-                    </div>
-                ))}
-            </div>
-            <div className={styles.profileStrip} data-testid="main-menu-profile-strip">
-                <div className={styles.profileIdentity}>
-                    <span className={styles.profileAvatar}>{profileCrest.slice(0, 1)}</span>
-                    <div>
-                        <strong>{profileTitle}</strong>
-                        <span>Local profile · no social account required</span>
-                    </div>
-                </div>
-                <div className={styles.profileStripStats}>
-                    {profileSummary.slice(0, 3).map((row) => (
-                        <span key={row.id}>
-                            {row.label}
-                            <strong>{row.value}</strong>
-                        </span>
-                    ))}
-                </div>
-                <div className={styles.communityStrip} aria-label="Community links policy">
-                    <span>Community links</span>
-                    <strong>Steam/forum/support deferred until real destinations ship</strong>
-                </div>
-            </div>
-            <details className={styles.relicDetails}>
-                <summary>Most-picked relics</summary>
-                {relicPickEntries.length > 0 ? (
-                    <ul className={styles.relicList}>
-                        {relicPickEntries.slice(0, 5).map(([id, count]) => (
-                            <li key={id}>
-                                <span>{RELIC_CATALOG[id]?.title ?? id}</span>
-                                <strong>{count}</strong>
-                            </li>
-                        ))}
-                    </ul>
-                ) : (
-                    <p className={styles.emptyState}>No relic history yet.</p>
-                )}
-            </details>
-        </Panel>
-    ) : null;
-
-    const objectivePanel = (
-        <Panel className={styles.supportPanel} padding="lg" variant="accent">
-            <Eyebrow tone="tight">Objective Board</Eyebrow>
-            <ScreenTitle as="h2" className={styles.supportHeading} role="screen">
-                Mastery goals
-            </ScreenTitle>
-            <div className={styles.objectiveList} data-testid="main-menu-objective-board">
-                {objectiveBoard.map((objective) => (
-                    <div className={styles.objectiveItem} data-status={objective.status} key={objective.id}>
-                        <strong>{objective.title}</strong>
-                        <span>
-                            {objective.progress.current}/{objective.progress.target} · {objective.status}
-                        </span>
-                        <p>{objective.reward}</p>
-                    </div>
-                ))}
-            </div>
-        </Panel>
-    );
 
     const howToPanel = showHowToPlay ? (
         <Panel className={styles.supportPanel} padding="lg" variant="accent">
@@ -295,46 +190,6 @@ const MainMenu = ({
             <div className={styles.fitViewport}>
                 <div ref={menuFitMeasureRef} className={styles.fitMeasureOuter}>
                     <div className={styles.content} style={{ zoom: shellFitZoom }}>
-                        <header className={styles.metaRow} data-testid="main-menu-meta-strip">
-                            <MetaFrame className={styles.metaPlaqueFrame}>
-                                <div className={styles.metaCard}>
-                                    <span className={styles.metaLabel}>Build</span>
-                                    <strong className={styles.metaValue}>Steam Demo</strong>
-                                </div>
-                            </MetaFrame>
-                            <MetaFrame className={styles.metaPlaqueFrame}>
-                                <div className={styles.metaCard}>
-                                    <span className={styles.metaLabel}>Best Score</span>
-                                    <strong className={styles.metaValue}>
-                                        {bestScore > 0 ? bestScore.toLocaleString() : 'No local score'}
-                                    </strong>
-                                </div>
-                            </MetaFrame>
-                            <MetaFrame className={styles.metaPlaqueFrame}>
-                                <div className={styles.metaCard}>
-                                    <span className={styles.metaLabel}>Daily Streak</span>
-                                    <strong className={styles.metaValue}>
-                                        {saveData.playerStats?.dailyStreakCosmetic ?? 0}
-                                    </strong>
-                                    <span className={styles.metaSubValue}>{dailyStreakEthics.missedDayRule}</span>
-                                </div>
-                            </MetaFrame>
-                            <MetaFrame className={styles.metaPlaqueFrame}>
-                                <div className={styles.metaCard}>
-                                    <span className={styles.metaLabel}>Honors</span>
-                                    <strong className={styles.metaValue}>
-                                        {countEligibleHonors(saveData)} / {totalHonorUnlocks}
-                                    </strong>
-                                </div>
-                            </MetaFrame>
-                            <MetaFrame className={styles.metaPlaqueFrame}>
-                                <div className={styles.metaCard}>
-                                    <span className={styles.metaLabel}>Steam</span>
-                                    <strong className={styles.metaValue}>{steamConnected ? 'Connected' : 'Offline'}</strong>
-                                </div>
-                            </MetaFrame>
-                        </header>
-
                         {persistenceWriteNotice ? (
                             <div className={styles.steamBridgeNotice} role="alert">
                                 <span>{persistenceWriteNotice}</span>
@@ -356,34 +211,6 @@ const MainMenu = ({
                                 </button>
                             </div>
                         ) : null}
-
-                        <MetaFrame className={styles.profileStripFrame} data-testid="main-menu-profile-strip">
-                            <section className={styles.profileStrip} aria-label="Local profile summary">
-                                <div className={styles.profileIdentity}>
-                                    <span className={styles.profileCrest}>{profileCrest}</span>
-                                    <div>
-                                        <span className={styles.metaLabel}>Local profile</span>
-                                        <strong className={styles.profileName}>{profileTitle}</strong>
-                                    </div>
-                                </div>
-                                <div className={styles.profileStats}>
-                                    {profileSummary.slice(0, 4).map((row) => (
-                                        <span className={styles.profileStat} key={row.id}>
-                                            {row.label}<strong>{row.value}</strong>
-                                        </span>
-                                    ))}
-                                </div>
-                                <span className={styles.profileOfflineNote}>Single-device save · no online social feed</span>
-                            </section>
-                        </MetaFrame>
-
-                        <div className={styles.hubQualityStrip} data-testid="main-menu-hub-quality-strip">
-                            {hubQualityRows.map((row) => (
-                                <span key={row.id}>
-                                    {row.label}<strong>{row.value}</strong>
-                                </span>
-                            ))}
-                        </div>
 
                         <div className={styles.layout}>
                             <main className={styles.heroColumn}>
@@ -463,50 +290,8 @@ const MainMenu = ({
                                     </Panel>
                                 </MetaFrame>
 
-                                {prioritizeModesInHero && ultraCompactPhone && showHowToPlay ? howToPanel : null}
-
-                                {showBottomCards ? (
-                                    <div className={styles.bottomCards}>
-                                        <Panel className={styles.bottomPanel} padding="md" variant="strong">
-                                            <div className={styles.bottomPanelHeader}>
-                                                <img alt="" className={styles.panelSeal} src={UI_ART.menuSeal} />
-                                                <div>
-                                                    <span className={styles.panelKicker}>Daily Challenge</span>
-                                                    <strong className={styles.panelHeading}>New challenge in {dailyCountdown}</strong>
-                                                </div>
-                                            </div>
-                                            <p className={styles.panelBodyCopy}>
-                                                UTC seed rotation. Mutators, relic pacing, and floor pressure shift with each day.
-                                                {` ${dailyStreakEthics.rewardCopy}`}
-                                            </p>
-                                        </Panel>
-
-                                        <Panel className={styles.bottomPanel} padding="md" variant="default">
-                                            <div className={styles.bottomPanelHeader}>
-                                                <img alt="" className={styles.panelSeal} src={UI_ART.menuSeal} />
-                                                <div>
-                                                    <span className={styles.panelKicker}>Recent Descent</span>
-                                                    <strong className={styles.panelHeading}>
-                                                        {lastRunSummary ? `Floor ${lastRunSummary.highestLevel}` : 'No active record'}
-                                                    </strong>
-                                                </div>
-                                            </div>
-                                            <p className={styles.panelBodyCopy}>{lastRunLabel}</p>
-                                        </Panel>
-                                    </div>
-                                ) : null}
-
-                                {prioritizeModesInHero && !(ultraCompactPhone && showHowToPlay) ? howToPanel : null}
-                                {prioritizeModesInHero && showBottomCards ? objectivePanel : null}
+                                {howToPanel}
                             </main>
-
-                            {!prioritizeModesInHero ? (
-                                <aside className={styles.supportColumn}>
-                                    {archivePanel}
-                                    {objectivePanel}
-                                    {howToPanel}
-                                </aside>
-                            ) : null}
                         </div>
                     </div>
                 </div>

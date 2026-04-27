@@ -153,10 +153,14 @@ interface AppState {
     goToMenu: () => void;
     openModeSelect: () => void;
     openCollection: () => void;
+    openProfile: () => void;
     openInventoryFromMenu: () => void;
     openCodexFromMenu: () => void;
     openInventoryFromPlaying: () => void;
     openCodexFromPlaying: () => void;
+    openShopFromLevelComplete: () => void;
+    closeShopToFloorSummary: () => void;
+    continueFromShop: () => void;
     closeSubscreen: () => void;
     openSettings: (returnView?: SubscreenReturnView) => void;
     closeSettings: () => void;
@@ -899,6 +903,11 @@ export const useAppStore = create<AppState>((set, get) => ({
         set({ view: transition.view, subscreenReturnView: transition.subscreenReturnView });
     },
 
+    openProfile: () => {
+        const transition = resolveNavigationTransition(get(), 'openProfile');
+        set({ view: transition.view, subscreenReturnView: transition.subscreenReturnView });
+    },
+
     openInventoryFromMenu: () => {
         const transition = resolveNavigationTransition(get(), 'openInventoryFromMenu');
         set({ view: transition.view, subscreenReturnView: transition.subscreenReturnView });
@@ -937,6 +946,30 @@ export const useAppStore = create<AppState>((set, get) => ({
             subscreenReturnView: transition.subscreenReturnView,
             run: nextRun
         });
+    },
+
+    openShopFromLevelComplete: () => {
+        const { run, view } = get();
+        if (!run || view !== 'playing' || run.status !== 'levelComplete' || run.relicOffer || run.shopOffers.length === 0) {
+            return;
+        }
+        const transition = resolveNavigationTransition(get(), 'openShopFromLevelComplete');
+        set({ view: transition.view });
+    },
+
+    closeShopToFloorSummary: () => {
+        const transition = resolveNavigationTransition(get(), 'closeShopToFloorSummary');
+        set({ view: transition.view });
+    },
+
+    continueFromShop: () => {
+        const { run } = get();
+        if (!run || run.status !== 'levelComplete') {
+            const transition = resolveNavigationTransition(get(), 'closeShopToFloorSummary');
+            set({ view: transition.view });
+            return;
+        }
+        get().continueToNextLevel();
     },
 
     closeSubscreen: () => {
@@ -1333,6 +1366,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
         if (run.status === 'levelComplete' && needsRelicPick(run) && !run.relicOffer) {
             set({
+                view: 'playing',
                 run: openRelicOffer(run),
                 boardPinMode: false,
                 destroyPairArmed: false,
@@ -1518,6 +1552,17 @@ export const useAppStore = create<AppState>((set, get) => ({
             return;
         }
 
+        if (screen === 'profile') {
+            set({
+                view: 'profile',
+                run: null,
+                ...resetChrome,
+                subscreenReturnView: 'menu',
+                settingsReturnView: 'menu'
+            });
+            return;
+        }
+
         if (screen === 'inventory' || screen === 'codex') {
             set({
                 view: screen,
@@ -1551,6 +1596,22 @@ export const useAppStore = create<AppState>((set, get) => ({
             ) {
                 scheduleResolveTimer(run.timerState.resolveRemainingMs);
             }
+            return;
+        }
+
+        if (screen === 'shop') {
+            const run = patchRunFromUserSettings(buildSandboxRun(config.fixture ?? 'shop', best), settings);
+            const shopRun =
+                run.status === 'levelComplete' && run.shopOffers.length > 0
+                    ? run
+                    : patchRunFromUserSettings(buildSandboxRun('shop', best), settings);
+            set({
+                view: 'shop',
+                run: shopRun,
+                ...resetChrome,
+                subscreenReturnView: 'menu',
+                settingsReturnView: 'menu'
+            });
             return;
         }
 

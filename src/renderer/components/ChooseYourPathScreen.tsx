@@ -26,7 +26,6 @@ import {
     type RunModeDefinition
 } from '../../shared/run-mode-catalog';
 import { buildRunModeDiscoveryState } from '../../shared/run-mode-discovery';
-import { getSocialPlayScopeRows } from '../../shared/social-play-scope';
 import { isModePosterFallback, resolveModePosterUrl } from '../assets/ui/modeArt';
 import { UI_ART } from '../assets/ui';
 import { Eyebrow, MetaFrame, ScreenTitle, UiButton } from '../ui';
@@ -175,7 +174,6 @@ const ChooseYourPathScreen = () => {
     const [meditationOpen, setMeditationOpen] = useState(false);
     const [meditationSelection, setMeditationSelection] = useState<Set<MutatorId>>(() => new Set());
     const challengeGateRows = getChallengeModeGateRows(saveData);
-    const socialScopeRows = getSocialPlayScopeRows();
 
     const heroModes = useMemo((): readonly RunModeDefinition[] => choosePathHeroModes(), []);
 
@@ -552,36 +550,38 @@ const ChooseYourPathScreen = () => {
                         <div className={styles.pathFitStack}>
                             <header className={`${metaStyles.header} ${styles.pathStackHeader}`}>
                                 <div className={`${metaStyles.headerText} ${styles.pathHeaderText}`}>
-                                    <button
-                                        className={styles.pathBackButton}
-                                        data-testid="choose-path-inline-back"
-                                        type="button"
-                                        onClick={() => {
-                                            playUiBack();
-                                            closeSubscreen();
-                                        }}
-                                    >
-                                        <BackChevronIcon className={styles.pathBackIcon} />
-                                        <span>Back</span>
-                                    </button>
-                                    <button
-                                        className={styles.pathBackButton}
-                                        data-testid="choose-path-settings"
-                                        type="button"
-                                        onClick={() => {
-                                            playMenuOpen();
-                                            openSettings('modeSelect');
-                                        }}
-                                    >
-                                        <span>Settings</span>
-                                    </button>
+                                    <div className={styles.pathHeaderTopRow}>
+                                        <button
+                                            className={styles.pathBackButton}
+                                            data-testid="choose-path-inline-back"
+                                            type="button"
+                                            onClick={() => {
+                                                playUiBack();
+                                                closeSubscreen();
+                                            }}
+                                        >
+                                            <BackChevronIcon className={styles.pathBackIcon} />
+                                            <span>Back</span>
+                                        </button>
+                                        <button
+                                            className={styles.pathBackButton}
+                                            data-testid="choose-path-settings"
+                                            type="button"
+                                            onClick={() => {
+                                                playMenuOpen();
+                                                openSettings('modeSelect');
+                                            }}
+                                        >
+                                            <span>Settings</span>
+                                        </button>
+                                    </div>
                                     <Eyebrow tone="menu">Start a run</Eyebrow>
                                     <ScreenTitle as="h1" role="display">
                                         Choose Your Path
                                     </ScreenTitle>
                                     <p className={`${metaStyles.subtitle} ${styles.pathSubtitle}`}>
-                                        Featured paths first. Tap a mode in More modes for full details and Play. Drag or
-                                        swipe the row to browse. Use the search icon to filter.
+                                        Featured modes below; open <strong>More modes</strong> for details, search, and
+                                        horizontal browse.
                                     </p>
                                     <div className={styles.discoveryStrip} data-testid="choose-path-discovery-strip">
                                         <span>{discoveryState.searchState}</span>
@@ -589,7 +589,7 @@ const ChooseYourPathScreen = () => {
                                         <strong>Selected: {selectedMode?.title ?? 'None'}</strong>
                                         {selectedMode?.availability === 'available' && selectedMode.action.type !== 'gauntlet' ? (
                                             <UiButton
-                                                size="md"
+                                                size={pathTouchCompact ? 'sm' : 'md'}
                                                 type="button"
                                                 variant="primary"
                                                 onClick={() => runModeAction(selectedMode)}
@@ -781,23 +781,11 @@ const ChooseYourPathScreen = () => {
                                     )}
                                 </section>
 
-                                <section aria-label="Social play scope" className={styles.socialScopeSection}>
-                                    <Eyebrow className={styles.sectionEyebrow} tone="menu">
-                                        Social play
-                                    </Eyebrow>
-                                    <div className={metaStyles.archiveCatalogGrid} data-testid="choose-path-social-scope">
-                                        {socialScopeRows.map((row) => (
-                                            <div className={metaStyles.archiveCatalogRow} key={row.id}>
-                                                <p className={metaStyles.archiveCatalogRowTitle}>
-                                                    {row.title}: {row.status}
-                                                </p>
-                                                <p className={metaStyles.subtitle}>
-                                                    {row.description} {row.uiCopy}
-                                                </p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </section>
+                                <p className={styles.pathFooterNote} data-testid="choose-path-offline-note">
+                                    Offline-first v1: local runs and share strings only. Pass-and-play and online
+                                    challenges stay deferred — see <strong>Profile</strong> for save scope and trust
+                                    copy.
+                                </p>
                             </div>
                         </div>
                     </div>

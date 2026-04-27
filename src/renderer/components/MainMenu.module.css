@@ -13,7 +13,7 @@
     inset: 0;
     pointer-events: none;
     z-index: 0;
-    opacity: 0.24;
+    opacity: 0.19;
     background-position: center bottom;
     background-repeat: no-repeat;
     background-size: cover;
@@ -25,11 +25,13 @@
     inset: 0;
     pointer-events: none;
     z-index: 0;
+    /* Slightly brighter core so title + CTAs separate from the scene. */
     background:
         radial-gradient(
-            circle at center,
+            circle at 50% 38%,
             rgba(255, 255, 255, 0),
-            var(--theme-backdrop-body-shade-mid) 48%,
+            rgba(255, 255, 255, 0) 22%,
+            var(--theme-backdrop-body-shade-mid) 52%,
             var(--theme-backdrop-body-shade-deep) 100%
         ),
         linear-gradient(
@@ -101,14 +103,6 @@
     will-change: zoom;
 }
 
-.metaRow {
-    position: relative;
-    z-index: 3;
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: var(--menu-meta-row-gap);
-}
-
 .steamBridgeNotice {
     position: relative;
     z-index: 3;
@@ -145,179 +139,11 @@
     outline-offset: 2px;
 }
 
-.profileStripFrame {
-    position: relative;
-    z-index: 3;
-    width: 100%;
-    --theme-meta-frame-outset: -0.18rem;
-    --theme-meta-frame-drop: 0 0 10px color-mix(in srgb, var(--theme-glow-gold) 32%, transparent);
-}
-
-.profileStrip {
-    position: relative;
-    display: grid;
-    grid-template-columns: minmax(12rem, 0.9fr) minmax(0, 1.6fr) minmax(12rem, 0.9fr);
-    gap: var(--theme-space-sm);
-    align-items: stretch;
-    padding: var(--theme-space-sm);
-    border: 1px solid color-mix(in srgb, var(--theme-gold) 20%, var(--theme-border));
-    border-radius: var(--ui-radius-lg);
-    background: color-mix(in srgb, var(--theme-panel-solid) 76%, transparent);
-}
-
-.profileIdentity,
-.profileStat,
-.communityPolicy {
-    min-width: 0;
-    padding: var(--theme-space-sm) var(--theme-space-md);
-    border-radius: var(--ui-radius-md);
-    background: color-mix(in srgb, var(--theme-panel-alt) 72%, transparent);
-}
-
-.profileIdentity {
-    display: flex;
-    align-items: center;
-    gap: var(--theme-space-sm);
-}
-
-.profileCrest {
-    display: grid;
-    place-items: center;
-    width: 2.2rem;
-    height: 2.2rem;
-    border-radius: 50%;
-    border: 1px solid color-mix(in srgb, var(--theme-gold) 34%, transparent);
-    background: color-mix(in srgb, var(--theme-void) 50%, transparent);
-    color: var(--theme-rune);
-    font-size: 0.72rem;
-    font-weight: 800;
-    letter-spacing: 0.06em;
-}
-
-.profileName {
-    color: var(--theme-rune);
-    font-family: var(--ui-font-display-family);
-    font-size: 1rem;
-}
-
-.profileStripStats {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--theme-space-xs);
-}
-
-.profileStripStats span,
-.profileStat,
-.communityPolicy span {
-    display: block;
-    color: var(--theme-text-muted);
-    font-size: 0.68rem;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-}
-
-.profileStripStats strong,
-.profileStat strong {
-    display: block;
-    color: var(--theme-text);
-    font-size: 0.86rem;
-}
-
-.profileOfflineNote {
-    align-self: center;
-    padding: var(--theme-space-sm) var(--theme-space-md);
-    border-radius: var(--ui-radius-md);
-    background: color-mix(in srgb, var(--theme-panel-alt) 72%, transparent);
-    color: var(--theme-text-muted);
-    font-size: 0.74rem;
-    line-height: 1.25;
-}
-
-.hubQualityStrip {
-    position: relative;
-    z-index: 3;
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: var(--theme-space-xs);
-    padding: var(--theme-space-xs) var(--theme-space-sm);
-    border: 1px solid color-mix(in srgb, var(--theme-cyan) 16%, var(--theme-border));
-    border-radius: var(--ui-radius-md);
-    background: color-mix(in srgb, var(--theme-panel-solid) 64%, transparent);
-}
-
-.hubQualityStrip span {
-    color: var(--theme-text-muted);
-    font-size: 0.66rem;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-}
-
-.hubQualityStrip strong {
-    display: block;
-    color: var(--theme-text);
-    font-size: 0.8rem;
-    text-transform: none;
-    letter-spacing: 0;
-}
-
-.communityPolicy p {
-    margin: 0.1rem 0 0;
-    color: var(--theme-text-muted);
-    font-size: 0.78rem;
-    line-height: 1.25;
-}
-
-/* META-012 — hub stat plaques (MetaFrame cornice sizes to `.metaCard` via measured radius). */
-.metaPlaqueFrame {
-    width: 100%;
-    min-width: 0;
-    --theme-meta-frame-outset: -0.2rem;
-    --theme-meta-frame-drop: 0 0 8px color-mix(in srgb, var(--theme-glow-gold) 40%, transparent);
-}
-
-.metaCard {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 0.18rem;
-    padding: var(--menu-meta-card-pad-block) var(--menu-meta-card-pad-inline);
-    border-radius: var(--ui-radius-lg);
-    background:
-        radial-gradient(circle at top left, rgba(195, 149, 79, 0.16), transparent 44%),
-        linear-gradient(160deg, rgba(15, 14, 21, 0.9), rgba(8, 8, 12, 0.86));
-    border: 1px solid color-mix(in srgb, var(--theme-gold) 22%, var(--theme-border));
-    box-shadow:
-        var(--theme-elevation-card),
-        inset 0 1px 0 color-mix(in srgb, var(--theme-gold-bright) 12%, transparent);
-}
-
-.metaLabel {
-    font-size: 0.62rem;
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--theme-text-subtle);
-}
-
-.metaValue {
-    font-family: var(--ui-font-display-family);
-    font-size: 1.05rem;
-    color: var(--theme-rune);
-}
-
-.metaSubValue {
-    display: block;
-    margin-top: 0.1rem;
-    color: var(--theme-text-muted);
-    font-size: 0.62rem;
-    line-height: 1.2;
-}
-
 .layout {
     position: relative;
     z-index: 1;
     display: grid;
-    grid-template-columns: minmax(0, 1.18fr) minmax(min(360px, 100%), 0.82fr);
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--menu-layout-gap);
     flex: 1 1 auto;
     min-height: 0;
@@ -327,12 +153,8 @@
     box-sizing: border-box;
 }
 
-.heroColumn,
-.supportColumn {
-    min-width: 0;
-}
-
 .heroColumn {
+    min-width: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -354,7 +176,7 @@
 .brandCrest {
     width: clamp(4.25rem, 10vw, 5.8rem);
     height: auto;
-    filter: drop-shadow(0 0 24px var(--theme-glow-violet-drop));
+    filter: drop-shadow(0 0 14px color-mix(in srgb, var(--theme-glow-violet-drop) 58%, transparent));
 }
 
 .heroEyebrow {
@@ -368,13 +190,13 @@
 .divider {
     width: min(100%, 20rem);
     height: auto;
-    opacity: 0.95;
+    opacity: 0.88;
 }
 
 .tagline {
     margin: 0;
     max-width: 28rem;
-    color: var(--theme-text-muted);
+    color: color-mix(in srgb, var(--theme-text-muted) 88%, var(--theme-rune) 12%);
     font-size: 1rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -383,6 +205,7 @@
 /* META-004: hub CTA stack (MetaFrame measures `Panel` for cornice alignment). */
 .ctaMetaFrame {
     width: min(100%, 32rem);
+    filter: drop-shadow(0 14px 32px color-mix(in srgb, var(--theme-shadow) 38%, transparent));
 }
 
 .ctaPanel {
@@ -401,7 +224,7 @@
     width: 2.35rem;
     height: 2.35rem;
     flex: 0 0 auto;
-    opacity: 0.9;
+    opacity: 0.84;
 }
 
 .ctaBandFlourish {
@@ -426,6 +249,17 @@
     text-align: left;
 }
 
+.secondaryActionGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--menu-action-stack-gap);
+    width: 100%;
+}
+
+.secondaryCtaButton {
+    min-height: var(--ui-touch-target-min, 2.5rem);
+}
+
 .ctaContent {
     display: flex;
     flex-direction: column;
@@ -435,7 +269,8 @@
 }
 
 .ctaTitle {
-    font-size: 1rem;
+    font-size: 1.06rem;
+    letter-spacing: 0.09em;
 }
 
 .ctaIcon {
@@ -451,15 +286,6 @@
     color: var(--theme-text-muted);
 }
 
-.bottomCards {
-    width: min(100%, 44rem);
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--menu-bottom-cards-gap);
-    margin-top: 0.2rem;
-}
-
-.bottomPanel,
 .supportPanel {
     transform:
         perspective(1200px)
@@ -468,142 +294,8 @@
     transform-style: preserve-3d;
 }
 
-.bottomPanelHeader {
-    display: flex;
-    align-items: center;
-    gap: var(--theme-space-lg);
-}
-
-.panelSeal {
-    width: 2.6rem;
-    height: 2.6rem;
-    opacity: 0.92;
-}
-
-.panelKicker {
-    display: block;
-    font-size: 0.62rem;
-    font-weight: 700;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--theme-text-subtle);
-}
-
-.panelHeading {
-    display: block;
-    margin-top: 0.15rem;
-    font-family: var(--ui-font-display-family);
-    font-size: 1.1rem;
-    color: var(--theme-rune);
-}
-
-.panelBodyCopy {
-    margin: 0.85rem 0 0;
-    color: var(--theme-text-muted);
-    line-height: 1.45;
-}
-
-.supportColumn {
-    display: flex;
-    flex-direction: column;
-    gap: var(--menu-support-gap);
-    padding: var(--menu-support-pad-block-start) 0 var(--theme-space-sm);
-}
-
 .supportHeading {
     margin-top: 0.18rem;
-}
-
-.archiveStats {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--menu-archive-stats-gap);
-    margin-top: var(--menu-archive-stats-mt);
-}
-
-.archiveStat {
-    padding: var(--menu-archive-stat-pad-block) var(--menu-archive-stat-pad-inline);
-    border-radius: var(--ui-radius-lg);
-    border: 1px solid var(--theme-hud-chrome-border-soft);
-    background: var(--theme-surface-archive);
-}
-
-.archiveLabel {
-    display: block;
-    font-size: 0.62rem;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--theme-text-subtle);
-}
-
-.archiveValue {
-    display: block;
-    margin-top: 0.22rem;
-    font-family: var(--ui-font-display-family);
-    font-size: 1.28rem;
-    color: var(--theme-gold-bright);
-}
-
-.relicDetails {
-    margin-top: 1rem;
-}
-
-.relicDetails summary {
-    cursor: pointer;
-    font-size: 0.78rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--theme-rune);
-}
-
-.relicList {
-    list-style: none;
-    margin: 0.75rem 0 0;
-    padding: 0;
-    display: grid;
-    gap: 0.45rem;
-}
-
-.relicList li {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.85rem;
-    color: var(--theme-text-muted);
-}
-
-.relicList strong {
-    font-family: var(--ui-font-display-family);
-    color: var(--theme-gold-bright);
-}
-
-.objectiveList {
-    list-style: none;
-    margin: 0.75rem 0 0;
-    padding: 0;
-    display: grid;
-    gap: 0.5rem;
-}
-
-.objectiveList li {
-    display: grid;
-    gap: 0.2rem;
-    padding: 0.55rem 0.65rem;
-    border-radius: var(--ui-radius-md);
-    border: 1px solid color-mix(in srgb, var(--theme-gold) 18%, transparent);
-    background: color-mix(in srgb, var(--theme-void) 38%, transparent);
-}
-
-.objectiveList strong {
-    color: var(--theme-rune);
-}
-
-.objectiveList span {
-    color: var(--theme-text-muted);
-    font-size: 0.78rem;
-    line-height: 1.32;
 }
 
 .emptyState {
@@ -650,22 +342,6 @@
     --menu-archive-stats-mt: var(--theme-space-sm);
     --menu-archive-stat-pad-block: var(--theme-space-md);
     --menu-archive-stat-pad-inline: var(--theme-space-md);
-}
-
-.touchCompactShell .metaRow {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.touchCompactShell .profileStrip {
-    grid-template-columns: 1fr;
-}
-
-.touchCompactShell .profileStats {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.touchCompactShell .metaValue {
-    font-size: 0.92rem;
 }
 
 .touchCompactShell .layout {
@@ -721,50 +397,18 @@
     opacity: 0.62;
 }
 
-.touchCompactShell .actionStack,
-.touchCompactShell .bottomCards {
-    width: 100%;
-}
-
 .touchCompactShell .actionStack {
+    width: 100%;
     padding-bottom: 0.35rem;
-}
-
-.touchCompactShell .bottomCards {
-    grid-template-columns: 1fr;
 }
 
 .touchCompactShell .ctaHint {
     font-size: 0.72rem;
 }
 
-.touchCompactShell .supportColumn {
-    padding: 0;
-    gap: var(--theme-space-sm);
-}
-
-.touchCompactShell .bottomPanel,
 .touchCompactShell .supportPanel {
     padding: var(--ui-card-pad-md);
     transform: none;
-}
-
-.touchCompactShell .panelHeading {
-    font-size: 1rem;
-}
-
-.touchCompactShell .panelBodyCopy {
-    margin-top: 0.45rem;
-    font-size: 0.84rem;
-    line-height: 1.38;
-}
-
-.touchCompactShell .archiveStats {
-    margin-top: var(--theme-space-sm);
-}
-
-.touchCompactShell .relicDetails {
-    margin-top: 0.55rem;
 }
 
 .touchCompactShell .howToGrid {
@@ -775,35 +419,6 @@
 .shortTouchLandscapeShell .fitViewport {
     --menu-content-pad-block-start: var(--theme-space-sm);
     --menu-content-pad-block-end: var(--theme-space-sm);
-}
-
-.shortTouchLandscapeShell .metaRow {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.shortTouchLandscapeShell .metaCard {
-    padding: 0.34rem 0.5rem;
-}
-
-.shortTouchLandscapeShell .profileStrip {
-    grid-template-columns: minmax(8rem, 0.75fr) minmax(0, 1.25fr);
-    padding: 0.35rem;
-}
-
-.shortTouchLandscapeShell .profileStats {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.shortTouchLandscapeShell .communityPolicy {
-    display: none;
-}
-
-.shortTouchLandscapeShell .metaLabel {
-    font-size: 0.5rem;
-}
-
-.shortTouchLandscapeShell .metaValue {
-    font-size: 0.8rem;
 }
 
 .shortTouchLandscapeShell .heroColumn {
@@ -837,6 +452,14 @@
     grid-column: 1 / -1;
 }
 
+.shortTouchLandscapeShell .actionStack > :last-child {
+    grid-column: 1 / -1;
+}
+
+.shortTouchLandscapeShell .secondaryActionGrid {
+    grid-column: 1 / -1;
+}
+
 .shortTouchLandscapeShell .ctaHint {
     display: none;
 }
@@ -864,24 +487,6 @@
     background: color-mix(in srgb, var(--theme-void) 34%, transparent);
 }
 
-.shortTouchLandscapeShell .bottomCards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-column: 1 / -1;
-}
-
-.shortTouchLandscapeShell .bottomCards .panelBodyCopy {
-    display: none;
-}
-
-.shortTouchLandscapeShell .bottomPanelHeader {
-    gap: 0.5rem;
-}
-
-.shortTouchLandscapeShell .panelSeal {
-    width: 2rem;
-    height: 2rem;
-}
-
 /*
  * shortDesktopShell: do not set --menu-* on .fitViewport here — that beat @container menu-shell
  * (higher specificity) and crushed 1280×720. Spacing comes from .fitViewport defaults + @container.
@@ -894,7 +499,7 @@
 }
 
 .shortDesktopShell .layout {
-    grid-template-columns: minmax(0, 1.06fr) minmax(300px, 0.94fr);
+    grid-template-columns: minmax(0, 1fr);
 }
 
 .shortDesktopShell .heroColumn {
@@ -924,10 +529,6 @@
     font-size: 0.78rem;
 }
 
-.shortDesktopShell .metaValue {
-    font-size: 0.88rem;
-}
-
 .shortDesktopShell .actionStack {
     width: 100%;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -950,48 +551,8 @@
     display: none;
 }
 
-.shortDesktopShell .bottomCards {
-    width: min(100%, 34rem);
-    margin-top: 0;
-}
-
-.shortDesktopShell .bottomPanelHeader {
-    gap: var(--theme-space-md);
-}
-
-.shortDesktopShell .panelSeal {
-    width: 1.9rem;
-    height: 1.9rem;
-}
-
-.shortDesktopShell .panelHeading {
-    font-size: 0.96rem;
-}
-
-.shortDesktopShell .panelBodyCopy {
-    margin-top: 0.35rem;
-    font-size: 0.78rem;
-    line-height: 1.32;
-}
-
-.shortDesktopShell .supportColumn {
-    padding: 0;
-}
-
 .shortDesktopShell .supportPanel {
     transform: none;
-}
-
-.shortDesktopShell .archiveValue {
-    font-size: 1rem;
-}
-
-.shortDesktopShell .relicDetails {
-    margin-top: 0.5rem;
-}
-
-.shortDesktopShell .relicDetails summary {
-    font-size: 0.72rem;
 }
 
 .shortDesktopShell .howToGrid {
@@ -1014,13 +575,8 @@
     font-size: clamp(2.65rem, 5.8vw, 4.1rem);
 }
 
-.ultraShortDesktopShell .tagline,
-.ultraShortDesktopShell .panelBodyCopy {
+.ultraShortDesktopShell .tagline {
     display: none;
-}
-
-.ultraShortDesktopShell .metaValue {
-    font-size: 0.82rem;
 }
 
 .ultraShortDesktopShell .supportHeading {
@@ -1058,6 +614,14 @@
     grid-column: 1 / -1;
 }
 
+.ultraCompactPhoneShell .actionStack > :last-child {
+    grid-column: 1 / -1;
+}
+
+.ultraCompactPhoneShell .secondaryActionGrid {
+    grid-column: 1 / -1;
+}
+
 .ultraCompactPhoneShell .ctaHint {
     display: none;
 }
@@ -1066,7 +630,6 @@
     padding: 0.82rem;
 }
 
-:global([data-reduce-motion='true']) .bottomPanel,
 :global([data-reduce-motion='true']) .supportPanel {
     transform: none;
 }
@@ -1074,10 +637,6 @@
 @media (max-width: 1180px) {
     .layout {
         grid-template-columns: 1fr;
-    }
-
-    .supportColumn {
-        padding-top: 0;
     }
 }
 
@@ -1090,22 +649,8 @@
         --menu-hero-pad-block: var(--theme-space-lg) 0 var(--theme-space-2xs);
     }
 
-    .metaRow {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .profileStrip,
-    .profileStats {
-        grid-template-columns: 1fr;
-    }
-
     .tagline {
         font-size: 0.88rem;
-    }
-
-    .bottomCards,
-    .archiveStats {
-        grid-template-columns: 1fr;
     }
 }
 
@@ -1114,14 +659,6 @@
         --menu-brand-gap: var(--theme-space-xs);
         --menu-brand-pad-block: var(--theme-space-md) var(--theme-space-xl) var(--theme-space-md);
         --menu-action-stack-gap: var(--theme-space-md);
-    }
-
-    .metaRow {
-        grid-template-columns: 1fr;
-    }
-
-    .profileStrip {
-        display: none;
     }
 
     .ctaTitle {
@@ -1154,10 +691,6 @@
         --menu-mode-grid-gap: var(--theme-space-sm);
         --menu-archive-stats-mt: calc(var(--theme-space-sm) + var(--theme-space-2xs));
         --menu-archive-stats-gap: calc(var(--theme-space-sm) + var(--theme-space-2xs));
-    }
-
-    .metaValue {
-        font-size: 0.92rem;
     }
 
     .brandCrest {
@@ -1196,10 +729,6 @@
         --menu-archive-stat-pad-inline: calc(var(--theme-space-md) + var(--theme-space-2xs));
     }
 
-    .metaValue {
-        font-size: 0.94rem;
-    }
-
     .brandCrest {
         width: clamp(3.35rem, 6.5vw, 4.5rem);
     }
@@ -1216,30 +745,9 @@
         font-size: 0.74rem;
     }
 
-    .bottomCards {
-        margin-top: 0;
-    }
-
-    .archiveValue {
-        font-size: 1.12rem;
-    }
-
-    .panelBodyCopy {
-        margin: 0.5rem 0 0;
-    }
-
     .howToGrid {
         margin: 0.55rem 0 0.55rem;
         gap: 0.48rem;
     }
 
-    .relicDetails {
-        margin-top: 0.65rem;
-    }
-}
-
-@media (orientation: landscape) and (max-height: 720px) and (min-width: 1024px) {
-    .shell:not(.touchCompactShell) .metaRow {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
 }

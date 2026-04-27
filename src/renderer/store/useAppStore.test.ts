@@ -1,5 +1,5 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
-import { buildBoard, countFindablePairs } from '../../shared/game';
+import { buildBoard, countFindablePairs, createNewRun, createRunShopOffers } from '../../shared/game';
 import { createDefaultSaveData } from '../../shared/save-data';
 import { BOARD_FLOATER_POP_CLEAR } from './matchScorePop';
 import { useAppStore } from './useAppStore';
@@ -292,6 +292,65 @@ describe('useAppStore timers', () => {
         expect(useAppStore.getState().settingsReturnView).toBe('menu');
     });
 
+    it('routes the floor-clear shop as its own in-run destination without changing shop mechanics', () => {
+        const baseRun = createNewRun(0, { echoFeedbackEnabled: false, practiceMode: true, runSeed: 44 });
+        const levelCompleteRun = {
+            ...baseRun,
+            status: 'levelComplete' as const,
+            shopGold: 5,
+            relicOffer: null,
+            timerState: {
+                memorizeRemainingMs: null,
+                resolveRemainingMs: null,
+                debugRevealRemainingMs: null,
+                pausedFromStatus: null
+            },
+            lastLevelResult: {
+                level: 1,
+                scoreGained: 100,
+                rating: 'S' as const,
+                livesRemaining: baseRun.lives,
+                perfect: true,
+                mistakes: 0,
+                clearLifeReason: 'none' as const,
+                clearLifeGained: 0
+            }
+        };
+        useAppStore.setState({
+            view: 'playing',
+            run: {
+                ...levelCompleteRun,
+                shopOffers: createRunShopOffers(levelCompleteRun)
+            }
+        });
+
+        useAppStore.getState().openShopFromLevelComplete();
+        expect(useAppStore.getState().view).toBe('shop');
+
+        const peekOffer = useAppStore.getState().run!.shopOffers.find((offer) => offer.itemId === 'peek_charge')!;
+        useAppStore.getState().purchaseShopOffer(peekOffer.id);
+        expect(useAppStore.getState().run?.shopGold).toBe(4);
+        expect(useAppStore.getState().run?.shopOffers.find((offer) => offer.id === peekOffer.id)?.purchased).toBe(true);
+
+        useAppStore.getState().closeShopToFloorSummary();
+        expect(useAppStore.getState().view).toBe('playing');
+        expect(useAppStore.getState().run?.status).toBe('levelComplete');
+
+        useAppStore.getState().openShopFromLevelComplete();
+        useAppStore.getState().continueFromShop();
+        expect(useAppStore.getState().view).toBe('playing');
+        expect(useAppStore.getState().run?.status).toBe('memorize');
+    });
+
+    it('keeps the shop route unavailable without an active completed floor', () => {
+        useAppStore.getState().openShopFromLevelComplete();
+        expect(useAppStore.getState().view).toBe('menu');
+
+        useAppStore.setState({ view: 'shop', run: null });
+        useAppStore.getState().closeShopToFloorSummary();
+        expect(useAppStore.getState().view).toBe('menu');
+    });
+
     it('REG-044: menu meta screens can open settings and return to the intended surface', () => {
         useAppStore.getState().openModeSelect();
         expect(useAppStore.getState().view).toBe('modeSelect');
@@ -310,6 +369,14 @@ describe('useAppStore timers', () => {
 
         useAppStore.getState().closeSettings();
         expect(useAppStore.getState().view).toBe('collection');
+
+        useAppStore.getState().goToMenu();
+        useAppStore.getState().openProfile();
+        expect(useAppStore.getState().view).toBe('profile');
+        useAppStore.getState().openSettings('profile');
+        expect(useAppStore.getState().settingsReturnView).toBe('profile');
+        useAppStore.getState().closeSettings();
+        expect(useAppStore.getState().view).toBe('profile');
     });
 
     it('REG-044: impossible nested settings return targets normalize to menu', () => {

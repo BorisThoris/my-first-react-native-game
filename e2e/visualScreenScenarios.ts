@@ -15,7 +15,7 @@ export function registerVisualScreenScenarios(
 
             for (const scenario of VISUAL_SCREEN_SCENARIOS) {
                 testApi(scenario.name, async ({ page }) => {
-                    testApi.setTimeout(scenario.timeoutMs ?? 60_000);
+                    testApi.setTimeout(scenario.timeoutMs ?? 90_000);
                     const capture = (baseName: string) =>
                         captureVisualScreen(page, vp.deviceId, vp.orientation, baseName);
                     await scenario.run(page, capture);

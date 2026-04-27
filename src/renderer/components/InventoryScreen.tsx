@@ -11,7 +11,9 @@ import { playUiBackSfx, resumeUiSfxContext, uiSfxGainFromSettings } from '../aud
 import { inventoryScreenCopy } from '../copy/inventoryScreen';
 import { Eyebrow, MetaFrame, Panel, ScreenTitle, UiButton } from '../ui';
 import { useAppStore } from '../store/useAppStore';
+import inRunFramedPanel from '../ui/metaInRunFramedPanel.module.css';
 import metaStyles from './MetaScreen.module.css';
+import { getMetaSubscreenLayout } from './metaStackedShellLayout';
 import { handleMetaBodyTocLinkClick } from './metaScreenTocNav';
 import styles from './InventoryScreen.module.css';
 
@@ -33,11 +35,11 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
         }))
     );
 
-    const titleLevel = stackedOnGameplay ? 'h2' : 'h1';
-    const shellStageClass = stackedOnGameplay ? metaStyles.shellInRunModal : metaStyles.shellMetaStage;
+    const { shellStageClass, panelClassName, heroPanelClassName, titleLevel } = getMetaSubscreenLayout(
+        stackedOnGameplay,
+        { panel: inRunFramedPanel.inRunPanel, hero: inRunFramedPanel.inRunHeroPanel }
+    );
     const shellClassName = `${metaStyles.shell} ${shellStageClass} ${stackedOnGameplay ? styles.inRunInventoryShell : ''}`.trim();
-    const panelClassName = stackedOnGameplay ? styles.inRunPanel : '';
-    const heroPanelClassName = stackedOnGameplay ? styles.inRunHeroPanel : '';
     const uiGain = uiSfxGainFromSettings(settings.masterVolume, settings.sfxVolume);
     const handleBack = (): void => {
         resumeUiSfxContext();

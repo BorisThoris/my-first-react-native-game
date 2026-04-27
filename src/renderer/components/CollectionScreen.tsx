@@ -158,7 +158,7 @@ const CollectionScreen = () => {
                 </MetaFrame>
 
                 <MetaFrame data-testid="collection-meta-frame-reward-signals">
-                    <Panel padding="lg" variant="strong">
+                    <Panel padding="lg" variant="default">
                         <div className={styles.section}>
                             <h2 className={styles.sectionTitle}>Reward signals</h2>
                             <p className={metaStyles.subtitle}>
@@ -178,7 +178,7 @@ const CollectionScreen = () => {
                 </MetaFrame>
 
                 <MetaFrame data-testid="collection-meta-frame-reward-gallery">
-                    <Panel padding="lg" variant="strong">
+                    <Panel padding="lg" variant="default">
                         <div className={`${styles.section} ${metaStyles.sectionAnchor}`} id="collection-reward-gallery">
                             <h2 className={styles.sectionTitle}>Reward gallery</h2>
                             <p className={metaStyles.subtitle}>

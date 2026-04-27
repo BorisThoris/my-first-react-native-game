@@ -1,0 +1,243 @@
+.headerActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--theme-space-sm);
+    align-items: flex-start;
+    justify-content: flex-end;
+}
+
+.panel {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.profileIdentity {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-md);
+    margin-bottom: var(--theme-space-lg);
+}
+
+.profileCrestBadge {
+    display: grid;
+    place-items: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 50%;
+    border: 1px solid color-mix(in srgb, var(--theme-gold) 34%, transparent);
+    background: color-mix(in srgb, var(--theme-void) 50%, transparent);
+    color: var(--theme-rune);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    flex-shrink: 0;
+}
+
+.kicker {
+    display: block;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--theme-text-subtle);
+}
+
+.profileName {
+    display: block;
+    font-family: var(--ui-font-display-family);
+    font-size: 1.05rem;
+    color: var(--theme-rune);
+    margin-top: 0.12rem;
+}
+
+.profileSub {
+    display: block;
+    margin-top: 0.2rem;
+    color: var(--theme-text-muted);
+    font-size: 0.78rem;
+    line-height: 1.3;
+}
+
+.summaryGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+    gap: var(--theme-space-md);
+}
+
+.summaryCell {
+    padding: var(--theme-space-md);
+    border-radius: var(--ui-radius-lg);
+    border: 1px solid var(--theme-hud-chrome-border-soft);
+    background: var(--theme-surface-archive);
+}
+
+.summaryLabel {
+    display: block;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--theme-text-subtle);
+}
+
+.summaryValue {
+    display: block;
+    margin-top: 0.25rem;
+    font-family: var(--ui-font-display-family);
+    font-size: 1.15rem;
+    color: var(--theme-gold-bright);
+}
+
+.inlineMetaRow {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--theme-space-xs) var(--theme-space-md);
+    margin-top: var(--theme-space-lg);
+    padding-top: var(--theme-space-md);
+    border-top: 1px solid var(--theme-divider-hairline);
+    align-items: baseline;
+    font-size: 0.85rem;
+    color: var(--theme-text-muted);
+}
+
+.inlineMetaRow strong {
+    color: var(--theme-rune);
+    font-family: var(--ui-font-display-family);
+}
+
+.streakNote {
+    grid-column: 1 / -1;
+    font-size: 0.74rem;
+    line-height: 1.35;
+    color: var(--theme-text-muted);
+}
+
+.sectionTitle {
+    margin-top: 0.2rem;
+}
+
+.objectiveList {
+    display: grid;
+    gap: var(--theme-space-sm);
+    margin-top: var(--theme-space-md);
+}
+
+.objectiveItem {
+    padding: var(--theme-space-sm) var(--theme-space-md);
+    border-radius: var(--ui-radius-md);
+    border: 1px solid color-mix(in srgb, var(--theme-gold) 18%, transparent);
+    background: color-mix(in srgb, var(--theme-void) 38%, transparent);
+}
+
+.objectiveItem strong {
+    color: var(--theme-rune);
+}
+
+.objectiveItem span {
+    display: block;
+    color: var(--theme-text-muted);
+    font-size: 0.78rem;
+    margin-top: 0.15rem;
+}
+
+.objectiveItem p {
+    margin: 0.35rem 0 0;
+    color: var(--theme-text-muted);
+    font-size: 0.78rem;
+    line-height: 1.32;
+}
+
+.twoCol {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: var(--theme-space-md);
+    width: 100%;
+}
+
+.panelHeader {
+    display: flex;
+    align-items: center;
+    gap: var(--theme-space-md);
+}
+
+.panelSeal {
+    width: 2.4rem;
+    height: 2.4rem;
+    opacity: 0.86;
+    flex-shrink: 0;
+}
+
+.panelKicker {
+    display: block;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--theme-text-subtle);
+}
+
+.panelHeading {
+    display: block;
+    margin-top: 0.12rem;
+    font-family: var(--ui-font-display-family);
+    font-size: 1.05rem;
+    color: var(--theme-rune);
+}
+
+.panelBody {
+    margin: var(--theme-space-md) 0 0;
+    color: var(--theme-text-muted);
+    line-height: 1.45;
+}
+
+.relicDetails {
+    width: 100%;
+    padding: var(--theme-space-md);
+    border-radius: var(--ui-radius-md);
+    border: 1px solid color-mix(in srgb, var(--theme-gold) 16%, var(--theme-border));
+    background: color-mix(in srgb, var(--theme-panel-solid) 64%, transparent);
+}
+
+.relicDetails summary {
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--theme-rune);
+}
+
+.relicList {
+    list-style: none;
+    margin: 0.75rem 0 0;
+    padding: 0;
+    display: grid;
+    gap: 0.45rem;
+}
+
+.relicList li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.85rem;
+    color: var(--theme-text-muted);
+}
+
+.relicList strong {
+    font-family: var(--ui-font-display-family);
+    color: var(--theme-gold-bright);
+}
+
+.emptyState {
+    margin: 0.75rem 0 0;
+    color: var(--theme-text-muted);
+}
+
+.trustFooter {
+    margin: 0;
+    padding: var(--theme-space-md) 0 0;
+    font-size: 0.78rem;
+    line-height: 1.4;
+    color: var(--theme-text-muted);
+    border-top: 1px solid var(--theme-divider-hairline);
+}

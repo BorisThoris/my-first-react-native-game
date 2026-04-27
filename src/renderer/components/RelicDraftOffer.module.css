@@ -76,9 +76,7 @@
     color: var(--theme-text);
     background: color-mix(in srgb, var(--theme-void) 88%, var(--theme-smoke));
     border: 1px solid color-mix(in srgb, var(--theme-ash) 35%, transparent);
-    box-shadow:
-        inset 0 1px 0 color-mix(in srgb, rgba(255, 255, 255, 0.06) 80%, transparent),
-        0 2px 14px color-mix(in srgb, var(--theme-shadow) 55%, transparent);
+    box-shadow: var(--theme-elevation-card);
     transition:
         border-color 140ms ease,
         box-shadow 140ms ease,

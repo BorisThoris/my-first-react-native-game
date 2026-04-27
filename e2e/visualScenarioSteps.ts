@@ -55,6 +55,7 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
     {
         fileBase: '00-startup-intro',
         name: 'startup intro visible',
+        timeoutMs: 180_000,
         run: async (page, capture) => {
             await gotoWithSaveExpectStartupIntroVisible(page, buildVisualSaveJson(true));
             await page.waitForTimeout(400);
@@ -65,6 +66,7 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
     {
         fileBase: '01-main-menu',
         name: 'main menu',
+        timeoutMs: 120_000,
         run: async (page, capture) => {
             await openMainMenuFromSave(page, true);
             await expectNoHorizontalOverflow(page);
@@ -150,7 +152,7 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
     {
         fileBase: '01d-inventory-active',
         name: 'inventory during a run',
-        timeoutMs: 90_000,
+        timeoutMs: 130_000,
         run: async (page, capture) => {
             await openLevel1Play(page);
             await page.getByTestId('game-toolbar-inventory').click({ timeout: 20_000 });
@@ -162,13 +164,25 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
     {
         fileBase: '01e-codex',
         name: 'codex during a run',
-        timeoutMs: 90_000,
+        timeoutMs: 130_000,
         run: async (page, capture) => {
             await openLevel1Play(page);
             await page.getByTestId('game-toolbar-codex').click({ timeout: 20_000 });
             await expect(page.getByRole('region', { name: /codex/i })).toBeVisible({ timeout: 20_000 });
             await expectNoHorizontalOverflow(page);
             await capture('01e-codex');
+        }
+    },
+    {
+        fileBase: '01f-profile',
+        name: 'profile screen',
+        run: async (page, capture) => {
+            await openMainMenuFromSave(page, true);
+            await page.getByRole('button', { name: /^profile$/i }).click();
+            await expect(page.getByRole('region', { name: /profile/i })).toBeVisible();
+            await expect(page.getByTestId('profile-screen-body')).toBeVisible();
+            await expectNoHorizontalOverflow(page);
+            await capture('01f-profile');
         }
     },
     {
@@ -254,8 +268,8 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
     {
         fileBase: '07-floor-cleared-modal',
         name: 'floor cleared modal',
-        /** Must exceed `completeLevel1ByTryingHiddenPairs` worst case (120s) plus menu/load/setup. */
-        timeoutMs: 200_000,
+        /** `waitLevel1PlayReady` (40s) + pair loop (120s) + final expect (30s) + cold navigation. */
+        timeoutMs: 260_000,
         run: async (page, capture) => {
             await openLevel1Play(page);
             const pairs = await waitLevel1PlayReady(page);
@@ -266,9 +280,27 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
         }
     },
     {
+        fileBase: '07a-shop-screen',
+        name: 'shop screen',
+        /** Same budget as floor-cleared (completes level before shop). */
+        timeoutMs: 260_000,
+        run: async (page, capture) => {
+            await openLevel1Play(page);
+            const pairs = await waitLevel1PlayReady(page);
+            await completeLevel1Play(page, pairs);
+            await expect(page.getByRole('dialog', { name: /floor cleared/i })).toBeVisible();
+            await page.getByRole('button', { name: /visit shop/i }).click();
+            await expect(page.getByRole('dialog', { name: /vendor alcove/i })).toBeVisible();
+            await expect(page.getByTestId('shop-screen')).toBeVisible();
+            await expectNoHorizontalOverflow(page);
+            await capture('07a-shop-screen');
+        }
+    },
+    {
         fileBase: '08-game-over',
         name: 'game over screen',
-        timeoutMs: 120_000,
+        /** Mismatch discovery + burn loops rival floor-clear duration on cold mobile. */
+        timeoutMs: 220_000,
         run: async (page, capture) => {
             if (visualE2eUsesSandboxGameOver()) {
                 await openDevSandboxGameOver(page);

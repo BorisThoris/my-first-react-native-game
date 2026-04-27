@@ -3,6 +3,10 @@
 ## Purpose
 Describe how to compare the live renderer to `ENDPRODUCTIMAGE.png` / `ENDPRODUCTIMAGE2.png` (or exported crops) using Playwright captures, without implying committed PNGs are required in git.
 
+**Current visual target:** *Premium cleaner fantasy* — fewer nested glass plates, lighter shadows and scrim blur, slightly tighter radii, and **heavy framing (MetaFrame / hero tokens) reserved for menu hero, milestone/relic moments, and the in-run shop shell**—not every `Panel` or routine modal. Routine floor-cleared summaries use a quiet header band (`OverlayModal` `quietHeaderPlate`). Compare captures against this bar, not maximal ornate parity with legacy mockups.
+
+**Shop coverage:** The device grid and smoke visual suites include scenario **`07a-shop-screen`** (floor clear → Visit Shop → vendor alcove) in [`e2e/visualScenarioSteps.ts`](../../e2e/visualScenarioSteps.ts).
+
 ## Canonical regression gate
 - Run `yarn test:e2e:visual` from the repo root (Playwright starts Vite per `playwright.config.ts`).
 - This is the full named-device grid across every visual scenario, not just the smaller smoke viewports.

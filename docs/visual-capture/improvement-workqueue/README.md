@@ -2,6 +2,8 @@
 
 This folder tracks **discrete UI fixes** discovered while reviewing Playwright screenshots under [`docs/visual-capture/`](../README.md). It complements the large parity encyclopedia in [`docs/new_design/TASKS/`](../../new_design/TASKS/README.md): each `UI-NNN.md` should **link** an existing `PLAY-*`, `META-*`, or `HUD-*` row when the finding matches, or stand alone for harness/tooling gaps.
 
+**Visual target:** Prefer *premium cleaner fantasy* (lighter elevation, less nested chrome) over maximal ornate parity; full-grid captures include **shop** via `07a-shop-screen` in [`e2e/visualScenarioSteps.ts`](../../../e2e/visualScenarioSteps.ts).
+
 ## Workflow
 
 1. Run `yarn capture:ui-audit` then `yarn docs:visual-inventory` (see root [`package.json`](../../../package.json)).

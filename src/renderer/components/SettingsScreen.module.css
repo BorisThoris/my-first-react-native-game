@@ -18,7 +18,7 @@
     line-height: 1.35;
     color: color-mix(in srgb, var(--theme-rune) 92%, white);
     box-sizing: border-box;
-    box-shadow: 0 4px 18px color-mix(in srgb, black 35%, transparent);
+    box-shadow: 0 4px 14px color-mix(in srgb, black 26%, transparent);
 }
 
 .persistWriteBannerDismiss {
@@ -222,7 +222,7 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
-    backdrop-filter: blur(18px);
+    backdrop-filter: blur(12px);
 }
 
 /* OVR-001 — align in-run settings plate with OverlayModal shared frame tokens (Panel `strong` + layout unchanged). */
@@ -236,9 +236,9 @@
 
 .shellModal .panel.panelModal::before {
     background:
-        radial-gradient(ellipse 92% 62% at 50% 0%, rgba(255, 232, 190, 0.06), transparent 56%),
-        linear-gradient(180deg, rgba(255, 243, 217, 0.04), transparent 22%);
-    opacity: 0.92;
+        radial-gradient(ellipse 92% 62% at 50% 0%, rgba(255, 232, 190, 0.05), transparent 56%),
+        linear-gradient(180deg, rgba(255, 243, 217, 0.03), transparent 22%);
+    opacity: 0.62;
 }
 
 /* Short-stacked run settings: modal plate + gameplay chrome eat vertical space; cap the plate and scroll content so bounds stay within `window.innerHeight` (mobile-layout). */
@@ -287,8 +287,8 @@
     background:
         linear-gradient(
             90deg,
-            color-mix(in srgb, var(--theme-meta-frame-accent) 20%, transparent) 0,
-            color-mix(in srgb, var(--theme-meta-frame-accent) 9%, transparent) 1px,
+            color-mix(in srgb, var(--theme-meta-frame-accent) 14%, transparent) 0,
+            color-mix(in srgb, var(--theme-meta-frame-accent) 6%, transparent) 1px,
             transparent 2px
         ),
         linear-gradient(180deg, var(--theme-backdrop-body-rim), transparent 18%),

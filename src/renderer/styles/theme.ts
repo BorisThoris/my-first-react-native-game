@@ -81,25 +81,33 @@ export const RENDERER_THEME = {
         '--theme-panel': 'rgba(11, 10, 15, 0.84)',
         '--theme-panel-solid': 'rgba(8, 8, 12, 0.96)',
         '--theme-panel-alt': 'rgba(16, 15, 21, 0.92)',
+        /*
+         * DS-010 — Premium cleaner: default panels use flatter fills; reserve `--theme-panel-surface-hero` /
+         * `--theme-panel-shadow-hero` for menu hero, milestone/relic, and in-run shop shell.
+         */
         '--theme-panel-surface':
-            'radial-gradient(circle at top left, rgba(195, 149, 79, 0.1), transparent 34%), radial-gradient(circle at bottom right, rgba(140, 98, 223, 0.1), transparent 28%), linear-gradient(160deg, rgba(18, 16, 24, 0.98), rgba(8, 8, 12, 0.96))',
+            'radial-gradient(circle at top left, rgba(195, 149, 79, 0.06), transparent 32%), radial-gradient(circle at bottom right, rgba(140, 98, 223, 0.06), transparent 26%), linear-gradient(160deg, rgba(18, 16, 24, 0.96), rgba(8, 8, 12, 0.94))',
         '--theme-panel-surface-strong':
-            'radial-gradient(circle at top left, rgba(242, 211, 157, 0.14), transparent 34%), radial-gradient(circle at bottom right, rgba(140, 98, 223, 0.12), transparent 30%), linear-gradient(160deg, rgba(21, 18, 27, 0.99), rgba(8, 8, 12, 0.97))',
+            'radial-gradient(circle at top left, rgba(242, 211, 157, 0.09), transparent 32%), radial-gradient(circle at bottom right, rgba(140, 98, 223, 0.08), transparent 28%), linear-gradient(160deg, rgba(21, 18, 27, 0.97), rgba(8, 8, 12, 0.95))',
         '--theme-panel-surface-muted':
-            'linear-gradient(160deg, rgba(19, 17, 25, 0.94), rgba(9, 9, 14, 0.94))',
+            'linear-gradient(160deg, rgba(19, 17, 25, 0.92), rgba(9, 9, 14, 0.92))',
         '--theme-panel-surface-accent':
-            'radial-gradient(circle at top right, rgba(140, 98, 223, 0.12), transparent 34%), radial-gradient(circle at bottom left, rgba(195, 149, 79, 0.12), transparent 34%), linear-gradient(160deg, rgba(22, 18, 25, 0.94), rgba(8, 8, 12, 0.96))',
+            'radial-gradient(circle at top right, rgba(140, 98, 223, 0.08), transparent 32%), radial-gradient(circle at bottom left, rgba(195, 149, 79, 0.08), transparent 32%), linear-gradient(160deg, rgba(22, 18, 25, 0.92), rgba(8, 8, 12, 0.94))',
+        '--theme-panel-surface-hero':
+            'radial-gradient(circle at top left, rgba(242, 211, 157, 0.12), transparent 34%), radial-gradient(circle at bottom right, rgba(140, 98, 223, 0.1), transparent 30%), linear-gradient(160deg, rgba(21, 18, 27, 0.99), rgba(8, 8, 12, 0.97))',
         '--theme-border': 'rgba(255, 214, 133, 0.14)',
         '--theme-border-strong': 'rgba(242, 211, 157, 0.34)',
         '--theme-border-cyan': 'rgba(99, 165, 187, 0.28)',
         '--theme-shadow': 'rgba(0, 0, 0, 0.54)',
         '--theme-panel-frame':
-            'linear-gradient(180deg, rgba(255, 244, 218, 0.18), rgba(255, 244, 218, 0.02) 22%, rgba(255, 244, 218, 0) 50%, rgba(195, 149, 79, 0.18) 100%)',
-        '--theme-panel-highlight': 'linear-gradient(90deg, rgba(242, 211, 157, 0), rgba(242, 211, 157, 0.25), rgba(242, 211, 157, 0))',
+            'linear-gradient(180deg, rgba(255, 244, 218, 0.12), rgba(255, 244, 218, 0.02) 22%, rgba(255, 244, 218, 0) 50%, rgba(195, 149, 79, 0.12) 100%)',
+        '--theme-panel-highlight': 'linear-gradient(90deg, rgba(242, 211, 157, 0), rgba(242, 211, 157, 0.2), rgba(242, 211, 157, 0))',
         '--theme-panel-shadow':
-            '0 28px 72px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06)',
+            '0 18px 48px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.045)',
         '--theme-panel-shadow-strong':
-            '0 34px 96px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+            '0 22px 58px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.055)',
+        '--theme-panel-shadow-hero':
+            '0 26px 68px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.07)',
         '--theme-control-surface':
             'linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.012)), rgba(13, 12, 19, 0.84)',
         '--theme-secondary-surface':
@@ -111,7 +119,7 @@ export const RENDERER_THEME = {
         '--theme-primary-border':
             'linear-gradient(180deg, rgba(255, 224, 174, 0.95), rgba(168, 109, 56, 0.92) 54%, rgba(97, 48, 20, 0.94) 100%)',
         '--theme-primary-shadow':
-            '0 20px 42px rgba(0, 0, 0, 0.38), 0 0 28px rgba(188, 84, 52, 0.28), inset 0 1px 0 rgba(255, 236, 205, 0.18)',
+            '0 16px 36px rgba(0, 0, 0, 0.32), 0 0 22px rgba(188, 84, 52, 0.22), inset 0 1px 0 rgba(255, 236, 205, 0.14)',
         '--theme-glow-gold': 'rgba(195, 149, 79, 0.24)',
         '--theme-glow-gold-soft': 'rgba(242, 211, 157, 0.14)',
         '--theme-glow-amber': 'rgba(223, 132, 71, 0.18)',
@@ -148,11 +156,11 @@ export const RENDERER_THEME = {
         '--theme-overlay-plate-radius': 'calc(var(--ui-radius-modal) + 0.18rem)',
         '--theme-overlay-plate-border': '1px solid var(--theme-border-strong)',
         '--theme-overlay-plate-shadow':
-            '0 26px 64px rgba(0, 0, 0, 0.46), inset 0 1px 0 rgba(255, 255, 255, 0.06)',
-        '--theme-overlay-plate-inner-glow': 'rgba(255, 244, 218, 0.05)',
+            '0 18px 48px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.045)',
+        '--theme-overlay-plate-inner-glow': 'rgba(255, 244, 218, 0.04)',
         '--theme-modal-plate-padding': 'clamp(1rem, 2vw, 1.2rem)',
         '--theme-modal-scrim-bg': 'var(--theme-scrim-dialog)',
-        '--theme-modal-scrim-backdrop-filter': 'blur(14px) saturate(130%)',
+        '--theme-modal-scrim-backdrop-filter': 'blur(10px) saturate(122%)',
         '--theme-modal-plate-enter-duration': '220ms',
         '--theme-modal-plate-enter-ease': 'cubic-bezier(0.22, 1, 0.36, 1)',
 
@@ -165,13 +173,23 @@ export const RENDERER_THEME = {
         '--theme-hud-chrome-border-muted': 'rgba(244, 213, 142, 0.14)',
         '--theme-hud-chrome-inset': 'rgba(255, 243, 217, 0.06)',
         '--theme-hud-chrome-gloss': 'linear-gradient(180deg, rgba(255, 243, 217, 0.07) 0%, transparent 20%)',
+        /* Rail medallions + stage lip — shared warm highlights (GameScreen `.iconAction`, `.boardStage`). */
+        '--theme-hud-medallion-radial': 'radial-gradient(circle at 32% 24%, rgba(255, 243, 217, 0.1), transparent 42%)',
+        '--theme-hud-medallion-linear': 'linear-gradient(180deg, rgba(255, 243, 217, 0.05), transparent 52%)',
+        '--theme-hud-medallion-radial-hover': 'radial-gradient(circle at 32% 24%, rgba(255, 243, 217, 0.14), transparent 44%)',
+        '--theme-hud-medallion-linear-hover': 'linear-gradient(180deg, rgba(255, 243, 217, 0.06), transparent 48%)',
+        '--theme-hud-medallion-radial-muted': 'radial-gradient(circle at 32% 24%, rgba(255, 243, 217, 0.05), transparent 44%)',
+        '--theme-hud-medallion-linear-muted': 'linear-gradient(180deg, rgba(255, 243, 217, 0.025), transparent)',
+        '--theme-hud-medallion-radial-active': 'radial-gradient(circle at 32% 24%, rgba(255, 243, 217, 0.14), transparent 44%)',
+        '--theme-hud-stage-ellipse': 'radial-gradient(ellipse at 50% 16%, rgba(255, 243, 217, 0.04), transparent 56%)',
+        '--theme-hud-stage-linear': 'linear-gradient(180deg, rgba(255, 243, 217, 0.02), rgba(6, 6, 10, 0.04))',
         '--theme-hud-chrome-fill':
             'linear-gradient(180deg, rgba(24, 19, 16, 0.96) 0%, rgba(8, 8, 12, 0.96) 100%)',
         '--theme-hud-chrome-shadow':
-            '0 0 0 1px rgba(0, 0, 0, 0.35), 0 18px 42px rgba(0, 0, 0, 0.4), inset 0 1px 0 var(--theme-hud-chrome-inset)',
+            '0 0 0 1px rgba(0, 0, 0, 0.28), 0 12px 28px rgba(0, 0, 0, 0.28), inset 0 1px 0 var(--theme-hud-chrome-inset)',
         '--theme-hud-flyout-surface':
-            'radial-gradient(circle at top left, rgba(244, 213, 142, 0.1), transparent 38%), radial-gradient(circle at bottom right, rgba(127, 90, 198, 0.12), transparent 34%), linear-gradient(180deg, rgba(23, 18, 17, 0.98), rgba(8, 8, 11, 0.98))',
-        '--theme-hud-flyout-shadow': '0 24px 60px rgba(0, 0, 0, 0.42), inset 0 1px 0 var(--theme-hud-chrome-inset)',
+            'radial-gradient(circle at top left, rgba(244, 213, 142, 0.07), transparent 36%), radial-gradient(circle at bottom right, rgba(127, 90, 198, 0.08), transparent 32%), linear-gradient(180deg, rgba(23, 18, 17, 0.96), rgba(8, 8, 11, 0.96))',
+        '--theme-hud-flyout-shadow': '0 16px 40px rgba(0, 0, 0, 0.3), inset 0 1px 0 var(--theme-hud-chrome-inset)',
         '--theme-hud-scrim': 'rgba(6, 8, 12, 0.42)',
         '--theme-hud-accent-line': 'rgba(87, 220, 255, 0.18)',
         '--theme-hud-accent-fill': 'rgba(87, 220, 255, 0.1)',
@@ -187,7 +205,7 @@ export const RENDERER_THEME = {
         '--theme-hud-parasite-segment-surface':
             'radial-gradient(ellipse 125% 90% at 50% 0%, rgba(140, 98, 223, 0.34), transparent 55%), linear-gradient(165deg, rgba(26, 16, 40, 0.94) 0%, rgba(8, 8, 12, 0.78) 100%)',
         '--theme-hud-parasite-segment-shadow':
-            'inset 0 1px 0 rgba(217, 199, 255, 0.12), 0 10px 28px rgba(0, 0, 0, 0.32), 0 0 36px rgba(140, 98, 223, 0.18)',
+            'inset 0 1px 0 rgba(217, 199, 255, 0.1), 0 8px 22px rgba(0, 0, 0, 0.26), 0 0 24px rgba(140, 98, 223, 0.14)',
         '--theme-hud-parasite-track-bg':
             'linear-gradient(180deg, rgba(5, 6, 10, 0.72) 0%, rgba(14, 11, 22, 0.88) 100%)',
         '--theme-hud-parasite-track-border': '1px solid rgba(140, 98, 223, 0.38)',
@@ -196,12 +214,12 @@ export const RENDERER_THEME = {
         '--theme-hud-parasite-fill':
             'linear-gradient(90deg, #5c3d9e 0%, #8c62df 18%, #c9a8ff 42%, #f4ecdc 52%, #c4a6ff 64%, #7a52c4 100%)',
         '--theme-hud-parasite-fill-sheen': 'linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0) 58%)',
-        '--theme-hud-parasite-fill-glow': '0 0 16px rgba(217, 199, 255, 0.42), inset 0 0 0 1px rgba(255, 255, 255, 0.12)',
+        '--theme-hud-parasite-fill-glow': '0 0 12px rgba(217, 199, 255, 0.32), inset 0 0 0 1px rgba(255, 255, 255, 0.1)',
         '--theme-hud-parasite-crystal-well':
             'radial-gradient(circle at 30% 26%, rgba(217, 199, 255, 0.28), transparent 45%), radial-gradient(circle at 72% 78%, rgba(140, 98, 223, 0.4), rgba(6, 6, 10, 0.96) 70%)',
         '--theme-hud-parasite-crystal-border': '1px solid rgba(242, 211, 157, 0.26)',
         '--theme-hud-parasite-crystal-inset': 'inset 0 1px 0 rgba(255, 255, 255, 0.14)',
-        '--theme-hud-parasite-crystal-aura': '0 0 20px rgba(140, 98, 223, 0.48), 0 0 0 1px rgba(140, 98, 223, 0.22)',
+        '--theme-hud-parasite-crystal-aura': '0 0 14px rgba(140, 98, 223, 0.36), 0 0 0 1px rgba(140, 98, 223, 0.18)',
         '--theme-hud-parasite-label-color': 'rgba(244, 236, 220, 0.94)',
 
         /*
@@ -236,8 +254,13 @@ export const RENDERER_THEME = {
         '--theme-divider-hairline': 'rgba(242, 211, 157, 0.1)',
         '--theme-card-border-muted': 'rgba(242, 211, 157, 0.08)',
         '--theme-glow-violet-drop': 'rgba(140, 98, 223, 0.36)',
-        '--theme-elevation-card': '0 14px 34px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.04)',
-        '--theme-elevation-lift': '0 12px 40px rgba(0, 0, 0, 0.35)',
+        '--theme-elevation-card': '0 10px 26px rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.035)',
+        '--theme-elevation-lift': '0 10px 32px rgba(0, 0, 0, 0.28)',
+        /** Secondary meta sections / rails — aligned with card elevation, flatter than `--theme-panel-shadow`. */
+        '--theme-panel-shadow-muted': 'var(--theme-elevation-card)',
+        /** Decorative deck cards in TileBoard pre-stage — drop shadow tuned via theme shadow mix. */
+        '--theme-board-prestage-drop':
+            '0 10px 22px color-mix(in srgb, var(--theme-shadow) 38%, transparent)',
 
         /*
          * META-003 — forged gold meta frame (`MetaFrame`): vector cornice around meta plates without forking Panel.
@@ -245,7 +268,7 @@ export const RENDERER_THEME = {
         '--theme-meta-frame-outset': '-0.3rem',
         '--theme-meta-frame-accent': 'var(--theme-gold)',
         '--theme-meta-frame-drop':
-            '0 0 12px color-mix(in srgb, var(--theme-glow-gold) 65%, transparent)',
+            '0 0 8px color-mix(in srgb, var(--theme-glow-gold) 45%, transparent)',
 
         /*
          * INTRO-001 / SHELL-001 — StartupIntro overlay blooms + MainMenuBackground atmosphere fallback.
@@ -260,14 +283,14 @@ export const RENDERER_THEME = {
         '--theme-shell-fallback-vignette':
             'radial-gradient(circle at center, rgba(14, 19, 29, 0.02), rgba(5, 6, 8, 0.42) 88%)',
 
-        /* UI system: radius */
-        '--ui-radius-sm': '0.45rem',
-        '--ui-radius-md': '0.7rem',
-        '--ui-radius-lg': '0.95rem',
-        '--ui-radius-xl': '1.15rem',
-        '--ui-radius-panel': '1.35rem',
-        '--ui-radius-modal': '1.15rem',
-        '--ui-radius-button': '1rem',
+        /* UI system: radius (premium cleaner — slightly tighter corners) */
+        '--ui-radius-sm': '0.4rem',
+        '--ui-radius-md': '0.62rem',
+        '--ui-radius-lg': '0.85rem',
+        '--ui-radius-xl': '1.02rem',
+        '--ui-radius-panel': '1.12rem',
+        '--ui-radius-modal': '1.02rem',
+        '--ui-radius-button': '0.88rem',
         '--ui-radius-pill': '999px',
 
         /* UI system: spacing (rem) */
@@ -300,8 +323,8 @@ export const RENDERER_THEME = {
         '--ui-font-label': '0.62rem',
         '--ui-font-body': '0.95rem',
         '--ui-font-body-sm': '0.82rem',
-        '--ui-font-stat': '1.2rem',
-        '--ui-font-stat-lg': '1.45rem',
+        '--ui-font-stat': '1.28rem',
+        '--ui-font-stat-lg': '1.55rem',
         '--ui-font-section': '1rem',
         '--ui-font-modal-title': '1.75rem',
         '--ui-type-display': 'clamp(2.8rem, 7.4vw, 6rem)',

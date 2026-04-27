@@ -270,7 +270,7 @@ export async function gotoWithSave(page: Page, saveJson: string): Promise<void> 
         },
         [STORAGE_KEY, saveJson]
     );
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'load', timeout: 90_000 });
 }
 
 /**
@@ -285,7 +285,7 @@ export async function gotoWithSaveAndQuery(page: Page, saveJson: string, querySt
         },
         [STORAGE_KEY, saveJson]
     );
-    await page.goto(`/?${qs}`);
+    await page.goto(`/?${qs}`, { waitUntil: 'load', timeout: 90_000 });
 }
 
 /** Output folder for HUD/board crops vs `docs/ENDPRODUCTIMAGE.png` (see `capture:endproduct-parity`). */
@@ -405,9 +405,9 @@ export async function openDevSandboxGameOver(page: Page, options?: OpenDevSandbo
 }
 
 /**
- * Seeds localStorage then navigates home while waiting for the startup intro dialog.
- * Reduced-motion intros auto-dismiss in ~1.8s; `page.goto` default `load` can resolve after that on a
- * cold dev server, so awaiting visibility only after navigation races the timer and flakes.
+ * Seeds localStorage, navigates home, then waits for the startup intro dialog.
+ * Navigation completes first so React can mount the overlay; the locator wait catches visibility
+ * without racing a parallel `goto` completion.
  */
 export async function gotoWithSaveExpectStartupIntroVisible(page: Page, saveJson: string): Promise<void> {
     await page.addInitScript(
@@ -417,8 +417,8 @@ export async function gotoWithSaveExpectStartupIntroVisible(page: Page, saveJson
         [STORAGE_KEY, saveJson]
     );
     const intro = page.getByRole('dialog', { name: /startup relic intro/i });
-    const introVisible = intro.waitFor({ state: 'visible', timeout: 25_000 });
-    await Promise.all([introVisible, page.goto('/')]);
+    await page.goto('/', { waitUntil: 'load', timeout: 90_000 });
+    await intro.waitFor({ state: 'visible', timeout: 90_000 });
 }
 
 export async function openMainMenuFromSave(page: Page, onboardingDismissed: boolean): Promise<void> {

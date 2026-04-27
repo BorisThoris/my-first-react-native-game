@@ -42,6 +42,17 @@ for (const slot of stressSizes) {
             await lockedEndless.scrollIntoViewIfNeeded();
             await expectLocatorFullyInWindowViewport(page, lockedEndless);
         });
+
+        test('profile: heading fully in viewport', async ({ page }) => {
+            await openMainMenuFromSave(page, true);
+            await page.getByRole('button', { name: /^profile$/i }).click();
+            await expect(page.getByRole('region', { name: /profile/i })).toBeVisible();
+            await expectNoHorizontalOverflow(page);
+            await expectAppScrollportHasNoVerticalOverflow(page);
+            const heading = page.getByRole('heading', { name: /^profile$/i });
+            await expect(heading).toBeVisible();
+            await expectLocatorFullyInWindowViewport(page, heading);
+        });
     });
 }
 

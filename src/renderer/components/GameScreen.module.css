@@ -68,7 +68,7 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    opacity: 0.26;
+    opacity: 0.21;
     background-position: center;
     background-repeat: no-repeat;
     background-size: cover;
@@ -90,7 +90,7 @@
         color-mix(in srgb, var(--theme-shadow) 90%, transparent) 100%
     );
     mix-blend-mode: multiply;
-    opacity: 0.68;
+    opacity: 0.56;
 }
 
 /* PLAY-006: warm outer “torch” ring at the spotlight rim (mask keeps center clear). */
@@ -108,7 +108,7 @@
         transparent 100%
     );
     mix-blend-mode: soft-light;
-    opacity: 0.88;
+    opacity: 0.72;
     mask-image: radial-gradient(
         ellipse 90% 86% at 50% 47%,
         transparent 0%,
@@ -173,7 +173,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.32rem;
     width: var(--gameplay-rail-width, 3.25rem);
     box-sizing: border-box;
     padding: 0.46rem 0.2rem 0.52rem;
@@ -183,7 +183,7 @@
     background: var(--gameplay-chrome-surface, color-mix(in srgb, var(--theme-panel-solid) 92%, var(--theme-stone) 8%));
     border: 1px solid var(--gameplay-chrome-border, var(--theme-hud-chrome-border));
     box-shadow: var(--gameplay-chrome-shadow);
-    backdrop-filter: blur(var(--game-deck-blur)) saturate(1.35);
+    backdrop-filter: blur(var(--game-deck-blur)) saturate(1.22);
 }
 
 .leftToolbar:not(.mobileCameraLeftToolbar) {
@@ -200,7 +200,7 @@
         linear-gradient(180deg, color-mix(in srgb, var(--theme-gold-bright) 7%, transparent), transparent 22%),
         linear-gradient(180deg, transparent 70%, color-mix(in srgb, var(--theme-shadow) 18%, transparent));
     pointer-events: none;
-    opacity: 0.88;
+    opacity: 0.52;
 }
 
 .leftToolbar::after {
@@ -229,16 +229,16 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.32rem;
+    gap: 0.28rem;
     width: 100%;
-    padding: 0.18rem 0.12rem;
-    border-radius: calc(var(--ui-radius-md) + 0.08rem);
+    padding: 0.16rem 0.1rem;
+    border-radius: calc(var(--ui-radius-md) + 0.06rem);
     background:
-        linear-gradient(180deg, rgba(255, 243, 217, 0.024), transparent 54%),
-        color-mix(in srgb, var(--theme-void) 32%, transparent);
+        linear-gradient(180deg, rgba(255, 243, 217, 0.018), transparent 52%),
+        color-mix(in srgb, var(--theme-void) 28%, transparent);
     box-shadow:
-        inset 0 1px 0 color-mix(in srgb, rgba(255, 255, 255, 0.04) 80%, transparent),
-        inset 0 0 0 1px color-mix(in srgb, var(--theme-gold-bright) 5%, transparent);
+        inset 0 1px 0 color-mix(in srgb, rgba(255, 255, 255, 0.03) 80%, transparent),
+        inset 0 0 0 1px color-mix(in srgb, var(--theme-gold-bright) 4%, transparent);
 }
 
 .toolbarGlyphImg {
@@ -265,7 +265,7 @@
     white-space: nowrap;
     opacity: 0;
     pointer-events: none;
-    box-shadow: 0 8px 22px color-mix(in srgb, var(--theme-shadow) 34%, transparent);
+    box-shadow: var(--theme-elevation-card);
     transition:
         opacity 120ms ease,
         transform 120ms ease;
@@ -442,10 +442,11 @@
     margin: 0.55rem 0;
     padding: 0.65rem 0.75rem;
     border-radius: 8px;
-    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 28%, var(--theme-border-strong));
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 18%, var(--theme-border-strong));
     background:
-        linear-gradient(180deg, rgba(255, 243, 217, 0.07), transparent 58%),
-        color-mix(in srgb, var(--theme-panel-solid) 88%, var(--theme-gold-deep) 12%);
+        linear-gradient(180deg, rgba(255, 243, 217, 0.04), transparent 58%),
+        color-mix(in srgb, var(--theme-panel-solid) 92%, var(--theme-gold-deep) 8%);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, rgba(255, 255, 255, 0.04) 80%, transparent);
     color: var(--theme-text-muted);
     text-align: left;
 }
@@ -489,8 +490,9 @@
     width: 100%;
     padding: 0.48rem;
     border-radius: var(--ui-radius-md);
-    border: 1px solid color-mix(in srgb, var(--theme-cyan) 18%, transparent);
+    border: 1px solid color-mix(in srgb, var(--theme-cyan) 14%, transparent);
     background: color-mix(in srgb, var(--theme-void) 58%, transparent);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, rgba(255, 255, 255, 0.03) 80%, transparent);
 }
 
 .powerTeachingRow {
@@ -534,12 +536,12 @@
 }
 
 .floatingDeck {
-    padding: 0.38rem 0.5rem 0.42rem;
+    padding: 0.34rem 0.46rem 0.38rem;
     border-radius: calc(var(--gameplay-chrome-radius, calc(var(--ui-radius-lg) + 0.12rem)) + 0.02rem);
     background: var(--gameplay-chrome-surface, color-mix(in srgb, var(--theme-panel-solid) 92%, var(--theme-stone) 8%));
     border: 1px solid var(--gameplay-chrome-border, var(--theme-hud-chrome-border));
     box-shadow: var(--gameplay-chrome-shadow);
-    backdrop-filter: blur(var(--game-deck-blur)) saturate(1.35);
+    backdrop-filter: blur(var(--game-deck-blur)) saturate(1.08);
 }
 
 .statsDeck {
@@ -583,24 +585,24 @@
 .hudDeckDualRow::before {
     content: '';
     position: absolute;
-    inset: -0.06rem;
-    border-radius: calc(var(--ui-radius-md) + 0.24rem);
+    inset: -0.05rem;
+    border-radius: calc(var(--ui-radius-md) + 0.2rem);
     pointer-events: none;
     z-index: 0;
-    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 24%, transparent);
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 13%, transparent);
     background:
-        radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--theme-gold-bright) 10%, transparent), transparent 50%),
+        radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--theme-gold-bright) 4%, transparent), transparent 50%),
         linear-gradient(
             180deg,
-            color-mix(in srgb, var(--theme-gold-bright) 12%, transparent) 0%,
+            color-mix(in srgb, var(--theme-gold-bright) 5%, transparent) 0%,
             transparent 28%,
             transparent 68%,
-            color-mix(in srgb, var(--theme-gold-bright) 7%, transparent) 100%
+            color-mix(in srgb, var(--theme-gold-bright) 4%, transparent) 100%
         );
     box-shadow:
-        inset 0 1px 0 color-mix(in srgb, var(--theme-gold-bright) 18%, transparent),
-        inset 0 -1px 0 color-mix(in srgb, var(--theme-shadow) 42%, transparent),
-        0 0 0 1px color-mix(in srgb, var(--theme-shadow) 22%, transparent);
+        inset 0 1px 0 color-mix(in srgb, var(--theme-gold-bright) 9%, transparent),
+        inset 0 -1px 0 color-mix(in srgb, var(--theme-shadow) 28%, transparent),
+        0 0 0 1px color-mix(in srgb, var(--theme-shadow) 14%, transparent);
 }
 
 .hudDeckDualRow > * {
@@ -635,12 +637,12 @@
     background: linear-gradient(
         90deg,
         transparent 0%,
-        color-mix(in srgb, var(--theme-gold-bright) 8%, transparent) 12%,
-        color-mix(in srgb, var(--theme-gold-bright) 16%, transparent) 50%,
-        color-mix(in srgb, var(--theme-gold-bright) 8%, transparent) 88%,
+        color-mix(in srgb, var(--theme-gold-bright) 6%, transparent) 12%,
+        color-mix(in srgb, var(--theme-gold-bright) 12%, transparent) 50%,
+        color-mix(in srgb, var(--theme-gold-bright) 6%, transparent) 88%,
         transparent 100%
     );
-    opacity: 0.92;
+    opacity: 0.78;
 }
 
 .hudContextSecondaryStrip::after {
@@ -657,7 +659,7 @@
         inset 0 1px 0 color-mix(in srgb, rgba(255, 255, 255, 0.04) 80%, transparent),
         inset 0 -1px 0 color-mix(in srgb, var(--theme-shadow) 12%, transparent);
     pointer-events: none;
-    opacity: 0.82;
+    opacity: 0.68;
 }
 
 .hudStripLeftModule {
@@ -753,9 +755,7 @@
         linear-gradient(180deg, rgba(255, 243, 217, 0.03), transparent 55%),
         color-mix(in srgb, var(--theme-void) 74%, transparent);
     border: 1px solid color-mix(in srgb, var(--gameplay-chrome-border, var(--theme-hud-chrome-border)) 88%, transparent);
-    box-shadow:
-        var(--gameplay-chrome-shadow),
-        0 14px 36px color-mix(in srgb, var(--theme-shadow) 45%, transparent);
+    box-shadow: var(--gameplay-chrome-shadow);
     backdrop-filter: blur(calc(var(--game-deck-blur) * 0.85)) saturate(1.25);
 }
 
@@ -944,12 +944,7 @@
     position: relative;
     z-index: 1;
     border-color: color-mix(in srgb, var(--theme-gold-bright) 44%, var(--theme-border-strong));
-    box-shadow:
-        inset 0 1px 0 var(--theme-hud-chrome-inset),
-        inset 0 12px 22px color-mix(in srgb, var(--theme-gold-bright) 12%, transparent),
-        inset 0 -26px 34px color-mix(in srgb, var(--theme-void) 72%, transparent),
-        0 0 0 1px color-mix(in srgb, var(--theme-glow-gold-soft) 42%, transparent),
-        0 0 20px color-mix(in srgb, var(--theme-glow-gold) 20%, transparent);
+    box-shadow: var(--gameplay-floor-badge-plate-shadow);
 }
 
 .floorBadge {
@@ -1198,11 +1193,12 @@
 }
 
 .statValScore {
-    font-size: clamp(1.55rem, 3.2vw, 2.05rem);
+    font-size: clamp(1.72rem, 3.5vw, 2.28rem);
+    font-weight: 800;
     color: var(--theme-gold-bright);
     text-shadow:
-        0 0 28px var(--theme-glow-gold),
-        0 1px 0 color-mix(in srgb, var(--theme-shadow) 45%, transparent);
+        0 0 18px var(--theme-glow-gold-soft),
+        0 1px 0 color-mix(in srgb, var(--theme-shadow) 38%, transparent);
 }
 
 .statSubline {
@@ -1220,20 +1216,20 @@
     max-width: 24rem;
     align-items: center;
     text-align: center;
-    border-width: 2px;
+    border-width: 1px;
     border-style: solid;
-    border-color: color-mix(in srgb, var(--theme-gold-bright) 55%, var(--theme-border-strong));
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 42%, var(--theme-border-strong));
     background:
         url('../assets/ui/frames/hud-segment-ornament.svg') center -6px / 168px 58px no-repeat,
-        radial-gradient(ellipse at 50% 0%, var(--theme-glow-gold-soft), transparent 58%),
-        linear-gradient(180deg, rgba(255, 243, 217, 0.12), transparent 42%),
-        color-mix(in srgb, var(--theme-void) 62%, transparent);
+        radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--theme-glow-gold-soft) 70%, transparent), transparent 56%),
+        linear-gradient(180deg, rgba(255, 243, 217, 0.09), transparent 42%),
+        color-mix(in srgb, var(--theme-void) 58%, transparent);
     box-shadow:
         inset 0 1px 0 var(--theme-hud-chrome-inset),
-        inset 0 -1px 0 color-mix(in srgb, var(--theme-glow-gold) 22%, transparent),
-        0 0 56px color-mix(in srgb, var(--theme-glow-gold) 58%, transparent),
-        0 0 0 1px var(--theme-glow-gold-soft),
-        0 14px 32px color-mix(in srgb, var(--theme-shadow) 38%, transparent);
+        inset 0 -1px 0 color-mix(in srgb, var(--theme-glow-gold) 14%, transparent),
+        0 0 32px color-mix(in srgb, var(--theme-glow-gold) 38%, transparent),
+        0 0 0 1px color-mix(in srgb, var(--theme-glow-gold-soft) 80%, transparent),
+        0 10px 24px color-mix(in srgb, var(--theme-shadow) 28%, transparent);
 }
 
 .hudMetaSegment {
@@ -1635,8 +1631,8 @@
     appearance: none;
     border: 1px solid color-mix(in srgb, var(--gameplay-chrome-border-soft, var(--theme-hud-chrome-border-soft)) 92%, transparent);
     background:
-        radial-gradient(circle at 32% 24%, rgba(255, 243, 217, 0.13), transparent 42%),
-        linear-gradient(180deg, rgba(255, 243, 217, 0.06), transparent 52%),
+        var(--theme-hud-medallion-radial),
+        var(--theme-hud-medallion-linear),
         color-mix(in srgb, var(--theme-panel) 88%, var(--theme-stone) 12%);
     padding: 0.24rem;
     width: var(--gameplay-rail-button-size, 2.7rem);
@@ -1662,11 +1658,11 @@
     color: var(--theme-gold-bright);
     border-color: color-mix(in srgb, var(--theme-gold-bright) 48%, var(--gameplay-chrome-border, var(--theme-hud-chrome-border)));
     background:
-        radial-gradient(circle at 32% 24%, rgba(255, 243, 217, 0.18), transparent 44%),
-        linear-gradient(180deg, rgba(255, 243, 217, 0.08), transparent 48%),
+        var(--theme-hud-medallion-radial-hover),
+        var(--theme-hud-medallion-linear-hover),
         color-mix(in srgb, var(--theme-panel) 82%, var(--theme-gold-deep) 18%);
     transform: translateY(-1px);
-    filter: drop-shadow(0 0 20px var(--theme-glow-gold-soft));
+    filter: drop-shadow(0 0 14px color-mix(in srgb, var(--theme-glow-gold-soft) 82%, transparent));
 }
 
 .iconAction:disabled {
@@ -1677,8 +1673,8 @@
     color: color-mix(in srgb, var(--theme-text-muted) 54%, transparent);
     border-color: color-mix(in srgb, var(--theme-hud-chrome-border-muted) 88%, transparent);
     background:
-        radial-gradient(circle at 32% 24%, rgba(255, 243, 217, 0.06), transparent 44%),
-        linear-gradient(180deg, rgba(255, 243, 217, 0.03), transparent),
+        var(--theme-hud-medallion-radial-muted),
+        var(--theme-hud-medallion-linear-muted),
         color-mix(in srgb, var(--theme-panel) 54%, transparent);
     box-shadow:
         inset 0 1px 0 color-mix(in srgb, var(--theme-hud-chrome-inset) 70%, transparent),
@@ -1697,7 +1693,7 @@
 .iconActionActive {
     color: var(--theme-gold-bright);
     background:
-        radial-gradient(circle at 32% 24%, rgba(255, 243, 217, 0.18), transparent 44%),
+        var(--theme-hud-medallion-radial-active),
         var(--theme-primary-surface);
     box-shadow: var(--gameplay-rail-medallion-shadow-active);
 }
@@ -1745,7 +1741,7 @@
     color: var(--theme-text-subtle);
     border-color: var(--theme-hud-chrome-border-muted);
     background:
-        linear-gradient(180deg, rgba(255, 243, 217, 0.04), transparent),
+        var(--theme-hud-chrome-gloss),
         color-mix(in srgb, var(--theme-panel-solid) 92%, var(--theme-void));
 }
 
@@ -1821,9 +1817,9 @@
     padding: 0.06rem 0.25rem 0.12rem;
     border-radius: calc(var(--ui-radius-lg) + 0.24rem);
     background:
-        radial-gradient(ellipse at 50% 16%, rgba(255, 243, 217, 0.05), transparent 56%),
+        var(--theme-hud-stage-ellipse),
         radial-gradient(ellipse at 50% 72%, color-mix(in srgb, var(--theme-shadow) 18%, transparent), transparent 66%),
-        linear-gradient(180deg, rgba(255, 243, 217, 0.025), rgba(6, 6, 10, 0.04));
+        var(--theme-hud-stage-linear);
     box-shadow:
         inset 0 0 0 1px color-mix(in srgb, var(--theme-gold-bright) 14%, transparent),
         inset 0 0 0 1px var(--theme-hud-chrome-border-soft),
@@ -1841,7 +1837,7 @@
     --gameplay-stage-dais-height: 36%;
     --gameplay-stage-ring-bottom: -9%;
     --gameplay-stage-ring-size: min(88%, 48rem);
-    --gameplay-stage-ring-opacity: 0.28;
+    --gameplay-stage-ring-opacity: 0.24;
 }
 
 /* PLAY-006: elliptical “stone dais” under the playfield (no layout / sizing change). */
@@ -1877,7 +1873,7 @@
     box-shadow:
         0 0 0 1px color-mix(in srgb, var(--theme-gold-bright) 15%, transparent),
         0 0 86px 34px color-mix(in srgb, var(--theme-shadow) 40%, transparent);
-    opacity: 0.94;
+    opacity: 0.86;
 }
 
 .boardStage::after {
@@ -1893,8 +1889,8 @@
     background: url('../assets/ui/stage-ring.svg') center / contain no-repeat;
     opacity: var(--gameplay-stage-ring-opacity, 0.38);
     filter:
-        drop-shadow(0 0 18px color-mix(in srgb, var(--theme-glow-gold-soft) 44%, transparent))
-        drop-shadow(0 0 34px color-mix(in srgb, var(--theme-shadow) 24%, transparent));
+        drop-shadow(0 0 16px color-mix(in srgb, var(--theme-glow-gold-soft) 36%, transparent))
+        drop-shadow(0 0 26px color-mix(in srgb, var(--theme-shadow) 18%, transparent));
 }
 
 .shell[data-mobile-camera-mode='true'] .boardStage::before {

@@ -217,11 +217,10 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
             continueToNextLevel: state.continueToNextLevel,
             dismissPowersFtue: state.dismissPowersFtue,
             goToMenu: state.goToMenu,
-            purchaseShopOffer: state.purchaseShopOffer,
-            rerollShopOffers: state.rerollShopOffers,
             applyRelicOfferService: state.applyRelicOfferService,
             openCodexFromPlaying: state.openCodexFromPlaying,
             openInventoryFromPlaying: state.openInventoryFromPlaying,
+            openShopFromLevelComplete: state.openShopFromLevelComplete,
             openSettings: state.openSettings,
             pause: state.pause,
             pickRelic: state.pickRelic,
@@ -433,10 +432,9 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         continueToNextLevel,
         dismissPowersFtue,
         goToMenu,
-        purchaseShopOffer,
-        rerollShopOffers,
         openCodexFromPlaying,
         openInventoryFromPlaying,
+        openShopFromLevelComplete,
         openSettings,
         pause,
         applyRelicOfferService,
@@ -1258,6 +1256,18 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                     <OverlayModal
                         actions={[
                             { label: 'Continue', onClick: continueToNextLevel, variant: 'primary' },
+                            ...(run.shopOffers.length > 0
+                                ? [
+                                      {
+                                          label: 'Visit Shop',
+                                          onClick: () => {
+                                              playUiClick();
+                                              openShopFromLevelComplete();
+                                          },
+                                          variant: 'secondary' as const
+                                      }
+                                  ]
+                                : []),
                             {
                                 label: 'Main Menu',
                                 onClick: () => {
@@ -1269,6 +1279,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         ]}
                         headerPlateTone="success"
                         ornamentalHeaderPlate
+                        quietHeaderPlate
                         subtitle={`Level ${run.lastLevelResult.level} cleared. Score +${run.lastLevelResult.scoreGained}. Try Daily or Scholar contract from the menu for different goals.`}
                         title="Floor cleared"
                     >
@@ -1282,6 +1293,11 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         {objectiveBonusLine ? <p className={styles.modalNote}>{objectiveBonusLine}</p> : null}
                         {bonusTagsLine ? <p className={styles.modalNote}>{bonusTagsLine}</p> : null}
                         {nextFloorPreviewLine ? <p className={styles.modalNote}>{nextFloorPreviewLine}</p> : null}
+                        {run.shopOffers.length > 0 ? (
+                            <p className={styles.modalNote}>
+                                Vendor alcove available: {run.shopOffers.length} services, {run.shopGold} shop gold.
+                            </p>
+                        ) : null}
                         {run.lastLevelResult.routeChoices ? (
                             <div className={styles.endlessRiskWagerPanel} data-testid="route-choice-panel">
                                 <strong>Choose next route</strong>
@@ -1301,40 +1317,6 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                             {option.label}
                                         </button>
                                     ))}
-                                </div>
-                            </div>
-                        ) : null}
-                        {run.shopOffers.length > 0 ? (
-                            <div className={styles.endlessRiskWagerPanel} data-testid="shop-offer-panel">
-                                <strong>Vendor alcove · {run.shopGold} gold</strong>
-                                <span>Spend floor-clear gold on temporary run services. Gold resets after the run.</span>
-                                <span>Reroll stock once per visit if you want a fresh vendor spread.</span>
-                                <div className={styles.routeChoiceActions}>
-                                    {run.shopOffers.map((offer) => (
-                                        <button
-                                            className={styles.endlessRiskWagerButton}
-                                            disabled={offer.purchased || run.shopGold < offer.cost}
-                                            key={offer.id}
-                                            onClick={() => {
-                                                playUiClick();
-                                                purchaseShopOffer(offer.id);
-                                            }}
-                                            type="button"
-                                        >
-                                            {offer.purchased ? 'Claimed' : `Spend shop gold: ${offer.label} · ${offer.cost}g`}
-                                        </button>
-                                    ))}
-                                    <button
-                                        className={styles.endlessRiskWagerButton}
-                                        disabled={run.shopRerolls >= 1 || run.shopGold < Math.min(...run.shopOffers.map((offer) => offer.baseCost))}
-                                        onClick={() => {
-                                            playUiClick();
-                                            rerollShopOffers();
-                                        }}
-                                        type="button"
-                                    >
-                                        {run.shopRerolls >= 1 ? 'Rerolled' : 'Reroll stock'}
-                                    </button>
                                 </div>
                             </div>
                         ) : null}

@@ -4,6 +4,7 @@ node_modules/
 .tsbuild/
 .expo/
 dist/
+dist-build/
 dist-electron/
 release/
 output/

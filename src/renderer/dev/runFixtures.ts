@@ -11,6 +11,7 @@
  * | resolvingMismatch | `0xace`, first two non-matching tiles flipped     | Post-memorize arcade, mismatch resolving              |
  * | gambitTripleMissSetup | fixed 2×3 board, three pairs; two mismatched flips + long stall — pick row1 col3 for gambit triple miss |
  * | paused         | `0xbeefe`                                            | Paused arcade run                                     |
+ * | shop           | `0x5150`                                             | Floor-clear vendor screen                             |
  * | gameOver       | `0xdead`                                             | Game over summary (`lives: 0`)                        |
  *
  * **Repro bundle for QA:** copy app version from Settings / About, the query string above, and any non-default
@@ -20,6 +21,7 @@ import type { RunState, Tile } from '../../shared/contracts';
 import {
     buildBoard,
     countFindablePairs,
+    createRunShopOffers,
     createDailyRun,
     createGauntletRun,
     createNewRun,
@@ -54,6 +56,7 @@ const SANDBOX_FIXTURE_IDS = [
     'resolvingMismatch',
     'gambitTripleMissSetup',
     'paused',
+    'shop',
     'gameOver'
 ] as const;
 
@@ -144,6 +147,36 @@ export const buildSandboxRun = (fixtureId: string | null, bestScore: number): Ru
         case 'paused': {
             const playing = finishMemorizePhase(createNewRun(bestScore, { practiceMode: true, runSeed: 0xbeefe }));
             return pauseRun(playing);
+        }
+        case 'shop': {
+            const playing = finishMemorizePhase(createNewRun(bestScore, { practiceMode: true, runSeed: 0x5150 }));
+            const shopBase: RunState = {
+                ...playing,
+                status: 'levelComplete',
+                shopGold: 5,
+                shopRerolls: 0,
+                relicOffer: null,
+                timerState: {
+                    memorizeRemainingMs: null,
+                    resolveRemainingMs: null,
+                    debugRevealRemainingMs: null,
+                    pausedFromStatus: null
+                },
+                lastLevelResult: {
+                    level: playing.board?.level ?? 1,
+                    scoreGained: 120,
+                    rating: 'S++',
+                    livesRemaining: playing.lives,
+                    perfect: true,
+                    mistakes: 0,
+                    clearLifeReason: 'perfect',
+                    clearLifeGained: 1
+                }
+            };
+            return {
+                ...shopBase,
+                shopOffers: createRunShopOffers(shopBase)
+            };
         }
         case 'gameOver': {
             let run = createNewRun(bestScore, { practiceMode: true, runSeed: 0xdead });

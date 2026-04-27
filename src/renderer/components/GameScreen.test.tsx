@@ -723,8 +723,9 @@ describe('GameScreen (OVR-014)', () => {
         expect(screen.getByTestId('route-choice-panel')).toHaveTextContent('Choose next route');
         expect(screen.getByRole('button', { name: 'Safe passage' })).toBeTruthy();
         expect(screen.getByRole('button', { name: 'Greedy route' })).toBeTruthy();
-        expect(screen.getByTestId('shop-offer-panel')).toHaveTextContent('Vendor alcove');
-        expect(screen.getByText(/Vendor alcove · 5 gold/)).toBeTruthy();
+        expect(screen.getByRole('button', { name: /visit shop/i })).toBeTruthy();
+        expect(screen.queryByTestId('shop-offer-panel')).toBeNull();
+        expect(screen.getByText(/Vendor alcove available: 1 services, 5 shop gold/)).toBeTruthy();
     });
 
     it('shows and arms an endless risk wager when the cleared streak is eligible', () => {

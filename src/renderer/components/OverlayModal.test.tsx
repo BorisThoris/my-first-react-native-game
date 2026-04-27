@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import OverlayModal from './OverlayModal';
@@ -47,6 +47,22 @@ describe('OverlayModal (REF-061)', () => {
         expect(screen.getByTestId('overlay-modal-body')).toHaveTextContent('Detailed reward');
         expect(screen.getByTestId('overlay-modal-actions')).toHaveTextContent('Confirm');
         expect(screen.getByTestId('unit-modal')).toHaveAttribute('data-overlay-size', 'decision');
+    });
+
+    it('DS-010 quiet header plate skips MetaFrame cornice for routine summaries', () => {
+        render(
+            <OverlayModal
+                actions={[{ label: 'Continue', onClick: () => {} }]}
+                headerPlateTone="success"
+                ornamentalHeaderPlate
+                quietHeaderPlate
+                title="Floor cleared"
+            />
+        );
+
+        const dialog = screen.getByRole('dialog');
+        expect(within(dialog).getByTestId('overlay-modal-quiet-header')).toHaveTextContent('Floor cleared');
+        expect(dialog.querySelector('svg')).toBeNull();
     });
 
     it('REG-097 exposes decision sheet policy for keyboard and one-hand paths', () => {

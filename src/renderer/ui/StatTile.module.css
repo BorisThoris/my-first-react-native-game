@@ -3,12 +3,12 @@
     border-radius: var(--ui-radius-lg);
     padding: var(--ui-space-lg);
     background:
-        radial-gradient(circle at top left, rgba(195, 149, 79, 0.12), transparent 38%),
-        linear-gradient(160deg, rgba(16, 14, 21, 0.92), rgba(9, 9, 13, 0.9));
+        radial-gradient(circle at top left, rgba(195, 149, 79, 0.06), transparent 34%),
+        linear-gradient(160deg, rgba(16, 14, 21, 0.88), rgba(9, 9, 13, 0.86));
     border: 1px solid var(--theme-border);
     box-shadow:
-        0 16px 32px color-mix(in srgb, var(--theme-shadow) 37%, transparent),
-        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        0 10px 22px color-mix(in srgb, var(--theme-shadow) 26%, transparent),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 .compact {
@@ -22,10 +22,11 @@
 
 .label {
     display: block;
-    color: var(--theme-text-subtle);
-    letter-spacing: 0.14em;
+    color: var(--theme-text-muted);
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     font-size: var(--ui-font-label);
+    font-weight: 600;
 }
 
 .value {
@@ -88,11 +89,10 @@
 
 .minimal {
     border: 1px solid color-mix(in srgb, var(--theme-border) 55%, transparent);
-    background:
-        linear-gradient(160deg, rgba(16, 14, 21, 0.72), rgba(9, 9, 13, 0.66));
+    background: linear-gradient(160deg, rgba(16, 14, 21, 0.68), rgba(9, 9, 13, 0.62));
     box-shadow:
-        0 12px 26px color-mix(in srgb, var(--theme-shadow) 26%, transparent),
-        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        0 8px 18px color-mix(in srgb, var(--theme-shadow) 20%, transparent),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
     padding: 0.8rem 0.9rem;
 }
 

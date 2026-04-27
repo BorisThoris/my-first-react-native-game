@@ -38,6 +38,11 @@
     border: 1px solid var(--theme-overlay-plate-inner-glow);
 }
 
+.secondary::before,
+.ghost::before {
+    border-color: color-mix(in srgb, var(--theme-overlay-plate-inner-glow) 55%, transparent);
+}
+
 .root::after {
     background: linear-gradient(
         180deg,
@@ -45,6 +50,11 @@
         transparent 36%
     );
     opacity: 0.5;
+}
+
+.secondary::after,
+.ghost::after {
+    opacity: 0.28;
 }
 
 .root > * {
@@ -87,8 +97,8 @@
     border-color: var(--theme-border);
     background: var(--theme-secondary-surface);
     box-shadow:
-        0 18px 36px color-mix(in srgb, var(--theme-shadow) 52%, transparent),
-        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        0 10px 22px color-mix(in srgb, var(--theme-shadow) 34%, transparent),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .ghost {
@@ -105,7 +115,7 @@
         linear-gradient(180deg, rgba(67, 18, 18, 0.94), rgba(31, 10, 12, 0.94));
     box-shadow:
         0 18px 34px color-mix(in srgb, var(--theme-shadow) 48%, transparent),
-        0 0 22px var(--theme-glow-ember);
+        0 0 16px color-mix(in srgb, var(--theme-glow-ember) 72%, transparent);
 }
 
 .debug {
@@ -116,7 +126,7 @@
         linear-gradient(180deg, rgba(28, 22, 38, 0.94), rgba(12, 10, 16, 0.94));
     box-shadow:
         0 18px 34px color-mix(in srgb, var(--theme-shadow) 48%, transparent),
-        0 0 22px color-mix(in srgb, var(--theme-violet) 16%, transparent);
+        0 0 16px color-mix(in srgb, var(--theme-violet) 12%, transparent);
 }
 
 .root:hover:not(:disabled) {
@@ -130,8 +140,8 @@
 
 .primary:hover:not(:disabled) {
     box-shadow:
-        0 22px 40px color-mix(in srgb, var(--theme-shadow) 60%, transparent),
-        0 0 34px var(--theme-glow-ember);
+        0 18px 34px color-mix(in srgb, var(--theme-shadow) 48%, transparent),
+        0 0 18px color-mix(in srgb, var(--theme-glow-ember) 75%, transparent);
 }
 
 .secondary:hover:not(:disabled),
@@ -139,8 +149,8 @@
     border-color: var(--theme-border-strong);
     background: var(--theme-secondary-surface-active);
     box-shadow:
-        0 20px 38px color-mix(in srgb, var(--theme-shadow) 60%, transparent),
-        0 0 28px var(--theme-glow-gold);
+        0 14px 30px color-mix(in srgb, var(--theme-shadow) 42%, transparent),
+        0 0 14px color-mix(in srgb, var(--theme-glow-gold-soft) 80%, transparent);
 }
 
 .danger:hover:not(:disabled) {

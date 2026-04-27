@@ -9,8 +9,8 @@
     line-height: 1.45;
     font-size: var(--ui-font-body-sm);
     box-shadow:
-        inset 3px 0 0 var(--theme-border-strong),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        inset 3px 0 0 color-mix(in srgb, var(--theme-border-strong) 88%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--theme-hud-chrome-inset) 85%, transparent);
 }
 
 .compact {

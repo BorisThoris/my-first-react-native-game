@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { createDefaultSaveData } from '../../shared/save-data';
 import MainMenu from './MainMenu';
@@ -37,46 +38,45 @@ vi.mock('../store/useAppStore', () => ({
 }));
 
 describe('MainMenu REG-009 mobile landscape density', () => {
-    it('keeps Play dominant and secondary actions in a compact group', () => {
+    it('keeps Play dominant and secondary actions in a compact group', async () => {
+        const user = userEvent.setup();
+        const onOpenProfile = vi.fn();
         render(
             <MainMenu
-                bestScore={0}
-                lastRunSummary={null}
                 onDismissHowToPlay={async () => undefined}
                 onOpenCodex={vi.fn()}
                 onOpenCollection={vi.fn()}
                 onOpenInventory={vi.fn()}
+                onOpenProfile={onOpenProfile}
                 onOpenSettings={vi.fn()}
                 onPlay={vi.fn()}
                 reduceMotion
                 saveData={createDefaultSaveData()}
                 showHowToPlay={false}
-                steamConnected={false}
             />
         );
 
         expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Collection' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Profile' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
-        expect(screen.getByTestId('main-menu-hub-quality-strip')).toHaveTextContent(/Trust/i);
-        expect(screen.getByTestId('main-menu-profile-strip')).toHaveTextContent(/Single-device save/i);
+        await user.click(screen.getByRole('button', { name: 'Profile' }));
+        expect(onOpenProfile).toHaveBeenCalledTimes(1);
     });
 
     it('REG-098 surfaces skippable first-run help center beats', () => {
         render(
             <MainMenu
-                bestScore={0}
-                lastRunSummary={null}
                 onDismissHowToPlay={async () => undefined}
                 onOpenCodex={vi.fn()}
                 onOpenCollection={vi.fn()}
                 onOpenInventory={vi.fn()}
+                onOpenProfile={vi.fn()}
                 onOpenSettings={vi.fn()}
                 onPlay={vi.fn()}
                 reduceMotion
                 saveData={createDefaultSaveData()}
                 showHowToPlay
-                steamConnected={false}
             />
         );
 

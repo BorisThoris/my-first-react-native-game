@@ -91,7 +91,7 @@
     margin-right: 0.45rem;
     border-radius: 999px;
     background: var(--theme-border-cyan);
-    box-shadow: 0 0 14px var(--theme-glow-cyan-soft);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--theme-glow-cyan-soft) 75%, transparent);
 }
 
 .overlay[data-skip-state='requested'] .loadingHint {
@@ -236,9 +236,9 @@
     aspect-ratio: 1;
     border-radius: 50%;
     background:
-        radial-gradient(circle, rgba(255, 215, 127, 0.3), rgba(255, 95, 42, 0.1) 42%, transparent 70%);
-    filter: blur(26px);
-    opacity: 0.9;
+        radial-gradient(circle, rgba(255, 215, 127, 0.24), rgba(255, 95, 42, 0.08) 42%, transparent 70%);
+    filter: blur(22px);
+    opacity: 0.82;
     animation: auraBreathe 2.9s ease-in-out infinite;
 }
 
@@ -248,11 +248,11 @@
     width: min(100%, 960px);
     max-height: 88%;
     object-fit: contain;
-    opacity: 0.95;
+    opacity: 0.92;
     transform: perspective(1200px) rotateX(calc(var(--tilt-y, 0) * -7deg)) rotateY(calc(var(--tilt-x, 0) * 7deg));
     filter:
-        drop-shadow(0 0 22px var(--theme-glow-gold-soft))
-        drop-shadow(0 18px 36px var(--theme-shadow));
+        drop-shadow(0 0 16px color-mix(in srgb, var(--theme-glow-gold-soft) 85%, transparent))
+        drop-shadow(0 14px 28px color-mix(in srgb, var(--theme-shadow) 42%, transparent));
 }
 
 :global([data-reduce-motion='true']) .fallbackImage {
@@ -387,12 +387,12 @@
     0%,
     100% {
         transform: scale(0.94);
-        opacity: 0.72;
+        opacity: 0.64;
     }
 
     50% {
         transform: scale(1.03);
-        opacity: 0.98;
+        opacity: 0.86;
     }
 }
 
