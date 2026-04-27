@@ -8,6 +8,7 @@ test.describe('Wild Run', () => {
         await openMainMenuFromSave(page, true);
         await page.getByRole('button', { name: /^play$/i }).click();
         await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
+        await page.getByRole('button', { name: /browse modes/i }).click();
         const wild = page
             .getByRole('region', { name: /choose your path/i })
             .getByRole('button', { name: /wild run/i });

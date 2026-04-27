@@ -86,40 +86,31 @@ const MainMenu = ({
         padding: fitShellPadding
     });
     const shellFitZoom = rawFitZoom;
-    const ctaSize = touchCompactLayout || shortDesktopShell ? 'md' : 'lg';
+    const hubButtonSize = touchCompactLayout || isShortLandscapeShell || ultraCompactPhone ? 'md' : 'sm';
+    const playButtonSize = touchCompactLayout || isShortLandscapeShell || ultraCompactPhone ? 'lg' : 'md';
     const helpCenterRows = getFirstRunHelpCenterRows(saveData);
     const secondaryActions = [
         {
-            ariaLabel: 'Collection',
-            hint: 'Achievements, relics, and run history',
             label: 'Collection',
             onClick: onOpenCollection,
             variant: 'secondary' as const
         },
         {
-            ariaLabel: 'Profile',
-            hint: 'Stats, dailies, objectives, and progress',
             label: 'Profile',
             onClick: onOpenProfile,
             variant: 'secondary' as const
         },
         {
-            ariaLabel: 'Inventory',
-            hint: 'Expedition loadout when you are in a run',
             label: 'Inventory',
             onClick: onOpenInventory,
             variant: 'ghost' as const
         },
         {
-            ariaLabel: 'Codex',
-            hint: 'Rules, relics, mutators, and mode reference',
             label: 'Codex',
             onClick: onOpenCodex,
             variant: 'ghost' as const
         },
         {
-            ariaLabel: 'Settings',
-            hint: 'Video, audio, controls, accessibility',
             label: 'Settings',
             onClick: onOpenSettings,
             variant: 'secondary' as const
@@ -226,69 +217,68 @@ const MainMenu = ({
                                     <p className={styles.tagline}>Test your mind. Conquer the depths.</p>
                                 </div>
 
-                                <MetaFrame className={styles.ctaMetaFrame} data-testid="main-menu-primary-meta-frame">
-                                    <Panel className={styles.ctaPanel} padding="md" variant="strong">
-                                        <div aria-hidden className={styles.ctaIllustratedBand}>
-                                            <img alt="" className={styles.ctaBandSeal} src={UI_ART.menuSeal} />
-                                            <img alt="" className={styles.ctaBandFlourish} src={UI_ART.dividerOrnament} />
-                                        </div>
-                                        <div className={styles.actionStack} role="group" aria-label="Primary actions">
-                                            <UiButton
-                                                aria-label="Play"
-                                                className={styles.ctaButton}
-                                                fullWidth
-                                                size="lg"
-                                                variant="primary"
-                                                onClick={() => {
-                                                    playMenuOpen();
-                                                    onPlay();
-                                                }}
-                                            >
-                                                <span className={styles.ctaContent}>
-                                                    <span className={styles.ctaTitle}>Play</span>
-                                                    <span className={styles.ctaHint}>Gauntlet, puzzles, training modes, and more</span>
-                                                </span>
-                                            </UiButton>
-                                            <div className={styles.secondaryActionGrid} data-testid="main-menu-secondary-actions">
-                                                {secondaryActions.map((action) => (
-                                                    <UiButton
-                                                        aria-label={action.ariaLabel}
-                                                        className={`${styles.ctaButton} ${styles.secondaryCtaButton}`}
-                                                        fullWidth
-                                                        key={action.ariaLabel}
-                                                        size={ctaSize}
-                                                        variant={action.variant}
-                                                        onClick={() => {
-                                                            playMenuOpen();
-                                                            action.onClick();
-                                                        }}
-                                                    >
-                                                        <span className={styles.ctaContent}>
-                                                            <span className={styles.ctaTitle}>{action.label}</span>
-                                                            <span className={styles.ctaHint}>{action.hint}</span>
-                                                        </span>
-                                                    </UiButton>
-                                                ))}
+                                <div className={styles.ctaMetaFrameWrap} data-testid="main-menu-primary-meta-frame">
+                                    <MetaFrame>
+                                        <Panel className={styles.ctaPanel} padding="md" variant="strong">
+                                            <div aria-hidden className={styles.ctaIllustratedBand}>
+                                                <img alt="" className={styles.ctaBandSeal} src={UI_ART.menuSeal} />
+                                                <img alt="" className={styles.ctaBandFlourish} src={UI_ART.dividerOrnament} />
                                             </div>
-                                            <UiButton
-                                                aria-label="Exit Game"
-                                                className={styles.ctaButton}
-                                                fullWidth
-                                                size={ctaSize}
-                                                variant="ghost"
-                                                onClick={() => {
-                                                    playUiBack();
-                                                    void desktopClient.quitApp();
-                                                }}
-                                            >
-                                                <span className={styles.ctaContent}>
-                                                    <span className={styles.ctaTitle}>Exit Game</span>
-                                                    <span className={styles.ctaHint}>Close the desktop app</span>
-                                                </span>
-                                            </UiButton>
-                                        </div>
-                                    </Panel>
-                                </MetaFrame>
+                                            <div className={styles.actionStack} role="group" aria-label="Primary actions">
+                                                <UiButton
+                                                    aria-label="Play"
+                                                    className={`${styles.ctaButton} ${styles.ctaButtonPlay}`}
+                                                    fullWidth
+                                                    size={playButtonSize}
+                                                    variant="primary"
+                                                    onClick={() => {
+                                                        playMenuOpen();
+                                                        onPlay();
+                                                    }}
+                                                >
+                                                    <span className={styles.ctaContent}>
+                                                        <span className={styles.ctaTitle}>Play</span>
+                                                    </span>
+                                                </UiButton>
+                                                <div className={styles.secondaryActionGrid} data-testid="main-menu-secondary-actions">
+                                                    {secondaryActions.map((action) => (
+                                                        <UiButton
+                                                            aria-label={action.label}
+                                                            className={styles.ctaButton}
+                                                            fullWidth
+                                                            key={action.label}
+                                                            size={hubButtonSize}
+                                                            variant={action.variant}
+                                                            onClick={() => {
+                                                                playMenuOpen();
+                                                                action.onClick();
+                                                            }}
+                                                        >
+                                                            <span className={styles.ctaContent}>
+                                                                <span className={styles.ctaTitle}>{action.label}</span>
+                                                            </span>
+                                                        </UiButton>
+                                                    ))}
+                                                </div>
+                                                <UiButton
+                                                    aria-label="Exit Game"
+                                                    className={styles.ctaButton}
+                                                    fullWidth
+                                                    size={hubButtonSize}
+                                                    variant="ghost"
+                                                    onClick={() => {
+                                                        playUiBack();
+                                                        void desktopClient.quitApp();
+                                                    }}
+                                                >
+                                                    <span className={styles.ctaContent}>
+                                                        <span className={styles.ctaTitle}>Exit Game</span>
+                                                    </span>
+                                                </UiButton>
+                                            </div>
+                                        </Panel>
+                                    </MetaFrame>
+                                </div>
 
                                 {howToPanel}
                             </main>

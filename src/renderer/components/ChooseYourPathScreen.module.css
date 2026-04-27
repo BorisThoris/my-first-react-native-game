@@ -16,12 +16,12 @@
 }
 
 .sceneBaseLayer {
-    opacity: 0.48;
+    opacity: 0.36;
     background-position: center 58%;
 }
 
 .sceneLayer {
-    opacity: 0.12;
+    opacity: 0.08;
     background-position: center 42%;
     mix-blend-mode: soft-light;
 }
@@ -71,11 +71,12 @@
     --path-card-pad-inline: calc(var(--theme-space-lg) + var(--theme-space-2xs));
     --path-card-body-wrap-gap: var(--theme-space-sm);
     --path-stack-header-gap: var(--theme-space-md);
+    --path-hero-card-min-height: 13.25rem;
 }
 
 .pathFitMeasureOuter {
     flex: 0 0 auto;
-    width: min(1200px, 100%);
+    width: min(980px, 100%);
     max-width: 100%;
     box-sizing: border-box;
 }
@@ -100,7 +101,7 @@
 
 .pathHeaderText {
     gap: 0.25rem;
-    max-width: min(960px, 100%);
+    max-width: min(760px, 100%);
 }
 
 .pathHeaderTopRow {
@@ -117,32 +118,63 @@
     margin: 0;
     font-size: 0.82rem;
     line-height: 1.38;
+    color: color-mix(in srgb, var(--theme-text-muted) 88%, var(--theme-text) 12%);
+}
+
+.pathTitle {
+    max-width: min(760px, 100%);
+    font-size: clamp(2.6rem, 6.4vw, 5.15rem);
 }
 
 .discoveryStrip {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--theme-space-xs) var(--theme-space-sm);
-    margin-top: 0.15rem;
-    padding: 0.35rem 0.55rem;
+    gap: 0.34rem var(--theme-space-sm);
+    width: min(58rem, 100%);
+    margin-top: 0.24rem;
+    padding: 0.42rem 0.48rem 0.42rem 0.68rem;
     border-radius: var(--ui-radius-md);
-    border: 1px solid color-mix(in srgb, var(--theme-cyan) 14%, var(--theme-divider-hairline));
-    background: color-mix(in srgb, var(--theme-panel-solid) 78%, transparent);
+    border: 1px solid color-mix(in srgb, var(--theme-cyan) 16%, var(--theme-divider-hairline));
+    background:
+        linear-gradient(180deg, rgba(255, 243, 217, 0.035), transparent 54%),
+        color-mix(in srgb, var(--theme-panel-solid) 86%, transparent);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.025),
+        0 8px 22px color-mix(in srgb, var(--theme-shadow) 18%, transparent);
+    backdrop-filter: blur(8px) saturate(112%);
     font-size: 0.72rem;
     line-height: 1.35;
     color: var(--theme-text-muted);
 }
 
 .discoveryStrip span {
+    position: relative;
     color: var(--theme-text-muted);
+}
+
+.discoveryStrip span:not(:last-of-type)::after {
+    content: '';
+    display: inline-block;
+    width: 1px;
+    height: 0.8em;
+    margin-left: var(--theme-space-sm);
+    vertical-align: -0.08em;
+    background: color-mix(in srgb, var(--theme-gold-bright) 32%, transparent);
 }
 
 .discoveryStrip strong {
     font-size: 0.78rem;
     font-weight: 650;
     color: color-mix(in srgb, var(--theme-text) 90%, var(--theme-gold-bright) 10%);
-    margin-right: 0.15rem;
+    margin-right: 0;
+    white-space: nowrap;
+}
+
+.startSelectedButton {
+    flex: 0 0 auto;
+    min-width: 8.8rem;
+    margin-left: auto;
 }
 
 .pathFooterNote {
@@ -212,7 +244,7 @@
     overscroll-behavior: contain;
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-lg);
+    gap: var(--theme-space-md);
 }
 
 .heroSection,
@@ -225,7 +257,7 @@
 
 /* More modes: uniform compact tiles (fixed height); hero uses full-width thirds. */
 .librarySection {
-    --library-tile-max-width: 186px;
+    --library-tile-max-width: 100%;
     --library-tile-height: 196px;
 }
 
@@ -233,9 +265,96 @@
     margin-bottom: 0.05rem;
 }
 
+.launchSection {
+    width: min(760px, 100%);
+}
+
+.launchPanel {
+    position: relative;
+    overflow: hidden;
+    min-height: clamp(17rem, 38vh, 21rem);
+    display: grid;
+    align-items: end;
+    border-radius: var(--ui-radius-lg);
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 24%, var(--theme-card-border-muted));
+    background:
+        linear-gradient(180deg, rgba(255, 243, 217, 0.035), transparent 26%),
+        color-mix(in srgb, var(--theme-panel-solid) 88%, transparent);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.035),
+        0 18px 44px color-mix(in srgb, var(--theme-shadow) 34%, transparent);
+}
+
+.launchPoster {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    opacity: 0.34;
+    pointer-events: none;
+}
+
+.launchPoster::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(90deg, rgba(5, 6, 10, 0.86), rgba(5, 6, 10, 0.5) 54%, rgba(5, 6, 10, 0.82)),
+        linear-gradient(180deg, rgba(5, 6, 10, 0.1), rgba(5, 6, 10, 0.84));
+}
+
+.launchPoster img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.launchContent {
+    position: relative;
+    z-index: 1;
+    width: min(32rem, 100%);
+    display: grid;
+    gap: 0.5rem;
+    padding: clamp(1rem, 2.4vw, 1.45rem);
+}
+
+.launchEyebrow {
+    margin: 0;
+}
+
+.launchModeTitle {
+    margin: 0;
+    font-size: clamp(1.65rem, 3.2vw, 2.35rem);
+}
+
+.launchSummary {
+    margin: 0;
+    max-width: 30rem;
+    color: color-mix(in srgb, var(--theme-text-muted) 76%, var(--theme-text) 24%);
+    font-size: 0.98rem;
+    font-weight: 500;
+    line-height: 1.42;
+}
+
+.launchActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--theme-space-sm);
+    align-items: center;
+    margin-top: 0.35rem;
+}
+
+.launchPrimaryButton {
+    min-width: 11rem;
+}
+
+.launchSecondaryButton {
+    min-width: 9.5rem;
+}
+
 .cardGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: var(--path-card-grid-gap);
     align-items: stretch;
 }
@@ -244,8 +363,8 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--theme-space-2xs) var(--theme-space-xs);
-    margin-bottom: var(--theme-space-2xs);
+    gap: var(--theme-space-2xs) var(--theme-space-sm);
+    margin-bottom: 0;
 }
 
 .libraryToolbarSearchOpen .libraryDotsWrap {
@@ -423,7 +542,7 @@
 
 /* Edge fades over the tray; scrollbar strip stays visible below the fade area. */
 .libraryScrollerWrap {
-    --library-tray-fade: color-mix(in srgb, var(--theme-panel-solid, rgba(12, 14, 22)) 88%, transparent);
+    --library-tray-fade: color-mix(in srgb, var(--theme-panel-solid, rgba(12, 14, 22)) 94%, transparent);
 
     position: relative;
     border-radius: var(--ui-radius-lg);
@@ -468,13 +587,14 @@
     touch-action: pan-x;
     -webkit-overflow-scrolling: touch;
     border-radius: var(--ui-radius-lg);
-    border: 1px solid color-mix(in srgb, var(--theme-card-border-muted) 82%, transparent);
+    border: 1px solid color-mix(in srgb, var(--theme-card-border-muted) 92%, transparent);
     background:
-        linear-gradient(180deg, rgba(255, 243, 217, 0.02), transparent 15%),
-        color-mix(in srgb, var(--theme-panel-solid, rgba(12, 14, 22)) 90%, transparent);
+        linear-gradient(180deg, rgba(255, 243, 217, 0.04), transparent 18%),
+        linear-gradient(90deg, rgba(6, 8, 14, 0.72), rgba(10, 12, 20, 0.9) 48%, rgba(6, 8, 14, 0.72)),
+        color-mix(in srgb, var(--theme-panel-solid, rgba(12, 14, 22)) 94%, transparent);
     box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.018),
-        0 4px 12px color-mix(in srgb, var(--theme-shadow) 12%, transparent);
+        inset 0 1px 0 rgba(255, 255, 255, 0.028),
+        0 8px 20px color-mix(in srgb, var(--theme-shadow) 18%, transparent);
 }
 
 .libraryScroller::-webkit-scrollbar {
@@ -500,11 +620,11 @@
     min-width: 0;
     scroll-snap-align: start;
     box-sizing: border-box;
-    padding: var(--theme-space-xs) var(--theme-space-sm) var(--theme-space-2xs);
+    padding: var(--theme-space-xs) var(--theme-space-sm) calc(var(--theme-space-xs) - 0.05rem);
     display: grid;
     grid-template-columns: repeat(var(--path-library-cols, 2), minmax(0, 1fr));
-    gap: var(--theme-space-xs);
-    align-items: start;
+    gap: var(--theme-space-sm);
+    align-items: stretch;
     justify-content: center;
 }
 
@@ -516,6 +636,7 @@
     width: 100%;
     max-width: var(--library-tile-max-width);
     justify-self: center;
+    align-self: stretch;
 }
 
 .libraryCardCell .cardFrame {
@@ -525,17 +646,19 @@
 /* Library grid tiles (tap opens detail modal): uniform box, text clamped. */
 .libraryCardCell .card.libraryTileCard {
     gap: var(--theme-space-2xs);
-    padding: var(--theme-space-xs) var(--theme-space-xs);
+    padding: calc(var(--theme-space-xs) + 0.05rem) var(--theme-space-xs);
     width: 100%;
     height: var(--library-tile-height);
     min-height: var(--library-tile-height);
     max-height: var(--library-tile-height);
-    border-color: color-mix(in srgb, var(--theme-border) 86%, var(--theme-gold-deep) 14%);
-    box-shadow: var(--theme-elevation-card);
+    border-color: color-mix(in srgb, var(--theme-border) 74%, var(--theme-gold-deep) 26%);
+    box-shadow:
+        var(--theme-elevation-card),
+        inset 0 1px 0 rgba(255, 255, 255, 0.026);
     background:
-        linear-gradient(180deg, rgba(255, 243, 217, 0.04), rgba(255, 243, 217, 0.012) 18%, transparent 28%),
-        linear-gradient(160deg, rgba(20, 22, 34, 0.9), rgba(9, 11, 18, 0.88)),
-        rgba(7, 9, 15, 0.86);
+        linear-gradient(180deg, rgba(255, 243, 217, 0.055), rgba(255, 243, 217, 0.014) 22%, transparent 34%),
+        linear-gradient(160deg, rgba(18, 20, 31, 0.95), rgba(7, 9, 15, 0.95)),
+        rgba(7, 9, 15, 0.92);
     overflow: hidden;
 }
 
@@ -545,6 +668,19 @@
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: color-mix(in srgb, var(--theme-gold-bright) 64%, var(--theme-text-subtle) 36%);
+}
+
+.libraryTileState {
+    align-self: flex-start;
+    padding: 0.14rem 0.42rem;
+    border-radius: var(--ui-radius-sm);
+    border: 1px solid color-mix(in srgb, var(--theme-amber) 24%, transparent);
+    background: color-mix(in srgb, var(--theme-amber) 11%, transparent);
+    color: var(--theme-ember-soft);
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
 }
 
 .libraryTileTitle {
@@ -622,11 +758,13 @@
 }
 
 .libraryCardCell .card.libraryTileCard .cardPoster {
-    opacity: 0.18;
+    opacity: 0.22;
 }
 
 .libraryCardCell .card.libraryTileCard .cardPoster::after {
-    background: linear-gradient(180deg, rgba(6, 8, 14, 0.16) 0%, rgba(6, 8, 14, 0.7) 52%, rgba(6, 8, 14, 0.92) 100%);
+    background:
+        linear-gradient(180deg, rgba(6, 8, 14, 0.2) 0%, rgba(6, 8, 14, 0.72) 52%, rgba(6, 8, 14, 0.94) 100%),
+        linear-gradient(90deg, rgba(6, 8, 14, 0.58), rgba(6, 8, 14, 0.2) 45%, rgba(6, 8, 14, 0.62));
 }
 
 /* Per-posterKey tint on shared placeholder art (library only). */
@@ -713,7 +851,7 @@
 .cardFrame .card {
     flex: 1 1 auto;
     width: 100%;
-    min-height: 0;
+    min-height: var(--path-hero-card-min-height);
 }
 
 .cardFrameMuted svg {
@@ -730,12 +868,13 @@
     border-radius: var(--ui-radius-lg);
     border: 1px solid color-mix(in srgb, var(--theme-hud-chrome-border) 55%, var(--theme-gold-deep) 45%);
     background:
-        linear-gradient(180deg, rgba(255, 243, 217, 0.055), transparent 36%),
-        linear-gradient(160deg, rgba(22, 24, 38, 0.96), rgba(10, 12, 20, 0.92)),
-        rgba(8, 10, 16, 0.74);
+        linear-gradient(180deg, rgba(255, 243, 217, 0.065), transparent 34%),
+        linear-gradient(180deg, rgba(5, 6, 10, 0.2), rgba(5, 6, 10, 0.62)),
+        linear-gradient(160deg, rgba(19, 21, 33, 0.98), rgba(7, 9, 15, 0.96)),
+        rgba(8, 10, 16, 0.86);
     box-shadow:
         inset 0 1px 0 var(--theme-hud-chrome-inset),
-        0 10px 28px color-mix(in srgb, var(--theme-shadow) 18%, transparent);
+        0 12px 30px color-mix(in srgb, var(--theme-shadow) 24%, transparent);
     text-align: left;
     color: inherit;
     cursor: pointer;
@@ -750,14 +889,16 @@
     inset: 0;
     z-index: 0;
     pointer-events: none;
-    opacity: 0.32;
+    opacity: 0.28;
 }
 
 .cardPoster::after {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, rgba(6, 8, 14, 0.2) 0%, rgba(6, 8, 14, 0.75) 100%);
+    background:
+        linear-gradient(180deg, rgba(6, 8, 14, 0.18) 0%, rgba(6, 8, 14, 0.62) 52%, rgba(6, 8, 14, 0.9) 100%),
+        linear-gradient(90deg, rgba(6, 8, 14, 0.62), rgba(6, 8, 14, 0.18) 44%, rgba(6, 8, 14, 0.68));
 }
 
 .cardPoster img {
@@ -775,6 +916,19 @@
     gap: var(--path-card-body-wrap-gap);
     flex: 1;
     min-height: 0;
+}
+
+.card[data-selected-mode='true'] {
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 56%, var(--theme-border-cyan) 44%);
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--theme-gold-bright) 26%, transparent),
+        0 0 18px color-mix(in srgb, var(--theme-gold-bright) 12%, transparent),
+        0 12px 30px color-mix(in srgb, var(--theme-shadow) 28%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--theme-gold-bright) 15%, transparent);
+}
+
+.card[data-selected-mode='true'] .cardPoster {
+    opacity: 0.36;
 }
 
 .card:hover:not(:disabled) {
@@ -814,17 +968,107 @@
 }
 
 .compactPathShell .pathFitViewport {
-    --path-stack-gap: var(--theme-space-lg);
+    --path-stack-gap: var(--theme-space-sm);
     --path-card-grid-gap: var(--theme-space-sm);
     --path-card-inner-gap: var(--theme-space-sm);
-    --path-card-pad-block: var(--ui-card-pad-lg);
-    --path-card-pad-inline: var(--ui-card-pad-md);
-    --path-card-body-wrap-gap: var(--theme-space-sm);
+    --path-card-pad-block: 0.86rem;
+    --path-card-pad-inline: 0.82rem;
+    --path-card-body-wrap-gap: 0.45rem;
     --path-stack-header-gap: var(--theme-space-sm);
+    --path-hero-card-min-height: 13.75rem;
 }
 
 .compactPathShell .pathBody {
     width: 100%;
+    gap: var(--theme-space-sm);
+}
+
+.compactPathShell .pathHeaderText {
+    gap: 0.18rem;
+}
+
+.compactPathShell .pathTitle {
+    font-size: clamp(2.15rem, 10.2vw, 2.85rem);
+    line-height: 0.94;
+}
+
+.compactPathShell .pathSubtitle {
+    font-size: 0.78rem;
+    line-height: 1.34;
+}
+
+.compactPathShell .discoveryStrip {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.24rem;
+    width: 100%;
+    padding: 0.42rem;
+    font-size: 0.66rem;
+}
+
+.compactPathShell .discoveryStrip span::after {
+    display: none;
+}
+
+.compactPathShell .discoveryStrip strong {
+    white-space: normal;
+}
+
+.compactPathShell .startSelectedButton {
+    width: 100%;
+    min-width: 0;
+    min-height: 2.35rem;
+    margin-left: 0;
+}
+
+.compactPathShell .launchSection {
+    width: 100%;
+}
+
+.compactPathShell .launchPanel {
+    min-height: 15.25rem;
+}
+
+.compactPathShell .launchContent {
+    width: 100%;
+    padding: 0.95rem;
+}
+
+.compactPathShell .launchModeTitle {
+    font-size: clamp(1.45rem, 7vw, 1.9rem);
+}
+
+.compactPathShell .launchSummary {
+    font-size: 0.88rem;
+    line-height: 1.36;
+}
+
+.compactPathShell .launchActions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+}
+
+.compactPathShell .launchPrimaryButton,
+.compactPathShell .launchSecondaryButton {
+    width: 100%;
+    min-width: 0;
+}
+
+.compactPathShell .cardGrid {
+    display: flex;
+    gap: var(--path-card-grid-gap);
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: thin;
+    padding: 0 0 0.28rem;
+    -webkit-overflow-scrolling: touch;
+}
+
+.compactPathShell .cardShell {
+    flex: 0 0 min(84vw, 21rem);
+    scroll-snap-align: start;
 }
 
 .compactPathShell .cardTitle {
@@ -857,13 +1101,22 @@
 }
 
 .compactPathShell .librarySection {
-    --library-tile-max-width: 160px;
-    --library-tile-height: 176px;
+    --library-tile-max-width: 100%;
+    --library-tile-height: 180px;
 }
 
 .compactPathShell .libraryScroller {
     min-height: 184px;
     max-height: 228px;
+}
+
+.compactPathShell .libraryPage {
+    gap: var(--theme-space-xs);
+    padding: var(--theme-space-xs) var(--theme-space-xs) var(--theme-space-2xs);
+}
+
+.compactPathShell .libraryCardCell .card.libraryTileCard {
+    padding: 0.5rem;
 }
 
 .shortTouchLandscapeShell .pathFitViewport {
@@ -872,14 +1125,15 @@
     --path-card-pad-block: var(--ui-card-pad-md);
     --path-card-pad-inline: var(--ui-card-pad-md);
     --path-card-body-wrap-gap: var(--theme-space-sm);
+    --path-hero-card-min-height: 11.5rem;
 }
 
 .shortTouchLandscapeShell .cardGrid {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .shortTouchLandscapeShell .card {
-    min-height: 0;
+    min-height: var(--path-hero-card-min-height);
 }
 
 .shortTouchLandscapeShell .pathSubtitle {
@@ -917,7 +1171,7 @@
 }
 
 .shortTouchLandscapeShell .librarySection {
-    --library-tile-max-width: 152px;
+    --library-tile-max-width: 100%;
     --library-tile-height: 164px;
 }
 
@@ -931,14 +1185,17 @@
     font-size: 1.15rem;
     font-weight: 650;
     letter-spacing: 0.03em;
-    color: color-mix(in srgb, var(--theme-text) 94%, var(--theme-gold-bright) 6%);
-    text-shadow: 0 1px 10px color-mix(in srgb, var(--theme-gold-bright) 8%, transparent);
+    color: color-mix(in srgb, var(--theme-text) 92%, var(--theme-gold-bright) 8%);
+    text-shadow:
+        0 1px 10px color-mix(in srgb, var(--theme-gold-bright) 10%, transparent),
+        0 2px 8px color-mix(in srgb, var(--theme-shadow) 44%, transparent);
 }
 
 .cardBody {
     margin: 0;
     font-size: 0.9rem;
-    color: color-mix(in srgb, var(--theme-text-muted) 88%, var(--theme-text) 12%);
+    font-weight: 500;
+    color: color-mix(in srgb, var(--theme-text-muted) 76%, var(--theme-text) 24%);
     line-height: 1.45;
     flex: 1;
 }

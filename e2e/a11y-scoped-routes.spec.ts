@@ -30,7 +30,7 @@ test.describe('a11y — scoped axe (REF-094)', () => {
         await page.goto('/');
         await dismissStartupIntro(page);
         await page.getByRole('button', { name: /^play$/i }).click();
-        await page.getByRole('button', { name: /classic run/i }).click();
+        await page.getByRole('button', { name: /start run/i }).click();
         await expect(page.getByRole('heading', { name: /level 1/i })).toBeVisible({ timeout: 30_000 });
         const { violations } = await new AxeBuilder({ page })
             .disableRules(['color-contrast'])

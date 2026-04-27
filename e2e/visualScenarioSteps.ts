@@ -36,21 +36,6 @@ async function expectCoarsePointerTarget(page: Page, locator: Locator): Promise<
     }
 }
 
-async function expectChoosePathLibraryDensity(page: Page): Promise<void> {
-    const expectedCardsOnFirstPage = await page.evaluate(() => {
-        const width = window.innerWidth;
-        if (width < 640) {
-            return 2;
-        }
-        if (width < 1100) {
-            return 4;
-        }
-        return 5;
-    });
-    const firstPageCards = await page.locator('[data-library-page-index="0"] [data-library-card-cell]').count();
-    expect(firstPageCards).toBe(expectedCardsOnFirstPage);
-}
-
 export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
     {
         fileBase: '00-startup-intro',
@@ -97,32 +82,11 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
             const inlineBack = page.getByTestId('choose-path-inline-back');
             await expect(inlineBack).toBeVisible();
             await expect(inlineBack).toBeInViewport();
-            const classicRun = page.getByRole('button', { name: /classic run/i });
-            await expect(classicRun).toBeInViewport();
-            await page.getByTestId('choose-path-more-modes').scrollIntoViewIfNeeded();
-            const libraryScroller = page.getByLabel(/more modes library, swipe or drag sideways to browse pages/i);
-            await expectLocatorFullyInWindowViewport(
-                page,
-                libraryScroller
-            );
-            const libraryScrollMetrics = await libraryScroller.evaluate((element) => {
-                const style = getComputedStyle(element);
-                return {
-                    clientWidth: element.clientWidth,
-                    overflowX: style.overflowX,
-                    scrollWidth: element.scrollWidth,
-                    scrollbarWidth: style.getPropertyValue('scrollbar-width').trim()
-                };
-            });
-            expect(libraryScrollMetrics.overflowX).toBe('auto');
-            expect(libraryScrollMetrics.scrollWidth).toBeGreaterThan(libraryScrollMetrics.clientWidth);
-            if (libraryScrollMetrics.scrollbarWidth) {
-                expect(libraryScrollMetrics.scrollbarWidth).toBe('thin');
-            }
-            await expectChoosePathLibraryDensity(page);
-            await page.getByTestId('choose-path-low-cta').scrollIntoViewIfNeeded();
-            await expectLocatorFullyInWindowViewport(page, page.getByTestId('choose-path-low-cta'));
-            await expectCoarsePointerTarget(page, classicRun);
+            const startRun = page.getByRole('button', { name: /start run/i });
+            await expect(startRun).toBeInViewport();
+            await expect(page.getByRole('button', { name: /browse modes/i })).toBeInViewport();
+            await expect(page.getByTestId('choose-path-more-modes')).toHaveCount(0);
+            await expectCoarsePointerTarget(page, startRun);
             await capture('01a-choose-your-path');
         }
     },

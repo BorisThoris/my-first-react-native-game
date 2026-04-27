@@ -14,10 +14,8 @@ import { useDragScroll } from '../hooks/useDragScroll';
 import { isNarrowShortLandscapeForMenuStack, isShortLandscapeViewport, VIEWPORT_MOBILE_MAX } from '../breakpoints';
 import { useViewportSize } from '../hooks/useViewportSize';
 import { useShallow } from 'zustand/react/shallow';
-import { formatNextUtcReset } from '../../shared/utc-countdown';
 import type { MutatorId } from '../../shared/contracts';
 import { getChallengeModeGateRows } from '../../shared/challenge-progression';
-import { buildDailyResultsLoopRows, getDailyStreakEthicsRow } from '../../shared/daily-archive';
 import { MUTATOR_CATALOG } from '../../shared/mutators';
 import {
     choosePathHeroModes,
@@ -25,7 +23,6 @@ import {
     RUN_MODE_GROUP_LABEL,
     type RunModeDefinition
 } from '../../shared/run-mode-catalog';
-import { buildRunModeDiscoveryState } from '../../shared/run-mode-discovery';
 import { isModePosterFallback, resolveModePosterUrl } from '../assets/ui/modeArt';
 import { UI_ART } from '../assets/ui';
 import { Eyebrow, MetaFrame, ScreenTitle, UiButton } from '../ui';
@@ -85,8 +82,6 @@ function BackChevronIcon({ className }: { className?: string }) {
 
 const ChooseYourPathScreen = () => {
     const {
-        bestFloorNoPowers,
-        bestScore,
         closeSubscreen,
         openSettings,
         startDailyRun,
@@ -103,8 +98,6 @@ const ChooseYourPathScreen = () => {
         settings
     } = useAppStore(
         useShallow((state) => ({
-            bestFloorNoPowers: state.saveData.playerStats?.bestFloorNoPowers ?? 0,
-            bestScore: state.saveData.bestScore,
             closeSubscreen: state.closeSubscreen,
             openSettings: state.openSettings,
             startDailyRun: state.startDailyRun,
@@ -121,10 +114,6 @@ const ChooseYourPathScreen = () => {
             settings: state.settings
         }))
     );
-    const [nowMs, setNowMs] = useState(() => Date.now());
-    const dailyCountdown = formatNextUtcReset(nowMs);
-    const dailyResultsLoopRows = buildDailyResultsLoopRows(saveData, nowMs);
-    const dailyStreakEthics = getDailyStreakEthicsRow(saveData, nowMs);
     const pathFitMeasureRef = useRef<HTMLDivElement | null>(null);
     const librarySearchInputRef = useRef<HTMLInputElement | null>(null);
     const libraryScrollerRef = useRef<HTMLDivElement | null>(null);
@@ -167,6 +156,7 @@ const ChooseYourPathScreen = () => {
 
     const [libraryQuery, setLibraryQuery] = useState('');
     const [librarySearchOpen, setLibrarySearchOpen] = useState(false);
+    const [browseOpen, setBrowseOpen] = useState(false);
     const [cardsPerPage, setCardsPerPage] = useState(2);
     const [libraryPageIndex, setLibraryPageIndex] = useState(0);
 
@@ -176,17 +166,31 @@ const ChooseYourPathScreen = () => {
     const challengeGateRows = getChallengeModeGateRows(saveData);
 
     const heroModes = useMemo((): readonly RunModeDefinition[] => choosePathHeroModes(), []);
+    const launchMode = useMemo(
+        (): RunModeDefinition | null =>
+            heroModes.find((mode) => mode.id === 'classic') ??
+            heroModes.find((mode) => mode.availability === 'available') ??
+            null,
+        [heroModes]
+    );
+    const browseModes = useMemo(
+        (): readonly RunModeDefinition[] => [
+            ...heroModes.filter((mode) => mode.id !== launchMode?.id),
+            ...choosePathLibraryModes()
+        ],
+        [heroModes, launchMode?.id]
+    );
 
     const filteredLibraryModes = useMemo(() => {
         const q = libraryQuery.trim().toLowerCase();
-        const base = choosePathLibraryModes();
+        const base = browseModes;
         if (!q) {
             return base;
         }
         return base.filter(
             (m) => m.title.toLowerCase().includes(q) || m.shortDescription.toLowerCase().includes(q)
         );
-    }, [libraryQuery]);
+    }, [browseModes, libraryQuery]);
     const libraryPages = useMemo(() => {
         if (filteredLibraryModes.length === 0 || cardsPerPage < 1) {
             return [];
@@ -200,14 +204,7 @@ const ChooseYourPathScreen = () => {
 
     const libraryPageCount = libraryPages.length;
     const hasLibrarySearchQuery = libraryQuery.trim().length > 0;
-    const discoveryState = buildRunModeDiscoveryState({
-        availableModeCount: [...heroModes, ...filteredLibraryModes].filter((mode) => mode.availability === 'available').length,
-        filteredCount: filteredLibraryModes.length,
-        pageCount: libraryPageCount,
-        pageIndex: libraryPageIndex,
-        query: libraryQuery
-    });
-    const selectedMode = libraryDetailMode ?? heroModes.find((mode) => mode.availability === 'available') ?? null;
+    const selectedMode = libraryDetailMode ?? launchMode;
 
     useLayoutEffect(() => {
         const el = libraryScrollerRef.current;
@@ -223,7 +220,7 @@ const ChooseYourPathScreen = () => {
         return () => {
             ro.disconnect();
         };
-    }, [filteredLibraryModes.length, vpW]);
+    }, [browseOpen, filteredLibraryModes.length, vpW]);
 
     useEffect(() => {
         const el = libraryScrollerRef.current;
@@ -325,6 +322,18 @@ const ChooseYourPathScreen = () => {
         setLibraryDetailMode(null);
     }, [playUiBack]);
 
+    const openBrowse = useCallback((): void => {
+        playMenuOpen();
+        setBrowseOpen(true);
+    }, [playMenuOpen]);
+
+    const closeBrowse = useCallback((): void => {
+        playUiBack();
+        setBrowseOpen(false);
+        setLibrarySearchOpen(false);
+        setLibraryQuery('');
+    }, [playUiBack]);
+
     const cardVariantClass = (def: RunModeDefinition): string => {
         if (def.id === 'classic') {
             return styles.cardClassic;
@@ -341,109 +350,54 @@ const ChooseYourPathScreen = () => {
         return styles.cardMode;
     };
 
-    const renderModeSurface = (def: RunModeDefinition): ReactElement => {
+    const renderLaunchPanel = (def: RunModeDefinition): ReactElement => {
         const poster = resolveModePosterUrl(def.posterKey);
-        const variant = cardVariantClass(def);
-        const isLocked = def.availability === 'locked';
-        const isPrimarySelected = def.id === selectedMode?.id;
-        const testId = def.testId;
+        const canStart = def.availability === 'available' && def.action.type !== 'gauntlet';
+        const summary =
+            def.id === 'classic'
+                ? 'A clean dungeon descent with procedural floors, route choices, shops, and relic milestones.'
+                : def.shortDescription;
 
-        if (def.action.type === 'gauntlet') {
-            return (
-                <div className={`${styles.card} ${variant}`}>
-                    <span className={styles.cardPoster} aria-hidden="true">
+        return (
+            <section aria-label="Recommended run" className={styles.launchSection} data-testid="choose-path-launcher">
+                <div className={styles.launchPanel}>
+                    <span className={styles.launchPoster} aria-hidden="true">
                         <img alt="" src={poster} />
                     </span>
-                    <div className={styles.cardBodyWrap}>
-                        <span className={styles.cardTitle}>{def.title}</span>
-                        <p className={styles.cardBody}>{def.shortDescription}</p>
-                        <div
-                            className={styles.gauntletPresets}
-                            data-gauntlet-presets
-                            role="group"
-                            aria-label="Gauntlet duration"
-                        >
-                            {def.action.presets.map((p) => (
-                                <UiButton
-                                    key={p.label}
-                                    size={presetButtonSize}
-                                    type="button"
-                                    variant="secondary"
-                                    onClick={() => startGauntletRun(p.durationMs)}
-                                >
-                                    {p.label}
-                                </UiButton>
-                            ))}
+                    <div className={styles.launchContent}>
+                        <Eyebrow className={styles.launchEyebrow} tone="menu">
+                            Recommended
+                        </Eyebrow>
+                        <ScreenTitle as="h2" className={styles.launchModeTitle} role="screenMd">
+                            {def.title}
+                        </ScreenTitle>
+                        <p className={styles.launchSummary}>{summary}</p>
+                        <div className={styles.launchActions}>
+                            <UiButton
+                                className={styles.launchPrimaryButton}
+                                disabled={!canStart}
+                                size={pathTouchCompact ? 'md' : 'lg'}
+                                type="button"
+                                variant="primary"
+                                onClick={() => runModeAction(def)}
+                            >
+                                Start run
+                            </UiButton>
+                            <UiButton
+                                aria-controls="choose-path-more-modes"
+                                aria-expanded={browseOpen}
+                                className={styles.launchSecondaryButton}
+                                size={pathTouchCompact ? 'md' : 'lg'}
+                                type="button"
+                                variant="secondary"
+                                onClick={browseOpen ? closeBrowse : openBrowse}
+                            >
+                                {browseOpen ? 'Hide modes' : 'Browse modes'}
+                            </UiButton>
                         </div>
                     </div>
                 </div>
-            );
-        }
-
-        return (
-            <button
-                className={`${styles.card} ${variant}`}
-                data-selected-mode={isPrimarySelected ? 'true' : undefined}
-                data-testid={testId}
-                disabled={isLocked}
-                type="button"
-                onClick={() => runModeAction(def)}
-            >
-                <span
-                    className={styles.cardPoster}
-                    aria-hidden="true"
-                    data-mode-art-fallback={isModePosterFallback(def.posterKey) ? 'true' : 'false'}
-                >
-                    <img alt="" src={poster} />
-                </span>
-                <span className={styles.cardBodyWrap}>
-                    {def.promise ? <span className={styles.modeIdentityPill}>{def.promise}</span> : null}
-                    {def.availabilityDetail ? <span className={styles.modeIdentityPill}>{def.availabilityDetail}</span> : null}
-                    {isPrimarySelected ? <span className={styles.badge}>Selected start</span> : null}
-                    {def.id === 'daily' ? <span className={styles.badge}>Featured</span> : null}
-                    {isModePosterFallback(def.posterKey) ? <span className={styles.badge}>Emblem art</span> : null}
-                    {isLocked ? <span className={`${styles.badge} ${styles.lockedBadge}`}>Locked</span> : null}
-                    <span className={styles.cardTitle}>{def.title}</span>
-                    <p className={styles.cardBody}>{def.shortDescription}</p>
-                        {isLocked ? (
-                            <p className={styles.cardBody}>
-                                Planned post-v1 mode; Classic currently owns the long local descent loop.
-                            </p>
-                        ) : null}
-                    {def.id === 'classic' ? (
-                        <div className={styles.cardFooter}>
-                            <span className={styles.cardStatLine}>
-                                <span className={styles.cardStatValue}>
-                                    {bestScore > 0 ? bestScore.toLocaleString() : '—'}
-                                </span>
-                                <span className={styles.cardStatLabel}>best score</span>
-                            </span>
-                            <span className={styles.cardStatLine}>
-                                <span className={styles.cardStatValue}>
-                                    {bestFloorNoPowers > 0 ? bestFloorNoPowers.toLocaleString() : '—'}
-                                </span>
-                                <span className={styles.cardStatLabel}>best floor</span>
-                            </span>
-                        </div>
-                    ) : null}
-                    {def.id === 'daily' ? (
-                        <div className={styles.cardFooter} data-testid="choose-path-daily-results-loop">
-                            <span>Next rotation in {dailyCountdown}</span>
-                            <span className={styles.cardStatLine}>
-                                <span className={styles.cardStatValue}>Friendly</span>
-                                <span className={styles.cardStatLabel}>{dailyStreakEthics.missedDayRule}</span>
-                            </span>
-                            {dailyResultsLoopRows.slice(0, 2).map((row) => (
-                                <span className={styles.cardStatLine} key={`${row.scope}-${row.key}`}>
-                                    <span className={styles.cardStatValue}>{row.key}</span>
-                                    <span className={styles.cardStatLabel}>{row.scope} · {row.personalBest}</span>
-                                </span>
-                            ))}
-                        </div>
-                    ) : null}
-                    {def.id === 'endless' ? <div className={styles.cardFooter}>Best floor: —</div> : null}
-                </span>
-            </button>
+            </section>
         );
     };
 
@@ -476,6 +430,7 @@ const ChooseYourPathScreen = () => {
                         {groupLabel}
                         {isModePosterFallback(def.posterKey) ? ' · emblem art' : ''}
                     </span>
+                    {def.availability === 'locked' ? <span className={styles.libraryTileState}>Locked</span> : null}
                     <span className={`${styles.cardTitle} ${styles.libraryTileTitle}`}>{def.title}</span>
                     <p className={`${styles.cardBody} ${styles.libraryTileBody}`}>{def.shortDescription}</p>
                 </span>
@@ -519,11 +474,6 @@ const ChooseYourPathScreen = () => {
                 ];
         }
     };
-
-    useEffect(() => {
-        const id = window.setInterval(() => setNowMs(Date.now()), 1000);
-        return () => window.clearInterval(id);
-    }, []);
 
     return (
         <section
@@ -576,60 +526,28 @@ const ChooseYourPathScreen = () => {
                                         </button>
                                     </div>
                                     <Eyebrow tone="menu">Start a run</Eyebrow>
-                                    <ScreenTitle as="h1" role="display">
+                                    <ScreenTitle as="h1" className={styles.pathTitle} role="display">
                                         Choose Your Path
                                     </ScreenTitle>
                                     <p className={`${metaStyles.subtitle} ${styles.pathSubtitle}`}>
-                                        Featured modes below; open <strong>More modes</strong> for details, search, and
-                                        horizontal browse.
+                                        Start the recommended run now, or browse the full mode library when you want a
+                                        different rule set.
                                     </p>
-                                    <div className={styles.discoveryStrip} data-testid="choose-path-discovery-strip">
-                                        <span>{discoveryState.searchState}</span>
-                                        <span>{discoveryState.browseHint}</span>
-                                        <strong>Selected: {selectedMode?.title ?? 'None'}</strong>
-                                        {selectedMode?.availability === 'available' && selectedMode.action.type !== 'gauntlet' ? (
-                                            <UiButton
-                                                size={pathTouchCompact ? 'sm' : 'md'}
-                                                type="button"
-                                                variant="primary"
-                                                onClick={() => runModeAction(selectedMode)}
-                                            >
-                                                Start selected
-                                            </UiButton>
-                                        ) : null}
-                                    </div>
                                 </div>
                             </header>
 
                             <div className={`${metaStyles.body} ${styles.pathBody}`}>
-                                <section aria-label="Featured paths" className={styles.heroSection}>
-                                    <Eyebrow className={styles.sectionEyebrow} tone="menu">
-                                        Featured paths
-                                    </Eyebrow>
-                                    <div className={styles.cardGrid}>
-                                        {heroModes.map((def) => (
-                                            <div key={def.id} className={styles.cardShell}>
-                                                <MetaFrame
-                                                    className={
-                                                        def.availability === 'locked'
-                                                            ? `${styles.cardFrame} ${styles.cardFrameMuted}`
-                                                            : styles.cardFrame
-                                                    }
-                                                >
-                                                    {renderModeSurface(def)}
-                                                </MetaFrame>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </section>
+                                {launchMode ? renderLaunchPanel(launchMode) : null}
 
-                                <section
-                                    aria-label="More modes"
-                                    className={styles.librarySection}
-                                    data-testid="choose-path-more-modes"
-                                >
+                                {browseOpen ? (
+                                    <section
+                                        aria-label="Browse modes"
+                                        className={styles.librarySection}
+                                        data-testid="choose-path-more-modes"
+                                        id="choose-path-more-modes"
+                                    >
                                     <Eyebrow className={styles.sectionEyebrow} tone="menu">
-                                        More modes
+                                        Browse modes
                                     </Eyebrow>
                                     {filteredLibraryModes.length === 0 ? (
                                         <>
@@ -779,13 +697,16 @@ const ChooseYourPathScreen = () => {
                                             </div>
                                         </>
                                     )}
-                                </section>
+                                    </section>
+                                ) : null}
 
-                                <p className={styles.pathFooterNote} data-testid="choose-path-offline-note">
+                                {browseOpen ? (
+                                    <p className={styles.pathFooterNote} data-testid="choose-path-offline-note">
                                     Offline-first v1: local runs and share strings only. Pass-and-play and online
                                     challenges stay deferred — see <strong>Profile</strong> for save scope and trust
                                     copy.
-                                </p>
+                                    </p>
+                                ) : null}
                             </div>
                         </div>
                     </div>

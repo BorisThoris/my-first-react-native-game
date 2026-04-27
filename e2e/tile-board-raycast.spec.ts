@@ -64,7 +64,7 @@ test.describe('Tile board interaction', () => {
 
         await page.getByRole('button', { name: /^play$/i }).click();
         await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
-        const classicRun = page.getByRole('button', { name: /classic run/i });
+        const classicRun = page.getByRole('button', { name: /start run/i });
         await expect(classicRun).toBeVisible();
         await classicRun.evaluate((el) => (el as HTMLButtonElement).click());
         await expect(page.getByRole('heading', { name: /level 1/i })).toBeAttached({ timeout: 15_000 });
@@ -108,7 +108,7 @@ test.describe('Tile board interaction', () => {
         await page.setViewportSize({ width: 1440, height: 900 });
         await page.getByRole('button', { name: /^play$/i }).click();
         await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
-        const classicRunWheel = page.getByRole('button', { name: /classic run/i });
+        const classicRunWheel = page.getByRole('button', { name: /start run/i });
         await expect(classicRunWheel).toBeVisible();
         await classicRunWheel.evaluate((el) => (el as HTMLButtonElement).click());
         await expect(page.getByRole('heading', { name: /level 1/i })).toBeAttached({ timeout: 15_000 });

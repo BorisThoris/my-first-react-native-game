@@ -428,7 +428,7 @@ export async function openMainMenuFromSave(page: Page, onboardingDismissed: bool
 }
 
 export async function startClassicRunFromModeSelect(page: Page): Promise<void> {
-    const classicBtn = page.getByRole('button', { name: /classic run/i });
+    const classicBtn = page.getByRole('button', { name: /start run/i });
     await expect(classicBtn).toBeVisible({ timeout: 15_000 });
     await classicBtn.scrollIntoViewIfNeeded();
     // Long serial visual runs against Vite can see `element was detached` / stability timeouts on animated cards.

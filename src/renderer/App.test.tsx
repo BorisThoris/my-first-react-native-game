@@ -65,7 +65,7 @@ const dismissStartupIntro = async (user: ReturnType<typeof userEvent.setup>): Pr
 
 const chooseClassicRun = async (user: ReturnType<typeof userEvent.setup>): Promise<void> => {
     await user.click(await screen.findByRole('button', { name: /^play$/i }));
-    await user.click(await screen.findByRole('button', { name: /classic run/i }));
+    await user.click(await screen.findByRole('button', { name: /start run/i }));
 };
 
 describe('desktop app flow', () => {
@@ -580,14 +580,15 @@ describe('desktop app flow', () => {
         expect(await screen.findByRole('button', { name: /fit board/i })).toBeInTheDocument();
     });
 
-    it('opens Choose Your Path from Play and keeps Endless Mode locked', async () => {
+    it('opens Choose Your Path from Play and keeps Endless Mode locked in Browse modes', async () => {
         const user = userEvent.setup();
         renderApp();
         await dismissStartupIntro(user);
         await user.click(await screen.findByRole('button', { name: /^play$/i }));
         expect(await screen.findByRole('region', { name: /choose your path/i })).toBeInTheDocument();
-        const endless = screen.getByRole('button', { name: /endless mode/i });
-        expect(endless).toBeDisabled();
+        await user.click(screen.getByRole('button', { name: /browse modes/i }));
+        await user.click(await screen.findByRole('button', { name: /endless mode/i }));
+        expect(await screen.findByText(/intentionally locked for v1/i)).toBeInTheDocument();
     });
 
     it('opens Collection from the main menu and returns', async () => {

@@ -23,7 +23,7 @@ test.describe('UI capture (local artifacts)', () => {
 
             await page.getByRole('button', { name: /^play$/i }).click();
             await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
-            await page.getByRole('button', { name: /classic run/i }).click();
+            await page.getByRole('button', { name: /start run/i }).click();
             await expect(page.getByRole('heading', { name: /level 1/i })).toBeVisible();
             await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible({ timeout: 10000 });
             await page.waitForTimeout(600);

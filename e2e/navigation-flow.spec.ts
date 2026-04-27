@@ -17,14 +17,16 @@ test.describe('Navigation shells', () => {
         await openMainMenuFromSave(page, true);
         await page.getByRole('button', { name: /^play$/i }).click();
         await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
-        await page.getByRole('button', { name: /classic run/i }).click();
+        await page.getByRole('button', { name: /start run/i }).click();
         await expect(page.getByRole('heading', { name: /level 1/i })).toBeVisible();
     });
 
-    test('Endless Mode card stays disabled on Choose Your Path', async ({ page }) => {
+    test('Endless Mode stays locked behind Browse modes', async ({ page }) => {
         await openMainMenuFromSave(page, true);
         await page.getByRole('button', { name: /^play$/i }).click();
-        await expect(page.getByRole('button', { name: /endless mode/i })).toBeDisabled();
+        await page.getByRole('button', { name: /browse modes/i }).click();
+        await page.getByRole('button', { name: /endless mode/i }).click();
+        await expect(page.getByText(/intentionally locked for v1/i)).toBeVisible();
     });
 
     test('Settings opened from Choose Your Path returns to Choose Your Path', async ({ page }) => {
@@ -105,7 +107,9 @@ test.describe('Navigation shells', () => {
         await page.goto('/');
         await dismissStartupIntro(page);
         await page.getByRole('button', { name: /^play$/i }).click();
+        await page.getByRole('button', { name: /browse modes/i }).click();
         await page.getByRole('button', { name: /daily challenge/i }).click();
+        await page.getByTestId('library-mode-detail-modal').getByRole('button', { name: /^play$/i }).click();
         await expect(page.getByRole('heading', { name: /level 1/i })).toBeVisible();
     });
 

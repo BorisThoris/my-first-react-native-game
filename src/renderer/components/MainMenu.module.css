@@ -202,9 +202,13 @@
     text-transform: uppercase;
 }
 
-/* META-004: hub CTA stack (MetaFrame measures `Panel` for cornice alignment). */
-.ctaMetaFrame {
-    width: min(100%, 32rem);
+/*
+ * META-004: hub CTA stack — width lives on a wrapper so MetaFrame’s host can stay `width: 100%`
+ * of that wrapper (avoids fighting `.root { width: 100% }` without `!important`).
+ * Hub labels are short; the old 32rem (~512px) column felt wider than the copy needs.
+ */
+.ctaMetaFrameWrap {
+    width: min(100%, 22rem);
     filter: drop-shadow(0 14px 32px color-mix(in srgb, var(--theme-shadow) 38%, transparent));
 }
 
@@ -247,17 +251,40 @@
     width: 100%;
     justify-content: flex-start;
     text-align: left;
+    align-items: center;
+}
+
+/*
+ * Single-line hub labels: default UiButton md/lg min-heights read as oversized dead space.
+ * Slim on pointer-first layouts; touch / narrow shells restore targets below.
+ */
+.shell .ctaButton {
+    min-height: 2.2rem !important;
+    padding: 0.4rem 0.85rem !important;
+}
+
+.shell .ctaButtonPlay {
+    min-height: 2.45rem !important;
+}
+
+.shell.touchCompactShell .ctaButton,
+.shell.shortTouchLandscapeShell .ctaButton,
+.shell.ultraCompactPhoneShell .ctaButton {
+    min-height: max(2.75rem, var(--ui-touch-target-min)) !important;
+    padding: 0.62rem 1rem !important;
+}
+
+.shell.touchCompactShell .ctaButtonPlay,
+.shell.shortTouchLandscapeShell .ctaButtonPlay,
+.shell.ultraCompactPhoneShell .ctaButtonPlay {
+    min-height: max(3.05rem, var(--ui-touch-target-min)) !important;
 }
 
 .secondaryActionGrid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--menu-action-stack-gap);
     width: 100%;
-}
-
-.secondaryCtaButton {
-    min-height: var(--ui-touch-target-min, 2.5rem);
 }
 
 .ctaContent {
@@ -269,21 +296,13 @@
 }
 
 .ctaTitle {
-    font-size: 1.06rem;
+    font-size: 0.82rem;
+    letter-spacing: 0.085em;
+}
+
+.shell .ctaButtonPlay .ctaTitle {
+    font-size: 0.92rem;
     letter-spacing: 0.09em;
-}
-
-.ctaIcon {
-    display: none;
-}
-
-.ctaHint {
-    font-family: var(--ui-font-body-family);
-    font-size: 0.8rem;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: none;
-    color: var(--theme-text-muted);
 }
 
 .supportPanel {
@@ -402,10 +421,6 @@
     padding-bottom: 0.35rem;
 }
 
-.touchCompactShell .ctaHint {
-    font-size: 0.72rem;
-}
-
 .touchCompactShell .supportPanel {
     padding: var(--ui-card-pad-md);
     transform: none;
@@ -443,48 +458,8 @@
     display: none;
 }
 
-.shortTouchLandscapeShell .actionStack {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: stretch;
-}
-
-.shortTouchLandscapeShell .actionStack > :first-child {
-    grid-column: 1 / -1;
-}
-
-.shortTouchLandscapeShell .actionStack > :last-child {
-    grid-column: 1 / -1;
-}
-
-.shortTouchLandscapeShell .secondaryActionGrid {
-    grid-column: 1 / -1;
-}
-
-.shortTouchLandscapeShell .ctaHint {
-    display: none;
-}
-
 .shortTouchLandscapeShell .ctaTitle {
     font-size: 0.78rem;
-}
-
-.shortTouchLandscapeShell .ctaContent {
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap: 0.4rem;
-}
-
-.shortTouchLandscapeShell .ctaIcon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.35rem;
-    height: 1.35rem;
-    border-radius: var(--ui-radius-sm);
-    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 18%, transparent);
-    color: var(--theme-rune);
-    background: color-mix(in srgb, var(--theme-void) 34%, transparent);
 }
 
 /*
@@ -531,24 +506,10 @@
 
 .shortDesktopShell .actionStack {
     width: 100%;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.shortDesktopShell .ctaMetaFrame {
-    width: min(100%, 31rem);
-}
-
-.shortDesktopShell .actionStack > :first-child,
-.shortDesktopShell .actionStack > :last-child {
-    grid-column: 1 / -1;
 }
 
 .shortDesktopShell .ctaTitle {
-    font-size: 0.86rem;
-}
-
-.shortDesktopShell .ctaHint {
-    display: none;
+    font-size: 0.8rem;
 }
 
 .shortDesktopShell .supportPanel {
@@ -606,26 +567,6 @@
     display: none;
 }
 
-.ultraCompactPhoneShell .actionStack {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.ultraCompactPhoneShell .actionStack > :first-child {
-    grid-column: 1 / -1;
-}
-
-.ultraCompactPhoneShell .actionStack > :last-child {
-    grid-column: 1 / -1;
-}
-
-.ultraCompactPhoneShell .secondaryActionGrid {
-    grid-column: 1 / -1;
-}
-
-.ultraCompactPhoneShell .ctaHint {
-    display: none;
-}
-
 .ultraCompactPhoneShell .supportPanel {
     padding: 0.82rem;
 }
@@ -662,11 +603,7 @@
     }
 
     .ctaTitle {
-        font-size: 0.9rem;
-    }
-
-    .ctaHint {
-        font-size: 0.74rem;
+        font-size: 0.84rem;
     }
 }
 
@@ -738,11 +675,11 @@
     }
 
     .ctaTitle {
-        font-size: 0.94rem;
+        font-size: 0.84rem;
     }
 
-    .ctaHint {
-        font-size: 0.74rem;
+    .shell .ctaButtonPlay .ctaTitle {
+        font-size: 0.93rem;
     }
 
     .howToGrid {

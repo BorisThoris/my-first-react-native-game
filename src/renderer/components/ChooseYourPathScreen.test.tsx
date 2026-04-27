@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import ChooseYourPathScreen from './ChooseYourPathScreen';
 
@@ -58,19 +59,33 @@ vi.mock('../store/useAppStore', async () => {
 });
 
 describe('ChooseYourPathScreen REG-010 discoverability', () => {
-    it('surfaces selected mode, start action, browse/search state, and locked explanation above fold', () => {
+    it('defaults to a quiet Classic Run launcher with browse content hidden', () => {
         render(<ChooseYourPathScreen />);
 
-        const discovery = screen.getByTestId('choose-path-discovery-strip');
-        expect(discovery).toHaveTextContent(/Selected: Classic Run/);
-        expect(discovery).toHaveTextContent(/Start selected/);
-        expect(discovery).toHaveTextContent(/playable mode/);
-        expect(discovery).toHaveTextContent(/Page 1 of/);
-        expect(screen.getByText(/Planned post-v1 mode/)).toBeInTheDocument();
+        const launcher = screen.getByTestId('choose-path-launcher');
+        expect(launcher).toHaveTextContent(/Classic Run/);
+        expect(launcher).toHaveTextContent(/clean dungeon descent/i);
+        expect(screen.getByRole('button', { name: /start run/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /browse modes/i })).toBeInTheDocument();
+        expect(screen.queryByTestId('choose-path-more-modes')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('choose-path-offline-note')).not.toBeInTheDocument();
+        expect(screen.queryByText(/Endless Mode/)).not.toBeInTheDocument();
+    });
+
+    it('shows browse/search/page and locked-mode copy only after opening Browse modes', async () => {
+        const user = userEvent.setup();
+        render(<ChooseYourPathScreen />);
+
+        await user.click(screen.getByRole('button', { name: /browse modes/i }));
+
+        const library = screen.getByTestId('choose-path-more-modes');
+        expect(library).toHaveTextContent(/Daily Challenge/);
+        expect(library).toHaveTextContent(/Endless Mode/);
+        expect(library).toHaveTextContent(/Locked/);
+        expect(screen.getByRole('button', { name: /search modes/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /page 1 of/i })).toBeInTheDocument();
         const offlineNote = screen.getByTestId('choose-path-offline-note');
         expect(offlineNote).toHaveTextContent(/Offline-first/);
-        expect(offlineNote).toHaveTextContent(/share strings/);
-        expect(offlineNote).toHaveTextContent(/Pass-and-play/);
         expect(offlineNote).toHaveTextContent(/Profile/);
     });
 });

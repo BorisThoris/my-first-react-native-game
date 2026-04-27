@@ -186,18 +186,18 @@ test.describe('Mobile layout (renderer)', () => {
     test('phone portrait keeps condensed onboarding copy visible', async ({ page }) => {
         await page.setViewportSize({ width: 390, height: 844 });
         await openMainMenuFromSave(page, false);
-        await expect(page.getByText(/short memorize window before the tiles hide again/i)).toBeVisible();
-        await expect(page.getByText(/every clean pair grows score and streak/i)).toBeVisible();
-        await expect(page.getByText(/every 2-pair chain earns a shard\. three shards restore one life/i)).toBeVisible();
-        await expect(page.getByText(/recent descent/i)).toBeVisible();
+        await expect(page.getByText(/first live board highlights a real pair/i)).toBeVisible();
+        await expect(page.getByText(/clean matches build score and streak/i)).toBeVisible();
+        await expect(page.getByText(/runs turn into relic drafts/i)).toBeVisible();
+        await expect(page.getByText(/codex is the deeper reference/i)).toBeVisible();
     });
 
     test('phone landscape keeps condensed onboarding copy readable', async ({ page }) => {
         await page.setViewportSize({ width: 844, height: 390 });
         await openMainMenuFromSave(page, false);
-        await expect(page.getByText(/short memorize window before the tiles hide again/i)).toBeVisible();
-        await expect(page.getByText(/every clean pair grows score and streak/i)).toBeVisible();
-        await expect(page.getByText(/every 2-pair chain earns a shard\. three shards restore one life/i)).toBeVisible();
+        await expect(page.getByText(/first live board highlights a real pair/i)).toBeVisible();
+        await expect(page.getByText(/clean matches build score and streak/i)).toBeVisible();
+        await expect(page.getByText(/runs turn into relic drafts/i)).toBeVisible();
     });
 
     test('game HUD stays horizontal on compact viewport', async ({ page }) => {
