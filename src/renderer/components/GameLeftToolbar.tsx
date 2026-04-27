@@ -11,8 +11,8 @@ import {
 } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import {
-    handleVerticalToolbarKeyDown,
-    syncVerticalToolbarTabIndices
+    handleHorizontalToolbarKeyDown,
+    syncToolbarTabIndices
 } from '../a11y/toolbarRoving';
 import { GAMEPLAY_TOOLBAR_ICONS } from '../assets/ui/icons';
 import { UiButton } from '../ui';
@@ -116,7 +116,7 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
     const resolveToolbarRef = useRef<HTMLDivElement | null>(null);
 
     useLayoutEffect(() => {
-        syncVerticalToolbarTabIndices(controlsToolbarRef.current);
+        syncToolbarTabIndices(controlsToolbarRef.current);
     }, [
         cameraViewportMode,
         run.status,
@@ -125,7 +125,7 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
     ]);
 
     useLayoutEffect(() => {
-        syncVerticalToolbarTabIndices(powersToolbarRef.current);
+        syncToolbarTabIndices(powersToolbarRef.current);
     }, [
         boardPinMode,
         destroyDisabled,
@@ -147,7 +147,7 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
     ]);
 
     useLayoutEffect(() => {
-        syncVerticalToolbarTabIndices(resolveToolbarRef.current);
+        syncToolbarTabIndices(resolveToolbarRef.current);
     }, [run.status, run.undoUsesThisFloor]);
 
     useEffect(() => {
@@ -164,7 +164,7 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
             if (!(toolbar instanceof HTMLElement) || !aside.contains(toolbar)) {
                 return;
             }
-            syncVerticalToolbarTabIndices(toolbar, target);
+            syncToolbarTabIndices(toolbar, target);
         };
         aside.addEventListener('focusin', onFocusIn);
         return () => aside.removeEventListener('focusin', onFocusIn);
@@ -189,17 +189,17 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
     return (
         <aside
             aria-label="Game actions"
-            className={`${styles.leftToolbar} ${cameraViewportMode ? styles.mobileCameraLeftToolbar : ''}`.trim()}
-            data-rail-density={cameraViewportMode ? 'compact' : 'desktop'}
-            data-rail-model="icon-rail-with-flyout-labels"
-            data-testid="game-left-rail"
+            className={`${styles.actionDock} ${cameraViewportMode ? styles.mobileActionDock : ''}`.trim()}
+            data-dock-density={cameraViewportMode ? 'compact' : 'desktop'}
+            data-dock-model="bottom-icon-dock"
+            data-testid="game-action-dock"
             ref={asideRef}
         >
             <div
                 aria-label="Game controls"
-                aria-orientation="vertical"
-                className={styles.toolbarSection}
-                onKeyDown={handleVerticalToolbarKeyDown}
+                aria-orientation="horizontal"
+                className={styles.actionDockGroup}
+                onKeyDown={handleHorizontalToolbarKeyDown}
                 ref={controlsToolbarRef}
                 role="toolbar"
             >
@@ -280,7 +280,7 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                 ) : null}
             </div>
             {showForgivenessHint ? (
-                <div className={styles.toolbarSection}>
+                <div className={styles.actionDockRules}>
                     <button
                         aria-expanded={rulesHintsExpanded}
                         aria-label={rulesHintsExpanded ? 'Hide rule tips' : 'Show rule tips'}
@@ -303,9 +303,9 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
             {showBoardPowerBar ? (
                 <div
                     aria-label="Board powers"
-                    aria-orientation="vertical"
-                    className={styles.toolbarSection}
-                    onKeyDown={handleVerticalToolbarKeyDown}
+                    aria-orientation="horizontal"
+                    className={styles.actionDockGroup}
+                    onKeyDown={handleHorizontalToolbarKeyDown}
                     ref={powersToolbarRef}
                     role="toolbar"
                 >
@@ -340,17 +340,19 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                             {run.shuffleCharges}
                         </span>
                     </button>
-                    <div
+                    <details
                         className={styles.regionShuffleCluster}
-                        role="group"
                         aria-label={`Row shuffle. Charges ${run.regionShuffleCharges}.${
                             run.regionShuffleFreeThisFloor && run.relicIds.includes('region_shuffle_free_first')
                                 ? ' First row shuffle this floor is free.'
                                 : ''
                         }`}
                     >
-                        <div className={styles.regionShuffleHeader}>
-                            <span className={styles.regionShuffleLabel}>Rows</span>
+                        <summary className={styles.regionShuffleSummary} title={regionShuffleTitle}>
+                            <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.shuffle} />
+                            <span aria-hidden="true" className={styles.toolbarFlyoutLabel}>
+                                Shuffle row
+                            </span>
                             <span
                                 className={`${styles.powerBadge} ${styles.powerBadgeInline} ${
                                     run.regionShuffleCharges > 0 ||
@@ -362,7 +364,7 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                             >
                                 {run.regionShuffleCharges}
                             </span>
-                        </div>
+                        </summary>
                         <div className={styles.regionShuffleRows}>
                             {run.board
                                 ? Array.from({ length: run.board.rows }, (_, row) => (
@@ -370,6 +372,7 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                                           key={row}
                                           aria-label={`Shuffle row ${row + 1}`}
                                           className={styles.regionRowBtn}
+                                          data-toolbar-popover="true"
                                           disabled={regionShuffleDisabled || !canRegionShuffleRow(row)}
                                           onClick={() => {
                                               if (regionShuffleDisabled || !canRegionShuffleRow(row)) {
@@ -390,7 +393,7 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                                   ))
                                 : null}
                         </div>
-                    </div>
+                    </details>
                     <button
                         aria-label={boardPinMode ? 'Exit pin mode' : 'Pin mode — tap tiles to mark'}
                         aria-pressed={boardPinMode}
@@ -514,27 +517,32 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                             {run.strayRemoveCharges}
                         </span>
                     </button>
-                    <div
-                        className={styles.powerTeachingPanel}
-                        data-testid="power-teaching-panel"
-                        id={REG107_POWER_TEACHING_ANCHOR}
-                    >
-                        {powerTeachingRows.map((row) => (
-                            <div className={styles.powerTeachingRow} key={row.id}>
-                                <strong>{row.label}</strong>
-                                <span>{row.job}</span>
-                                <small>{row.disabledReason ?? row.cost}</small>
-                            </div>
-                        ))}
-                    </div>
+                    <details className={styles.powerTeachingDetails}>
+                        <summary aria-label="Power roles" title="Power roles">
+                            <span aria-hidden="true">?</span>
+                        </summary>
+                        <div
+                            className={styles.powerTeachingPanel}
+                            data-testid="power-teaching-panel"
+                            id={REG107_POWER_TEACHING_ANCHOR}
+                        >
+                            {powerTeachingRows.map((row) => (
+                                <div className={styles.powerTeachingRow} key={row.id}>
+                                    <strong>{row.label}</strong>
+                                    <span>{row.job}</span>
+                                    <small>{row.disabledReason ?? row.cost}</small>
+                                </div>
+                            ))}
+                        </div>
+                    </details>
                 </div>
             ) : null}
             {run.status === 'resolving' && run.undoUsesThisFloor > 0 ? (
                 <div
                     aria-label="Resolve options"
-                    aria-orientation="vertical"
-                    className={styles.toolbarSection}
-                    onKeyDown={handleVerticalToolbarKeyDown}
+                    aria-orientation="horizontal"
+                    className={styles.actionDockGroup}
+                    onKeyDown={handleHorizontalToolbarKeyDown}
                     ref={resolveToolbarRef}
                     role="toolbar"
                 >

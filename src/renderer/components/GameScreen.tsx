@@ -1004,44 +1004,6 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                     <div
                         className={`${styles.gamePlayLayout} ${cameraViewportMode ? styles.mobileCameraGamePlayLayout : ''}`.trim()}
                     >
-                    <GameLeftToolbar
-                        applyFlashPairPower={applyFlashPairPower}
-                        boardPinMode={boardPinMode}
-                        cameraViewportMode={cameraViewportMode}
-                        canRegionShuffleRow={canRegionShuffleRowForRun}
-                        destroyDisabled={destroyDisabled}
-                        destroyPairArmed={destroyPairArmed}
-                        flashPairDisabled={flashPairDisabled}
-                        flashPairTitle={flashPairTitle}
-                        maxPinnedTiles={MAX_PINNED_TILES}
-                        onRequestAbandonRun={handleRequestAbandonRun}
-                        onViewportReset={handleToolbarViewportReset}
-                        openCodexFromPlaying={openCodexFromPlaying}
-                        openInventoryFromPlaying={openInventoryFromPlaying}
-                        openSettingsPlaying={openSettingsPlayingMode}
-                        peekModeArmed={peekModeArmed}
-                        regionShuffleDisabled={regionShuffleDisabled}
-                        regionShuffleTitle={regionShuffleTitle}
-                        rulesHintNudge={rulesHintNudge}
-                        rulesHintsExpanded={rulesHintsExpanded}
-                        run={run}
-                        setRulesHintsExpanded={setRulesHintsExpanded}
-                        debugFlags={toolbarDebugFlags}
-                        showBoardPowerBar={showBoardPowerBar}
-                        showFlashPairPower={showFlashPairPower}
-                        showForgivenessHint={showForgivenessHint}
-                        shuffleBoard={shuffleBoard}
-                        shuffleDisabled={shuffleDisabled}
-                        shuffleRegionRow={shuffleRegionRow}
-                        shuffleTitle={shuffleTitle}
-                        tileBoardRef={tileBoardRef}
-                        toggleBoardPinMode={toggleBoardPinMode}
-                        toggleDestroyPairArmed={toggleDestroyPairArmed}
-                        togglePeekMode={togglePeekMode}
-                        toggleStrayArm={toggleStrayArm}
-                        triggerDebugReveal={triggerDebugReveal}
-                        undoResolvingFlip={undoResolvingFlip}
-                    />
                     <div
                         className={`${styles.mainGameColumn} ${cameraViewportMode ? styles.mobileCameraMainColumn : ''}`.trim()}
                     >
@@ -1189,6 +1151,44 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                 </aside>
                             ) : null}
                         </div>
+                        <GameLeftToolbar
+                            applyFlashPairPower={applyFlashPairPower}
+                            boardPinMode={boardPinMode}
+                            cameraViewportMode={cameraViewportMode}
+                            canRegionShuffleRow={canRegionShuffleRowForRun}
+                            destroyDisabled={destroyDisabled}
+                            destroyPairArmed={destroyPairArmed}
+                            flashPairDisabled={flashPairDisabled}
+                            flashPairTitle={flashPairTitle}
+                            maxPinnedTiles={MAX_PINNED_TILES}
+                            onRequestAbandonRun={handleRequestAbandonRun}
+                            onViewportReset={handleToolbarViewportReset}
+                            openCodexFromPlaying={openCodexFromPlaying}
+                            openInventoryFromPlaying={openInventoryFromPlaying}
+                            openSettingsPlaying={openSettingsPlayingMode}
+                            peekModeArmed={peekModeArmed}
+                            regionShuffleDisabled={regionShuffleDisabled}
+                            regionShuffleTitle={regionShuffleTitle}
+                            rulesHintNudge={rulesHintNudge}
+                            rulesHintsExpanded={rulesHintsExpanded}
+                            run={run}
+                            setRulesHintsExpanded={setRulesHintsExpanded}
+                            debugFlags={toolbarDebugFlags}
+                            showBoardPowerBar={showBoardPowerBar}
+                            showFlashPairPower={showFlashPairPower}
+                            showForgivenessHint={showForgivenessHint}
+                            shuffleBoard={shuffleBoard}
+                            shuffleDisabled={shuffleDisabled}
+                            shuffleRegionRow={shuffleRegionRow}
+                            shuffleTitle={shuffleTitle}
+                            tileBoardRef={tileBoardRef}
+                            toggleBoardPinMode={toggleBoardPinMode}
+                            toggleDestroyPairArmed={toggleDestroyPairArmed}
+                            togglePeekMode={togglePeekMode}
+                            toggleStrayArm={toggleStrayArm}
+                            triggerDebugReveal={triggerDebugReveal}
+                            undoResolvingFlip={undoResolvingFlip}
+                        />
                     </div>
                 </div>
                 </div>

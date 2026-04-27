@@ -37,7 +37,7 @@ describe('GameplayHudBar', () => {
         expect(screen.getByTestId('hud-favor-progress').getAttribute('title')).toContain('Temporary run currency');
         expect(screen.getByTestId('hud-featured-streak').textContent).toContain('x3');
         expect(screen.getByTestId('hud-endless-risk-wager').textContent).toContain('+2 Favor');
-        expect(screen.getByTestId('hud-secondary-stat-drawer')).toHaveTextContent('Passive run context');
+        expect(screen.getByTestId('hud-secondary-stat-drawer')).toHaveTextContent('More');
     });
 
     it('shows boss encounter identity on boss-tagged floors', () => {

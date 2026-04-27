@@ -570,7 +570,7 @@ const GameplayHudBar = ({
                                 ) : null}
                             </div>
                             <details className={styles.hudTertiaryDetails} data-testid="hud-secondary-stat-drawer">
-                                <summary>Passive run context</summary>
+                                <summary aria-label="More run context" title="More run context">More</summary>
                                 <div className={styles.statRailTertiary} data-hud-priority="tertiary">
                                     {run.status === 'memorize' || run.status === 'playing' ? (
                                         <>

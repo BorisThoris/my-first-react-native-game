@@ -241,6 +241,82 @@
         inset 0 0 0 1px color-mix(in srgb, var(--theme-gold-bright) 4%, transparent);
 }
 
+.actionDock {
+    position: relative;
+    z-index: 4;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.24rem;
+    width: fit-content;
+    max-width: min(100%, 76rem);
+    margin: 0 auto;
+    padding:
+        0.38rem
+        clamp(0.42rem, 1vw, 0.72rem)
+        max(0.38rem, env(safe-area-inset-bottom, 0px));
+    border-radius: calc(var(--ui-radius-md) + 0.18rem);
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 8%, transparent);
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--theme-text) 2%, transparent), transparent 62%),
+        color-mix(in srgb, var(--theme-void) 68%, transparent);
+    box-shadow:
+        0 14px 34px color-mix(in srgb, var(--theme-shadow) 28%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--theme-text) 4%, transparent);
+    backdrop-filter: blur(calc(var(--game-deck-blur) * 0.66)) saturate(1.08);
+}
+
+.actionDockGroup {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.24rem;
+    min-width: 0;
+    padding: 0.12rem 0.18rem;
+}
+
+.actionDockGroup + .actionDockGroup,
+.actionDockRules + .actionDockGroup,
+.actionDockGroup + .actionDockRules {
+    margin-left: 0.16rem;
+    padding-left: 0.42rem;
+    border-left: 1px solid color-mix(in srgb, var(--theme-gold-bright) 8%, transparent);
+}
+
+.actionDockRules {
+    display: flex;
+    align-items: center;
+    gap: 0.34rem;
+    min-width: 0;
+    padding: 0.12rem 0.18rem;
+}
+
+.actionDock .toolbarFlyoutLabel {
+    left: 50%;
+    top: auto;
+    bottom: calc(100% + 0.44rem);
+    transform: translate(-50%, 0.18rem);
+}
+
+.actionDock .iconAction:hover .toolbarFlyoutLabel,
+.actionDock .iconAction:focus-visible .toolbarFlyoutLabel,
+.actionDock .iconActionActive .toolbarFlyoutLabel {
+    transform: translate(-50%, 0);
+}
+
+.actionDock .toolbarGlyphImg {
+    width: 1.34rem;
+    height: 1.34rem;
+}
+
+.actionDock .toolbarFlashGlyph {
+    font-size: 1rem;
+}
+
 .toolbarGlyphImg {
     width: 1.62rem;
     height: 1.62rem;
@@ -399,38 +475,45 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.45rem 0.75rem;
-    padding: 0.48rem 0.7rem 0.52rem;
-    border-radius: var(--ui-radius-md, 10px);
-    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 18%, transparent);
+    justify-content: center;
+    gap: 0.28rem 0.62rem;
+    width: fit-content;
+    max-width: min(100%, 78rem);
+    margin-inline: auto;
+    padding: 0.3rem 0.62rem 0.34rem;
+    border-radius: var(--ui-radius-pill);
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 8%, transparent);
     background:
-        linear-gradient(180deg, rgba(255, 243, 217, 0.05), transparent 56%),
-        color-mix(in srgb, var(--theme-panel-solid) 92%, var(--theme-gold-deep) 8%);
+        linear-gradient(180deg, rgba(255, 243, 217, 0.018), transparent 56%),
+        color-mix(in srgb, var(--theme-panel-solid) 74%, transparent);
     color: color-mix(in srgb, var(--theme-text) 86%, var(--theme-gold-bright) 14%);
+    box-shadow: 0 10px 24px color-mix(in srgb, var(--theme-shadow) 18%, transparent);
 }
 
 .endlessChapterTitle {
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     font-weight: 800;
     letter-spacing: 0.03em;
     color: var(--theme-gold-bright);
 }
 
 .endlessChapterHint {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     line-height: 1.35;
     color: var(--theme-text-muted);
 }
 
 .endlessChapterObjective {
-    margin-left: auto;
-    font-size: 0.72rem;
+    margin-left: 0;
+    font-size: 0.66rem;
     font-weight: 700;
     color: color-mix(in srgb, var(--theme-rune) 88%, white);
 }
 
+.endlessChapterRisk,
 .endlessChapterMutators {
-    flex-basis: 100%;
+    display: none;
+    flex-basis: auto;
     font-size: 0.68rem;
     font-weight: 650;
     color: color-mix(in srgb, var(--theme-cyan-bright) 76%, white);
@@ -563,7 +646,7 @@
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 0.24rem;
+    gap: 0.14rem;
     min-width: 0;
     width: 100%;
     position: relative;
@@ -589,15 +672,15 @@
     border-radius: calc(var(--ui-radius-md) + 0.2rem);
     pointer-events: none;
     z-index: 0;
-    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 13%, transparent);
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 8%, transparent);
     background:
-        radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--theme-gold-bright) 4%, transparent), transparent 50%),
+        radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--theme-gold-bright) 2.5%, transparent), transparent 50%),
         linear-gradient(
             180deg,
-            color-mix(in srgb, var(--theme-gold-bright) 5%, transparent) 0%,
+            color-mix(in srgb, var(--theme-gold-bright) 3%, transparent) 0%,
             transparent 28%,
             transparent 68%,
-            color-mix(in srgb, var(--theme-gold-bright) 4%, transparent) 100%
+            color-mix(in srgb, var(--theme-gold-bright) 2.5%, transparent) 100%
         );
     box-shadow:
         inset 0 1px 0 color-mix(in srgb, var(--theme-gold-bright) 9%, transparent),
@@ -615,7 +698,7 @@
     width: 100%;
     min-width: 0;
     box-sizing: border-box;
-    padding: var(--gameplay-hud-context-padding-top, 0.08rem) 0.08rem 0;
+    padding: 0.04rem 0.08rem 0;
     display: flex;
     justify-content: flex-end;
     align-items: center;
@@ -627,7 +710,7 @@
 }
 
 .hudContextSecondaryStrip::before {
-    content: '';
+    content: none;
     position: absolute;
     left: 0.45rem;
     right: 0.45rem;
@@ -653,13 +736,13 @@
     top: calc(var(--gameplay-hud-context-padding-top, 0.08rem) + 0.06rem);
     bottom: 0;
     border-radius: calc(var(--ui-radius-md) + 0.08rem);
-    border: 1px solid var(--gameplay-hud-context-strip-border, color-mix(in srgb, var(--theme-gold-bright) 10%, transparent));
-    background: var(--gameplay-hud-context-strip-surface, color-mix(in srgb, var(--theme-void) 46%, transparent));
+    border: 1px solid var(--gameplay-hud-context-strip-border, color-mix(in srgb, var(--theme-gold-bright) 5%, transparent));
+    background: var(--gameplay-hud-context-strip-surface, color-mix(in srgb, var(--theme-void) 26%, transparent));
     box-shadow:
         inset 0 1px 0 color-mix(in srgb, rgba(255, 255, 255, 0.04) 80%, transparent),
         inset 0 -1px 0 color-mix(in srgb, var(--theme-shadow) 12%, transparent);
     pointer-events: none;
-    opacity: 0.68;
+    opacity: 0.42;
 }
 
 .hudStripLeftModule {
@@ -749,14 +832,104 @@
 }
 
 .hudDeck.floatingDeck {
-    padding: 0.3rem 0.42rem 0.34rem;
+    padding: 0.18rem 0.26rem 0.22rem;
     background:
-        radial-gradient(circle at 50% 0%, rgba(255, 243, 217, 0.05), transparent 42%),
-        linear-gradient(180deg, rgba(255, 243, 217, 0.03), transparent 55%),
-        color-mix(in srgb, var(--theme-void) 74%, transparent);
-    border: 1px solid color-mix(in srgb, var(--gameplay-chrome-border, var(--theme-hud-chrome-border)) 88%, transparent);
-    box-shadow: var(--gameplay-chrome-shadow);
-    backdrop-filter: blur(calc(var(--game-deck-blur) * 0.85)) saturate(1.25);
+        linear-gradient(180deg, rgba(255, 243, 217, 0.026), transparent 60%),
+        color-mix(in srgb, var(--theme-void) 78%, transparent);
+    border: 1px solid color-mix(in srgb, var(--gameplay-chrome-border, var(--theme-hud-chrome-border)) 42%, transparent);
+    box-shadow:
+        0 12px 30px color-mix(in srgb, var(--theme-shadow) 26%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--theme-text) 4%, transparent);
+    backdrop-filter: blur(calc(var(--game-deck-blur) * 0.65)) saturate(1.12);
+}
+
+.powerTeachingDetails {
+    position: relative;
+    min-width: 0;
+}
+
+.powerTeachingDetails > summary {
+    list-style: none;
+    width: var(--gameplay-rail-button-size, 2.7rem);
+    height: var(--gameplay-rail-button-size, 2.7rem);
+    min-width: var(--gameplay-rail-button-size, 2.7rem);
+    min-height: var(--gameplay-rail-button-size, 2.7rem);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border-radius: var(--ui-radius-sm);
+    border: 1px solid color-mix(in srgb, var(--theme-cyan) 16%, transparent);
+    background: color-mix(in srgb, var(--theme-void) 42%, transparent);
+    color: var(--theme-text-muted);
+    font-size: 0.9rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    cursor: pointer;
+}
+
+.powerTeachingDetails > summary::-webkit-details-marker {
+    display: none;
+}
+
+.powerTeachingDetails[open] > summary {
+    color: var(--theme-cyan-bright);
+    border-color: color-mix(in srgb, var(--theme-cyan) 34%, transparent);
+}
+
+.actionDock .powerTeachingPanel {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 0.5rem);
+    width: min(24rem, calc(100dvi - 1rem));
+    padding: 0.62rem;
+    background: color-mix(in srgb, var(--theme-panel-solid) 94%, transparent);
+    box-shadow: 0 18px 48px color-mix(in srgb, var(--theme-shadow) 34%, transparent);
+}
+
+.hudTertiaryDetails {
+    position: relative;
+    flex: 0 0 auto;
+}
+
+.hudTertiaryDetails > summary {
+    list-style: none;
+    min-height: 2.18rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.18rem 0.48rem;
+    border-radius: var(--ui-radius-sm);
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 8%, transparent);
+    background: color-mix(in srgb, var(--theme-void) 24%, transparent);
+    color: color-mix(in srgb, var(--theme-text-muted) 78%, transparent);
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.hudTertiaryDetails > summary::-webkit-details-marker {
+    display: none;
+}
+
+.hudTertiaryDetails[open] > summary {
+    color: var(--theme-gold-bright);
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 24%, transparent);
+}
+
+.hudTertiaryDetails .statRailTertiary {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.42rem);
+    z-index: 9;
+    width: min(30rem, calc(100dvi - 1rem));
+    padding: 0.48rem;
+    border-radius: var(--ui-radius-md);
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 14%, transparent);
+    background: color-mix(in srgb, var(--theme-panel-solid) 94%, transparent);
+    box-shadow: 0 18px 48px color-mix(in srgb, var(--theme-shadow) 34%, transparent);
 }
 
 .hudDeck .statKey {
@@ -906,16 +1079,16 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
-    min-height: 3.35rem;
-    padding: 0.38rem 0.72rem 0.46rem;
-    border-radius: calc(var(--ui-radius-md) + 0.05rem);
-    border: 1px solid color-mix(in srgb, var(--gameplay-chrome-border-soft, var(--theme-hud-chrome-border-soft)) 88%, transparent);
+    min-height: 3.05rem;
+    padding: 0.3rem 0.62rem 0.36rem;
+    border-radius: var(--ui-radius-sm);
+    border: 1px solid color-mix(in srgb, var(--gameplay-chrome-border-soft, var(--theme-hud-chrome-border-soft)) 54%, transparent);
     background:
-        linear-gradient(180deg, rgba(255, 243, 217, 0.05), transparent 42%),
-        color-mix(in srgb, var(--theme-void) 48%, transparent);
+        linear-gradient(180deg, rgba(255, 243, 217, 0.024), transparent 46%),
+        color-mix(in srgb, var(--theme-void) 30%, transparent);
     box-shadow:
-        inset 0 1px 0 var(--theme-hud-chrome-inset),
-        inset 0 -1px 0 color-mix(in srgb, var(--theme-shadow) 10%, transparent);
+        inset 0 1px 0 color-mix(in srgb, var(--theme-text) 3%, transparent),
+        inset 0 -1px 0 color-mix(in srgb, var(--theme-shadow) 8%, transparent);
 }
 
 /* HUD-010 / PLAY-005: tall hex frame reads as a shield escutcheon vs a plain rectangle; inner plate depth below reinforces that read. */
@@ -927,34 +1100,26 @@
     justify-content: center;
     min-width: 0;
     padding: 0.12rem 0.16rem 0.14rem;
-    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--theme-glow-gold-soft) 38%, transparent));
+    filter: none;
 }
 
 .floorBadgeHexSvg {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 0;
-    overflow: visible;
+    display: none;
 }
 
 .floorBadgeHexFrame .floorBadge {
     position: relative;
     z-index: 1;
-    border-color: color-mix(in srgb, var(--theme-gold-bright) 44%, var(--theme-border-strong));
-    box-shadow: var(--gameplay-floor-badge-plate-shadow);
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 24%, var(--theme-border-strong));
+    box-shadow: none;
 }
 
 .floorBadge {
     align-items: center;
     justify-content: center;
     min-width: 3.25rem;
-    background:
-        linear-gradient(180deg, color-mix(in srgb, var(--theme-gold) 20%, transparent), color-mix(in srgb, var(--theme-gold) 6%, transparent)),
-        color-mix(in srgb, var(--theme-void) 52%, transparent);
-    border-color: var(--theme-border-strong);
+    background: color-mix(in srgb, var(--theme-void) 36%, transparent);
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 22%, transparent);
 }
 
 .floorLabel {
@@ -971,10 +1136,10 @@
     font-family: var(--ui-font-display-family);
     font-weight: 700;
     line-height: 1;
-    letter-spacing: -0.03em;
+    letter-spacing: 0;
     color: var(--theme-text);
     font-variant-numeric: tabular-nums;
-    text-shadow: 0 0 20px var(--theme-glow-gold-soft);
+    text-shadow: 0 0 12px var(--theme-glow-gold-soft);
 }
 
 .floorTagPill {
@@ -993,47 +1158,70 @@
 }
 
 .regionShuffleCluster {
+    position: relative;
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.22rem;
-    width: 100%;
-    max-width: 2.85rem;
+    width: auto;
+    max-width: none;
 }
 
-.regionShuffleHeader {
-    display: flex;
-    flex-direction: row;
+.regionShuffleSummary {
+    list-style: none;
+    position: relative;
+    width: var(--gameplay-rail-button-size, 2.7rem);
+    height: var(--gameplay-rail-button-size, 2.7rem);
+    min-width: var(--gameplay-rail-button-size, 2.7rem);
+    min-height: var(--gameplay-rail-button-size, 2.7rem);
+    padding: 0.24rem;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.28rem;
-    width: 100%;
+    border-radius: var(--ui-radius-sm);
+    border: 1px solid color-mix(in srgb, var(--gameplay-chrome-border-soft, var(--theme-hud-chrome-border-soft)) 60%, transparent);
+    background:
+        linear-gradient(180deg, rgba(255, 243, 217, 0.035), transparent 58%),
+        color-mix(in srgb, var(--theme-panel) 76%, var(--theme-stone) 8%);
+    cursor: pointer;
+    box-shadow:
+        inset 0 1px 0 color-mix(in srgb, var(--theme-text) 4%, transparent),
+        0 8px 18px color-mix(in srgb, var(--theme-shadow) 18%, transparent);
 }
 
-.regionShuffleLabel {
-    font-size: 0.52rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--theme-text-subtle);
-    text-align: center;
-    line-height: 1.1;
-    flex-shrink: 0;
+.regionShuffleSummary::-webkit-details-marker {
+    display: none;
+}
+
+.regionShuffleCluster[open] .regionShuffleSummary {
+    color: var(--theme-gold-bright);
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 32%, transparent);
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--theme-gold-bright) 12%, transparent),
+        0 0 16px color-mix(in srgb, var(--theme-glow-gold-soft) 36%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--theme-text) 7%, transparent);
 }
 
 .regionShuffleRows {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 0.48rem);
+    z-index: 8;
+    transform: translateX(-50%);
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: center;
-    gap: 0.14rem;
-    width: 100%;
+    gap: 0.22rem;
+    width: auto;
+    padding: 0.38rem;
+    border-radius: var(--ui-radius-pill);
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 14%, transparent);
+    background: color-mix(in srgb, var(--theme-panel-solid) 94%, transparent);
+    box-shadow: 0 18px 48px color-mix(in srgb, var(--theme-shadow) 34%, transparent);
 }
 
 .regionRowBtn {
     appearance: none;
-    width: 1.42rem;
-    height: 1.42rem;
-    min-width: 1.42rem;
+    width: 1.62rem;
+    height: 1.62rem;
+    min-width: 1.62rem;
     padding: 0;
     display: inline-flex;
     align-items: center;
@@ -1629,11 +1817,10 @@
 
 .iconAction {
     appearance: none;
-    border: 1px solid color-mix(in srgb, var(--gameplay-chrome-border-soft, var(--theme-hud-chrome-border-soft)) 92%, transparent);
+    border: 1px solid color-mix(in srgb, var(--gameplay-chrome-border-soft, var(--theme-hud-chrome-border-soft)) 60%, transparent);
     background:
-        var(--theme-hud-medallion-radial),
-        var(--theme-hud-medallion-linear),
-        color-mix(in srgb, var(--theme-panel) 88%, var(--theme-stone) 12%);
+        linear-gradient(180deg, rgba(255, 243, 217, 0.035), transparent 58%),
+        color-mix(in srgb, var(--theme-panel) 76%, var(--theme-stone) 8%);
     padding: 0.24rem;
     width: var(--gameplay-rail-button-size, 2.7rem);
     height: var(--gameplay-rail-button-size, 2.7rem);
@@ -1643,8 +1830,10 @@
     align-items: center;
     justify-content: center;
     color: var(--theme-text-muted);
-    border-radius: 50%;
-    box-shadow: var(--gameplay-rail-medallion-shadow);
+    border-radius: var(--ui-radius-sm);
+    box-shadow:
+        inset 0 1px 0 color-mix(in srgb, var(--theme-text) 4%, transparent),
+        0 8px 18px color-mix(in srgb, var(--theme-shadow) 18%, transparent);
     transition:
         border-color 140ms ease,
         background 140ms ease,
@@ -1658,9 +1847,8 @@
     color: var(--theme-gold-bright);
     border-color: color-mix(in srgb, var(--theme-gold-bright) 48%, var(--gameplay-chrome-border, var(--theme-hud-chrome-border)));
     background:
-        var(--theme-hud-medallion-radial-hover),
-        var(--theme-hud-medallion-linear-hover),
-        color-mix(in srgb, var(--theme-panel) 82%, var(--theme-gold-deep) 18%);
+        linear-gradient(180deg, rgba(255, 243, 217, 0.052), transparent 58%),
+        color-mix(in srgb, var(--theme-panel) 72%, var(--theme-gold-deep) 16%);
     transform: translateY(-1px);
     filter: drop-shadow(0 0 14px color-mix(in srgb, var(--theme-glow-gold-soft) 82%, transparent));
 }
@@ -1693,9 +1881,12 @@
 .iconActionActive {
     color: var(--theme-gold-bright);
     background:
-        var(--theme-hud-medallion-radial-active),
-        var(--theme-primary-surface);
-    box-shadow: var(--gameplay-rail-medallion-shadow-active);
+        linear-gradient(180deg, color-mix(in srgb, var(--theme-gold-bright) 13%, transparent), transparent 54%),
+        color-mix(in srgb, var(--theme-gold-deep) 34%, var(--theme-panel-solid));
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--theme-gold-bright) 16%, transparent),
+        0 0 16px color-mix(in srgb, var(--theme-glow-gold-soft) 48%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--theme-text) 7%, transparent);
 }
 
 .powerBadge {
@@ -1815,16 +2006,15 @@
     /* HUD-020: keep gameplay stage painting under the stats header (z-index 2 / mobile 3). */
     z-index: 1;
     padding: 0.06rem 0.25rem 0.12rem;
-    border-radius: calc(var(--ui-radius-lg) + 0.24rem);
+    border-radius: calc(var(--ui-radius-lg) + 0.14rem);
     background:
         var(--theme-hud-stage-ellipse),
-        radial-gradient(ellipse at 50% 72%, color-mix(in srgb, var(--theme-shadow) 18%, transparent), transparent 66%),
+        radial-gradient(ellipse at 50% 72%, color-mix(in srgb, var(--theme-shadow) 10%, transparent), transparent 66%),
         var(--theme-hud-stage-linear);
     box-shadow:
-        inset 0 0 0 1px color-mix(in srgb, var(--theme-gold-bright) 14%, transparent),
-        inset 0 0 0 1px var(--theme-hud-chrome-border-soft),
-        inset 0 24px 80px color-mix(in srgb, var(--theme-shadow) 35%, transparent),
-        0 32px 72px color-mix(in srgb, var(--theme-shadow) 22%, transparent);
+        inset 0 0 0 1px color-mix(in srgb, var(--theme-gold-bright) 7%, transparent),
+        inset 0 24px 80px color-mix(in srgb, var(--theme-shadow) 24%, transparent),
+        0 24px 54px color-mix(in srgb, var(--theme-shadow) 14%, transparent);
 }
 
 /* REG-002: desktop stage density — avoid a board floating in an oversized frame on 1366×768+.
@@ -1873,7 +2063,7 @@
     box-shadow:
         0 0 0 1px color-mix(in srgb, var(--theme-gold-bright) 15%, transparent),
         0 0 86px 34px color-mix(in srgb, var(--theme-shadow) 40%, transparent);
-    opacity: 0.86;
+    opacity: 0.52;
 }
 
 .boardStage::after {
@@ -1887,7 +2077,7 @@
     transform: translateX(-50%);
     pointer-events: none;
     background: url('../assets/ui/stage-ring.svg') center / contain no-repeat;
-    opacity: var(--gameplay-stage-ring-opacity, 0.38);
+    opacity: var(--gameplay-stage-ring-opacity, 0.18);
     filter:
         drop-shadow(0 0 16px color-mix(in srgb, var(--theme-glow-gold-soft) 36%, transparent))
         drop-shadow(0 0 26px color-mix(in srgb, var(--theme-shadow) 18%, transparent));
@@ -1958,7 +2148,47 @@
 }
 
 .mobileCameraMainColumn {
-    gap: 0;
+    gap: 0.3rem;
+}
+
+.mobileActionDock {
+    width: 100%;
+    max-width: 100%;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    gap: 0.28rem;
+    padding:
+        0.28rem
+        calc(env(safe-area-inset-right, 0px) + 0.35rem)
+        max(0.32rem, env(safe-area-inset-bottom, 0px))
+        calc(env(safe-area-inset-left, 0px) + 0.35rem);
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+}
+
+.mobileActionDock .actionDockGroup,
+.mobileActionDock .actionDockRules {
+    flex: 0 0 auto;
+}
+
+.mobileActionDock .toolbarFlyoutLabel {
+    display: none;
+}
+
+.mobileActionDock .iconAction {
+    width: calc(var(--gameplay-rail-button-size, 2.8rem) - 0.04rem);
+    height: calc(var(--gameplay-rail-button-size, 2.8rem) - 0.04rem);
+    min-width: calc(var(--gameplay-rail-button-size, 2.8rem) - 0.04rem);
+    min-height: calc(var(--gameplay-rail-button-size, 2.8rem) - 0.04rem);
+}
+
+.mobileActionDock .toolbarGlyphImg {
+    width: 1.22rem;
+    height: 1.22rem;
 }
 
 .mobileCameraLeftToolbar {

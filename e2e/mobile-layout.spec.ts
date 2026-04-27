@@ -447,7 +447,7 @@ test.describe('Mobile layout (renderer)', () => {
         const hud = page.getByTestId('game-hud');
         await expectGameplayHudWingsVisible(page);
         const frame = page.getByTestId('tile-board-frame');
-        const leftToolbar = page.locator('aside[aria-label="Game actions"]');
+        const actionDock = page.getByTestId('game-action-dock');
 
         await expect(page.getByRole('button', { name: /^fit board$/i })).toBeVisible();
         await expect(frame).toHaveAttribute('data-mobile-camera-mode', 'true');
@@ -455,18 +455,19 @@ test.describe('Mobile layout (renderer)', () => {
         const shellBox = await shell.boundingBox();
         const hudBox = await hud.boundingBox();
         const frameBox = await frame.boundingBox();
-        const toolbarBox = await leftToolbar.boundingBox();
+        const dockBox = await actionDock.boundingBox();
 
         expect(shellBox).toBeTruthy();
         expect(hudBox).toBeTruthy();
         expect(frameBox).toBeTruthy();
-        expect(toolbarBox).toBeTruthy();
+        expect(dockBox).toBeTruthy();
 
-        expect(Math.abs(frameBox!.height - shellBox!.height)).toBeLessThanOrEqual(2);
+        expect(frameBox!.height).toBeGreaterThan(shellBox!.height * 0.62);
         expect(frameBox!.y).toBeLessThanOrEqual(shellBox!.y + 1);
-        expect(frameBox!.x).toBeGreaterThanOrEqual(toolbarBox!.x + toolbarBox!.width - 2);
-        const expectedFrameWidth = shellBox!.width - toolbarBox!.width;
-        expect(Math.abs(frameBox!.width - expectedFrameWidth)).toBeLessThanOrEqual(12);
+        expect(Math.abs(frameBox!.x - shellBox!.x)).toBeLessThanOrEqual(2);
+        expect(Math.abs(frameBox!.width - shellBox!.width)).toBeLessThanOrEqual(12);
+        expect(dockBox!.y).toBeGreaterThan(frameBox!.y + frameBox!.height * 0.42);
+        expect(dockBox!.y + dockBox!.height).toBeLessThanOrEqual(shellBox!.y + shellBox!.height + 2);
         expect(hudBox!.y).toBeLessThan(frameBox!.y + frameBox!.height - 8);
         expect(hudBox!.y + hudBox!.height).toBeGreaterThan(frameBox!.y + 8);
     });

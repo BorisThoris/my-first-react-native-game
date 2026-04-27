@@ -196,7 +196,7 @@ async function openParityFixtureWithSave(
  * `test-results/endproduct-parity/` without env.
  *
  * Stable gameplay-panel basenames:
- * `main-game-screen`, `top-bar-details`, `sidebar-menu`, `card-face-down`, `card-hover`, `card-flipped`,
+ * `main-game-screen`, `top-bar-details`, `bottom-action-dock`, `card-face-down`, `card-hover`, `card-flipped`,
  * `card-matched`, `interaction-flip`, `interaction-match`, `interaction-mismatch`.
  */
 test.describe('Endproduct parity captures (dev sandbox)', () => {
@@ -207,10 +207,10 @@ test.describe('Endproduct parity captures (dev sandbox)', () => {
 
         const hud = page.getByTestId('game-hud');
         const frame = page.getByTestId('tile-board-frame');
-        const sidebar = page.locator('aside[aria-label="Game actions"]');
+        const actionDock = page.getByTestId('game-action-dock');
         await expect(hud).toBeVisible();
         await expect(frame).toBeVisible();
-        await expect(sidebar).toBeVisible();
+        await expect(actionDock).toBeVisible();
 
         await page.screenshot({
             path: join(getEndproductParityCaptureDir(), 'main-game-screen.png'),
@@ -218,7 +218,7 @@ test.describe('Endproduct parity captures (dev sandbox)', () => {
             animations: 'disabled'
         });
         await screenshotLocator(hud, 'top-bar-details.png');
-        await screenshotLocator(sidebar, 'sidebar-menu.png');
+        await screenshotLocator(actionDock, 'bottom-action-dock.png');
 
         await hud.screenshot({ path: join(getEndproductParityCaptureDir(), 'hud-1440x900.png'), animations: 'disabled' });
         await frame.screenshot({

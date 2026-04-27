@@ -1,17 +1,17 @@
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 
 /**
- * WAI-ARIA toolbar pattern (vertical): one tab stop per toolbar; ArrowUp/ArrowDown/Home/End move focus.
+ * WAI-ARIA toolbar pattern: one tab stop per toolbar; arrow keys/Home/End move focus.
  * @see https://www.w3.org/WAI/ARIA/apg/patterns/toolbar/
  */
 
-const FOCUSABLE = 'button:not([disabled])';
+const FOCUSABLE = 'button:not([disabled]):not([data-toolbar-popover])';
 
 export const getToolbarButtons = (root: HTMLElement): HTMLButtonElement[] =>
     Array.from(root.querySelectorAll<HTMLButtonElement>(FOCUSABLE));
 
 /** Set tabindex so only `active` (or first) is in tab order. */
-export const syncVerticalToolbarTabIndices = (root: HTMLElement | null, active?: HTMLElement | null): void => {
+export const syncToolbarTabIndices = (root: HTMLElement | null, active?: HTMLElement | null): void => {
     if (!root) {
         return;
     }
@@ -25,6 +25,8 @@ export const syncVerticalToolbarTabIndices = (root: HTMLElement | null, active?:
         b.tabIndex = b === preferred ? 0 : -1;
     });
 };
+
+export const syncVerticalToolbarTabIndices = syncToolbarTabIndices;
 
 /** While >0, vertical toolbars are removed from the tab order (e.g. modal focus trap). */
 let verticalToolbarRovingPauseDepth = 0;
@@ -64,7 +66,7 @@ export const popVerticalToolbarRovingPause = (): void => {
             b.tabIndex = tabIndices[i] ?? -1;
         });
         if (root.isConnected) {
-            syncVerticalToolbarTabIndices(root);
+            syncToolbarTabIndices(root);
         }
     }
     pausedToolbarSnapshots = null;
@@ -99,4 +101,35 @@ export const handleVerticalToolbarKeyDown = (event: ReactKeyboardEvent<HTMLEleme
     const target = buttons[next];
     target?.focus();
     syncVerticalToolbarTabIndices(root, target);
+};
+
+export const handleHorizontalToolbarKeyDown = (event: ReactKeyboardEvent<HTMLElement>): void => {
+    const root = event.currentTarget;
+    const buttons = getToolbarButtons(root);
+    if (buttons.length === 0) {
+        return;
+    }
+    const key = event.key;
+    if (key !== 'ArrowRight' && key !== 'ArrowLeft' && key !== 'Home' && key !== 'End') {
+        return;
+    }
+    const current = document.activeElement;
+    const idx = current instanceof HTMLButtonElement ? buttons.indexOf(current) : -1;
+    let next = idx;
+    if (key === 'Home') {
+        next = 0;
+    } else if (key === 'End') {
+        next = buttons.length - 1;
+    } else if (key === 'ArrowRight') {
+        next = idx < 0 ? 0 : Math.min(buttons.length - 1, idx + 1);
+    } else {
+        next = idx < 0 ? buttons.length - 1 : Math.max(0, idx - 1);
+    }
+    if (next === idx && idx >= 0) {
+        return;
+    }
+    event.preventDefault();
+    const target = buttons[next];
+    target?.focus();
+    syncToolbarTabIndices(root, target);
 };
