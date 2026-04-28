@@ -9,6 +9,7 @@ import {
     FEATURED_OBJECTIVE_STREAK_MISS_DECAY,
     FINDABLE_MATCH_COMBO_SHARDS,
     FINDABLE_MATCH_SCORE,
+    GAUNTLET_FLOOR_CLEAR_TIME_BONUS_MS,
     FEATURED_OBJECTIVE_STREAK_BONUS_MAX,
     FEATURED_OBJECTIVE_STREAK_BONUS_PER_STEP,
     FLIP_PAR_BONUS_SCORE,
@@ -51,6 +52,8 @@ import {
     type RunShopOfferState,
     type RunState,
     type RunStatus,
+    type RouteChoice,
+    type RouteNodeType,
     type SessionStats,
     type Tile,
     type WeakerShuffleMode
@@ -137,9 +140,9 @@ const clamp = (value: number, min: number, max: number): number => Math.min(max,
 
 /** Documented in `docs/BALANCE_NOTES.md` (presentation mutator match penalties). */
 export const PRESENTATION_MUTATOR_MATCH_PENALTIES = {
-    wide_recall: 3,
-    silhouette_twist: 3,
-    distraction_channel: 2
+    wide_recall: 5,
+    silhouette_twist: 5,
+    distraction_channel: 4
 } as const;
 
 export const getPresentationMutatorMatchPenalty = (run: RunState): number => {
@@ -166,20 +169,156 @@ const createTimerState = (overrides?: Partial<RunState['timerState']>): RunState
 
 export const generateRouteChoices = (run: RunState, nextLevel: number): NonNullable<LevelResult['routeChoices']> => {
     const baseId = `${run.runRulesVersion}:${run.runSeed}:${nextLevel}`;
+    const greedDetail =
+        nextLevel % 3 === 0
+            ? 'Higher pressure route hook with vendor access after the next floor.'
+            : 'Higher pressure route hook for future shop, elite, or bonus rewards.';
+    const mysteryDetail =
+        nextLevel % 4 === 0
+            ? 'Hidden treasure or secret-room hook with capped bonus rewards.'
+            : 'Random event and secret-room hook with replayable local RNG.';
     return [
         {
             id: `${baseId}:safe`,
             routeType: 'safe',
             label: 'Safe passage',
-            detail: 'Standard next floor. Keep the run curve predictable.'
+            detail: 'Standard next floor. Keep the run curve predictable.',
+            rewardPreview: 'Recover 1 life if wounded; otherwise gain 1 guard token.'
         },
         {
             id: `${baseId}:greed`,
             routeType: 'greed',
             label: 'Greedy route',
-            detail: 'Higher pressure route hook for future shop, elite, or bonus rewards.'
+            detail: greedDetail,
+            rewardPreview: `+${ROUTE_GREED_SHOP_GOLD_REWARD} shop gold and +${ROUTE_GREED_SCORE_REWARD} score.`,
+            riskPreview: '-1 life; unavailable at 1 life.'
+        },
+        {
+            id: `${baseId}:mystery`,
+            routeType: 'mystery',
+            label: 'Mystery route',
+            detail: mysteryDetail,
+            rewardPreview: 'Deterministic local reward: gold, combo shard, or relic Favor.'
         }
     ];
+};
+
+export interface RouteChoiceOutcomeResult {
+    run: RunState;
+    applied: boolean;
+    routeType?: RouteNodeType;
+    reason?: 'missing_choice' | 'invalid_status' | 'unavailable';
+    summaryText?: string;
+}
+
+const mysteryRouteOutcomeFor = (run: RunState, clearedFloor: number): MysteryRouteOutcome => {
+    const outcomes: MysteryRouteOutcome[] = ['shop_gold', 'combo_shard', 'relic_favor'];
+    const seed = hashStringToSeed(`routeMystery:${run.runRulesVersion}:${run.runSeed}:${clearedFloor}`);
+    return outcomes[Math.abs(seed) % outcomes.length]!;
+};
+
+const addRouteScore = (run: RunState, score: number): RunState => {
+    const totalScore = run.stats.totalScore + score;
+    const bestScore = Math.max(run.stats.bestScore, totalScore);
+    return {
+        ...run,
+        stats: {
+            ...run.stats,
+            totalScore,
+            currentLevelScore: run.stats.currentLevelScore + score,
+            bestScore
+        },
+        lastLevelResult: run.lastLevelResult
+            ? {
+                  ...run.lastLevelResult,
+                  scoreGained: run.lastLevelResult.scoreGained + score
+              }
+            : run.lastLevelResult
+    };
+};
+
+const applyMysteryRouteOutcome = (run: RunState): { run: RunState; summaryText: string } => {
+    const clearedFloor = run.lastLevelResult?.level ?? run.board?.level ?? run.stats.highestLevel;
+    const outcome = mysteryRouteOutcomeFor(run, clearedFloor);
+    if (outcome === 'shop_gold') {
+        return {
+            run: { ...run, shopGold: run.shopGold + ROUTE_MYSTERY_SHOP_GOLD_REWARD },
+            summaryText: `Mystery route: +${ROUTE_MYSTERY_SHOP_GOLD_REWARD} shop gold.`
+        };
+    }
+    if (outcome === 'combo_shard') {
+        return {
+            run: {
+                ...run,
+                stats: {
+                    ...run.stats,
+                    comboShards: Math.min(MAX_COMBO_SHARDS, run.stats.comboShards + 1)
+                }
+            },
+            summaryText: 'Mystery route: +1 combo shard.'
+        };
+    }
+    const favor = gainRelicFavor(run, 1);
+    return {
+        run: {
+            ...run,
+            bonusRelicPicksNextOffer: favor.bonusRelicPicksNextOffer,
+            favorBonusRelicPicksNextOffer: favor.favorBonusRelicPicksNextOffer,
+            relicFavorProgress: favor.relicFavorProgress
+        },
+        summaryText: 'Mystery route: +1 relic Favor.'
+    };
+};
+
+export const applyRouteChoiceOutcome = (run: RunState, choiceId: string): RouteChoiceOutcomeResult => {
+    if (run.status !== 'levelComplete') {
+        return { run, applied: false, reason: 'invalid_status' };
+    }
+    const choice: RouteChoice | undefined = run.lastLevelResult?.routeChoices?.find((item) => item.id === choiceId);
+    if (!choice) {
+        return { run, applied: false, reason: 'missing_choice' };
+    }
+    if (choice.routeType === 'safe') {
+        if (run.lives < MAX_LIVES) {
+            const nextRun = {
+                ...run,
+                lives: run.lives + 1,
+                lastLevelResult: run.lastLevelResult
+                    ? { ...run.lastLevelResult, livesRemaining: run.lives + 1 }
+                    : run.lastLevelResult
+            };
+            return { run: nextRun, applied: true, routeType: choice.routeType, summaryText: 'Safe route: +1 life.' };
+        }
+        const guardTokens = Math.min(MAX_GUARD_TOKENS, run.stats.guardTokens + 1);
+        return {
+            run: { ...run, stats: { ...run.stats, guardTokens } },
+            applied: true,
+            routeType: choice.routeType,
+            summaryText: 'Safe route: +1 guard token.'
+        };
+    }
+    if (choice.routeType === 'greed') {
+        if (run.lives <= 1) {
+            return { run, applied: false, routeType: choice.routeType, reason: 'unavailable' };
+        }
+        const scored = addRouteScore(run, ROUTE_GREED_SCORE_REWARD);
+        const nextRun = {
+            ...scored,
+            lives: scored.lives - 1,
+            shopGold: scored.shopGold + ROUTE_GREED_SHOP_GOLD_REWARD,
+            lastLevelResult: scored.lastLevelResult
+                ? { ...scored.lastLevelResult, livesRemaining: scored.lives - 1 }
+                : scored.lastLevelResult
+        };
+        return {
+            run: nextRun,
+            applied: true,
+            routeType: choice.routeType,
+            summaryText: `Greedy route: +${ROUTE_GREED_SHOP_GOLD_REWARD} shop gold, +${ROUTE_GREED_SCORE_REWARD} score, -1 life.`
+        };
+    }
+    const outcome = applyMysteryRouteOutcome(run);
+    return { run: outcome.run, applied: true, routeType: choice.routeType, summaryText: outcome.summaryText };
 };
 
 export const SHOP_ITEM_CATALOG: Record<
@@ -204,8 +343,8 @@ export const SHOP_ITEM_CATALOG: Record<
         description: 'Add 1 peek charge for this run.',
         category: 'service',
         compatibleWhen: 'owned',
-        baseCost: 1,
-        cost: 1,
+        baseCost: 2,
+        cost: 2,
         stock: 1,
         maxStock: 1,
         stackLimit: null
@@ -216,8 +355,8 @@ export const SHOP_ITEM_CATALOG: Record<
         description: 'Add 1 destroy charge, capped by the current bank limit.',
         category: 'service',
         compatibleWhen: 'not_capped',
-        baseCost: 2,
-        cost: 2,
+        baseCost: 3,
+        cost: 3,
         stock: 1,
         maxStock: 1,
         stackLimit: MAX_DESTROY_PAIR_BANK
@@ -429,6 +568,14 @@ const getClearLifeReason = (tries: number): ClearLifeReason => {
     if (tries === 1) return 'clean';
     return 'none';
 };
+
+const ROUTE_GREED_SHOP_GOLD_REWARD = 3;
+const ROUTE_GREED_SCORE_REWARD = 35;
+const ROUTE_MYSTERY_SHOP_GOLD_REWARD = 2;
+type MysteryRouteOutcome = 'shop_gold' | 'combo_shard' | 'relic_favor';
+
+const hasFirstMismatchGrace = (run: RunState, board: BoardState): boolean =>
+    run.stats.tries === 0 && (board.level === 1 || (run.stats.guardTokens === 0 && run.lives >= 2));
 
 const applyComboShardGain = (
     comboShards: number,
@@ -2030,6 +2177,10 @@ const finalizeLevel = (run: RunState, board: BoardState): RunState => {
         parasiteFloors,
         featuredObjectiveStreak,
         endlessRiskWager: activeEndlessRiskWager ? null : run.endlessRiskWager,
+        gauntletDeadlineMs:
+            run.gameMode === 'gauntlet' && run.gauntletDeadlineMs !== null
+                ? run.gauntletDeadlineMs + GAUNTLET_FLOOR_CLEAR_TIME_BONUS_MS
+                : run.gauntletDeadlineMs,
         board,
         stats: {
             ...run.stats,
@@ -2373,7 +2524,7 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
     }
 
     const tries = run.stats.tries + GAMBIT_FAIL_EXTRA_TRIES;
-    const hasGraceMismatch = run.stats.tries === 0;
+    const hasGraceMismatch = hasFirstMismatchGrace(run, run.board);
     const consumesGuardToken = !hasGraceMismatch && run.stats.guardTokens > 0;
     const lostLife = !hasGraceMismatch && !consumesGuardToken;
     let lives = lostLife ? run.lives - 1 : run.lives;
@@ -2537,7 +2688,7 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
     }
 
     const tries = run.stats.tries + 1;
-    const hasGraceMismatch = run.stats.tries === 0;
+    const hasGraceMismatch = hasFirstMismatchGrace(run, run.board);
     const consumesGuardToken = !hasGraceMismatch && run.stats.guardTokens > 0;
     const lostLife = !hasGraceMismatch && !consumesGuardToken;
     let lives = lostLife ? run.lives - 1 : run.lives;
@@ -2667,7 +2818,7 @@ export const advanceToNextLevel = (run: RunState): RunState => {
     }
 
     const cleanClearDestroyBonus =
-        run.lastLevelResult !== null && run.lastLevelResult.mistakes <= 1 ? 1 : 0;
+        run.lastLevelResult !== null && run.lastLevelResult.mistakes === 0 ? 1 : 0;
     const nextDestroyPairCharges = Math.min(
         MAX_DESTROY_PAIR_BANK,
         run.destroyPairCharges + cleanClearDestroyBonus

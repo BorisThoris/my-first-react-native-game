@@ -464,17 +464,17 @@ const RELIC_OFFER_SERVICE_CATALOG: Record<
     reroll_offer: {
         label: 'Reroll offer',
         description: 'Spend shop gold to roll a fresh relic trio once this draft round.',
-        cost: 1
+        cost: 2
     },
     ban_option: {
         label: 'Ban option',
         description: 'Spend shop gold to remove the first visible relic from this visit.',
-        cost: 1
+        cost: 2
     },
     upgrade_offer: {
         label: 'Upgrade offer',
         description: 'Spend shop gold to bias the visible choices toward uncommon and rare relics.',
-        cost: 2
+        cost: 3
     }
 };
 

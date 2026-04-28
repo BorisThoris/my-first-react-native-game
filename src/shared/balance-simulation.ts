@@ -202,7 +202,7 @@ export const BALANCE_SIMULATION_BASELINE = {
     findablePickupPairs: { min: 12, max: 24 },
     bossFloors: { min: 2, max: 2 },
     breatherFloors: { min: 3, max: 3 },
-    shopSinkBudget: { min: 20, max: 24 }
+    shopSinkBudget: { min: 28, max: 28 }
 } as const;
 
 export const assertBalanceSimulationWithinBaseline = (

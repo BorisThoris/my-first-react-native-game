@@ -4,10 +4,13 @@ Post-relic / post-mutator tuning. Constants live in `src/shared/contracts.ts` un
 
 ## Recent intent
 
+- **Rules v16 higher tension rebalance:** objective and boss rewards are larger, but missed objective streaks decay faster, first-mismatch grace narrows after floor 1, mistake recovery grants less memorize time, clean clears no longer award destroy charges, and shop / relic services cost more.
+
 - **Memorize:** `MEMORIZE_BASE_MS` / steps tuned for mobile readability; mutator `short_memorize` stacks with relic memorize bonus — floor 1 should never feel instant-fail.  
 - **Lives:** `INITIAL_LIVES` / `MAX_LIVES` — `score_parasite` drain must not kill from full health in a single floor transition without telegraph (floors advanced counter).  
 - **Powers:** `INITIAL_SHUFFLE_CHARGES`, `MAX_DESTROY_PAIR_BANK` — relics that add charges should not trivialize **Scholar** contract runs; contract still hard-disables shuffle/destroy where set.  
-- **Gauntlet:** Menu presets **5 / 10 / 15** minutes; default factory still **10m** when unspecified. If expiry feels harsh, add +30s per floor cleared (future).
+- **Gauntlet:** Menu presets **5 / 10 / 15** minutes; default factory still **10m** when unspecified. Each cleared floor extends the deadline by **+30s**, rewarding pace without removing the timer fail state.
+- **Routes:** Floor clears expose **Safe / Greed / Mystery** choices. Shared rules can now apply outcomes: Safe recovers life or guard, Greed pays gold/score for life risk, Mystery rolls deterministic local gold/shard/Favor rewards.
 - **Wild joker metadata:** `RunState.wildTileId` is set to the wild tile’s `id` whenever the board includes `WILD_PAIR_KEY` (`getWildTileIdFromBoard` on run start and after each level advance). Matching logic is unchanged (`pairKey`-driven).
 
 ## Process
@@ -53,8 +56,8 @@ Flat per-match score subtractions from `getPresentationMutatorMatchPenalty` (sta
 
 | Mutator | Penalty per successful match |
 |---------|------------------------------|
-| `wide_recall` | 3 |
-| `silhouette_twist` | 3 |
-| `distraction_channel` | 2 |
+| `wide_recall` | 5 |
+| `silhouette_twist` | 5 |
+| `distraction_channel` | 4 |
 
 These are defined next to `getPresentationMutatorMatchPenalty` in `game.ts` (not `contracts.ts`). Tuning them affects endless/daily runs that stack presentation mutators; keep `game.test.ts` presentation penalty test in sync when values change.

@@ -8,16 +8,18 @@
  */
 export const SAVE_SCHEMA_VERSION = 5;
 /** Bump when generation rules change (tile order, mutators, pair layout). */
-export const GAME_RULES_VERSION = 15;
+export const GAME_RULES_VERSION = 17;
 export const INITIAL_LIVES = 4;
 /** Hard cap on life total during a run; HUD renders this many heart slots (PLAY-004 — honest max, not mock’s three). */
 export const MAX_LIVES = 5;
 export const MATCH_DELAY_MS = 850;
 export const FEATURED_OBJECTIVE_STREAK_BONUS_PER_STEP = 10;
 export const FEATURED_OBJECTIVE_STREAK_BONUS_MAX = 50;
-export const FEATURED_OBJECTIVE_STREAK_MISS_DECAY = 1;
+export const FEATURED_OBJECTIVE_STREAK_MISS_DECAY = 2;
 export const ENDLESS_RISK_WAGER_MIN_STREAK = 2;
 export const ENDLESS_RISK_WAGER_BONUS_FAVOR = 2;
+/** Timed gauntlet reward for clearing a floor before the clock expires. */
+export const GAUNTLET_FLOOR_CLEAR_TIME_BONUS_MS = 30_000;
 /** REG-015: temporary run-only shop wallet earned on floor clear. Never persisted outside RunState. */
 export const FLOOR_CLEAR_GOLD_BASE = 3;
 /** Minimum value for Settings → Gameplay → Resolve Delay — keep in sync with `SettingsScreen` slider `min`. */
@@ -29,7 +31,7 @@ export const MEMORIZE_MIN_MS = 600;
 /** Memorize time drops by MEMORIZE_STEP_MS once per this many levels (so pairs and timer do not spike together every floor). */
 export const MEMORIZE_DECAY_EVERY_N_LEVELS = 2;
 /** After a life is lost to a mismatch, this many ms are banked for the next level's memorize phase (capped). */
-export const MEMORIZE_BONUS_PER_LIFE_LOST_MS = 220;
+export const MEMORIZE_BONUS_PER_LIFE_LOST_MS = 160;
 export const MAX_PENDING_MEMORIZE_BONUS_MS = 500;
 export const COMBO_GUARD_STREAK_STEP = 4;
 export const CHAIN_HEAL_STREAK_STEP = 8;
@@ -41,18 +43,19 @@ export const MAX_DESTROY_PAIR_BANK = 2;
 export const MAX_PINNED_TILES = 3;
 
 /** Bonus score when the floor is cleared without shuffle or destroy (per-floor). */
-export const SCHOLAR_STYLE_FLOOR_BONUS_SCORE = 40;
+/** Rules v16 higher-tension rebalance: optional objectives pay harder, but missed streaks decay faster. */
+export const SCHOLAR_STYLE_FLOOR_BONUS_SCORE = 50;
 /** Bonus when glass_floor decoy was never involved in a mismatch this floor. */
-export const GLASS_WITNESS_BONUS_SCORE = 35;
+export const GLASS_WITNESS_BONUS_SCORE = 45;
 /** GP-O02: match cursed pair last among real pairs. */
-export const CURSED_LAST_BONUS_SCORE = 50;
+export const CURSED_LAST_BONUS_SCORE = 65;
 /** GP-O03: clear within flip par (match resolutions). */
-export const FLIP_PAR_BONUS_SCORE = 30;
+export const FLIP_PAR_BONUS_SCORE = 45;
 /** `shifting_spotlight`: extra score when the current bounty pair is matched. */
-export const SHIFTING_BOUNTY_MATCH_BONUS = 22;
+export const SHIFTING_BOUNTY_MATCH_BONUS = 30;
 /** `shifting_spotlight`: subtracted from match score when the current ward pair is matched (floored at 0 with base match). */
-export const SHIFTING_WARD_MATCH_PENALTY = 15;
-export const BOSS_FLOOR_SCORE_MULTIPLIER = 1.15;
+export const SHIFTING_WARD_MATCH_PENALTY = 22;
+export const BOSS_FLOOR_SCORE_MULTIPLIER = 1.25;
 
 export type DisplayMode = 'windowed' | 'fullscreen';
 export type TileState = 'hidden' | 'flipped' | 'matched' | 'removed';
@@ -403,6 +406,8 @@ export interface RouteChoice {
     routeType: RouteNodeType;
     label: string;
     detail: string;
+    rewardPreview?: string;
+    riskPreview?: string;
 }
 
 export interface RunSummary {

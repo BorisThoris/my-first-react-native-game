@@ -284,7 +284,7 @@ describe('REG-078 relic offer services', () => {
         const run = openOfferRun();
         const rerolled = applyRelicOfferService(run, 'reroll_offer');
         expect(rerolled.applied).toBe(true);
-        expect(rerolled.run.shopGold).toBe(run.shopGold - 1);
+        expect(rerolled.run.shopGold).toBe(run.shopGold - 2);
         expect(rerolled.run.relicOffer?.options).not.toEqual(run.relicOffer?.options);
         expect(applyRelicOfferService(rerolled.run, 'reroll_offer').applied).toBe(false);
 
@@ -299,7 +299,7 @@ describe('REG-078 relic offer services', () => {
         const upgraded = applyRelicOfferService(run, 'upgrade_offer');
 
         expect(upgraded.applied).toBe(true);
-        expect(upgraded.run.shopGold).toBe(run.shopGold - 2);
+        expect(upgraded.run.shopGold).toBe(run.shopGold - 3);
         expect(upgraded.run.relicOffer?.upgradedOffer).toBe(true);
         const rarities = upgraded.run.relicOffer!.options.map((id) => getRelicDraftRow(id).rarity);
         expect(rarities.some((rarity) => rarity !== 'common')).toBe(true);

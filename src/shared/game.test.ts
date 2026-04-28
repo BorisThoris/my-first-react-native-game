@@ -8,10 +8,12 @@ import {
     FINDABLE_MATCH_SCORE,
     FLIP_PAR_BONUS_SCORE,
     FLOOR_CLEAR_GOLD_BASE,
+    GAUNTLET_FLOOR_CLEAR_TIME_BONUS_MS,
     GAME_RULES_VERSION,
     MATCH_DELAY_MS,
     MAX_DESTROY_PAIR_BANK,
     MAX_LIVES,
+    MEMORIZE_BONUS_PER_LIFE_LOST_MS,
     SHIFTING_BOUNTY_MATCH_BONUS,
     SHIFTING_WARD_MATCH_PENALTY
 } from './contracts';
@@ -21,6 +23,7 @@ import {
     applyDestroyPair,
     applyFlashPair,
     applyRegionShuffle,
+    applyRouteChoiceOutcome,
     applyShuffle,
     buildBoard,
     calculateMatchScore,
@@ -35,6 +38,7 @@ import {
     countFullyHiddenPairs,
     createRunShopOffers,
     createDailyRun,
+    createGauntletRun,
     createNewRun,
     createWildRun,
     enableDebugPeek,
@@ -231,23 +235,96 @@ describe('REG-017 route choices', () => {
     it('adds deterministic local route options to eligible endless floor clears', () => {
         const finished = playPerfectFloors(createNewRun(0, { echoFeedbackEnabled: false, runSeed: 17_001 }), 1);
 
-        expect(finished.lastLevelResult?.routeChoices).toEqual([
+        expect(finished.lastLevelResult?.routeChoices).toMatchObject([
             {
-                id: '15:17001:2:safe',
+                id: '17:17001:2:safe',
                 routeType: 'safe',
                 label: 'Safe passage',
                 detail: 'Standard next floor. Keep the run curve predictable.'
             },
             {
-                id: '15:17001:2:greed',
+                id: '17:17001:2:greed',
                 routeType: 'greed',
                 label: 'Greedy route',
                 detail: 'Higher pressure route hook for future shop, elite, or bonus rewards.'
+            },
+            {
+                id: '17:17001:2:mystery',
+                routeType: 'mystery',
+                label: 'Mystery route',
+                detail: 'Random event and secret-room hook with replayable local RNG.'
             }
         ]);
         expect(playPerfectFloors(createNewRun(0, { echoFeedbackEnabled: false, runSeed: 17_001 }), 1).lastLevelResult?.routeChoices).toEqual(
             finished.lastLevelResult?.routeChoices
         );
+    });
+
+    it('applies safe route recovery, then guard when already full', () => {
+        const cleared = playPerfectFloors(createNewRun(0, { echoFeedbackEnabled: false, runSeed: 17_002 }), 1);
+        const safeId = cleared.lastLevelResult!.routeChoices!.find((choice) => choice.routeType === 'safe')!.id;
+
+        const healed = applyRouteChoiceOutcome({ ...cleared, lives: 3 }, safeId);
+        expect(healed.applied).toBe(true);
+        expect(healed.run.lives).toBe(4);
+        expect(healed.run.lastLevelResult?.livesRemaining).toBe(4);
+
+        const guarded = applyRouteChoiceOutcome({ ...cleared, lives: MAX_LIVES }, safeId);
+        expect(guarded.applied).toBe(true);
+        expect(guarded.run.stats.guardTokens).toBe(cleared.stats.guardTokens + 1);
+    });
+
+    it('applies greedy route payout and refuses greed at one life', () => {
+        const cleared = playPerfectFloors(createNewRun(0, { echoFeedbackEnabled: false, runSeed: 17_003 }), 1);
+        const greedId = cleared.lastLevelResult!.routeChoices!.find((choice) => choice.routeType === 'greed')!.id;
+        const beforeScore = cleared.stats.totalScore;
+        const beforeGold = cleared.shopGold;
+
+        const greedy = applyRouteChoiceOutcome(cleared, greedId);
+        expect(greedy.applied).toBe(true);
+        expect(greedy.run.shopGold).toBe(beforeGold + 3);
+        expect(greedy.run.stats.totalScore).toBe(beforeScore + 35);
+        expect(greedy.run.lastLevelResult?.scoreGained).toBe(cleared.lastLevelResult!.scoreGained + 35);
+        expect(greedy.run.lives).toBe(cleared.lives - 1);
+
+        const refused = applyRouteChoiceOutcome({ ...cleared, lives: 1 }, greedId);
+        expect(refused.applied).toBe(false);
+        expect(refused.reason).toBe('unavailable');
+        expect(refused.run.lives).toBe(1);
+    });
+
+    it('applies deterministic mystery route rewards and can convert Favor into a relic pick', () => {
+        const cleared = playPerfectFloors(createNewRun(0, { echoFeedbackEnabled: false, runSeed: 17_004 }), 1);
+        const mysteryId = cleared.lastLevelResult!.routeChoices!.find((choice) => choice.routeType === 'mystery')!.id;
+        const first = applyRouteChoiceOutcome(cleared, mysteryId);
+        const second = applyRouteChoiceOutcome(cleared, mysteryId);
+
+        expect(first.applied).toBe(true);
+        expect(second.run).toEqual(first.run);
+
+        let favorCase: RunState | null = null;
+        for (let seed = 17_100; seed < 17_180; seed += 1) {
+            const candidate = playPerfectFloors(createNewRun(0, { echoFeedbackEnabled: false, runSeed: seed }), 1);
+            const choice = candidate.lastLevelResult!.routeChoices!.find((route) => route.routeType === 'mystery')!;
+            const result = applyRouteChoiceOutcome({ ...candidate, relicFavorProgress: 2 }, choice.id);
+            if (result.summaryText?.includes('relic Favor')) {
+                favorCase = result.run;
+                break;
+            }
+        }
+
+        expect(favorCase).not.toBeNull();
+        expect(favorCase!.relicFavorProgress).toBe(0);
+        expect(favorCase!.bonusRelicPicksNextOffer).toBeGreaterThan(0);
+        expect(favorCase!.favorBonusRelicPicksNextOffer).toBeGreaterThan(0);
+    });
+
+    it('does not apply route choices outside level complete state or with missing ids', () => {
+        const cleared = playPerfectFloors(createNewRun(0, { echoFeedbackEnabled: false, runSeed: 17_005 }), 1);
+        const safeId = cleared.lastLevelResult!.routeChoices!.find((choice) => choice.routeType === 'safe')!.id;
+
+        expect(applyRouteChoiceOutcome({ ...cleared, status: 'playing' }, safeId).reason).toBe('invalid_status');
+        expect(applyRouteChoiceOutcome(cleared, 'missing').reason).toBe('missing_choice');
     });
 });
 
@@ -393,8 +470,8 @@ describe('endless chapters and featured objectives', () => {
 
         expect(finished.status).toBe('levelComplete');
         expect(finished.lastLevelResult?.featuredObjectiveCompleted).toBe(false);
-        expect(finished.featuredObjectiveStreak).toBe(2);
-        expect(finished.lastLevelResult?.featuredObjectiveStreak).toBe(2);
+        expect(finished.featuredObjectiveStreak).toBe(1);
+        expect(finished.lastLevelResult?.featuredObjectiveStreak).toBe(1);
         expect(finished.lastLevelResult?.featuredObjectiveStreakBonus).toBeUndefined();
     });
 
@@ -737,7 +814,7 @@ describe('game rules', () => {
             activeMutators: ['wide_recall', 'silhouette_twist', 'distraction_channel'] as MutatorId[]
         };
         const penalty = getPresentationMutatorMatchPenalty(started);
-        expect(penalty).toBe(8);
+        expect(penalty).toBe(14);
         const resolved = resolveBoardTurn(flipTile(flipTile(started, 'a1'), 'a2'));
         const base = calculateMatchScore(1, 1, 1);
         expect(resolved.stats.totalScore).toBe(Math.max(0, base - penalty));
@@ -796,6 +873,33 @@ describe('game rules', () => {
         expect(resolved.stats.currentStreak).toBe(0);
     });
 
+    it('spends guard or life on the first mismatch after floor 1 instead of granting broad grace', () => {
+        const tiles: Tile[] = [
+            createTile('a1', 'A', 'A'),
+            createTile('a2', 'A', 'A'),
+            createTile('b1', 'B', 'B'),
+            createTile('b2', 'B', 'B')
+        ];
+        const floorTwoBoard = { ...createBoard(tiles), level: 2 };
+        const guarded = {
+            ...createRun(tiles),
+            board: floorTwoBoard,
+            stats: { ...createRun(tiles).stats, guardTokens: 1 }
+        };
+        const guardedResolved = resolveBoardTurn(flipTile(flipTile(guarded, 'a1'), 'b1'));
+        expect(guardedResolved.lives).toBe(4);
+        expect(guardedResolved.stats.guardTokens).toBe(0);
+
+        const lastLife = {
+            ...createRun(tiles),
+            board: floorTwoBoard,
+            lives: 1
+        };
+        const lastLifeResolved = resolveBoardTurn(flipTile(flipTile(lastLife, 'a1'), 'b1'));
+        expect(lastLifeResolved.status).toBe('gameOver');
+        expect(lastLifeResolved.lives).toBe(0);
+    });
+
     it('banks memorize bonus when a life is lost and applies it on the next level', () => {
         const tiles: Tile[] = [
             createTile('a1', 'A', 'A'),
@@ -809,7 +913,7 @@ describe('game rules', () => {
         };
         const afterLifeLoss = resolveBoardTurn(flipTile(flipTile(started, 'a1'), 'b1'));
         expect(afterLifeLoss.lives).toBe(3);
-        expect(afterLifeLoss.pendingMemorizeBonusMs).toBeGreaterThan(0);
+        expect(afterLifeLoss.pendingMemorizeBonusMs).toBe(MEMORIZE_BONUS_PER_LIFE_LOST_MS);
 
         const finishedLevel = {
             ...afterLifeLoss,
@@ -884,8 +988,8 @@ describe('game rules', () => {
 
         expect(resolved.status).toBe('levelComplete');
         expect(resolved.lives).toBe(5);
-        expect(resolved.stats.totalScore).toBe(145);
-        expect(resolved.stats.currentLevelScore).toBe(145);
+        expect(resolved.stats.totalScore).toBe(155);
+        expect(resolved.stats.currentLevelScore).toBe(155);
         expect(resolved.stats.bestStreak).toBe(1);
         expect(resolved.stats.perfectClears).toBe(1);
         expect(resolved.lastLevelResult?.perfect).toBe(true);
@@ -908,7 +1012,7 @@ describe('game rules', () => {
         expect(firstMatch.stats.totalScore).toBe(30);
         expect(firstMatch.stats.currentStreak).toBe(1);
         expect(secondMatch.status).toBe('levelComplete');
-        expect(secondMatch.stats.totalScore).toBe(215);
+        expect(secondMatch.stats.totalScore).toBe(240);
         expect(secondMatch.stats.bestStreak).toBe(2);
     });
 
@@ -925,7 +1029,7 @@ describe('game rules', () => {
 
         expect(resolved.status).toBe('levelComplete');
         expect(resolved.lives).toBe(5);
-        expect(resolved.stats.totalScore).toBe(190);
+        expect(resolved.stats.totalScore).toBe(215);
         expect(resolved.lastLevelResult?.perfect).toBe(false);
         expect(resolved.lastLevelResult?.mistakes).toBe(1);
         expect(resolved.lastLevelResult?.clearLifeReason).toBe('clean');
@@ -1105,7 +1209,7 @@ describe('game rules', () => {
         expect(nextRun.pinnedTileIds).toEqual([]);
     });
 
-    it('grants destroy charge on clean clear when advancing and respects cap', () => {
+    it('grants destroy charge on perfect clear when advancing and respects cap', () => {
         const base = {
             ...createNewRun(0),
             status: 'levelComplete' as const,
@@ -1116,13 +1220,19 @@ describe('game rules', () => {
                 scoreGained: 100,
                 rating: 'S' as const,
                 livesRemaining: 4,
-                perfect: false,
-                mistakes: 1,
-                clearLifeReason: 'clean' as const,
+                perfect: true,
+                mistakes: 0,
+                clearLifeReason: 'perfect' as const,
                 clearLifeGained: 0
             }
         };
         expect(advanceToNextLevel(base).destroyPairCharges).toBe(1);
+
+        const clean = {
+            ...base,
+            lastLevelResult: { ...base.lastLevelResult!, perfect: false, mistakes: 1, clearLifeReason: 'clean' as const }
+        };
+        expect(advanceToNextLevel(clean).destroyPairCharges).toBe(0);
 
         const dirty = { ...base, lastLevelResult: { ...base.lastLevelResult!, mistakes: 2 } };
         expect(advanceToNextLevel(dirty).destroyPairCharges).toBe(0);
@@ -1867,7 +1977,7 @@ describe('active contract limits', () => {
             activeContract: { noShuffle: true, noDestroy: true, maxMismatches: null }
         };
         const penalty = getPresentationMutatorMatchPenalty(run);
-        expect(penalty).toBe(2);
+        expect(penalty).toBe(4);
         const resolved = resolveBoardTurn(flipTile(flipTile(run, 'a1'), 'a2'));
         const base = calculateMatchScore(1, 1, 1);
         expect(resolved.stats.totalScore).toBe(Math.max(0, base - penalty));
@@ -2156,5 +2266,14 @@ describe('gauntlet deadline', () => {
             gauntletDeadlineMs: Date.now() + 86_400_000
         };
         expect(isGauntletExpired(run)).toBe(false);
+    });
+
+    it('extends the deadline on each gauntlet floor clear', () => {
+        const started = finishMemorizePhase(createGauntletRun(0, 60_000));
+        const deadline = 1_900_000;
+        const finished = clearRealPairs({ ...started, gauntletDeadlineMs: deadline });
+
+        expect(finished.status).toBe('levelComplete');
+        expect(finished.gauntletDeadlineMs).toBe(deadline + GAUNTLET_FLOOR_CLEAR_TIME_BONUS_MS);
     });
 });
