@@ -65,8 +65,13 @@ export const BOSS_ENCOUNTER_IDENTITY: BossEliteEncounterIdentity = {
     id: 'boss_floor_identity',
     label: 'Boss floor',
     readRule: 'Boss floors must display a boss tag, a chapter/risk note, and at least one named pressure mechanic before or during play.',
-    mechanics: ['Boss floorTag.', 'Chapter schedule pressure mutators.', 'Featured objective favor bonus.'],
-    rewardHook: '+2 Favor on featured-objective success.',
+    mechanics: [
+        'Boss floorTag.',
+        'Chapter schedule pressure mutators.',
+        'Featured objective favor bonus.',
+        'Keystone Pair board anchor.'
+    ],
+    rewardHook: 'Keystone Pair route anchor plus +2 Favor on featured-objective success.',
     scoreRule: `${BOSS_FLOOR_SCORE_MULTIPLIER}x score multiplier after floor subtotal bonuses.`,
     presentationSlots: [...PRESENTATION_SLOTS],
     offlineOnly: true
@@ -77,8 +82,12 @@ export const ELITE_ENCOUNTER_IDENTITY: BossEliteEncounterIdentity = {
     id: 'elite_route_identity',
     label: 'Elite memory',
     readRule: 'Elite nodes must be greed-route pressure hooks: clearly harder than combat, not a vendor/rest/treasure node.',
-    mechanics: ['Greed route node.', 'Higher pressure floor hook.', 'Future elite-specific mutator/reward slot.'],
-    rewardHook: 'Eligible for bonus reward hooks without durable economy changes.',
+    mechanics: [
+        'Greed route node.',
+        'Higher pressure floor hook.',
+        'Elite Cache, Final Ward, or Omen Seal hard-route board anchor.'
+    ],
+    rewardHook: 'Route-specific elite anchors pay gold, guard/combo, or Favor/combo without boss score rules.',
     scoreRule: 'Uses normal floor scoring until a future elite multiplier is explicitly versioned.',
     presentationSlots: [...PRESENTATION_SLOTS],
     offlineOnly: true
@@ -104,6 +113,7 @@ export const getBossEncounterIdentityForFloor = (
         payoffCopy: `Boss pressure: ${BOSS_ENCOUNTER_IDENTITY.scoreRule} ${BOSS_ENCOUNTER_IDENTITY.rewardHook} Placeholder slots are documented.`,
         mechanics: [
             ...mechanicCopy(entry.mutators, entry.floorArchetypeId),
+            'Keystone Pair board anchor.',
             entry.riskProfile ? `Risk read: ${entry.riskProfile}` : 'Risk read: boss pressure.'
         ]
     };

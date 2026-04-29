@@ -19,9 +19,11 @@ describe('modeArt vs run-mode-catalog', () => {
     it('REG-013 documents custom vs fallback poster coverage', () => {
         const rows = getModePosterArtRows();
         expect(rows.find((row) => row.key === 'classic')?.status).toBe('custom');
-        expect(rows.find((row) => row.key === 'gauntlet')?.fallbackKey).toBe(MODE_POSTER_FALLBACK_KEY);
+        expect(rows.find((row) => row.key === MODE_POSTER_FALLBACK_KEY)?.status).toBe('fallback');
+        expect(rows.find((row) => row.key === 'gauntlet')?.status).toBe('custom');
         expect(modePosterHasCustomArt('daily')).toBe(true);
-        expect(modePosterHasCustomArt('scholar')).toBe(false);
+        expect(modePosterHasCustomArt('scholar')).toBe(true);
+        expect(RUN_MODE_CATALOG.every((mode) => modePosterHasCustomArt(mode.posterKey))).toBe(true);
         expect(rows.every((row) => row.assetUrl.length > 0)).toBe(true);
     });
 });

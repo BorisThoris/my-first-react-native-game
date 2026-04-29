@@ -23,6 +23,7 @@
 | Resolve timer after 2+ flips | `computeFlipResolveDelayMs`, `timerState.resolveRemainingMs` | [epic-core-memory-loop](./epic-core-memory-loop.md) |
 | Pause / resume (timers) | `pauseRun`, `resumeRun` | [epic-run-session-flow](./epic-run-session-flow.md) |
 | Level complete → advance or relic offer | `openRelicOffer`, `completeRelicPickAndAdvance`, `advanceToNextLevel` | [epic-relics](./epic-relics.md), [epic-run-session-flow](./epic-run-session-flow.md) |
+| Route choice → side room → next board plan | `applyRouteChoiceOutcome`, `openRouteSideRoom`, `claimRouteSideRoomPrimary`, `skipRouteSideRoom`, `pendingRouteCardPlan` | [epic-route-world-pipeline](./epic-route-world-pipeline.md) |
 | Game over / summary | `createRunSummary`, store `applyResolvedRun` | [epic-meta-progression](./epic-meta-progression.md) |
 | Restart / end run | `restartRun`, `endRun` | [epic-modes-and-runs](./epic-modes-and-runs.md), [epic-run-session-flow](./epic-run-session-flow.md) |
 | Gauntlet expiry | `isGauntletExpired`, `gauntletDeadlineMs` | [epic-lives-and-pressure](./epic-lives-and-pressure.md) |
@@ -44,6 +45,8 @@
 | Board complete check | `isBoardComplete`, `countFullyHiddenPairs` | Sim |
 | Pair proximity hint (Manhattan) | `getPairProximityGridDistance` | [epic-board-rendering-assists](./epic-board-rendering-assists.md) |
 | Focus dim set (assist) | `computeFocusDimmedTileIds` in `focusDimmedTileIds.ts` | [epic-board-rendering-assists](./epic-board-rendering-assists.md) |
+| Route-world profile and route cards | `deriveRouteWorldProfile`, `assignRouteWorldSpecials`, `BoardState.routeWorldProfile`, `Tile.routeCardKind`, `Tile.routeSpecialKind` | [epic-route-world-pipeline](./epic-route-world-pipeline.md) |
+| Boss/elite route anchors | `keystone_pair`, `elite_cache`, `final_ward`, `omen_seal` route specials | [epic-route-world-pipeline](./epic-route-world-pipeline.md), [boss-encounters](../../src/shared/boss-encounters.ts) |
 
 ---
 
@@ -60,6 +63,7 @@
 | Shifting spotlight scoring + rotation | `shiftingSpotlightMatchDelta`, `withRotatedShiftingSpotlight` | [epic-mutators](./epic-mutators.md), [epic-board-rendering-assists](./epic-board-rendering-assists.md) |
 | Cursed pair early match flag | `cursedMatchedEarlyThisFloor` | [epic-core-memory-loop](./epic-core-memory-loop.md) |
 | Findables on match | `findableKind`, `findablesClaimedThisFloor` | [epic-mutators](./epic-mutators.md) |
+| Route rewards on match | `getRouteCardReward`, route special cleanup in match resolution | [epic-route-world-pipeline](./epic-route-world-pipeline.md) |
 | N-back anchor counter / key | `nBackMatchCounter`, `nBackAnchorPairKey` | [epic-mutators](./epic-mutators.md), [epic-board-rendering-assists](./epic-board-rendering-assists.md) |
 | Encore pair keys (spaced bonus) | `matchedPairKeysThisRun`, `encorePairKeysLastRun` | [epic-scoring-objectives](./epic-scoring-objectives.md) |
 
@@ -102,12 +106,15 @@
 | Region shuffle | `canRegionShuffle`, `canRegionShuffleRow`, `armRegionShuffleRow`, `applyRegionShuffle` | `armRegionShuffleRowPick`, `shuffleRegionRow` | [epic-powers-and-interactions](./epic-powers-and-interactions.md) |
 | Region charges / arm row / free first | `regionShuffleCharges`, `regionShuffleRowArmed`, `regionShuffleFreeThisFloor` | — | [epic-relics](./epic-relics.md) |
 | Destroy pair | `applyDestroyPair`, `canDestroyPair` | `pressTile` when armed | [epic-powers-and-interactions](./epic-powers-and-interactions.md) |
+| Destroy-denied route rewards | `applyDestroyPair` clears route metadata before reward resolution | `pressTile` when armed | [epic-route-world-pipeline](./epic-route-world-pipeline.md) |
 | Destroy charges | `destroyPairCharges` | — | [epic-powers-and-interactions](./epic-powers-and-interactions.md) |
 | Destroy used floor flag | `destroyUsedThisFloor` | — | objectives |
 | Peek | `applyPeek` | `pressTile` + `togglePeekMode` | [epic-powers-and-interactions](./epic-powers-and-interactions.md) |
+| Peek route reveal | `applyPeek` sets `routeSpecialRevealed` for Mystery Veil, Secret Door, Omen Seal | `pressTile` + `togglePeekMode` | [epic-route-world-pipeline](./epic-route-world-pipeline.md) |
 | Peek charges / revealed ids | `peekCharges`, `peekRevealedTileIds` | — | [epic-powers-and-interactions](./epic-powers-and-interactions.md) |
 | Pin tiles | `togglePinnedTile`, `pinnedTileIds`, `pinsPlacedCountThisRun` | `toggleBoardPinMode`, `pressTile` | [epic-powers-and-interactions](./epic-powers-and-interactions.md) |
 | Stray remove | `toggleStrayRemoveArmed`, `applyStrayRemove` | `toggleStrayArm`, `pressTile` | [epic-powers-and-interactions](./epic-powers-and-interactions.md) |
+| Stray-protected route anchors | `tileIsStrayEligiblePreview`, `applyStrayRemove` deny Keystone Pair, Final Ward, Omen Seal | `toggleStrayArm`, `pressTile` | [epic-route-world-pipeline](./epic-route-world-pipeline.md) |
 | Stray charges | `strayRemoveCharges`, `strayRemoveArmed` | — | [epic-powers-and-interactions](./epic-powers-and-interactions.md) |
 | Undo resolving | `cancelResolvingWithUndo` | `undoResolvingFlip` | [epic-powers-and-interactions](./epic-powers-and-interactions.md), [epic-run-session-flow](./epic-run-session-flow.md) |
 | Undo uses / floor | `undoUsesThisFloor` | — | [epic-run-session-flow](./epic-run-session-flow.md) |
@@ -133,6 +140,7 @@
 | Active mutator list | `activeMutators`, `MUTATOR_CATALOG`, daily table, floor schedule | [epic-mutators](./epic-mutators.md) |
 | Relic ids & milestones | `relicIds`, `relicTiersClaimed`, `relicOffer`, `bonusRelicPicksNextOffer`, `metaRelicDraftExtraPerMilestone` | [epic-relics](./epic-relics.md) |
 | Relic draft open / pick / bonus | `openRelicOffer`, `completeRelicPickAndAdvance`, `grantBonusRelicPickNextOffer`, `computeRelicOfferPickBudget` | [epic-relics](./epic-relics.md) |
+| Route-aware relic draft weighting | pending/active route context in relic offer weighting and reason copy | [epic-route-world-pipeline](./epic-route-world-pipeline.md), [epic-relics](./epic-relics.md) |
 | Relic immediate effects on run | `applyRelicImmediate` (internal in `game.ts`) | [epic-relics](./epic-relics.md) |
 
 ---

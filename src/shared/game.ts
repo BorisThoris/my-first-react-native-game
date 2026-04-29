@@ -52,17 +52,29 @@ import {
     type RunShopOfferState,
     type RunState,
     type RunStatus,
+    type RouteSideRoomState,
     type RouteChoice,
+    type RouteCardKind,
+    type RouteCardPlan,
     type RouteNodeType,
+    type RouteSpecialKind,
+    type RouteWorldProfile,
     type SessionStats,
     type Tile,
     type WeakerShuffleMode
 } from './contracts';
 import {
+    claimBonusReward,
+    createBonusRewardLedger,
+    rollBonusRewardRoom
+} from './bonus-rewards';
+import {
     getChapterActBiomeForCycleFloor,
     pickFloorScheduleEntry,
     usesEndlessFloorSchedule
 } from './floor-mutator-schedule';
+import { createRestShrineServices } from './rest-shrine';
+import { applyRunEventChoice, rollRunEventRoom } from './run-events';
 import { DAILY_MUTATOR_TABLE, hasMutator } from './mutators';
 import {
     applyRelicOfferService,
@@ -82,6 +94,11 @@ import {
     hashStringToSeed,
     shuffleWithRng
 } from './rng';
+import {
+    assignRouteWorldSpecials,
+    deriveRouteWorldProfile,
+    routeCardKindForRouteType
+} from './route-world';
 import {
     LETTER_SYMBOLS,
     NUMBER_SYMBOLS,
@@ -278,11 +295,13 @@ export const applyRouteChoiceOutcome = (run: RunState, choiceId: string): RouteC
     if (!choice) {
         return { run, applied: false, reason: 'missing_choice' };
     }
+    const pendingRouteCardPlan = createRouteCardPlan(run, choice);
     if (choice.routeType === 'safe') {
         if (run.lives < MAX_LIVES) {
             const nextRun = {
                 ...run,
                 lives: run.lives + 1,
+                pendingRouteCardPlan,
                 lastLevelResult: run.lastLevelResult
                     ? { ...run.lastLevelResult, livesRemaining: run.lives + 1 }
                     : run.lastLevelResult
@@ -291,7 +310,7 @@ export const applyRouteChoiceOutcome = (run: RunState, choiceId: string): RouteC
         }
         const guardTokens = Math.min(MAX_GUARD_TOKENS, run.stats.guardTokens + 1);
         return {
-            run: { ...run, stats: { ...run.stats, guardTokens } },
+            run: { ...run, pendingRouteCardPlan, stats: { ...run.stats, guardTokens } },
             applied: true,
             routeType: choice.routeType,
             summaryText: 'Safe route: +1 guard token.'
@@ -306,6 +325,7 @@ export const applyRouteChoiceOutcome = (run: RunState, choiceId: string): RouteC
             ...scored,
             lives: scored.lives - 1,
             shopGold: scored.shopGold + ROUTE_GREED_SHOP_GOLD_REWARD,
+            pendingRouteCardPlan,
             lastLevelResult: scored.lastLevelResult
                 ? { ...scored.lastLevelResult, livesRemaining: scored.lives - 1 }
                 : scored.lastLevelResult
@@ -318,8 +338,149 @@ export const applyRouteChoiceOutcome = (run: RunState, choiceId: string): RouteC
         };
     }
     const outcome = applyMysteryRouteOutcome(run);
-    return { run: outcome.run, applied: true, routeType: choice.routeType, summaryText: outcome.summaryText };
+    return {
+        run: { ...outcome.run, pendingRouteCardPlan },
+        applied: true,
+        routeType: choice.routeType,
+        summaryText: outcome.summaryText
+    };
 };
+
+const routeNodeKindForSideRoom = (routeType: RouteNodeType, targetFloor: number): RouteSideRoomState['nodeKind'] => {
+    if (routeType === 'safe') {
+        return 'rest';
+    }
+    if (routeType === 'greed') {
+        return targetFloor % 3 === 0 ? 'shop' : 'treasure';
+    }
+    return targetFloor % 4 === 0 ? 'treasure' : 'event';
+};
+
+const buildBonusSideRoom = (
+    run: RunState,
+    routeType: RouteNodeType,
+    nodeKind: RouteSideRoomState['nodeKind'],
+    floor: number
+): RouteSideRoomState => {
+    const reward = rollBonusRewardRoom({
+        runSeed: run.runSeed,
+        rulesVersion: run.runRulesVersion,
+        floor,
+        routeKind: nodeKind,
+        ledger: run.bonusRewardLedger
+    });
+    const routeLabel = routeType === 'safe' ? 'Safe' : routeType === 'greed' ? 'Greed' : 'Mystery';
+    return {
+        id: `${reward.instanceId}:side`,
+        kind: 'bonus_reward',
+        routeType,
+        nodeKind,
+        floor,
+        title: `${routeLabel} ${reward.label}`,
+        body: reward.eligible
+            ? `${reward.trigger} ${reward.discoverability}`
+            : `${reward.label} is exhausted for this run.`,
+        primaryLabel: reward.eligible ? `Claim ${reward.label}` : 'Continue',
+        primaryDetail: reward.eligible ? reward.summaryText : (reward.unavailableReason ?? 'No reward available.'),
+        skipLabel: reward.eligible ? 'Leave it' : 'Continue',
+        payload: { kind: 'bonus_reward', instanceId: reward.instanceId }
+    };
+};
+
+export const openRouteSideRoom = (run: RunState): RunState => {
+    if (run.status !== 'levelComplete' || run.sideRoom || !run.pendingRouteCardPlan) {
+        return run;
+    }
+    const routeType = run.pendingRouteCardPlan.routeType;
+    const floor = run.pendingRouteCardPlan.targetLevel;
+    const nodeKind = routeNodeKindForSideRoom(routeType, floor);
+
+    if (routeType === 'safe' && run.lives < MAX_LIVES) {
+        const services = createRestShrineServices(run);
+        const service = services.find((item) => item.serviceId === 'rest_heal' && item.available);
+        if (service) {
+            return {
+                ...run,
+                sideRoom: {
+                    id: `${run.runRulesVersion}:${run.runSeed}:${floor}:safe-rest`,
+                    kind: 'rest_shrine',
+                    routeType,
+                    nodeKind,
+                    floor,
+                    title: 'Safe Quiet Rest',
+                    body: 'The safe route opens a recovery stop before the next floor.',
+                    primaryLabel: service.label,
+                    primaryDetail: 'Restore 1 life without spending shop gold.',
+                    skipLabel: 'Save the time',
+                    payload: { kind: 'rest_heal', serviceId: service.id }
+                }
+            };
+        }
+    }
+
+    if (routeType === 'mystery' && nodeKind === 'event') {
+        const event = rollRunEventRoom({ runSeed: run.runSeed, rulesVersion: run.runRulesVersion, floor });
+        const choice = event.options.find((option) => option.effect !== 'skip') ?? event.options[0]!;
+        return {
+            ...run,
+            sideRoom: {
+                id: `${event.eventKey}:side`,
+                kind: 'run_event',
+                routeType,
+                nodeKind,
+                floor,
+                title: event.title,
+                body: event.body,
+                primaryLabel: choice.label,
+                primaryDetail: choice.detail,
+                skipLabel: 'Decline',
+                payload: { kind: 'event_choice', eventKey: event.eventKey, choiceId: choice.id }
+            }
+        };
+    }
+
+    return {
+        ...run,
+        sideRoom: buildBonusSideRoom(run, routeType, nodeKind, floor)
+    };
+};
+
+export const claimRouteSideRoomPrimary = (run: RunState): RunState => {
+    if (run.status !== 'levelComplete' || !run.sideRoom) {
+        return run;
+    }
+    const sideRoom = run.sideRoom;
+    const clearedRun = { ...run, sideRoom: null };
+    if (sideRoom.payload.kind === 'rest_heal') {
+        return { ...clearedRun, lives: Math.min(MAX_LIVES, clearedRun.lives + 1) };
+    }
+    if (sideRoom.payload.kind === 'event_choice') {
+        const event = rollRunEventRoom({
+            runSeed: run.runSeed,
+            rulesVersion: run.runRulesVersion,
+            floor: sideRoom.floor
+        });
+        if (event.eventKey !== sideRoom.payload.eventKey) {
+            return clearedRun;
+        }
+        return applyRunEventChoice(clearedRun, event, sideRoom.payload.choiceId).run;
+    }
+    const reward = rollBonusRewardRoom({
+        runSeed: run.runSeed,
+        rulesVersion: run.runRulesVersion,
+        floor: sideRoom.floor,
+        routeKind: sideRoom.nodeKind,
+        ledger: run.bonusRewardLedger
+    });
+    if (reward.instanceId !== sideRoom.payload.instanceId) {
+        return clearedRun;
+    }
+    const result = claimBonusReward(clearedRun, run.bonusRewardLedger, reward);
+    return result.claimed ? { ...result.run, bonusRewardLedger: result.ledger } : clearedRun;
+};
+
+export const skipRouteSideRoom = (run: RunState): RunState =>
+    run.sideRoom ? { ...run, sideRoom: null } : run;
 
 export const SHOP_ITEM_CATALOG: Record<
     RunShopItemId,
@@ -572,7 +733,21 @@ const getClearLifeReason = (tries: number): ClearLifeReason => {
 const ROUTE_GREED_SHOP_GOLD_REWARD = 3;
 const ROUTE_GREED_SCORE_REWARD = 35;
 const ROUTE_MYSTERY_SHOP_GOLD_REWARD = 2;
+const ROUTE_CARD_GREED_SHOP_GOLD_REWARD = 2;
+const ROUTE_CARD_GREED_SCORE_REWARD = 25;
+const ROUTE_CARD_MYSTERY_SHOP_GOLD_REWARD = 2;
 type MysteryRouteOutcome = 'shop_gold' | 'combo_shard' | 'relic_favor';
+type MysteryRouteCardOutcome = 'shop_gold' | 'combo_shard' | 'relic_favor';
+
+const createRouteCardPlan = (run: RunState, choice: RouteChoice): RouteCardPlan => {
+    const sourceLevel = run.lastLevelResult?.level ?? run.board?.level ?? run.stats.highestLevel;
+    return {
+        choiceId: choice.id,
+        routeType: choice.routeType,
+        sourceLevel,
+        targetLevel: sourceLevel + 1
+    };
+};
 
 const hasFirstMismatchGrace = (run: RunState, board: BoardState): boolean =>
     run.stats.tries === 0 && (board.level === 1 || (run.stats.guardTokens === 0 && run.lives >= 2));
@@ -633,6 +808,8 @@ export interface BuildBoardOptions {
     floorArchetypeId?: FloorArchetypeId | null;
     featuredObjectiveId?: FeaturedObjectiveId | null;
     cycleFloor?: number | null;
+    routeCardPlan?: RouteCardPlan | null;
+    routeWorldProfile?: RouteWorldProfile | null;
 }
 
 const createTiles = (
@@ -879,18 +1056,35 @@ export const buildBoard = (level: number, options: BuildBoardOptions = {}): Boar
             actFloorNumber: actBiome?.actFloorNumber ?? null,
             actFloorCount: actBiome?.actFloorCount ?? null,
             biomeTitle: actBiome?.biomeTitle ?? null,
-            biomeTone: actBiome?.biomeTone ?? null
+            biomeTone: actBiome?.biomeTone ?? null,
+            routeWorldProfile: options.routeWorldProfile ?? null
         };
     }
 
     const pairCount = Math.min(level + 1, NUMBER_SYMBOLS.length);
-    const tiles = assignFindableKindsToTiles(
-        createTiles(level, pairCount, runSeed, rulesVersion, mutators, options.includeWildTile),
-        mutators,
+    const routeWorldProfile =
+        options.routeWorldProfile ??
+        deriveRouteWorldProfile({
+            plan: options.routeCardPlan,
+            level,
+            floorTag: options.floorTag ?? 'normal',
+            floorArchetypeId,
+            mutators
+    });
+    const tiles = assignRouteWorldSpecials({
+        tiles: assignFindableKindsToTiles(
+            createTiles(level, pairCount, runSeed, rulesVersion, mutators, options.includeWildTile),
+            mutators,
+            runSeed,
+            rulesVersion,
+            level
+        ),
+        profile: routeWorldProfile,
         runSeed,
         rulesVersion,
-        level
-    );
+        level,
+        forbiddenPairKeys: [DECOY_PAIR_KEY, WILD_PAIR_KEY]
+    });
     const tileCount = tiles.length;
     const columns = clamp(Math.ceil(Math.sqrt(tileCount)), 2, 8);
     const rows = Math.ceil(tileCount / columns);
@@ -915,7 +1109,8 @@ export const buildBoard = (level: number, options: BuildBoardOptions = {}): Boar
         actFloorNumber: actBiome?.actFloorNumber ?? null,
         actFloorCount: actBiome?.actFloorCount ?? null,
         biomeTitle: actBiome?.biomeTitle ?? null,
-        biomeTone: actBiome?.biomeTone ?? null
+        biomeTone: actBiome?.biomeTone ?? null,
+        routeWorldProfile
     };
     if (!mutators.includes('shifting_spotlight')) {
         return { ...baseBoard, wardPairKey: null, bountyPairKey: null };
@@ -1278,10 +1473,27 @@ export const collectPeekEligibleTileIds = (
     return eligible;
 };
 
-/** Stray remove targets one hidden non-decoy tile (mirrors `applyStrayRemove`). */
+const STRAY_PROTECTED_ROUTE_SPECIALS = new Set<RouteSpecialKind>([
+    'keystone_pair',
+    'final_ward',
+    'omen_seal'
+]);
+
+const PEEK_REVEALED_ROUTE_SPECIALS = new Set<RouteSpecialKind>([
+    'mystery_veil',
+    'secret_door',
+    'omen_seal'
+]);
+
+/** Stray remove targets one hidden non-decoy, non-protected route tile (mirrors `applyStrayRemove`). */
 export const tileIsStrayEligiblePreview = (board: BoardState, tileId: string): boolean => {
     const tile = board.tiles.find((t) => t.id === tileId);
-    return Boolean(tile && tile.state === 'hidden' && tile.pairKey !== DECOY_PAIR_KEY);
+    return Boolean(
+        tile &&
+            tile.state === 'hidden' &&
+            tile.pairKey !== DECOY_PAIR_KEY &&
+            (!tile.routeSpecialKind || !STRAY_PROTECTED_ROUTE_SPECIALS.has(tile.routeSpecialKind))
+    );
 };
 
 export const applyShuffle = (run: RunState): RunState => {
@@ -1662,6 +1874,9 @@ export const createNewRun = (bestScore: number, options: CreateRunOptions = {}):
         shopRerolls: 0,
         featuredObjectiveStreak: 0,
         endlessRiskWager: null,
+        pendingRouteCardPlan: null,
+        sideRoom: null,
+        bonusRewardLedger: createBonusRewardLedger(),
         metaRelicDraftExtraPerMilestone: options.metaRelicDraftExtraPerMilestone ?? 0,
         relicOffer: null,
         activeContract: options.activeContract ?? null,
@@ -2213,7 +2428,16 @@ export const applyDestroyPair = (run: RunState, tileId: string): RunState => {
         ...run.board,
         matchedPairs: run.board.matchedPairs + 1,
         tiles: run.board.tiles.map((t) =>
-            pairTileIds.includes(t.id) ? { ...t, state: 'matched' as const, findableKind: undefined } : t
+            pairTileIds.includes(t.id)
+                ? {
+                      ...t,
+                      state: 'matched' as const,
+                      findableKind: undefined,
+                      routeCardKind: undefined,
+                      routeSpecialKind: undefined,
+                      routeSpecialRevealed: undefined
+                  }
+                : t
         )
     };
 
@@ -2254,8 +2478,18 @@ export const applyPeek = (run: RunState, tileId: string): RunState => {
     if (run.peekRevealedTileIds.includes(tileId)) {
         return run;
     }
+    const board =
+        tile.routeSpecialKind && PEEK_REVEALED_ROUTE_SPECIALS.has(tile.routeSpecialKind)
+            ? {
+                  ...run.board,
+                  tiles: run.board.tiles.map((t) =>
+                      t.pairKey === tile.pairKey ? { ...t, routeSpecialRevealed: true } : t
+                  )
+              }
+            : run.board;
     return {
         ...run,
+        board,
         peekCharges: run.peekCharges - 1,
         powersUsedThisRun: true,
         peekRevealedTileIds: [...run.peekRevealedTileIds, tileId]
@@ -2297,12 +2531,34 @@ export const applyStrayRemove = (run: RunState, tileId: string): RunState => {
         return run;
     }
     const tile = run.board.tiles.find((t) => t.id === tileId);
-    if (!tile || tile.state !== 'hidden' || tile.pairKey === DECOY_PAIR_KEY) {
+    if (
+        !tile ||
+        tile.state !== 'hidden' ||
+        tile.pairKey === DECOY_PAIR_KEY ||
+        (tile.routeSpecialKind && STRAY_PROTECTED_ROUTE_SPECIALS.has(tile.routeSpecialKind))
+    ) {
         return run;
     }
     const board: BoardState = {
         ...run.board,
-        tiles: run.board.tiles.map((t) => (t.id === tileId ? { ...t, state: 'removed' as const } : t))
+        tiles: run.board.tiles.map((t) =>
+            t.id === tileId
+                ? {
+                      ...t,
+                      state: 'removed' as const,
+                      routeCardKind: undefined,
+                      routeSpecialKind: undefined,
+                      routeSpecialRevealed: undefined
+                  }
+                : t.pairKey === tile.pairKey
+                  ? {
+                        ...t,
+                        routeCardKind: undefined,
+                        routeSpecialKind: undefined,
+                        routeSpecialRevealed: undefined
+                    }
+                  : t
+        )
     };
     return {
         ...run,
@@ -2389,6 +2645,112 @@ const gainRelicFavor = (
     };
 };
 
+interface RouteCardReward {
+    score: number;
+    shopGold: number;
+    guardTokens: number;
+    comboShards: number;
+    relicFavor: number;
+}
+
+const emptyRouteCardReward = (): RouteCardReward => ({
+    score: 0,
+    shopGold: 0,
+    guardTokens: 0,
+    comboShards: 0,
+    relicFavor: 0
+});
+
+const mysteryRouteCardOutcomeFor = (run: RunState, level: number, pairKey: string): MysteryRouteCardOutcome => {
+    const outcomes: MysteryRouteCardOutcome[] = ['shop_gold', 'combo_shard', 'relic_favor'];
+    const seed = hashStringToSeed(`routeCardMystery:${run.runRulesVersion}:${run.runSeed}:${level}:${pairKey}`);
+    return outcomes[Math.abs(seed) % outcomes.length]!;
+};
+
+const getRouteCardReward = (
+    run: RunState,
+    level: number,
+    pairKey: string,
+    kind: RouteSpecialKind | RouteCardKind | null
+): RouteCardReward => {
+    if (kind === 'safe_ward') {
+        return { ...emptyRouteCardReward(), guardTokens: 1 };
+    }
+    if (kind === 'greed_cache') {
+        return {
+            ...emptyRouteCardReward(),
+            score: ROUTE_CARD_GREED_SCORE_REWARD,
+            shopGold: ROUTE_CARD_GREED_SHOP_GOLD_REWARD
+        };
+    }
+    if (kind === 'elite_cache') {
+        return {
+            ...emptyRouteCardReward(),
+            score: 55,
+            shopGold: 4
+        };
+    }
+    if (kind === 'final_ward') {
+        return {
+            ...emptyRouteCardReward(),
+            guardTokens: 1,
+            comboShards: 1
+        };
+    }
+    if (kind === 'greed_toll') {
+        return {
+            ...emptyRouteCardReward(),
+            score: 40,
+            shopGold: 3
+        };
+    }
+    if (kind === 'fragile_cache') {
+        return {
+            ...emptyRouteCardReward(),
+            score: 20,
+            shopGold: 1
+        };
+    }
+    if (kind === 'lantern_ward') {
+        return {
+            ...emptyRouteCardReward(),
+            score: 10,
+            guardTokens: 1
+        };
+    }
+    if (kind === 'secret_door') {
+        return {
+            ...emptyRouteCardReward(),
+            relicFavor: 1
+        };
+    }
+    if (kind === 'omen_seal') {
+        return {
+            ...emptyRouteCardReward(),
+            relicFavor: 1,
+            comboShards: 1
+        };
+    }
+    if (kind === 'keystone_pair') {
+        return {
+            ...emptyRouteCardReward(),
+            score: 45,
+            relicFavor: 1
+        };
+    }
+    if (kind === 'mystery_veil') {
+        const outcome = mysteryRouteCardOutcomeFor(run, level, pairKey);
+        if (outcome === 'shop_gold') {
+            return { ...emptyRouteCardReward(), shopGold: ROUTE_CARD_MYSTERY_SHOP_GOLD_REWARD };
+        }
+        if (outcome === 'combo_shard') {
+            return { ...emptyRouteCardReward(), comboShards: 1 };
+        }
+        return { ...emptyRouteCardReward(), relicFavor: 1 };
+    }
+    return emptyRouteCardReward();
+};
+
 const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState => {
     if (!run.board || run.board.flippedTileIds.length !== 3) {
         return run;
@@ -2419,6 +2781,14 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
         const tileMatchA = run.board.tiles.find((t) => t.id === matchA)!;
         const tileMatchB = run.board.tiles.find((t) => t.id === matchB)!;
         const claimedFindableKind = tileMatchA.findableKind ?? tileMatchB.findableKind ?? null;
+        const claimedRouteCardKind =
+            tileMatchA.routeSpecialKind ??
+            tileMatchB.routeSpecialKind ??
+            tileMatchA.routeCardKind ??
+            tileMatchB.routeCardKind ??
+            null;
+        const matchedPairKey = isWildPairKey(tileMatchA.pairKey) ? tileMatchB.pairKey : tileMatchA.pairKey;
+        const routeCardReward = getRouteCardReward(run, run.board.level, matchedPairKey, claimedRouteCardKind);
         const findableScoreBonus =
             claimedFindableKind != null ? FINDABLE_MATCH_SCORE[claimedFindableKind] : 0;
         const findableComboShardGain =
@@ -2431,7 +2801,14 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
             matchedPairs: run.board.matchedPairs + 1,
             tiles: run.board.tiles.map((tile) => {
                 if (tile.id === matchA || tile.id === matchB) {
-                    return { ...tile, state: 'matched' as const, findableKind: undefined };
+                    return {
+                        ...tile,
+                        state: 'matched' as const,
+                        findableKind: undefined,
+                        routeCardKind: undefined,
+                        routeSpecialKind: undefined,
+                        routeSpecialRevealed: undefined
+                    };
                 }
                 if (tile.id === thirdId) {
                     return { ...tile, state: 'hidden' as const };
@@ -2443,22 +2820,28 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
         const meditation = run.gameMode === 'meditation';
         const guardTokenGain =
             meditation || currentStreak % COMBO_GUARD_STREAK_STEP !== 0 ? 0 : 1;
-        const guardTokens = Math.min(MAX_GUARD_TOKENS, run.stats.guardTokens + guardTokenGain);
+        const guardTokens = Math.min(
+            MAX_GUARD_TOKENS,
+            run.stats.guardTokens + guardTokenGain + routeCardReward.guardTokens
+        );
         const comboShardReward = meditation
-            ? applyComboShardGain(run.stats.comboShards, run.lives, findableComboShardGain, false)
+            ? applyComboShardGain(
+                  run.stats.comboShards,
+                  run.lives,
+                  findableComboShardGain + routeCardReward.comboShards,
+                  false
+              )
             : applyComboShardGain(
                   run.stats.comboShards,
                   run.lives,
-                  (currentStreak % COMBO_SHARD_STREAK_STEP === 0 ? 1 : 0) + findableComboShardGain
+                  (currentStreak % COMBO_SHARD_STREAK_STEP === 0 ? 1 : 0) +
+                      findableComboShardGain +
+                      routeCardReward.comboShards
               );
         const chainHealLifeGain =
             meditation || currentStreak % CHAIN_HEAL_STREAK_STEP !== 0 ? 0 : 1;
         const lives = Math.min(MAX_LIVES, run.lives + chainHealLifeGain + comboShardReward.lifeGain);
-        const tMatch = run.board.tiles.find((t) => t.id === matchA)!;
-        const encoreKey =
-            isWildPairKey(tMatch.pairKey) && matchB
-                ? run.board.tiles.find((t) => t.id === matchB)!.pairKey
-                : tMatch.pairKey;
+        const encoreKey = matchedPairKey;
         const cursedKeyG = run.board.cursedPairKey;
         const cursedEarlyG =
             Boolean(cursedKeyG && encoreKey === cursedKeyG && run.board.matchedPairs < run.board.pairCount - 1);
@@ -2470,12 +2853,14 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
             calculateMatchScore(board.level, currentStreak, run.matchScoreMultiplier) +
                 encoreBonus +
                 findableScoreBonus +
+                routeCardReward.score +
                 spotlightDelta -
                 presentationPenalty
         );
         const totalScore = run.stats.totalScore + matchScore;
         const currentLevelScore = run.stats.currentLevelScore + matchScore;
         const bestScore = Math.max(run.stats.bestScore, totalScore);
+        const routeFavor = gainRelicFavor(run, routeCardReward.relicFavor);
         const nBackMatchCounter = run.nBackMatchCounter + 1;
         const nBackAnchorPairKey =
             hasMutator(run, 'n_back_anchor') && nBackMatchCounter % 2 === 0 ? encoreKey : run.nBackAnchorPairKey;
@@ -2496,6 +2881,10 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
             board: spunG.board,
             shiftingSpotlightNonce: spunG.shiftingSpotlightNonce,
             wildMatchesRemaining,
+            shopGold: run.shopGold + routeCardReward.shopGold,
+            bonusRelicPicksNextOffer: routeFavor.bonusRelicPicksNextOffer,
+            favorBonusRelicPicksNextOffer: routeFavor.favorBonusRelicPicksNextOffer,
+            relicFavorProgress: routeFavor.relicFavorProgress,
             nBackMatchCounter,
             nBackAnchorPairKey,
             matchedPairKeysThisRun: [...run.matchedPairKeysThisRun, encoreKey],
@@ -2588,6 +2977,14 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
 
     if (isMatch) {
         const claimedFindableKind = firstTile.findableKind ?? secondTile.findableKind ?? null;
+        const claimedRouteCardKind =
+            firstTile.routeSpecialKind ??
+            secondTile.routeSpecialKind ??
+            firstTile.routeCardKind ??
+            secondTile.routeCardKind ??
+            null;
+        const matchedPairKey = isWildPairKey(firstTile.pairKey) ? secondTile.pairKey : firstTile.pairKey;
+        const routeCardReward = getRouteCardReward(run, run.board.level, matchedPairKey, claimedRouteCardKind);
         const findableScoreBonus =
             claimedFindableKind != null ? FINDABLE_MATCH_SCORE[claimedFindableKind] : 0;
         const findableComboShardGain =
@@ -2600,7 +2997,14 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
             matchedPairs: run.board.matchedPairs + 1,
             tiles: run.board.tiles.map((tile) =>
                 tile.id === firstId || tile.id === secondId
-                    ? { ...tile, state: 'matched', findableKind: undefined }
+                    ? {
+                          ...tile,
+                          state: 'matched',
+                          findableKind: undefined,
+                          routeCardKind: undefined,
+                          routeSpecialKind: undefined,
+                          routeSpecialRevealed: undefined
+                      }
                     : tile
             )
         };
@@ -2608,22 +3012,28 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
         const meditation = run.gameMode === 'meditation';
         const guardTokenGain =
             meditation || currentStreak % COMBO_GUARD_STREAK_STEP !== 0 ? 0 : 1;
-        const guardTokens = Math.min(MAX_GUARD_TOKENS, run.stats.guardTokens + guardTokenGain);
+        const guardTokens = Math.min(
+            MAX_GUARD_TOKENS,
+            run.stats.guardTokens + guardTokenGain + routeCardReward.guardTokens
+        );
         const comboShardReward = meditation
-            ? applyComboShardGain(run.stats.comboShards, run.lives, findableComboShardGain, false)
+            ? applyComboShardGain(
+                  run.stats.comboShards,
+                  run.lives,
+                  findableComboShardGain + routeCardReward.comboShards,
+                  false
+              )
             : applyComboShardGain(
                   run.stats.comboShards,
                   run.lives,
-                  (currentStreak % COMBO_SHARD_STREAK_STEP === 0 ? 1 : 0) + findableComboShardGain
+                  (currentStreak % COMBO_SHARD_STREAK_STEP === 0 ? 1 : 0) +
+                      findableComboShardGain +
+                      routeCardReward.comboShards
               );
         const chainHealLifeGain =
             meditation || currentStreak % CHAIN_HEAL_STREAK_STEP !== 0 ? 0 : 1;
         const lives = Math.min(MAX_LIVES, run.lives + chainHealLifeGain + comboShardReward.lifeGain);
-        const encoreKey = isWildPairKey(firstTile.pairKey)
-            ? secondTile.pairKey
-            : isWildPairKey(secondTile.pairKey)
-              ? firstTile.pairKey
-              : firstTile.pairKey;
+        const encoreKey = matchedPairKey;
         const cursedKey = run.board.cursedPairKey;
         const cursedEarly =
             Boolean(cursedKey && encoreKey === cursedKey && run.board.matchedPairs < run.board.pairCount - 1);
@@ -2635,12 +3045,14 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
             calculateMatchScore(board.level, currentStreak, run.matchScoreMultiplier) +
                 encoreBonus +
                 findableScoreBonus +
+                routeCardReward.score +
                 spotlightDelta -
                 presentationPenalty
         );
         const totalScore = run.stats.totalScore + matchScore;
         const currentLevelScore = run.stats.currentLevelScore + matchScore;
         const bestScore = Math.max(run.stats.bestScore, totalScore);
+        const routeFavor = gainRelicFavor(run, routeCardReward.relicFavor);
 
         const matchedPinsFiltered = run.pinnedTileIds.filter((id) => id !== firstId && id !== secondId);
 
@@ -2661,6 +3073,10 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
             shiftingSpotlightNonce: spun.shiftingSpotlightNonce,
             powersUsedThisRun: usedWild ? true : run.powersUsedThisRun,
             wildMatchesRemaining,
+            shopGold: run.shopGold + routeCardReward.shopGold,
+            bonusRelicPicksNextOffer: routeFavor.bonusRelicPicksNextOffer,
+            favorBonusRelicPicksNextOffer: routeFavor.favorBonusRelicPicksNextOffer,
+            relicFavorProgress: routeFavor.relicFavorProgress,
             nBackMatchCounter,
             nBackAnchorPairKey,
             matchedPairKeysThisRun: [...run.matchedPairKeysThisRun, encoreKey],
@@ -2859,7 +3275,8 @@ export const advanceToNextLevel = (run: RunState): RunState => {
         floorTag: nextFloorTag,
         floorArchetypeId: nextFloorArchetypeId,
         featuredObjectiveId: nextFeaturedObjectiveId,
-        cycleFloor: nextCycleFloor
+        cycleFloor: nextCycleFloor,
+        routeCardPlan: run.pendingRouteCardPlan
     });
     const runForNextMemorize: RunState = { ...run, activeMutators: nextActiveMutators };
     const baseMemorizeMs = getMemorizeDurationForRun(runForNextMemorize, nextBoard.level);
@@ -2872,6 +3289,8 @@ export const advanceToNextLevel = (run: RunState): RunState => {
         status,
         lives,
         activeMutators: nextActiveMutators,
+        pendingRouteCardPlan: null,
+        sideRoom: null,
         board: nextBoard,
         debugPeekActive: false,
         pendingMemorizeBonusMs: 0,

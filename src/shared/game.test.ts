@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { BoardState, MutatorId, RunState, Tile } from './contracts';
+import type { BoardState, FloorArchetypeId, MutatorId, RouteNodeType, RunState, Tile } from './contracts';
 import {
     ENDLESS_RISK_WAGER_BONUS_FAVOR,
     ENDLESS_RISK_WAGER_MIN_STREAK,
@@ -22,11 +22,14 @@ import {
     advanceToNextLevel,
     applyDestroyPair,
     applyFlashPair,
+    applyPeek,
     applyRegionShuffle,
     applyRouteChoiceOutcome,
     applyShuffle,
+    applyStrayRemove,
     buildBoard,
     calculateMatchScore,
+    claimRouteSideRoomPrimary,
     collectDestroyEligibleTileIds,
     collectPeekEligibleTileIds,
     canOfferEndlessRiskWager,
@@ -56,10 +59,12 @@ import {
     isBoardComplete,
     isGauntletExpired,
     openRelicOffer,
+    openRouteSideRoom,
     purchaseShopOffer,
     rerollShopOffers,
     canRerollShopOffers,
     resolveBoardTurn,
+    skipRouteSideRoom,
     tilesArePairMatch,
     togglePinnedTile,
     tileIsDestroyEligiblePreview,
@@ -206,6 +211,26 @@ const playPerfectFloors = (run: RunState, count: number): RunState => {
     return current;
 };
 
+const routeBoard = (
+    routeType: RouteNodeType,
+    level: number,
+    floorTag: BoardState['floorTag'] = 'normal',
+    overrides: { activeMutators?: MutatorId[]; floorArchetypeId?: FloorArchetypeId } = {}
+): BoardState =>
+    buildBoard(level, {
+        runSeed: 23_000 + level,
+        runRulesVersion: GAME_RULES_VERSION,
+        activeMutators: overrides.activeMutators ?? [],
+        floorTag,
+        ...(overrides.floorArchetypeId ? { floorArchetypeId: overrides.floorArchetypeId } : {}),
+        routeCardPlan: {
+            choiceId: `test:${level}:${routeType}`,
+            routeType,
+            sourceLevel: level - 1,
+            targetLevel: level
+        }
+    });
+
 describe('createDailyRun', () => {
     it('uses daily mode, one table mutator, and a UTC date key', () => {
         const run = createDailyRun(0);
@@ -237,19 +262,19 @@ describe('REG-017 route choices', () => {
 
         expect(finished.lastLevelResult?.routeChoices).toMatchObject([
             {
-                id: '17:17001:2:safe',
+                id: `${GAME_RULES_VERSION}:17001:2:safe`,
                 routeType: 'safe',
                 label: 'Safe passage',
                 detail: 'Standard next floor. Keep the run curve predictable.'
             },
             {
-                id: '17:17001:2:greed',
+                id: `${GAME_RULES_VERSION}:17001:2:greed`,
                 routeType: 'greed',
                 label: 'Greedy route',
                 detail: 'Higher pressure route hook for future shop, elite, or bonus rewards.'
             },
             {
-                id: '17:17001:2:mystery',
+                id: `${GAME_RULES_VERSION}:17001:2:mystery`,
                 routeType: 'mystery',
                 label: 'Mystery route',
                 detail: 'Random event and secret-room hook with replayable local RNG.'
@@ -291,6 +316,372 @@ describe('REG-017 route choices', () => {
         expect(refused.applied).toBe(false);
         expect(refused.reason).toBe('unavailable');
         expect(refused.run.lives).toBe(1);
+    });
+
+    it('opens route side rooms and clears them through claim or skip', () => {
+        const cleared = playPerfectFloors(createNewRun(0, { echoFeedbackEnabled: false, runSeed: 17_303 }), 1);
+        const safeId = cleared.lastLevelResult!.routeChoices!.find((choice) => choice.routeType === 'safe')!.id;
+        const greedId = cleared.lastLevelResult!.routeChoices!.find((choice) => choice.routeType === 'greed')!.id;
+        const mysteryId = cleared.lastLevelResult!.routeChoices!.find((choice) => choice.routeType === 'mystery')!.id;
+
+        const safeRoom = openRouteSideRoom(applyRouteChoiceOutcome({ ...cleared, lives: 3 }, safeId).run);
+        const safeClaimed = claimRouteSideRoomPrimary(safeRoom);
+        const greedRoom = openRouteSideRoom(applyRouteChoiceOutcome(cleared, greedId).run);
+        const greedSkipped = skipRouteSideRoom(greedRoom);
+        const mysteryRoom = openRouteSideRoom(applyRouteChoiceOutcome(cleared, mysteryId).run);
+
+        expect(safeRoom.sideRoom).toMatchObject({ kind: 'rest_shrine', routeType: 'safe' });
+        expect(safeClaimed.sideRoom).toBeNull();
+        expect(safeClaimed.lives).toBe(5);
+        expect(greedRoom.sideRoom).toMatchObject({ kind: 'bonus_reward', routeType: 'greed' });
+        expect(greedSkipped.sideRoom).toBeNull();
+        expect(greedSkipped.shopGold).toBe(greedRoom.shopGold);
+        expect(mysteryRoom.sideRoom?.routeType).toBe('mystery');
+        expect(mysteryRoom.sideRoom?.kind).toMatch(/run_event|bonus_reward/);
+    });
+
+    it('stamps the chosen route onto the next board and consumes the pending route plan', () => {
+        const cleared = playPerfectFloors(createNewRun(0, { echoFeedbackEnabled: false, runSeed: 17_013 }), 1);
+        const greedId = cleared.lastLevelResult!.routeChoices!.find((choice) => choice.routeType === 'greed')!.id;
+        const greedy = applyRouteChoiceOutcome(cleared, greedId);
+
+        expect(greedy.run.pendingRouteCardPlan).toMatchObject({
+            choiceId: greedId,
+            routeType: 'greed',
+            sourceLevel: 1,
+            targetLevel: 2
+        });
+
+        const next = advanceToNextLevel(greedy.run);
+        expect(next.pendingRouteCardPlan).toBeNull();
+        expect(next.board!.routeWorldProfile).toMatchObject({ routeType: 'greed', rewardBudget: 3 });
+        const routeTiles = next.board!.tiles.filter((tile) => tile.routeCardKind === 'greed_cache');
+        expect(routeTiles).toHaveLength(6);
+        expect(new Set(routeTiles.map((tile) => tile.pairKey))).toHaveLength(3);
+        expect(next.board!.tiles.filter((tile) => tile.routeSpecialKind === 'greed_toll')).toHaveLength(2);
+        expect(next.board!.tiles.filter((tile) => tile.routeSpecialKind === 'elite_cache')).toHaveLength(2);
+        expect(routeTiles[0]!.pairKey).not.toBe(DECOY_PAIR_KEY);
+        expect(routeTiles[0]!.pairKey).not.toBe(WILD_PAIR_KEY);
+    });
+
+    it('gives Safe and Mystery distinct route-world profiles on next board', () => {
+        const cleared = playPerfectFloors(createNewRun(0, { echoFeedbackEnabled: false, runSeed: 17_113 }), 1);
+        const safeId = cleared.lastLevelResult!.routeChoices!.find((choice) => choice.routeType === 'safe')!.id;
+        const mysteryId = cleared.lastLevelResult!.routeChoices!.find((choice) => choice.routeType === 'mystery')!.id;
+
+        const safeNext = advanceToNextLevel(applyRouteChoiceOutcome(cleared, safeId).run);
+        const mysteryNext = advanceToNextLevel(applyRouteChoiceOutcome(cleared, mysteryId).run);
+
+        expect(safeNext.board!.routeWorldProfile).toMatchObject({ routeType: 'safe', hazardBudget: 0 });
+        expect(safeNext.board!.tiles.filter((tile) => tile.routeSpecialKind === 'safe_ward')).toHaveLength(2);
+        expect(safeNext.board!.tiles.filter((tile) => tile.routeSpecialKind === 'lantern_ward')).toHaveLength(2);
+        expect(mysteryNext.board!.routeWorldProfile).toMatchObject({ routeType: 'mystery' });
+        expect(mysteryNext.board!.tiles.filter((tile) => tile.routeSpecialKind === 'mystery_veil')).toHaveLength(2);
+    });
+
+    it('adds non-hard route card families into the board rendering metadata', () => {
+        const greedBoard = routeBoard('greed', 3);
+        const mysteryBoard = routeBoard('mystery', 3);
+
+        expect(greedBoard.routeWorldProfile).toMatchObject({
+            routeType: 'greed',
+            routeSpecialKinds: ['greed_cache', 'greed_toll', 'fragile_cache']
+        });
+        expect(greedBoard.tiles.filter((tile) => tile.routeSpecialKind === 'fragile_cache')).toHaveLength(2);
+        expect(greedBoard.tiles.filter((tile) => tile.routeSpecialKind === 'fragile_cache')[0]!.routeCardKind).toBe(
+            'greed_cache'
+        );
+        expect(mysteryBoard.routeWorldProfile).toMatchObject({
+            routeType: 'mystery',
+            routeSpecialKinds: ['mystery_veil', 'secret_door']
+        });
+        expect(mysteryBoard.tiles.filter((tile) => tile.routeSpecialKind === 'secret_door')).toHaveLength(2);
+        expect(mysteryBoard.tiles.filter((tile) => tile.routeSpecialKind === 'secret_door')[0]!.routeCardKind).toBe(
+            'mystery_veil'
+        );
+    });
+
+    it('adds keystone pairs as boss-floor route anchors', () => {
+        const safeBoss = routeBoard('safe', 7, 'boss');
+        const greedBoss = routeBoard('greed', 7, 'boss');
+        const mysteryBoss = routeBoard('mystery', 7, 'boss');
+
+        expect(safeBoss.tiles.filter((tile) => tile.routeSpecialKind === 'keystone_pair')).toHaveLength(2);
+        expect(safeBoss.tiles.find((tile) => tile.routeSpecialKind === 'keystone_pair')!.routeCardKind).toBe(
+            'safe_ward'
+        );
+        expect(greedBoss.tiles.find((tile) => tile.routeSpecialKind === 'keystone_pair')!.routeCardKind).toBe(
+            'greed_cache'
+        );
+        expect(mysteryBoss.tiles.find((tile) => tile.routeSpecialKind === 'keystone_pair')!.routeCardKind).toBe(
+            'mystery_veil'
+        );
+        expect(safeBoss.tiles.some((tile) => tile.routeSpecialKind === 'final_ward')).toBe(false);
+        expect(greedBoss.tiles.some((tile) => tile.routeSpecialKind === 'elite_cache')).toBe(false);
+        expect(mysteryBoss.tiles.some((tile) => tile.routeSpecialKind === 'omen_seal')).toBe(false);
+    });
+
+    it('adds elite route anchors to hard non-boss floors', () => {
+        const safeHard = routeBoard('safe', 4, 'normal', { floorArchetypeId: 'trap_hall' });
+        const greedHard = routeBoard('greed', 4, 'normal', { floorArchetypeId: 'rush_recall' });
+        const mysteryHard = routeBoard('mystery', 4, 'normal', { activeMutators: ['glass_floor'] });
+
+        expect(safeHard.routeWorldProfile).toMatchObject({
+            routeType: 'safe',
+            routeSpecialKinds: ['safe_ward', 'lantern_ward', 'final_ward']
+        });
+        expect(greedHard.routeWorldProfile).toMatchObject({
+            routeType: 'greed',
+            routeSpecialKinds: ['greed_cache', 'greed_toll', 'elite_cache']
+        });
+        expect(mysteryHard.routeWorldProfile).toMatchObject({
+            routeType: 'mystery',
+            routeSpecialKinds: ['mystery_veil', 'omen_seal']
+        });
+        expect(safeHard.tiles.filter((tile) => tile.routeSpecialKind === 'final_ward')).toHaveLength(2);
+        expect(safeHard.tiles.find((tile) => tile.routeSpecialKind === 'final_ward')!.routeCardKind).toBe(
+            'safe_ward'
+        );
+        expect(greedHard.tiles.filter((tile) => tile.routeSpecialKind === 'elite_cache')).toHaveLength(2);
+        expect(greedHard.tiles.find((tile) => tile.routeSpecialKind === 'elite_cache')!.routeCardKind).toBe(
+            'greed_cache'
+        );
+        expect(mysteryHard.tiles.filter((tile) => tile.routeSpecialKind === 'omen_seal')).toHaveLength(2);
+        expect(mysteryHard.tiles.find((tile) => tile.routeSpecialKind === 'omen_seal')!.routeCardKind).toBe(
+            'mystery_veil'
+        );
+        expect(mysteryHard.tiles.find((tile) => tile.routeSpecialKind === 'omen_seal')!.routeSpecialRevealed).toBe(
+            undefined
+        );
+    });
+
+    it('pays route card rewards once when the stamped pair is matched', () => {
+        const cleared = playPerfectFloors(createNewRun(0, { echoFeedbackEnabled: false, runSeed: 17_014 }), 1);
+        const greedId = cleared.lastLevelResult!.routeChoices!.find((choice) => choice.routeType === 'greed')!.id;
+        const greedy = applyRouteChoiceOutcome(cleared, greedId);
+        const next = finishMemorizePhase(advanceToNextLevel(greedy.run));
+        const routeTiles = next.board!.tiles.filter((tile) => tile.routeSpecialKind === 'greed_cache');
+        const beforeGold = next.shopGold;
+        const beforeScore = next.stats.totalScore;
+
+        const resolved = resolveBoardTurn(flipTile(flipTile(next, routeTiles[0]!.id), routeTiles[1]!.id));
+
+        expect(resolved.shopGold).toBe(beforeGold + 2);
+        expect(resolved.stats.totalScore).toBeGreaterThanOrEqual(
+            beforeScore + calculateMatchScore(next.board!.level, 1) + 25
+        );
+        expect(resolved.board!.tiles.filter((tile) => tile.pairKey === routeTiles[0]!.pairKey)).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ routeCardKind: undefined, routeSpecialKind: undefined, state: 'matched' })
+            ])
+        );
+    });
+
+    it('peek reveals mystery veil families without claiming them', () => {
+        const cleared = playPerfectFloors(createNewRun(0, { echoFeedbackEnabled: false, runSeed: 17_114 }), 1);
+        const mysteryId = cleared.lastLevelResult!.routeChoices!.find((choice) => choice.routeType === 'mystery')!.id;
+        const next = finishMemorizePhase(advanceToNextLevel(applyRouteChoiceOutcome(cleared, mysteryId).run));
+        const veil = next.board!.tiles.find((tile) => tile.routeSpecialKind === 'mystery_veil')!;
+
+        const peeked = applyPeek(next, veil.id);
+
+        expect(peeked.peekCharges).toBe(next.peekCharges - 1);
+        expect(peeked.shopGold).toBe(next.shopGold);
+        expect(peeked.board!.tiles.filter((tile) => tile.pairKey === veil.pairKey)).toEqual(
+            expect.arrayContaining([expect.objectContaining({ routeSpecialRevealed: true })])
+        );
+    });
+
+    it('secret doors reveal on peek and pay relic Favor when matched', () => {
+        const board = routeBoard('mystery', 3);
+        const base = finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false, runSeed: 17_214 }));
+        const run: RunState = { ...base, board, status: 'playing', relicFavorProgress: 0, peekCharges: 1 };
+        const secret = run.board!.tiles.find((tile) => tile.routeSpecialKind === 'secret_door')!;
+
+        const peeked = applyPeek(run, secret.id);
+        const pair = peeked.board!.tiles.filter((tile) => tile.pairKey === secret.pairKey);
+        const resolved = resolveBoardTurn(flipTile(flipTile(peeked, pair[0]!.id), pair[1]!.id));
+
+        expect(peeked.board!.tiles.filter((tile) => tile.pairKey === secret.pairKey)).toEqual(
+            expect.arrayContaining([expect.objectContaining({ routeSpecialRevealed: true })])
+        );
+        expect(resolved.relicFavorProgress).toBe(1);
+    });
+
+    it('elite route anchors pay their route-specific rewards', () => {
+        const base = finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false, runSeed: 17_217 }));
+        const greedBoard = routeBoard('greed', 4, 'normal', { floorArchetypeId: 'rush_recall' });
+        const safeBoard = routeBoard('safe', 4, 'normal', { floorArchetypeId: 'trap_hall' });
+        const mysteryBoard = routeBoard('mystery', 4, 'normal', { activeMutators: ['short_memorize'] });
+
+        const eliteRun: RunState = { ...base, board: greedBoard, status: 'playing' };
+        const elite = eliteRun.board!.tiles.filter((tile) => tile.routeSpecialKind === 'elite_cache');
+        const eliteResolved = resolveBoardTurn(flipTile(flipTile(eliteRun, elite[0]!.id), elite[1]!.id));
+
+        const finalWardRun: RunState = {
+            ...base,
+            board: safeBoard,
+            status: 'playing',
+            stats: { ...base.stats, guardTokens: 0, comboShards: 0 }
+        };
+        const finalWard = finalWardRun.board!.tiles.filter((tile) => tile.routeSpecialKind === 'final_ward');
+        const finalWardResolved = resolveBoardTurn(
+            flipTile(flipTile(finalWardRun, finalWard[0]!.id), finalWard[1]!.id)
+        );
+
+        const omenRun: RunState = {
+            ...base,
+            board: mysteryBoard,
+            status: 'playing',
+            stats: { ...base.stats, comboShards: 0 },
+            relicFavorProgress: 0,
+            peekCharges: 1
+        };
+        const omen = omenRun.board!.tiles.filter((tile) => tile.routeSpecialKind === 'omen_seal');
+        const peeked = applyPeek(omenRun, omen[0]!.id);
+        const omenResolved = resolveBoardTurn(flipTile(flipTile(peeked, omen[0]!.id), omen[1]!.id));
+
+        expect(eliteResolved.shopGold).toBe(eliteRun.shopGold + 4);
+        expect(eliteResolved.stats.totalScore).toBeGreaterThanOrEqual(eliteRun.stats.totalScore + 55);
+        expect(finalWardResolved.stats.guardTokens).toBe(1);
+        expect(finalWardResolved.stats.comboShards).toBe(1);
+        expect(peeked.board!.tiles.filter((tile) => tile.pairKey === omen[0]!.pairKey)).toEqual(
+            expect.arrayContaining([expect.objectContaining({ routeSpecialRevealed: true })])
+        );
+        expect(omenResolved.relicFavorProgress).toBe(1);
+        expect(omenResolved.stats.comboShards).toBe(1);
+    });
+
+    it('fragile cache and lantern ward pay distinct rewards when matched', () => {
+        const greedBoard = routeBoard('greed', 3);
+        const safeBoard = routeBoard('safe', 3);
+        const base = finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false, runSeed: 17_215 }));
+        const fragileRun: RunState = { ...base, board: greedBoard, status: 'playing' };
+        const fragile = fragileRun.board!.tiles.filter((tile) => tile.routeSpecialKind === 'fragile_cache');
+        const fragileResolved = resolveBoardTurn(flipTile(flipTile(fragileRun, fragile[0]!.id), fragile[1]!.id));
+        const lanternRun: RunState = {
+            ...base,
+            board: safeBoard,
+            status: 'playing',
+            stats: { ...base.stats, guardTokens: 0 }
+        };
+        const lantern = lanternRun.board!.tiles.filter((tile) => tile.routeSpecialKind === 'lantern_ward');
+        const lanternResolved = resolveBoardTurn(flipTile(flipTile(lanternRun, lantern[0]!.id), lantern[1]!.id));
+
+        expect(fragileResolved.shopGold).toBe(fragileRun.shopGold + 1);
+        expect(fragileResolved.stats.totalScore).toBeGreaterThanOrEqual(fragileRun.stats.totalScore + 20);
+        expect(lanternResolved.stats.guardTokens).toBe(1);
+        expect(lanternResolved.stats.totalScore).toBeGreaterThanOrEqual(lanternRun.stats.totalScore + 10);
+    });
+
+    it('stray remove refuses keystone route anchors', () => {
+        const board = routeBoard('greed', 7, 'boss');
+        const base = finishMemorizePhase(
+            createNewRun(0, { echoFeedbackEnabled: false, runSeed: 17_216, initialStrayRemoveCharges: 1 })
+        );
+        const run: RunState = { ...base, board, status: 'playing', strayRemoveArmed: true };
+        const keystone = run.board!.tiles.find((tile) => tile.routeSpecialKind === 'keystone_pair')!;
+
+        expect(tileIsStrayEligiblePreview(board, keystone.id)).toBe(false);
+        expect(applyStrayRemove(run, keystone.id)).toBe(run);
+    });
+
+    it('stray remove refuses protected hard-route elite anchors', () => {
+        const base = finishMemorizePhase(
+            createNewRun(0, { echoFeedbackEnabled: false, runSeed: 17_218, initialStrayRemoveCharges: 1 })
+        );
+        const finalWardBoard = routeBoard('safe', 4, 'normal', { floorArchetypeId: 'trap_hall' });
+        const omenBoard = routeBoard('mystery', 4, 'normal', { activeMutators: ['glass_floor'] });
+        const finalWard = finalWardBoard.tiles.find((tile) => tile.routeSpecialKind === 'final_ward')!;
+        const omen = omenBoard.tiles.find((tile) => tile.routeSpecialKind === 'omen_seal')!;
+        const finalWardRun: RunState = { ...base, board: finalWardBoard, status: 'playing', strayRemoveArmed: true };
+        const omenRun: RunState = { ...base, board: omenBoard, status: 'playing', strayRemoveArmed: true };
+
+        expect(tileIsStrayEligiblePreview(finalWardBoard, finalWard.id)).toBe(false);
+        expect(applyStrayRemove(finalWardRun, finalWard.id)).toBe(finalWardRun);
+        expect(tileIsStrayEligiblePreview(omenBoard, omen.id)).toBe(false);
+        expect(applyStrayRemove(omenRun, omen.id)).toBe(omenRun);
+    });
+
+    it('covers route synergy matrix fixtures without soft-locking board completion', () => {
+        const base = {
+            ...finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false, runSeed: 17_219 })),
+            destroyPairCharges: 1
+        };
+        const greedTreasure = routeBoard('greed', 5, 'breather', {
+            activeMutators: ['findables_floor'],
+            floorArchetypeId: 'treasure_gallery'
+        });
+        const greedTrap = routeBoard('greed', 7, 'normal', {
+            activeMutators: ['glass_floor', 'sticky_fingers'],
+            floorArchetypeId: 'trap_hall'
+        });
+        const safeRush = routeBoard('safe', 9, 'normal', {
+            activeMutators: ['short_memorize', 'wide_recall'],
+            floorArchetypeId: 'rush_recall'
+        });
+        const mysterySurvey = routeBoard('mystery', 1, 'normal', {
+            activeMutators: ['wide_recall'],
+            floorArchetypeId: 'survey_hall'
+        });
+
+        expect(greedTreasure.routeWorldProfile).toMatchObject({
+            routeType: 'greed',
+            routeSpecialKinds: ['greed_cache', 'greed_toll', 'fragile_cache']
+        });
+        const treasureFindablePairKeys = new Set(
+            greedTreasure.tiles.filter((tile) => tile.findableKind).map((tile) => tile.pairKey)
+        );
+        expect(treasureFindablePairKeys.size).toBeGreaterThanOrEqual(1);
+        expect(
+            [...treasureFindablePairKeys].every(
+                (pairKey) => greedTreasure.tiles.filter((tile) => tile.pairKey === pairKey).length === 2
+            )
+        ).toBe(true);
+        const treasureToll = greedTreasure.tiles.find((tile) => tile.routeSpecialKind === 'greed_toll')!;
+        const treasureRun: RunState = {
+            ...base,
+            board: greedTreasure,
+            status: 'playing',
+            destroyPairCharges: 1,
+            shopGold: 0
+        };
+        const treasureDestroyed = applyDestroyPair(treasureRun, treasureToll.id);
+        expect(treasureDestroyed.shopGold).toBe(0);
+        expect(
+            treasureDestroyed.board!.tiles.filter((tile) => tile.pairKey === treasureToll.pairKey)
+        ).toEqual(expect.arrayContaining([expect.objectContaining({ routeSpecialKind: undefined })]));
+
+        expect(greedTrap.routeWorldProfile).toMatchObject({
+            routeType: 'greed',
+            routeSpecialKinds: ['greed_cache', 'greed_toll', 'elite_cache']
+        });
+        expect(greedTrap.tiles.filter((tile) => tile.pairKey === DECOY_PAIR_KEY)).toHaveLength(1);
+        expect(greedTrap.tiles.filter((tile) => tile.routeSpecialKind === 'elite_cache')).toHaveLength(2);
+
+        expect(safeRush.routeWorldProfile).toMatchObject({
+            routeType: 'safe',
+            routeSpecialKinds: ['safe_ward', 'lantern_ward', 'final_ward']
+        });
+        expect(safeRush.tiles.filter((tile) => tile.routeSpecialKind === 'final_ward')).toHaveLength(2);
+
+        expect(mysterySurvey.routeWorldProfile).toMatchObject({
+            routeType: 'mystery',
+            routeSpecialKinds: ['mystery_veil', 'secret_door']
+        });
+        const secret = mysterySurvey.tiles.find((tile) => tile.routeSpecialKind === 'secret_door')!;
+        const mysteryRun: RunState = { ...base, board: mysterySurvey, status: 'playing', peekCharges: 1 };
+        const mysteryPeeked = applyPeek(mysteryRun, secret.id);
+        expect(mysteryPeeked.board!.tiles.filter((tile) => tile.pairKey === secret.pairKey)).toEqual(
+            expect.arrayContaining([expect.objectContaining({ routeSpecialRevealed: true })])
+        );
+        expect(mysteryPeeked.relicFavorProgress).toBe(mysteryRun.relicFavorProgress);
+
+        for (const board of [greedTreasure, greedTrap, safeRush, mysterySurvey]) {
+            const cleared = clearRealPairs({ ...base, board, status: 'playing' });
+            expect(cleared.status).toBe('levelComplete');
+            expect(isBoardComplete(cleared.board!)).toBe(true);
+        }
     });
 
     it('applies deterministic mystery route rewards and can convert Favor into a relic pick', () => {

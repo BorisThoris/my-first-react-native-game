@@ -1,4 +1,6 @@
 import {
+    type BonusRewardId,
+    type BonusRewardLedger,
     MAX_COMBO_SHARDS,
     type RunState
 } from './contracts';
@@ -6,7 +8,6 @@ import { hashStringToSeed } from './rng';
 import type { RunMapNodeKind } from './run-map';
 
 export type BonusRewardRoomKind = 'treasure_chest' | 'secret_room' | 'bonus_cache';
-export type BonusRewardId = 'chest_gold' | 'secret_favor' | 'bonus_shards';
 
 export interface BonusRewardPayout {
     shopGold?: number;
@@ -38,13 +39,6 @@ export interface BonusRewardInstance extends BonusRewardDefinition {
     offlineOnly: true;
     eligible: boolean;
     unavailableReason: string | null;
-}
-
-export interface BonusRewardLedger {
-    claimedInstanceIds: string[];
-    claimedRewardIds: Partial<Record<BonusRewardId, number>>;
-    discoveredSecretRooms: number;
-    openedTreasureRooms: number;
 }
 
 export const BONUS_REWARD_CATALOG: Record<BonusRewardId, BonusRewardDefinition> = {
@@ -133,7 +127,8 @@ export const rollBonusRewardRoom = ({
 }): BonusRewardInstance => {
     const candidates = rewardIdsForRouteKind(routeKind);
     const seed = hashStringToSeed(`bonusReward:${rulesVersion}:${runSeed}:${floor}:${routeKind}`);
-    const definition = BONUS_REWARD_CATALOG[candidates[Math.abs(seed) % candidates.length]!];
+    const rewardId = routeKind === 'treasure' ? candidates[0]! : candidates[Math.abs(seed) % candidates.length]!;
+    const definition = BONUS_REWARD_CATALOG[rewardId];
     const unavailableReason = isEligible(definition, floor, ledger);
     return {
         ...definition,

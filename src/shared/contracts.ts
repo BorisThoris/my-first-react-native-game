@@ -8,7 +8,7 @@
  */
 export const SAVE_SCHEMA_VERSION = 5;
 /** Bump when generation rules change (tile order, mutators, pair layout). */
-export const GAME_RULES_VERSION = 17;
+export const GAME_RULES_VERSION = 19;
 export const INITIAL_LIVES = 4;
 /** Hard cap on life total during a run; HUD renders this many heart slots (PLAY-004 — honest max, not mock’s three). */
 export const MAX_LIVES = 5;
@@ -74,6 +74,7 @@ export type ViewState =
     | 'profile'
     | 'inventory'
     | 'shop'
+    | 'sideRoom'
     | 'codex';
 
 /** Where sub-screens (mode select, collection, profile, inventory, codex) return on Back. */
@@ -309,6 +310,12 @@ export interface Tile {
     atomicVariant?: number;
     /** If set, matching this pair claims a pickup reward on eligible floors. */
     findableKind?: FindableKind;
+    /** If set, matching this pair claims the selected route's next-floor card reward. */
+    routeCardKind?: RouteCardKind;
+    /** Route-world gameplay family; keeps `routeCardKind` available as the broad visual route marker. */
+    routeSpecialKind?: RouteSpecialKind;
+    /** True after an information tool has identified this route-world special without claiming it. */
+    routeSpecialRevealed?: boolean;
 }
 
 export type FloorTag = 'normal' | 'breather' | 'boss';
@@ -353,6 +360,8 @@ export interface BoardState {
     actFloorCount?: number | null;
     biomeTitle?: string | null;
     biomeTone?: string | null;
+    /** GP-RW01: selected route's deterministic pressure/reward profile for this generated floor. */
+    routeWorldProfile?: RouteWorldProfile | null;
 }
 
 export interface SessionStats {
@@ -400,6 +409,39 @@ export interface LevelResult {
 }
 
 export type RouteNodeType = 'safe' | 'greed' | 'mystery';
+export type RouteCardKind = 'safe_ward' | 'greed_cache' | 'mystery_veil';
+export type RouteSpecialKind =
+    | RouteCardKind
+    | 'elite_cache'
+    | 'final_ward'
+    | 'greed_toll'
+    | 'fragile_cache'
+    | 'lantern_ward'
+    | 'omen_seal'
+    | 'secret_door'
+    | 'keystone_pair';
+export type RouteWorldIntensity = 'safe' | 'greed' | 'mystery';
+
+export interface RouteWorldProfile {
+    routeType: RouteNodeType;
+    intensity: RouteWorldIntensity;
+    choiceId: string;
+    sourceLevel: number;
+    targetLevel: number;
+    hazardBudget: number;
+    rewardBudget: number;
+    safetyBudget: number;
+    informationBudget: number;
+    routeSpecialKinds: RouteSpecialKind[];
+    summary: string;
+}
+
+export interface RouteCardPlan {
+    choiceId: string;
+    routeType: RouteNodeType;
+    sourceLevel: number;
+    targetLevel: number;
+}
 
 export interface RouteChoice {
     id: string;
@@ -408,6 +450,34 @@ export interface RouteChoice {
     detail: string;
     rewardPreview?: string;
     riskPreview?: string;
+}
+
+export type BonusRewardId = 'chest_gold' | 'secret_favor' | 'bonus_shards';
+
+export interface BonusRewardLedger {
+    claimedInstanceIds: string[];
+    claimedRewardIds: Partial<Record<BonusRewardId, number>>;
+    discoveredSecretRooms: number;
+    openedTreasureRooms: number;
+}
+
+export type RouteSideRoomKind = 'rest_shrine' | 'run_event' | 'bonus_reward';
+
+export interface RouteSideRoomState {
+    id: string;
+    kind: RouteSideRoomKind;
+    routeType: RouteNodeType;
+    nodeKind: 'combat' | 'shop' | 'elite' | 'rest' | 'event' | 'treasure';
+    floor: number;
+    title: string;
+    body: string;
+    primaryLabel: string;
+    primaryDetail: string;
+    skipLabel: string;
+    payload:
+        | { kind: 'rest_heal'; serviceId: string }
+        | { kind: 'event_choice'; eventKey: string; choiceId: string }
+        | { kind: 'bonus_reward'; instanceId: string };
 }
 
 export interface RunSummary {
@@ -486,6 +556,12 @@ export interface RunState {
     featuredObjectiveStreak: number;
     /** Endless-only risk wager armed from a level-complete modal for the next floor. */
     endlessRiskWager: EndlessRiskWagerState | null;
+    /** Run-local selected route payload consumed by the next board generation. */
+    pendingRouteCardPlan: RouteCardPlan | null;
+    /** Run-local route side-room stop offered after route choice and before the next floor. */
+    sideRoom: RouteSideRoomState | null;
+    /** Anti-grind ledger for route side-room bonus rewards. */
+    bonusRewardLedger: BonusRewardLedger;
     /**
      * Copied from save at run start: meta unlock grants +1 relic pick at **each** milestone (`relicShrineExtraPickUnlocked`).
      */

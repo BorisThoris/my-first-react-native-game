@@ -16,6 +16,7 @@ import {
 import { flushSync } from 'react-dom';
 import type { BoardScreenSpaceAA, BoardState, GraphicsQualityPreset, RunStatus, Tile } from '../../shared/contracts';
 import { getFindableRewardText } from '../../shared/findables';
+import { routeSpecialLabel, routeSpecialRewardLine } from '../../shared/route-world';
 import { resolveAdaptiveBoardRenderQuality } from '../../shared/graphicsQuality';
 import { isNarrowShortLandscapeForMenuStack, VIEWPORT_MOBILE_MAX } from '../breakpoints';
 import { useCoarsePointer } from '../hooks/useCoarsePointer';
@@ -185,7 +186,26 @@ const getTileAriaLabel = (tile: Tile, faceUp: boolean, row: number, column: numb
             : `Tile ${tile.label}, row ${row}, column ${column}`
         : `Hidden tile, row ${row}, column ${column}`;
     const findableNote = tile.findableKind && faceUp && tile.state !== 'matched' ? ` ${getFindableRewardText(tile.findableKind)}` : '';
-    return `${base}${findableNote}`;
+    const routeNote =
+        (tile.routeSpecialKind || tile.routeCardKind) && tile.state !== 'matched'
+            ? ` Route card: ${
+                  tile.routeSpecialKind
+                      ? `${routeSpecialLabel(tile.routeSpecialKind)}. ${routeSpecialRewardLine(tile.routeSpecialKind)}`
+                      : tile.routeCardKind === 'safe_ward'
+                        ? 'Safe ward.'
+                        : tile.routeCardKind === 'greed_cache'
+                          ? 'Greed cache.'
+                          : 'Mystery veil.'
+              }${
+                  (tile.routeSpecialKind === 'mystery_veil' ||
+                      tile.routeSpecialKind === 'secret_door' ||
+                      tile.routeSpecialKind === 'omen_seal') &&
+                  tile.routeSpecialRevealed
+                      ? ' Revealed by peek.'
+                      : ''
+              }`
+            : '';
+    return `${base}${findableNote}${routeNote}`;
 };
 
 const getTouchCentroid = (first: TouchPoint, second: TouchPoint): TouchPoint => ({

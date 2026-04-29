@@ -8,7 +8,7 @@
 import type { AchievementId, GameMode, MutatorId, RelicId } from './contracts';
 
 /** Monotonic reference doc version (increment when the encyclopedia meaningfully changes). */
-export const ENCYCLOPEDIA_VERSION = 12 as const;
+export const ENCYCLOPEDIA_VERSION = 13 as const;
 
 export interface RelicDefinition {
     id: RelicId;
@@ -442,6 +442,12 @@ export const CODEX_CORE_TOPICS: CodexCoreTopic[] = [
         title: 'Mutators',
         description:
             'Classic chapters telegraph mutators before play: the banner names the chapter theme, active pressure, featured objective, and pacing tag so the player knows how to adapt.'
+    },
+    {
+        id: 'route_world',
+        title: 'Route-world cards',
+        description:
+            'Choosing Safe, Greed, or Mystery after a clear stores a route plan for the next floor. That next board gains route-specific card families, hard-route elite anchors, side-room pacing, and relic draft weighting tied to the route you selected.'
     }
 ];
 
@@ -463,13 +469,13 @@ export const ENCYCLOPEDIA_POWER_TOPICS: readonly EncyclopediaTopic[] = [
         id: 'power_destroy_pair',
         title: 'Destroy pair',
         description:
-            'Spends destroy charges to remove a fully hidden **pair** without match score—counts as a power for perfect-clear rules. Findable bonus pickups on that pair are **forfeited**. Cannot target the glass decoy tile.'
+            'Spends destroy charges to remove a fully hidden **pair** without match score—counts as a power for perfect-clear rules. Findable bonus pickups and destroy-denied route rewards on that pair are **forfeited**. Cannot target the glass decoy tile.'
     },
     {
         id: 'power_peek',
         title: 'Peek',
         description:
-            'Reveals a hidden tile briefly without committing a full flip sequence (charges). Useful for verification; still counts as a power where perfect-clear rules apply.'
+            'Reveals a hidden tile briefly without committing a full flip sequence (charges). Peek also marks Mystery Veil, Secret Door, and Omen Seal route families as revealed without claiming their reward. Useful for verification; still counts as a power where perfect-clear rules apply.'
     },
     {
         id: 'power_pin',
@@ -481,7 +487,7 @@ export const ENCYCLOPEDIA_POWER_TOPICS: readonly EncyclopediaTopic[] = [
         id: 'power_stray_remove',
         title: 'Stray remove',
         description:
-            'Arms removal of **one** hidden non-decoy tile—its partner becomes a singleton; does not score. Cannot remove the glass decoy trap tile.'
+            'Arms removal of **one** hidden non-decoy tile—its partner becomes a singleton; does not score. Cannot remove the glass decoy trap tile, Keystone Pair, Final Ward, or Omen Seal route anchors.'
     },
     {
         id: 'power_flash_pair',
@@ -666,6 +672,30 @@ export const ENCYCLOPEDIA_PICKUP_AND_BOARD_TOPICS: readonly EncyclopediaTopic[] 
         title: 'Ward & bounty (shifting spotlight)',
         description:
             'With **Shifting spotlight**, a Ward pair scores less if matched while highlighted; a Bounty pair grants extra score. Rotates on match, miss, gambit, or destroy.'
+    },
+    {
+        id: 'board_route_cards',
+        title: 'Route cards',
+        description:
+            'Route boards stamp real pairs with Safe Ward, Greed Cache, or Mystery Veil rendering metadata plus named special families. Safe rewards protection, Greed rewards gold/score and can lose value to destroy, and Mystery rewards information, shards, or Favor after fair reveal counterplay.'
+    },
+    {
+        id: 'board_route_reveal',
+        title: 'Mystery route reveal rules',
+        description:
+            'Mystery Veil, Secret Door, and Omen Seal start unrevealed. Peek reveals the matching pair label for readability but does not grant the route reward; the reward is paid only when the pair is actually matched.'
+    },
+    {
+        id: 'board_boss_elite_anchors',
+        title: 'Boss and elite route anchors',
+        description:
+            'Boss route floors add a Keystone Pair anchor mapped through the selected route. Hard non-boss route floors add an elite anchor: Greed gets Elite Cache, Safe gets Final Ward, and Mystery gets Omen Seal. Final Ward and Omen Seal are protected from Stray remove so route pressure stays on the board.'
+    },
+    {
+        id: 'board_route_side_rooms',
+        title: 'Route side rooms and relic weighting',
+        description:
+            'Route choices can open side-room interludes before the next board and mark bonus-reward ledgers. Safe leans defensive, Greed leans risky economy, and Mystery leans event/reveal outcomes; relic weighting can nudge shrine drafts toward the chosen route when eligible.'
     }
 ];
 
@@ -701,5 +731,11 @@ export const ENCYCLOPEDIA_FEATURED_RUN_TOPICS: readonly EncyclopediaTopic[] = [
         id: 'featured_wild',
         title: 'Wild / joker run',
         description: 'Endless run with wild-tile rules enabled from the menu for a different pairing puzzle.'
+    },
+    {
+        id: 'featured_route_world',
+        title: 'Route-world run flow',
+        description:
+            'After eligible clears, pick Safe, Greed, or Mystery to shape the next floor. The selected route affects board specials, side rooms, reward hooks, elite anchors on hard floors, and route-aware relic opportunities.'
     }
 ];

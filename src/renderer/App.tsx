@@ -10,6 +10,7 @@ import GameScreen from './components/GameScreen';
 import InventoryScreen from './components/InventoryScreen';
 import MainMenu from './components/MainMenu';
 import SettingsScreen from './components/SettingsScreen';
+import SideRoomScreen from './components/SideRoomScreen';
 import ShopScreen from './components/ShopScreen';
 import { GAMEPLAY_VISUAL_CSS_VARS } from './components/gameplayVisualConfig';
 import metaScreenStyles from './components/MetaScreen.module.css';
@@ -100,7 +101,11 @@ const App = () => {
         subscreenReturnView === 'playing' &&
         run !== null;
     const inGameShopOverlay = hydrated && view === 'shop' && run !== null;
-    const visualView = inGameSettingsOverlay || inGameShellOverlay || inGameShopOverlay ? 'playing' : activeView;
+    const inGameSideRoomOverlay = hydrated && view === 'sideRoom' && run !== null;
+    const visualView =
+        inGameSettingsOverlay || inGameShellOverlay || inGameShopOverlay || inGameSideRoomOverlay
+            ? 'playing'
+            : activeView;
 
     const musicShellActive = hydrated && (visualView === 'menu' || visualView === 'playing');
 
@@ -187,6 +192,16 @@ const App = () => {
             shopRun.shopOffers.length === 0
         ) {
             closeShopToFloorSummary();
+        }
+    }, [hydrated, view]);
+
+    useEffect(() => {
+        if (!hydrated || view !== 'sideRoom') {
+            return;
+        }
+        const { run: sideRoomRun } = useAppStore.getState();
+        if (!sideRoomRun || sideRoomRun.status !== 'levelComplete' || sideRoomRun.relicOffer || !sideRoomRun.sideRoom) {
+            useAppStore.setState({ view: 'playing' });
         }
     }, [hydrated, view]);
 
@@ -298,11 +313,19 @@ const App = () => {
 
                 {hydrated && view === 'settings' && !inGameSettingsOverlay && <SettingsScreen />}
 
-                {hydrated && (view === 'playing' || inGameSettingsOverlay || inGameShellOverlay || inGameShopOverlay) && run && (
+                {hydrated &&
+                    (view === 'playing' ||
+                        inGameSettingsOverlay ||
+                        inGameShellOverlay ||
+                        inGameShopOverlay ||
+                        inGameSideRoomOverlay) &&
+                    run && (
                     <GameScreen
                         achievements={newlyUnlockedAchievements}
                         run={run}
-                        suppressStatusOverlays={inGameSettingsOverlay || inGameShellOverlay || inGameShopOverlay}
+                        suppressStatusOverlays={
+                            inGameSettingsOverlay || inGameShellOverlay || inGameShopOverlay || inGameSideRoomOverlay
+                        }
                     />
                 )}
 
@@ -328,6 +351,8 @@ const App = () => {
                 ) : null}
 
                 {inGameShopOverlay ? <ShopScreen /> : null}
+
+                {inGameSideRoomOverlay ? <SideRoomScreen /> : null}
 
                 {hydrated && view === 'gameOver' && run?.lastRunSummary && <GameOverScreen run={run} />}
             </main>

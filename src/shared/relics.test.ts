@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { RunState } from './contracts';
+import type { RouteNodeType, RunState } from './contracts';
 import { createDailyRun, createNewRun } from './game';
 import { pickFloorScheduleEntry } from './floor-mutator-schedule';
 import {
@@ -40,6 +40,38 @@ const levelCompleteRun = (level: number, tiersClaimed: number, overrides: Partia
         ...overrides
     } as RunState;
 };
+
+const withPendingRoute = (run: RunState, routeType: RouteNodeType): RunState => ({
+    ...run,
+    pendingRouteCardPlan: {
+        choiceId: `test:${run.runRulesVersion}:${run.runSeed}:${run.lastLevelResult?.level ?? 0}:${routeType}`,
+        routeType,
+        sourceLevel: run.lastLevelResult?.level ?? 0,
+        targetLevel: (run.lastLevelResult?.level ?? 0) + 1
+    }
+});
+
+const withActiveRouteProfile = (run: RunState, routeType: RouteNodeType): RunState => ({
+    ...run,
+    board: run.board
+        ? {
+              ...run.board,
+              routeWorldProfile: {
+                  routeType,
+                  intensity: routeType,
+                  choiceId: `active:${routeType}`,
+                  sourceLevel: Math.max(0, run.board.level - 1),
+                  targetLevel: run.board.level,
+                  hazardBudget: routeType === 'greed' ? 2 : 0,
+                  rewardBudget: routeType === 'safe' ? 1 : 2,
+                  safetyBudget: routeType === 'safe' ? 1 : 0,
+                  informationBudget: routeType === 'mystery' ? 2 : 0,
+                  routeSpecialKinds: [],
+                  summary: `Active ${routeType} profile`
+              }
+          }
+        : run.board
+});
 
 describe('relicMilestoneIndexForFloor', () => {
     it('maps milestone floors to tier indices', () => {
@@ -226,6 +258,83 @@ describe('rollRelicOptions', () => {
         expect(compassWeight).toBeGreaterThan(baseWeight);
         expect(options).toHaveLength(3);
         expect(options).not.toContain('chapter_compass');
+    });
+
+    it('derives route draft context from pending route before active board profile', () => {
+        const base = withActiveRouteProfile(levelCompleteRun(3, 0), 'mystery');
+        const pendingGreed = withPendingRoute(base, 'greed');
+        const context = getRelicDraftContext(pendingGreed, 3);
+
+        expect(context.pendingRouteType).toBe('greed');
+        expect(context.activeRouteType).toBe('mystery');
+        expect(context.routeType).toBe('greed');
+        expect(context.routePressure).toBe('greed');
+        expect(context.routeReasonSource).toBe('pending_route');
+    });
+
+    it('derives route draft context from active board profile when no pending route exists', () => {
+        const run = withActiveRouteProfile(levelCompleteRun(3, 0), 'mystery');
+        const context = getRelicDraftContext(run, 3);
+
+        expect(context.pendingRouteType).toBeNull();
+        expect(context.activeRouteType).toBe('mystery');
+        expect(context.routeType).toBe('mystery');
+        expect(context.routeReasonSource).toBe('active_board');
+    });
+
+    it('nudges weights and reasons for Greed, Mystery, and Safe route context', () => {
+        const base = levelCompleteRun(3, 0);
+        const neutral = getRelicDraftContext(base, 3);
+        const greed = getRelicDraftContext(withPendingRoute(base, 'greed'), 3);
+        const mystery = getRelicDraftContext(withPendingRoute(base, 'mystery'), 3);
+        const safe = getRelicDraftContext(withPendingRoute(base, 'safe'), 3);
+
+        expect(getRelicDraftOptionReasons(withPendingRoute(base, 'greed'), 3, ['guard_token_plus_one'])).toEqual({
+            guard_token_plus_one: 'Answers Greed pressure'
+        });
+        expect(getRelicDraftOptionReasons(withPendingRoute(base, 'mystery'), 3, ['peek_charge_plus_one'])).toEqual({
+            peek_charge_plus_one: 'Reads Mystery routes'
+        });
+        expect(getRelicDraftOptionReasons(withPendingRoute(base, 'safe'), 3, ['memorize_bonus_ms'])).toEqual({
+            memorize_bonus_ms: 'Supports Safe routing'
+        });
+        expect(getContextualRelicDraftWeight('guard_token_plus_one', greed, 0)).toBeGreaterThan(
+            getContextualRelicDraftWeight('guard_token_plus_one', neutral, 0)
+        );
+        expect(getContextualRelicDraftWeight('pin_cap_plus_one', mystery, 0)).toBeGreaterThan(
+            getContextualRelicDraftWeight('pin_cap_plus_one', neutral, 0)
+        );
+        expect(getContextualRelicDraftWeight('memorize_bonus_ms', safe, 0)).toBeGreaterThan(
+            getContextualRelicDraftWeight('memorize_bonus_ms', neutral, 0)
+        );
+    });
+
+    it('keeps route-only relic context as weights, not a guaranteed spotlight slot', () => {
+        let foundDraftWithoutRouteReason = false;
+        for (let seed = 9_000; seed < 9_120; seed += 1) {
+            const run = withPendingRoute(levelCompleteRun(3, 0, { runSeed: seed }), 'greed');
+            const options = rollRelicOptions(run, 0, 3, 0);
+            const reasons = getRelicDraftOptionReasons(run, 3, options);
+            if (!Object.values(reasons ?? {}).includes('Answers Greed pressure')) {
+                foundDraftWithoutRouteReason = true;
+                break;
+            }
+        }
+
+        expect(foundDraftWithoutRouteReason).toBe(true);
+    });
+
+    it('keeps route-boosted relics subject to contract filters', () => {
+        const run = withPendingRoute(
+            levelCompleteRun(3, 0, {
+                activeContract: { noShuffle: true, noDestroy: false, maxMismatches: null }
+            }),
+            'safe'
+        );
+        const options = rollRelicOptions(run, 0, 3, 0);
+
+        expect(isRelicDraftEligible('region_shuffle_free_first', run)).toBe(false);
+        expect(options).not.toContain('region_shuffle_free_first');
     });
 
     it('keeps Endless contextual drafts varied and valid across floors 1-24', () => {

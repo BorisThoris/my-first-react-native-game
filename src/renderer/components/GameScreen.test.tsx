@@ -723,9 +723,78 @@ describe('GameScreen (OVR-014)', () => {
         expect(screen.getByTestId('route-choice-panel')).toHaveTextContent('Choose next route');
         expect(screen.getByRole('button', { name: 'Safe passage' })).toBeTruthy();
         expect(screen.getByRole('button', { name: 'Greedy route' })).toBeTruthy();
-        expect(screen.getByRole('button', { name: /visit shop/i })).toBeTruthy();
+        expect(screen.queryByRole('button', { name: /visit shop/i })).toBeNull();
         expect(screen.queryByTestId('shop-offer-panel')).toBeNull();
         expect(screen.getByText(/Vendor alcove available: 1 services, 5 shop gold/)).toBeTruthy();
+    });
+
+    it('shows selected route copy instead of route buttons after a route is locked', () => {
+        const baseRun = createNewRun(0, { echoFeedbackEnabled: false });
+        const run: RunState = {
+            ...baseRun,
+            status: 'levelComplete',
+            relicOffer: null,
+            pendingRouteCardPlan: {
+                choiceId: '17:1:2:greed',
+                routeType: 'greed',
+                sourceLevel: 1,
+                targetLevel: 2
+            },
+            lastLevelResult: {
+                level: 1,
+                scoreGained: 120,
+                rating: 'S++',
+                livesRemaining: 5,
+                perfect: true,
+                mistakes: 0,
+                clearLifeReason: 'perfect',
+                clearLifeGained: 1,
+                routeChoices: [
+                    {
+                        id: '17:1:2:greed',
+                        routeType: 'greed',
+                        label: 'Greedy route',
+                        detail: 'Higher pressure route hook for future shop, elite, or bonus rewards.'
+                    }
+                ]
+            }
+        };
+
+        render(
+            <PlatformTiltProvider>
+                <NotificationHost>
+                    <GameScreen achievements={[]} run={run} />
+                </NotificationHost>
+            </PlatformTiltProvider>
+        );
+
+        expect(screen.queryByTestId('route-choice-panel')).toBeNull();
+        expect(screen.getByText(/Greedy route selected: next floor adds richer caches and extra reward-risk pressure/i)).toBeTruthy();
+        expect(screen.getByRole('button', { name: /continue to greedy route floor/i })).toBeTruthy();
+    });
+
+    it('shows an in-board route card banner while route cards are unclaimed', () => {
+        const baseRun = finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false }));
+        const run: RunState = {
+            ...baseRun,
+            board: {
+                ...baseRun.board!,
+                tiles: baseRun.board!.tiles.map((tile, index) =>
+                    index < 2 ? { ...tile, routeCardKind: 'greed_cache' as const } : tile
+                )
+            }
+        };
+
+        render(
+            <PlatformTiltProvider>
+                <NotificationHost>
+                    <GameScreen achievements={[]} run={run} />
+                </NotificationHost>
+            </PlatformTiltProvider>
+        );
+
+        expect(screen.getByTestId('route-card-board-banner')).toHaveTextContent('Greed Cache');
+        expect(screen.getByTestId('route-card-board-banner')).toHaveTextContent('+2 gold +25 score');
     });
 
     it('shows and arms an endless risk wager when the cleared streak is eligible', () => {

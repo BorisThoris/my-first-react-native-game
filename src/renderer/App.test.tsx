@@ -442,6 +442,68 @@ describe('desktop app flow', () => {
         expect(screen.getByTestId('game-hud')).toBeInTheDocument();
     });
 
+    it('renders the route side-room overlay over gameplay', async () => {
+        const saveData = createDefaultSaveData();
+        const baseRun = createNewRun(0);
+        const runBase: RunState = {
+            ...baseRun,
+            status: 'levelComplete',
+            timerState: {
+                memorizeRemainingMs: null,
+                resolveRemainingMs: null,
+                debugRevealRemainingMs: null,
+                pausedFromStatus: null
+            },
+            lastLevelResult: {
+                level: 1,
+                scoreGained: 120,
+                rating: 'S',
+                livesRemaining: baseRun.lives,
+                perfect: true,
+                mistakes: 0,
+                clearLifeReason: 'none',
+                clearLifeGained: 0
+            },
+            relicOffer: null,
+            sideRoom: {
+                id: 'test-side-room',
+                kind: 'bonus_reward',
+                routeType: 'greed',
+                nodeKind: 'treasure',
+                floor: 2,
+                title: 'Greed Treasure chest',
+                body: 'A route reward waits before the next floor.',
+                primaryLabel: 'Claim Treasure chest',
+                primaryDetail: '+2 shop gold and +25 score.',
+                skipLabel: 'Leave it',
+                payload: { kind: 'bonus_reward', instanceId: 'missing' }
+            }
+        };
+
+        act(() => {
+            useAppStore.setState({
+                hydrated: true,
+                hydrating: false,
+                steamConnected: false,
+                view: 'sideRoom',
+                settingsReturnView: 'menu',
+                subscreenReturnView: 'menu',
+                saveData,
+                settings: saveData.settings,
+                run: runBase,
+                newlyUnlockedAchievements: [],
+                hydrate: async () => {}
+            });
+        });
+
+        renderApp();
+
+        expect(screen.queryByRole('dialog', { name: /floor cleared/i })).not.toBeInTheDocument();
+        expect(await screen.findByRole('dialog', { name: /route side room/i })).toBeInTheDocument();
+        expect(screen.getByText(/greed treasure chest/i)).toBeInTheDocument();
+        expect(screen.getByTestId('game-hud')).toBeInTheDocument();
+    });
+
     it('normalizes invalid shop view to playing when the run is not level complete', async () => {
         const saveData = createDefaultSaveData();
         const baseRun = createNewRun(0);

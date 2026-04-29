@@ -123,6 +123,9 @@ const MISMATCH_EMISSIVE = new Color(RENDERER_THEME.colors.emberSoft);
 const PIN_STACK_TINT = new Color('#d4b870');
 const FINDABLE_SHARD_TINT = new Color('#f1cf84');
 const FINDABLE_SCORE_TINT = new Color('#87d8ee');
+const ROUTE_SAFE_TINT = new Color('#f0dda0');
+const ROUTE_GREED_TINT = new Color('#edbf58');
+const ROUTE_MYSTERY_TINT = new Color('#9cb7ff');
 /** `n_back_anchor` presentation mutator — forward-read cyan (matches theme `cyanBright`). */
 const PRESENTATION_N_BACK_TINT = new Color(RENDERER_THEME.colors.cyanBright);
 /** `wide_recall` — cooler, slightly desaturated face during play. */
@@ -248,6 +251,8 @@ interface TileBezelProps {
     sharedCardBackGeometry: BufferGeometry | null;
     memorizeCurseHighlight?: boolean;
     findableFaceHighlight?: boolean;
+    routeCardHighlight?: boolean;
+    routeCardOnBack?: boolean;
     spotlightWardHighlight?: boolean;
     spotlightBountyHighlight?: boolean;
     /** Dims card materials when focus-assist targets this hidden tile (not when peek shows face). */
@@ -963,6 +968,15 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
             p.tile.findableKind === 'score_glint' ? FINDABLE_SCORE_TINT : FINDABLE_SHARD_TINT,
             0.12
         );
+    } else if (p.tile.routeCardKind && p.faceUp && p.tile.state !== 'matched') {
+        scratchCardTint.lerp(
+            p.tile.routeCardKind === 'safe_ward'
+                ? ROUTE_SAFE_TINT
+                : p.tile.routeCardKind === 'greed_cache'
+                  ? ROUTE_GREED_TINT
+                  : ROUTE_MYSTERY_TINT,
+            0.14
+        );
     }
     const pinnedFaceResolving = p.isPinned && p.faceUp && p.resolvingSelection !== null;
     if (pinnedFaceResolving) {
@@ -1229,6 +1243,8 @@ const TileBezelInner = ({
     sharedCardBackGeometry,
     memorizeCurseHighlight = false,
     findableFaceHighlight = false,
+    routeCardHighlight = false,
+    routeCardOnBack = false,
     spotlightWardHighlight = false,
     spotlightBountyHighlight = false,
     spotlightWardOnBack = false,
@@ -1743,6 +1759,12 @@ const TileBezelInner = ({
     const cardFrontArtTexture = useSvgMeshFront ? null : getCardFaceStaticTexture();
     const overlayTexture =
         surfaceVariant === 'hidden' ? null : getTileFaceOverlayTexture(tile, surfaceVariant, graphicsQuality);
+    const routeCardColor =
+        tile.routeCardKind === 'safe_ward'
+            ? '#f0dda0'
+            : tile.routeCardKind === 'greed_cache'
+              ? '#edbf58'
+              : '#9cb7ff';
     const forceTextureRefreshKey = textureRevision;
 
     useLayoutEffect(() => {
@@ -2004,11 +2026,58 @@ const TileBezelInner = ({
                 {/* Shifting spotlight + board-power hints on hidden card backs */}
                 {(spotlightWardOnBack ||
                     spotlightBountyOnBack ||
+                    routeCardOnBack ||
                     destroyBlockedDecoyBack ||
                     powerBackAccent != null ||
                     (stickyFingerSlotMark && tile.state === 'hidden')) &&
                 !faceUp ? (
                     <group position={[0, 0, -faceZ - 0.00033]} rotation={[0, Math.PI, 0]}>
+                        {routeCardOnBack ? (
+                            <group position={[0, 0, 0.00051]} scale={[1.85, 1.85, 1]}>
+                                <mesh geometry={findableCornerHaloGeometry} raycast={noopMeshRaycast} renderOrder={9}>
+                                    <meshBasicMaterial
+                                        color={routeCardColor}
+                                        depthTest
+                                        depthWrite={false}
+                                        opacity={0.24}
+                                        side={DoubleSide}
+                                        toneMapped={false}
+                                        transparent
+                                    />
+                                </mesh>
+                                <mesh geometry={findableCornerRingGeometry} raycast={noopMeshRaycast} renderOrder={10}>
+                                    <meshBasicMaterial
+                                        color={routeCardColor}
+                                        depthTest
+                                        depthWrite={false}
+                                        opacity={0.92}
+                                        side={DoubleSide}
+                                        toneMapped={false}
+                                        transparent
+                                    />
+                                </mesh>
+                                <mesh
+                                    geometry={
+                                        tile.routeCardKind === 'greed_cache'
+                                            ? findableShardGlyphGeometry
+                                            : findableScoreGlyphGeometry
+                                    }
+                                    raycast={noopMeshRaycast}
+                                    renderOrder={11}
+                                    rotation={[0, 0, tile.routeCardKind === 'greed_cache' ? Math.PI / 4 : 0]}
+                                >
+                                    <meshBasicMaterial
+                                        color="#fff8d8"
+                                        depthTest
+                                        depthWrite={false}
+                                        opacity={0.96}
+                                        side={DoubleSide}
+                                        toneMapped={false}
+                                        transparent
+                                    />
+                                </mesh>
+                            </group>
+                        ) : null}
                         {spotlightWardOnBack ? (
                             <mesh
                                 geometry={findableCornerRingGeometry}
@@ -2295,6 +2364,52 @@ const TileBezelInner = ({
                         </mesh>
                     </group>
                 ) : null}
+                {routeCardHighlight ? (
+                    <group position={[-CARD_WIDTH * 0.36, -CARD_HEIGHT * 0.4, faceZ + 0.017]}>
+                        <mesh geometry={findableCornerHaloGeometry} raycast={noopMeshRaycast} renderOrder={9}>
+                            <meshBasicMaterial
+                                color={routeCardColor}
+                                depthTest
+                                depthWrite={false}
+                                opacity={0.22}
+                                side={DoubleSide}
+                                toneMapped={false}
+                                transparent
+                            />
+                        </mesh>
+                        <mesh geometry={findableCornerRingGeometry} raycast={noopMeshRaycast} renderOrder={10}>
+                            <meshBasicMaterial
+                                color={routeCardColor}
+                                depthTest
+                                depthWrite={false}
+                                opacity={0.94}
+                                side={DoubleSide}
+                                toneMapped={false}
+                                transparent
+                            />
+                        </mesh>
+                        <mesh
+                            geometry={
+                                tile.routeCardKind === 'greed_cache'
+                                    ? findableShardGlyphGeometry
+                                    : findableScoreGlyphGeometry
+                            }
+                            raycast={noopMeshRaycast}
+                            renderOrder={11}
+                            rotation={[0, 0, tile.routeCardKind === 'greed_cache' ? Math.PI / 4 : 0]}
+                        >
+                            <meshBasicMaterial
+                                color="#fff8d8"
+                                depthTest
+                                depthWrite={false}
+                                opacity={0.96}
+                                side={DoubleSide}
+                                toneMapped={false}
+                                transparent
+                            />
+                        </mesh>
+                    </group>
+                ) : null}
                 {spotlightWardHighlight ? (
                     <mesh
                         geometry={findableCornerRingGeometry}
@@ -2521,6 +2636,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                 tile.pairKey === cursedPairKey &&
                 tile.state === 'hidden';
             const findableFaceHighlight = Boolean(tile.findableKind) && faceUp && tile.state !== 'matched';
+            const routeCardHighlight = Boolean(tile.routeCardKind) && faceUp && tile.state !== 'matched';
             const spotlightWardHighlight =
                 Boolean(wardPairKey) && faceUp && tile.state !== 'matched' && tile.pairKey === wardPairKey;
             const spotlightBountyHighlight =
@@ -2555,6 +2671,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                 Boolean(bountyPairKey) &&
                 !faceUp &&
                 tile.pairKey === bountyPairKey;
+            const routeCardOnBack = Boolean(tile.routeCardKind) && !faceUp && tile.state === 'hidden';
             const destroyBlockedDecoyBack =
                 destroyPowerVisualActive &&
                 !faceUp &&
@@ -2593,6 +2710,8 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                 presentationSilhouette,
                 presentationWideRecall,
                 resolvingSelection: getResolvingSelectionState(board, runStatus, tile.id),
+                routeCardHighlight,
+                routeCardOnBack,
                 shuffleBoardOrderIndex: index,
                 spotlightBountyHighlight,
                 spotlightBountyOnBack,
@@ -2971,6 +3090,8 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                         presentationSilhouette,
                         presentationWideRecall,
                         resolvingSelection,
+                        routeCardHighlight,
+                        routeCardOnBack,
                         shuffleBoardOrderIndex,
                         spotlightBountyHighlight,
                         spotlightBountyOnBack,
@@ -3013,6 +3134,8 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                             reduceMotion={reduceMotion}
                             resolvingMatchWaveKey={resolvingMatchWaveKey}
                             resolvingSelection={resolvingSelection}
+                            routeCardHighlight={routeCardHighlight}
+                            routeCardOnBack={routeCardOnBack}
                             shuffleBoardOrderIndex={shuffleBoardOrderIndex}
                             shuffleMotionBudgetMs={shuffleMotionBudgetMs}
                             shuffleMotionDeadlineMs={shuffleMotionDeadlineMs}

@@ -15,6 +15,7 @@ describe('REG-076 boss and elite encounter identity', () => {
             scoreRule: 'Applies the boss floor score multiplier after bonuses.'
         });
         expect(identity!.mechanics.length).toBeGreaterThanOrEqual(2);
+        expect(identity!.mechanics).toEqual(expect.arrayContaining([expect.stringContaining('Keystone Pair')]));
         expect(identity!.placeholderNeeded).toBe(true);
         expect(identity!.placeholderSlots).toContain('boss intro stinger');
     });
@@ -25,6 +26,9 @@ describe('REG-076 boss and elite encounter identity', () => {
         expect(identity).not.toBeNull();
         expect(identity!.encounterRank).toBe('elite');
         expect(identity!.scoreRule).toBe('No boss score multiplier; elite identity is route-pressure and reward pacing only.');
+        expect(identity!.mechanics.join(' ')).toContain('Elite Cache');
+        expect(identity!.mechanics.join(' ')).toContain('Final Ward');
+        expect(identity!.mechanics.join(' ')).toContain('Omen Seal');
         expect(identity!.placeholderSlots).toContain('elite route badge');
     });
 

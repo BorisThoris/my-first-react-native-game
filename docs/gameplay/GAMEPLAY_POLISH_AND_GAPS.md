@@ -60,7 +60,7 @@
 
 | Item | Status | Notes | Epic |
 |------|--------|-------|------|
-| Telemetry sink | **Partial** | `telemetry.ts` — `setTelemetrySink`; **no in-repo default sink**; events fire from store when wired by host. | [epic-meta-progression](./epic-meta-progression.md) |
+| Telemetry sink | **Functional** | Privacy-first v1: production default is no-op, dev can log locally, and hosts may inject `setTelemetrySink` for analytics. | [epic-meta-progression](./epic-meta-progression.md) |
 | Gameplay audio | **Functional** | Procedural Web Audio SFX on flip + resolve; `masterVolume` / `sfxVolume`. QA per build for packaged autoplay/OS edge cases. | [epic-audio-feedback](./epic-audio-feedback.md), [AUDIO_INTEGRATION.md](../AUDIO_INTEGRATION.md) |
 
 ---
@@ -109,7 +109,7 @@
 | Item | Status | Notes | Epic |
 |------|--------|-------|------|
 | Sticky fingers discoverability | **Functional** | Easy to miss without dedicated affordance. | [epic-mutators](./epic-mutators.md) |
-| Catalog vs renderer | **Partial** | See §1; three mutators lean on **score tax** until visuals catch up. | [epic-mutators](./epic-mutators.md) |
+| Catalog vs renderer | **Functional** | Presentation mutators have sim penalties, renderer tints, and Codex coverage tests; deeper art direction is polish, not missing mechanics. | [epic-mutators](./epic-mutators.md) |
 
 ---
 
@@ -123,7 +123,17 @@
 
 ---
 
-## 11. Onboarding, Codex, FTUE
+## 11. Route-world pipeline
+
+| Item | Status | Notes | Epic |
+|------|--------|-------|------|
+| Route cards and hard-route anchors | **Functional** | Safe/Greed/Mystery route choices feed next-board generation. Hard non-boss floors add Final Ward, Elite Cache, or Omen Seal; boss route floors add Keystone Pair. | [epic-route-world-pipeline](./epic-route-world-pipeline.md) |
+| Route action rules | **Functional** | Match claims route rewards; destroy denies eligible route rewards; peek reveals Mystery Veil/Secret Door/Omen Seal without claiming; Stray remove refuses Keystone Pair, Final Ward, and Omen Seal. | [epic-route-world-pipeline](./epic-route-world-pipeline.md) |
+| Route-world presentation depth | **Functional** | Rendering/copy surfaces distinguish route families. Remaining polish is final art/audio and deeper trap-family tuning, not missing gameplay plumbing. | [epic-route-world-pipeline](./epic-route-world-pipeline.md) |
+
+---
+
+## 12. Onboarding, Codex, FTUE
 
 | Item | Status | Notes | Epic |
 |------|--------|-------|------|
@@ -132,16 +142,16 @@
 
 ---
 
-## 12. Motion & shuffle paths
+## 13. Motion & shuffle paths
 
 | Item | Status | Notes | Epic |
 |------|--------|-------|------|
-| DOM FLIP shuffle | **Partial** | Legacy path; WebGL-primary builds rarely exercise—avoid dead-code confusion. | [epic-presentation-motion-fx](./epic-presentation-motion-fx.md) |
+| DOM FLIP shuffle | **Functional** | WebGL is the active shuffle presentation path; legacy helper exports are retained as tested utilities, not a separate open runtime path. | [epic-presentation-motion-fx](./epic-presentation-motion-fx.md) |
 | Experimental framing | **Functional** | Spaghetti/breathing—verify vs current CSS and mobile camera. | [epic-presentation-motion-fx](./epic-presentation-motion-fx.md) |
 
 ---
 
-## 13. Challenge contracts & relics
+## 14. Challenge contracts & relics
 
 | Item | Status | Notes | Epic |
 |------|--------|-------|------|
@@ -151,7 +161,7 @@
 
 ---
 
-## 14. Read-only meta UI (Codex, Collection, Inventory)
+## 15. Read-only meta UI (Codex, Collection, Inventory)
 
 | Item | Status | Notes | Epic |
 |------|--------|-------|------|
@@ -160,20 +170,20 @@
 
 ---
 
-## 15. Choose Your Path (presentation shell)
+## 16. Choose Your Path (presentation shell)
 
 Technical + UX notes live in [epic-choose-your-path](./epic-choose-your-path.md) (layout/zoom pipeline, pager math, **cross-platform interaction**, QA matrix). Presentation + **drag-first library** (fourth pass, 2026-04) are reflected there; see epic **Tasks**.
 
 | Item | Status | Notes | Epic |
 |------|--------|-------|------|
 | Library vs hero visual density | **Shippable** | Scroller min/max + library card padding vs Featured; compact / short-landscape overrides. | [epic-choose-your-path](./epic-choose-your-path.md) |
-| Placeholder poster repetition | **Functional** | Shared placeholder raster; **per-`posterKey` CSS tint** on library cells until per-mode art lands. | [epic-choose-your-path](./epic-choose-your-path.md) |
+| Mode poster art | **Functional** | Each live catalog `posterKey` resolves to bundled raster art; only the explicit fallback key keeps shared placeholder treatment. | [epic-choose-your-path](./epic-choose-your-path.md) |
 | Pager / search / affordances | **Shippable** | **Magnifier** toggles search; **no** Previous/Next buttons; dots + **drag / swipe** tray; edge fades. | [epic-choose-your-path](./epic-choose-your-path.md) |
 | Fit-zoom + nested horizontal scroll | **Functional** | `useFitShellZoom` on outer path stack + library `overflow-x`; re-verify on short viewports when layout changes. | [epic-choose-your-path](./epic-choose-your-path.md) |
 
 ---
 
-## 16. Ongoing recommendations (from systems analysis)
+## 17. Ongoing recommendations (from systems analysis)
 
 From [GAMEPLAY_SYSTEMS_ANALYSIS.md](../GAMEPLAY_SYSTEMS_ANALYSIS.md) §10:
 

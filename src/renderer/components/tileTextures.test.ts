@@ -6,6 +6,7 @@ import {
     clearTileTextureCachesForDebug,
     forceIllustrationOverlayCacheVersionForTest,
     getIllustrationPipelineDebugState,
+    getTileFaceOverlayTextureCacheKey,
     getStaticCardTexturePixelSize,
     getTileFaceOverlayTexture,
     prewarmTileFaceOverlayTextures,
@@ -60,6 +61,22 @@ describe('tileTextures layout', () => {
         expect(state.overlayTexture.createdCount).toBe(1);
         expect(state.overlayTexture.hitCount).toBe(1);
         expect(state.illustrationBitmap.createdCount).toBe(1);
+    });
+
+    it('keys route-card overlays separately from normal cards and each route kind', () => {
+        const normal = baseTile('alpha', 'pair-alpha');
+        const greed: Tile = { ...normal, routeCardKind: 'greed_cache' };
+        const safe: Tile = { ...normal, routeCardKind: 'safe_ward' };
+        const mystery: Tile = { ...normal, routeCardKind: 'mystery_veil' };
+
+        expect(getTileFaceOverlayTextureCacheKey(greed, 'active', 'high')).not.toBe(
+            getTileFaceOverlayTextureCacheKey(normal, 'active', 'high')
+        );
+        expect(new Set([
+            getTileFaceOverlayTextureCacheKey(greed, 'active', 'high'),
+            getTileFaceOverlayTextureCacheKey(safe, 'active', 'high'),
+            getTileFaceOverlayTextureCacheKey(mystery, 'active', 'high')
+        ])).toHaveLength(3);
     });
 
     it('prewarms only one center-art bitmap per unique pairKey and tier', async () => {

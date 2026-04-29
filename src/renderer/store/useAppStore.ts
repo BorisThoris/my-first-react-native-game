@@ -20,6 +20,8 @@ import {
     applyFlashPair,
     applyPeek,
     applyRegionShuffle,
+    applyRouteChoiceOutcome,
+    claimRouteSideRoomPrimary,
     applyShuffle,
     applyStrayRemove,
     armRegionShuffleRow,
@@ -38,12 +40,14 @@ import {
     flipTile,
     isGauntletExpired,
     openRelicOffer,
+    openRouteSideRoom,
     pauseRun,
     purchaseShopOffer as purchaseShopOfferRule,
     rerollShopOffers as rerollShopOffersRule,
     applyRelicOfferServiceToRun,
     resolveBoardTurn,
     resumeRun,
+    skipRouteSideRoom,
     togglePinnedTile,
     toggleStrayRemoveArmed
 } from '../../shared/game';
@@ -182,6 +186,9 @@ interface AppState {
     purchaseShopOffer: (offerId: string) => void;
     rerollShopOffers: () => void;
     continueToNextLevel: () => void;
+    chooseRouteAndContinue: (choiceId: string) => void;
+    claimSideRoomPrimary: () => void;
+    skipSideRoom: () => void;
     restartRun: () => void;
     endRun: () => void;
     triggerDebugReveal: () => void;
@@ -950,7 +957,14 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     openShopFromLevelComplete: () => {
         const { run, view } = get();
-        if (!run || view !== 'playing' || run.status !== 'levelComplete' || run.relicOffer || run.shopOffers.length === 0) {
+        if (
+            !run ||
+            view !== 'playing' ||
+            run.status !== 'levelComplete' ||
+            run.relicOffer ||
+            run.sideRoom ||
+            run.shopOffers.length === 0
+        ) {
             return;
         }
         const transition = resolveNavigationTransition(get(), 'openShopFromLevelComplete');
@@ -969,6 +983,50 @@ export const useAppStore = create<AppState>((set, get) => ({
             set({ view: transition.view });
             return;
         }
+        get().continueToNextLevel();
+    },
+
+    claimSideRoomPrimary: () => {
+        const { run } = get();
+        if (!run || run.status !== 'levelComplete' || !run.sideRoom) {
+            set({ view: 'playing' });
+            return;
+        }
+        const nextRun = claimRouteSideRoomPrimary(run);
+        if (nextRun.shopOffers.length > 0) {
+            set({
+                run: nextRun,
+                view: 'shop',
+                boardPinMode: false,
+                destroyPairArmed: false,
+                peekModeArmed: false,
+                ...BOARD_FLOATER_POP_CLEAR
+            });
+            return;
+        }
+        set({ run: nextRun, view: 'playing' });
+        get().continueToNextLevel();
+    },
+
+    skipSideRoom: () => {
+        const { run } = get();
+        if (!run || run.status !== 'levelComplete' || !run.sideRoom) {
+            set({ view: 'playing' });
+            return;
+        }
+        const nextRun = skipRouteSideRoom(run);
+        if (nextRun.shopOffers.length > 0) {
+            set({
+                run: nextRun,
+                view: 'shop',
+                boardPinMode: false,
+                destroyPairArmed: false,
+                peekModeArmed: false,
+                ...BOARD_FLOATER_POP_CLEAR
+            });
+            return;
+        }
+        set({ run: nextRun, view: 'playing' });
         get().continueToNextLevel();
     },
 
@@ -1364,6 +1422,18 @@ export const useAppStore = create<AppState>((set, get) => ({
 
         clearAllTimers();
 
+        if (run.status === 'levelComplete' && run.sideRoom) {
+            set({
+                view: 'sideRoom',
+                run,
+                boardPinMode: false,
+                destroyPairArmed: false,
+                peekModeArmed: false,
+                ...BOARD_FLOATER_POP_CLEAR
+            });
+            return;
+        }
+
         if (run.status === 'levelComplete' && needsRelicPick(run) && !run.relicOffer) {
             set({
                 view: 'playing',
@@ -1381,6 +1451,89 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
 
         const nextRun = advanceToNextLevel(run);
+
+        if (nextRun.status === 'gameOver') {
+            applyResolvedRun(nextRun);
+            return;
+        }
+
+        set({
+            newlyUnlockedAchievements: [],
+            view: 'playing',
+            boardPinMode: false,
+            destroyPairArmed: false,
+            peekModeArmed: false,
+            run: nextRun,
+            ...BOARD_FLOATER_POP_CLEAR
+        });
+
+        if (nextRun.timerState.memorizeRemainingMs !== null) {
+            scheduleMemorizeTimer(nextRun.timerState.memorizeRemainingMs);
+        }
+    },
+
+    chooseRouteAndContinue: (choiceId) => {
+        const { run } = get();
+
+        if (!run || run.status !== 'levelComplete') {
+            return;
+        }
+        if (run.pendingRouteCardPlan) {
+            get().continueToNextLevel();
+            return;
+        }
+
+        const routeOutcome = applyRouteChoiceOutcome(run, choiceId);
+        if (!routeOutcome.applied) {
+            return;
+        }
+
+        clearAllTimers();
+
+        const routeRun = openRouteSideRoom(routeOutcome.run);
+
+        if (routeRun.sideRoom) {
+            set({
+                view: 'sideRoom',
+                run: routeRun,
+                boardPinMode: false,
+                destroyPairArmed: false,
+                peekModeArmed: false,
+                ...BOARD_FLOATER_POP_CLEAR
+            });
+            return;
+        }
+
+        if (routeRun.shopOffers.length > 0) {
+            set({
+                view: 'shop',
+                run: routeRun,
+                boardPinMode: false,
+                destroyPairArmed: false,
+                peekModeArmed: false,
+                ...BOARD_FLOATER_POP_CLEAR
+            });
+            return;
+        }
+
+        if (needsRelicPick(routeRun) && !routeRun.relicOffer) {
+            set({
+                view: 'playing',
+                run: openRelicOffer(routeRun),
+                boardPinMode: false,
+                destroyPairArmed: false,
+                peekModeArmed: false,
+                ...BOARD_FLOATER_POP_CLEAR
+            });
+            return;
+        }
+
+        if (routeRun.relicOffer) {
+            set({ run: routeRun });
+            return;
+        }
+
+        const nextRun = advanceToNextLevel(routeRun);
 
         if (nextRun.status === 'gameOver') {
             applyResolvedRun(nextRun);

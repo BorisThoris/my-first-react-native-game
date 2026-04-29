@@ -11,13 +11,13 @@ Steam-style achievements, anonymous telemetry hooks, save schema, and how they i
 | Achievements (7 + Steam) | **Shippable** | `achievements.ts` — first clear, level 5, 1000 score, perfect clear, last-life; plus endless floor 10, seven dailies. **Honors:** local-only titles in [`honorUnlocks.ts`](../../src/shared/honorUnlocks.ts) (`honor:*` tags in `saveData.unlocks`, Collection + main menu). |
 | Perfect clear rule | **Functional** | Gated on `!powersUsedThisRun`; see `RunState.powersUsedThisRun` JSDoc in [`contracts.ts`](../../src/shared/contracts.ts) for the full disqualifier list. |
 | Unlock delivery | **Shippable** | `evaluateAchievementUnlocks` from `applyResolvedRun`; `desktopClient.unlockAchievement` when available. |
-| Telemetry | **Partial** | `telemetry.ts` — `trackEvent` / `setTelemetrySink`; **no in-repo sink wired**; events include `run_start` / `run_complete` from store. |
+| Telemetry | **Functional** | Privacy-first v1: `trackEvent` / `setTelemetrySink`; production default is intentional no-op, dev installs a console sink in `App.tsx`, and hosts may inject analytics. |
 | Save data | **Shippable** | `save-data.ts`, schema version, `normalizeSaveData` merging new settings keys. |
 | Encore pair keys | **Functional** | Stored in player stats for encore scoring hook. |
 
 ## Rough edges
 
-- **Telemetry:** Infrastructure exists; product analytics depends on host injecting `setTelemetrySink`.
+- **Telemetry:** Product analytics remains host-injected by design; no bundled remote sink ships in-repo.
 - **Achievement fairness:** Players may not realize undo/peek/gambit disqualify “perfect” — consider UI hint or rename.
 
 ## Primary code
@@ -30,7 +30,7 @@ Steam-style achievements, anonymous telemetry hooks, save schema, and how they i
 
 ## Refinement
 
-**Shippable** for achievements + save. **Partial** for telemetry (no default sink). Perfect-clear **rules** are documented on `RunState`; **player expectations** may still need UI polish (tooltip / achievement copy).
+**Shippable** for achievements + save. **Functional** for privacy-first telemetry: no-op in production unless a host injects a sink, dev console logging when enabled. Perfect-clear **rules** are documented on `RunState`; **player expectations** may still need UI polish (tooltip / achievement copy).
 
 ## Tasks (polish backlog)
 

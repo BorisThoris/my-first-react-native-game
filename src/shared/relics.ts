@@ -6,7 +6,15 @@
  * Balance cross-check: `docs/BALANCE_NOTES.md` (Relic roster) — update when adding IDs or changing memorize /
  * charge numbers; `relicBalanceDoc.test.ts` guards key doc strings.
  */
-import type { ContractFlags, MutatorId, RelicId, RelicOfferServiceId, RelicOfferServiceState, RunState } from './contracts';
+import type {
+    ContractFlags,
+    MutatorId,
+    RelicId,
+    RelicOfferServiceId,
+    RelicOfferServiceState,
+    RouteNodeType,
+    RunState
+} from './contracts';
 import { pickFloorScheduleEntry, usesEndlessFloorSchedule } from './floor-mutator-schedule';
 import { hashStringToSeed } from './rng';
 import { pickWeightedWithoutReplacement } from './weightedPick';
@@ -49,6 +57,11 @@ export interface RelicDraftContext {
     clearedFloor: number;
     currentMutators: MutatorId[];
     nextMutators: MutatorId[];
+    pendingRouteType: RouteNodeType | null;
+    activeRouteType: RouteNodeType | null;
+    routeType: RouteNodeType | null;
+    routePressure: 'none' | RouteNodeType;
+    routeReasonSource: 'pending_route' | 'active_board' | null;
     activeOrAcceptedRiskWager: boolean;
     favorNearRelicPick: boolean;
     hasChapterCompass: boolean;
@@ -155,6 +168,24 @@ const WAGER_RELICS = new Set<RelicId>([
     'peek_charge_plus_one',
     'wager_surety'
 ]);
+const GREED_ROUTE_RELICS = new Set<RelicId>([
+    'guard_token_plus_one',
+    'peek_charge_plus_one',
+    'wager_surety',
+    'shrine_echo'
+]);
+const MYSTERY_ROUTE_RELICS = new Set<RelicId>([
+    'peek_charge_plus_one',
+    'pin_cap_plus_one',
+    'stray_charge_plus_one',
+    'chapter_compass'
+]);
+const SAFE_ROUTE_RELICS = new Set<RelicId>([
+    'guard_token_plus_one',
+    'memorize_bonus_ms',
+    'region_shuffle_free_first',
+    'peek_charge_plus_one'
+]);
 
 const hasAnyMutator = (mutators: readonly MutatorId[], ids: readonly MutatorId[]): boolean =>
     ids.some((id) => mutators.includes(id));
@@ -215,12 +246,25 @@ export const getRelicDraftContext = (run: RunState, clearedFloor: number): Relic
         isScheduledEndless
             ? pickFloorScheduleEntry(run.runSeed, run.runRulesVersion, clearedFloor + 1, run.gameMode).mutators
             : [];
+    const pendingRouteType = run.pendingRouteCardPlan?.routeType ?? null;
+    const activeRouteType = run.board?.routeWorldProfile?.routeType ?? null;
+    const routeType = pendingRouteType ?? activeRouteType;
 
     return {
         isScheduledEndless,
         clearedFloor,
         currentMutators: isScheduledEndless ? [...run.activeMutators] : [],
         nextMutators,
+        pendingRouteType: isScheduledEndless ? pendingRouteType : null,
+        activeRouteType: isScheduledEndless ? activeRouteType : null,
+        routeType: isScheduledEndless ? routeType : null,
+        routePressure: isScheduledEndless && routeType ? routeType : 'none',
+        routeReasonSource:
+            isScheduledEndless && pendingRouteType
+                ? 'pending_route'
+                : isScheduledEndless && activeRouteType
+                  ? 'active_board'
+                  : null,
         activeOrAcceptedRiskWager: isScheduledEndless && run.endlessRiskWager != null,
         favorNearRelicPick: isScheduledEndless && run.relicFavorProgress >= 2,
         hasChapterCompass: run.relicIds.includes('chapter_compass')
@@ -241,7 +285,7 @@ export const isRelicDraftEligible = (id: RelicId, run: RunState): boolean => {
     return !forbidden.some((flag) => run.activeContract?.[flag]);
 };
 
-export const getRelicDraftReason = (id: RelicId, context: RelicDraftContext): string | null => {
+const getHardRelicDraftReason = (id: RelicId, context: RelicDraftContext): string | null => {
     if (!context.isScheduledEndless) {
         return null;
     }
@@ -274,6 +318,25 @@ export const getRelicDraftReason = (id: RelicId, context: RelicDraftContext): st
     }
     return null;
 };
+
+const getRouteRelicDraftReason = (id: RelicId, context: RelicDraftContext): string | null => {
+    if (!context.isScheduledEndless || context.routeType == null) {
+        return null;
+    }
+    if (context.routeType === 'greed' && GREED_ROUTE_RELICS.has(id)) {
+        return 'Answers Greed pressure';
+    }
+    if (context.routeType === 'mystery' && MYSTERY_ROUTE_RELICS.has(id)) {
+        return 'Reads Mystery routes';
+    }
+    if (context.routeType === 'safe' && SAFE_ROUTE_RELICS.has(id)) {
+        return 'Supports Safe routing';
+    }
+    return null;
+};
+
+export const getRelicDraftReason = (id: RelicId, context: RelicDraftContext): string | null =>
+    getHardRelicDraftReason(id, context) ?? getRouteRelicDraftReason(id, context);
 
 export const getContextualRelicDraftWeight = (
     id: RelicId,
@@ -309,6 +372,22 @@ export const getContextualRelicDraftWeight = (
     }
     if (context.favorNearRelicPick && id === 'shrine_echo') {
         multiplier *= 2.5;
+    }
+    if (context.routeType === 'greed' && GREED_ROUTE_RELICS.has(id)) {
+        multiplier *= id === 'wager_surety' || id === 'guard_token_plus_one' ? 1.55 : 1.35;
+    }
+    if (
+        context.routeType === 'greed' &&
+        contextHasAnyMutator(context, ['score_parasite']) &&
+        PARASITE_RELICS.has(id)
+    ) {
+        multiplier *= 1.25;
+    }
+    if (context.routeType === 'mystery' && MYSTERY_ROUTE_RELICS.has(id)) {
+        multiplier *= id === 'peek_charge_plus_one' ? 1.65 : 1.45;
+    }
+    if (context.routeType === 'safe' && SAFE_ROUTE_RELICS.has(id)) {
+        multiplier *= 1.22;
     }
     if (id === 'chapter_compass' && getRelicDraftReason(id, context) != null) {
         multiplier *= 1.45;
@@ -410,7 +489,7 @@ export const rollRelicOptions = (
     const picked: RelicId[] = [];
 
     if (context.isScheduledEndless) {
-        const contextualCandidates = available.filter((id) => getRelicDraftReason(id, context) != null);
+        const contextualCandidates = available.filter((id) => getHardRelicDraftReason(id, context) != null);
         const directAnswerCandidates = contextualCandidates.filter((id) => id !== 'chapter_compass');
         const spotlightCandidates = directAnswerCandidates.length > 0 ? directAnswerCandidates : contextualCandidates;
         const spotlight = pickWeightedWithoutReplacement(

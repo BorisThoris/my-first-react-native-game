@@ -1064,11 +1064,191 @@ const drawCardOuterFramesAndNoise = (
 const drawCardBackPattern = (
     context: CanvasRenderingContext2D,
     canvas: HTMLCanvasElement,
-    rng: () => number
+    rng: () => number,
+    tile?: Tile
 ): void => {
     const hiddenPanel = getPalette('hidden', 'panel');
     const metrics = drawCardReferenceRoundPanel(context, canvas, hiddenPanel);
     drawCardOuterFramesAndNoise(context, canvas, hiddenPanel, rng, metrics);
+    if (tile?.routeCardKind) {
+        drawRouteCardBackMotif(context, canvas, tile.routeCardKind, metrics);
+    }
+};
+
+const routeCardTheme = (kind: NonNullable<Tile['routeCardKind']>) => {
+    if (kind === 'safe_ward') {
+        return {
+            fillA: 'rgba(232, 214, 150, 0.2)',
+            fillB: 'rgba(86, 118, 122, 0.18)',
+            stroke: 'rgba(248, 228, 162, 0.82)',
+            glow: 'rgba(248, 228, 162, 0.28)',
+            label: 'WARD'
+        };
+    }
+    if (kind === 'greed_cache') {
+        return {
+            fillA: 'rgba(238, 177, 64, 0.26)',
+            fillB: 'rgba(92, 53, 20, 0.22)',
+            stroke: 'rgba(247, 198, 86, 0.88)',
+            glow: 'rgba(247, 198, 86, 0.36)',
+            label: 'CACHE'
+        };
+    }
+    return {
+        fillA: 'rgba(118, 126, 244, 0.23)',
+        fillB: 'rgba(48, 38, 108, 0.25)',
+        stroke: 'rgba(168, 190, 255, 0.86)',
+        glow: 'rgba(132, 148, 255, 0.32)',
+        label: 'VEIL'
+    };
+};
+
+const drawRouteCardBackMotif = (
+    context: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    kind: NonNullable<Tile['routeCardKind']>,
+    metrics: { inset: number; cardWidth: number; cardHeight: number; radius: number }
+): void => {
+    const { width, height } = canvas;
+    const theme = routeCardTheme(kind);
+    const cx = width / 2;
+    const cy = height / 2;
+    const r = Math.min(metrics.cardWidth, metrics.cardHeight) * 0.22;
+
+    context.save();
+    context.globalCompositeOperation = 'source-over';
+    const glow = context.createRadialGradient(cx, cy, r * 0.35, cx, cy, r * 2.2);
+    glow.addColorStop(0, theme.glow);
+    glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    context.fillStyle = glow;
+    context.fillRect(metrics.inset, metrics.inset, metrics.cardWidth, metrics.cardHeight);
+
+    context.strokeStyle = theme.stroke;
+    context.fillStyle = theme.fillA;
+    context.lineWidth = Math.max(3, width * 0.008);
+    context.shadowColor = theme.glow;
+    context.shadowBlur = Math.max(8, width * 0.03);
+
+    if (kind === 'safe_ward') {
+        context.beginPath();
+        context.moveTo(cx, cy - r * 1.1);
+        context.lineTo(cx + r * 0.82, cy - r * 0.48);
+        context.lineTo(cx + r * 0.64, cy + r * 0.78);
+        context.lineTo(cx, cy + r * 1.18);
+        context.lineTo(cx - r * 0.64, cy + r * 0.78);
+        context.lineTo(cx - r * 0.82, cy - r * 0.48);
+        context.closePath();
+        context.fill();
+        context.stroke();
+    } else if (kind === 'greed_cache') {
+        context.beginPath();
+        context.roundRect(cx - r, cy - r * 0.68, r * 2, r * 1.36, r * 0.16);
+        context.fill();
+        context.stroke();
+        context.beginPath();
+        context.arc(cx, cy, r * 0.44, 0, Math.PI * 2);
+        context.stroke();
+    } else {
+        context.beginPath();
+        context.ellipse(cx, cy, r * 0.78, r * 1.08, -0.42, 0, Math.PI * 2);
+        context.fill();
+        context.stroke();
+        context.beginPath();
+        context.arc(cx + r * 0.24, cy - r * 0.05, r * 0.58, Math.PI * 0.2, Math.PI * 1.55);
+        context.stroke();
+    }
+
+    context.shadowBlur = 0;
+    context.font = `800 ${Math.max(18, Math.round(width * 0.045))}px system-ui, sans-serif`;
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillStyle = 'rgba(255, 248, 220, 0.9)';
+    context.fillText(theme.label, cx, cy + r * 1.75);
+    context.restore();
+};
+
+const drawRouteCardFrontOverlay = (
+    context: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    tile: Tile,
+    tier: OverlayDrawTier
+): void => {
+    if (!tile.routeCardKind) {
+        return;
+    }
+    const { width, height } = canvas;
+    const kind = tile.routeCardKind;
+    const theme = routeCardTheme(kind);
+    const rng = createRng(hashString(`${tile.id}|${tile.pairKey}|route:${kind}`));
+    const grain = tier === 'full' ? 70 : tier === 'standard' ? 36 : 12;
+
+    context.clearRect(0, 0, width, height);
+    const bg = context.createLinearGradient(0, 0, width, height);
+    bg.addColorStop(0, theme.fillA);
+    bg.addColorStop(0.48, 'rgba(8, 12, 18, 0.38)');
+    bg.addColorStop(1, theme.fillB);
+    context.fillStyle = bg;
+    context.fillRect(0, 0, width, height);
+    if (grain > 0) {
+        drawNoise(context, width, height, grain, 'rgba(255, 255, 255, 0.075)', rng);
+    }
+
+    const pad = width * 0.12;
+    const cx = width / 2;
+    const cy = height * 0.46;
+    const r = Math.min(width, height) * 0.22;
+    context.save();
+    context.strokeStyle = theme.stroke;
+    context.fillStyle = theme.fillA;
+    context.lineWidth = Math.max(4, width * 0.01);
+    context.shadowColor = theme.glow;
+    context.shadowBlur = Math.max(14, width * 0.045);
+    context.beginPath();
+    context.roundRect(pad, height * 0.1, width - pad * 2, height * 0.78, width * 0.055);
+    context.fill();
+    context.stroke();
+
+    if (kind === 'safe_ward') {
+        context.beginPath();
+        context.moveTo(cx, cy - r);
+        context.lineTo(cx + r * 0.88, cy - r * 0.38);
+        context.lineTo(cx + r * 0.58, cy + r * 0.82);
+        context.lineTo(cx, cy + r * 1.12);
+        context.lineTo(cx - r * 0.58, cy + r * 0.82);
+        context.lineTo(cx - r * 0.88, cy - r * 0.38);
+        context.closePath();
+        context.fill();
+        context.stroke();
+    } else if (kind === 'greed_cache') {
+        context.beginPath();
+        context.roundRect(cx - r, cy - r * 0.62, r * 2, r * 1.24, r * 0.18);
+        context.fill();
+        context.stroke();
+        for (let i = -1; i <= 1; i += 1) {
+            context.beginPath();
+            context.arc(cx + i * r * 0.42, cy, r * 0.28, 0, Math.PI * 2);
+            context.stroke();
+        }
+    } else {
+        context.beginPath();
+        context.ellipse(cx - r * 0.08, cy, r * 0.72, r * 1.05, -0.45, 0, Math.PI * 2);
+        context.fill();
+        context.stroke();
+        context.beginPath();
+        context.arc(cx + r * 0.22, cy - r * 0.1, r * 0.62, Math.PI * 0.18, Math.PI * 1.62);
+        context.stroke();
+    }
+
+    context.shadowBlur = 0;
+    context.font = `900 ${Math.max(24, Math.round(width * 0.06))}px system-ui, sans-serif`;
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillStyle = 'rgba(255, 248, 220, 0.96)';
+    context.strokeStyle = 'rgba(4, 6, 10, 0.78)';
+    context.lineWidth = Math.max(3, width * 0.008);
+    context.strokeText(theme.label, cx, height * 0.78);
+    context.fillText(theme.label, cx, height * 0.78);
+    context.restore();
 };
 
 const drawCardFrontOverlay = (
@@ -1078,6 +1258,11 @@ const drawCardFrontOverlay = (
     variant: Exclude<FaceVariant, 'hidden'>,
     tier: OverlayDrawTier
 ): void => {
+    if (tile.routeCardKind) {
+        drawRouteCardFrontOverlay(context, canvas, tile, tier);
+        return;
+    }
+
     if (tileUsesProgrammaticFaceMotif(tile)) {
         drawProgrammaticCardFaceOverlay(context, canvas, tile, variant, tier);
         return;
@@ -1182,7 +1367,7 @@ const drawCardBase = (
 };
 
 const buildKey = (tile: Tile, face: TileFace, variant: FaceVariant, layer: TileLayer): string =>
-    `${TILE_TEXTURE_VERSION}:${layer}:${variant}:${face}:${tile.id}:${tile.pairKey}:${tile.symbol}:${tile.label}`;
+    `${TILE_TEXTURE_VERSION}:${layer}:${variant}:${face}:${tile.id}:${tile.pairKey}:${tile.symbol}:${tile.label}:route=${tile.routeCardKind ?? 'none'}:special=${tile.routeSpecialKind ?? 'none'}:revealed=${tile.routeSpecialRevealed ? '1' : '0'}`;
 
 export const getTileFaceOverlayTextureCacheKey = (
     tile: Tile,
@@ -1240,7 +1425,7 @@ const drawFace = (
     }
 
     if (face === 'back') {
-        drawCardBackPattern(context, canvas, rng);
+        drawCardBackPattern(context, canvas, rng, tile);
     }
 };
 

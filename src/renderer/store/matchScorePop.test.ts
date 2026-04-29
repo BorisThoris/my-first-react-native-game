@@ -107,6 +107,29 @@ describe('buildMatchScorePopPayload', () => {
             key: '5-g-t1-t2'
         });
     });
+
+    it('adds route reward copy when the matched pair is a route card', () => {
+        const run = minimalRun({
+            board: {
+                level: 3,
+                rows: 2,
+                columns: 2,
+                flippedTileIds: ['t1', 't2'],
+                tiles: [
+                    { id: 't1', pairKey: 'pk', symbol: 'a', label: 'a', state: 'flipped', routeCardKind: 'greed_cache' },
+                    { id: 't2', pairKey: 'pk', symbol: 'a', label: 'a', state: 'flipped', routeCardKind: 'greed_cache' }
+                ]
+            } as unknown as BoardState,
+            stats: { matchesFound: 2, totalScore: 40 } as RunState['stats']
+        });
+        const next = {
+            ...run,
+            stats: { ...run.stats, matchesFound: 3, totalScore: 85 }
+        };
+        expect(buildMatchScorePopPayload(run, next, 'route')?.routeRewardText).toBe(
+            'Greed Cache +2 gold +25 score'
+        );
+    });
 });
 
 describe('buildMismatchScorePopPayload', () => {

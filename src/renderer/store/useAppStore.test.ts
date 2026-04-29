@@ -329,7 +329,7 @@ describe('useAppStore timers', () => {
 
         const peekOffer = useAppStore.getState().run!.shopOffers.find((offer) => offer.itemId === 'peek_charge')!;
         useAppStore.getState().purchaseShopOffer(peekOffer.id);
-        expect(useAppStore.getState().run?.shopGold).toBe(4);
+        expect(useAppStore.getState().run?.shopGold).toBe(5 - peekOffer.cost);
         expect(useAppStore.getState().run?.shopOffers.find((offer) => offer.id === peekOffer.id)?.purchased).toBe(true);
 
         useAppStore.getState().closeShopToFloorSummary();
@@ -340,6 +340,63 @@ describe('useAppStore timers', () => {
         useAppStore.getState().continueFromShop();
         expect(useAppStore.getState().view).toBe('playing');
         expect(useAppStore.getState().run?.status).toBe('memorize');
+    });
+
+    it('selects a floor route through side room before shop and stamps the next board after continuing', () => {
+        const baseRun = createNewRun(0, { echoFeedbackEnabled: false, runSeed: 45 });
+        const levelCompleteRun = {
+            ...baseRun,
+            status: 'levelComplete' as const,
+            shopGold: 5,
+            relicOffer: null,
+            timerState: {
+                memorizeRemainingMs: null,
+                resolveRemainingMs: null,
+                debugRevealRemainingMs: null,
+                pausedFromStatus: null
+            },
+            lastLevelResult: {
+                level: 1,
+                scoreGained: 100,
+                rating: 'S' as const,
+                livesRemaining: baseRun.lives,
+                perfect: true,
+                mistakes: 0,
+                clearLifeReason: 'none' as const,
+                clearLifeGained: 0,
+                routeChoices: [
+                    {
+                        id: '17:45:2:greed',
+                        routeType: 'greed' as const,
+                        label: 'Greedy route',
+                        detail: 'Higher pressure route hook for future shop, elite, or bonus rewards.'
+                    }
+                ]
+            }
+        };
+        useAppStore.setState({
+            view: 'playing',
+            run: {
+                ...levelCompleteRun,
+                shopOffers: createRunShopOffers(levelCompleteRun)
+            }
+        });
+
+        useAppStore.getState().chooseRouteAndContinue('17:45:2:greed');
+        expect(useAppStore.getState().view).toBe('sideRoom');
+        expect(useAppStore.getState().run?.pendingRouteCardPlan).toMatchObject({ routeType: 'greed' });
+        expect(useAppStore.getState().run?.sideRoom).toMatchObject({ routeType: 'greed' });
+
+        useAppStore.getState().skipSideRoom();
+        expect(useAppStore.getState().view).toBe('shop');
+
+        useAppStore.getState().continueFromShop();
+        expect(useAppStore.getState().view).toBe('playing');
+        expect(useAppStore.getState().run?.status).toBe('memorize');
+        expect(useAppStore.getState().run?.pendingRouteCardPlan).toBeNull();
+        expect(useAppStore.getState().run?.board?.tiles.some((tile) => tile.routeCardKind === 'greed_cache')).toBe(
+            true
+        );
     });
 
     it('keeps the shop route unavailable without an active completed floor', () => {

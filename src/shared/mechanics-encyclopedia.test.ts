@@ -31,7 +31,7 @@ function assertCatalogEntry<T extends { id: string; title: string; description: 
 
 describe('mechanics-encyclopedia', () => {
     it('ENCYCLOPEDIA_VERSION is monotonic (bump when doc set changes)', () => {
-        expect(ENCYCLOPEDIA_VERSION).toBeGreaterThanOrEqual(12);
+        expect(ENCYCLOPEDIA_VERSION).toBeGreaterThanOrEqual(13);
     });
 
     it('REG-064 glossary locks preferred player-facing labels for recurring mechanics', () => {
@@ -104,5 +104,38 @@ describe('mechanics-encyclopedia', () => {
         for (const t of all) {
             expect(t.id, t.title).toMatch(TOPIC_ID);
         }
+    });
+
+    it('documents route-world cards, anchors, reveal rules, and side rooms', () => {
+        expect(CODEX_CORE_TOPICS.find((topic) => topic.id === 'route_world')?.description).toContain(
+            'route-specific card families'
+        );
+        expect(ENCYCLOPEDIA_PICKUP_AND_BOARD_TOPICS.find((topic) => topic.id === 'board_route_cards')?.description)
+            .toContain('Safe Ward');
+        expect(ENCYCLOPEDIA_PICKUP_AND_BOARD_TOPICS.find((topic) => topic.id === 'board_route_reveal')?.description)
+            .toContain('Omen Seal');
+        expect(
+            ENCYCLOPEDIA_PICKUP_AND_BOARD_TOPICS.find((topic) => topic.id === 'board_boss_elite_anchors')
+                ?.description
+        ).toContain('Elite Cache');
+        expect(
+            ENCYCLOPEDIA_PICKUP_AND_BOARD_TOPICS.find((topic) => topic.id === 'board_route_side_rooms')?.description
+        ).toContain('relic weighting');
+    });
+
+    it('keeps Codex coverage for power scope, assists, and presentation mutators', () => {
+        expect(ENCYCLOPEDIA_POWER_TOPICS.find((topic) => topic.id === 'power_flash_pair')?.description).toContain(
+            'practice'
+        );
+        expect(ENCYCLOPEDIA_POWER_TOPICS.find((topic) => topic.id === 'power_gambit')?.description).toContain(
+            'perfect clear'
+        );
+        expect(
+            ENCYCLOPEDIA_SETTINGS_AND_ASSISTS_TOPICS.find((topic) => topic.id === 'assist_pair_proximity')
+                ?.description
+        ).toContain('distance-class');
+        expect(MUTATOR_CATALOG.wide_recall.description).toContain('scores slightly less');
+        expect(MUTATOR_CATALOG.silhouette_twist.description).toContain('scores slightly less');
+        expect(MUTATOR_CATALOG.distraction_channel.description).toContain('scores slightly less');
     });
 });

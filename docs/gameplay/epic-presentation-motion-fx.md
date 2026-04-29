@@ -11,7 +11,7 @@ Non-rule **feel**: CSS board framing, post-processing, shuffle motion, flip pop,
 | `boardPresentation` | **Functional** | `'standard' \| 'spaghetti' \| 'breathing'` — applies CSS classes on **board stage** in `GameScreen` (`boardStageSpaghetti`, `boardStageBreathing` pattern). **Wave G** experiment; not a rules change. |
 | Bloom / AA | **Shippable** | `boardBloomEnabled`, `boardScreenSpaceAA`; `TileBoardPostFx`; low quality disables bloom. |
 | Shuffle stagger (3D) | **Shippable** | `shuffleFlipAnimation.ts` — `computeShuffleMotionBudgetMs`, `computeStaggeredShuffleDealZ`; `TileBoard` passes deadline/budget/stagger count into `TileBoardScene`. |
-| DOM FLIP shuffle (legacy path) | **Partial** | `runShuffleFlipFromRects` for DOM tile boards — WebGL-primary build may rarely exercise this. |
+| DOM FLIP shuffle (legacy utility) | **Functional** | Motion helpers in `shuffleFlipAnimation.ts` are WebGL-primary timing utilities; legacy wrappers are retained for focused tests and narrow callers. |
 | Flip pop / match pulse | **Shippable** | `advanceTileBezelFrame` in `TileBoardScene` — short scale/Z pop on face-up edge; match pulse scaling. |
 | Field tilt (gyro) | **Functional** | `fieldTiltRef` / `usePlatformTiltField`; suspended during gestures. |
 | Reduce motion | **Shippable** | Settings + many branches skip heavy motion; shuffle Z stagger respects it. |
@@ -19,7 +19,7 @@ Non-rule **feel**: CSS board framing, post-processing, shuffle motion, flip pop,
 ## Rough edges
 
 - **Spaghetti / breathing:** Delight features; verify they still match current `GameScreen.module.css` and do not fight mobile camera layout.
-- **Two shuffle paths:** Document which build targets DOM vs WebGL-only to avoid dead code confusion.
+- **Shuffle path:** WebGL is the active presentation path; legacy wrapper exports stay as tested utility surface, not a separate runtime target.
 
 ## Primary code
 
@@ -31,11 +31,11 @@ Non-rule **feel**: CSS board framing, post-processing, shuffle motion, flip pop,
 
 ## Refinement
 
-**Shippable** for WebGL shuffle ease + flip feedback. **Functional** for experimental board framing and legacy DOM FLIP overlap.
+**Shippable** for WebGL shuffle ease + flip feedback. **Functional** for experimental board framing and retained legacy shuffle utility exports.
 
 ## Tasks (polish backlog)
 
 Tracked in rollup: [GAMEPLAY_POLISH_AND_GAPS.md](./GAMEPLAY_POLISH_AND_GAPS.md) §12.
 
 - [x] Re-verify **spaghetti** / **breathing** `boardPresentation` modes against current `GameScreen.module.css` and mobile camera layout; fix layout clashes. — *Deferred:* no open layout bugs filed; re-verify on next camera/CSS refactor.
-- [x] Document build/runtime expectations for **DOM FLIP** shuffle (`runShuffleFlipFromRects`) vs **WebGL** shuffle; remove or gate dead code if WebGL-only is permanent. — *Deferred:* both paths coexist; doc in [epic-board-rendering-assists](./epic-board-rendering-assists.md) when pruning.
+- [x] Document build/runtime expectations for **DOM FLIP** shuffle (`runShuffleFlipFromRects`) vs **WebGL** shuffle; remove or gate dead code if WebGL-only is permanent. — *Closed:* WebGL is the runtime path; retained legacy exports are tested utility surface.

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import type { RunShopOfferState } from '../../shared/contracts';
+import type { RouteCardKind, RouteNodeType, RunShopOfferState } from '../../shared/contracts';
 import { canRerollShopOffers, getShopRerollCostForFloor } from '../../shared/game';
 import { focusFirstTabbableOrContainer, handleTabFocusTrapEvent } from '../a11y/focusables';
 import { popModalFocusSnapshot, pushModalFocusSnapshot } from '../a11y/modalFocusReturnStack';
@@ -17,6 +17,22 @@ import { GAMEPLAY_VISUAL_CSS_VARS } from './gameplayVisualConfig';
 import styles from './ShopScreen.module.css';
 
 type OfferStatus = 'available' | 'claimed' | 'insufficient' | 'incompatible';
+
+const routeTypeLabel = (routeType: RouteNodeType): string =>
+    routeType === 'safe' ? 'Safe route' : routeType === 'greed' ? 'Greedy route' : 'Mystery route';
+
+const routeCardKindForRouteType = (routeType: RouteNodeType): RouteCardKind =>
+    routeType === 'safe' ? 'safe_ward' : routeType === 'greed' ? 'greed_cache' : 'mystery_veil';
+
+const routeCardLabel = (kind: RouteCardKind): string =>
+    kind === 'safe_ward' ? 'Safe Ward' : kind === 'greed_cache' ? 'Greed Cache' : 'Mystery Veil';
+
+const routeWorldLine = (routeType: RouteNodeType, cardLabel: string): string =>
+    routeType === 'safe'
+        ? `${routeTypeLabel(routeType)} locked in. The next floor adds ${cardLabel} support and suppresses route-added hazards.`
+        : routeType === 'greed'
+          ? `${routeTypeLabel(routeType)} locked in. The next floor adds ${cardLabel} rewards plus extra reward-risk pressure.`
+          : `${routeTypeLabel(routeType)} locked in. The next floor adds deterministic ${cardLabel} veils with fair reveal counterplay.`;
 
 const offerStatus = (offer: RunShopOfferState, shopGold: number): OfferStatus => {
     if (offer.purchased) {
@@ -99,6 +115,9 @@ const ShopScreen = () => {
     const floor = run.lastLevelResult?.level ?? run.board?.level ?? run.stats.highestLevel;
     const rerollCost = getShopRerollCostForFloor(run.board?.level ?? run.stats.highestLevel);
     const rerollAvailable = canRerollShopOffers(run);
+    const pendingRouteCardKind = run.pendingRouteCardPlan
+        ? routeCardKindForRouteType(run.pendingRouteCardPlan.routeType)
+        : null;
 
     const onBack = (): void => {
         resumeUiSfxContext();
@@ -128,7 +147,11 @@ const ShopScreen = () => {
                     <div className={styles.headerText}>
                         <span className={styles.eyebrow}>Floor {floor} clear</span>
                         <h2>Vendor alcove</h2>
-                        <p>Spend temporary shop gold before the next floor. Unspent gold expires when the run ends.</p>
+                        <p>
+                            {run.pendingRouteCardPlan && pendingRouteCardKind
+                                ? routeWorldLine(run.pendingRouteCardPlan.routeType, routeCardLabel(pendingRouteCardKind))
+                                : 'Spend temporary shop gold before the next floor. Unspent gold expires when the run ends.'}
+                        </p>
                     </div>
                     <div className={styles.purse} aria-label={`${run.shopGold} shop gold`}>
                         <span>Gold</span>
@@ -184,7 +207,9 @@ const ShopScreen = () => {
                             Back to floor summary
                         </UiButton>
                         <UiButton onClick={onContinue} size="md" variant="primary" type="button">
-                            Continue
+                            {run.pendingRouteCardPlan
+                                ? `Continue to ${routeTypeLabel(run.pendingRouteCardPlan.routeType)} floor`
+                                : 'Continue'}
                         </UiButton>
                     </div>
                 </footer>

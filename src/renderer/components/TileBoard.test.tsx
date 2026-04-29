@@ -213,6 +213,32 @@ describe('TileBoard touch and click controls', () => {
         });
     });
 
+    it('announces route card details for route-stamped cards', async () => {
+        const routeBoard: BoardState = {
+            ...board,
+            tiles: [
+                { id: 'a1', pairKey: 'A', symbol: 'A', label: 'A', state: 'hidden', routeCardKind: 'greed_cache' },
+                { id: 'a2', pairKey: 'A', symbol: 'A', label: 'A', state: 'hidden', routeCardKind: 'greed_cache' },
+                { id: 'b1', pairKey: 'B', symbol: 'B', label: 'B', state: 'hidden' },
+                { id: 'b2', pairKey: 'B', symbol: 'B', label: 'B', state: 'hidden' }
+            ]
+        };
+
+        renderBoard({
+            board: routeBoard,
+            debugPeekActive: false,
+            interactive: true,
+            onTileSelect: vi.fn(),
+            previewActive: true,
+            reduceMotion: false
+        });
+
+        fireEvent.focus(screen.getByTestId('tile-board-application'));
+        await waitFor(() => {
+            expect(screen.getByText(/Route card: Greed cache/i)).toBeInTheDocument();
+        });
+    });
+
     it('exposes board grid dimensions on the frame for tests and assistive tech', () => {
         renderBoard({
             board,

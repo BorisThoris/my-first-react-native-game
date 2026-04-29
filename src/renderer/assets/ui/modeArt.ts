@@ -1,7 +1,15 @@
 import modeClassicUrl from './backgrounds/bg-mode-classic-v1.png';
 import modeDailyUrl from './backgrounds/bg-mode-daily-v1.png';
 import modeEndlessUrl from './backgrounds/bg-mode-endless-v1.png';
+import modeGauntletUrl from './backgrounds/bg-mode-gauntlet-v1.png';
+import modeMeditationUrl from './backgrounds/bg-mode-meditation-v1.png';
+import modeMirrorPuzzleUrl from './backgrounds/bg-mode-mirror-puzzle-v1.png';
+import modePinVowUrl from './backgrounds/bg-mode-pin-vow-v1.png';
 import modePlaceholderUrl from './backgrounds/bg-mode-placeholder-v1.png';
+import modePracticeUrl from './backgrounds/bg-mode-practice-v1.png';
+import modePuzzleUrl from './backgrounds/bg-mode-puzzle-v1.png';
+import modeScholarUrl from './backgrounds/bg-mode-scholar-v1.png';
+import modeWildUrl from './backgrounds/bg-mode-wild-v1.png';
 
 export const MODE_POSTER_FALLBACK_KEY = 'fallback' as const;
 
@@ -16,14 +24,14 @@ export const MODE_CARD_ART = {
     daily: modeDailyUrl,
     endless: modeEndlessUrl,
     fallback: modePlaceholderUrl,
-    gauntlet: modePlaceholderUrl,
-    puzzle: modePlaceholderUrl,
-    mirror_puzzle: modePlaceholderUrl,
-    wild: modePlaceholderUrl,
-    practice: modePlaceholderUrl,
-    scholar: modePlaceholderUrl,
-    pin_vow: modePlaceholderUrl,
-    meditation: modePlaceholderUrl
+    gauntlet: modeGauntletUrl,
+    puzzle: modePuzzleUrl,
+    mirror_puzzle: modeMirrorPuzzleUrl,
+    wild: modeWildUrl,
+    practice: modePracticeUrl,
+    scholar: modeScholarUrl,
+    pin_vow: modePinVowUrl,
+    meditation: modeMeditationUrl
 } as const;
 
 export type ModePosterKey = keyof typeof MODE_CARD_ART;

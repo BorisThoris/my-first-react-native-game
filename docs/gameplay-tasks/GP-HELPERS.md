@@ -41,7 +41,7 @@ Column shuffle if row-only MVP ships first (add follow-up task).
 ## GP-H02 — Flash pair (Recall)
 
 ### Status
-**Partial (shipped scope)** — [`applyFlashPair`](../../src/shared/game.ts); charges default to **1** only when `practiceMode` **or** `wildMenuRun` (`createNewRun` ~1031–1032). Other modes keep **0** charges unless relic/meta changes that later.
+**Done (v1 scoped)** — [`applyFlashPair`](../../src/shared/game.ts); charges default to **1** only when `practiceMode` **or** `wildMenuRun` (`createNewRun` ~1031–1032). Other modes intentionally keep **0** charges; tests guard that even manually injected charges no-op outside Practice/Wild.
 
 ### Priority
 Low

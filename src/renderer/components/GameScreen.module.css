@@ -567,6 +567,46 @@
     gap: 0.45rem;
 }
 
+.routeSelectedNote {
+    padding: 0.5rem 0.58rem;
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 38%, var(--theme-border-strong));
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--theme-gold-deep) 22%, rgba(8, 10, 14, 0.72));
+    color: var(--theme-text);
+    font-size: 0.76rem;
+    font-weight: 800;
+}
+
+.routeCardBanner {
+    position: absolute;
+    z-index: 8;
+    left: 50%;
+    top: 0.6rem;
+    display: grid;
+    gap: 0.06rem;
+    min-width: min(24rem, calc(100% - 2rem));
+    max-width: calc(100% - 2rem);
+    padding: 0.42rem 0.65rem;
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 40%, var(--theme-border-strong));
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--theme-void) 76%, var(--theme-gold-deep));
+    color: var(--theme-text);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+    text-align: center;
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
+.routeCardBanner strong {
+    font-size: 0.74rem;
+    letter-spacing: 0;
+}
+
+.routeCardBanner span {
+    font-size: 0.66rem;
+    color: var(--theme-text-muted);
+}
+
 .powerTeachingPanel {
     display: grid;
     gap: 0.32rem;

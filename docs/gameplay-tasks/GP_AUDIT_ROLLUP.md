@@ -16,7 +16,7 @@
 | GP-O03 | Done | `flipParLimit`, `matchResolutionsThisFloor`; bonus tag `flip_par` |
 | GP-O04 | Done | `shuffleUsedThisFloor`, `destroyUsedThisFloor`; bonus tag `scholar_style` |
 | GP-H01 | Done | `applyRegionShuffle`, `canRegionShuffle`, charges; `GameLeftToolbar.tsx` row cluster |
-| GP-H02 | Partial | **Scope:** `flashPairCharges` only when `practiceMode \|\| wildMenuRun` (`game.ts` ~1031–1032); `applyFlashPair` otherwise generic |
+| GP-H02 | Done | **V1 scope:** `flashPairCharges` only when `practiceMode \|\| wildMenuRun`; `applyFlashPair` no-ops outside Practice/Wild even if charges are injected |
 | GP-H03 | Done | `applyDestroyPair` sets `parasiteFloors` to `0` when `score_parasite` active (`game.ts` ~1447); unit test: `game.test.ts` (parasite reset on destroy) |
 | GP-R01 | Done | Relic `memorize_under_short_memorize` + `getMemorizeDurationForRun` (`relics.ts`, `game.ts`) |
 | GP-R02 | Done | `parasite_ward_once`, `parasiteWardRemaining` |
@@ -31,6 +31,18 @@
 | GP-FIN04 | Done | `FINDABLE_MATCH_SCORE`, combo shards on claim |
 | GP-FIN05 | Done | WebGL markers `TileBoardScene.tsx`; DOM `TileBoard.tsx` |
 | GP-FIN06 | Done | Export/scoring documented in `FINDABLES.md`; replay uses same generation rules |
+| GP-RW01 | Done | `RouteWorldProfile` feeds next-floor board generation via `route-world.ts` and `buildBoard` |
+| GP-RW02 | Done | Greed route stamps reward-risk specials and hard-floor `elite_cache` anchors |
+| GP-RW03 | Done | Safe route stamps defensive wards and hard-floor `final_ward` anchors without route-added hazards |
+| GP-RW04 | Done | Mystery route stamps veil/secret families and hard-floor `omen_seal`; peek reveals without claiming |
+| GP-RW05 | Done | Route previews, board metadata, aria labels, banners, and reward floaters expose route-world effects |
+| GP-RW06 | Done | Match claims route rewards; destroy denies; peek reveals; shuffle preserves; protected anchors resist stray |
+| GP-RW07 | Done | Named route card families ship as `greed_toll`, `fragile_cache`, `lantern_ward`, `secret_door`, and anchors |
+| GP-RW08 | Done | Route side-room interludes can be opened, claimed, or skipped through run flow |
+| GP-RW09 | Done | Relic drafts use pending/active route context for weight and reason copy |
+| GP-RW10 | Done | Boss floors stamp `keystone_pair`; hard non-boss route floors stamp elite anchors by route |
+| GP-RW11 | Done | Synergy matrix fixtures cover Greed treasure/trap, Safe rush, Mystery survey, denial, reveal, and completion |
+| GP-RW12 | Done | Catalog, Codex, task docs, and polish rollup cover route-world mechanics |
 
 ## Maintenance
 

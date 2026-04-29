@@ -1,8 +1,10 @@
 import type { RunState } from '../../shared/contracts';
 import { getMatchFloaterAnchorTileIds, getMismatchFloaterAnchorTileIds } from '../../shared/game';
+import { routeSpecialLabel, routeSpecialRewardLine } from '../../shared/route-world';
 
 export type MatchScorePop = {
     amount: number;
+    routeRewardText?: string;
     tileIdA: string;
     tileIdB: string;
     key: string;
@@ -45,9 +47,20 @@ export function buildMatchScorePopPayload(
         return null;
     }
     const { tileIdA, tileIdB } = anchor;
+    const routeKind =
+        run.board.tiles.find((tile) => tile.id === tileIdA)?.routeSpecialKind ??
+        run.board.tiles.find((tile) => tile.id === tileIdB)?.routeSpecialKind ??
+        run.board.tiles.find((tile) => tile.id === tileIdA)?.routeCardKind ??
+        run.board.tiles.find((tile) => tile.id === tileIdB)?.routeCardKind ??
+        null;
+    const routeRewardText = routeKind ? `${routeSpecialLabel(routeKind)} ${routeSpecialRewardLine(routeKind)}` : undefined;
     const nonce = keyNonce ?? `${Date.now()}`;
     const key = `${run.board.level}-${nonce}-${tileIdA}-${tileIdB}`;
-    return { amount, tileIdA, tileIdB, key };
+    const payload: MatchScorePop = { amount, tileIdA, tileIdB, key };
+    if (routeRewardText) {
+        payload.routeRewardText = routeRewardText;
+    }
+    return payload;
 }
 
 /**

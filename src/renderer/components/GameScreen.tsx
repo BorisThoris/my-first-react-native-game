@@ -3,6 +3,8 @@ import {
     ENDLESS_RISK_WAGER_BONUS_FAVOR,
     MAX_PINNED_TILES,
     type AchievementId,
+    type RouteCardKind,
+    type RouteSpecialKind,
     type RunState,
     type Settings
 } from '../../shared/contracts';
@@ -94,6 +96,7 @@ const getOsPrefersReducedMotionServerSnapshot = (): boolean => false;
 import { MUTATOR_CATALOG } from '../../shared/mechanics-encyclopedia';
 import { matchScoreFloaterLiveRegionText } from '../copy/matchScoreFloater';
 import { mismatchFloaterLiveRegionText, mismatchFloaterVisualLabel } from '../copy/mismatchFloater';
+import { routeSpecialLabel, routeSpecialRewardLine } from '../../shared/route-world';
 
 /** OVR-007 / HUD-020: decoy readout for `distraction_channel` — not gameplay state; hidden when reduce motion or assist toggle is off. */
 const DISTRACTION_CHANNEL_LABEL = 'Chaff';
@@ -117,6 +120,51 @@ const BONUS_TAG_LABELS: Record<string, string> = {
     objective_streak: 'Objective streak',
     boss_floor: 'Boss floor'
 };
+
+const routeTypeLabel = (routeType: NonNullable<RunState['pendingRouteCardPlan']>['routeType']): string => {
+    switch (routeType) {
+        case 'safe':
+            return 'Safe route';
+        case 'greed':
+            return 'Greedy route';
+        case 'mystery':
+        default:
+            return 'Mystery route';
+    }
+};
+
+const routeCardLabel = (kind: RouteCardKind): string => {
+    switch (kind) {
+        case 'safe_ward':
+            return 'Safe Ward';
+        case 'greed_cache':
+            return 'Greed Cache';
+        case 'mystery_veil':
+        default:
+            return 'Mystery Veil';
+    }
+};
+
+const routeCardRewardLine = (kind: RouteCardKind): string => {
+    switch (kind) {
+        case 'safe_ward':
+            return 'Match the Safe Ward pair for +1 guard token.';
+        case 'greed_cache':
+            return 'Match the Greed Cache pair for +2 shop gold and +25 score.';
+        case 'mystery_veil':
+        default:
+            return 'Match the Mystery Veil pair for a local hidden payout.';
+    }
+};
+
+const routeSpecialDisplayLabel = (kind: RouteSpecialKind | RouteCardKind): string =>
+    routeSpecialLabel(kind as RouteSpecialKind);
+
+const routeSpecialDisplayRewardLine = (kind: RouteSpecialKind | RouteCardKind): string =>
+    `Match the ${routeSpecialLabel(kind as RouteSpecialKind)} pair for ${routeSpecialRewardLine(kind as RouteSpecialKind)}.`;
+
+const routeCardKindForRouteType = (routeType: NonNullable<RunState['pendingRouteCardPlan']>['routeType']): RouteCardKind =>
+    routeType === 'safe' ? 'safe_ward' : routeType === 'greed' ? 'greed_cache' : 'mystery_veil';
 
 const getClearLifeBonusLabel = (result: NonNullable<RunState['lastLevelResult']>): string | null => {
     if (result.clearLifeGained !== 1) {
@@ -214,6 +262,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         useShallow((state) => ({
             applyFlashPairPower: state.applyFlashPairPower,
             acceptEndlessRiskWager: state.acceptEndlessRiskWager,
+            chooseRouteAndContinue: state.chooseRouteAndContinue,
             continueToNextLevel: state.continueToNextLevel,
             dismissPowersFtue: state.dismissPowersFtue,
             goToMenu: state.goToMenu,
@@ -429,6 +478,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const {
         applyFlashPairPower,
         acceptEndlessRiskWager,
+        chooseRouteAndContinue,
         continueToNextLevel,
         dismissPowersFtue,
         goToMenu,
@@ -778,6 +828,39 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         run.lastLevelResult && run.endlessRiskWager?.acceptedOnLevel === run.lastLevelResult.level
             ? run.endlessRiskWager
             : null;
+    const routeChoiceRequired = Boolean(run.lastLevelResult?.routeChoices && !run.pendingRouteCardPlan);
+    const pendingRouteCardKind = run.pendingRouteCardPlan
+        ? routeCardKindForRouteType(run.pendingRouteCardPlan.routeType)
+        : null;
+    const pendingRouteLine =
+        run.pendingRouteCardPlan && pendingRouteCardKind
+            ? `${routeTypeLabel(run.pendingRouteCardPlan.routeType)} selected: ${
+                  run.pendingRouteCardPlan.routeType === 'safe'
+                      ? 'next floor adds defensive ward support.'
+                      : run.pendingRouteCardPlan.routeType === 'greed'
+                        ? 'next floor adds richer caches and extra reward-risk pressure.'
+                        : 'next floor adds deterministic mystery veils.'
+              }`
+            : null;
+    const activeRouteTiles = run.board?.tiles ?? [];
+    const activeRouteSpecialKinds = activeRouteTiles
+        .filter(
+            (tile) => (tile.routeSpecialKind || tile.routeCardKind) && tile.state !== 'matched' && tile.state !== 'removed'
+        )
+        .map((tile) => tile.routeSpecialKind ?? tile.routeCardKind!);
+    const activeRouteSpecialKind = activeRouteSpecialKinds[0] ?? null;
+    const activeRoutePairCount = new Set(
+        activeRouteTiles
+            .filter(
+                (tile) =>
+                    (tile.routeSpecialKind || tile.routeCardKind) && tile.state !== 'matched' && tile.state !== 'removed'
+            )
+            .map((tile) => tile.pairKey)
+    ).size;
+    const activeRouteBannerLine =
+        activeRouteSpecialKind && activeRoutePairCount > 0 && run.status !== 'levelComplete'
+            ? `${routeSpecialDisplayLabel(activeRouteSpecialKind)} in play: ${routeSpecialDisplayRewardLine(activeRouteSpecialKind)}`
+            : null;
     const nextFloorPreview =
         endlessChapterActive && run.lastLevelResult
             ? pickFloorScheduleEntry(run.runSeed, run.runRulesVersion, run.lastLevelResult.level + 1, run.gameMode)
@@ -1048,6 +1131,12 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                             className={`${styles.boardStage} ${cameraViewportMode ? styles.boardStageCamera : ''} ${boardPresentationClass} ${boardStageCssBloomClass}`.trim()}
                         >
                             <div className={styles.boardGlow} aria-hidden="true" />
+                            {activeRouteBannerLine ? (
+                                <div className={styles.routeCardBanner} data-testid="route-card-board-banner">
+                                    <strong>{routeSpecialDisplayLabel(activeRouteSpecialKind!)}</strong>
+                                    <span>{routeSpecialDisplayRewardLine(activeRouteSpecialKind!)}</span>
+                                </div>
+                            ) : null}
                             <MemoTileBoard
                                 ref={tileBoardRef}
                                 allowGambitThirdFlip={allowGambitThirdFlip}
@@ -1125,7 +1214,8 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                     }
                                 >
                                     {boardFloaterPayload.kind === 'match'
-                                        ? `+${boardFloaterPayload.amount.toLocaleString()}`
+                                        ? boardFloaterPayload.routeRewardText ??
+                                          `+${boardFloaterPayload.amount.toLocaleString()}`
                                         : mismatchFloaterVisualLabel()}
                                 </div>
                             ) : null}
@@ -1255,8 +1345,18 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                     !run.relicOffer && (
                     <OverlayModal
                         actions={[
-                            { label: 'Continue', onClick: continueToNextLevel, variant: 'primary' },
-                            ...(run.shopOffers.length > 0
+                            ...(routeChoiceRequired
+                                ? []
+                                : [
+                                      {
+                                          label: run.pendingRouteCardPlan
+                                              ? `Continue to ${routeTypeLabel(run.pendingRouteCardPlan.routeType)} floor`
+                                              : 'Continue',
+                                          onClick: continueToNextLevel,
+                                          variant: 'primary' as const
+                                      }
+                                  ]),
+                            ...(run.shopOffers.length > 0 && !routeChoiceRequired
                                 ? [
                                       {
                                           label: 'Visit Shop',
@@ -1293,12 +1393,13 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         {objectiveBonusLine ? <p className={styles.modalNote}>{objectiveBonusLine}</p> : null}
                         {bonusTagsLine ? <p className={styles.modalNote}>{bonusTagsLine}</p> : null}
                         {nextFloorPreviewLine ? <p className={styles.modalNote}>{nextFloorPreviewLine}</p> : null}
+                        {pendingRouteLine ? <p className={styles.routeSelectedNote}>{pendingRouteLine}</p> : null}
                         {run.shopOffers.length > 0 ? (
                             <p className={styles.modalNote}>
                                 Vendor alcove available: {run.shopOffers.length} services, {run.shopGold} shop gold.
                             </p>
                         ) : null}
-                        {run.lastLevelResult.routeChoices ? (
+                        {routeChoiceRequired && run.lastLevelResult.routeChoices ? (
                             <div className={styles.endlessRiskWagerPanel} data-testid="route-choice-panel">
                                 <strong>Choose next route</strong>
                                 <span>
@@ -1311,7 +1412,10 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                         <button
                                             className={styles.endlessRiskWagerButton}
                                             key={option.id}
-                                            onClick={continueToNextLevel}
+                                            onClick={() => {
+                                                playUiClick();
+                                                chooseRouteAndContinue(option.id);
+                                            }}
                                             type="button"
                                         >
                                             {option.label}

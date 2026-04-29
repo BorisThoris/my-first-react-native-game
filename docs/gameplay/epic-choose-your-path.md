@@ -145,7 +145,7 @@ Hero uses **`cardGrid`** (`auto-fit`, `minmax(240px, 1fr)`), so Featured cards g
 - `section` `aria-label="More modes"`, `data-testid="choose-path-more-modes"`, eyebrow “More modes”.
 - **Toolbar** (`libraryToolbar`): minimal row — **magnifier** plain `<button>` (`librarySearchIconBtn`, SVG only — no `UiButton` plate) toggles `librarySearchOpen`; active filter uses **icon color** (`librarySearchIconBtnFiltered`). When open, **expand** region (`librarySearchExpand`, `id="choose-path-library-search-panel"`) contains visually hidden label + `type="search"` `id="choose-path-mode-filter"`. When a filter yields **no** matches, the search field stays **always visible** with a **leading magnifier** inside the field (`librarySearchFieldLead` + `libraryFilterInputInset`) so the user can fix the query without an extra tap.
 - **Page dots** (`libraryDotsWrap`): only when `libraryPageCount > 1` — compact indicators + optional jump-to-page; **no** “Previous” / “Next” labels.
-- **Tray:** `libraryScrollerWrap` (edge fades) around `libraryScroller` (`aria-label` describes swipe/drag). Snap pages, `data-poster-key` on cells for placeholder tints.
+- **Tray:** `libraryScrollerWrap` (edge fades) around `libraryScroller` (`aria-label` describes swipe/drag). Snap pages, `data-poster-key` remains available for poster-specific styling hooks.
 - Scroller + pages as in **Library pager**; each card cell wraps **MetaFrame** + `renderModeSurface`.
 
 ### Gauntlet special case
@@ -193,7 +193,7 @@ Design captures may be produced under `test-results/` (e.g. Playwright); not com
 
 ## Visual and UX audit (historical)
 
-Earlier desktop review items drove a **third pass (2026-04)** UI polish (density, toolbar, tray, fades, `data-poster-key` tints). Residual gap: **distinct raster art per library mode** is still optional future work when the art pipeline adds files; placeholders remain shared under the hood.
+Earlier desktop review items drove a **third pass (2026-04)** UI polish (density, toolbar, tray, fades, `data-poster-key` hooks). The finishing pass adds distinct bundled raster art for every live library poster key; `fallback` remains only for unknown/future keys.
 
 ---
 
@@ -204,7 +204,7 @@ Earlier desktop review items drove a **third pass (2026-04)** UI polish (density
 | Navigation shell (menu → CYP → back / start) | **Shippable** | Store `view` only. |
 | Catalog + hero/library split | **Shippable** | `run-mode-catalog.ts` + helpers. |
 | Search + paging + drag | **Functional** | Collapsible search; dots + drag/snap; no redundant stepper buttons. |
-| Posters / placeholders | **Partial** | Real art for hero keys; library uses shared placeholder PNGs with **per-`posterKey` CSS tint** until per-mode rasters land. |
+| Posters / placeholders | **Functional** | Hero and library modes now resolve to bundled per-`posterKey` rasters; only the explicit `fallback` key uses shared placeholder art. |
 | Visual hierarchy | **Shippable** | Drag-first library; icon magnifier; **smaller** library tiles vs Featured (type + padding + poster weight); edge fades. |
 | Fit-zoom × nested scroll | **Functional** | Works in CI/viewport tests; re-verify after major layout changes. |
 
@@ -233,7 +233,7 @@ Earlier desktop review items drove a **third pass (2026-04)** UI polish (density
 
 ## Refinement
 
-**Shippable** as mode-selection hub: **hero-first hierarchy**, **pointer- and touch-first** library (drag carousel, magnifier search), lighter tray aligned with meta shells, library tiles **differentiated by `posterKey`** (CSS on shared placeholders). Optional follow-up: unique rasters per mode when assets exist ([epic-readonly-meta-ui](./epic-readonly-meta-ui.md) plate language).
+**Shippable** as mode-selection hub: **hero-first hierarchy**, **pointer- and touch-first** library (drag carousel, magnifier search), lighter tray aligned with meta shells, and bundled per-mode poster rasters for each catalog `posterKey`.
 
 ---
 
@@ -245,7 +245,7 @@ Tracked in rollup: [GAMEPLAY_POLISH_AND_GAPS](./GAMEPLAY_POLISH_AND_GAPS.md) §1
 - [x] **Library tray** — Lighten border/inset/panel fill or align with global `MetaFrame` plate language.
 - [x] **Toolbar** — Coherent minimal row: **magnifier** + optional expanded search; dot row when multi-page (**no** ultrawide “empty middle” from separate pager bar).
 - [x] **Carousel affordance** — Edge fades; drag/swipe primary; subtitle + `aria-label` on tray; dots optional jump.
-- [x] **Art** — Per-`posterKey` rasters or non-photo tiles for library entries. *(Shipped: CSS `filter` per `data-poster-key` on shared placeholder art.)*
+- [x] **Art** — Per-`posterKey` rasters or non-photo tiles for library entries. *(Shipped: bundled per-mode raster assets; `fallback` remains only for unknown/future keys.)*
 - [x] **Visual regression** — Optional dedicated baseline for `01a-choose-your-path`. *(Covered by existing capture step [`01a-choose-your-path`](../../e2e/visualScenarioSteps.ts) in **Automation / QA**; no separate spec added.)*
 
 ---

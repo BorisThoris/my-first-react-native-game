@@ -17,12 +17,12 @@ Player actions beyond flipping: peek, shuffles, destroy pair, pinning, stray rem
 | Pin mode | **Shippable** | `togglePinnedTile`; does **not** set `powersUsedThisRun` (pins allowed for “perfect” achievement intent). |
 | Stray remove | **Functional** | Arm + `applyStrayRemove`; less prominent than core powers. |
 | Undo resolving | **Shippable** | `cancelResolvingWithUndo`; sets `powersUsedThisRun`. |
-| Flash pair | **Partial** | Store calls `applyFlashPair`; **game rules only apply in practice / wild menu** — if UI exposes elsewhere, guard mismatch. |
+| Flash pair | **Functional** | Practice/Wild-only v1: store calls `applyFlashPair`, game rules no-op outside `practiceMode` / `wildMenuRun`, and UI only exposes usable charges in those modes. |
 
 ## Rough edges
 
 - **`powersUsedThisRun`:** Authoritative enumeration is on `RunState.powersUsedThisRun` in [`contracts.ts`](../../src/shared/contracts.ts). Only **ACH_PERFECT_CLEAR** consumes the flag in `achievements.ts` — keep player-facing copy aligned separately.
-- **Flash pair:** Verify all UI entry points respect practice/wild-only rule.
+- **Flash pair:** If product later wants Classic/Daily access, treat it as a balance change rather than a bug fix.
 
 ## Primary code
 
