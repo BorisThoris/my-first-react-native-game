@@ -189,7 +189,7 @@ export interface RelicOfferServiceState {
     usedThisRound: number;
 }
 
-export type RunShopItemId = 'heal_life' | 'peek_charge' | 'destroy_charge';
+export type RunShopItemId = 'heal_life' | 'peek_charge' | 'destroy_charge' | 'iron_key' | 'master_key';
 export type RunShopItemCategory = 'consumable' | 'service';
 export type RunShopOfferAvailability = 'available' | 'sold_out' | 'insufficient_funds' | 'incompatible';
 
@@ -316,6 +316,25 @@ export interface Tile {
     routeSpecialKind?: RouteSpecialKind;
     /** True after an information tool has identified this route-world special without claiming it. */
     routeSpecialRevealed?: boolean;
+    /** Dungeon-card layer: encounter/room object carried by this card pair. */
+    dungeonCardKind?: DungeonCardKind;
+    /** Boss identity when this dungeon card is the floor's boss pair. */
+    dungeonBossId?: DungeonBossId;
+    /** Hidden until revealed, then resolved after its one-shot or pair reward is consumed. */
+    dungeonCardState?: DungeonCardState;
+    /** Deterministic card effect/reward identity for rules and UI copy. */
+    dungeonCardEffectId?: DungeonCardEffectId;
+    /** Enemy cards use pair-shared HP; mirrored on both tiles in the pair. */
+    dungeonCardHp?: number;
+    dungeonCardMaxHp?: number;
+    /** Gateway cards select the route that shapes the next floor. */
+    dungeonRouteType?: RouteNodeType;
+    /** Singleton exits can be gated by floor levers or run-local keys. */
+    dungeonExitLockKind?: DungeonExitLockKind;
+    dungeonExitRequiredLeverCount?: number;
+    dungeonExitActivated?: boolean;
+    dungeonKeyKind?: DungeonKeyKind;
+    dungeonRoomUsed?: boolean;
 }
 
 export type FloorTag = 'normal' | 'breather' | 'boss';
@@ -362,6 +381,19 @@ export interface BoardState {
     biomeTone?: string | null;
     /** GP-RW01: selected route's deterministic pressure/reward profile for this generated floor. */
     routeWorldProfile?: RouteWorldProfile | null;
+    /** First gateway matched on this floor; drives board-only route selection. */
+    selectedGatewayRouteType?: RouteNodeType | null;
+    /** Floor-local key count for dungeon locks. */
+    dungeonKeysHeld?: number;
+    dungeonExitTileId?: string | null;
+    dungeonExitActivated?: boolean;
+    dungeonExitLockKind?: DungeonExitLockKind;
+    dungeonExitRequiredLeverCount?: number;
+    dungeonLeverCount?: number;
+    dungeonShopTileId?: string | null;
+    dungeonShopVisited?: boolean;
+    dungeonBossId?: DungeonBossId | null;
+    dungeonObjectiveId?: DungeonObjectiveId | null;
 }
 
 export interface SessionStats {
@@ -421,6 +453,93 @@ export type RouteSpecialKind =
     | 'secret_door'
     | 'keystone_pair';
 export type RouteWorldIntensity = 'safe' | 'greed' | 'mystery';
+export type DungeonKeyKind = 'iron' | 'treasure' | 'shrine' | 'boss' | 'trap';
+export type DungeonExitLockKind = 'none' | 'lever' | DungeonKeyKind;
+export type DungeonCardKind =
+    | 'enemy'
+    | 'trap'
+    | 'treasure'
+    | 'shrine'
+    | 'gateway'
+    | 'key'
+    | 'lock'
+    | 'exit'
+    | 'lever'
+    | 'shop'
+    | 'room';
+export type DungeonCardState = 'hidden' | 'revealed' | 'resolved';
+export type DungeonBossId = 'trap_warden' | 'rush_sentinel' | 'treasure_keeper' | 'spire_observer';
+export type DungeonObjectiveId =
+    | 'find_exit'
+    | 'open_bonus_exit'
+    | 'disarm_traps'
+    | 'defeat_boss'
+    | 'loot_cache'
+    | 'reveal_unknowns';
+export interface DungeonFloorBlueprint {
+    level: number;
+    floorTag: FloorTag;
+    floorArchetypeId: FloorArchetypeId | null;
+    bossId: DungeonBossId | null;
+    objectiveId: DungeonObjectiveId;
+    threatBudget: number;
+    rewardBudget: number;
+    utilityBudget: number;
+    lockBudget: number;
+    gatewayBudget: number;
+    exitSpecs: {
+        id: string;
+        routeType: RouteNodeType;
+        effectId: DungeonCardEffectId;
+        lockKind: DungeonExitLockKind;
+        requiredLeverCount: number;
+        labelPrefix: string;
+    }[];
+    pairedCardSpecs: {
+        kind: DungeonCardKind;
+        effectId: DungeonCardEffectId;
+        symbol: string;
+        label: string;
+        hp?: number;
+        routeType?: RouteNodeType;
+        bossId?: DungeonBossId;
+    }[];
+    roomEffectIds: DungeonCardEffectId[];
+    shopTileId: string | null;
+}
+export type DungeonCardEffectId =
+    | 'enemy_sentry'
+    | 'enemy_elite'
+    | 'trap_spikes'
+    | 'trap_curse'
+    | 'trap_mimic'
+    | 'trap_alarm'
+    | 'treasure_gold'
+    | 'treasure_cache'
+    | 'treasure_shard'
+    | 'shrine_guard'
+    | 'gateway_safe'
+    | 'gateway_greed'
+    | 'gateway_mystery'
+    | 'gateway_depth'
+    | 'key_iron'
+    | 'key_master'
+    | 'lock_cache'
+    | 'exit_safe'
+    | 'exit_greed'
+    | 'exit_mystery'
+    | 'exit_boss'
+    | 'lever_floor'
+    | 'rune_seal'
+    | 'shop_vendor'
+    | 'room_campfire'
+    | 'room_fountain'
+    | 'room_map'
+    | 'room_forge'
+    | 'room_shrine'
+    | 'room_scrying_lens'
+    | 'room_armory'
+    | 'room_locked_cache';
 
 export interface RouteWorldProfile {
     routeType: RouteNodeType;
@@ -650,6 +769,13 @@ export interface RunState {
     findablesTotalThisFloor: number;
     /** `shifting_spotlight`: increments each time ward/bounty rotates this floor (seed step for next pick). */
     shiftingSpotlightNonce: number;
+    dungeonEnemiesDefeated: number;
+    dungeonTrapsTriggered: number;
+    dungeonTreasuresOpened: number;
+    dungeonGatewaysUsed: number;
+    dungeonKeys: Partial<Record<DungeonKeyKind, number>>;
+    dungeonMasterKeys: number;
+    dungeonShopVisitedThisFloor: boolean;
 }
 
 export type AchievementState = Record<AchievementId, boolean>;

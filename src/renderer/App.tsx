@@ -184,10 +184,10 @@ const App = () => {
         if (!hydrated || view !== 'shop') {
             return;
         }
-        const { closeShopToFloorSummary, run: shopRun } = useAppStore.getState();
+        const { closeShopToFloorSummary, run: shopRun, shopReturnMode } = useAppStore.getState();
         if (
             !shopRun ||
-            shopRun.status !== 'levelComplete' ||
+            (shopRun.status !== 'levelComplete' && shopReturnMode !== 'floor') ||
             shopRun.relicOffer ||
             shopRun.shopOffers.length === 0
         ) {

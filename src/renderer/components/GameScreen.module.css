@@ -607,6 +607,12 @@
     color: var(--theme-text-muted);
 }
 
+.dungeonCardBanner {
+    top: 4rem;
+    border-color: color-mix(in srgb, var(--theme-cyan) 34%, var(--theme-border-strong));
+    background: color-mix(in srgb, var(--theme-void) 78%, var(--theme-cyan));
+}
+
 .powerTeachingPanel {
     display: grid;
     gap: 0.32rem;

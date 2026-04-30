@@ -69,6 +69,7 @@ const ShopScreen = () => {
         purchaseShopOffer,
         rerollShopOffers,
         run,
+        shopReturnMode,
         settings
     } = useAppStore(
         useShallow((state) => ({
@@ -77,6 +78,7 @@ const ShopScreen = () => {
             purchaseShopOffer: state.purchaseShopOffer,
             rerollShopOffers: state.rerollShopOffers,
             run: state.run,
+            shopReturnMode: state.shopReturnMode,
             settings: state.settings
         }))
     );
@@ -108,11 +110,12 @@ const ShopScreen = () => {
         return () => document.removeEventListener('keydown', onKeyDown, true);
     }, [closeShopToFloorSummary, uiGain]);
 
-    if (!run || run.status !== 'levelComplete') {
+    if (!run || (run.status !== 'levelComplete' && shopReturnMode !== 'floor')) {
         return null;
     }
 
     const floor = run.lastLevelResult?.level ?? run.board?.level ?? run.stats.highestLevel;
+    const inFloorShop = shopReturnMode === 'floor';
     const rerollCost = getShopRerollCostForFloor(run.board?.level ?? run.stats.highestLevel);
     const rerollAvailable = canRerollShopOffers(run);
     const pendingRouteCardKind = run.pendingRouteCardPlan
@@ -145,10 +148,12 @@ const ShopScreen = () => {
             <div className={styles.shell}>
                 <header className={styles.header}>
                     <div className={styles.headerText}>
-                        <span className={styles.eyebrow}>Floor {floor} clear</span>
+                        <span className={styles.eyebrow}>{inFloorShop ? `Floor ${floor}` : `Floor ${floor} clear`}</span>
                         <h2>Vendor alcove</h2>
                         <p>
-                            {run.pendingRouteCardPlan && pendingRouteCardKind
+                            {inFloorShop
+                                ? 'Spend current shop gold, then return to the board. This vendor does not advance the floor.'
+                                : run.pendingRouteCardPlan && pendingRouteCardKind
                                 ? routeWorldLine(run.pendingRouteCardPlan.routeType, routeCardLabel(pendingRouteCardKind))
                                 : 'Spend temporary shop gold before the next floor. Unspent gold expires when the run ends.'}
                         </p>
@@ -204,10 +209,12 @@ const ShopScreen = () => {
                     </button>
                     <div className={styles.footerActions}>
                         <UiButton onClick={onBack} size="md" variant="secondary" type="button">
-                            Back to floor summary
+                            {inFloorShop ? 'Back to board' : 'Back to floor summary'}
                         </UiButton>
                         <UiButton onClick={onContinue} size="md" variant="primary" type="button">
-                            {run.pendingRouteCardPlan
+                            {inFloorShop
+                                ? 'Return to board'
+                                : run.pendingRouteCardPlan
                                 ? `Continue to ${routeTypeLabel(run.pendingRouteCardPlan.routeType)} floor`
                                 : 'Continue'}
                         </UiButton>

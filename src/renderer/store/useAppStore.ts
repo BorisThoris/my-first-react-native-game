@@ -36,8 +36,10 @@ import {
     createRunSummary,
     disableDebugPeek,
     enableDebugPeek,
+    EXIT_PAIR_KEY,
     finishMemorizePhase,
     flipTile,
+    activateDungeonExit,
     isGauntletExpired,
     openRelicOffer,
     openRouteSideRoom,
@@ -45,11 +47,17 @@ import {
     purchaseShopOffer as purchaseShopOfferRule,
     rerollShopOffers as rerollShopOffersRule,
     applyRelicOfferServiceToRun,
+    revealDungeonExit,
+    revealDungeonRoom,
+    revealDungeonShop,
     resolveBoardTurn,
+    ROOM_PAIR_KEY,
     resumeRun,
+    SHOP_PAIR_KEY,
     skipRouteSideRoom,
     togglePinnedTile,
-    toggleStrayRemoveArmed
+    toggleStrayRemoveArmed,
+    type DungeonExitActivationSpend
 } from '../../shared/game';
 import { trackEvent } from '../../shared/telemetry';
 import {
@@ -134,6 +142,8 @@ interface AppState {
     boardPinMode: boolean;
     destroyPairArmed: boolean;
     peekModeArmed: boolean;
+    dungeonExitPromptOpen: boolean;
+    shopReturnMode: 'floor' | 'summary' | null;
     /** Transient floating +score near matched tiles (Gameplay column). */
     matchScorePop: MatchScorePop | null;
     dismissMatchScorePop: () => void;
@@ -171,6 +181,8 @@ interface AppState {
     updateSettings: (settings: Settings) => Promise<void>;
     dismissHowToPlay: () => Promise<void>;
     pressTile: (tileId: string) => void;
+    closeDungeonExitPrompt: () => void;
+    activateDungeonExitFromPrompt: (spend?: DungeonExitActivationSpend) => void;
     togglePeekMode: () => void;
     undoResolvingFlip: () => void;
     toggleStrayArm: () => void;
@@ -573,6 +585,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     boardPinMode: false,
     destroyPairArmed: false,
     peekModeArmed: false,
+    dungeonExitPromptOpen: false,
+    shopReturnMode: null,
     ...BOARD_FLOATER_POP_CLEAR,
     dismissMatchScorePop: () => {
         set({ matchScorePop: null });
@@ -968,21 +982,36 @@ export const useAppStore = create<AppState>((set, get) => ({
             return;
         }
         const transition = resolveNavigationTransition(get(), 'openShopFromLevelComplete');
-        set({ view: transition.view });
+        set({ view: transition.view, shopReturnMode: 'summary' });
     },
 
     closeShopToFloorSummary: () => {
+        const { run, shopReturnMode } = get();
         const transition = resolveNavigationTransition(get(), 'closeShopToFloorSummary');
-        set({ view: transition.view });
+        set({
+            view: transition.view,
+            run: shopReturnMode === 'floor' && run ? resumeRunWithTimers(run) : run,
+            shopReturnMode: null
+        });
     },
 
     continueFromShop: () => {
-        const { run } = get();
-        if (!run || run.status !== 'levelComplete') {
+        const { run, shopReturnMode } = get();
+        if (shopReturnMode === 'floor') {
             const transition = resolveNavigationTransition(get(), 'closeShopToFloorSummary');
-            set({ view: transition.view });
+            set({
+                view: transition.view,
+                run: run ? resumeRunWithTimers(run) : run,
+                shopReturnMode: null
+            });
             return;
         }
+        if (!run || run.status !== 'levelComplete') {
+            const transition = resolveNavigationTransition(get(), 'closeShopToFloorSummary');
+            set({ view: transition.view, shopReturnMode: null });
+            return;
+        }
+        set({ shopReturnMode: null });
         get().continueToNextLevel();
     },
 
@@ -997,6 +1026,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             set({
                 run: nextRun,
                 view: 'shop',
+                shopReturnMode: 'summary',
                 boardPinMode: false,
                 destroyPairArmed: false,
                 peekModeArmed: false,
@@ -1019,6 +1049,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             set({
                 run: nextRun,
                 view: 'shop',
+                shopReturnMode: 'summary',
                 boardPinMode: false,
                 destroyPairArmed: false,
                 peekModeArmed: false,
@@ -1162,6 +1193,56 @@ export const useAppStore = create<AppState>((set, get) => ({
             return;
         }
 
+        const pressedTile = run.board?.tiles.find((tile) => tile.id === tileId) ?? null;
+        if (pressedTile?.pairKey === EXIT_PAIR_KEY) {
+            const nextRun = revealDungeonExit(run, tileId);
+            if (nextRun !== run) {
+                void resumeAudioContext();
+                playFlipSfx(sfxGainFromStore());
+            }
+            set({
+                run: nextRun,
+                boardPinMode: false,
+                destroyPairArmed: false,
+                peekModeArmed: false,
+                dungeonExitPromptOpen: true
+            });
+            return;
+        }
+        if (pressedTile?.pairKey === SHOP_PAIR_KEY) {
+            const nextRun = revealDungeonShop(run, tileId);
+            if (nextRun === run || nextRun.shopOffers.length === 0) {
+                return;
+            }
+            void resumeAudioContext();
+            playFlipSfx(sfxGainFromStore());
+            clearAllTimers();
+            set({
+                run: freezeRunSnapshotForPlayingMetaOverlay(nextRun),
+                view: 'shop',
+                shopReturnMode: 'floor',
+                boardPinMode: false,
+                destroyPairArmed: false,
+                peekModeArmed: false,
+                ...BOARD_FLOATER_POP_CLEAR
+            });
+            return;
+        }
+        if (pressedTile?.pairKey === ROOM_PAIR_KEY) {
+            const nextRun = revealDungeonRoom(run, tileId);
+            if (nextRun !== run) {
+                void resumeAudioContext();
+                playFlipSfx(sfxGainFromStore());
+                set({
+                    run: nextRun,
+                    boardPinMode: false,
+                    destroyPairArmed: false,
+                    peekModeArmed: false
+                });
+            }
+            return;
+        }
+
         if (boardPinMode) {
             const nextRun = togglePinnedTile(run, tileId);
             if (nextRun !== run) {
@@ -1224,6 +1305,22 @@ export const useAppStore = create<AppState>((set, get) => ({
 
         if (nextRun.status === 'resolving' && nextRun.timerState.resolveRemainingMs !== null) {
             scheduleResolveTimer(nextRun.timerState.resolveRemainingMs);
+        }
+    },
+
+    closeDungeonExitPrompt: () => {
+        set({ dungeonExitPromptOpen: false });
+    },
+
+    activateDungeonExitFromPrompt: (spend = 'none') => {
+        const { run, view } = get();
+        if (!run || view !== 'playing') {
+            return;
+        }
+        const nextRun = activateDungeonExit(run, spend);
+        set({ dungeonExitPromptOpen: false });
+        if (nextRun !== run) {
+            applyResolvedRun(nextRun);
         }
     },
 
@@ -1398,16 +1495,16 @@ export const useAppStore = create<AppState>((set, get) => ({
     },
 
     purchaseShopOffer: (offerId) => {
-        const { run } = get();
-        if (!run || run.status !== 'levelComplete') {
+        const { run, view, shopReturnMode } = get();
+        if (!run || view !== 'shop' || (run.status !== 'levelComplete' && shopReturnMode !== 'floor')) {
             return;
         }
         set({ run: purchaseShopOfferRule(run, offerId) });
     },
 
     rerollShopOffers: () => {
-        const { run } = get();
-        if (!run || run.status !== 'levelComplete') {
+        const { run, view, shopReturnMode } = get();
+        if (!run || view !== 'shop' || (run.status !== 'levelComplete' && shopReturnMode !== 'floor')) {
             return;
         }
         set({ run: rerollShopOffersRule(run) });

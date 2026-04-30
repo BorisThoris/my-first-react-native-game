@@ -36,6 +36,11 @@ import {
     SCHOLAR_STYLE_FLOOR_BONUS_SCORE,
     type AchievementId,
     type BoardState,
+    type DungeonCardEffectId,
+    type DungeonFloorBlueprint,
+    type DungeonExitLockKind,
+    type DungeonKeyKind,
+    type DungeonCardKind,
     type FindableKind,
     type ClearLifeReason,
     type FeaturedObjectiveId,
@@ -96,8 +101,7 @@ import {
 } from './rng';
 import {
     assignRouteWorldSpecials,
-    deriveRouteWorldProfile,
-    routeCardKindForRouteType
+    deriveRouteWorldProfile
 } from './route-world';
 import {
     LETTER_SYMBOLS,
@@ -110,7 +114,17 @@ const COMBO_SHARD_STREAK_STEP = 2;
 const COMBO_SHARDS_PER_LIFE = 3;
 export const DECOY_PAIR_KEY = '__decoy__';
 export const WILD_PAIR_KEY = '__wild__';
+export const EXIT_PAIR_KEY = '__exit__';
+export const SHOP_PAIR_KEY = '__shop__';
+export const ROOM_PAIR_KEY = '__room__';
 const PICKUP_BASELINE_RULES_VERSION = 8;
+
+const isSingletonUtilityPairKey = (pairKey: string): boolean =>
+    pairKey === DECOY_PAIR_KEY ||
+    pairKey === WILD_PAIR_KEY ||
+    pairKey === EXIT_PAIR_KEY ||
+    pairKey === SHOP_PAIR_KEY ||
+    pairKey === ROOM_PAIR_KEY;
 
 /** When the board includes a wild joker, returns its tile id (for `RunState.wildTileId`); otherwise null. */
 export const getWildTileIdFromBoard = (board: BoardState): string | null =>
@@ -129,7 +143,7 @@ const pickCursedPairKey = (
         ...new Set(
             tiles
                 .map((t) => t.pairKey)
-                .filter((k) => k !== DECOY_PAIR_KEY && k !== WILD_PAIR_KEY)
+                .filter((k) => !isSingletonUtilityPairKey(k))
         )
     ];
     if (realKeys.length < 2) {
@@ -521,6 +535,30 @@ export const SHOP_ITEM_CATALOG: Record<
         stock: 1,
         maxStock: 1,
         stackLimit: MAX_DESTROY_PAIR_BANK
+    },
+    iron_key: {
+        itemId: 'iron_key',
+        label: 'Iron key',
+        description: 'Adds one run-local key for locked exit doors and caches.',
+        category: 'consumable',
+        compatibleWhen: 'owned',
+        baseCost: 2,
+        cost: 2,
+        stock: 1,
+        maxStock: 1,
+        stackLimit: null
+    },
+    master_key: {
+        itemId: 'master_key',
+        label: 'Master key',
+        description: 'Opens any one locked exit door or cache in this run.',
+        category: 'consumable',
+        compatibleWhen: 'owned',
+        baseCost: 5,
+        cost: 5,
+        stock: 1,
+        maxStock: 1,
+        stackLimit: null
     }
 };
 
@@ -571,7 +609,10 @@ const getShopOfferCompatibility = (
 };
 
 export const createRunShopOffers = (run: RunState): RunShopOfferState[] => {
-    const ids: RunShopItemId[] = ['heal_life', 'peek_charge', 'destroy_charge'];
+    const ids: RunShopItemId[] = ['heal_life', 'peek_charge', 'destroy_charge', 'iron_key'];
+    if ((run.board?.level ?? run.stats.highestLevel) >= 5) {
+        ids.push('master_key');
+    }
     return ids.map((itemId, index) => {
         const base = SHOP_ITEM_CATALOG[itemId];
         return {
@@ -584,7 +625,6 @@ export const createRunShopOffers = (run: RunState): RunShopOfferState[] => {
 };
 
 export const canRerollShopOffers = (run: RunState): boolean =>
-    run.status === 'levelComplete' &&
     run.shopOffers.length > 0 &&
     run.shopRerolls < 1 &&
     run.shopGold >= getShopRerollCostForFloor(run.board?.level ?? run.stats.highestLevel);
@@ -619,6 +659,15 @@ export const purchaseShopOffer = (run: RunState, offerId: string): RunState => {
             break;
         case 'destroy_charge':
             next = { ...next, destroyPairCharges: Math.min(MAX_DESTROY_PAIR_BANK, next.destroyPairCharges + 1) };
+            break;
+        case 'iron_key':
+            next = {
+                ...next,
+                dungeonKeys: { ...next.dungeonKeys, iron: (next.dungeonKeys.iron ?? 0) + 1 }
+            };
+            break;
+        case 'master_key':
+            next = { ...next, dungeonMasterKeys: next.dungeonMasterKeys + 1 };
             break;
         default:
             break;
@@ -736,18 +785,41 @@ const ROUTE_MYSTERY_SHOP_GOLD_REWARD = 2;
 const ROUTE_CARD_GREED_SHOP_GOLD_REWARD = 2;
 const ROUTE_CARD_GREED_SCORE_REWARD = 25;
 const ROUTE_CARD_MYSTERY_SHOP_GOLD_REWARD = 2;
+const DUNGEON_TRAP_SCORE_PENALTY = 10;
+const DUNGEON_TRAP_DISARM_SCORE_REWARD = 10;
+const DUNGEON_TRAP_DISARM_GOLD_REWARD = 1;
+const DUNGEON_MIMIC_DISARM_SCORE_REWARD = 20;
+const DUNGEON_MIMIC_DISARM_GOLD_REWARD = 2;
+const DUNGEON_TREASURE_GOLD_REWARD = 2;
+const DUNGEON_TREASURE_SCORE_REWARD = 20;
+const DUNGEON_TREASURE_CACHE_GOLD_REWARD = 3;
+const DUNGEON_TREASURE_CACHE_SCORE_REWARD = 35;
+const DUNGEON_LOCK_SCORE_REWARD = 35;
+const DUNGEON_ENEMY_DEFEAT_SCORE = 30;
+const DUNGEON_LOCKED_ROOM_CACHE_GOLD_REWARD = 4;
+const DUNGEON_LOCKED_ROOM_CACHE_SCORE_REWARD = 50;
+const DUNGEON_BOSS_DEFEAT_SCORE = 70;
+const DUNGEON_OBJECTIVE_SCORE_REWARD = 35;
+const DUNGEON_OBJECTIVE_FAVOR_REWARD = 1;
 type MysteryRouteOutcome = 'shop_gold' | 'combo_shard' | 'relic_favor';
 type MysteryRouteCardOutcome = 'shop_gold' | 'combo_shard' | 'relic_favor';
 
-const createRouteCardPlan = (run: RunState, choice: RouteChoice): RouteCardPlan => {
+const createRouteCardPlanForRoute = (
+    run: RunState,
+    routeType: RouteNodeType,
+    choiceId: string
+): RouteCardPlan => {
     const sourceLevel = run.lastLevelResult?.level ?? run.board?.level ?? run.stats.highestLevel;
     return {
-        choiceId: choice.id,
-        routeType: choice.routeType,
+        choiceId,
+        routeType,
         sourceLevel,
         targetLevel: sourceLevel + 1
     };
 };
+
+const createRouteCardPlan = (run: RunState, choice: RouteChoice): RouteCardPlan =>
+    createRouteCardPlanForRoute(run, choice.routeType, choice.id);
 
 const hasFirstMismatchGrace = (run: RunState, board: BoardState): boolean =>
     run.stats.tries === 0 && (board.level === 1 || (run.stats.guardTokens === 0 && run.lives >= 2));
@@ -774,6 +846,186 @@ const applyComboShardGain = (
     return {
         comboShards: Math.min(MAX_COMBO_SHARDS, nextComboShards),
         lifeGain: 0
+    };
+};
+
+const clearDungeonCardFields = (tile: Tile): Tile => ({
+    ...tile,
+    dungeonCardKind: undefined,
+    dungeonBossId: undefined,
+    dungeonCardState: undefined,
+    dungeonCardEffectId: undefined,
+    dungeonCardHp: undefined,
+    dungeonCardMaxHp: undefined,
+    dungeonRouteType: undefined
+});
+
+const activeDungeonEnemyPairKeys = (board: BoardState): string[] => [
+    ...new Set(
+        board.tiles
+            .filter(
+                (tile) =>
+                    tile.dungeonCardKind === 'enemy' &&
+                    tile.dungeonCardState === 'revealed' &&
+                    tile.state !== 'matched' &&
+                    tile.state !== 'removed' &&
+                    (tile.dungeonCardHp ?? 0) > 0
+            )
+            .map((tile) => tile.pairKey)
+    )
+];
+
+const damageFirstActiveDungeonEnemy = (
+    board: BoardState,
+    amount: number
+): { board: BoardState; defeated: number; score: number } => {
+    if (amount <= 0) {
+        return { board, defeated: 0, score: 0 };
+    }
+    const pairKey = activeDungeonEnemyPairKeys(board)[0];
+    if (!pairKey) {
+        return { board, defeated: 0, score: 0 };
+    }
+    const currentHp =
+        board.tiles.find((tile) => tile.pairKey === pairKey && tile.dungeonCardKind === 'enemy')?.dungeonCardHp ?? 1;
+    const nextHp = Math.max(0, currentHp - amount);
+    const defeated = currentHp > 0 && nextHp === 0 ? 1 : 0;
+    return {
+        board: {
+            ...board,
+            tiles: board.tiles.map((tile) =>
+                tile.pairKey === pairKey && tile.dungeonCardKind === 'enemy'
+                    ? {
+                          ...tile,
+                          dungeonCardHp: nextHp,
+                          dungeonCardState: defeated ? 'resolved' : 'revealed'
+                      }
+                    : tile
+            )
+        },
+        defeated,
+        score: defeated ? DUNGEON_ENEMY_DEFEAT_SCORE : 0
+    };
+};
+
+const applyDungeonEnemyAttack = (
+    lives: number,
+    guardTokens: number,
+    activeBoard: BoardState
+): { lives: number; guardTokens: number; attacked: boolean } => {
+    if (activeDungeonEnemyPairKeys(activeBoard).length === 0) {
+        return { lives, guardTokens, attacked: false };
+    }
+    if (guardTokens > 0) {
+        return { lives, guardTokens: guardTokens - 1, attacked: true };
+    }
+    return { lives: lives - 1, guardTokens, attacked: true };
+};
+
+const springArmedDungeonTraps = (
+    run: RunState,
+    board: BoardState,
+    trappedPairKeys: readonly string[]
+): { run: RunState; board: BoardState; alarmTriggered: boolean } => {
+    const keys = [...new Set(trappedPairKeys)];
+    if (keys.length === 0) {
+        return { run, board, alarmTriggered: false };
+    }
+    let lives = run.lives;
+    let guardTokens = run.stats.guardTokens;
+    let shopGold = run.shopGold;
+    let triggered = 0;
+    let alarmTriggered = false;
+    for (const pairKey of keys) {
+        const armedTile = board.tiles.find(
+            (tile) =>
+                tile.pairKey === pairKey &&
+                tile.dungeonCardKind === 'trap' &&
+                tile.dungeonCardState === 'revealed'
+        );
+        if (!armedTile) {
+            continue;
+        }
+        triggered += 1;
+        if (armedTile.dungeonCardEffectId === 'trap_alarm') {
+            alarmTriggered = true;
+        } else if (guardTokens > 0) {
+            guardTokens -= 1;
+        } else {
+            lives -= 1;
+            if (armedTile.dungeonCardEffectId === 'trap_mimic') {
+                shopGold = Math.max(0, shopGold - 1);
+            }
+        }
+    }
+    if (triggered === 0) {
+        return { run, board, alarmTriggered: false };
+    }
+    const scorePenalty = DUNGEON_TRAP_SCORE_PENALTY * triggered;
+    const nextBoard: BoardState = {
+        ...board,
+        tiles: board.tiles.map((candidate) =>
+            keys.includes(candidate.pairKey) && candidate.dungeonCardKind === 'trap'
+                ? { ...candidate, dungeonCardState: 'resolved' as const }
+                : alarmTriggered && candidate.dungeonCardKind === 'enemy' && candidate.dungeonCardState === 'hidden'
+                  ? { ...candidate, dungeonCardState: 'revealed' as const }
+                : candidate
+        )
+    };
+    return {
+        run: {
+            ...run,
+            lives: Math.max(0, lives),
+            status: lives <= 0 ? 'gameOver' : run.status,
+            shopGold,
+            dungeonTrapsTriggered: run.dungeonTrapsTriggered + triggered,
+            stats: {
+                ...run.stats,
+                totalScore: Math.max(0, run.stats.totalScore - scorePenalty),
+                currentLevelScore: Math.max(0, run.stats.currentLevelScore - scorePenalty),
+                guardTokens
+            }
+        },
+        board: nextBoard,
+        alarmTriggered
+    };
+};
+
+const revealDungeonCardPair = (run: RunState, tile: Tile): RunState => {
+    if (!run.board || tile.dungeonCardState !== 'hidden' || tile.dungeonCardKind == null) {
+        return run;
+    }
+    return {
+        ...run,
+        board: {
+            ...run.board,
+            tiles: run.board.tiles.map((candidate) =>
+                candidate.pairKey === tile.pairKey && candidate.dungeonCardKind === tile.dungeonCardKind
+                    ? { ...candidate, dungeonCardState: 'revealed' }
+                    : candidate
+            )
+        }
+    };
+};
+
+const resolveOneArmedTrapPair = (board: BoardState): BoardState => {
+    const trapPairKey = board.tiles.find(
+        (tile) =>
+            tile.dungeonCardKind === 'trap' &&
+            tile.dungeonCardState === 'revealed' &&
+            tile.state !== 'matched' &&
+            tile.state !== 'removed'
+    )?.pairKey;
+    if (!trapPairKey) {
+        return board;
+    }
+    return {
+        ...board,
+        tiles: board.tiles.map((tile) =>
+            tile.pairKey === trapPairKey && tile.dungeonCardKind === 'trap'
+                ? { ...tile, dungeonCardState: 'resolved' as const }
+                : tile
+        )
     };
 };
 
@@ -810,6 +1062,7 @@ export interface BuildBoardOptions {
     cycleFloor?: number | null;
     routeCardPlan?: RouteCardPlan | null;
     routeWorldProfile?: RouteWorldProfile | null;
+    gameMode?: GameMode;
 }
 
 const createTiles = (
@@ -871,6 +1124,380 @@ const createTiles = (
     return shuffleWithRng(() => rng(), pairs);
 };
 
+const exitRouteTypeForFloor = (
+    level: number,
+    floorTag: FloorTag,
+    floorArchetypeId: FloorArchetypeId | null
+): RouteNodeType => {
+    if (floorTag === 'boss' || floorArchetypeId === 'trap_hall' || floorArchetypeId === 'rush_recall') {
+        return 'greed';
+    }
+    if (floorArchetypeId === 'treasure_gallery' || floorArchetypeId === 'spotlight_hunt' || level % 4 === 0) {
+        return 'mystery';
+    }
+    return 'safe';
+};
+
+const primaryExitLockKindForFloor = (
+    level: number,
+    floorArchetypeId: FloorArchetypeId | null
+): DungeonExitLockKind => {
+    if (level <= 2) {
+        return 'none';
+    }
+    if (
+        floorArchetypeId === 'script_room' ||
+        floorArchetypeId === 'spotlight_hunt' ||
+        floorArchetypeId === 'rush_recall' ||
+        level % 3 === 0
+    ) {
+        return 'lever';
+    }
+    return 'none';
+};
+
+const requiredLeverCountForFloor = (level: number, lockKind: DungeonExitLockKind): number =>
+    lockKind === 'lever' ? (level >= 8 ? 2 : 1) : 0;
+
+const dungeonObjectiveForFloor = (
+    floorTag: FloorTag,
+    floorArchetypeId: FloorArchetypeId | null
+): DungeonFloorBlueprint['objectiveId'] => {
+    if (floorTag === 'boss' || floorArchetypeId === 'rush_recall' || floorArchetypeId === 'trap_hall') {
+        return 'defeat_boss';
+    }
+    if (floorArchetypeId === 'treasure_gallery') {
+        return 'loot_cache';
+    }
+    if (floorArchetypeId === 'shadow_read' || floorArchetypeId === 'script_room') {
+        return 'reveal_unknowns';
+    }
+    return 'find_exit';
+};
+
+const dungeonBossForFloor = (
+    floorTag: FloorTag,
+    floorArchetypeId: FloorArchetypeId | null
+): DungeonFloorBlueprint['bossId'] => {
+    if (floorTag !== 'boss' && floorArchetypeId !== 'trap_hall' && floorArchetypeId !== 'rush_recall') {
+        return null;
+    }
+    if (floorArchetypeId === 'trap_hall') {
+        return 'trap_warden';
+    }
+    if (floorArchetypeId === 'treasure_gallery') {
+        return 'treasure_keeper';
+    }
+    if (floorArchetypeId === 'spotlight_hunt') {
+        return 'spire_observer';
+    }
+    return 'rush_sentinel';
+};
+
+const budgetForFloor = (
+    level: number,
+    floorTag: FloorTag,
+    floorArchetypeId: FloorArchetypeId | null
+): Pick<DungeonFloorBlueprint, 'threatBudget' | 'rewardBudget' | 'utilityBudget' | 'lockBudget' | 'gatewayBudget'> => {
+    const boss = floorTag === 'boss';
+    if (floorArchetypeId === 'treasure_gallery') {
+        return { threatBudget: boss ? 2 : 1, rewardBudget: 3, utilityBudget: 2, lockBudget: level >= 4 ? 2 : 1, gatewayBudget: level >= 5 ? 1 : 0 };
+    }
+    if (floorArchetypeId === 'trap_hall') {
+        return { threatBudget: 3, rewardBudget: 1, utilityBudget: 1, lockBudget: 1, gatewayBudget: boss ? 1 : 0 };
+    }
+    if (floorArchetypeId === 'script_room' || floorArchetypeId === 'shadow_read') {
+        return { threatBudget: 1, rewardBudget: 1, utilityBudget: 2, lockBudget: level >= 4 ? 1 : 0, gatewayBudget: 1 };
+    }
+    if (floorArchetypeId === 'breather' || floorTag === 'breather') {
+        return { threatBudget: 0, rewardBudget: 2, utilityBudget: 2, lockBudget: 0, gatewayBudget: 0 };
+    }
+    if (boss) {
+        return { threatBudget: 2, rewardBudget: 1, utilityBudget: 1, lockBudget: 1, gatewayBudget: 1 };
+    }
+    return {
+        threatBudget: level >= 2 ? 1 : 0,
+        rewardBudget: level % 3 === 0 ? 1 : 0,
+        utilityBudget: level >= 2 ? 1 : 0,
+        lockBudget: level >= 4 ? 1 : 0,
+        gatewayBudget: level >= 5 && level % 5 === 0 ? 1 : 0
+    };
+};
+
+const exitSpecsForFloor = (
+    level: number,
+    floorTag: FloorTag,
+    floorArchetypeId: FloorArchetypeId | null
+): DungeonFloorBlueprint['exitSpecs'] => {
+    const routeType = exitRouteTypeForFloor(level, floorTag, floorArchetypeId);
+    const lockKind = primaryExitLockKindForFloor(level, floorArchetypeId);
+    const requiredLeverCount = requiredLeverCountForFloor(level, lockKind);
+    const effectId: DungeonCardEffectId =
+        floorTag === 'boss'
+            ? 'exit_boss'
+            : routeType === 'greed'
+              ? 'exit_greed'
+              : routeType === 'mystery'
+                ? 'exit_mystery'
+                : 'exit_safe';
+    const specs: DungeonFloorBlueprint['exitSpecs'] = [
+        {
+            id: `${level}-exit`,
+            routeType,
+            effectId,
+            lockKind,
+            requiredLeverCount,
+            labelPrefix: 'Primary'
+        }
+    ];
+    const alternateRouteType: RouteNodeType | null =
+        level >= 4 && (floorTag === 'boss' || floorArchetypeId === 'treasure_gallery' || level % 4 === 0)
+            ? routeType === 'greed'
+                ? 'safe'
+                : 'greed'
+            : null;
+    if (alternateRouteType) {
+        specs.push({
+            id: `${level}-exit-alt`,
+            routeType: alternateRouteType,
+            effectId: alternateRouteType === 'greed' ? 'exit_greed' : 'exit_safe',
+            lockKind: level >= 6 ? 'iron' : floorArchetypeId === 'treasure_gallery' ? 'treasure' : 'none',
+            requiredLeverCount: 0,
+            labelPrefix: 'Alternate'
+        });
+    }
+    return specs;
+};
+
+const chooseRoomEffectsForFloor = (
+    runSeed: number,
+    rulesVersion: number,
+    level: number,
+    floorTag: FloorTag,
+    floorArchetypeId: FloorArchetypeId | null,
+    gameMode?: GameMode
+): DungeonCardEffectId[] => {
+    const effectId = roomEffectForFloor(runSeed, rulesVersion, level, floorTag, floorArchetypeId, gameMode);
+    return effectId ? [effectId] : [];
+};
+
+export const createDungeonFloorBlueprint = ({
+    runSeed,
+    rulesVersion,
+    level,
+    floorTag,
+    floorArchetypeId,
+    gameMode
+}: {
+    runSeed: number;
+    rulesVersion: number;
+    level: number;
+    floorTag: FloorTag;
+    floorArchetypeId: FloorArchetypeId | null;
+    gameMode?: GameMode;
+}): DungeonFloorBlueprint => {
+    const budgets = budgetForFloor(level, floorTag, floorArchetypeId);
+    const bossId = dungeonBossForFloor(floorTag, floorArchetypeId);
+    const pairedCardSpecs = dungeonCardRecipeForFloor(level, floorTag, floorArchetypeId, gameMode, {
+        ...budgets,
+        bossId
+    });
+    return {
+        level,
+        floorTag,
+        floorArchetypeId,
+        bossId,
+        objectiveId: dungeonObjectiveForFloor(floorTag, floorArchetypeId),
+        ...budgets,
+        exitSpecs: exitSpecsForFloor(level, floorTag, floorArchetypeId),
+        pairedCardSpecs,
+        roomEffectIds: chooseRoomEffectsForFloor(runSeed, rulesVersion, level, floorTag, floorArchetypeId, gameMode),
+        shopTileId: shouldAddDungeonShopTile(runSeed, rulesVersion, level, floorTag, floorArchetypeId, gameMode)
+            ? `${level}-shop`
+            : null
+    };
+};
+
+const addDungeonExitTile = (
+    tiles: Tile[],
+    blueprint: DungeonFloorBlueprint
+): { tiles: Tile[]; exitTileId: string; routeType: RouteNodeType; lockKind: DungeonExitLockKind; requiredLevers: number } => {
+    const makeExitTile = (
+        id: string,
+        exitRouteType: RouteNodeType,
+        exitEffectId: DungeonCardEffectId,
+        exitLockKind: DungeonExitLockKind,
+        exitRequiredLevers: number,
+        labelPrefix: string
+    ): Tile => ({
+        id,
+        pairKey: EXIT_PAIR_KEY,
+        state: 'hidden',
+        symbol: exitRouteType === 'greed' ? '>' : exitRouteType === 'mystery' ? '?' : '^',
+        label:
+            blueprint.floorTag === 'boss'
+                ? `${labelPrefix} Boss Exit`
+                : exitRouteType === 'greed'
+                  ? `${labelPrefix} Greed Exit`
+                  : exitRouteType === 'mystery'
+                    ? `${labelPrefix} Mystery Exit`
+                    : `${labelPrefix} Safe Exit`,
+        atomicVariant: 0,
+        dungeonCardKind: 'exit',
+        dungeonCardState: 'hidden',
+        dungeonCardEffectId: exitEffectId,
+        dungeonRouteType: exitRouteType,
+        dungeonExitLockKind: exitLockKind,
+        dungeonExitRequiredLeverCount: exitRequiredLevers,
+        dungeonExitActivated: false
+    });
+    const exitTiles = blueprint.exitSpecs.map((spec) =>
+        makeExitTile(spec.id, spec.routeType, spec.effectId, spec.lockKind, spec.requiredLeverCount, spec.labelPrefix)
+    );
+    const primary = blueprint.exitSpecs[0]!;
+    return {
+        tiles: [...tiles, ...exitTiles],
+        exitTileId: primary.id,
+        routeType: primary.routeType,
+        lockKind: primary.lockKind,
+        requiredLevers: primary.requiredLeverCount
+    };
+};
+
+const shouldAddDungeonShopTile = (
+    runSeed: number,
+    rulesVersion: number,
+    level: number,
+    floorTag: FloorTag,
+    floorArchetypeId: FloorArchetypeId | null,
+    gameMode?: GameMode
+): boolean => {
+    if (!gameMode || gameMode === 'puzzle' || level <= 1 || floorTag === 'boss') {
+        return false;
+    }
+    if (floorTag === 'breather' || floorArchetypeId === 'treasure_gallery') {
+        return true;
+    }
+    const rng = createMulberry32(hashStringToSeed(`dungeonShop:${rulesVersion}:${runSeed}:${level}`));
+    const threshold = floorArchetypeId === 'script_room' || floorArchetypeId === 'spotlight_hunt' ? 0.45 : 0.3;
+    return rng() < threshold;
+};
+
+const addDungeonShopTile = (
+    tiles: Tile[],
+    blueprint: DungeonFloorBlueprint
+): { tiles: Tile[]; shopTileId: string | null } => {
+    if (!blueprint.shopTileId) {
+        return { tiles, shopTileId: null };
+    }
+    const shopTileId = blueprint.shopTileId;
+    return {
+        tiles: [
+            ...tiles,
+            {
+                id: shopTileId,
+                pairKey: SHOP_PAIR_KEY,
+                state: 'hidden',
+                symbol: 'S',
+                label: 'Vendor Alcove',
+                atomicVariant: 0,
+                dungeonCardKind: 'shop',
+                dungeonCardState: 'hidden',
+                dungeonCardEffectId: 'shop_vendor'
+            }
+        ],
+        shopTileId
+    };
+};
+
+const roomEffectForFloor = (
+    runSeed: number,
+    rulesVersion: number,
+    level: number,
+    floorTag: FloorTag,
+    floorArchetypeId: FloorArchetypeId | null,
+    gameMode?: GameMode
+): DungeonCardEffectId | null => {
+    if (!gameMode || gameMode === 'puzzle' || level <= 1 || floorTag === 'boss') {
+        return null;
+    }
+    const rng = createMulberry32(hashStringToSeed(`dungeonRoom:${rulesVersion}:${runSeed}:${level}`));
+    const chance = floorTag === 'breather' ? 0.65 : floorArchetypeId === 'script_room' ? 0.45 : 0.28;
+    if (rng() >= chance) {
+        return null;
+    }
+    const options: DungeonCardEffectId[] =
+        floorArchetypeId === 'script_room'
+            ? ['room_map', 'room_forge', 'room_fountain', 'room_scrying_lens']
+            : floorTag === 'breather'
+              ? ['room_campfire', 'room_fountain', 'room_forge', 'room_shrine', 'room_armory']
+              : floorArchetypeId === 'treasure_gallery'
+                ? ['room_forge', 'room_armory', 'room_locked_cache', 'room_scrying_lens']
+                : ['room_campfire', 'room_fountain', 'room_map', 'room_forge', 'room_shrine', 'room_scrying_lens', 'room_armory'];
+    return options[Math.floor(rng() * options.length)]!;
+};
+
+const addDungeonRoomTile = (
+    tiles: Tile[],
+    blueprint: DungeonFloorBlueprint
+): { tiles: Tile[]; roomTileId: string | null } => {
+    const effectId = blueprint.roomEffectIds[0] ?? null;
+    if (!effectId) {
+        return { tiles, roomTileId: null };
+    }
+    const roomTileId = `${blueprint.level}-room`;
+    const label =
+        effectId === 'room_campfire'
+            ? 'Campfire'
+            : effectId === 'room_fountain'
+              ? 'Fountain'
+              : effectId === 'room_map'
+                ? 'Map Room'
+                : effectId === 'room_shrine'
+                  ? 'Shrine'
+                  : effectId === 'room_scrying_lens'
+                    ? 'Scrying Lens'
+                    : effectId === 'room_armory'
+                      ? 'Armory'
+                      : effectId === 'room_locked_cache'
+                        ? 'Locked Cache'
+                        : 'Forge';
+    const symbol =
+        effectId === 'room_campfire'
+            ? 'C'
+            : effectId === 'room_fountain'
+              ? 'F'
+              : effectId === 'room_map'
+                ? 'M'
+                : effectId === 'room_shrine'
+                  ? '+'
+                  : effectId === 'room_scrying_lens'
+                    ? '?'
+                    : effectId === 'room_armory'
+                      ? 'A'
+                      : effectId === 'room_locked_cache'
+                        ? 'L'
+                        : 'G';
+    return {
+        tiles: [
+            ...tiles,
+            {
+                id: roomTileId,
+                pairKey: ROOM_PAIR_KEY,
+                state: 'hidden',
+                symbol,
+                label,
+                atomicVariant: 0,
+                dungeonCardKind: 'room',
+                dungeonCardState: 'hidden',
+                dungeonCardEffectId: effectId,
+                dungeonRoomUsed: false
+            }
+        ],
+        roomTileId
+    };
+};
+
 /** Distinct pairKeys that have at least one tile with `findableKind` (run `findablesTotalThisFloor` / fixtures). */
 export const countFindablePairs = (tiles: readonly Tile[]): number =>
     new Set(tiles.filter((tile) => tile.findableKind != null).map((tile) => tile.pairKey)).size;
@@ -886,7 +1513,7 @@ const assignFindableKindsToTiles = (
         ...new Set(
             tiles
                 .map((t) => t.pairKey)
-                .filter((k) => k !== DECOY_PAIR_KEY && k !== WILD_PAIR_KEY)
+                .filter((k) => !isSingletonUtilityPairKey(k))
         )
     ];
     if (eligibleKeys.length === 0) {
@@ -927,6 +1554,221 @@ const assignFindableKindsToTiles = (
     return tiles.map((t) => {
         const kind = kindByKey.get(t.pairKey);
         return kind ? { ...t, findableKind: kind } : t;
+    });
+};
+
+interface DungeonCardAssignment {
+    kind: DungeonCardKind;
+    effectId: DungeonCardEffectId;
+    symbol: string;
+    label: string;
+    hp?: number;
+    routeType?: RouteNodeType;
+    bossId?: NonNullable<DungeonFloorBlueprint['bossId']>;
+}
+
+type DungeonCardRecipeBudgets = Pick<
+    DungeonFloorBlueprint,
+    'threatBudget' | 'rewardBudget' | 'utilityBudget' | 'lockBudget' | 'gatewayBudget' | 'bossId'
+>;
+
+const bossCardFor = (bossId: DungeonFloorBlueprint['bossId']): DungeonCardAssignment | null => {
+    if (!bossId) {
+        return null;
+    }
+    if (bossId === 'trap_warden') {
+        return { kind: 'enemy', effectId: 'enemy_elite', symbol: 'W', label: 'Trap Warden', hp: 3, bossId };
+    }
+    if (bossId === 'treasure_keeper') {
+        return { kind: 'enemy', effectId: 'enemy_elite', symbol: 'K', label: 'Treasure Keeper', hp: 3, bossId };
+    }
+    if (bossId === 'spire_observer') {
+        return { kind: 'enemy', effectId: 'enemy_elite', symbol: 'O', label: 'Spire Observer', hp: 3, bossId };
+    }
+    return { kind: 'enemy', effectId: 'enemy_elite', symbol: 'S', label: 'Rush Sentinel', hp: 3, bossId };
+};
+
+const sentryCard = (): DungeonCardAssignment => ({
+    kind: 'enemy',
+    effectId: 'enemy_sentry',
+    symbol: 'e',
+    label: 'Sentry',
+    hp: 1
+});
+
+const eliteCard = (): DungeonCardAssignment => ({
+    kind: 'enemy',
+    effectId: 'enemy_elite',
+    symbol: 'E',
+    label: 'Elite Sentinel',
+    hp: 2
+});
+
+const trapCard = (effectId: DungeonCardEffectId, floorArchetypeId: FloorArchetypeId | null): DungeonCardAssignment => ({
+    kind: 'trap',
+    effectId,
+    symbol: '!',
+    label:
+        effectId === 'trap_alarm'
+            ? 'Alarm Trap'
+            : effectId === 'trap_mimic'
+              ? 'Mimic Trap'
+              : floorArchetypeId === 'shadow_read' || effectId === 'trap_curse'
+                ? 'Curse Trap'
+                : 'Spike Trap'
+});
+
+const treasureCard = (level: number, floorArchetypeId: FloorArchetypeId | null): DungeonCardAssignment => ({
+    kind: 'treasure',
+    effectId: floorArchetypeId === 'treasure_gallery' || level >= 5 ? 'treasure_cache' : 'treasure_gold',
+    symbol: '$',
+    label: 'Treasure Cache'
+});
+
+const lockCard = (): DungeonCardAssignment => ({ kind: 'lock', effectId: 'lock_cache', symbol: 'L', label: 'Locked Cache' });
+const keyCard = (): DungeonCardAssignment => ({ kind: 'key', effectId: 'key_iron', symbol: 'K', label: 'Iron Key' });
+const shrineCard = (): DungeonCardAssignment => ({ kind: 'shrine', effectId: 'shrine_guard', symbol: '+', label: 'Guard Shrine' });
+const gatewayCard = (routeType: RouteNodeType = 'greed'): DungeonCardAssignment => ({
+    kind: 'gateway',
+    effectId: routeType === 'safe' ? 'gateway_safe' : routeType === 'mystery' ? 'gateway_mystery' : 'gateway_depth',
+    symbol: routeType === 'mystery' ? '?' : '>',
+    label: routeType === 'mystery' ? 'Mystery Gateway' : routeType === 'safe' ? 'Safe Gateway' : 'Depth Gateway',
+    routeType
+});
+
+const dungeonCardRecipeForFloor = (
+    level: number,
+    floorTag: FloorTag,
+    floorArchetypeId: FloorArchetypeId | null,
+    gameMode?: GameMode,
+    blueprint?: DungeonCardRecipeBudgets
+): DungeonCardAssignment[] => {
+    const budgets = blueprint ?? {
+        ...budgetForFloor(level, floorTag, floorArchetypeId),
+        bossId: dungeonBossForFloor(floorTag, floorArchetypeId)
+    };
+    const cards: DungeonCardAssignment[] = [];
+    const exitLockKind = primaryExitLockKindForFloor(level, floorArchetypeId);
+    const leverCount = requiredLeverCountForFloor(level, exitLockKind);
+    for (let i = 0; i < leverCount; i++) {
+        cards.push({ kind: 'lever', effectId: 'lever_floor', symbol: 'V', label: i === 0 ? 'Exit Lever' : `Exit Lever ${i + 1}` });
+    }
+
+    const bossCard = bossCardFor(budgets.bossId);
+    if (bossCard) {
+        cards.push(bossCard);
+    }
+
+    let threatsAdded = bossCard ? 1 : 0;
+    if (threatsAdded < budgets.threatBudget && level >= 2 && gameMode !== 'meditation') {
+        cards.push(floorTag === 'boss' || floorArchetypeId === 'rush_recall' ? eliteCard() : sentryCard());
+        threatsAdded += 1;
+    }
+
+    while (threatsAdded < budgets.threatBudget) {
+        const trapEffectId: DungeonCardEffectId =
+            floorArchetypeId === 'shadow_read'
+                ? 'trap_curse'
+                : floorArchetypeId === 'trap_hall'
+                  ? threatsAdded % 2 === 0
+                      ? 'trap_alarm'
+                      : 'trap_mimic'
+                  : level >= 6
+                    ? 'trap_mimic'
+                    : 'trap_spikes';
+        cards.push(trapCard(trapEffectId, floorArchetypeId));
+        threatsAdded += 1;
+    }
+
+    for (let i = 0; i < budgets.rewardBudget; i++) {
+        cards.push(treasureCard(level, floorArchetypeId));
+    }
+
+    for (let i = 0; i < budgets.utilityBudget; i++) {
+        if (floorArchetypeId === 'trap_hall' && level >= 4 && i === 0) {
+            cards.push({ kind: 'lever', effectId: 'rune_seal', symbol: 'R', label: 'Rune Seal' });
+        } else if (floorArchetypeId === 'script_room' || floorArchetypeId === 'spotlight_hunt' || floorArchetypeId === 'parasite_tithe') {
+            cards.push(shrineCard());
+        } else if (level >= 3 && floorArchetypeId !== 'breather') {
+            cards.push(keyCard());
+        }
+    }
+
+    for (let i = 0; i < budgets.lockBudget; i++) {
+        cards.push(i % 2 === 0 && level >= 3 ? keyCard() : lockCard());
+    }
+
+    for (let i = 0; i < budgets.gatewayBudget; i++) {
+        cards.push(gatewayCard(floorArchetypeId === 'script_room' || floorArchetypeId === 'shadow_read' ? 'mystery' : 'greed'));
+    }
+
+    return cards;
+};
+
+const assignDungeonCardsToTiles = (
+    tiles: Tile[],
+    runSeed: number,
+    rulesVersion: number,
+    level: number,
+    floorTag: FloorTag,
+    floorArchetypeId: FloorArchetypeId | null,
+    gameMode?: GameMode,
+    blueprint?: DungeonFloorBlueprint
+): Tile[] => {
+    if (!gameMode) {
+        return tiles;
+    }
+    const assignments = blueprint?.pairedCardSpecs ?? dungeonCardRecipeForFloor(level, floorTag, floorArchetypeId, gameMode);
+    if (assignments.length === 0) {
+        return tiles;
+    }
+    const eligibleKeys = [
+        ...new Set(
+            tiles
+                .filter(
+                    (tile) =>
+                        tile.pairKey !== DECOY_PAIR_KEY &&
+                        tile.pairKey !== WILD_PAIR_KEY &&
+                        tile.routeSpecialKind == null &&
+                        tile.routeCardKind == null
+                )
+                .map((tile) => tile.pairKey)
+        )
+    ];
+    if (eligibleKeys.length === 0) {
+        return tiles;
+    }
+    const rng = createMulberry32(hashStringToSeed(`dungeonCards:${rulesVersion}:${runSeed}:${level}`));
+    const keys = [...eligibleKeys];
+    for (let i = keys.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        const tmp = keys[i]!;
+        keys[i] = keys[j]!;
+        keys[j] = tmp;
+    }
+    const assignmentByPairKey = new Map<string, DungeonCardAssignment>();
+    const count = Math.min(assignments.length, keys.length);
+    for (let i = 0; i < count; i++) {
+        assignmentByPairKey.set(keys[i]!, assignments[i]!);
+    }
+    return tiles.map((tile) => {
+        const assignment = assignmentByPairKey.get(tile.pairKey);
+        if (!assignment) {
+            return tile;
+        }
+        return {
+            ...tile,
+            symbol: assignment.symbol,
+            label: assignment.label,
+            dungeonCardKind: assignment.kind,
+            dungeonCardState: 'hidden',
+            dungeonCardEffectId: assignment.effectId,
+            dungeonCardHp: assignment.hp,
+            dungeonCardMaxHp: assignment.hp,
+            dungeonRouteType: assignment.routeType,
+            dungeonBossId: assignment.bossId ?? undefined,
+            dungeonKeyKind: assignment.kind === 'key' ? 'iron' : undefined
+        };
     });
 };
 
@@ -1029,13 +1871,37 @@ export const buildBoard = (level: number, options: BuildBoardOptions = {}): Boar
     const featuredObjectiveId = options.featuredObjectiveId ?? null;
     const cycleFloor = options.cycleFloor ?? null;
     const actBiome = cycleFloor != null ? getChapterActBiomeForCycleFloor(cycleFloor) : null;
+    const floorTag = options.floorTag ?? 'normal';
+    const dungeonBlueprint = options.gameMode
+        ? createDungeonFloorBlueprint({
+              runSeed,
+              rulesVersion,
+              level,
+              floorTag,
+              floorArchetypeId,
+              gameMode: options.gameMode
+          })
+        : null;
 
     if (options.fixedTiles && options.fixedTiles.length > 0) {
-        const tiles = options.fixedTiles.map((t) => ({ ...t }));
+        const exitTiles = options.gameMode
+            ? addDungeonExitTile(
+                  options.fixedTiles.map((t) => ({ ...t })),
+                  dungeonBlueprint!
+              ).tiles
+            : options.fixedTiles.map((t) => ({ ...t }));
+        const shopAdded = dungeonBlueprint
+            ? addDungeonShopTile(exitTiles, dungeonBlueprint)
+            : { tiles: exitTiles, shopTileId: null };
+        const roomAdded = dungeonBlueprint
+            ? addDungeonRoomTile(shopAdded.tiles, dungeonBlueprint)
+            : { tiles: shopAdded.tiles, roomTileId: null };
+        const tiles = roomAdded.tiles;
         const tileCount = tiles.length;
         const columns = clamp(Math.ceil(Math.sqrt(tileCount)), 2, 8);
         const rows = Math.ceil(tileCount / columns);
-        const realPairKeys = new Set(tiles.map((t) => t.pairKey).filter((k) => k !== DECOY_PAIR_KEY));
+        const realPairKeys = new Set(tiles.map((t) => t.pairKey).filter((k) => !isSingletonUtilityPairKey(k)));
+        const exit = tiles.find((t) => t.pairKey === EXIT_PAIR_KEY);
 
         return {
             level,
@@ -1045,7 +1911,7 @@ export const buildBoard = (level: number, options: BuildBoardOptions = {}): Boar
             tiles,
             flippedTileIds: [],
             matchedPairs: 0,
-            floorTag: options.floorTag ?? 'normal',
+            floorTag,
             cursedPairKey: null,
             wardPairKey: null,
             bountyPairKey: null,
@@ -1057,7 +1923,18 @@ export const buildBoard = (level: number, options: BuildBoardOptions = {}): Boar
             actFloorCount: actBiome?.actFloorCount ?? null,
             biomeTitle: actBiome?.biomeTitle ?? null,
             biomeTone: actBiome?.biomeTone ?? null,
-            routeWorldProfile: options.routeWorldProfile ?? null
+            routeWorldProfile: options.routeWorldProfile ?? null,
+            selectedGatewayRouteType: null,
+            dungeonKeysHeld: 0,
+            dungeonExitTileId: exit?.id ?? null,
+            dungeonExitActivated: false,
+            dungeonExitLockKind: exit?.dungeonExitLockKind ?? 'none',
+            dungeonExitRequiredLeverCount: exit?.dungeonExitRequiredLeverCount ?? 0,
+            dungeonLeverCount: 0,
+            dungeonShopTileId: shopAdded.shopTileId,
+            dungeonShopVisited: false,
+            dungeonBossId: dungeonBlueprint?.bossId ?? null,
+            dungeonObjectiveId: dungeonBlueprint?.objectiveId ?? 'find_exit'
         };
     }
 
@@ -1067,11 +1944,11 @@ export const buildBoard = (level: number, options: BuildBoardOptions = {}): Boar
         deriveRouteWorldProfile({
             plan: options.routeCardPlan,
             level,
-            floorTag: options.floorTag ?? 'normal',
+            floorTag,
             floorArchetypeId,
             mutators
     });
-    const tiles = assignRouteWorldSpecials({
+    const routeTiles = assignRouteWorldSpecials({
         tiles: assignFindableKindsToTiles(
             createTiles(level, pairCount, runSeed, rulesVersion, mutators, options.includeWildTile),
             mutators,
@@ -1085,6 +1962,26 @@ export const buildBoard = (level: number, options: BuildBoardOptions = {}): Boar
         level,
         forbiddenPairKeys: [DECOY_PAIR_KEY, WILD_PAIR_KEY]
     });
+    const dungeonPairTiles = assignDungeonCardsToTiles(
+        routeTiles,
+        runSeed,
+        rulesVersion,
+        level,
+        floorTag,
+        floorArchetypeId,
+        options.gameMode,
+        dungeonBlueprint ?? undefined
+    );
+    const exitAdded = options.gameMode
+        ? addDungeonExitTile(dungeonPairTiles, dungeonBlueprint!)
+        : null;
+    const shopAdded = dungeonBlueprint
+        ? addDungeonShopTile(exitAdded?.tiles ?? dungeonPairTiles, dungeonBlueprint)
+        : { tiles: exitAdded?.tiles ?? dungeonPairTiles, shopTileId: null };
+    const roomAdded = dungeonBlueprint
+        ? addDungeonRoomTile(shopAdded.tiles, dungeonBlueprint)
+        : { tiles: shopAdded.tiles, roomTileId: null };
+    const tiles = roomAdded.tiles;
     const tileCount = tiles.length;
     const columns = clamp(Math.ceil(Math.sqrt(tileCount)), 2, 8);
     const rows = Math.ceil(tileCount / columns);
@@ -1100,7 +1997,7 @@ export const buildBoard = (level: number, options: BuildBoardOptions = {}): Boar
         tiles,
         flippedTileIds: [],
         matchedPairs: 0,
-        floorTag: options.floorTag ?? 'normal',
+        floorTag,
         cursedPairKey,
         floorArchetypeId,
         featuredObjectiveId,
@@ -1110,7 +2007,18 @@ export const buildBoard = (level: number, options: BuildBoardOptions = {}): Boar
         actFloorCount: actBiome?.actFloorCount ?? null,
         biomeTitle: actBiome?.biomeTitle ?? null,
         biomeTone: actBiome?.biomeTone ?? null,
-        routeWorldProfile
+        routeWorldProfile,
+        selectedGatewayRouteType: null,
+        dungeonKeysHeld: 0,
+        dungeonExitTileId: exitAdded?.exitTileId ?? null,
+        dungeonExitActivated: false,
+        dungeonExitLockKind: exitAdded?.lockKind ?? 'none',
+        dungeonExitRequiredLeverCount: exitAdded?.requiredLevers ?? 0,
+        dungeonLeverCount: 0,
+        dungeonShopTileId: shopAdded.shopTileId,
+        dungeonShopVisited: false,
+        dungeonBossId: dungeonBlueprint?.bossId ?? null,
+        dungeonObjectiveId: dungeonBlueprint?.objectiveId ?? 'find_exit'
     };
     if (!mutators.includes('shifting_spotlight')) {
         return { ...baseBoard, wardPairKey: null, bountyPairKey: null };
@@ -1132,13 +2040,17 @@ export const buildBoard = (level: number, options: BuildBoardOptions = {}): Boar
  * matched or removed and the decoy (if present) is still **hidden** (unflipped).
  */
 export const isBoardComplete = (board: BoardState): boolean =>
+    (board.dungeonExitTileId ? board.dungeonExitActivated === true : true) &&
     board.tiles.every((t) => {
+        if (isSingletonUtilityPairKey(t.pairKey) && t.pairKey !== DECOY_PAIR_KEY) {
+            return true;
+        }
         if (t.state === 'matched' || t.state === 'removed') {
             return true;
         }
         if (t.pairKey === DECOY_PAIR_KEY && t.state === 'hidden') {
             return board.tiles
-                .filter((x) => x.pairKey !== DECOY_PAIR_KEY)
+                .filter((x) => !isSingletonUtilityPairKey(x.pairKey))
                 .every((x) => x.state === 'matched' || x.state === 'removed');
         }
         return false;
@@ -1173,6 +2085,7 @@ export type BoardFairnessIssueCode =
     | 'matched_pairs_counter_mismatch'
     | 'board_tile_count_mismatch'
     | 'flipped_tile_reference_missing'
+    | 'exit_card_missing'
     | 'run_has_no_board'
     | 'run_terminal_incomplete_board'
     | 'run_resolving_without_flipped_tiles';
@@ -1224,12 +2137,13 @@ export const inspectBoardFairness = (board: BoardState): BoardFairnessReport => 
     const decoyTileIds = groups.get(DECOY_PAIR_KEY)?.map((tile) => tile.id) ?? [];
     const wildTiles = groups.get(WILD_PAIR_KEY) ?? [];
     const wildTileIds = wildTiles.map((tile) => tile.id);
+    const exitTiles = groups.get(EXIT_PAIR_KEY) ?? [];
 
     let structurallyClearable = true;
     let matchedOrRemovedRealPairs = 0;
 
     for (const [pairKey, tiles] of groups) {
-        if (pairKey === DECOY_PAIR_KEY || pairKey === WILD_PAIR_KEY) {
+        if (isSingletonUtilityPairKey(pairKey)) {
             continue;
         }
         realPairKeys.push(pairKey);
@@ -1265,16 +2179,20 @@ export const inspectBoardFairness = (board: BoardState): BoardFairnessReport => 
         }
     }
 
-    const nonDecoyTileCount = board.tiles.filter((tile) => tile.pairKey !== DECOY_PAIR_KEY).length;
-    const expectedNonDecoyTileCount = board.pairCount * 2 + wildTiles.length;
-    if (nonDecoyTileCount !== expectedNonDecoyTileCount) {
+    const nonUtilityTileCount = board.tiles.filter((tile) => !isSingletonUtilityPairKey(tile.pairKey)).length;
+    const expectedNonUtilityTileCount = board.pairCount * 2;
+    if (nonUtilityTileCount !== expectedNonUtilityTileCount) {
         structurallyClearable = false;
         issues.push({
             code: 'board_tile_count_mismatch',
-            message: `Board has ${nonDecoyTileCount} non-decoy tile(s), expected ${expectedNonDecoyTileCount} from pairCount and wild tiles.`
+            message: `Board has ${nonUtilityTileCount} non-utility tile(s), expected ${expectedNonUtilityTileCount} from pairCount.`
         });
     }
 
+    if (board.dungeonExitTileId && exitTiles.length === 0) {
+        structurallyClearable = false;
+        issues.push({ code: 'exit_card_missing', message: 'Board declares an exit tile, but no exit card exists.' });
+    }
     if (board.matchedPairs !== matchedOrRemovedRealPairs) {
         issues.push({
             code: 'matched_pairs_counter_mismatch',
@@ -1297,7 +2215,7 @@ export const inspectBoardFairness = (board: BoardState): BoardFairnessReport => 
 
     const actionableRealTileExists = actionableRealPairKeys.length > 0;
     const hiddenRealTileExists = board.tiles.some(
-        (tile) => tile.pairKey !== DECOY_PAIR_KEY && tile.pairKey !== WILD_PAIR_KEY && tile.state === 'hidden'
+        (tile) => !isSingletonUtilityPairKey(tile.pairKey) && tile.state === 'hidden'
     );
     for (const wild of wildTiles) {
         if (tileIsActionableForCompletion(wild) && !actionableRealTileExists && !hiddenRealTileExists) {
@@ -1840,7 +2758,8 @@ export const createNewRun = (bestScore: number, options: CreateRunOptions = {}):
             floorTag: initialFloorTag,
             floorArchetypeId: initialFloorArchetypeId,
             featuredObjectiveId: initialFeaturedObjectiveId,
-            cycleFloor: initialCycleFloor
+            cycleFloor: initialCycleFloor,
+            gameMode
         });
 
     const run: RunState = {
@@ -1925,7 +2844,14 @@ export const createNewRun = (bestScore: number, options: CreateRunOptions = {}):
         pinsPlacedCountThisRun: 0,
         findablesClaimedThisFloor: 0,
         findablesTotalThisFloor: countFindablePairs(board.tiles),
-        shiftingSpotlightNonce: 0
+        shiftingSpotlightNonce: 0,
+        dungeonEnemiesDefeated: 0,
+        dungeonTrapsTriggered: 0,
+        dungeonTreasuresOpened: 0,
+        dungeonGatewaysUsed: 0,
+        dungeonKeys: {},
+        dungeonMasterKeys: 0,
+        dungeonShopVisitedThisFloor: false
     };
 
     let runWithRelics = run;
@@ -2213,45 +3139,65 @@ export const flipTile = (run: RunState, tileId: string): RunState => {
         return runAfterFlashClear;
     }
 
-    const peekRevealedTileIds =
-        runAfterFlashClear.peekRevealedTileIds.length > 0 ? ([] as string[]) : runAfterFlashClear.peekRevealedTileIds;
+    if (tile.pairKey === EXIT_PAIR_KEY) {
+        return revealDungeonExit(runAfterFlashClear, tileId);
+    }
+    if (tile.pairKey === SHOP_PAIR_KEY) {
+        return revealDungeonShop(runAfterFlashClear, tileId);
+    }
+    if (tile.pairKey === ROOM_PAIR_KEY) {
+        return revealDungeonRoom(runAfterFlashClear, tileId);
+    }
 
-    const flippedTileIds = [...board.flippedTileIds, tileId];
-    const firstFlippedId = board.flippedTileIds[0] ?? null;
+    const runAfterDungeonReveal = revealDungeonCardPair(runAfterFlashClear, tile);
+    if (runAfterDungeonReveal.status === 'gameOver') {
+        return runAfterDungeonReveal;
+    }
+    const revealedBoard = runAfterDungeonReveal.board;
+    if (!revealedBoard) {
+        return runAfterDungeonReveal;
+    }
+
+    const peekRevealedTileIds =
+        runAfterDungeonReveal.peekRevealedTileIds.length > 0 ? ([] as string[]) : runAfterDungeonReveal.peekRevealedTileIds;
+
+    const flippedTileIds = [...revealedBoard.flippedTileIds, tileId];
+    const firstFlippedId = revealedBoard.flippedTileIds[0] ?? null;
     const firstFlippedTile = firstFlippedId
-        ? board.tiles.find((candidate) => candidate.id === firstFlippedId) ?? null
+        ? revealedBoard.tiles.find((candidate) => candidate.id === firstFlippedId) ?? null
         : null;
+    const revealedTile = revealedBoard.tiles.find((candidate) => candidate.id === tileId) ?? tile;
     const resolvesMatchImmediately =
         flippedTileIds.length === 2 &&
         firstFlippedTile !== null &&
-        tilesArePairMatch(firstFlippedTile, tile);
+        tilesArePairMatch(firstFlippedTile, revealedTile);
 
-    let resolveRemainingMs = run.timerState.resolveRemainingMs;
+    let resolveRemainingMs = runAfterDungeonReveal.timerState.resolveRemainingMs;
     if (flippedTileIds.length === 2) {
         resolveRemainingMs = resolvesMatchImmediately
             ? 0
-            : computeFlipResolveDelayMs(runAfterFlashClear, flippedTileIds, {
-                  resolveDelayMultiplier: runAfterFlashClear.resolveDelayMultiplier,
-                  echoFeedbackEnabled: runAfterFlashClear.echoFeedbackEnabled
+            : computeFlipResolveDelayMs(runAfterDungeonReveal, flippedTileIds, {
+                  resolveDelayMultiplier: runAfterDungeonReveal.resolveDelayMultiplier,
+                  echoFeedbackEnabled: runAfterDungeonReveal.echoFeedbackEnabled
               });
     } else if (flippedTileIds.length === 3) {
-        resolveRemainingMs = MATCH_DELAY_MS * runAfterFlashClear.resolveDelayMultiplier;
+        resolveRemainingMs = MATCH_DELAY_MS * runAfterDungeonReveal.resolveDelayMultiplier;
     }
 
     return {
-        ...runAfterFlashClear,
+        ...runAfterDungeonReveal,
         peekRevealedTileIds,
         status: flippedTileIds.length >= 2 ? 'resolving' : 'playing',
         board: {
-            ...board,
-            tiles: board.tiles.map((candidate) =>
+            ...revealedBoard,
+            tiles: revealedBoard.tiles.map((candidate) =>
                 candidate.id === tileId ? { ...candidate, state: 'flipped' } : candidate
             ),
             flippedTileIds
         },
-        flipHistory: [...runAfterFlashClear.flipHistory, tileId],
+        flipHistory: [...runAfterDungeonReveal.flipHistory, tileId],
         timerState: {
-            ...runAfterFlashClear.timerState,
+            ...runAfterDungeonReveal.timerState,
             resolveRemainingMs,
             pausedFromStatus: null
         }
@@ -2388,7 +3334,7 @@ const finalizeLevel = (run: RunState, board: BoardState): RunState => {
         favorBonusRelicPicksNextOffer: relicFavor.favorBonusRelicPicksNextOffer,
         relicFavorProgress: relicFavor.relicFavorProgress,
         shopGold: run.shopGold + getShopGoldRewardForFloor(board.level),
-        shopOffers: run.shopOffers.length > 0 ? run.shopOffers : createRunShopOffers(run),
+        shopOffers: run.shopOffers,
         parasiteFloors,
         featuredObjectiveStreak,
         endlessRiskWager: activeEndlessRiskWager ? null : run.endlessRiskWager,
@@ -2751,6 +3697,741 @@ const getRouteCardReward = (
     return emptyRouteCardReward();
 };
 
+interface DungeonMatchReward {
+    score: number;
+    shopGold: number;
+    guardTokens: number;
+    comboShards: number;
+    relicFavor: number;
+    keysHeldDelta: number;
+    keysSpent: number;
+    gatewayRouteType: RouteNodeType | null;
+    enemiesDefeated: number;
+    treasuresOpened: number;
+    gatewaysUsed: number;
+}
+
+const emptyDungeonMatchReward = (): DungeonMatchReward => ({
+    score: 0,
+    shopGold: 0,
+    guardTokens: 0,
+    comboShards: 0,
+    relicFavor: 0,
+    keysHeldDelta: 0,
+    keysSpent: 0,
+    gatewayRouteType: null,
+    enemiesDefeated: 0,
+    treasuresOpened: 0,
+    gatewaysUsed: 0
+});
+
+const getDungeonMatchReward = (run: RunState, first: Tile, second: Tile): DungeonMatchReward => {
+    const kind = first.dungeonCardKind ?? second.dungeonCardKind ?? null;
+    const effectId = first.dungeonCardEffectId ?? second.dungeonCardEffectId ?? null;
+    if (first.dungeonCardState === 'resolved' || second.dungeonCardState === 'resolved') {
+        return emptyDungeonMatchReward();
+    }
+    if (!kind || !effectId) {
+        return emptyDungeonMatchReward();
+    }
+    if (kind === 'gateway') {
+        const routeType = first.dungeonRouteType ?? second.dungeonRouteType ?? null;
+        return {
+            ...emptyDungeonMatchReward(),
+            gatewayRouteType: routeType,
+            gatewaysUsed: routeType && run.pendingRouteCardPlan == null ? 1 : 0
+        };
+    }
+    if (kind === 'enemy') {
+        const isBoss = first.dungeonBossId != null || second.dungeonBossId != null;
+        return {
+            ...emptyDungeonMatchReward(),
+            score: isBoss ? DUNGEON_BOSS_DEFEAT_SCORE : DUNGEON_ENEMY_DEFEAT_SCORE,
+            relicFavor: isBoss ? 1 : 0,
+            enemiesDefeated: 1
+        };
+    }
+    if (kind === 'treasure') {
+        if (effectId === 'treasure_cache') {
+            return {
+                ...emptyDungeonMatchReward(),
+                score: DUNGEON_TREASURE_CACHE_SCORE_REWARD,
+                shopGold: DUNGEON_TREASURE_CACHE_GOLD_REWARD,
+                treasuresOpened: 1
+            };
+        }
+        return {
+            ...emptyDungeonMatchReward(),
+            score: DUNGEON_TREASURE_SCORE_REWARD,
+            shopGold: DUNGEON_TREASURE_GOLD_REWARD,
+            treasuresOpened: 1
+        };
+    }
+    if (kind === 'shrine') {
+        return { ...emptyDungeonMatchReward(), guardTokens: 1, relicFavor: 1 };
+    }
+    if (kind === 'key') {
+        return { ...emptyDungeonMatchReward(), keysHeldDelta: 1, score: 10 };
+    }
+    if (kind === 'lever') {
+        return { ...emptyDungeonMatchReward(), score: effectId === 'rune_seal' ? 25 : 15 };
+    }
+    if (kind === 'trap') {
+        if (effectId === 'trap_mimic') {
+            return {
+                ...emptyDungeonMatchReward(),
+                score: DUNGEON_MIMIC_DISARM_SCORE_REWARD,
+                shopGold: DUNGEON_MIMIC_DISARM_GOLD_REWARD
+            };
+        }
+        return {
+            ...emptyDungeonMatchReward(),
+            score: DUNGEON_TRAP_DISARM_SCORE_REWARD,
+            shopGold: DUNGEON_TRAP_DISARM_GOLD_REWARD
+        };
+    }
+    if (kind === 'lock') {
+        const hasKey = (run.dungeonKeys.iron ?? 0) > 0 || run.dungeonMasterKeys > 0 || (run.board?.dungeonKeysHeld ?? 0) > 0;
+        return hasKey
+            ? {
+                  ...emptyDungeonMatchReward(),
+                  keysHeldDelta: -1,
+                  keysSpent: 1,
+                  shopGold: 3,
+                  score: DUNGEON_LOCK_SCORE_REWARD,
+                  treasuresOpened: 1
+              }
+            : { ...emptyDungeonMatchReward(), score: 5 };
+    }
+    return emptyDungeonMatchReward();
+};
+
+const addRunDungeonKey = (
+    keys: Partial<Record<DungeonKeyKind, number>>,
+    kind: DungeonKeyKind,
+    amount: number
+): Partial<Record<DungeonKeyKind, number>> => ({
+    ...keys,
+    [kind]: Math.max(0, (keys[kind] ?? 0) + amount)
+});
+
+export type DungeonExitActivationSpend = 'none' | 'key' | 'master_key';
+
+export interface DungeonExitStatus {
+    exitTile: Tile | null;
+    revealed: boolean;
+    lockKind: DungeonExitLockKind;
+    requiredLeverCount: number;
+    leverCount: number;
+    hasMatchingKey: boolean;
+    hasMasterKey: boolean;
+    canActivateWithoutSpend: boolean;
+    canActivateWithKey: boolean;
+    canActivateWithMasterKey: boolean;
+    canActivate: boolean;
+    lockedReason: string | null;
+    routeType: RouteNodeType | null;
+}
+
+export interface DungeonBoardStatus {
+    exitCount: number;
+    revealedExitCount: number;
+    armedTrapCount: number;
+    awakeEnemyCount: number;
+    hiddenDungeonCardCount: number;
+    leverCount: number;
+    requiredLeverCount: number;
+    keyCount: number;
+    shopAvailable: boolean;
+    roomAvailable: boolean;
+    bossId: BoardState['dungeonBossId'];
+    objectiveId: BoardState['dungeonObjectiveId'];
+    objectiveCompleted: boolean;
+    objectiveProgress: number;
+    objectiveRequired: number;
+    objectiveLabel: string;
+}
+
+export interface DungeonObjectiveStatus {
+    objectiveId: BoardState['dungeonObjectiveId'];
+    completed: boolean;
+    progress: number;
+    required: number;
+    label: string;
+    detail: string;
+}
+
+const getDungeonExitTile = (board: BoardState | null): Tile | null => {
+    const exits = board?.tiles.filter((tile) => tile.pairKey === EXIT_PAIR_KEY) ?? [];
+    return (
+        exits.find((tile) => tile.dungeonExitActivated) ??
+        exits.find((tile) => tile.state !== 'hidden') ??
+        exits[0] ??
+        null
+    );
+};
+
+export const getDungeonExitStatus = (run: RunState): DungeonExitStatus => {
+    const board = run.board;
+    const exitTile = getDungeonExitTile(board);
+    const lockKind = exitTile?.dungeonExitLockKind ?? board?.dungeonExitLockKind ?? 'none';
+    const requiredLeverCount = exitTile?.dungeonExitRequiredLeverCount ?? board?.dungeonExitRequiredLeverCount ?? 0;
+    const leverCount = board?.dungeonLeverCount ?? 0;
+    const hasMatchingKey = lockKind !== 'none' && lockKind !== 'lever' && (run.dungeonKeys[lockKind] ?? 0) > 0;
+    const hasMasterKey = run.dungeonMasterKeys > 0;
+    const revealed = Boolean(exitTile && exitTile.state !== 'hidden');
+    const leverSatisfied = lockKind !== 'lever' || leverCount >= requiredLeverCount;
+    const canActivateWithoutSpend = revealed && lockKind === 'none';
+    const canActivateWithKey = revealed && lockKind !== 'none' && lockKind !== 'lever' && hasMatchingKey;
+    const canActivateWithMasterKey = revealed && lockKind !== 'none' && lockKind !== 'lever' && hasMasterKey;
+    const canActivate =
+        canActivateWithoutSpend || (revealed && lockKind === 'lever' && leverSatisfied) || canActivateWithKey || canActivateWithMasterKey;
+    let lockedReason: string | null = null;
+    if (!exitTile) {
+        lockedReason = 'No exit is present on this floor.';
+    } else if (!revealed) {
+        lockedReason = 'Reveal the exit card first.';
+    } else if (lockKind === 'lever' && !leverSatisfied) {
+        lockedReason = `Find ${Math.max(requiredLeverCount - leverCount, 0)} more lever pair(s).`;
+    } else if (lockKind !== 'none' && lockKind !== 'lever' && !hasMatchingKey && !hasMasterKey) {
+        lockedReason = `Needs a ${lockKind} key or master key.`;
+    }
+    return {
+        exitTile,
+        revealed,
+        lockKind,
+        requiredLeverCount,
+        leverCount,
+        hasMatchingKey,
+        hasMasterKey,
+        canActivateWithoutSpend,
+        canActivateWithKey,
+        canActivateWithMasterKey,
+        canActivate,
+        lockedReason,
+        routeType: exitTile?.dungeonRouteType ?? null
+    };
+};
+
+const dungeonObjectiveLabel = (objectiveId: BoardState['dungeonObjectiveId']): string => {
+    if (objectiveId === 'open_bonus_exit') return 'Open a bonus exit';
+    if (objectiveId === 'disarm_traps') return 'Disarm the traps';
+    if (objectiveId === 'defeat_boss') return 'Defeat the boss';
+    if (objectiveId === 'loot_cache') return 'Loot a cache';
+    if (objectiveId === 'reveal_unknowns') return 'Reveal unknowns';
+    return 'Find the exit';
+};
+
+const countDungeonPairs = (tiles: readonly Tile[], predicate: (tile: Tile) => boolean): number =>
+    new Set(tiles.filter(predicate).map((tile) => tile.pairKey)).size;
+
+export const getDungeonObjectiveStatus = (run: RunState): DungeonObjectiveStatus => {
+    const board = run.board;
+    const objectiveId = board?.dungeonObjectiveId ?? 'find_exit';
+    const label = dungeonObjectiveLabel(objectiveId);
+    if (!board) {
+        return { objectiveId, completed: false, progress: 0, required: 1, label, detail: 'No active floor.' };
+    }
+
+    const exits = board.tiles.filter((tile) => tile.pairKey === EXIT_PAIR_KEY);
+    const revealedExitCount = exits.filter((tile) => tile.state !== 'hidden' || tile.dungeonExitActivated).length;
+    if (objectiveId === 'find_exit') {
+        const completed = revealedExitCount > 0 || board.dungeonExitActivated === true;
+        return {
+            objectiveId,
+            completed,
+            progress: completed ? 1 : 0,
+            required: 1,
+            label,
+            detail: completed ? 'Exit found.' : 'Reveal any exit card.'
+        };
+    }
+
+    if (objectiveId === 'open_bonus_exit') {
+        const primaryExitId = board.dungeonExitTileId ?? exits[0]?.id ?? null;
+        const bonusRevealed = exits.some(
+            (tile) => tile.id !== primaryExitId && (tile.state !== 'hidden' || tile.dungeonExitActivated)
+        );
+        return {
+            objectiveId,
+            completed: bonusRevealed,
+            progress: bonusRevealed ? 1 : 0,
+            required: 1,
+            label,
+            detail: bonusRevealed ? 'Bonus route found.' : 'Reveal a non-primary exit card.'
+        };
+    }
+
+    if (objectiveId === 'disarm_traps') {
+        const required = Math.max(1, countDungeonPairs(board.tiles, (tile) => tile.dungeonCardKind === 'trap'));
+        const progress = countDungeonPairs(
+            board.tiles,
+            (tile) =>
+                tile.dungeonCardKind === 'trap' &&
+                (tile.dungeonCardState === 'resolved' || tile.state === 'matched' || tile.state === 'removed')
+        );
+        return {
+            objectiveId,
+            completed: progress >= required,
+            progress: Math.min(progress, required),
+            required,
+            label,
+            detail: `${Math.min(progress, required)}/${required} trap pair(s) resolved.`
+        };
+    }
+
+    if (objectiveId === 'defeat_boss') {
+        const bossTiles = board.tiles.filter((tile) => tile.dungeonBossId != null);
+        const required = Math.max(1, ...bossTiles.map((tile) => tile.dungeonCardMaxHp ?? 1));
+        const activeHp = Math.max(0, ...bossTiles.map((tile) => tile.dungeonCardHp ?? 0));
+        const bossResolved =
+            bossTiles.length > 0 &&
+            bossTiles.every(
+                (tile) => tile.dungeonCardState === 'resolved' || tile.state === 'matched' || tile.state === 'removed'
+            );
+        const completed =
+            bossResolved || (bossTiles.length === 0 && board.dungeonBossId != null && run.dungeonEnemiesDefeated > 0);
+        const progress = completed ? required : Math.max(0, required - activeHp);
+        return {
+            objectiveId,
+            completed,
+            progress,
+            required,
+            label,
+            detail: completed ? 'Boss defeated.' : `${progress}/${required} boss damage.`
+        };
+    }
+
+    if (objectiveId === 'loot_cache') {
+        const resolvedPairs = countDungeonPairs(
+            board.tiles,
+            (tile) =>
+                (tile.dungeonCardKind === 'treasure' || tile.dungeonCardKind === 'lock') &&
+                (tile.dungeonCardState === 'resolved' || tile.state === 'matched')
+        );
+        const openedRooms = board.tiles.filter(
+            (tile) => tile.dungeonCardEffectId === 'room_locked_cache' && tile.dungeonRoomUsed === true
+        ).length;
+        const progress = Math.max(run.dungeonTreasuresOpened, resolvedPairs + openedRooms);
+        return {
+            objectiveId,
+            completed: progress >= 1,
+            progress: Math.min(progress, 1),
+            required: 1,
+            label,
+            detail: progress >= 1 ? 'Cache looted.' : 'Open a treasure, lock, or locked cache.'
+        };
+    }
+
+    const revealTargets = board.tiles.filter(
+        (tile) => tile.dungeonCardKind != null && tile.pairKey !== EXIT_PAIR_KEY && tile.dungeonCardState != null
+    );
+    const required = Math.max(1, Math.min(2, countDungeonPairs(revealTargets, () => true)));
+    const progress = Math.min(
+        required,
+        countDungeonPairs(revealTargets, (tile) => tile.dungeonCardState !== 'hidden' || tile.state !== 'hidden')
+    );
+    return {
+        objectiveId,
+        completed: progress >= required,
+        progress,
+        required,
+        label,
+        detail: `${progress}/${required} unknown card pair(s) revealed.`
+    };
+};
+
+export const getDungeonBoardStatus = (run: RunState): DungeonBoardStatus => {
+    const board = run.board;
+    const activeTiles =
+        board?.tiles.filter((tile) => tile.state !== 'matched' && tile.state !== 'removed' && tile.dungeonCardKind != null) ?? [];
+    const objective = getDungeonObjectiveStatus(run);
+    return {
+        exitCount: board?.tiles.filter((tile) => tile.pairKey === EXIT_PAIR_KEY).length ?? 0,
+        revealedExitCount: board?.tiles.filter((tile) => tile.pairKey === EXIT_PAIR_KEY && tile.state !== 'hidden').length ?? 0,
+        armedTrapCount: new Set(
+            activeTiles
+                .filter((tile) => tile.dungeonCardKind === 'trap' && tile.dungeonCardState === 'revealed')
+                .map((tile) => tile.pairKey)
+        ).size,
+        awakeEnemyCount: new Set(
+            activeTiles
+                .filter((tile) => tile.dungeonCardKind === 'enemy' && tile.dungeonCardState === 'revealed')
+                .map((tile) => tile.pairKey)
+        ).size,
+        hiddenDungeonCardCount: new Set(
+            activeTiles.filter((tile) => tile.dungeonCardState === 'hidden').map((tile) => tile.pairKey)
+        ).size,
+        leverCount: board?.dungeonLeverCount ?? 0,
+        requiredLeverCount: board?.dungeonExitRequiredLeverCount ?? 0,
+        keyCount: Object.values(run.dungeonKeys).reduce((sum, count) => sum + (count ?? 0), 0) + run.dungeonMasterKeys,
+        shopAvailable: Boolean(
+            board?.tiles.some((tile) => tile.pairKey === SHOP_PAIR_KEY && tile.dungeonCardState !== 'resolved')
+        ),
+        roomAvailable: Boolean(
+            board?.tiles.some((tile) => tile.pairKey === ROOM_PAIR_KEY && tile.dungeonCardState !== 'resolved')
+        ),
+        bossId: board?.dungeonBossId ?? null,
+        objectiveId: board?.dungeonObjectiveId ?? null,
+        objectiveCompleted: objective.completed,
+        objectiveProgress: objective.progress,
+        objectiveRequired: objective.required,
+        objectiveLabel: objective.label
+    };
+};
+
+export const getDungeonCardCopy = (tile: Tile): string => {
+    if (!tile.dungeonCardKind) {
+        return '';
+    }
+    if (tile.dungeonCardKind === 'exit') {
+        const lock =
+            tile.dungeonExitLockKind && tile.dungeonExitLockKind !== 'none'
+                ? ` Requires ${tile.dungeonExitLockKind === 'lever' ? `${tile.dungeonExitRequiredLeverCount ?? 1} lever(s)` : `${tile.dungeonExitLockKind} key`}.`
+                : ' Can be opened once revealed.';
+        const route = tile.dungeonRouteType ? ` Leads to a ${tile.dungeonRouteType} route.` : '';
+        return `Dungeon exit: ${tile.label}.${lock}${route}`;
+    }
+    if (tile.dungeonCardKind === 'trap' && tile.dungeonCardState === 'revealed') {
+        if (tile.dungeonCardEffectId === 'trap_alarm') {
+            return `Armed trap: ${tile.label}. Match its pair to disarm. Mismatches wake hidden enemies.`;
+        }
+        if (tile.dungeonCardEffectId === 'trap_mimic') {
+            return `Armed trap: ${tile.label}. Match its pair for loot. Mismatches cost life and gold.`;
+        }
+        return `Armed trap: ${tile.label}. Match its pair to disarm.`;
+    }
+    if (tile.dungeonCardKind === 'room') {
+        const blocked = tile.dungeonCardEffectId === 'room_locked_cache' && tile.dungeonCardState === 'revealed'
+            ? ' Can be reopened after finding a key.'
+            : '';
+        return `Dungeon room: ${tile.label}.${blocked}`;
+    }
+    if (tile.dungeonCardKind === 'shop') {
+        return `Dungeon shop: ${tile.label}. Opens the vendor and can be revisited on this floor.`;
+    }
+    if (tile.dungeonCardKind === 'key') {
+        return `Dungeon key: ${tile.label}. Matching it banks an iron key for locked cards or bonus exits.`;
+    }
+    if (tile.dungeonCardKind === 'lock') {
+        return `Dungeon lock: ${tile.label}. Spend a key to turn it into loot, or match it for a small consolation.`;
+    }
+    if (tile.dungeonCardKind === 'lever') {
+        return tile.dungeonCardEffectId === 'rune_seal'
+            ? `Dungeon lever: ${tile.label}. Matching it seals revealed traps.`
+            : `Dungeon lever: ${tile.label}. Matching it powers lever exits.`;
+    }
+    if (tile.dungeonCardKind === 'treasure') {
+        return `Dungeon treasure: ${tile.label}. Matching it pays gold and score.`;
+    }
+    if (tile.dungeonCardKind === 'shrine') {
+        return `Dungeon shrine: ${tile.label}. Matching it grants guard and Favor.`;
+    }
+    const hp = tile.dungeonCardKind === 'enemy' && tile.dungeonCardHp != null ? ` HP ${tile.dungeonCardHp}.` : '';
+    const boss = tile.dungeonBossId ? ' Boss pair.' : '';
+    const route = tile.dungeonRouteType ? ` Selects ${tile.dungeonRouteType} route.` : '';
+    return `Dungeon card: ${tile.label}.${boss}${hp}${route}`;
+};
+
+export const revealDungeonExit = (run: RunState, tileId: string): RunState => {
+    if (run.status !== 'playing' || !run.board) {
+        return run;
+    }
+    const tile = run.board.tiles.find((candidate) => candidate.id === tileId);
+    if (!tile || tile.pairKey !== EXIT_PAIR_KEY) {
+        return run;
+    }
+    return {
+        ...run,
+        board: {
+            ...run.board,
+            tiles: run.board.tiles.map((candidate) =>
+                candidate.id === tileId
+                    ? {
+                          ...candidate,
+                          state: candidate.state === 'hidden' ? 'flipped' : candidate.state,
+                          dungeonCardState: 'revealed'
+                      }
+                    : candidate
+            )
+        }
+    };
+};
+
+export const revealDungeonShop = (run: RunState, tileId: string): RunState => {
+    if (run.status !== 'playing' || !run.board) {
+        return run;
+    }
+    const tile = run.board.tiles.find((candidate) => candidate.id === tileId);
+    if (!tile || tile.pairKey !== SHOP_PAIR_KEY) {
+        return run;
+    }
+    const nextBoard: BoardState = {
+        ...run.board,
+        dungeonShopVisited: true,
+        tiles: run.board.tiles.map((candidate) =>
+            candidate.id === tileId
+                ? {
+                      ...candidate,
+                      state: candidate.state === 'hidden' ? 'flipped' : candidate.state,
+                      dungeonCardState: 'resolved' as const
+                  }
+                : candidate
+        )
+    };
+    const nextRun = {
+        ...run,
+        board: nextBoard,
+        dungeonShopVisitedThisFloor: true
+    };
+    return {
+        ...nextRun,
+        shopOffers: run.shopOffers.length > 0 ? run.shopOffers : createRunShopOffers(nextRun)
+    };
+};
+
+const scryDungeonCardTiles = (tiles: readonly Tile[], sourceTileId: string): Set<string> => {
+    const target = tiles.find(
+        (candidate) =>
+            candidate.id !== sourceTileId &&
+            candidate.state === 'hidden' &&
+            candidate.dungeonCardKind != null &&
+            candidate.dungeonCardState === 'hidden'
+    );
+    if (!target) {
+        return new Set();
+    }
+    if (isSingletonUtilityPairKey(target.pairKey)) {
+        return new Set([target.id]);
+    }
+    return new Set(
+        tiles
+            .filter(
+                (candidate) =>
+                    candidate.pairKey === target.pairKey &&
+                    candidate.dungeonCardKind === target.dungeonCardKind &&
+                    candidate.dungeonCardState === 'hidden'
+            )
+            .map((candidate) => candidate.id)
+    );
+};
+
+export const revealDungeonRoom = (run: RunState, tileId: string): RunState => {
+    if (run.status !== 'playing' || !run.board) {
+        return run;
+    }
+    const tile = run.board.tiles.find((candidate) => candidate.id === tileId);
+    if (!tile || tile.pairKey !== ROOM_PAIR_KEY || tile.dungeonCardKind !== 'room') {
+        return run;
+    }
+    const effectId = tile.dungeonCardEffectId;
+    const alreadyUsed = tile.dungeonRoomUsed === true;
+    let nextRun: RunState = run;
+    let markUsed = effectId !== 'room_forge';
+    let openedLockedCache = false;
+    const scryTileIds = effectId === 'room_scrying_lens' ? scryDungeonCardTiles(run.board.tiles, tileId) : new Set<string>();
+    if (alreadyUsed && effectId !== 'room_forge') {
+        markUsed = true;
+    } else if (effectId === 'room_campfire') {
+        nextRun =
+            run.lives < MAX_LIVES
+                ? { ...run, lives: Math.min(MAX_LIVES, run.lives + 1) }
+                : {
+                      ...run,
+                      stats: {
+                          ...run.stats,
+                          totalScore: run.stats.totalScore + 15,
+                          currentLevelScore: run.stats.currentLevelScore + 15
+                      }
+                  };
+    } else if (effectId === 'room_fountain') {
+        nextRun = {
+            ...run,
+            stats: { ...run.stats, guardTokens: Math.min(MAX_GUARD_TOKENS, run.stats.guardTokens + 1) }
+        };
+    } else if (effectId === 'room_map') {
+        nextRun = run;
+    } else if (effectId === 'room_forge') {
+        if (run.shopGold >= 2 && run.destroyPairCharges < MAX_DESTROY_PAIR_BANK) {
+            nextRun = {
+                ...run,
+                shopGold: run.shopGold - 2,
+                destroyPairCharges: Math.min(MAX_DESTROY_PAIR_BANK, run.destroyPairCharges + 1)
+            };
+        }
+        markUsed = false;
+    } else if (effectId === 'room_shrine') {
+        nextRun =
+            run.shopGold > 0
+                ? {
+                      ...run,
+                      shopGold: run.shopGold - 1,
+                      stats: {
+                          ...run.stats,
+                          guardTokens: Math.min(MAX_GUARD_TOKENS, run.stats.guardTokens + 1)
+                      }
+                  }
+                : {
+                      ...run,
+                      stats: {
+                          ...run.stats,
+                          totalScore: run.stats.totalScore + 10,
+                          currentLevelScore: run.stats.currentLevelScore + 10
+                      }
+                  };
+    } else if (effectId === 'room_scrying_lens') {
+        nextRun = run;
+    } else if (effectId === 'room_armory') {
+        nextRun =
+            run.destroyPairCharges < MAX_DESTROY_PAIR_BANK
+                ? {
+                      ...run,
+                      destroyPairCharges: Math.min(MAX_DESTROY_PAIR_BANK, run.destroyPairCharges + 1)
+                  }
+                : { ...run, shopGold: run.shopGold + 1 };
+    } else if (effectId === 'room_locked_cache') {
+        if ((run.dungeonKeys.iron ?? 0) > 0) {
+            openedLockedCache = true;
+            nextRun = {
+                ...run,
+                dungeonKeys: addRunDungeonKey(run.dungeonKeys, 'iron', -1),
+                shopGold: run.shopGold + DUNGEON_LOCKED_ROOM_CACHE_GOLD_REWARD,
+                stats: {
+                    ...run.stats,
+                    totalScore: run.stats.totalScore + DUNGEON_LOCKED_ROOM_CACHE_SCORE_REWARD,
+                    currentLevelScore: run.stats.currentLevelScore + DUNGEON_LOCKED_ROOM_CACHE_SCORE_REWARD
+                }
+            };
+        } else if (run.dungeonMasterKeys > 0) {
+            openedLockedCache = true;
+            nextRun = {
+                ...run,
+                dungeonMasterKeys: run.dungeonMasterKeys - 1,
+                shopGold: run.shopGold + DUNGEON_LOCKED_ROOM_CACHE_GOLD_REWARD,
+                stats: {
+                    ...run.stats,
+                    totalScore: run.stats.totalScore + DUNGEON_LOCKED_ROOM_CACHE_SCORE_REWARD,
+                    currentLevelScore: run.stats.currentLevelScore + DUNGEON_LOCKED_ROOM_CACHE_SCORE_REWARD
+                }
+            };
+        }
+        markUsed = openedLockedCache;
+    }
+    const board = nextRun.board ?? run.board;
+    return {
+        ...nextRun,
+        board: {
+            ...board,
+            tiles: board.tiles.map((candidate) => {
+                if (candidate.id === tileId) {
+                    return {
+                        ...candidate,
+                        state: candidate.state === 'hidden' ? ('flipped' as const) : candidate.state,
+                        dungeonCardState: markUsed ? ('resolved' as const) : ('revealed' as const),
+                        dungeonRoomUsed: markUsed ? true : candidate.dungeonRoomUsed
+                    };
+                }
+                if (effectId === 'room_map' && candidate.state === 'hidden' && isSingletonUtilityPairKey(candidate.pairKey)) {
+                    return { ...candidate, dungeonCardState: 'revealed' as const };
+                }
+                if (scryTileIds.has(candidate.id)) {
+                    return { ...candidate, dungeonCardState: 'revealed' as const };
+                }
+                return candidate;
+            })
+        }
+    };
+};
+
+const sealBoardForDungeonExit = (board: BoardState): BoardState => {
+    const realPairKeys = new Set(
+        board.tiles
+            .map((tile) => tile.pairKey)
+            .filter((pairKey) => !isSingletonUtilityPairKey(pairKey))
+    );
+    return {
+        ...board,
+        matchedPairs: realPairKeys.size,
+        flippedTileIds: [],
+        dungeonExitActivated: true,
+        tiles: board.tiles.map((tile) => {
+            if (tile.pairKey === EXIT_PAIR_KEY) {
+                return {
+                    ...tile,
+                    state: 'matched' as const,
+                    dungeonCardState: 'resolved' as const,
+                    dungeonExitActivated: true
+                };
+            }
+            if (isSingletonUtilityPairKey(tile.pairKey)) {
+                return tile.state === 'flipped' ? { ...tile, state: 'hidden' as const } : tile;
+            }
+            return tile.state === 'matched' || tile.state === 'removed'
+                ? tile
+                : clearDungeonCardFields({ ...tile, state: 'removed' as const });
+        })
+    };
+};
+
+export const activateDungeonExit = (
+    run: RunState,
+    spend: DungeonExitActivationSpend = 'none'
+): RunState => {
+    if (run.status !== 'playing' || !run.board) {
+        return run;
+    }
+    const status = getDungeonExitStatus(run);
+    if (!status.exitTile || !status.revealed) {
+        return run;
+    }
+    const lockKind = status.lockKind;
+    const spendsKey = spend === 'key' && lockKind !== 'none' && lockKind !== 'lever' && status.canActivateWithKey;
+    const spendsMaster = spend === 'master_key' && lockKind !== 'none' && lockKind !== 'lever' && status.canActivateWithMasterKey;
+    const canOpen =
+        status.canActivateWithoutSpend ||
+        (lockKind === 'lever' && status.canActivate) ||
+        spendsKey ||
+        spendsMaster;
+    if (!canOpen) {
+        return run;
+    }
+    const nextKeys = spendsKey ? addRunDungeonKey(run.dungeonKeys, lockKind as DungeonKeyKind, -1) : run.dungeonKeys;
+    const objective = getDungeonObjectiveStatus(run);
+    const dungeonObjectiveRewarded = objective.completed && objective.objectiveId !== 'find_exit';
+    const dungeonObjectiveFavor = gainRelicFavor(
+        run,
+        dungeonObjectiveRewarded ? DUNGEON_OBJECTIVE_FAVOR_REWARD : 0
+    );
+    const openedBoard = sealBoardForDungeonExit(run.board);
+    const routeType = status.routeType;
+    const nextRun: RunState = {
+        ...run,
+        dungeonKeys: nextKeys,
+        dungeonMasterKeys: spendsMaster ? Math.max(0, run.dungeonMasterKeys - 1) : run.dungeonMasterKeys,
+        dungeonGatewaysUsed: run.dungeonGatewaysUsed + 1,
+        pendingRouteCardPlan:
+            run.pendingRouteCardPlan == null && routeType
+                ? createRouteCardPlanForRoute(
+                      run,
+                      routeType,
+                      `exit:${run.runRulesVersion}:${run.runSeed}:${run.board.level}:${routeType}`
+                  )
+                : run.pendingRouteCardPlan,
+        stats: dungeonObjectiveRewarded
+            ? {
+                  ...run.stats,
+                  totalScore: run.stats.totalScore + DUNGEON_OBJECTIVE_SCORE_REWARD,
+                  currentLevelScore: run.stats.currentLevelScore + DUNGEON_OBJECTIVE_SCORE_REWARD
+              }
+            : run.stats,
+        bonusRelicPicksNextOffer: dungeonObjectiveFavor.bonusRelicPicksNextOffer,
+        favorBonusRelicPicksNextOffer: dungeonObjectiveFavor.favorBonusRelicPicksNextOffer,
+        relicFavorProgress: dungeonObjectiveFavor.relicFavorProgress,
+        board: openedBoard
+    };
+    return finalizeLevel(nextRun, openedBoard);
+};
+
 const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState => {
     if (!run.board || run.board.flippedTileIds.length !== 3) {
         return run;
@@ -2789,46 +4470,60 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
             null;
         const matchedPairKey = isWildPairKey(tileMatchA.pairKey) ? tileMatchB.pairKey : tileMatchA.pairKey;
         const routeCardReward = getRouteCardReward(run, run.board.level, matchedPairKey, claimedRouteCardKind);
+        const dungeonReward = getDungeonMatchReward(run, tileMatchA, tileMatchB);
+        const matchedDungeonKind = tileMatchA.dungeonCardKind ?? tileMatchB.dungeonCardKind ?? null;
+        const matchedDungeonKeyKind = tileMatchA.dungeonKeyKind ?? tileMatchB.dungeonKeyKind ?? 'iron';
         const findableScoreBonus =
             claimedFindableKind != null ? FINDABLE_MATCH_SCORE[claimedFindableKind] : 0;
         const findableComboShardGain =
             claimedFindableKind != null ? FINDABLE_MATCH_COMBO_SHARDS[claimedFindableKind] : 0;
         const findablesClaimedDelta = claimedFindableKind != null ? 1 : 0;
 
-        const board: BoardState = {
+        const boardBeforeEnemyDamage: BoardState = {
             ...run.board,
             flippedTileIds: [],
             matchedPairs: run.board.matchedPairs + 1,
             tiles: run.board.tiles.map((tile) => {
                 if (tile.id === matchA || tile.id === matchB) {
-                    return {
+                    return clearDungeonCardFields({
                         ...tile,
                         state: 'matched' as const,
                         findableKind: undefined,
                         routeCardKind: undefined,
                         routeSpecialKind: undefined,
                         routeSpecialRevealed: undefined
-                    };
+                    });
                 }
                 if (tile.id === thirdId) {
                     return { ...tile, state: 'hidden' as const };
                 }
                 return tile;
-            })
+            }),
+            selectedGatewayRouteType:
+                run.board.selectedGatewayRouteType ?? dungeonReward.gatewayRouteType ?? null,
+            dungeonKeysHeld: Math.max(0, (run.board.dungeonKeysHeld ?? 0) + dungeonReward.keysHeldDelta),
+            dungeonLeverCount:
+                (run.board.dungeonLeverCount ?? 0) + (matchedDungeonKind === 'lever' ? 1 : 0)
         };
+        const dungeonEffectBoard =
+            matchedDungeonKind === 'lever' && (tileMatchA.dungeonCardEffectId ?? tileMatchB.dungeonCardEffectId) === 'rune_seal'
+                ? resolveOneArmedTrapPair(boardBeforeEnemyDamage)
+                : boardBeforeEnemyDamage;
+        const enemyDamage = damageFirstActiveDungeonEnemy(dungeonEffectBoard, 1);
+        const board = enemyDamage.board;
         const currentStreak = run.stats.currentStreak + 1;
         const meditation = run.gameMode === 'meditation';
         const guardTokenGain =
             meditation || currentStreak % COMBO_GUARD_STREAK_STEP !== 0 ? 0 : 1;
         const guardTokens = Math.min(
             MAX_GUARD_TOKENS,
-            run.stats.guardTokens + guardTokenGain + routeCardReward.guardTokens
+            run.stats.guardTokens + guardTokenGain + routeCardReward.guardTokens + dungeonReward.guardTokens
         );
         const comboShardReward = meditation
             ? applyComboShardGain(
                   run.stats.comboShards,
                   run.lives,
-                  findableComboShardGain + routeCardReward.comboShards,
+                  findableComboShardGain + routeCardReward.comboShards + dungeonReward.comboShards,
                   false
               )
             : applyComboShardGain(
@@ -2836,7 +4531,8 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
                   run.lives,
                   (currentStreak % COMBO_SHARD_STREAK_STEP === 0 ? 1 : 0) +
                       findableComboShardGain +
-                      routeCardReward.comboShards
+                      routeCardReward.comboShards +
+                      dungeonReward.comboShards
               );
         const chainHealLifeGain =
             meditation || currentStreak % CHAIN_HEAL_STREAK_STEP !== 0 ? 0 : 1;
@@ -2854,13 +4550,15 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
                 encoreBonus +
                 findableScoreBonus +
                 routeCardReward.score +
+                dungeonReward.score +
+                enemyDamage.score +
                 spotlightDelta -
                 presentationPenalty
         );
         const totalScore = run.stats.totalScore + matchScore;
         const currentLevelScore = run.stats.currentLevelScore + matchScore;
         const bestScore = Math.max(run.stats.bestScore, totalScore);
-        const routeFavor = gainRelicFavor(run, routeCardReward.relicFavor);
+        const routeFavor = gainRelicFavor(run, routeCardReward.relicFavor + dungeonReward.relicFavor);
         const nBackMatchCounter = run.nBackMatchCounter + 1;
         const nBackAnchorPairKey =
             hasMutator(run, 'n_back_anchor') && nBackMatchCounter % 2 === 0 ? encoreKey : run.nBackAnchorPairKey;
@@ -2881,13 +4579,25 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
             board: spunG.board,
             shiftingSpotlightNonce: spunG.shiftingSpotlightNonce,
             wildMatchesRemaining,
-            shopGold: run.shopGold + routeCardReward.shopGold,
+            shopGold: run.shopGold + routeCardReward.shopGold + dungeonReward.shopGold,
+            dungeonKeys:
+                matchedDungeonKind === 'key'
+                    ? addRunDungeonKey(run.dungeonKeys, matchedDungeonKeyKind, 1)
+                    : run.dungeonKeys,
             bonusRelicPicksNextOffer: routeFavor.bonusRelicPicksNextOffer,
             favorBonusRelicPicksNextOffer: routeFavor.favorBonusRelicPicksNextOffer,
             relicFavorProgress: routeFavor.relicFavorProgress,
             nBackMatchCounter,
             nBackAnchorPairKey,
             matchedPairKeysThisRun: [...run.matchedPairKeysThisRun, encoreKey],
+            pendingRouteCardPlan:
+                run.pendingRouteCardPlan == null && dungeonReward.gatewayRouteType
+                    ? createRouteCardPlanForRoute(
+                          run,
+                          dungeonReward.gatewayRouteType,
+                          `gateway:${run.runRulesVersion}:${run.runSeed}:${run.board.level}:${dungeonReward.gatewayRouteType}`
+                      )
+                    : run.pendingRouteCardPlan,
             pinnedTileIds: run.pinnedTileIds.filter((id) => id !== matchA && id !== matchB),
             stickyBlockIndex: hasMutator(run, 'sticky_fingers')
                 ? run.board.tiles.findIndex((t) => t.id === matchA)
@@ -2895,6 +4605,10 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
             cursedMatchedEarlyThisFloor: run.cursedMatchedEarlyThisFloor || cursedEarlyG,
             matchResolutionsThisFloor: run.matchResolutionsThisFloor + 1,
             findablesClaimedThisFloor: run.findablesClaimedThisFloor + findablesClaimedDelta,
+            dungeonEnemiesDefeated:
+                run.dungeonEnemiesDefeated + dungeonReward.enemiesDefeated + enemyDamage.defeated,
+            dungeonTreasuresOpened: run.dungeonTreasuresOpened + dungeonReward.treasuresOpened,
+            dungeonGatewaysUsed: run.dungeonGatewaysUsed + dungeonReward.gatewaysUsed,
             stats: {
                 ...run.stats,
                 totalScore,
@@ -2934,27 +4648,44 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
     const gambitDecoy =
         ta.pairKey === DECOY_PAIR_KEY || tb.pairKey === DECOY_PAIR_KEY || tc.pairKey === DECOY_PAIR_KEY;
 
-    const spunGambitMiss = withRotatedShiftingSpotlight(run, board);
+    const trapSpring = springArmedDungeonTraps(
+        { ...run, lives: Math.max(lives, 0), stats: { ...run.stats, guardTokens } },
+        board,
+        [ta, tb, tc]
+            .filter((tile) => tile.dungeonCardKind === 'trap' && tile.dungeonCardState === 'revealed')
+            .map((tile) => tile.pairKey)
+    );
+    lives = trapSpring.run.lives;
+    const enemyAttack = applyDungeonEnemyAttack(
+        lives,
+        trapSpring.run.stats.guardTokens,
+        trapSpring.alarmTriggered ? board : trapSpring.board
+    );
+    lives = enemyAttack.lives;
+    const statusAfterEnemy: RunStatus = lives <= 0 || contractFail || trapSpring.run.status === 'gameOver' ? 'gameOver' : status;
+    const spunGambitMiss = withRotatedShiftingSpotlight(run, trapSpring.board);
 
     return {
         ...run,
         gambitThirdFlipUsed: true,
         gambitAvailableThisFloor: false,
         powersUsedThisRun: true,
-        status,
+        status: statusAfterEnemy,
         lives: Math.max(lives, 0),
+        shopGold: trapSpring.run.shopGold,
+        dungeonTrapsTriggered: trapSpring.run.dungeonTrapsTriggered,
         board: spunGambitMiss.board,
         shiftingSpotlightNonce: spunGambitMiss.shiftingSpotlightNonce,
         stickyBlockIndex: null,
         decoyFlippedThisFloor: run.decoyFlippedThisFloor || gambitDecoy,
         stats: {
-            ...run.stats,
+            ...trapSpring.run.stats,
             tries,
-            mismatches: run.stats.mismatches + 1,
+            mismatches: trapSpring.run.stats.mismatches + 1,
             currentStreak: Math.floor(run.stats.currentStreak / 2),
             rating: calculateRating(tries),
-            highestLevel: Math.max(run.stats.highestLevel, board.level),
-            guardTokens
+            highestLevel: Math.max(run.stats.highestLevel, trapSpring.board.level),
+            guardTokens: enemyAttack.guardTokens
         },
         timerState: clearResolveState(run)
     };
@@ -2985,36 +4716,50 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
             null;
         const matchedPairKey = isWildPairKey(firstTile.pairKey) ? secondTile.pairKey : firstTile.pairKey;
         const routeCardReward = getRouteCardReward(run, run.board.level, matchedPairKey, claimedRouteCardKind);
+        const dungeonReward = getDungeonMatchReward(run, firstTile, secondTile);
+        const matchedDungeonKind = firstTile.dungeonCardKind ?? secondTile.dungeonCardKind ?? null;
+        const matchedDungeonKeyKind = firstTile.dungeonKeyKind ?? secondTile.dungeonKeyKind ?? 'iron';
         const findableScoreBonus =
             claimedFindableKind != null ? FINDABLE_MATCH_SCORE[claimedFindableKind] : 0;
         const findableComboShardGain =
             claimedFindableKind != null ? FINDABLE_MATCH_COMBO_SHARDS[claimedFindableKind] : 0;
         const findablesClaimedDelta = claimedFindableKind != null ? 1 : 0;
 
-        const board: BoardState = {
+        const boardBeforeEnemyDamage: BoardState = {
             ...run.board,
             flippedTileIds: [],
             matchedPairs: run.board.matchedPairs + 1,
             tiles: run.board.tiles.map((tile) =>
                 tile.id === firstId || tile.id === secondId
-                    ? {
+                    ? clearDungeonCardFields({
                           ...tile,
                           state: 'matched',
                           findableKind: undefined,
                           routeCardKind: undefined,
                           routeSpecialKind: undefined,
                           routeSpecialRevealed: undefined
-                      }
+                      })
                     : tile
-            )
+            ),
+            selectedGatewayRouteType:
+                run.board.selectedGatewayRouteType ?? dungeonReward.gatewayRouteType ?? null,
+            dungeonKeysHeld: Math.max(0, (run.board.dungeonKeysHeld ?? 0) + dungeonReward.keysHeldDelta),
+            dungeonLeverCount:
+                (run.board.dungeonLeverCount ?? 0) + (matchedDungeonKind === 'lever' ? 1 : 0)
         };
+        const dungeonEffectBoard =
+            matchedDungeonKind === 'lever' && (firstTile.dungeonCardEffectId ?? secondTile.dungeonCardEffectId) === 'rune_seal'
+                ? resolveOneArmedTrapPair(boardBeforeEnemyDamage)
+                : boardBeforeEnemyDamage;
+        const enemyDamage = damageFirstActiveDungeonEnemy(dungeonEffectBoard, 1);
+        const board = enemyDamage.board;
         const currentStreak = run.stats.currentStreak + 1;
         const meditation = run.gameMode === 'meditation';
         const guardTokenGain =
             meditation || currentStreak % COMBO_GUARD_STREAK_STEP !== 0 ? 0 : 1;
         const guardTokens = Math.min(
             MAX_GUARD_TOKENS,
-            run.stats.guardTokens + guardTokenGain + routeCardReward.guardTokens
+            run.stats.guardTokens + guardTokenGain + routeCardReward.guardTokens + dungeonReward.guardTokens
         );
         const comboShardReward = meditation
             ? applyComboShardGain(
@@ -3028,7 +4773,8 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
                   run.lives,
                   (currentStreak % COMBO_SHARD_STREAK_STEP === 0 ? 1 : 0) +
                       findableComboShardGain +
-                      routeCardReward.comboShards
+                      routeCardReward.comboShards +
+                      dungeonReward.comboShards
               );
         const chainHealLifeGain =
             meditation || currentStreak % CHAIN_HEAL_STREAK_STEP !== 0 ? 0 : 1;
@@ -3046,13 +4792,15 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
                 encoreBonus +
                 findableScoreBonus +
                 routeCardReward.score +
+                dungeonReward.score +
+                enemyDamage.score +
                 spotlightDelta -
                 presentationPenalty
         );
         const totalScore = run.stats.totalScore + matchScore;
         const currentLevelScore = run.stats.currentLevelScore + matchScore;
         const bestScore = Math.max(run.stats.bestScore, totalScore);
-        const routeFavor = gainRelicFavor(run, routeCardReward.relicFavor);
+        const routeFavor = gainRelicFavor(run, routeCardReward.relicFavor + dungeonReward.relicFavor);
 
         const matchedPinsFiltered = run.pinnedTileIds.filter((id) => id !== firstId && id !== secondId);
 
@@ -3073,18 +4821,34 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
             shiftingSpotlightNonce: spun.shiftingSpotlightNonce,
             powersUsedThisRun: usedWild ? true : run.powersUsedThisRun,
             wildMatchesRemaining,
-            shopGold: run.shopGold + routeCardReward.shopGold,
+            shopGold: run.shopGold + routeCardReward.shopGold + dungeonReward.shopGold,
+            dungeonKeys:
+                matchedDungeonKind === 'key'
+                    ? addRunDungeonKey(run.dungeonKeys, matchedDungeonKeyKind, 1)
+                    : run.dungeonKeys,
             bonusRelicPicksNextOffer: routeFavor.bonusRelicPicksNextOffer,
             favorBonusRelicPicksNextOffer: routeFavor.favorBonusRelicPicksNextOffer,
             relicFavorProgress: routeFavor.relicFavorProgress,
             nBackMatchCounter,
             nBackAnchorPairKey,
             matchedPairKeysThisRun: [...run.matchedPairKeysThisRun, encoreKey],
+            pendingRouteCardPlan:
+                run.pendingRouteCardPlan == null && dungeonReward.gatewayRouteType
+                    ? createRouteCardPlanForRoute(
+                          run,
+                          dungeonReward.gatewayRouteType,
+                          `gateway:${run.runRulesVersion}:${run.runSeed}:${run.board.level}:${dungeonReward.gatewayRouteType}`
+                      )
+                    : run.pendingRouteCardPlan,
             pinnedTileIds: matchedPinsFiltered,
             stickyBlockIndex: hasMutator(run, 'sticky_fingers') ? firstFlippedIdx : null,
             cursedMatchedEarlyThisFloor: run.cursedMatchedEarlyThisFloor || cursedEarly,
             matchResolutionsThisFloor: run.matchResolutionsThisFloor + 1,
             findablesClaimedThisFloor: run.findablesClaimedThisFloor + findablesClaimedDelta,
+            dungeonEnemiesDefeated:
+                run.dungeonEnemiesDefeated + dungeonReward.enemiesDefeated + enemyDamage.defeated,
+            dungeonTreasuresOpened: run.dungeonTreasuresOpened + dungeonReward.treasuresOpened,
+            dungeonGatewaysUsed: run.dungeonGatewaysUsed + dungeonReward.gatewaysUsed,
             stats: {
                 ...run.stats,
                 totalScore,
@@ -3133,25 +4897,42 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
     const decoyTouch =
         firstTile.pairKey === DECOY_PAIR_KEY || secondTile.pairKey === DECOY_PAIR_KEY;
 
-    const spunMiss = withRotatedShiftingSpotlight(run, board);
+    const trapSpring = springArmedDungeonTraps(
+        { ...run, lives: Math.max(lives, 0), stats: { ...run.stats, guardTokens } },
+        board,
+        [firstTile, secondTile]
+            .filter((tile) => tile.dungeonCardKind === 'trap' && tile.dungeonCardState === 'revealed')
+            .map((tile) => tile.pairKey)
+    );
+    lives = trapSpring.run.lives;
+    const enemyAttack = applyDungeonEnemyAttack(
+        lives,
+        trapSpring.run.stats.guardTokens,
+        trapSpring.alarmTriggered ? board : trapSpring.board
+    );
+    lives = enemyAttack.lives;
+    const statusAfterEnemy: RunStatus = lives <= 0 || contractFail || trapSpring.run.status === 'gameOver' ? 'gameOver' : status;
+    const spunMiss = withRotatedShiftingSpotlight(run, trapSpring.board);
 
     return {
         ...run,
-        status,
+        status: statusAfterEnemy,
         lives: Math.max(lives, 0),
+        shopGold: trapSpring.run.shopGold,
+        dungeonTrapsTriggered: trapSpring.run.dungeonTrapsTriggered,
         board: spunMiss.board,
         shiftingSpotlightNonce: spunMiss.shiftingSpotlightNonce,
         pendingMemorizeBonusMs,
         stickyBlockIndex: null,
         decoyFlippedThisFloor: run.decoyFlippedThisFloor || decoyTouch,
         stats: {
-            ...run.stats,
+            ...trapSpring.run.stats,
             tries,
-            mismatches: run.stats.mismatches + 1,
+            mismatches: trapSpring.run.stats.mismatches + 1,
             currentStreak: Math.floor(run.stats.currentStreak / 2),
             rating: calculateRating(tries),
-            highestLevel: Math.max(run.stats.highestLevel, board.level),
-            guardTokens
+            highestLevel: Math.max(run.stats.highestLevel, trapSpring.board.level),
+            guardTokens: enemyAttack.guardTokens
         },
         timerState: clearResolveState(run)
     };
@@ -3276,7 +5057,8 @@ export const advanceToNextLevel = (run: RunState): RunState => {
         floorArchetypeId: nextFloorArchetypeId,
         featuredObjectiveId: nextFeaturedObjectiveId,
         cycleFloor: nextCycleFloor,
-        routeCardPlan: run.pendingRouteCardPlan
+        routeCardPlan: run.pendingRouteCardPlan,
+        gameMode: run.gameMode
     });
     const runForNextMemorize: RunState = { ...run, activeMutators: nextActiveMutators };
     const baseMemorizeMs = getMemorizeDurationForRun(runForNextMemorize, nextBoard.level);
@@ -3319,6 +5101,7 @@ export const advanceToNextLevel = (run: RunState): RunState => {
         regionShuffleCharges: INITIAL_REGION_SHUFFLE_CHARGES,
         shopOffers: [],
         shopRerolls: 0,
+        dungeonShopVisitedThisFloor: false,
         wildTileId: getWildTileIdFromBoard(nextBoard),
         timerState: createTimerState({ memorizeRemainingMs: status === 'memorize' ? memorizeWithBonus : null }),
         lastLevelResult: null,

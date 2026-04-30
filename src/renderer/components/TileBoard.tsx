@@ -16,6 +16,7 @@ import {
 import { flushSync } from 'react-dom';
 import type { BoardScreenSpaceAA, BoardState, GraphicsQualityPreset, RunStatus, Tile } from '../../shared/contracts';
 import { getFindableRewardText } from '../../shared/findables';
+import { getDungeonCardCopy } from '../../shared/game';
 import { routeSpecialLabel, routeSpecialRewardLine } from '../../shared/route-world';
 import { resolveAdaptiveBoardRenderQuality } from '../../shared/graphicsQuality';
 import { isNarrowShortLandscapeForMenuStack, VIEWPORT_MOBILE_MAX } from '../breakpoints';
@@ -179,6 +180,11 @@ const getTilePosition = (index: number, columns: number): { row: number; column:
     column: (index % columns) + 1
 });
 
+const getDungeonCardText = (tile: Tile): string => {
+    const copy = getDungeonCardCopy(tile);
+    return copy ? ` ${copy}` : '';
+};
+
 const getTileAriaLabel = (tile: Tile, faceUp: boolean, row: number, column: number): string => {
     const base = faceUp
         ? tile.pairKey === DECOY_PAIR_KEY
@@ -205,7 +211,10 @@ const getTileAriaLabel = (tile: Tile, faceUp: boolean, row: number, column: numb
                       : ''
               }`
             : '';
-    return `${base}${findableNote}${routeNote}`;
+    const dungeonNote = faceUp || tile.dungeonCardState === 'revealed' || tile.dungeonCardState === 'resolved'
+        ? getDungeonCardText(tile)
+        : '';
+    return `${base}${findableNote}${routeNote}${dungeonNote}`;
 };
 
 const getTouchCentroid = (first: TouchPoint, second: TouchPoint): TouchPoint => ({

@@ -1367,7 +1367,7 @@ const drawCardBase = (
 };
 
 const buildKey = (tile: Tile, face: TileFace, variant: FaceVariant, layer: TileLayer): string =>
-    `${TILE_TEXTURE_VERSION}:${layer}:${variant}:${face}:${tile.id}:${tile.pairKey}:${tile.symbol}:${tile.label}:route=${tile.routeCardKind ?? 'none'}:special=${tile.routeSpecialKind ?? 'none'}:revealed=${tile.routeSpecialRevealed ? '1' : '0'}`;
+    `${TILE_TEXTURE_VERSION}:${layer}:${variant}:${face}:${tile.id}:${tile.pairKey}:${tile.symbol}:${tile.label}:route=${tile.routeCardKind ?? 'none'}:special=${tile.routeSpecialKind ?? 'none'}:revealed=${tile.routeSpecialRevealed ? '1' : '0'}:dungeon=${tile.dungeonCardKind ?? 'none'}:${tile.dungeonCardState ?? 'none'}:${tile.dungeonCardEffectId ?? 'none'}:${tile.dungeonCardHp ?? 'x'}`;
 
 export const getTileFaceOverlayTextureCacheKey = (
     tile: Tile,

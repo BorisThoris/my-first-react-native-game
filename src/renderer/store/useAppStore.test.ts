@@ -523,7 +523,12 @@ describe('useAppStore timers', () => {
 
             const pairGroups = new Map<string, string[]>();
             for (const tile of run!.board!.tiles) {
-                if (tile.pairKey === '__decoy__' || tile.pairKey === '__wild__') {
+                if (
+                    tile.pairKey === '__decoy__' ||
+                    tile.pairKey === '__wild__' ||
+                    tile.pairKey === '__exit__' ||
+                    tile.pairKey === '__shop__'
+                ) {
                     continue;
                 }
                 const ids = pairGroups.get(tile.pairKey) ?? [];
@@ -534,6 +539,13 @@ describe('useAppStore timers', () => {
             for (const ids of [...pairGroups.values()].filter((group) => group.length === 2)) {
                 useAppStore.getState().pressTile(ids[0]!);
                 useAppStore.getState().pressTile(ids[1]!);
+            }
+
+            run = useAppStore.getState().run;
+            const exitTile = run?.board?.tiles.find((tile) => tile.pairKey === '__exit__');
+            if (exitTile && run?.status === 'playing') {
+                useAppStore.getState().pressTile(exitTile.id);
+                useAppStore.getState().activateDungeonExitFromPrompt('none');
             }
 
             run = useAppStore.getState().run;

@@ -18,6 +18,8 @@ import {
     canShuffleBoard,
     collectDestroyEligibleTileIds,
     collectPeekEligibleTileIds,
+    getDungeonBoardStatus,
+    getDungeonExitStatus,
     tileIsStrayEligiblePreview
 } from '../../shared/game';
 import { useNotificationStore } from '@cross-repo-libs/notifications';
@@ -133,30 +135,6 @@ const routeTypeLabel = (routeType: NonNullable<RunState['pendingRouteCardPlan']>
     }
 };
 
-const routeCardLabel = (kind: RouteCardKind): string => {
-    switch (kind) {
-        case 'safe_ward':
-            return 'Safe Ward';
-        case 'greed_cache':
-            return 'Greed Cache';
-        case 'mystery_veil':
-        default:
-            return 'Mystery Veil';
-    }
-};
-
-const routeCardRewardLine = (kind: RouteCardKind): string => {
-    switch (kind) {
-        case 'safe_ward':
-            return 'Match the Safe Ward pair for +1 guard token.';
-        case 'greed_cache':
-            return 'Match the Greed Cache pair for +2 shop gold and +25 score.';
-        case 'mystery_veil':
-        default:
-            return 'Match the Mystery Veil pair for a local hidden payout.';
-    }
-};
-
 const routeSpecialDisplayLabel = (kind: RouteSpecialKind | RouteCardKind): string =>
     routeSpecialLabel(kind as RouteSpecialKind);
 
@@ -165,6 +143,16 @@ const routeSpecialDisplayRewardLine = (kind: RouteSpecialKind | RouteCardKind): 
 
 const routeCardKindForRouteType = (routeType: NonNullable<RunState['pendingRouteCardPlan']>['routeType']): RouteCardKind =>
     routeType === 'safe' ? 'safe_ward' : routeType === 'greed' ? 'greed_cache' : 'mystery_veil';
+
+const dungeonExitLockLabel = (lockKind: ReturnType<typeof getDungeonExitStatus>['lockKind']): string => {
+    if (lockKind === 'none') {
+        return 'Unlocked exit';
+    }
+    if (lockKind === 'lever') {
+        return 'Lever-sealed exit';
+    }
+    return `${lockKind.charAt(0).toUpperCase()}${lockKind.slice(1)} key exit`;
+};
 
 const getClearLifeBonusLabel = (result: NonNullable<RunState['lastLevelResult']>): string | null => {
     if (result.clearLifeGained !== 1) {
@@ -262,7 +250,9 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         useShallow((state) => ({
             applyFlashPairPower: state.applyFlashPairPower,
             acceptEndlessRiskWager: state.acceptEndlessRiskWager,
+            activateDungeonExitFromPrompt: state.activateDungeonExitFromPrompt,
             chooseRouteAndContinue: state.chooseRouteAndContinue,
+            closeDungeonExitPrompt: state.closeDungeonExitPrompt,
             continueToNextLevel: state.continueToNextLevel,
             dismissPowersFtue: state.dismissPowersFtue,
             goToMenu: state.goToMenu,
@@ -284,6 +274,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
             undoResolvingFlip: state.undoResolvingFlip
         }))
     );
+    const dungeonExitPromptOpen = useAppStore((state) => state.dungeonExitPromptOpen);
     const saveData = useAppStore((state) => state.saveData);
     const {
         boardBloomEnabled: settingsBoardBloomEnabled,
@@ -478,7 +469,9 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const {
         applyFlashPairPower,
         acceptEndlessRiskWager,
+        activateDungeonExitFromPrompt,
         chooseRouteAndContinue,
+        closeDungeonExitPrompt,
         continueToNextLevel,
         dismissPowersFtue,
         goToMenu,
@@ -842,6 +835,18 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         : 'next floor adds deterministic mystery veils.'
               }`
             : null;
+    const dungeonExitStatus = getDungeonExitStatus(run);
+    const dungeonExitRouteLine = dungeonExitStatus.routeType
+        ? `${routeTypeLabel(dungeonExitStatus.routeType)} beyond this door.`
+        : 'This stair leaves the current floor.';
+    const dungeonExitLockLine =
+        dungeonExitStatus.lockKind === 'lever'
+            ? `${dungeonExitStatus.leverCount}/${dungeonExitStatus.requiredLeverCount} floor levers ready.`
+            : dungeonExitStatus.lockKind === 'none'
+              ? 'No key required.'
+              : `Keys: ${run.dungeonKeys[dungeonExitStatus.lockKind] ?? 0} matching, ${
+                    run.dungeonMasterKeys
+                } master.`;
     const activeRouteTiles = run.board?.tiles ?? [];
     const activeRouteSpecialKinds = activeRouteTiles
         .filter(
@@ -860,6 +865,51 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const activeRouteBannerLine =
         activeRouteSpecialKind && activeRoutePairCount > 0 && run.status !== 'levelComplete'
             ? `${routeSpecialDisplayLabel(activeRouteSpecialKind)} in play: ${routeSpecialDisplayRewardLine(activeRouteSpecialKind)}`
+            : null;
+    const dungeonBoardStatus = getDungeonBoardStatus(run);
+    const activeDungeonTiles = (run.board?.tiles ?? []).filter(
+        (tile) =>
+            tile.dungeonCardKind &&
+            tile.dungeonCardState !== 'resolved' &&
+            tile.state !== 'matched' &&
+            tile.state !== 'removed'
+    );
+    const activeDungeonEnemyCount = new Set(
+        activeDungeonTiles
+            .filter((tile) => tile.dungeonCardKind === 'enemy' && tile.dungeonCardState === 'revealed')
+            .map((tile) => tile.pairKey)
+    ).size;
+    const armedTrapCount = new Set(
+        activeDungeonTiles
+            .filter((tile) => tile.dungeonCardKind === 'trap' && tile.dungeonCardState === 'revealed')
+            .map((tile) => tile.pairKey)
+    ).size;
+    const hiddenDungeonPairCount = new Set(
+        activeDungeonTiles
+            .filter((tile) => tile.dungeonCardState === 'hidden')
+            .map((tile) => tile.pairKey)
+    ).size;
+    const dungeonObjectiveLine =
+        dungeonBoardStatus.objectiveId && run.status !== 'levelComplete'
+            ? `Objective: ${dungeonBoardStatus.objectiveLabel} ${dungeonBoardStatus.objectiveProgress}/${dungeonBoardStatus.objectiveRequired}${dungeonBoardStatus.objectiveCompleted ? ' complete' : ''}.`
+            : null;
+    const activeDungeonBannerLine =
+        run.status !== 'levelComplete' &&
+        (armedTrapCount > 0 || activeDungeonEnemyCount > 0 || hiddenDungeonPairCount > 0 || dungeonObjectiveLine)
+            ? [
+                  dungeonObjectiveLine,
+                  armedTrapCount > 0
+                      ? `${armedTrapCount} trap ${armedTrapCount === 1 ? 'is' : 'cards are'} armed. Match its pair to disarm; mismatch springs it.`
+                      : activeDungeonEnemyCount > 0
+                        ? `${activeDungeonEnemyCount} enemy ${activeDungeonEnemyCount === 1 ? 'card is' : 'cards are'} awake. Mismatches trigger attacks.`
+                        : dungeonBoardStatus.requiredLeverCount > 0
+                          ? `Exit levers: ${dungeonBoardStatus.leverCount}/${dungeonBoardStatus.requiredLeverCount}. ${hiddenDungeonPairCount} dungeon ${hiddenDungeonPairCount === 1 ? 'card' : 'cards'} hidden.`
+                          : hiddenDungeonPairCount > 0
+                            ? `${hiddenDungeonPairCount} dungeon ${hiddenDungeonPairCount === 1 ? 'card' : 'cards'} hidden in this floor.`
+                            : null
+              ]
+                  .filter(Boolean)
+                  .join(' ')
             : null;
     const nextFloorPreview =
         endlessChapterActive && run.lastLevelResult
@@ -1038,6 +1088,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const gameplayShellInert =
         !suppressStatusOverlays &&
         (abandonRunConfirmOpen ||
+            dungeonExitPromptOpen ||
             run.status === 'paused' ||
             Boolean(run.relicOffer) ||
             (run.status === 'levelComplete' && Boolean(run.lastLevelResult) && !run.relicOffer));
@@ -1135,6 +1186,15 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                 <div className={styles.routeCardBanner} data-testid="route-card-board-banner">
                                     <strong>{routeSpecialDisplayLabel(activeRouteSpecialKind!)}</strong>
                                     <span>{routeSpecialDisplayRewardLine(activeRouteSpecialKind!)}</span>
+                                </div>
+                            ) : null}
+                            {activeDungeonBannerLine ? (
+                                <div
+                                    className={`${styles.routeCardBanner} ${styles.dungeonCardBanner}`}
+                                    data-testid="dungeon-card-board-banner"
+                                >
+                                    <strong>Dungeon cards</strong>
+                                    <span>{activeDungeonBannerLine}</span>
                                 </div>
                             ) : null}
                             <MemoTileBoard
@@ -1282,6 +1342,69 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                     </div>
                 </div>
                 </div>
+
+                {!suppressStatusOverlays && dungeonExitPromptOpen && dungeonExitStatus.exitTile ? (
+                    <OverlayModal
+                        actions={[
+                            ...(dungeonExitStatus.canActivateWithoutSpend ||
+                            (dungeonExitStatus.lockKind === 'lever' && dungeonExitStatus.canActivate)
+                                ? [
+                                      {
+                                          label: 'Proceed',
+                                          onClick: () => {
+                                              playUiClick();
+                                              activateDungeonExitFromPrompt('none');
+                                          },
+                                          variant: 'primary' as const
+                                      }
+                                  ]
+                                : []),
+                            ...(dungeonExitStatus.canActivateWithKey
+                                ? [
+                                      {
+                                          label: 'Use key',
+                                          onClick: () => {
+                                              playUiClick();
+                                              activateDungeonExitFromPrompt('key');
+                                          },
+                                          variant: 'primary' as const
+                                      }
+                                  ]
+                                : []),
+                            ...(dungeonExitStatus.canActivateWithMasterKey
+                                ? [
+                                      {
+                                          label: 'Use master key',
+                                          onClick: () => {
+                                              playUiClick();
+                                              activateDungeonExitFromPrompt('master_key');
+                                          },
+                                          variant: 'primary' as const
+                                      }
+                                  ]
+                                : []),
+                            {
+                                label: 'Stay',
+                                onClick: () => {
+                                    playUiBack();
+                                    closeDungeonExitPrompt();
+                                },
+                                variant: 'secondary'
+                            }
+                        ]}
+                        headerPlateTone="success"
+                        ornamentalHeaderPlate
+                        subtitle={`${dungeonExitRouteLine} ${dungeonExitLockLine}`}
+                        testId="dungeon-exit-overlay"
+                        title={dungeonExitLockLabel(dungeonExitStatus.lockKind)}
+                    >
+                        {dungeonExitStatus.lockedReason ? (
+                            <p className={styles.modalNote}>{dungeonExitStatus.lockedReason}</p>
+                        ) : (
+                            <p className={styles.modalNote}>Proceeding seals the remaining cards on this floor.</p>
+                        )}
+                    </OverlayModal>
+                ) : null}
 
                 {!suppressStatusOverlays && !abandonRunConfirmOpen && run.status === 'paused' && (
                     <OverlayModal
