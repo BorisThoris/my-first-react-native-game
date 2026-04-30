@@ -1,5 +1,5 @@
 import type { BoardState, RunStatus, Tile } from '../../shared/contracts';
-import { tilesArePairMatch } from '../../shared/game';
+import { tilesArePairMatch } from '../../shared/turn-resolution';
 
 export type ResolvingSelectionState = 'match' | 'mismatch' | 'gambitNeutral' | null;
 

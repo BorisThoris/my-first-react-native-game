@@ -18,83 +18,87 @@ import {
     SHIFTING_WARD_MATCH_PENALTY
 } from './contracts';
 import {
-    acceptEndlessRiskWager,
-    activateDungeonExit,
-    advanceToNextLevel,
-    applyDestroyPair,
-    applyFlashPair,
-    applyPeek,
-    applyRegionShuffle,
-    applyRouteChoiceOutcome,
-    applyShuffle,
-    applyStrayRemove,
     buildBoard,
-    calculateMatchScore,
-    claimRouteSideRoomPrimary,
-    collectDestroyEligibleTileIds,
-    collectPeekEligibleTileIds,
-    canOfferEndlessRiskWager,
-    canRegionShuffle,
-    canRegionShuffleRow,
-    canShuffleBoard,
-    computeRelicOfferPickBudget,
-    completeRelicPickAndAdvance,
     countFullyHiddenPairs,
-    EXIT_PAIR_KEY,
-    createRunShopOffers,
+    getWildTileIdFromBoard,
+    isBoardComplete
+} from './board-generation';
+import {
     createDailyRun,
     createGauntletRun,
-    createDungeonFloorBlueprint,
     createNewRun,
     createWildRun,
     enableDebugPeek,
     finishMemorizePhase,
-    countFindablePairs,
-    flipTile,
-    getMatchFloaterAnchorTileIds,
     getMemorizeDuration,
     getMemorizeDurationForRun,
+    isGauntletExpired,
+    advanceToNextLevel
+} from './game-core';
+import {
+    applyDestroyPair,
+    applyFlashPair,
+    applyPeek,
+    applyRegionShuffle,
+    applyShuffle,
+    applyStrayRemove,
+    canRegionShuffle,
+    canRegionShuffleRow,
+    canShuffleBoard,
+    collectDestroyEligibleTileIds,
+    collectPeekEligibleTileIds,
+    tileIsDestroyEligiblePreview,
+    tileIsPeekEligiblePreview,
+    tileIsStrayEligiblePreview,
+    togglePinnedTile
+} from './board-powers';
+import {
+    calculateMatchScore,
+    flipTile,
+    getMatchFloaterAnchorTileIds,
     getMismatchFloaterAnchorTileIds,
+    getPresentationMutatorMatchPenalty,
+    resolveBoardTurn,
+    tilesArePairMatch
+} from './turn-resolution';
+import {
+    activateDungeonExit,
+    createDungeonFloorBlueprint,
+    EXIT_PAIR_KEY,
     getDungeonBoardStatus,
     getDungeonCardCopy,
     getDungeonExitStatus,
     getDungeonObjectiveStatus,
-    getPresentationMutatorMatchPenalty,
-    getShopWalletPacing,
-    getWildTileIdFromBoard,
-    grantBonusRelicPickNextOffer,
-    isBoardComplete,
-    isGauntletExpired,
-    openRelicOffer,
-    openRouteSideRoom,
-    purchaseShopOffer,
-    rerollShopOffers,
-    canRerollShopOffers,
     revealDungeonExit,
     revealDungeonRoom,
     revealDungeonShop,
-    resolveBoardTurn,
     ROOM_PAIR_KEY,
-    SHOP_PAIR_KEY,
-    skipRouteSideRoom,
-    tilesArePairMatch,
-    togglePinnedTile,
-    tileIsDestroyEligiblePreview,
-    tileIsPeekEligiblePreview,
-    tileIsStrayEligiblePreview,
-    WILD_PAIR_KEY
-} from './game';
+    SHOP_PAIR_KEY
+} from './dungeon-rules';
+import {
+    applyRouteChoiceOutcome,
+    claimRouteSideRoomPrimary,
+    openRouteSideRoom,
+    skipRouteSideRoom
+} from './route-rules';
+import {
+    canRerollShopOffers,
+    createRunShopOffers,
+    getShopWalletPacing,
+    purchaseShopOffer,
+    rerollShopOffers
+} from './shop-rules';
+import {
+    acceptEndlessRiskWager,
+    canOfferEndlessRiskWager,
+    completeRelicPickAndAdvance,
+    computeRelicOfferPickBudget,
+    grantBonusRelicPickNextOffer,
+    openRelicOffer
+} from './objective-rules';
+import { DECOY_PAIR_KEY, WILD_PAIR_KEY } from './tile-identity';
 import { DAILY_MUTATOR_TABLE } from './mutators';
-
-const DECOY_PAIR_KEY = '__decoy__';
-
-const createTile = (id: string, pairKey: string, symbol: string): Tile => ({
-    id,
-    pairKey,
-    state: 'hidden',
-    symbol,
-    label: symbol
-});
+import { makeBoard as createBoard, makeRun as createRun, makeTile as createTile } from './test/game-fixtures';
 
 describe('tilesArePairMatch', () => {
     it('matches two normal tiles with the same pairKey', () => {
@@ -120,24 +124,6 @@ describe('tilesArePairMatch', () => {
             true
         );
     });
-});
-
-const createBoard = (tiles: Tile[]): BoardState => ({
-    level: 1,
-    pairCount: tiles.length / 2,
-    columns: 2,
-    rows: Math.ceil(tiles.length / 2),
-    tiles,
-    flippedTileIds: [],
-    matchedPairs: 0,
-    floorArchetypeId: null,
-    featuredObjectiveId: null
-});
-
-const createRun = (tiles: Tile[]): RunState => ({
-    ...finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false, gameMode: 'puzzle' })),
-    board: createBoard(tiles),
-    findablesTotalThisFloor: countFindablePairs(tiles)
 });
 
 describe('getMatchFloaterAnchorTileIds', () => {

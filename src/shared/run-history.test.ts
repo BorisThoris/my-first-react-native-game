@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { RunState } from './contracts';
-import { createNewRun, createRunSummary, finishMemorizePhase } from './game';
+import { createNewRun, createRunSummary, finishMemorizePhase } from './game-core';
 import { buildRunHistoryEntry, buildRunJournalRows, buildRunReplayLink } from './run-history';
 
 const completedRun = (): RunState => {

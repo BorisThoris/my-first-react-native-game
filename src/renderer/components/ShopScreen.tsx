@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { RouteCardKind, RouteNodeType, RunShopOfferState } from '../../shared/contracts';
-import { canRerollShopOffers, getShopRerollCostForFloor } from '../../shared/game';
+import { canRerollShopOffers, getShopRerollCostForFloor } from '../../shared/shop-rules';
 import { focusFirstTabbableOrContainer, handleTabFocusTrapEvent } from '../a11y/focusables';
 import { popModalFocusSnapshot, pushModalFocusSnapshot } from '../a11y/modalFocusReturnStack';
 import {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GAME_RULES_VERSION } from './contracts';
-import { buildBoard } from './game';
+import { buildBoard } from './board-generation';
 import {
     CALLSIGN_SYMBOLS,
     LETTER_SYMBOLS,

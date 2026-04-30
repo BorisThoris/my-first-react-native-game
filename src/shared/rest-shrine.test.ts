@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { MAX_LIVES } from './contracts';
-import { createNewRun, finishMemorizePhase } from './game';
+import { createNewRun, finishMemorizePhase } from './game-core';
 import { createRestShrineServices, purchaseRestShrineService } from './rest-shrine';
 
 describe('REG-073 rest shrine services', () => {

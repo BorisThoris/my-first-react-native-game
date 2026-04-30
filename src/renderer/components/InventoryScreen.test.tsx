@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { createNewRun } from '../../shared/game';
+import { createNewRun } from '../../shared/game-core';
 import InventoryScreen from './InventoryScreen';
 
 vi.mock('zustand/react/shallow', () => ({

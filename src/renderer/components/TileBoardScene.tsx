@@ -35,7 +35,7 @@ import {
     type ShaderMaterial
 } from 'three';
 import type { BoardState, GraphicsQualityPreset, RunStatus, Tile } from '../../shared/contracts';
-import { WILD_PAIR_KEY } from '../../shared/game';
+import { WILD_PAIR_KEY } from '../../shared/tile-identity';
 import { getPairProximityGridDistance } from '../../shared/pairProximityHint';
 import { getBoardAnisotropyCap } from '../../shared/graphicsQuality';
 import { preloadCardRankOpentypeFont, subscribeCardRankFontLoaded } from '../cardFace/opentypeCardRankFont';

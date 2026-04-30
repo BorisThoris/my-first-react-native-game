@@ -16,7 +16,7 @@ import {
 import { flushSync } from 'react-dom';
 import type { BoardScreenSpaceAA, BoardState, GraphicsQualityPreset, RunStatus, Tile } from '../../shared/contracts';
 import { getFindableRewardText } from '../../shared/findables';
-import { getDungeonCardCopy } from '../../shared/game';
+import { getDungeonCardCopy } from '../../shared/dungeon-rules';
 import { routeSpecialLabel, routeSpecialRewardLine } from '../../shared/route-world';
 import { resolveAdaptiveBoardRenderQuality } from '../../shared/graphicsQuality';
 import { isNarrowShortLandscapeForMenuStack, VIEWPORT_MOBILE_MAX } from '../breakpoints';

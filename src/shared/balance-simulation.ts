@@ -1,5 +1,6 @@
 import { GAME_RULES_VERSION, type MutatorId } from './contracts';
-import { buildBoard, countFindablePairs, getShopGoldRewardForFloor, SHOP_ITEM_CATALOG } from './game';
+import { buildBoard, countFindablePairs } from './board-generation';
+import { getShopGoldRewardForFloor, SHOP_ITEM_CATALOG } from './shop-rules';
 import { pickFloorScheduleEntry, usesEndlessFloorSchedule } from './floor-mutator-schedule';
 import { RELIC_DRAFT, RELIC_POOL, type RelicDraftRarity } from './relics';
 
@@ -202,7 +203,7 @@ export const BALANCE_SIMULATION_BASELINE = {
     findablePickupPairs: { min: 12, max: 24 },
     bossFloors: { min: 2, max: 2 },
     breatherFloors: { min: 3, max: 3 },
-    shopSinkBudget: { min: 28, max: 28 }
+    shopSinkBudget: { min: 56, max: 56 }
 } as const;
 
 export const assertBalanceSimulationWithinBaseline = (

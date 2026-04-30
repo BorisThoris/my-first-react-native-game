@@ -1,5 +1,7 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
-import { buildBoard, countFindablePairs, createNewRun, createRunShopOffers } from '../../shared/game';
+import { buildBoard, countFindablePairs } from '../../shared/board-generation';
+import { createNewRun } from '../../shared/game-core';
+import { createRunShopOffers } from '../../shared/shop-rules';
 import { createDefaultSaveData } from '../../shared/save-data';
 import { BOARD_FLOATER_POP_CLEAR } from './matchScorePop';
 import { useAppStore } from './useAppStore';

@@ -2,27 +2,33 @@ import { describe, expect, it } from 'vitest';
 import { GAME_RULES_VERSION, type BoardState, type MutatorId, type RunState, type Tile } from './contracts';
 import { BUILTIN_PUZZLES } from './builtin-puzzles';
 import {
-    applyRegionShuffle,
-    applyShuffle,
     buildBoard,
-    canRegionShuffleRow,
-    canShuffleBoard,
-    collectDestroyEligibleTileIds,
-    collectPeekEligibleTileIds,
     countFullyHiddenPairs,
+    inspectBoardFairness,
+    inspectRunFairness,
+    isBoardComplete
+} from './board-generation';
+import {
     createDailyRun,
     createGauntletRun,
     createMeditationRun,
     createNewRun,
     createPuzzleRun,
     createWildRun,
-    finishMemorizePhase,
-    inspectBoardFairness,
-    inspectRunFairness,
-    isBoardComplete,
-    tileIsStrayEligiblePreview,
+    finishMemorizePhase
+} from './game-core';
+import {
+    applyRegionShuffle,
+    applyShuffle,
+    canRegionShuffleRow,
+    canShuffleBoard,
+    collectDestroyEligibleTileIds,
+    collectPeekEligibleTileIds,
+    tileIsStrayEligiblePreview
+} from './board-powers';
+import {
     WILD_PAIR_KEY
-} from './game';
+} from './tile-identity';
 import { DAILY_MUTATOR_TABLE } from './mutators';
 
 const DECOY_PAIR_KEY = '__decoy__';

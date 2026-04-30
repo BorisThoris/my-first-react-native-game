@@ -2239,7 +2239,7 @@ export const inspectBoardFairness = (board: BoardState): BoardFairnessReport => 
         }
     }
 
-    const hasCompletionRoute = isBoardComplete(board) || (structurallyClearable && actionableRealPairKeys.length > 0);
+    const hasCompletionRoute = structurallyClearable && (isBoardComplete(board) || actionableRealPairKeys.length > 0);
 
     return {
         complete: isBoardComplete(board),

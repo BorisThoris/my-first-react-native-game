@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createNewRun, finishMemorizePhase } from './game';
+import { createNewRun, finishMemorizePhase } from './game-core';
 import {
     RUN_ECONOMY_DEFINITIONS,
     getRunEconomyRows,

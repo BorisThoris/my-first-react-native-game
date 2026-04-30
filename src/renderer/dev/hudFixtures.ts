@@ -1,6 +1,6 @@
 import type { GameplayHudBarProps } from '../components/GameplayHudBar';
 import type { RunState } from '../../shared/contracts';
-import { createGauntletRun, createNewRun, finishMemorizePhase } from '../../shared/game';
+import { createGauntletRun, createNewRun, finishMemorizePhase } from '../../shared/game-core';
 
 export type GameplayHudBarFixtureId = 'daily' | 'gauntlet' | 'scholar' | 'multiMutator';
 

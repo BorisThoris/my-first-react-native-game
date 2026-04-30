@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createNewRun } from './game';
+import { createNewRun } from './game-core';
 import { getInventoryPrepRows } from './inventory-prep';
 
 describe('REG-094 inventory prep rows', () => {

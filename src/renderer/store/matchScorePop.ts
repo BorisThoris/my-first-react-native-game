@@ -1,5 +1,5 @@
 import type { RunState } from '../../shared/contracts';
-import { getMatchFloaterAnchorTileIds, getMismatchFloaterAnchorTileIds } from '../../shared/game';
+import { getMatchFloaterAnchorTileIds, getMismatchFloaterAnchorTileIds } from '../../shared/turn-resolution';
 import { routeSpecialLabel, routeSpecialRewardLine } from '../../shared/route-world';
 
 export type MatchScorePop = {

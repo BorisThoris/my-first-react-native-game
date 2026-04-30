@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { RunState } from '../../shared/contracts';
-import { createNewRun, finishMemorizePhase } from '../../shared/game';
+import { createNewRun, finishMemorizePhase } from '../../shared/game-core';
 import {
     shouldScheduleDebugRevealTimerOnResume,
     shouldScheduleMemorizeTimerOnResume

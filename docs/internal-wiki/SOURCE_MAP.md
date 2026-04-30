@@ -6,7 +6,16 @@ Quick orientation for navigation and code review. **Rules of thumb:** `shared/` 
 
 | Module | Role |
 |--------|------|
-| `game.ts` | Core `RunState` transitions: phases, flips, resolve, scoring, powers, mutators branches, level advance, game over |
+| `game.ts` | Legacy compatibility barrel/backing implementation for gameplay rules; prefer the focused modules below for new imports |
+| `game-core.ts` | Run creation, level advance, pause/resume, summaries, memorize timing, gauntlet expiry |
+| `board-generation.ts` | Board building, findables counts, board completion, fairness inspection, board identity helpers |
+| `turn-resolution.ts` | Pair matching, flip flow, match/mismatch resolution, score timing/floater anchors |
+| `board-powers.ts` | Shuffle, region shuffle, destroy, peek, flash pair, pins, stray remove, eligibility helpers |
+| `dungeon-rules.ts` | Dungeon exits, shops/rooms on cards, dungeon card copy/status, bosses/objectives |
+| `route-rules.ts` | Between-floor route choices, route side rooms, route outcome application |
+| `shop-rules.ts` | Run shop catalog/offers, wallet pacing, rerolls, purchases |
+| `objective-rules.ts` | Endless risk wager, relic offer progression, relic Favor/objective-adjacent helpers |
+| `tile-identity.ts` | Shared singleton pair keys used by renderer/tests without importing full gameplay rules |
 | `contracts.ts` | Types, settings, mutator IDs, `GAME_RULES_VERSION`, appendices’ source of truth for catalog |
 | `mechanics-encyclopedia.ts` | Player-facing codex copy SoT (relics, mutators, modes, topic articles) |
 | `game-catalog.ts` | Re-exports encyclopedia + achievements + helpers for UI |

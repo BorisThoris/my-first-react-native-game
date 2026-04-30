@@ -18,18 +18,17 @@
  * settings from `patchRunFromUserSettings` when filing bugs.
  */
 import type { RunState, Tile } from '../../shared/contracts';
+import { buildBoard, countFindablePairs } from '../../shared/board-generation';
 import {
-    buildBoard,
-    countFindablePairs,
-    createRunShopOffers,
     createDailyRun,
     createGauntletRun,
     createNewRun,
     createRunSummary,
     finishMemorizePhase,
-    flipTile,
     pauseRun
-} from '../../shared/game';
+} from '../../shared/game-core';
+import { createRunShopOffers } from '../../shared/shop-rules';
+import { flipTile } from '../../shared/turn-resolution';
 
 /** Row-major 2×3 — pair keys `gk0`,`gk1`,`gk2`; `flipFirstMismatchPair` flips (1,1)+(1,2); gambit triple miss picks (1,3). */
 const gambitTripleMissTiles: Tile[] = [

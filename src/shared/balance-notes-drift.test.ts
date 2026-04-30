@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { createGauntletRun, PRESENTATION_MUTATOR_MATCH_PENALTIES } from './game';
+import { createGauntletRun } from './game-core';
+import { PRESENTATION_MUTATOR_MATCH_PENALTIES } from './turn-resolution';
 import { RUN_MODE_CATALOG } from './run-mode-catalog';
 import { SYMBOL_BAND_LAST_LEVEL_LETTER, SYMBOL_BAND_LAST_LEVEL_NUMERIC } from './tile-symbol-catalog';
 

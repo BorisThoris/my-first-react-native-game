@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { FloorArchetypeId, FeaturedObjectiveId, RunState } from '../../shared/contracts';
-import { createDailyRun, createNewRun, finishMemorizePhase } from '../../shared/game';
+import { createDailyRun, createNewRun, finishMemorizePhase } from '../../shared/game-core';
 import GameplayHudBar from './GameplayHudBar';
 
 describe('GameplayHudBar', () => {

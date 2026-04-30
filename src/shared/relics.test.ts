@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { RouteNodeType, RunState } from './contracts';
-import { createDailyRun, createNewRun } from './game';
+import { createDailyRun, createNewRun } from './game-core';
 import { pickFloorScheduleEntry } from './floor-mutator-schedule';
 import {
     applyRelicOfferService,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { AchievementId } from './contracts';
 import { ACHIEVEMENT_BY_ID, ACHIEVEMENTS, evaluateAchievementUnlocks } from './achievements';
-import { createNewRun } from './game';
+import { createNewRun } from './game-core';
 import { createDefaultSaveData } from './save-data';
 
 describe('achievement catalog copy', () => {

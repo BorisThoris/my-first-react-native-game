@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createNewRun } from './game';
+import { createNewRun } from './game-core';
 import { getCodexRewardSignal, getCollectionRewardSignal, getInventoryRewardSignal } from './meta-reward-signals';
 import { createDefaultSaveData } from './save-data';
 

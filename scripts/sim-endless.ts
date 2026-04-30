@@ -5,7 +5,7 @@
 import { writeFileSync } from 'node:fs';
 import { GAME_RULES_VERSION } from '../src/shared/contracts';
 import { pickFloorScheduleEntry } from '../src/shared/floor-mutator-schedule';
-import { buildBoard } from '../src/shared/game';
+import { buildBoard } from '../src/shared/board-generation';
 
 const argv = process.argv.slice(2);
 const numArg = (name: string, def: number): number => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createNewRun, finishMemorizePhase } from './game';
+import { createNewRun, finishMemorizePhase } from './game-core';
 import { getPowerVerbRows, POWER_VERB_GROUPS } from './power-verbs';
 
 describe('REG-045 power verb teaching', () => {

@@ -1,5 +1,5 @@
 import type { BoardState, Tile } from './contracts';
-import { tilesArePairMatch } from './game';
+import { tilesArePairMatch } from './turn-resolution';
 
 /** Keep in sync with `DECOY_PAIR_KEY` in `game.ts`. */
 const DECOY_PAIR_KEY = '__decoy__';

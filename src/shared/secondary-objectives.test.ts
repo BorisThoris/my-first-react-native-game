@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createNewRun, finishMemorizePhase } from './game';
+import { createNewRun, finishMemorizePhase } from './game-core';
 import { getSecondaryObjectiveProgress } from './secondary-objectives';
 
 describe('REG-048 secondary objective clarity', () => {

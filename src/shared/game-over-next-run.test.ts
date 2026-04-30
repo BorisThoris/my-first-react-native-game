@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createNewRun, createRunSummary, finishMemorizePhase } from './game';
+import { createNewRun, createRunSummary, finishMemorizePhase } from './game-core';
 import { getGameOverNextRunRows } from './game-over-next-run';
 
 describe('REG-096 game over next-run loop', () => {

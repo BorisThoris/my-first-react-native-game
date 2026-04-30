@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { RunState } from '../../shared/contracts';
-import { createNewRun, createRunSummary, finishMemorizePhase } from '../../shared/game';
+import { createNewRun, createRunSummary, finishMemorizePhase } from '../../shared/game-core';
 import { createDefaultSaveData } from '../../shared/save-data';
 import { getGameOverNextRunRows } from '../../shared/game-over-next-run';
 import GameOverScreen from './GameOverScreen';

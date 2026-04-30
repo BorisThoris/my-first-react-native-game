@@ -22,6 +22,15 @@ routes:
     triggers:
       - src/shared/contracts.ts
       - src/shared/game.ts
+      - src/shared/game-core.ts
+      - src/shared/board-generation.ts
+      - src/shared/turn-resolution.ts
+      - src/shared/board-powers.ts
+      - src/shared/dungeon-rules.ts
+      - src/shared/route-rules.ts
+      - src/shared/shop-rules.ts
+      - src/shared/objective-rules.ts
+      - src/shared/tile-identity.ts
       - src/shared/relics.ts
       - src/shared/mutators.ts
       - src/shared/floor-mutator-schedule.ts
@@ -32,6 +41,9 @@ routes:
       - yarn test
     conditional:
       - "if mechanics copy changed: yarn docs:mechanics-appendix"
+      - "if dungeon-rules changed: yarn vitest run src/shared/game.test.ts -t \"dungeon cards\""
+      - "if board-powers changed: yarn vitest run src/shared/game.test.ts -t \"board powers\""
+      - "if route-rules or shop-rules changed: yarn vitest run src/shared/game.test.ts -t \"REG-017 route choices|REG-015 run shop wallet\""
   save_schema_version:
     triggers:
       - src/shared/save-data.ts

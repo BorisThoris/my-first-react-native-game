@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { createNewRun, finishMemorizePhase } from '../../shared/game';
+import { createNewRun, finishMemorizePhase } from '../../shared/game-core';
 import { getPlayableOnboardingStep } from '../../shared/playable-onboarding';
 import { createDefaultSaveData } from '../../shared/save-data';
 

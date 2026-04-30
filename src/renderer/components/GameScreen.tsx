@@ -13,15 +13,19 @@ import { getPlayableOnboardingStep } from '../../shared/playable-onboarding';
 import { formatLevelResultObjectiveLine } from '../../shared/secondary-objectives';
 import {
     canOfferEndlessRiskWager,
+} from '../../shared/objective-rules';
+import {
     canRegionShuffle,
     canRegionShuffleRow,
     canShuffleBoard,
     collectDestroyEligibleTileIds,
     collectPeekEligibleTileIds,
-    getDungeonBoardStatus,
-    getDungeonExitStatus,
     tileIsStrayEligiblePreview
-} from '../../shared/game';
+} from '../../shared/board-powers';
+import {
+    getDungeonBoardStatus,
+    getDungeonExitStatus
+} from '../../shared/dungeon-rules';
 import { useNotificationStore } from '@cross-repo-libs/notifications';
 import type { CSSProperties } from 'react';
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';

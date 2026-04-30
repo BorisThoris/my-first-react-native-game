@@ -15,7 +15,7 @@ flowchart TB
     TB[TileBoard / TileBoardScene]
   end
   subgraph rules [Portable rules]
-    G[src/shared/game.ts]
+    G[src/shared/game-*.ts domain modules]
     C[src/shared/contracts.ts]
   end
   M <-- IPC handlers --> P
@@ -25,7 +25,7 @@ flowchart TB
   G --> C
 ```
 
-- **Turns and scoring** are decided in **`game.ts`**, not in IPC or the main process.
+- **Turns and scoring** are decided in **`src/shared` gameplay rule modules**, not in IPC or the main process. New work should import from the focused modules (`turn-resolution`, `dungeon-rules`, `board-powers`, etc.); `game.ts` remains a compatibility/backing file during the rules-layer extraction.
 - **IPC** carries settings, save/load, achievements unlock requests, display/window, quit, Steam status—not live board protocol. **Persistence** (`electron-store` in `main/persistence.ts`, JSON under the app `userData` dir) runs **only in main**; preload forwards `invoke` calls and does not touch the filesystem.
 - **Steam:** `steamworks.js` when init succeeds; otherwise a **mock adapter** (`isConnected` false). Unlock uses the **canonical** channel `steam:unlock-achievement` (legacy alias `desktop:unlock-achievement` is still registered; see [`ipc-channels.ts`](../../src/shared/ipc-channels.ts)). The handler still **persists** the unlock locally before attempting Steam activation.
 
@@ -36,7 +36,7 @@ flowchart TB
 | Renderer | `src/renderer/main.tsx` → `initRendererShell.tsx` (`bootstrapWebRenderer`) → `App.tsx` | Vite root; theme + `NotificationHost` + `PlatformTiltProvider` live in `initRendererShell` |
 | Main | `src/main/index.ts` | `BrowserWindow`, app lifecycle, IPC registration, `PersistenceService`, Steam adapter (no Electron **Menu** API—the in-app main menu is renderer/React) |
 | Preload | `src/preload/index.ts` | Exposes safe APIs to renderer |
-| Rules | `src/shared/game.ts` | Pure transitions on `RunState` |
+| Rules | `src/shared/game-core.ts`, `board-generation.ts`, `turn-resolution.ts`, `board-powers.ts`, `dungeon-rules.ts`, `route-rules.ts`, `shop-rules.ts`, `objective-rules.ts` | Focused pure transitions/helpers on `RunState` and `BoardState`; `game.ts` is the legacy backing module during migration |
 
 ## Local package
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { createNewRun, finishMemorizePhase, flipTile } from './game';
+import { createNewRun, finishMemorizePhase } from './game-core';
+import { flipTile } from './turn-resolution';
 import { getPlayableOnboardingStep } from './playable-onboarding';
 
 describe('REG-026 playable onboarding', () => {

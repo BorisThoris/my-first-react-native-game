@@ -15,18 +15,12 @@ import type {
 import { BUILTIN_PUZZLES } from '../../shared/builtin-puzzles';
 import {
     acceptEndlessRiskWager as acceptEndlessRiskWagerRule,
-    advanceToNextLevel,
-    applyDestroyPair,
-    applyFlashPair,
-    applyPeek,
-    applyRegionShuffle,
-    applyRouteChoiceOutcome,
-    claimRouteSideRoomPrimary,
-    applyShuffle,
-    applyStrayRemove,
-    armRegionShuffleRow,
-    cancelResolvingWithUndo,
+    applyRelicOfferServiceToRun,
     completeRelicPickAndAdvance,
+    openRelicOffer
+} from '../../shared/objective-rules';
+import {
+    advanceToNextLevel,
     createDailyRun,
     createGauntletRun,
     createMeditationRun,
@@ -36,29 +30,47 @@ import {
     createRunSummary,
     disableDebugPeek,
     enableDebugPeek,
-    EXIT_PAIR_KEY,
     finishMemorizePhase,
-    flipTile,
-    activateDungeonExit,
     isGauntletExpired,
-    openRelicOffer,
-    openRouteSideRoom,
     pauseRun,
+    resumeRun
+} from '../../shared/game-core';
+import {
+    applyDestroyPair,
+    applyFlashPair,
+    applyPeek,
+    applyRegionShuffle,
+    applyShuffle,
+    applyStrayRemove,
+    armRegionShuffleRow,
+    cancelResolvingWithUndo,
+    togglePinnedTile,
+    toggleStrayRemoveArmed
+} from '../../shared/board-powers';
+import {
+    applyRouteChoiceOutcome,
+    claimRouteSideRoomPrimary,
+    openRouteSideRoom,
+    skipRouteSideRoom
+} from '../../shared/route-rules';
+import {
     purchaseShopOffer as purchaseShopOfferRule,
-    rerollShopOffers as rerollShopOffersRule,
-    applyRelicOfferServiceToRun,
+    rerollShopOffers as rerollShopOffersRule
+} from '../../shared/shop-rules';
+import {
+    activateDungeonExit,
+    EXIT_PAIR_KEY,
     revealDungeonExit,
     revealDungeonRoom,
     revealDungeonShop,
-    resolveBoardTurn,
     ROOM_PAIR_KEY,
-    resumeRun,
     SHOP_PAIR_KEY,
-    skipRouteSideRoom,
-    togglePinnedTile,
-    toggleStrayRemoveArmed,
     type DungeonExitActivationSpend
-} from '../../shared/game';
+} from '../../shared/dungeon-rules';
+import {
+    flipTile,
+    resolveBoardTurn
+} from '../../shared/turn-resolution';
 import { trackEvent } from '../../shared/telemetry';
 import {
     shouldScheduleDebugRevealTimerOnResume,

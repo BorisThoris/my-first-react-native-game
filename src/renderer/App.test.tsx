@@ -12,7 +12,8 @@ vi.mock('./assets/preloadStartupAssets', () => ({
 
 import App, { APP_MAIN_LANDMARK_ID } from './App';
 import type { RunState } from '../shared/contracts';
-import { createNewRun, createRunShopOffers, pauseRun } from '../shared/game';
+import { createNewRun, pauseRun } from '../shared/game-core';
+import { createRunShopOffers } from '../shared/shop-rules';
 import { createDefaultSaveData } from '../shared/save-data';
 import { desktopClient } from './desktop-client';
 import { PlatformTiltProvider } from './platformTilt/PlatformTiltProvider';

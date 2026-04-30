@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BoardState, Tile } from './contracts';
-import { WILD_PAIR_KEY } from './game';
+import { WILD_PAIR_KEY } from './tile-identity';
 import { getPairProximityGridDistance } from './pairProximityHint';
 
 const tile = (id: string, pairKey: string, state: Tile['state']): Tile => ({
