@@ -1,7 +1,7 @@
 # DNG-075: Dungeon acceptance report
 
 ## Status
-Not started
+Done
 
 ## Priority
 P0
@@ -47,5 +47,4 @@ The acceptance report summarizes shipped mechanics, known deferrals, test covera
 - `../03-execution-ledger.md`
 
 ## Future handoff notes
-Do last for this epic.
-
+Done for the 2026-05-01 local/offline dungeon slice. See `../09-dungeon-acceptance-report.md`.

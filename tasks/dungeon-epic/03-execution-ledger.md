@@ -52,6 +52,7 @@ Future agents must update this file after every implementation session that uses
 | `DNG-072` | Done | 2026-05-01 session | Dungeon E2E fixture recipes and dev sandbox board fixtures now cover major screenshot states. |
 | `DNG-073` | Done | 2026-05-01 session | Save normalization now fuzzes corrupted dungeon-adjacent persisted fields and documents run-local dungeon recovery policy. |
 | `DNG-074` | Done | 2026-05-01 session | Dungeon board stage now exposes a documented draw-call/material/geometry budget for moving threat overlays and context restore policy. |
+| `DNG-075` | Done | 2026-05-01 session | Acceptance report added with all ticket statuses, P0 gate, QA scenarios, screenshot paths, and final verification commands. |
 
 ## Completed Work Log
 | Date | Ticket(s) | Summary | Verification |
@@ -94,12 +95,13 @@ Future agents must update this file after every implementation session that uses
 | 2026-05-01 | `DNG-072` | Added deterministic dungeon fixture recipes, matching dev sandbox board fixtures, and a Playwright smoke spec for fixture opening/screenshot capture. | `yarn test src/shared/dungeon-e2e-fixtures.test.ts src/renderer/dev/runFixtures.test.ts src/renderer/dev/devSandboxParams.test.ts`; `yarn typecheck`; `yarn lint` |
 | 2026-05-01 | `DNG-073` | Added a dungeon save migration policy, hardened corrupted relic-pick stat normalization, and covered dungeon-adjacent legacy/partial save fuzz cases. | `yarn test src/shared/save-data.test.ts src/shared/version-gate.test.ts`; `yarn typecheck`; `yarn lint` |
 | 2026-05-01 | `DNG-074` | Added a dungeon board-stage performance budget/read model for moving enemy and boss overlays, including low/reduced-motion readability and context restore policy checks. | `yarn test src/renderer/components/TileBoard.test.tsx src/shared/qa/regPhase5Hardening.test.ts src/shared/graphicsQuality.test.ts`; `yarn typecheck`; `yarn lint` |
+| 2026-05-01 | `DNG-075` | Added the dungeon acceptance report covering ticket status, P0 completion, known P1/P2 deferrals, QA scenarios, screenshot recipe paths, and final gates. | `yarn test`; `yarn typecheck`; `yarn lint`; `yarn build`; `yarn test:e2e e2e/dungeon-fixtures-smoke.spec.ts --workers=1` |
 
 ## Blockers
 - None recorded in this pack yet.
 
 ## Next Recommended Ticket
-Start `tickets/DNG-075-dungeon-acceptance-report.md`.
+Dungeon epic P0 gate is complete; next work is deferred P1/P2 route-map and journal depth (`DNG-010` through `DNG-015`) when product scope resumes.
 
 ## Session Handoff Template
 Copy this block for future updates:
