@@ -239,6 +239,62 @@ describe('TileBoard touch and click controls', () => {
         });
     });
 
+    it('announces moving enemy patrol occupancy and next-target telegraphs', async () => {
+        const enemyBoard: BoardState = {
+            ...board,
+            enemyHazards: [
+                {
+                    id: 'hazard-1',
+                    kind: 'sentinel',
+                    label: 'Patrol Sentry',
+                    currentTileId: 'a2',
+                    nextTileId: 'a1',
+                    pattern: 'patrol',
+                    state: 'revealed',
+                    damage: 1,
+                    hp: 1,
+                    maxHp: 2
+                }
+            ]
+        };
+
+        const rendered = renderBoard({
+            board: enemyBoard,
+            debugPeekActive: false,
+            interactive: true,
+            onTileSelect: vi.fn(),
+            previewActive: false,
+            reduceMotion: false
+        });
+
+        fireEvent.focus(screen.getByTestId('tile-board-application'));
+        await waitFor(() => {
+            expect(screen.getByText(/Next target of moving enemy patrol Patrol Sentry, 1\/2 HP, 1 damage/i)).toBeInTheDocument();
+        });
+        rendered.unmount();
+
+        renderBoard({
+            board: {
+                ...enemyBoard,
+                enemyHazards: enemyBoard.enemyHazards!.map((hazard) => ({
+                    ...hazard,
+                    currentTileId: 'a1',
+                    nextTileId: 'a2'
+                }))
+            },
+            debugPeekActive: false,
+            interactive: true,
+            onTileSelect: vi.fn(),
+            previewActive: false,
+            reduceMotion: false
+        });
+        fireEvent.focus(screen.getByTestId('tile-board-application'));
+
+        await waitFor(() => {
+            expect(screen.getByText(/Occupied by revealed moving enemy patrol Patrol Sentry, 1\/2 HP, 1 damage/i)).toBeInTheDocument();
+        });
+    });
+
     it('exposes board grid dimensions on the frame for tests and assistive tech', () => {
         renderBoard({
             board,

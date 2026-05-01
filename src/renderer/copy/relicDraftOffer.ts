@@ -5,21 +5,21 @@
 import type { RelicId, RelicOfferState, RunState } from '../../shared/contracts';
 
 export const relicEffectLabels: Record<RelicId, string> = {
-    extra_shuffle_charge: '+1 shuffle charge (now)',
-    first_shuffle_free_per_floor: 'First shuffle each floor is free',
-    memorize_bonus_ms: 'Longer memorize phases',
-    destroy_bank_plus_one: '+1 destroy charge (now)',
+    extra_shuffle_charge: '+1 shuffle charge for trap halls (now)',
+    first_shuffle_free_per_floor: 'First shuffle each dungeon floor is free',
+    memorize_bonus_ms: 'Longer memorize phases for patrol and trap reads',
+    destroy_bank_plus_one: '+1 destroy charge for trap control (now)',
     combo_shard_plus_step: '+1 combo shard (now)',
-    memorize_under_short_memorize: '+220ms memorize when Short memorize is active',
+    memorize_under_short_memorize: '+220ms dungeon scout time when Short memorize is active',
     parasite_ward_once: 'Ignore next parasite life loss once',
-    region_shuffle_free_first: 'First row shuffle each floor is free',
-    peek_charge_plus_one: '+1 peek charge (now)',
-    stray_charge_plus_one: '+1 stray remover charge (now)',
-    pin_cap_plus_one: '+1 max pinned tiles',
-    guard_token_plus_one: '+1 guard token (now, capped)',
-    shrine_echo: 'Next relic milestone: +1 extra selection',
-    chapter_compass: 'Future Endless drafts lean harder into chapter answers',
-    wager_surety: 'Risk wagers pay +1 Favor and soften wager busts',
+    region_shuffle_free_first: 'First row shuffle each dungeon floor is free',
+    peek_charge_plus_one: '+1 peek charge for Mystery rooms (now)',
+    stray_charge_plus_one: '+1 stray remover charge for scout routes (now)',
+    pin_cap_plus_one: '+1 max pinned dungeon read',
+    guard_token_plus_one: '+1 guard token for enemy contact (now, capped)',
+    shrine_echo: 'Next relic milestone: +1 extra selection for Greed routes',
+    chapter_compass: 'Future Endless drafts lean harder into boss and chapter answers',
+    wager_surety: 'Risk wagers pay +1 Favor and soften boss-route busts',
     parasite_ledger: 'Successful parasite floors slow parasite pressure'
 };
 

@@ -17,6 +17,7 @@ import { flushSync } from 'react-dom';
 import type { BoardScreenSpaceAA, BoardState, GraphicsQualityPreset, RunStatus, Tile } from '../../shared/contracts';
 import { getFindableRewardText } from '../../shared/findables';
 import { getDungeonCardCopy } from '../../shared/dungeon-rules';
+import { getDungeonCardKnowledge } from '../../shared/dungeon-cards';
 import { routeSpecialLabel, routeSpecialRewardLine } from '../../shared/route-world';
 import { resolveAdaptiveBoardRenderQuality } from '../../shared/graphicsQuality';
 import { isNarrowShortLandscapeForMenuStack, VIEWPORT_MOBILE_MAX } from '../breakpoints';
@@ -185,7 +186,19 @@ const getDungeonCardText = (tile: Tile): string => {
     return copy ? ` ${copy}` : '';
 };
 
-const getTileAriaLabel = (tile: Tile, faceUp: boolean, row: number, column: number): string => {
+const getEnemyHazardText = (board: BoardState, tileId: string): string => {
+    const hazard = board.enemyHazards?.find((candidate) => candidate.currentTileId === tileId && candidate.state !== 'defeated');
+    if (hazard) {
+        const revealed = hazard.state === 'revealed' ? 'revealed ' : 'hidden ';
+        return ` Occupied by ${revealed}moving enemy patrol ${hazard.label}, ${hazard.hp}/${hazard.maxHp} HP, ${hazard.damage} damage.`;
+    }
+    const nextHazard = board.enemyHazards?.find((candidate) => candidate.nextTileId === tileId && candidate.state !== 'defeated');
+    return nextHazard
+        ? ` Next target of moving enemy patrol ${nextHazard.label}, ${nextHazard.hp}/${nextHazard.maxHp} HP, ${nextHazard.damage} damage.`
+        : '';
+};
+
+const getTileAriaLabel = (board: BoardState, tile: Tile, faceUp: boolean, row: number, column: number): string => {
     const base = faceUp
         ? tile.pairKey === DECOY_PAIR_KEY
             ? `Decoy trap tile, row ${row}, column ${column}. It never forms a pair.`
@@ -211,10 +224,9 @@ const getTileAriaLabel = (tile: Tile, faceUp: boolean, row: number, column: numb
                       : ''
               }`
             : '';
-    const dungeonNote = faceUp || tile.dungeonCardState === 'revealed' || tile.dungeonCardState === 'resolved'
-        ? getDungeonCardText(tile)
-        : '';
-    return `${base}${findableNote}${routeNote}${dungeonNote}`;
+    const dungeonKnowledge = getDungeonCardKnowledge(tile, faceUp);
+    const dungeonNote = dungeonKnowledge.familyKnown ? getDungeonCardText(tile) : '';
+    return `${base}${findableNote}${routeNote}${dungeonNote}${getEnemyHazardText(board, tile.id)}`;
 };
 
 const getTouchCentroid = (first: TouchPoint, second: TouchPoint): TouchPoint => ({
@@ -591,7 +603,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         const faceUp =
             tile.state !== 'hidden' || debugPeekActive || previewActive || peekSet.has(tile.id);
         const { row, column } = getTilePosition(idx, board.columns);
-        let label = getTileAriaLabel(tile, faceUp, row, column);
+        let label = getTileAriaLabel(board, tile, faceUp, row, column);
         if (
             pairProximityHintsEnabled &&
             (runStatus === 'playing' || runStatus === 'resolving') &&

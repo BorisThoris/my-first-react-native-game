@@ -1,7 +1,25 @@
-import type { FeaturedObjectiveId, LevelResult, RunState } from './contracts';
+import type { BoardState, FeaturedObjectiveId, LevelResult, RunState } from './contracts';
 import { getFeaturedObjectiveLabel } from './floor-mutator-schedule';
 
 export type SecondaryObjectiveState = 'active' | 'completed' | 'failed';
+export type LevelResultTagId =
+    | FeaturedObjectiveId
+    | 'objective_streak'
+    | 'boss_floor'
+    | 'boss_defeated'
+    | 'traps_disarmed'
+    | 'treasure_claimed'
+    | 'route_claimed'
+    | 'perfect_scout';
+
+export interface LevelResultTagDefinition {
+    id: LevelResultTagId;
+    label: string;
+    shortCopy: string;
+    journalCopy: string;
+    priority: number;
+    rewardBearing: boolean;
+}
 
 export interface SecondaryObjectiveProgress {
     id: FeaturedObjectiveId;
@@ -15,6 +33,138 @@ export interface SecondaryObjectiveProgress {
 }
 
 const flipParLimit = (pairCount: number): number => Math.ceil(pairCount * 1.25) + 2;
+
+export const LEVEL_RESULT_TAG_DEFINITIONS: Record<LevelResultTagId, LevelResultTagDefinition> = {
+    scholar_style: {
+        id: 'scholar_style',
+        label: 'Scholar style',
+        shortCopy: 'No shuffle or destroy.',
+        journalCopy: 'Cleared without spending shuffle or destroy tools.',
+        priority: 60,
+        rewardBearing: true
+    },
+    glass_witness: {
+        id: 'glass_witness',
+        label: 'Glass witness',
+        shortCopy: 'Glass decoy avoided.',
+        journalCopy: 'Kept the glass decoy out of every mismatch.',
+        priority: 55,
+        rewardBearing: true
+    },
+    cursed_last: {
+        id: 'cursed_last',
+        label: 'Cursed last',
+        shortCopy: 'Cursed pair last.',
+        journalCopy: 'Matched the cursed pair last among real pairs.',
+        priority: 55,
+        rewardBearing: true
+    },
+    flip_par: {
+        id: 'flip_par',
+        label: 'Flip par',
+        shortCopy: 'Cleared within par.',
+        journalCopy: 'Stayed within the match-resolution par for the floor.',
+        priority: 55,
+        rewardBearing: true
+    },
+    objective_streak: {
+        id: 'objective_streak',
+        label: 'Objective streak',
+        shortCopy: 'Streak bonus.',
+        journalCopy: 'Featured-objective streak paid an additional score bonus.',
+        priority: 70,
+        rewardBearing: true
+    },
+    boss_floor: {
+        id: 'boss_floor',
+        label: 'Boss floor',
+        shortCopy: 'Boss multiplier.',
+        journalCopy: 'Boss floor score multiplier applied after bonuses.',
+        priority: 80,
+        rewardBearing: true
+    },
+    boss_defeated: {
+        id: 'boss_defeated',
+        label: 'Boss defeated',
+        shortCopy: 'Boss defeated.',
+        journalCopy: 'Defeated the boss card or patrol required by the dungeon objective.',
+        priority: 100,
+        rewardBearing: false
+    },
+    traps_disarmed: {
+        id: 'traps_disarmed',
+        label: 'Traps disarmed',
+        shortCopy: 'Trap objective cleared.',
+        journalCopy: 'Resolved dungeon trap pressure before leaving the floor.',
+        priority: 90,
+        rewardBearing: false
+    },
+    treasure_claimed: {
+        id: 'treasure_claimed',
+        label: 'Treasure claimed',
+        shortCopy: 'Treasure looted.',
+        journalCopy: 'Claimed a treasure, cache, or locked reward on the floor.',
+        priority: 85,
+        rewardBearing: false
+    },
+    route_claimed: {
+        id: 'route_claimed',
+        label: 'Route claimed',
+        shortCopy: 'Route locked.',
+        journalCopy: 'Claimed a route gateway or route exit for the next floor.',
+        priority: 75,
+        rewardBearing: false
+    },
+    perfect_scout: {
+        id: 'perfect_scout',
+        label: 'Perfect scout',
+        shortCopy: 'Perfect scout.',
+        journalCopy: 'Cleared with no mistakes, no peek reveal, and no shuffle/destroy tools.',
+        priority: 65,
+        rewardBearing: false
+    }
+};
+
+const uniqueTags = (tags: readonly string[]): string[] => [...new Set(tags)];
+
+export const getDungeonLevelResultTags = (run: RunState, board: BoardState, perfect: boolean): LevelResultTagId[] => {
+    const tags: LevelResultTagId[] = [];
+    if (board.floorTag === 'boss' && (run.dungeonEnemiesDefeatedThisFloor ?? 0) > 0) {
+        tags.push('boss_defeated');
+    }
+    if ((run.dungeonTrapsResolvedThisFloor ?? 0) > 0) {
+        tags.push('traps_disarmed');
+    }
+    if (run.dungeonTreasuresOpened > 0) {
+        tags.push('treasure_claimed');
+    }
+    if (run.dungeonGatewaysUsed > 0 || board.selectedGatewayRouteType != null) {
+        tags.push('route_claimed');
+    }
+    if (
+        perfect &&
+        run.peekRevealedTileIds.length === 0 &&
+        !run.shuffleUsedThisFloor &&
+        !run.destroyUsedThisFloor
+    ) {
+        tags.push('perfect_scout');
+    }
+    return uniqueTags(tags) as LevelResultTagId[];
+};
+
+export const getLevelResultTagDefinitions = (tags: readonly string[] = []): LevelResultTagDefinition[] =>
+    uniqueTags(tags)
+        .map((id) => LEVEL_RESULT_TAG_DEFINITIONS[id as LevelResultTagId])
+        .filter((definition): definition is LevelResultTagDefinition => definition != null)
+        .sort((a, b) => b.priority - a.priority);
+
+export const getVisibleLevelResultTags = (
+    tags: readonly string[] | undefined,
+    maxVisible: number = 3
+): LevelResultTagDefinition[] => getLevelResultTagDefinitions(tags).slice(0, maxVisible);
+
+export const formatLevelResultTagLabel = (tag: string): string =>
+    LEVEL_RESULT_TAG_DEFINITIONS[tag as LevelResultTagId]?.label ?? tag;
 
 const objectiveReward = (id: FeaturedObjectiveId): string => {
     switch (id) {

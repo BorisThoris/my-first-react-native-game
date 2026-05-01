@@ -212,32 +212,32 @@ export const RELIC_CATALOG: Record<RelicId, RelicDefinition> = {
     extra_shuffle_charge: {
         id: 'extra_shuffle_charge',
         title: 'Extra shuffle charge',
-        description: 'Begin the run with one additional shuffle charge.'
+        description: 'Begin the run with one additional shuffle charge for trap halls and dense dungeon layouts.'
     },
     first_shuffle_free_per_floor: {
         id: 'first_shuffle_free_per_floor',
         title: 'First shuffle free per floor',
-        description: 'The first shuffle each floor costs no charge (once per floor).'
+        description: 'The first shuffle each dungeon floor costs no charge (once per floor).'
     },
     memorize_bonus_ms: {
         id: 'memorize_bonus_ms',
         title: 'Longer memorize window',
-        description: 'Adds memorize study time before tiles hide.'
+        description: 'Adds memorize study time before dungeon cards, patrol reads, and traps hide.'
     },
     destroy_bank_plus_one: {
         id: 'destroy_bank_plus_one',
         title: 'Destroy bank +1',
-        description: 'Increases the destroy-pair charge bank capacity.'
+        description: 'Increases the destroy-pair charge bank capacity for trap-control routes.'
     },
     combo_shard_plus_step: {
         id: 'combo_shard_plus_step',
         title: 'Combo shard head start',
-        description: 'Combo shard streak thresholds start slightly closer.'
+        description: 'Combo shard streak thresholds start slightly closer for clean dungeon floors.'
     },
     memorize_under_short_memorize: {
         id: 'memorize_under_short_memorize',
         title: 'Study cushion',
-        description: 'Adds memorize time while Short memorize is active.'
+        description: 'Adds dungeon scout time while Short memorize is active.'
     },
     parasite_ward_once: {
         id: 'parasite_ward_once',
@@ -247,44 +247,45 @@ export const RELIC_CATALOG: Record<RelicId, RelicDefinition> = {
     region_shuffle_free_first: {
         id: 'region_shuffle_free_first',
         title: 'Free row shuffle',
-        description: 'The first row shuffle each floor costs no charge.'
+        description: 'The first row shuffle each dungeon floor costs no charge.'
     },
     peek_charge_plus_one: {
         id: 'peek_charge_plus_one',
         title: 'Peek charge',
-        description: 'Gain one additional peek charge for this run.'
+        description: 'Gain one additional peek charge for Mystery rooms and hidden dungeon cards.'
     },
     stray_charge_plus_one: {
         id: 'stray_charge_plus_one',
         title: 'Stray remover charge',
-        description: 'Gain one additional stray-remover charge for this run.'
+        description: 'Gain one additional stray-remover charge for scout routes and awkward dungeon layouts.'
     },
     pin_cap_plus_one: {
         id: 'pin_cap_plus_one',
         title: 'Pin capacity',
-        description: 'Place one extra pinned tile at a time (run-wide).'
+        description: 'Place one extra pinned tile at a time for dungeon card reads (run-wide).'
     },
     guard_token_plus_one: {
         id: 'guard_token_plus_one',
         title: 'Guard token',
-        description: 'Gain one guard token toward mismatch protection (capped like normal play).'
+        description: 'Gain one guard token toward mismatch and enemy-contact protection (capped like normal play).'
     },
     shrine_echo: {
         id: 'shrine_echo',
         title: 'Shrine echo',
-        description: 'The **next** relic milestone offers **one extra selection** (reroll after each pick until spent).'
+        description:
+            'The **next** relic milestone offers **one extra selection** for Greed and treasure-route builds (reroll after each pick until spent).'
     },
     chapter_compass: {
         id: 'chapter_compass',
         title: 'Chapter compass',
         description:
-            'In scheduled Endless runs, future relic drafts lean harder into relics that answer the current or next chapter.'
+            'In scheduled Endless runs, future relic drafts lean harder into relics that answer the current or next chapter, including boss floors.'
     },
     wager_surety: {
         id: 'wager_surety',
         title: 'Wager surety',
         description:
-            'Won Endless risk wagers grant +1 extra Favor. Lost wagers keep the featured-objective streak at x1 instead of x0.'
+            'Won Endless risk wagers grant +1 extra Favor. Lost boss-route wagers keep the featured-objective streak at x1 instead of x0.'
     },
     parasite_ledger: {
         id: 'parasite_ledger',

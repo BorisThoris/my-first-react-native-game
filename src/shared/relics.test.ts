@@ -124,19 +124,43 @@ describe('effectiveRelicDraftWeight', () => {
 });
 
 describe('rollRelicOptions', () => {
-    it('REG-019 groups relics into at least three multi-relic build archetypes', () => {
+    it('DNG-051 groups relics into dungeon-facing build archetypes', () => {
         const summaries = getRelicBuildArchetypeSummaries();
-        const multiRelicArchetypes = summaries.filter((summary) => summary.relicIds.length >= 2);
 
-        expect(multiRelicArchetypes.length).toBeGreaterThanOrEqual(3);
-        expect(summaries.find((summary) => summary.id === 'combo_sustain')?.relicIds).toEqual(
-            expect.arrayContaining(['combo_shard_plus_step', 'guard_token_plus_one'])
+        expect(summaries.map((summary) => summary.id)).toEqual([
+            'guard_tank',
+            'trap_control',
+            'treasure_greed',
+            'boss_hunter',
+            'route_gambler',
+            'reveal_scout',
+            'combo_shard_engine'
+        ]);
+        expect(summaries.every((summary) => summary.relicIds.length >= 2)).toBe(true);
+        expect(summaries.every((summary) => summary.dungeonInteractions.length > 0)).toBe(true);
+        expect(
+            summaries.every((summary) => summary.supportHooks.length >= 2 || summary.deferredHooks.length > 0)
+        ).toBe(true);
+        expect(summaries.find((summary) => summary.id === 'guard_tank')?.relicIds).toEqual(
+            expect.arrayContaining(['guard_token_plus_one', 'memorize_bonus_ms'])
         );
-        expect(summaries.find((summary) => summary.id === 'safe_reveal')?.relicIds).toEqual(
-            expect.arrayContaining(['peek_charge_plus_one', 'stray_charge_plus_one'])
+        expect(summaries.find((summary) => summary.id === 'trap_control')?.relicIds).toEqual(
+            expect.arrayContaining(['extra_shuffle_charge', 'destroy_bank_plus_one'])
         );
-        expect(summaries.find((summary) => summary.id === 'risk_favor')?.relicIds).toEqual(
+        expect(summaries.find((summary) => summary.id === 'treasure_greed')?.deferredHooks.join(' ')).toContain(
+            'treasure-cache'
+        );
+        expect(summaries.find((summary) => summary.id === 'boss_hunter')?.relicIds).toEqual(
+            expect.arrayContaining(['chapter_compass', 'wager_surety'])
+        );
+        expect(summaries.find((summary) => summary.id === 'route_gambler')?.relicIds).toEqual(
             expect.arrayContaining(['shrine_echo', 'wager_surety'])
+        );
+        expect(summaries.find((summary) => summary.id === 'reveal_scout')?.relicIds).toEqual(
+            expect.arrayContaining(['peek_charge_plus_one', 'pin_cap_plus_one', 'stray_charge_plus_one'])
+        );
+        expect(summaries.find((summary) => summary.id === 'combo_shard_engine')?.relicIds).toEqual(
+            expect.arrayContaining(['combo_shard_plus_step', 'parasite_ledger'])
         );
     });
 
@@ -335,6 +359,39 @@ describe('rollRelicOptions', () => {
 
         expect(isRelicDraftEligible('region_shuffle_free_first', run)).toBe(false);
         expect(options).not.toContain('region_shuffle_free_first');
+    });
+
+    it('keeps high-value dungeon archetype synergies bounded by one-shot hooks and caps', () => {
+        const guardRun = levelCompleteRun(3, 0, {
+            stats: { ...levelCompleteRun(3, 0).stats, guardTokens: 2 }
+        });
+        expect(getRelicDraftRow('guard_token_plus_one').archetypes).toContain('guard_tank');
+
+        const echoRun = levelCompleteRun(3, 0, {
+            relicIds: ['shrine_echo'],
+            bonusRelicPicksNextOffer: 1
+        });
+        expect(getRelicDraftRow('shrine_echo').archetypes).toContain('treasure_greed');
+        expect(echoRun.bonusRelicPicksNextOffer).toBe(1);
+        expect(guardRun.stats.guardTokens).toBe(2);
+
+        const routeWager = withPendingRoute(
+            levelCompleteRun(3, 0, {
+                endlessRiskWager: {
+                    acceptedOnLevel: 3,
+                    targetLevel: 4,
+                    streakAtRisk: 3,
+                    bonusFavorOnSuccess: 1
+                }
+            }),
+            'greed'
+        );
+        expect(getRelicDraftOptionReasons(routeWager, 3, ['wager_surety'])).toEqual({
+            wager_surety: 'Protects wager'
+        });
+        expect(getRelicDraftRow('wager_surety').archetypes).toEqual(
+            expect.arrayContaining(['boss_hunter', 'route_gambler', 'treasure_greed'])
+        );
     });
 
     it('keeps Endless contextual drafts varied and valid across floors 1-24', () => {

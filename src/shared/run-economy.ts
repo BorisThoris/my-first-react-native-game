@@ -70,6 +70,15 @@ export const RUN_ECONOMY_DEFINITIONS = [
         maxValue: 3
     },
     {
+        id: 'dungeon_keys',
+        label: 'Dungeon keys',
+        bucket: 'temporary_run',
+        purpose: 'Temporary run unlock resource for dungeon exits, locks, and cache rooms.',
+        source: 'key cards, key cache rooms, shops, events, and rest shrine boss prep',
+        sink: 'spent on locked exits, locked caches, and cache rooms',
+        persistence: 'temporary_run'
+    },
+    {
         id: 'findable_pickups',
         label: 'Findable pickups',
         bucket: 'temporary_run',
@@ -114,6 +123,10 @@ const valueFor = (run: RunState, id: string): string => {
             return `${run.stats.guardTokens}/2`;
         case 'relic_favor':
             return `${run.relicFavorProgress}/3`;
+        case 'dungeon_keys': {
+            const keyCount = Object.values(run.dungeonKeys).reduce((sum, count) => sum + (count ?? 0), 0);
+            return `${keyCount} keys · ${run.dungeonMasterKeys} master`;
+        }
         case 'findable_pickups':
             return `${run.findablesClaimedThisFloor}/${run.findablesTotalThisFloor}`;
         case 'assist_charges':
@@ -135,6 +148,8 @@ const numericValueFor = (run: RunState, id: string): number => {
             return run.stats.guardTokens;
         case 'relic_favor':
             return run.relicFavorProgress;
+        case 'dungeon_keys':
+            return Object.values(run.dungeonKeys).reduce((sum, count) => sum + (count ?? 0), 0) + run.dungeonMasterKeys;
         case 'findable_pickups':
             return run.findablesClaimedThisFloor;
         case 'assist_charges':

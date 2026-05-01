@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { createNewRun, finishMemorizePhase } from './game-core';
-import { getSecondaryObjectiveProgress } from './secondary-objectives';
+import {
+    getDungeonLevelResultTags,
+    getLevelResultTagDefinitions,
+    getSecondaryObjectiveProgress,
+    getVisibleLevelResultTags,
+    LEVEL_RESULT_TAG_DEFINITIONS
+} from './secondary-objectives';
 
 describe('REG-048 secondary objective clarity', () => {
     it('explains active and failed objective states with bonus copy', () => {
@@ -38,5 +44,48 @@ describe('REG-048 secondary objective clarity', () => {
             }
         };
         expect(getSecondaryObjectiveProgress(completed)?.status).toBe('completed');
+    });
+
+    it('generates dungeon result tags from rule state without reward-bearing duplicates', () => {
+        const run = finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false }));
+        const board = {
+            ...run.board!,
+            floorTag: 'boss' as const,
+            selectedGatewayRouteType: 'greed' as const
+        };
+        const tags = getDungeonLevelResultTags(
+            {
+                ...run,
+                dungeonEnemiesDefeatedThisFloor: 1,
+                dungeonTrapsResolvedThisFloor: 2,
+                dungeonTreasuresOpened: 1,
+                dungeonGatewaysUsed: 1,
+                peekRevealedTileIds: []
+            },
+            board,
+            true
+        );
+
+        expect(tags).toEqual([
+            'boss_defeated',
+            'traps_disarmed',
+            'treasure_claimed',
+            'route_claimed',
+            'perfect_scout'
+        ]);
+        expect(getLevelResultTagDefinitions(tags).every((tag) => !tag.rewardBearing)).toBe(true);
+        expect(LEVEL_RESULT_TAG_DEFINITIONS.boss_floor.rewardBearing).toBe(true);
+    });
+
+    it('prioritizes the top three visible result tags for floor-clear copy', () => {
+        const visible = getVisibleLevelResultTags([
+            'flip_par',
+            'boss_floor',
+            'traps_disarmed',
+            'treasure_claimed',
+            'perfect_scout'
+        ]);
+
+        expect(visible.map((tag) => tag.id)).toEqual(['traps_disarmed', 'treasure_claimed', 'boss_floor']);
     });
 });

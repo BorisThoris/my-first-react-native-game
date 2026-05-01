@@ -1,4 +1,5 @@
 import {
+    type DungeonKeyKind,
     MAX_COMBO_SHARDS,
     MAX_DESTROY_PAIR_BANK,
     MAX_GUARD_TOKENS,
@@ -10,7 +11,9 @@ export type RunInventoryItemId =
     | 'region_shuffle_charge'
     | 'destroy_charge'
     | 'peek_charge'
-    | 'stray_remove'
+    | 'stray_remove_charge'
+    | 'iron_key'
+    | 'master_key'
     | 'guard_token'
     | 'combo_shard'
     | 'relic_loadout'
@@ -93,14 +96,32 @@ export const RUN_INVENTORY_CATALOG: Record<RunInventoryItemId, RunInventoryDefin
         source: 'Run start, relics, and shop services.',
         useRule: 'Spend during play to reveal tiles without committing flips.'
     },
-    stray_remove: {
-        id: 'stray_remove',
+    stray_remove_charge: {
+        id: 'stray_remove_charge',
         kind: 'consumable',
         label: 'Stray remover',
         stackLimit: null,
         mutableAt: 'mid_run',
         source: 'Wild/practice setup and relics.',
         useRule: 'Spend during play to remove one hidden stray tile from the board.'
+    },
+    iron_key: {
+        id: 'iron_key',
+        kind: 'consumable',
+        label: 'Dungeon key',
+        stackLimit: null,
+        mutableAt: 'shop_or_rest',
+        source: 'Key cards, locked caches, shops, events, and treasure rooms.',
+        useRule: 'Spent from the run-only key ring on matching locked exits, cache doors, and treasure locks.'
+    },
+    master_key: {
+        id: 'master_key',
+        kind: 'consumable',
+        label: 'Master key',
+        stackLimit: null,
+        mutableAt: 'shop_or_rest',
+        source: 'Deep shops, boss prep shrines, and rare treasure rewards.',
+        useRule: 'Spent once to open any locked dungeon exit, cache door, or treasure lock.'
     },
     guard_token: {
         id: 'guard_token',
@@ -159,8 +180,12 @@ const quantityFor = (run: RunState, id: RunInventoryItemId): number => {
             return run.destroyPairCharges;
         case 'peek_charge':
             return run.peekCharges;
-        case 'stray_remove':
+        case 'stray_remove_charge':
             return run.strayRemoveCharges;
+        case 'iron_key':
+            return Object.values(run.dungeonKeys).reduce((sum, count) => sum + (count ?? 0), 0);
+        case 'master_key':
+            return run.dungeonMasterKeys;
         case 'guard_token':
             return run.stats.guardTokens;
         case 'combo_shard':
@@ -253,10 +278,92 @@ export const buildRunInventory = (run: RunState): RunInventorySnapshot => ({
     offlineOnly: true,
     consumables: getRunConsumableRows(run)
         .filter((row) => row.id !== 'guard_token' && row.id !== 'combo_shard')
-        .map((row) => (row.id === 'stray_remove' ? { ...row, id: 'stray_remove_charge' as RunInventoryItemId } : row))
         .map((row) => ({ ...row, quantity: Math.min(row.quantity, row.maxStack) })),
     loadout: getRunInventoryLoadoutRows(run)
 });
+
+export interface RunInventoryActionResult {
+    run: RunState;
+    itemId: RunInventoryItemId;
+    applied: boolean;
+    reason?: 'unavailable' | 'not_usable';
+}
+
+const KEY_SPEND_ORDER: DungeonKeyKind[] = ['iron', 'treasure', 'shrine', 'boss', 'trap'];
+
+export const gainRunInventoryItem = (
+    run: RunState,
+    itemId: RunInventoryItemId,
+    amount: number = 1
+): RunState => {
+    const gain = Math.max(0, Math.floor(amount));
+    if (gain <= 0) {
+        return run;
+    }
+    switch (itemId) {
+        case 'shuffle_charge':
+            return { ...run, shuffleCharges: run.shuffleCharges + gain };
+        case 'region_shuffle_charge':
+            return { ...run, regionShuffleCharges: run.regionShuffleCharges + gain };
+        case 'destroy_charge':
+            return { ...run, destroyPairCharges: Math.min(MAX_DESTROY_PAIR_BANK, run.destroyPairCharges + gain) };
+        case 'peek_charge':
+            return { ...run, peekCharges: run.peekCharges + gain };
+        case 'stray_remove_charge':
+            return { ...run, strayRemoveCharges: run.strayRemoveCharges + gain };
+        case 'iron_key':
+            return { ...run, dungeonKeys: { ...run.dungeonKeys, iron: (run.dungeonKeys.iron ?? 0) + gain } };
+        case 'master_key':
+            return { ...run, dungeonMasterKeys: run.dungeonMasterKeys + gain };
+        case 'guard_token':
+            return { ...run, stats: { ...run.stats, guardTokens: Math.min(MAX_GUARD_TOKENS, run.stats.guardTokens + gain) } };
+        case 'combo_shard':
+            return { ...run, stats: { ...run.stats, comboShards: Math.min(MAX_COMBO_SHARDS, run.stats.comboShards + gain) } };
+        default:
+            return run;
+    }
+};
+
+export const useRunInventoryItem = (run: RunState, itemId: RunInventoryItemId): RunInventoryActionResult => {
+    const row = getRunInventoryRows(run).find((item) => item.id === itemId);
+    if (!row || !row.available) {
+        return { run, itemId, applied: false, reason: 'unavailable' };
+    }
+    switch (itemId) {
+        case 'shuffle_charge':
+            return run.freeShuffleThisFloor
+                ? { run: { ...run, freeShuffleThisFloor: false }, itemId, applied: true }
+                : { run: { ...run, shuffleCharges: Math.max(0, run.shuffleCharges - 1) }, itemId, applied: true };
+        case 'region_shuffle_charge':
+            return run.regionShuffleFreeThisFloor
+                ? { run: { ...run, regionShuffleFreeThisFloor: false }, itemId, applied: true }
+                : { run: { ...run, regionShuffleCharges: Math.max(0, run.regionShuffleCharges - 1) }, itemId, applied: true };
+        case 'destroy_charge':
+            return { run: { ...run, destroyPairCharges: Math.max(0, run.destroyPairCharges - 1) }, itemId, applied: true };
+        case 'peek_charge':
+            return { run: { ...run, peekCharges: Math.max(0, run.peekCharges - 1) }, itemId, applied: true };
+        case 'stray_remove_charge':
+            return { run: { ...run, strayRemoveCharges: Math.max(0, run.strayRemoveCharges - 1) }, itemId, applied: true };
+        case 'iron_key': {
+            const spendKind = KEY_SPEND_ORDER.find((kind) => (run.dungeonKeys[kind] ?? 0) > 0);
+            if (!spendKind) {
+                return { run, itemId, applied: false, reason: 'unavailable' };
+            }
+            return {
+                run: {
+                    ...run,
+                    dungeonKeys: { ...run.dungeonKeys, [spendKind]: Math.max(0, (run.dungeonKeys[spendKind] ?? 0) - 1) }
+                },
+                itemId,
+                applied: true
+            };
+        }
+        case 'master_key':
+            return { run: { ...run, dungeonMasterKeys: Math.max(0, run.dungeonMasterKeys - 1) }, itemId, applied: true };
+        default:
+            return { run, itemId, applied: false, reason: 'not_usable' };
+    }
+};
 
 export const getRunLoadoutSummary = (run: RunState): {
     equipped: number;

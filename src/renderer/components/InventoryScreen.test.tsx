@@ -8,7 +8,7 @@ vi.mock('zustand/react/shallow', () => ({
 }));
 
 const closeSubscreen = vi.fn();
-const run = createNewRun(0);
+const run = { ...createNewRun(0), dungeonKeys: { iron: 1 }, dungeonMasterKeys: 1 };
 
 vi.mock('../store/useAppStore', () => ({
     useAppStore: Object.assign(
@@ -38,6 +38,8 @@ describe('InventoryScreen REG-079 run inventory model', () => {
         expect(screen.getByRole('heading', { name: 'Run consumables and loadout' })).toBeInTheDocument();
         expect(screen.getByText(/Mid-run mutable/)).toBeInTheDocument();
         expect(screen.getByText(/Shuffle charge:/)).toBeInTheDocument();
+        expect(screen.getByText(/Dungeon key:/)).toBeInTheDocument();
+        expect(screen.getByText(/Master key:/)).toBeInTheDocument();
         expect(screen.getByText(/Loadout slots/)).toBeInTheDocument();
         expect(screen.getByTestId('inventory-prep-strip')).toHaveTextContent(/Run prep snapshot/);
         expect(screen.getByTestId('inventory-prep-strip')).toHaveTextContent(/Mutable windows/);

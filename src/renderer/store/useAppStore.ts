@@ -1232,7 +1232,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
 
         const pressedTile = run.board?.tiles.find((tile) => tile.id === tileId) ?? null;
-        const hazardRun = applyEnemyHazardClick(run, tileId);
+        const flippedBefore = run.board?.flippedTileIds.length ?? 0;
+        const hazardRun = applyEnemyHazardClick(run, tileId, { advanceHazards: flippedBefore === 0 });
         if (hazardRun !== run) {
             void resumeAudioContext();
             playResolveSfx(run, hazardRun, sfxGainFromStore());
@@ -1248,6 +1249,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             }
             return;
         }
+
         if (pressedTile?.pairKey === EXIT_PAIR_KEY) {
             const nextRun = revealDungeonExit(run, tileId);
             if (nextRun !== run) {
@@ -1342,7 +1344,6 @@ export const useAppStore = create<AppState>((set, get) => ({
             return;
         }
 
-        const flippedBefore = run.board?.flippedTileIds.length ?? 0;
         const nextRun = flipTile(run, tileId);
 
         if (nextRun === run) {
@@ -1355,7 +1356,12 @@ export const useAppStore = create<AppState>((set, get) => ({
             playFlipSfx(sfxGainFromStore());
         }
 
-        set({ run: nextRun, peekModeArmed: false });
+        set({
+            run: nextRun,
+            boardPinMode: false,
+            destroyPairArmed: false,
+            peekModeArmed: false
+        });
 
         if (nextRun.status === 'resolving' && nextRun.timerState.resolveRemainingMs !== null) {
             scheduleResolveTimer(nextRun.timerState.resolveRemainingMs);

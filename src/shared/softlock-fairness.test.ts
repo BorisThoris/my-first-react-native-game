@@ -32,6 +32,7 @@ import {
 import { DAILY_MUTATOR_TABLE } from './mutators';
 
 const DECOY_PAIR_KEY = '__decoy__';
+const EXIT_PAIR_KEY = '__exit__';
 
 const testSeeds = [1, 42_001, 867_5309] as const;
 
@@ -204,6 +205,111 @@ describe('REG-087 board fairness inspection', () => {
         expect(isBoardComplete(board)).toBe(true);
         expect(inspectBoardFairness(board).complete).toBe(true);
         expect(inspectBoardFairness(board).issues).toEqual([]);
+    });
+
+    it('flags declared exits that point at missing or non-exit cards', () => {
+        const missingExit = boardFromTiles([tile('a1', 'a'), tile('a2', 'a')], {
+            dungeonExitTileId: 'missing-exit'
+        });
+        expect(issueCodes(missingExit)).toEqual(
+            expect.arrayContaining(['exit_card_missing', 'exit_tile_reference_missing'])
+        );
+
+        const mismatchedExit = boardFromTiles([tile('a1', 'a'), tile('a2', 'a')], {
+            dungeonExitTileId: 'a1'
+        });
+        expect(issueCodes(mismatchedExit)).toEqual(
+            expect.arrayContaining(['exit_card_missing', 'exit_card_mismatch'])
+        );
+    });
+
+    it('flags lever-locked exits when the required levers cannot be reached', () => {
+        const board = boardFromTiles(
+            [
+                tile('a1', 'a'),
+                tile('a2', 'a'),
+                {
+                    ...tile('exit', EXIT_PAIR_KEY),
+                    dungeonCardKind: 'exit',
+                    dungeonExitLockKind: 'lever',
+                    dungeonExitRequiredLeverCount: 2
+                }
+            ],
+            {
+                pairCount: 1,
+                dungeonExitTileId: 'exit',
+                dungeonExitLockKind: 'lever',
+                dungeonExitRequiredLeverCount: 2,
+                dungeonLeverCount: 0
+            }
+        );
+
+        expect(issueCodes(board)).toContain('exit_lock_unreachable');
+        expect(inspectBoardFairness(board).hasCompletionRoute).toBe(false);
+    });
+
+    it('flags inconsistent dungeon pair metadata and enemy HP mirrors', () => {
+        const kindMismatch = boardFromTiles([
+            { ...tile('e1', 'enemy'), dungeonCardKind: 'enemy', dungeonCardEffectId: 'enemy_sentry', dungeonCardHp: 2, dungeonCardMaxHp: 2 },
+            { ...tile('e2', 'enemy'), dungeonCardKind: 'trap', dungeonCardEffectId: 'trap_alarm' }
+        ]);
+        expect(issueCodes(kindMismatch)).toContain('dungeon_card_pair_mismatch');
+
+        const hpMismatch = boardFromTiles([
+            { ...tile('e1', 'enemy'), dungeonCardKind: 'enemy', dungeonCardEffectId: 'enemy_sentry', dungeonCardHp: 2, dungeonCardMaxHp: 2 },
+            { ...tile('e2', 'enemy'), dungeonCardKind: 'enemy', dungeonCardEffectId: 'enemy_sentry', dungeonCardHp: 1, dungeonCardMaxHp: 2 }
+        ]);
+        expect(issueCodes(hpMismatch)).toContain('dungeon_card_hp_mismatch');
+    });
+
+    it('flags active enemy hazards with stale or cleared tile references', () => {
+        const missingRef = boardFromTiles([tile('a1', 'a'), tile('a2', 'a')], {
+            enemyHazards: [
+                {
+                    id: 'hazard-1',
+                    kind: 'sentinel',
+                    label: 'Sentinel',
+                    currentTileId: 'missing',
+                    nextTileId: 'a1',
+                    pattern: 'patrol',
+                    state: 'hidden',
+                    damage: 1,
+                    hp: 1,
+                    maxHp: 1
+                }
+            ]
+        });
+        expect(issueCodes(missingRef)).toContain('enemy_hazard_tile_reference_missing');
+
+        const clearedRef = boardFromTiles([tile('a1', 'a', 'matched'), tile('a2', 'a', 'matched')], {
+            matchedPairs: 1,
+            enemyHazards: [
+                {
+                    id: 'hazard-2',
+                    kind: 'sentinel',
+                    label: 'Sentinel',
+                    currentTileId: 'a1',
+                    nextTileId: 'a2',
+                    pattern: 'patrol',
+                    state: 'revealed',
+                    damage: 1,
+                    hp: 1,
+                    maxHp: 1
+                }
+            ]
+        });
+        expect(issueCodes(clearedRef)).toContain('enemy_hazard_on_cleared_tile');
+    });
+
+    it('flags defeat-boss objectives without any boss card or hazard route', () => {
+        const board = boardFromTiles([tile('a1', 'a'), tile('a2', 'a')], {
+            dungeonObjectiveId: 'defeat_boss',
+            dungeonBossId: null,
+            enemyHazards: []
+        });
+
+        expect(issueCodes(board)).toContain('dungeon_objective_unreachable');
+        expect(inspectBoardFairness(board).hasCompletionRoute).toBe(false);
     });
 });
 

@@ -34,7 +34,7 @@ import {
     type MeshStandardMaterial,
     type ShaderMaterial
 } from 'three';
-import type { BoardState, GraphicsQualityPreset, RunStatus, Tile } from '../../shared/contracts';
+import type { BoardState, EnemyHazardState, GraphicsQualityPreset, RunStatus, Tile } from '../../shared/contracts';
 import { WILD_PAIR_KEY } from '../../shared/tile-identity';
 import { getPairProximityGridDistance } from '../../shared/pairProximityHint';
 import { getBoardAnisotropyCap } from '../../shared/graphicsQuality';
@@ -315,11 +315,98 @@ interface TileTransform {
     seed: number;
 }
 
+interface EnemyHazardMarkerProps {
+    hazard: EnemyHazardState;
+    currentTransform: TileTransform;
+    nextTransform: TileTransform | null;
+    reduceMotion: boolean;
+}
+
+const enemyHazardColor = (hazard: EnemyHazardState): string => {
+    if (hazard.bossId) return '#ffcf66';
+    if (hazard.kind === 'stalker') return '#9cb7ff';
+    if (hazard.kind === 'warden') return '#f2d39d';
+    if (hazard.kind === 'observer') return '#87d8ee';
+    return '#ff9f86';
+};
+
+const EnemyHazardMarker = ({ hazard, currentTransform, nextTransform, reduceMotion }: EnemyHazardMarkerProps) => {
+    const groupRef = useRef<Group | null>(null);
+    const color = enemyHazardColor(hazard);
+    const healthRatio = hazard.maxHp > 0 ? MathUtils.clamp(hazard.hp / hazard.maxHp, 0, 1) : 0;
+    const scale = (hazard.bossId ? 1.35 : 1) * (0.82 + healthRatio * 0.18);
+
+    useLayoutEffect(() => {
+        const group = groupRef.current;
+        if (!group) return;
+        group.position.set(
+            currentTransform.baseX + currentTransform.imperfectionX + currentTransform.layoutJitterX,
+            currentTransform.baseY + currentTransform.imperfectionY + currentTransform.layoutJitterY,
+            ENEMY_MARKER_Z
+        );
+        group.scale.setScalar(scale);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps -- first render seeds the animated marker at its current tile
+
+    useFrame((state, delta) => {
+        const group = groupRef.current;
+        if (!group) return;
+        const bob = reduceMotion ? 0 : Math.sin(state.clock.elapsedTime * 2.1 + currentTransform.seed * 0.017) * 0.025;
+        const x = currentTransform.baseX + currentTransform.imperfectionX + currentTransform.layoutJitterX;
+        const y = currentTransform.baseY + currentTransform.imperfectionY + currentTransform.layoutJitterY + bob;
+        const z = ENEMY_MARKER_Z + (hazard.state === 'revealed' ? 0.035 : 0);
+        if (reduceMotion) {
+            group.position.set(x, y, z);
+        } else {
+            group.position.x = MathUtils.damp(group.position.x, x, 8.5, delta);
+            group.position.y = MathUtils.damp(group.position.y, y, 8.5, delta);
+            group.position.z = MathUtils.damp(group.position.z, z, 9.5, delta);
+            group.rotation.z += delta * (hazard.bossId ? 0.7 : 1.05);
+        }
+        group.scale.setScalar(scale);
+    });
+
+    return (
+        <>
+            {nextTransform ? (
+                <mesh
+                    geometry={ENEMY_NEXT_MARKER_GEOMETRY}
+                    position={[
+                        nextTransform.baseX + nextTransform.imperfectionX + nextTransform.layoutJitterX,
+                        nextTransform.baseY + nextTransform.imperfectionY + nextTransform.layoutJitterY,
+                        ENEMY_MARKER_Z - 0.055
+                    ]}
+                    rotation={[0, 0, Math.PI / 4]}
+                    scale={hazard.bossId ? 1.12 : 0.9}
+                >
+                    <meshBasicMaterial
+                        color={color}
+                        depthWrite={false}
+                        opacity={reduceMotion ? 0.22 : 0.32}
+                        toneMapped={false}
+                        transparent
+                    />
+                </mesh>
+            ) : null}
+            <group ref={groupRef}>
+                <mesh geometry={ENEMY_MARKER_GEOMETRY} rotation={[0, 0, Math.PI / 4]}>
+                    <meshBasicMaterial color={color} depthWrite={false} opacity={0.88} toneMapped={false} transparent />
+                </mesh>
+                <mesh geometry={ENEMY_MARKER_GEOMETRY} rotation={[0, 0, Math.PI / 4]} scale={1.42}>
+                    <meshBasicMaterial color={color} depthWrite={false} opacity={0.18} toneMapped={false} transparent />
+                </mesh>
+            </group>
+        </>
+    );
+};
+
 const CARD_WIDTH = CARD_PLANE_WIDTH;
 const CARD_HEIGHT = CARD_PLANE_HEIGHT;
 const CARD_FACE_INSET = 0.016;
 const CARD_FACE_WIDTH = CARD_WIDTH - CARD_FACE_INSET * 2;
 const CARD_FACE_HEIGHT = CARD_HEIGHT - CARD_FACE_INSET * 2;
+const ENEMY_MARKER_GEOMETRY = new PlaneGeometry(0.22, 0.22, 1, 1);
+const ENEMY_NEXT_MARKER_GEOMETRY = new PlaneGeometry(0.32, 0.32, 1, 1);
+const ENEMY_MARKER_Z = 0.22;
 
 /** FX-006: thin quads approximating DOM `0 0 0 2px` gold ring on the visible back face while hidden. */
 const HOVER_GOLD_RIM_STRIP = 0.0036;
@@ -2779,6 +2866,25 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
 
         return [...keys];
     }, [tileBezelRows, flipLocked, interactionSuppressed, interactive]);
+    const enemyHazardRows = useMemo(() => {
+        const byTileId = new Map(tileBezelRows.map((row) => [row.tile.id, row.transform]));
+        return (board.enemyHazards ?? [])
+            .filter((hazard) => hazard.state !== 'defeated')
+            .map((hazard) => {
+                const currentTransform = byTileId.get(hazard.currentTileId) ?? null;
+                if (!currentTransform) {
+                    return null;
+                }
+                return {
+                    hazard,
+                    currentTransform,
+                    nextTransform: byTileId.get(hazard.nextTileId) ?? null
+                };
+            })
+            .filter((row): row is { hazard: EnemyHazardState; currentTransform: TileTransform; nextTransform: TileTransform | null } =>
+                row != null
+            );
+    }, [board.enemyHazards, tileBezelRows]);
     const boardGroupRef = useRef<Group | null>(null);
     const pickRaycasterRef = useRef<Raycaster>(new Raycaster());
     const pickPointerRef = useRef<Vector2>(new Vector2());
@@ -3154,6 +3260,15 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                         />
                     )
                 )}
+                {enemyHazardRows.map(({ hazard, currentTransform, nextTransform }) => (
+                    <EnemyHazardMarker
+                        key={hazard.id}
+                        currentTransform={currentTransform}
+                        hazard={hazard}
+                        nextTransform={nextTransform}
+                        reduceMotion={reduceMotion}
+                    />
+                ))}
             </group>
         </>
         </TilePickMeshRegistryContext.Provider>

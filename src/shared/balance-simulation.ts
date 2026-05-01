@@ -1,4 +1,4 @@
-import { GAME_RULES_VERSION, type MutatorId } from './contracts';
+import { GAME_RULES_VERSION, type DungeonRunNodeKind, type MutatorId } from './contracts';
 import { buildBoard, countFindablePairs } from './board-generation';
 import { getShopGoldRewardForFloor, SHOP_ITEM_CATALOG } from './shop-rules';
 import { pickFloorScheduleEntry, usesEndlessFloorSchedule } from './floor-mutator-schedule';
@@ -32,14 +32,37 @@ export interface BalanceSimulationReport {
         shopGoldEarned: number;
         findablePickupPairs: number;
         floorTag: string;
+        dungeonNodeKind: DungeonRunNodeKind;
         shopSinkBudget: number;
+        enemyThreatPairs: number;
+        movingEnemyHazards: number;
+        bossMovingEnemyHazards: number;
+        contactRisk: number;
+        floorBand: 'early' | 'mid' | 'late';
+        relicFavorPotential: number;
+        comboShardPotential: number;
+        guardRewardPotential: number;
+        relicOfferAvailable: number;
+        consumableRewardPotential: number;
+        treasureRewardPairs: number;
     }>;
     aggregate: {
         totalShopGoldEarned: number;
         findablePickupPairs: number;
         bossFloors: number;
         breatherFloors: number;
+        eliteFloors: number;
+        enemyThreatPairs: number;
+        movingEnemyHazards: number;
+        bossMovingEnemyHazards: number;
+        contactRisk: number;
         shopSinkBudget: number;
+        relicFavorPotential: number;
+        comboShardPotential: number;
+        guardRewardPotential: number;
+        relicOfferAvailable: number;
+        consumableRewardPotential: number;
+        treasureRewardPairs: number;
     };
     rows: BalanceSimulationRow[];
     notes: string[];
@@ -83,6 +106,20 @@ const relicRarityShare = (rarity: RelicDraftRarity): number => {
     return total === 0 ? 0 : rarityTotal / total;
 };
 
+const simulationNodeKindForFloor = (floor: number, floorTag: string): DungeonRunNodeKind => {
+    if (floorTag === 'boss') return 'boss';
+    if (floorTag === 'breather') return floor % 3 === 0 ? 'shop' : 'rest';
+    if (floor % 5 === 0) return 'trap';
+    if (floor % 2 === 0) return 'elite';
+    return 'combat';
+};
+
+const floorBandFor = (floor: number): 'early' | 'mid' | 'late' =>
+    floor <= 4 ? 'early' : floor <= 8 ? 'mid' : 'late';
+
+const uniquePairCount = <T>(items: readonly T[], keyFor: (item: T) => string | null): number =>
+    new Set(items.map(keyFor).filter((key): key is string => key != null)).size;
+
 export const runBalanceSimulation = ({
     seeds,
     seed,
@@ -96,19 +133,54 @@ export const runBalanceSimulation = ({
     const samples = safeSeeds.flatMap((sampleSeed) =>
         floorNumbers.map((floor) => {
             const schedule = pickFloorScheduleEntry(sampleSeed, rulesVersion, floor, 'endless');
+            const dungeonNodeKind = simulationNodeKindForFloor(floor, schedule.floorTag);
+            const board = buildBoard(floor, {
+                runSeed: sampleSeed,
+                runRulesVersion: rulesVersion,
+                floorTag: schedule.floorTag,
+                floorArchetypeId: schedule.floorArchetypeId,
+                dungeonNodeKind,
+                gameMode: 'endless',
+                activeMutators: scheduleMutatorsFor(sampleSeed, rulesVersion, floor)
+            });
+            const activeHazards = board.enemyHazards?.filter((hazard) => hazard.state !== 'defeated') ?? [];
+            const enemyThreatPairs = new Set(
+                board.tiles
+                    .filter((tile) => tile.dungeonCardKind === 'enemy' || tile.dungeonCardKind === 'trap')
+                    .map((tile) => tile.pairKey)
+            ).size;
+            const treasureRewardPairs = uniquePairCount(
+                board.tiles,
+                (tile) => (tile.dungeonCardKind === 'treasure' || tile.dungeonCardKind === 'lock' ? tile.pairKey : null)
+            );
+            const keyPairs = uniquePairCount(board.tiles, (tile) => (tile.dungeonCardKind === 'key' ? tile.pairKey : null));
+            const shrinePairs = uniquePairCount(
+                board.tiles,
+                (tile) => (tile.dungeonCardKind === 'shrine' ? tile.pairKey : null)
+            );
+            const routeRewardPairs = uniquePairCount(
+                board.tiles,
+                (tile) => (tile.routeCardKind || tile.routeSpecialKind ? tile.pairKey : null)
+            );
             return {
                 seed: sampleSeed,
                 floor,
                 shopGoldEarned: getShopGoldRewardForFloor(floor),
-                findablePickupPairs: countFindablePairs(
-                    buildBoard(floor, {
-                        runSeed: sampleSeed,
-                        runRulesVersion: rulesVersion,
-                        activeMutators: scheduleMutatorsFor(sampleSeed, rulesVersion, floor)
-                    }).tiles
-                ),
+                findablePickupPairs: countFindablePairs(board.tiles),
                 floorTag: schedule.floorTag,
-                shopSinkBudget: floor % 3 === 0 ? shopSinkPerVisit : 0
+                dungeonNodeKind,
+                shopSinkBudget: floor % 3 === 0 ? shopSinkPerVisit : 0,
+                enemyThreatPairs,
+                movingEnemyHazards: activeHazards.length,
+                bossMovingEnemyHazards: activeHazards.filter((hazard) => hazard.bossId != null).length,
+                contactRisk: activeHazards.reduce((sum, hazard) => sum + hazard.damage, 0),
+                floorBand: floorBandFor(floor),
+                relicFavorPotential: schedule.featuredObjectiveId != null ? (schedule.floorTag === 'boss' ? 2 : 1) : 0,
+                comboShardPotential: countFindablePairs(board.tiles) + (routeRewardPairs > 0 ? 1 : 0),
+                guardRewardPotential: shrinePairs + (dungeonNodeKind === 'rest' ? 1 : 0),
+                relicOfferAvailable: floor >= 3 && floor % 3 === 0 ? 1 : 0,
+                consumableRewardPotential: keyPairs + (floor % 3 === 0 ? SHOP_ITEM_CATALOG.peek_charge.stock : 0),
+                treasureRewardPairs
             };
         })
     );
@@ -116,19 +188,25 @@ export const runBalanceSimulation = ({
         floorNumbers.reduce((sum, floor) => sum + getShopGoldRewardForFloor(floor), 0)
     );
     const shopVisits = floorNumbers.filter((floor) => floor % 3 === 0).length;
-    const findableCounts = safeSeeds.flatMap((seed) =>
-        floorNumbers.map((floor) =>
-            countFindablePairs(
-                buildBoard(floor, {
-                    runSeed: seed,
-                    runRulesVersion: rulesVersion,
-                    activeMutators: scheduleMutatorsFor(seed, rulesVersion, floor)
-                }).tiles
-            )
-        )
-    );
+    const findableCounts = samples.map((sample) => sample.findablePickupPairs);
     const bossFloors = safeSeeds.flatMap((seed) =>
         floorNumbers.map((floor) => pickFloorScheduleEntry(seed, rulesVersion, floor, 'endless').floorTag === 'boss' ? 1 : 0)
+    );
+    const movingHazardCounts = samples.map((sample) => sample.movingEnemyHazards);
+    const contactRiskCounts = samples.map((sample) => sample.contactRisk);
+    const rewardTotalsByBand = samples.reduce<Record<'early' | 'mid' | 'late', number>>(
+        (totals, sample) => ({
+            ...totals,
+            [sample.floorBand]:
+                totals[sample.floorBand] +
+                sample.shopGoldEarned +
+                sample.relicFavorPotential +
+                sample.comboShardPotential +
+                sample.guardRewardPotential +
+                sample.consumableRewardPotential +
+                sample.treasureRewardPairs
+        }),
+        { early: 0, mid: 0, late: 0 }
     );
 
     const rows = [
@@ -165,12 +243,92 @@ export const runBalanceSimulation = ({
             'pickFloorScheduleEntry'
         ),
         row(
+            'avg_moving_enemy_hazards_per_floor',
+            'Average moving enemy patrol overlays per floor',
+            Number(average(movingHazardCounts).toFixed(2)),
+            0.6,
+            1.6,
+            'buildBoard enemyHazards'
+        ),
+        row(
+            'avg_contact_risk_per_floor',
+            'Average moving enemy contact damage per floor',
+            Number(average(contactRiskCounts).toFixed(2)),
+            0.6,
+            1.6,
+            'EnemyHazardState damage'
+        ),
+        row(
+            'elite_route_node_share',
+            'Elite route node share in simulation sample',
+            Number(average(samples.map((sample) => (sample.dungeonNodeKind === 'elite' ? 1 : 0))).toFixed(2)),
+            0.15,
+            0.35,
+            'simulationNodeKindForFloor'
+        ),
+        row(
             'rare_relic_weight_share',
             'Rare relic draft weight share',
             Number(relicRarityShare('rare').toFixed(2)),
             0.1,
             0.25,
             'RELIC_DRAFT weights'
+        ),
+        row(
+            'avg_relic_favor_potential_per_floor',
+            'Average featured-objective Favor potential per floor',
+            Number(average(samples.map((sample) => sample.relicFavorPotential)).toFixed(2)),
+            0.4,
+            1.2,
+            'featured objective schedule'
+        ),
+        row(
+            'avg_combo_shard_potential_per_floor',
+            'Average combo shard potential per floor',
+            Number(average(samples.map((sample) => sample.comboShardPotential)).toFixed(2)),
+            1,
+            3,
+            'findables and route reward pairs'
+        ),
+        row(
+            'avg_guard_reward_potential_per_floor',
+            'Average guard reward potential per floor',
+            Number(average(samples.map((sample) => sample.guardRewardPotential)).toFixed(2)),
+            0.1,
+            1.5,
+            'shrine pairs and rest nodes'
+        ),
+        row(
+            'relic_offer_cadence',
+            'Relic offer cadence per simulated seed',
+            Number(average(safeSeeds.map(() => floorNumbers.filter((floor) => floor >= 3 && floor % 3 === 0).length)).toFixed(2)),
+            Math.floor(safeFloors / 4),
+            Math.ceil(safeFloors / 2),
+            'relic milestone cadence'
+        ),
+        row(
+            'avg_consumable_reward_potential_per_floor',
+            'Average consumable reward potential per floor',
+            Number(average(samples.map((sample) => sample.consumableRewardPotential)).toFixed(2)),
+            0.2,
+            2,
+            'key cards and shop stock'
+        ),
+        row(
+            'avg_treasure_reward_pairs_per_floor',
+            'Average treasure/cache pairs per floor',
+            Number(average(samples.map((sample) => sample.treasureRewardPairs)).toFixed(2)),
+            0.1,
+            2,
+            'treasure and lock card pairs'
+        ),
+        row(
+            'reward_band_spread',
+            'Reward-source spread across early/mid/late bands',
+            Number((Math.min(...Object.values(rewardTotalsByBand)) / Math.max(1, Math.max(...Object.values(rewardTotalsByBand)))).toFixed(2)),
+            0.35,
+            1,
+            'floor-band reward totals'
         )
     ];
 
@@ -185,7 +343,18 @@ export const runBalanceSimulation = ({
             findablePickupPairs: samples.reduce((sum, sample) => sum + sample.findablePickupPairs, 0),
             bossFloors: samples.filter((sample) => sample.floorTag === 'boss').length,
             breatherFloors: samples.filter((sample) => sample.floorTag === 'breather').length,
-            shopSinkBudget: samples.reduce((sum, sample) => sum + sample.shopSinkBudget, 0)
+            eliteFloors: samples.filter((sample) => sample.dungeonNodeKind === 'elite').length,
+            enemyThreatPairs: samples.reduce((sum, sample) => sum + sample.enemyThreatPairs, 0),
+            movingEnemyHazards: samples.reduce((sum, sample) => sum + sample.movingEnemyHazards, 0),
+            bossMovingEnemyHazards: samples.reduce((sum, sample) => sum + sample.bossMovingEnemyHazards, 0),
+            contactRisk: samples.reduce((sum, sample) => sum + sample.contactRisk, 0),
+            shopSinkBudget: samples.reduce((sum, sample) => sum + sample.shopSinkBudget, 0),
+            relicFavorPotential: samples.reduce((sum, sample) => sum + sample.relicFavorPotential, 0),
+            comboShardPotential: samples.reduce((sum, sample) => sum + sample.comboShardPotential, 0),
+            guardRewardPotential: samples.reduce((sum, sample) => sum + sample.guardRewardPotential, 0),
+            relicOfferAvailable: samples.reduce((sum, sample) => sum + sample.relicOfferAvailable, 0),
+            consumableRewardPotential: samples.reduce((sum, sample) => sum + sample.consumableRewardPotential, 0),
+            treasureRewardPairs: samples.reduce((sum, sample) => sum + sample.treasureRewardPairs, 0)
         },
         rows,
         notes: [

@@ -116,17 +116,22 @@ interface GameScreenProps {
     suppressStatusOverlays?: boolean;
 }
 
-/** PLAY-009: pair-index rings on face-down DOM tiles only for very early floors + until FTUE flag clears after tutorial floors. */
-const TUTORIAL_PAIR_MARKER_MAX_LEVEL = 2;
-
 const BONUS_TAG_LABELS: Record<string, string> = {
     scholar_style: 'Scholar style',
     glass_witness: 'Glass witness',
     cursed_last: 'Cursed last',
     flip_par: 'Flip par',
     objective_streak: 'Objective streak',
-    boss_floor: 'Boss floor'
+    boss_floor: 'Boss floor',
+    boss_defeated: 'Boss defeated',
+    traps_disarmed: 'Traps disarmed',
+    treasure_claimed: 'Treasure claimed',
+    route_claimed: 'Route claimed',
+    perfect_scout: 'Perfect scout'
 };
+
+/** PLAY-009: pair-index rings on face-down DOM tiles only for very early floors + until FTUE flag clears after tutorial floors. */
+const TUTORIAL_PAIR_MARKER_MAX_LEVEL = 2;
 
 const routeTypeLabel = (routeType: NonNullable<RunState['pendingRouteCardPlan']>['routeType']): string => {
     switch (routeType) {

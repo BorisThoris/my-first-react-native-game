@@ -1,6 +1,6 @@
-import { MAX_LIVES, type RunState } from './contracts';
+import { MAX_GUARD_TOKENS, MAX_LIVES, type RunState } from './contracts';
 
-export type RestShrineServiceId = 'rest_heal' | 'shrine_bargain';
+export type RestShrineServiceId = 'rest_heal' | 'guard_focus' | 'shrine_bargain' | 'boss_ward';
 export type RestShrineRisk = 'safe' | 'risk';
 
 export interface RestShrineServiceDefinition {
@@ -9,6 +9,7 @@ export interface RestShrineServiceDefinition {
     description: string;
     cost: number;
     risk: RestShrineRisk;
+    rewardText: string;
 }
 
 export interface RestShrineServiceState extends RestShrineServiceDefinition {
@@ -18,38 +19,83 @@ export interface RestShrineServiceState extends RestShrineServiceDefinition {
     purchased: boolean;
 }
 
+export interface RestShrineReadModel {
+    serviceCount: number;
+    availableCount: number;
+    affordableCount: number;
+    purchasedCount: number;
+    previewCopy: string;
+}
+
 export const REST_SHRINE_SERVICE_CATALOG: Record<RestShrineServiceId, RestShrineServiceDefinition> = {
     rest_heal: {
         serviceId: 'rest_heal',
         label: 'Rest heal',
         description: 'Spend shop gold to restore 1 life, capped by max lives.',
         cost: 2,
-        risk: 'safe'
+        risk: 'safe',
+        rewardText: '+1 life'
+    },
+    guard_focus: {
+        serviceId: 'guard_focus',
+        label: 'Guard focus',
+        description: 'Spend shop gold to gain 1 guard token, capped by the guard bank.',
+        cost: 1,
+        risk: 'safe',
+        rewardText: '+1 guard'
     },
     shrine_bargain: {
         serviceId: 'shrine_bargain',
         label: 'Shrine bargain',
         description: 'Spend shop gold for +1 relic Favor progress.',
         cost: 3,
-        risk: 'risk'
+        risk: 'risk',
+        rewardText: '+1 Favor progress'
+    },
+    boss_ward: {
+        serviceId: 'boss_ward',
+        label: 'Boss ward',
+        description: 'Spend shop gold to prepare one master key for a future lock or cache.',
+        cost: 4,
+        risk: 'safe',
+        rewardText: '+1 master key'
     }
 };
 
 export const createRestShrineServices = (run: RunState): RestShrineServiceState[] =>
     (Object.keys(REST_SHRINE_SERVICE_CATALOG) as RestShrineServiceId[]).map((serviceId, index) => {
         const base = REST_SHRINE_SERVICE_CATALOG[serviceId];
-        const available = serviceId !== 'rest_heal' || run.lives < MAX_LIVES;
+        const unavailableReason =
+            serviceId === 'rest_heal' && run.lives >= MAX_LIVES
+                ? 'Life already full.'
+                : serviceId === 'guard_focus' && run.stats.guardTokens >= MAX_GUARD_TOKENS
+                  ? 'Guard bank full.'
+                  : serviceId === 'boss_ward' && run.dungeonMasterKeys > 0
+                    ? 'Master key already held.'
+                    : null;
+        const available = unavailableReason == null;
         return {
             ...base,
             id: `${run.runRulesVersion}:${run.runSeed}:${run.board?.level ?? run.stats.highestLevel}:rest:${index}`,
             available,
-            unavailableReason: available ? null : 'Life already full.',
+            unavailableReason,
             purchased: false
         };
     });
 
 export const restShrineServiceCanAfford = (run: RunState, service: RestShrineServiceState): boolean =>
     service.available && run.shopGold >= service.cost;
+
+export const getRestShrineReadModel = (
+    run: RunState,
+    services: readonly RestShrineServiceState[] = createRestShrineServices(run)
+): RestShrineReadModel => ({
+    serviceCount: services.length,
+    availableCount: services.filter((service) => service.available && !service.purchased).length,
+    affordableCount: services.filter((service) => !service.purchased && restShrineServiceCanAfford(run, service)).length,
+    purchasedCount: services.filter((service) => service.purchased).length,
+    previewCopy: `${services.length} rest shrine services; ${services.filter((service) => restShrineServiceCanAfford(run, service)).length} affordable with ${run.shopGold} shop gold.`
+});
 
 export interface RestShrinePurchaseResult {
     run: RunState;
@@ -93,6 +139,13 @@ export const purchaseRestShrineService = (
     let nextRun: RunState = { ...run, shopGold: run.shopGold - service.cost };
     if (service.serviceId === 'rest_heal') {
         nextRun = { ...nextRun, lives: Math.min(MAX_LIVES, nextRun.lives + 1) };
+    } else if (service.serviceId === 'guard_focus') {
+        nextRun = {
+            ...nextRun,
+            stats: { ...nextRun.stats, guardTokens: Math.min(MAX_GUARD_TOKENS, nextRun.stats.guardTokens + 1) }
+        };
+    } else if (service.serviceId === 'boss_ward') {
+        nextRun = { ...nextRun, dungeonMasterKeys: nextRun.dungeonMasterKeys + 1 };
     } else {
         nextRun = { ...nextRun, ...gainOneFavorProgress(nextRun) };
     }

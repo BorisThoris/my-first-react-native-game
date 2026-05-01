@@ -43,12 +43,13 @@ export type RelicDraftTag =
     | 'draft';
 
 export type RelicBuildArchetype =
-    | 'memory_control'
-    | 'board_control'
-    | 'combo_sustain'
-    | 'safe_reveal'
-    | 'risk_favor'
-    | 'chapter_draft';
+    | 'guard_tank'
+    | 'trap_control'
+    | 'treasure_greed'
+    | 'boss_hunter'
+    | 'route_gambler'
+    | 'reveal_scout'
+    | 'combo_shard_engine';
 
 type RelicContractForbid = keyof Pick<ContractFlags, 'noShuffle' | 'noDestroy'>;
 
@@ -77,13 +78,77 @@ export interface RelicDraftRow {
     forbiddenWithContract?: RelicContractForbid[];
 }
 
+export interface RelicBuildArchetypeDefinition {
+    id: RelicBuildArchetype;
+    label: string;
+    summary: string;
+    dungeonInteractions: string[];
+    supportHooks: string[];
+    deferredHooks?: string[];
+}
+
+export const RELIC_BUILD_ARCHETYPE_DEFINITIONS: Record<RelicBuildArchetype, RelicBuildArchetypeDefinition> = {
+    guard_tank: {
+        id: 'guard_tank',
+        label: 'Guard tank',
+        summary: 'Bank guard and study time so enemy patrols, traps, and safe routes can be played through mistakes.',
+        dungeonInteractions: ['guard tokens', 'safe routes', 'enemy contact', 'trap pressure'],
+        supportHooks: ['guard_token_plus_one immediate capped guard', 'safe route contextual draft weighting']
+    },
+    trap_control: {
+        id: 'trap_control',
+        label: 'Trap control',
+        summary: 'Use shuffle, destroy, and search tools to stabilize trap halls and armed dungeon trap pairs.',
+        dungeonInteractions: ['trap halls', 'dungeon trap cards', 'row shuffle', 'destroy-pair charges'],
+        supportHooks: ['shuffle relic contract filters', 'destroy_bank_plus_one charge cap', 'trap route contextual weighting']
+    },
+    treasure_greed: {
+        id: 'treasure_greed',
+        label: 'Treasure greed',
+        summary: 'Lean into Greed routes and bonus shrine picks while keeping the current treasure payout hooks bounded.',
+        dungeonInteractions: ['treasure rooms', 'Greed routes', 'Relic Favor', 'shop gold pressure'],
+        supportHooks: ['Greed route contextual draft weighting', 'shrine_echo one-shot extra relic selection'],
+        deferredHooks: ['Direct treasure-cache payout relics are deferred until the bonus-reward tuning pass.']
+    },
+    boss_hunter: {
+        id: 'boss_hunter',
+        label: 'Boss hunter',
+        summary: 'Prepare for boss floors with chapter-aware draft pressure and bounded wager/Favor conversion.',
+        dungeonInteractions: ['boss floors', 'boss prep', 'Relic Favor', 'chapter schedule'],
+        supportHooks: ['chapter_compass future chapter answer weighting', 'wager_surety bounded Favor bonus'],
+        deferredHooks: ['Direct boss-damage or boss-ward relics are deferred to boss presentation/tuning tickets.']
+    },
+    route_gambler: {
+        id: 'route_gambler',
+        label: 'Route gambler',
+        summary: 'Turn risky route choices and Endless wagers into more Favor without removing the bust condition.',
+        dungeonInteractions: ['risk wagers', 'Greed routes', 'Mystery routes', 'Relic Favor'],
+        supportHooks: ['risk wager payout hook', 'wager_surety loss floor', 'route contextual draft weighting']
+    },
+    reveal_scout: {
+        id: 'reveal_scout',
+        label: 'Reveal / scout',
+        summary: 'Use peeks, pins, stray removal, and study time to read mystery rooms before committing.',
+        dungeonInteractions: ['Mystery routes', 'hidden dungeon cards', 'observe patrols', 'memorize phase'],
+        supportHooks: ['peek_charge_plus_one immediate charge', 'pin_cap_plus_one capacity cap', 'stray_charge_plus_one immediate charge']
+    },
+    combo_shard_engine: {
+        id: 'combo_shard_engine',
+        label: 'Combo shard engine',
+        summary: 'Convert clean play, parasite answers, and guard safety into bounded combo shard momentum.',
+        dungeonInteractions: ['combo shards', 'parasite floors', 'featured objectives', 'guard tokens'],
+        supportHooks: ['combo_shard_plus_step shard cap', 'parasite_ward_once one-shot ward', 'parasite_ledger featured-objective hook']
+    }
+};
+
 export const RELIC_BUILD_ARCHETYPE_LABELS: Record<RelicBuildArchetype, string> = {
-    memory_control: 'Memory control',
-    board_control: 'Board control',
-    combo_sustain: 'Combo sustain',
-    safe_reveal: 'Safe reveal',
-    risk_favor: 'Risk / Favor',
-    chapter_draft: 'Chapter draft'
+    guard_tank: RELIC_BUILD_ARCHETYPE_DEFINITIONS.guard_tank.label,
+    trap_control: RELIC_BUILD_ARCHETYPE_DEFINITIONS.trap_control.label,
+    treasure_greed: RELIC_BUILD_ARCHETYPE_DEFINITIONS.treasure_greed.label,
+    boss_hunter: RELIC_BUILD_ARCHETYPE_DEFINITIONS.boss_hunter.label,
+    route_gambler: RELIC_BUILD_ARCHETYPE_DEFINITIONS.route_gambler.label,
+    reveal_scout: RELIC_BUILD_ARCHETYPE_DEFINITIONS.reveal_scout.label,
+    combo_shard_engine: RELIC_BUILD_ARCHETYPE_DEFINITIONS.combo_shard_engine.label
 };
 
 /**
@@ -95,52 +160,52 @@ export const RELIC_DRAFT: Record<RelicId, RelicDraftRow> = {
         rarity: 'common',
         weight: 100,
         tags: ['shuffle'],
-        archetypes: ['board_control'],
+        archetypes: ['trap_control'],
         forbiddenWithContract: ['noShuffle']
     },
     first_shuffle_free_per_floor: {
         rarity: 'common',
         weight: 88,
         tags: ['shuffle'],
-        archetypes: ['board_control'],
+        archetypes: ['trap_control'],
         forbiddenWithContract: ['noShuffle']
     },
-    memorize_bonus_ms: { rarity: 'common', weight: 92, tags: ['memorize'], archetypes: ['memory_control'] },
-    memorize_under_short_memorize: { rarity: 'uncommon', weight: 52, tags: ['memorize'], archetypes: ['memory_control'] },
+    memorize_bonus_ms: { rarity: 'common', weight: 92, tags: ['memorize'], archetypes: ['guard_tank', 'reveal_scout'] },
+    memorize_under_short_memorize: { rarity: 'uncommon', weight: 52, tags: ['memorize'], archetypes: ['reveal_scout'] },
     region_shuffle_free_first: {
         rarity: 'common',
         weight: 85,
         tags: ['shuffle'],
-        archetypes: ['board_control'],
+        archetypes: ['trap_control', 'route_gambler'],
         forbiddenWithContract: ['noShuffle']
     },
     destroy_bank_plus_one: {
         rarity: 'uncommon',
         weight: 55,
         tags: ['destroy'],
-        archetypes: ['board_control'],
+        archetypes: ['trap_control', 'boss_hunter'],
         forbiddenWithContract: ['noDestroy']
     },
     combo_shard_plus_step: {
         rarity: 'uncommon',
         weight: 48,
         tags: ['combo', 'parasite'],
-        archetypes: ['combo_sustain']
+        archetypes: ['combo_shard_engine']
     },
-    parasite_ward_once: { rarity: 'rare', weight: 28, tags: ['parasite'], archetypes: ['combo_sustain'] },
-    peek_charge_plus_one: { rarity: 'uncommon', weight: 50, tags: ['peek', 'wager'], archetypes: ['safe_reveal', 'risk_favor'] },
-    stray_charge_plus_one: { rarity: 'rare', weight: 26, tags: ['search'], archetypes: ['safe_reveal'] },
-    pin_cap_plus_one: { rarity: 'rare', weight: 24, tags: ['pin'], archetypes: ['safe_reveal'] },
+    parasite_ward_once: { rarity: 'rare', weight: 28, tags: ['parasite'], archetypes: ['combo_shard_engine'] },
+    peek_charge_plus_one: { rarity: 'uncommon', weight: 50, tags: ['peek', 'wager'], archetypes: ['reveal_scout', 'route_gambler'] },
+    stray_charge_plus_one: { rarity: 'rare', weight: 26, tags: ['search'], archetypes: ['reveal_scout'] },
+    pin_cap_plus_one: { rarity: 'rare', weight: 24, tags: ['pin'], archetypes: ['reveal_scout'] },
     guard_token_plus_one: {
         rarity: 'rare',
         weight: 30,
         tags: ['guard', 'parasite', 'wager'],
-        archetypes: ['combo_sustain', 'risk_favor']
+        archetypes: ['guard_tank', 'combo_shard_engine', 'route_gambler']
     },
-    shrine_echo: { rarity: 'uncommon', weight: 36, tags: ['favor', 'wager'], archetypes: ['risk_favor'] },
-    chapter_compass: { rarity: 'uncommon', weight: 34, tags: ['draft'], archetypes: ['chapter_draft'] },
-    wager_surety: { rarity: 'rare', weight: 22, tags: ['wager'], archetypes: ['risk_favor'] },
-    parasite_ledger: { rarity: 'uncommon', weight: 38, tags: ['parasite'], archetypes: ['combo_sustain', 'chapter_draft'] }
+    shrine_echo: { rarity: 'uncommon', weight: 36, tags: ['favor', 'wager'], archetypes: ['treasure_greed', 'route_gambler'] },
+    chapter_compass: { rarity: 'uncommon', weight: 34, tags: ['draft'], archetypes: ['boss_hunter', 'reveal_scout'] },
+    wager_surety: { rarity: 'rare', weight: 22, tags: ['wager'], archetypes: ['boss_hunter', 'route_gambler', 'treasure_greed'] },
+    parasite_ledger: { rarity: 'uncommon', weight: 38, tags: ['parasite'], archetypes: ['combo_shard_engine', 'boss_hunter'] }
 };
 
 /** Stable iteration order for docs / balance checks. */
@@ -228,17 +293,30 @@ export const getRelicArchetypeLabels = (id: RelicId): string[] =>
 export const getRelicArchetypeSummary = (id: RelicId): string =>
     getRelicArchetypeLabels(id).join(' / ');
 
+export const getRelicBuildArchetypeDefinition = (id: RelicBuildArchetype): RelicBuildArchetypeDefinition =>
+    RELIC_BUILD_ARCHETYPE_DEFINITIONS[id];
+
 export const getRelicBuildArchetypeSummaries = (): {
     id: RelicBuildArchetype;
     label: string;
+    summary: string;
+    dungeonInteractions: string[];
+    supportHooks: string[];
+    deferredHooks: string[];
     relicIds: RelicId[];
 }[] =>
-    (Object.keys(RELIC_BUILD_ARCHETYPE_LABELS) as RelicBuildArchetype[]).map((id) => ({
-        id,
-        label: RELIC_BUILD_ARCHETYPE_LABELS[id],
-        relicIds: RELIC_POOL.filter((relicId) => RELIC_DRAFT[relicId].archetypes.includes(id))
-    }));
-
+    (Object.keys(RELIC_BUILD_ARCHETYPE_DEFINITIONS) as RelicBuildArchetype[]).map((id) => {
+        const definition = getRelicBuildArchetypeDefinition(id);
+        return {
+            id,
+            label: definition.label,
+            summary: definition.summary,
+            dungeonInteractions: [...definition.dungeonInteractions],
+            supportHooks: [...definition.supportHooks],
+            deferredHooks: [...(definition.deferredHooks ?? [])],
+            relicIds: RELIC_POOL.filter((relicId) => RELIC_DRAFT[relicId].archetypes.includes(id))
+        };
+    });
 
 export const getRelicDraftContext = (run: RunState, clearedFloor: number): RelicDraftContext => {
     const isScheduledEndless = isScheduledEndlessDraftRun(run);

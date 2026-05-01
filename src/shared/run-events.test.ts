@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GAME_RULES_VERSION } from './contracts';
-import { chooseRunEventOption, rollRunEventRoom } from './run-events';
+import { chooseRunEventOption, getRunEventCatalogRows, rollRunEventRoom } from './run-events';
 
 describe('REG-074 run event rooms', () => {
     it('rolls deterministic offline events with bounded choices', () => {
@@ -27,5 +27,28 @@ describe('REG-074 run event rooms', () => {
         expect(result.choiceId).toBe(choice.id);
         expect(result.next.shopGold).toBeGreaterThanOrEqual(0);
         expect(chooseRunEventOption({ shopGold: 1, lives: 3, relicFavorProgress: 0 }, event, 'missing').applied).toBe(false);
+    });
+
+    it('lists every event with conditions and bounded choice result copy', () => {
+        const rows = getRunEventCatalogRows();
+
+        expect(rows.length).toBeGreaterThanOrEqual(6);
+        for (const row of rows) {
+            expect(row.conditionText).toMatch(/Seed-stable/);
+            expect(row.choiceCount).toBe(row.choices.length);
+            expect(row.choices.length).toBeGreaterThanOrEqual(2);
+            expect(row.choices.some((choice) => choice.effect === 'skip')).toBe(true);
+            expect(row.choices.every((choice) => choice.detail.length > 0)).toBe(true);
+        }
+    });
+
+    it('keeps decline choices safe and local', () => {
+        const event = rollRunEventRoom({ runSeed: 74_004, rulesVersion: GAME_RULES_VERSION, floor: 7 });
+        const decline = event.options.find((option) => option.effect === 'skip')!;
+        const state = { shopGold: 2, lives: 4, relicFavorProgress: 1 };
+        const result = chooseRunEventOption(state, event, decline.id);
+
+        expect(result.applied).toBe(true);
+        expect(result.next).toEqual(state);
     });
 });

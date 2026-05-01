@@ -169,6 +169,28 @@ export interface RunEventResolution {
     reason?: 'missing_choice';
 }
 
+export interface RunEventCatalogRow {
+    id: RunEventId;
+    title: string;
+    conditionText: string;
+    choiceCount: number;
+    choices: Array<Pick<RunEventChoice, 'id' | 'label' | 'effect' | 'detail'>>;
+}
+
+export const getRunEventCatalogRows = (): RunEventCatalogRow[] =>
+    RUN_EVENT_TABLE.map((event) => ({
+        id: event.id,
+        title: event.title,
+        conditionText: 'Seed-stable local event room; selected by run seed, rules version, and floor.',
+        choiceCount: event.choices.length,
+        choices: event.choices.map((choice) => ({
+            id: choice.id,
+            label: choice.label,
+            effect: choice.effect,
+            detail: choice.detail
+        }))
+    }));
+
 const gainOneFavor = (run: RunState): RunState => {
     const total = run.relicFavorProgress + 1;
     const bonusPicks = Math.floor(total / 3);

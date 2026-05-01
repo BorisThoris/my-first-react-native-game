@@ -15,6 +15,7 @@ describe('REG-024 run economy taxonomy', () => {
             'combo_shards',
             'guard_tokens',
             'relic_favor',
+            'dungeon_keys',
             'findable_pickups',
             'assist_charges'
         ]);
@@ -22,12 +23,20 @@ describe('REG-024 run economy taxonomy', () => {
         expect(runEconomyDefinitionById.score.persistence).toBe('run_summary');
         expect(runEconomyDefinitionById.combo_shards.persistence).toBe('temporary_run');
         expect(runEconomyDefinitionById.relic_favor.sink).toContain('extra relic pick');
+        expect(runEconomyDefinitionById.dungeon_keys.source).toContain('key cache rooms');
+        for (const entry of RUN_ECONOMY_DEFINITIONS) {
+            expect(entry.source.length).toBeGreaterThan(0);
+            expect(entry.sink.length).toBeGreaterThan(0);
+            expect(entry.purpose.length).toBeGreaterThan(0);
+        }
     });
 
     it('projects a run into compact machine-readable economy rows', () => {
         const run = {
             ...finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false })),
             relicFavorProgress: 2,
+            dungeonKeys: { iron: 1 },
+            dungeonMasterKeys: 1,
             findablesClaimedThisFloor: 1,
             findablesTotalThisFloor: 2,
             stats: {
@@ -45,6 +54,7 @@ describe('REG-024 run economy taxonomy', () => {
             'combo_shards',
             'guard_tokens',
             'relic_favor',
+            'dungeon_keys',
             'findable_pickups',
             'assist_charges'
         ]);
@@ -54,6 +64,7 @@ describe('REG-024 run economy taxonomy', () => {
             'combo_shards:1/2',
             'guard_tokens:1/2',
             'relic_favor:2/3',
+            'dungeon_keys:1 keys · 1 master',
             'findable_pickups:1/2',
             'assist_charges:Shuffle 1 · Row 1 · Destroy 0 · Peek 1 · Stray 0'
         ]);
