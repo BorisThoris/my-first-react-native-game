@@ -21,6 +21,7 @@ Future agents must update this file after every implementation session that uses
 | `DNG-012` | Done | 2026-05-01 session | Floor archetype progression now exposes pacing roles, route affinities, budget expectations, frequency bands, and fairness-backed long-run coverage. |
 | `DNG-013` | Done | 2026-05-01 session | Act/biome presentation now exposes palette/audio hooks, pressure cues, and route previews surfaced in HUD/floor-clear copy. |
 | `DNG-014` | Done | 2026-05-01 session | Floor-clear route choice now has a single active decision surface, bounded result notes, explicit pick-to-continue copy, and no competing Continue/shop/risk-wager actions. |
+| `DNG-015` | Done | 2026-05-01 session | Run history now derives capped dungeon journal rows for node, route, boss, objective, rewards, and outcome highlights, shown on Game Over and export strings. |
 | `DNG-020` | Done | 2026-05-01 session | Shared dungeon card kind/effect taxonomy and coverage tests added. |
 | `DNG-021` | Done | 2026-05-01 session | Encounter budget inspector, capacity cap, and budget coverage tests added. |
 | `DNG-022` | Done | 2026-05-01 session | Shared dungeon card knowledge selector and ARIA integration added. |
@@ -71,6 +72,7 @@ Future agents must update this file after every implementation session that uses
 | 2026-05-01 | `DNG-012` | Added floor archetype progression rows/reports with role, route, budget, and frequency coverage, plus fairness checks for each authored cycle row. | `yarn test src/shared/floor-mutator-schedule.test.ts src/shared/game.test.ts src/shared/softlock-fairness.test.ts src/shared/balance-simulation.test.ts`; `yarn typecheck`; `yarn lint` |
 | 2026-05-01 | `DNG-013` | Added act/biome palette/audio/pressure route-preview hooks and exposed next-biome pressure in the floor-clear preview. | `yarn test src/shared/floor-mutator-schedule.test.ts src/renderer/components/GameScreen.test.tsx src/renderer/components/GameplayHudBar.test.tsx`; `yarn typecheck`; `yarn lint` |
 | 2026-05-01 | `DNG-014` | Tightened the between-floor route decision flow so route selection is the only active decision before continuing. | `yarn test src/renderer/components/GameScreen.test.tsx src/shared/run-map.test.ts`; `yarn typecheck`; `yarn lint` |
+| 2026-05-01 | `DNG-015` | Added derived dungeon journal rows and Game Over/export coverage for route, boss, objective, reward, and outcome highlights. | `yarn test src/shared/run-history.test.ts src/shared/game-over-next-run.test.ts src/renderer/components/GameOverScreen.test.tsx`; `yarn typecheck`; `yarn lint` |
 | 2026-05-01 | `DNG-020` | Added `src/shared/dungeon-cards.ts` with typed kind/effect taxonomy rows and catalog-backed copy fallback for dungeon cards. | `yarn test src/shared/dungeon-cards.test.ts src/shared/softlock-fairness.test.ts src/shared/game.test.ts`; `yarn typecheck` |
 | 2026-05-01 | `DNG-021` | Added `inspectDungeonEncounterBudget`, explicit paired-card capacity capping in blueprint creation, and budget tests for node/archetype influence and representative floors. | `yarn test src/shared/game.test.ts src/shared/softlock-fairness.test.ts src/shared/dungeon-cards.test.ts`; `yarn typecheck` |
 | 2026-05-01 | `DNG-022` | Added `getDungeonCardKnowledge` for hidden/revealed/resolved information state and wired TileBoard ARIA dungeon copy to it. | `yarn test src/shared/dungeon-cards.test.ts src/shared/game.test.ts src/renderer/components/TileBoard.test.tsx`; `yarn typecheck` |
@@ -111,7 +113,7 @@ Future agents must update this file after every implementation session that uses
 - None recorded in this pack yet.
 
 ## Next Recommended Ticket
-Continue with `tickets/DNG-015-run-history-and-dungeon-journal.md`.
+All dungeon epic tickets are marked done. Run the final full verification gate and update the acceptance report if any new late findings appear.
 
 ## Session Handoff Template
 Copy this block for future updates:

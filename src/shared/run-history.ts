@@ -1,4 +1,4 @@
-import type { RunState, SaveData, RunSummary } from './contracts';
+import type { DungeonBossId, DungeonRunNode, RunState, SaveData, RunSummary } from './contracts';
 
 export type RunHistoryPersistence = 'persisted_summary' | 'ephemeral_run' | 'derived_export';
 
@@ -41,6 +41,8 @@ export interface RunHistoryEntry {
     onlineRequired: false;
 }
 
+export const MAX_DUNGEON_JOURNAL_ROWS = 8;
+
 const contractLabel = (run: Pick<RunState, 'activeContract' | 'practiceMode'>): string => {
     if (run.activeContract?.noShuffle && run.activeContract?.noDestroy) {
         return 'Scholar contract';
@@ -52,6 +54,131 @@ const contractLabel = (run: Pick<RunState, 'activeContract' | 'practiceMode'>): 
         return 'Practice';
     }
     return 'None';
+};
+
+const idLabel = (id: string | null | undefined): string | null =>
+    id ? id.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()) : null;
+
+const currentDungeonNode = (run: RunState): DungeonRunNode | null =>
+    run.dungeonRun.nodes.find((node) => node.id === run.dungeonRun.currentNodeId) ?? null;
+
+const selectedDungeonNode = (run: RunState): DungeonRunNode | null =>
+    run.pendingRouteCardPlan
+        ? run.dungeonRun.nodes.find((node) => node.id === run.pendingRouteCardPlan?.choiceId) ?? null
+        : run.dungeonRun.selectedNodeId
+          ? run.dungeonRun.nodes.find((node) => node.id === run.dungeonRun.selectedNodeId) ?? null
+          : null;
+
+const bossIdForRun = (run: RunState): DungeonBossId | null =>
+    run.board?.dungeonBossId ??
+    run.board?.tiles.find((tile) => tile.dungeonBossId != null)?.dungeonBossId ??
+    run.board?.enemyHazards?.find((hazard) => hazard.bossId != null)?.bossId ??
+    null;
+
+export const buildDungeonJournalRows = (run: RunState): RunHistoryJournalRow[] => {
+    if (run.gameMode !== 'endless' || run.dungeonRun.nodes.length === 0) {
+        return [];
+    }
+
+    const rows: RunHistoryJournalRow[] = [];
+    const currentNode = currentDungeonNode(run);
+    const selectedNode = selectedDungeonNode(run);
+    const clearedNodes = run.dungeonRun.nodes.filter((node) => node.status === 'cleared').length;
+    const skippedNodes = run.dungeonRun.nodes.filter((node) => node.status === 'skipped').length;
+    const revealedNodes = run.dungeonRun.nodes.filter((node) => node.status === 'revealed').length;
+    const bossId = bossIdForRun(run);
+    const objectiveId = run.board?.dungeonObjectiveId ?? null;
+    const featuredObjectiveId = run.lastLevelResult?.featuredObjectiveId ?? run.board?.featuredObjectiveId ?? null;
+    const routeType =
+        run.pendingRouteCardPlan?.routeType ??
+        run.board?.selectedGatewayRouteType ??
+        run.board?.routeWorldProfile?.routeType ??
+        null;
+    const keyCount = Object.values(run.dungeonKeys).reduce((sum, count) => sum + (count ?? 0), run.dungeonMasterKeys);
+
+    rows.push({
+        id: 'dungeon_node',
+        label: 'Dungeon node',
+        value: currentNode
+            ? `${currentNode.label} (${currentNode.kind}) on floor ${currentNode.floor}`
+            : `Floor ${run.dungeonRun.currentFloor}`,
+        detail: `${clearedNodes} cleared, ${revealedNodes} revealed, ${skippedNodes} skipped in act ${run.dungeonRun.act}.`,
+        persistence: 'derived_export',
+        exportSafe: true,
+        offlineOnly: true
+    });
+
+    if (routeType || selectedNode) {
+        rows.push({
+            id: 'dungeon_route',
+            label: 'Route taken',
+            value: selectedNode
+                ? `${selectedNode.label} via ${routeType ?? selectedNode.routeType}`
+                : `${routeType} route`,
+            detail: selectedNode?.detail ?? `Selected after floor ${run.pendingRouteCardPlan?.sourceLevel ?? run.board?.level ?? 'unknown'}.`,
+            persistence: 'ephemeral_run',
+            exportSafe: true,
+            offlineOnly: true
+        });
+    }
+
+    if (bossId || run.dungeonEnemiesDefeated > 0 || run.board?.floorTag === 'boss') {
+        rows.push({
+            id: 'dungeon_boss',
+            label: 'Boss pressure',
+            value: bossId ? idLabel(bossId)! : 'No active boss identity',
+            detail: `${run.dungeonEnemiesDefeated} enemies defeated this run; ${run.dungeonEnemiesDefeatedThisFloor} this floor.`,
+            persistence: 'derived_export',
+            exportSafe: true,
+            offlineOnly: true
+        });
+    }
+
+    if (objectiveId || featuredObjectiveId || run.lastLevelResult?.featuredObjectiveCompleted != null) {
+        rows.push({
+            id: 'dungeon_objective',
+            label: 'Objective trail',
+            value: [
+                idLabel(objectiveId),
+                idLabel(featuredObjectiveId),
+                run.lastLevelResult?.featuredObjectiveCompleted === true
+                    ? 'completed'
+                    : run.lastLevelResult?.featuredObjectiveCompleted === false
+                      ? 'missed'
+                      : null
+            ]
+                .filter(Boolean)
+                .join(' / '),
+            detail: `${run.dungeonTrapsResolvedThisFloor} traps resolved this floor; ${run.dungeonGatewaysUsed} gateways used this run.`,
+            persistence: 'derived_export',
+            exportSafe: true,
+            offlineOnly: true
+        });
+    }
+
+    rows.push({
+        id: 'dungeon_rewards',
+        label: 'Dungeon rewards',
+        value: `${run.dungeonTreasuresOpened} treasures, ${keyCount} keys, ${run.shopGold} shop gold`,
+        detail: `${run.relicIds.length} relics carried; ${run.bonusRelicPicksNextOffer + run.favorBonusRelicPicksNextOffer} bonus relic picks banked.`,
+        persistence: 'derived_export',
+        exportSafe: true,
+        offlineOnly: true
+    });
+
+    if (run.status === 'gameOver' || run.lives <= 0) {
+        rows.push({
+            id: 'dungeon_outcome',
+            label: 'Run outcome',
+            value: run.lives <= 0 ? 'Defeated in the dungeon' : 'Run ended',
+            detail: `${run.enemyHazardHitsThisFloor} enemy hazard hits this floor; ${run.stats.bestStreak} best streak.`,
+            persistence: 'persisted_summary',
+            exportSafe: true,
+            offlineOnly: true
+        });
+    }
+
+    return rows.slice(0, MAX_DUNGEON_JOURNAL_ROWS);
 };
 
 export const buildRunReplayLink = (run: RunState): RunReplayLink => {
@@ -123,6 +250,7 @@ export const buildRunHistoryEntry = (run: RunState): RunHistoryEntry => {
             offlineOnly: true
         }
     ];
+    journalRows.push(...buildDungeonJournalRows(run));
     return {
         runSeed: replay.seed ?? undefined,
         localOnly: true,
@@ -183,10 +311,15 @@ export const buildRunHistoryExportString = (run: RunState): string => {
     if (!summary) {
         return 'No run history export available yet.';
     }
+    const dungeonRows = entry.journalRows
+        .filter((row) => row.id.startsWith('dungeon_') && row.exportSafe)
+        .slice(0, 3)
+        .map((row) => `${row.label}: ${row.value}`);
     return [
         `Run ${summary.gameMode ?? 'classic'} floor ${summary.highestLevel}`,
         `${summary.totalScore} local score`,
         `build ${entry.build.relicIds.length} relics/${entry.build.mutatorIds.length} mutators`,
+        ...dungeonRows,
         entry.replay.replaySupported ? `replay ${entry.replay.replayKey}` : 'replay unavailable',
         'offline local journal; no account or leaderboard rank'
     ].join(' · ');

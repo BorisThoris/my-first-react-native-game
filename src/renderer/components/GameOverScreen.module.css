@@ -246,6 +246,34 @@
     line-height: 1.28;
 }
 
+.journalRows {
+    display: grid;
+    gap: 0.42rem;
+    margin-top: 0.78rem;
+}
+
+.journalRow {
+    display: grid;
+    gap: 0.12rem;
+    padding: 0.48rem 0.56rem;
+    border: 1px solid color-mix(in srgb, var(--theme-rune) 18%, transparent);
+    border-radius: var(--ui-radius-sm);
+    background: color-mix(in srgb, var(--theme-panel-alt) 58%, transparent);
+}
+
+.journalRow strong {
+    color: var(--theme-rune);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.journalRow span {
+    color: var(--theme-text-muted);
+    font-size: 0.76rem;
+    line-height: 1.28;
+}
+
 .mobileActionDock {
     display: none;
 }

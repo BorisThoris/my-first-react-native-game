@@ -283,6 +283,17 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
                             <p className={styles.panelCopy}>
                                 Journal {journalEntry.journalId}: {journalEntry.buildSummary} · {journalEntry.replayLabel}
                             </p>
+                            <div className={styles.journalRows} data-testid="game-over-dungeon-journal">
+                                {journalEntry.rows
+                                    .filter((row) => row.id.startsWith('dungeon_'))
+                                    .slice(0, 6)
+                                    .map((row) => (
+                                        <div className={styles.journalRow} key={row.id}>
+                                            <strong>{row.label}</strong>
+                                            <span>{row.value}</span>
+                                        </div>
+                                    ))}
+                            </div>
                         </Panel>
                     </aside>
                 </div>

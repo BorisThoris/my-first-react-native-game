@@ -1,7 +1,7 @@
 # DNG-015: Run history and dungeon journal
 
 ## Status
-Not started
+Done
 
 ## Priority
 P1
@@ -44,5 +44,4 @@ After a run, players can understand what happened and why the run succeeded or f
 - `../../refined-experience-gaps/REG-041-run-export-replay-seed-integrity.md`
 
 ## Future handoff notes
-Implement after route and reward contracts are stable.
-
+Shipped 2026-05-01. Added capped, derived dungeon journal rows for node, route, boss, objective, rewards, and outcome highlights; exposed those rows on Game Over and in the offline-safe run export without adding persisted replay payloads.

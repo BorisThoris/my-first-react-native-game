@@ -98,5 +98,7 @@ describe('GameOverScreen (REF-031)', () => {
         render(<GameOverScreen run={gameOverRunFixture()} />);
         expect(screen.getByTestId('game-over-next-run-loop')).toHaveTextContent(/Classic/);
         expect(screen.getByTestId('game-over-next-run-loop')).toHaveTextContent(/Next goal/);
+        expect(screen.getByTestId('game-over-dungeon-journal')).toHaveTextContent(/Dungeon node/);
+        expect(screen.getByTestId('game-over-dungeon-journal')).toHaveTextContent(/Dungeon rewards/);
     });
 });
