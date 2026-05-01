@@ -24,6 +24,7 @@ Describe what the player or future implementer should experience when the ticket
 ## Implementation notes
 - State the likely code surfaces.
 - State versioning or migration implications.
+- Classify dungeon rule changes with `DUNGEON_RULES_VERSION_POLICY_VERSION`; replay-affecting board recipes, enemy movement, rewards, scoring, objectives, route graph, and seeded offers require a `GAME_RULES_VERSION` review.
 - State UI/a11y/reduced-motion implications when relevant.
 
 ## Acceptance criteria
@@ -34,6 +35,7 @@ Describe what the player or future implementer should experience when the ticket
 ## Tests and verification
 - Focused unit tests.
 - Renderer/e2e tests if UI changes.
+- Deterministic generation/replay tests when changing seeded dungeon rules; save migration tests when persisted shape changes.
 - Typecheck/lint/build when risk warrants it.
 
 ## Risks and edge cases
@@ -45,4 +47,3 @@ Describe what the player or future implementer should experience when the ticket
 
 ## Future handoff notes
 Leave next steps and known blockers here after implementation.
-

@@ -1,7 +1,7 @@
 # DNG-003: Dungeon rules versioning policy
 
 ## Status
-Not started
+Done
 
 ## Priority
 P0
@@ -42,5 +42,4 @@ Players can resume local runs safely. Developers can reason about replay drift, 
 - `../../refined-experience-gaps/REG-121-rng-determinism-replay-drift-audit.md`
 
 ## Future handoff notes
-When in doubt, mention the version decision in the final answer and ledger.
-
+When in doubt, mention the version decision in the final answer and ledger. DNG-003 v1 adds `DUNGEON_RULES_VERSION_POLICY_VERSION` and ticket-template guidance for replay-affecting vs copy/visual-only changes.

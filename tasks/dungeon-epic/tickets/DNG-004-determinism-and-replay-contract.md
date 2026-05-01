@@ -1,7 +1,7 @@
 # DNG-004: Determinism and replay contract
 
 ## Status
-Not started
+Done
 
 ## Priority
 P0
@@ -43,5 +43,4 @@ Given run seed, rules version, mode, and route choices, the same floor content a
 - `../../refined-experience-gaps/REG-121-rng-determinism-replay-drift-audit.md`
 
 ## Future handoff notes
-Use this ticket when introducing new procedural dungeon content.
-
+Use this ticket when introducing new procedural dungeon content. DNG-004 v1 documents deterministic replay inputs and adds a source guard for seeded dungeon generation modules.

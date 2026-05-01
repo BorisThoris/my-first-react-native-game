@@ -13,6 +13,8 @@ Future agents must update this file after every implementation session that uses
 | --- | --- | --- | --- |
 | `DNG-001` | Done | 2026-05-01 session | Scope and execution rules locked. |
 | `DNG-002` | Done | 2026-05-01 session | State contract audit added at `05-state-contract-audit.md`. |
+| `DNG-003` | Done | 2026-05-01 session | Dungeon rules versioning policy now classifies replay-affecting changes and updates the ticket template checklist. |
+| `DNG-004` | Done | 2026-05-01 session | Dungeon determinism contract now names replay seed inputs and guards seeded generation modules against unseeded randomness. |
 | `DNG-005` | Done | 2026-05-01 session | Dungeon-specific fairness invariants and corrupt-state tests added. |
 | `DNG-020` | Done | 2026-05-01 session | Shared dungeon card kind/effect taxonomy and coverage tests added. |
 | `DNG-021` | Done | 2026-05-01 session | Encounter budget inspector, capacity cap, and budget coverage tests added. |
@@ -56,6 +58,7 @@ Future agents must update this file after every implementation session that uses
 | --- | --- | --- | --- |
 | 2026-05-01 | Pack bootstrap | Created dungeon epic planning pack and ticket map. | Markdown structure/file-list verification. |
 | 2026-05-01 | `DNG-001`, `DNG-002` | Locked dungeon scope/execution rules and added `05-state-contract-audit.md` covering `RunState`, `BoardState`, `Tile`, moving enemy hazards, route/map/shop/room/reward state, persistence, mutation surfaces, and risky boundaries. | Required-section scan for tickets; `git status --short` scoped review. |
+| 2026-05-01 | `DNG-003`, `DNG-004` | Added shared dungeon rules versioning and determinism contracts, updated the ticket template, and guarded seeded generation modules from unseeded randomness/time sources. | `yarn test src/shared/dungeon-versioning.test.ts src/shared/version-gate.test.ts src/shared/run-map.test.ts src/shared/run-events.test.ts`; `yarn typecheck`; `yarn lint` |
 | 2026-05-01 | `DNG-005` | Added dungeon fairness checks for exit references, lever reachability, active enemy hazard tile references, dungeon pair metadata, enemy HP mirrors, and defeat-boss objective reachability. | `yarn test src/shared/softlock-fairness.test.ts src/shared/game.test.ts` |
 | 2026-05-01 | `DNG-020` | Added `src/shared/dungeon-cards.ts` with typed kind/effect taxonomy rows and catalog-backed copy fallback for dungeon cards. | `yarn test src/shared/dungeon-cards.test.ts src/shared/softlock-fairness.test.ts src/shared/game.test.ts`; `yarn typecheck` |
 | 2026-05-01 | `DNG-021` | Added `inspectDungeonEncounterBudget`, explicit paired-card capacity capping in blueprint creation, and budget tests for node/archetype influence and representative floors. | `yarn test src/shared/game.test.ts src/shared/softlock-fairness.test.ts src/shared/dungeon-cards.test.ts`; `yarn typecheck` |
