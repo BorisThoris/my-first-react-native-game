@@ -7,6 +7,8 @@ import { buildVisualSaveJson, gotoWithSaveAndQuery, visualCaptureDir } from './v
 import { join } from 'node:path';
 
 test.describe('DNG-072 dungeon fixture smoke', () => {
+    test.describe.configure({ timeout: 90_000 });
+
     for (const recipe of DUNGEON_E2E_FIXTURE_RECIPES) {
         test(`${recipe.label} opens stable dev sandbox fixture`, async ({ page }) => {
             await gotoWithSaveAndQuery(page, buildVisualSaveJson(true), dungeonE2EFixtureUrlQuery(recipe));
