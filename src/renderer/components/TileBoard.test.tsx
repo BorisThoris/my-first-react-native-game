@@ -3,6 +3,11 @@ import { createRef, useState, type ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BoardState } from '../../shared/contracts';
 import { PlatformTiltProvider } from '../platformTilt/PlatformTiltProvider';
+import {
+    DNG065_BOARD_APPLICATION_LABEL,
+    DNG065_DUNGEON_COMFORT_FOCUS_ORDER,
+    DNG065_MOBILE_BOARD_PRIORITY
+} from '../gameplay/regPhase4PlayContract';
 import TileBoard, { type TileBoardHandle } from './TileBoard';
 import {
     DUNGEON_BOARD_STAGE_LAYER_POLICY,
@@ -332,6 +337,24 @@ describe('TileBoard touch and click controls', () => {
         );
     });
 
+    it('exposes dungeon comfort focus order and mobile board-primary policy', () => {
+        renderBoard({
+            board,
+            debugPeekActive: false,
+            interactive: true,
+            mobileCameraMode: true,
+            onTileSelect: vi.fn(),
+            previewActive: false,
+            reduceMotion: false
+        });
+
+        const frame = screen.getByTestId('tile-board-frame');
+        expect(frame).toHaveAttribute('data-dungeon-comfort-focus-order', DNG065_DUNGEON_COMFORT_FOCUS_ORDER.join('>'));
+        expect(frame).toHaveAttribute('data-dungeon-mobile-board-primary', 'true');
+        expect(frame).toHaveAttribute('data-dungeon-touch-target-min', String(DNG065_MOBILE_BOARD_PRIORITY.minTouchTargetPx));
+        expect(screen.getByTestId('tile-board-application')).toHaveAttribute('aria-label', DNG065_BOARD_APPLICATION_LABEL);
+    });
+
     it('keeps dungeon encounter markers above objective chrome without covering card center text', () => {
         expect(DUNGEON_BOARD_STAGE_LAYER_POLICY.nextThreatTelegraph.renderOrder).toBeGreaterThan(
             DUNGEON_BOARD_STAGE_LAYER_POLICY.objectiveGlyph.renderOrder
@@ -399,6 +422,47 @@ describe('TileBoard touch and click controls', () => {
         expect(low.motionHz).toBeLessThan(high.motionHz);
         expect(reduced.motionHz).toBe(0);
         expect(reduced.secondaryOpacity).toBeGreaterThan(0.5);
+    });
+
+    it('selects an occupied enemy patrol card from keyboard focus without pointer input', async () => {
+        const onTileSelect = vi.fn();
+        const enemyBoard: BoardState = {
+            ...board,
+            enemyHazards: [
+                {
+                    id: 'hazard-1',
+                    kind: 'sentinel',
+                    label: 'Patrol Sentry',
+                    currentTileId: 'a2',
+                    nextTileId: 'a1',
+                    pattern: 'patrol',
+                    state: 'revealed',
+                    damage: 1,
+                    hp: 1,
+                    maxHp: 2
+                }
+            ]
+        };
+
+        renderBoard({
+            board: enemyBoard,
+            debugPeekActive: false,
+            interactive: true,
+            onTileSelect,
+            previewActive: false,
+            reduceMotion: false
+        });
+
+        const boardApplication = screen.getByTestId('tile-board-application');
+        fireEvent.focus(boardApplication);
+        fireEvent.keyDown(boardApplication, { key: 'ArrowRight' });
+
+        await waitFor(() => {
+            expect(screen.getByText(/Occupied by revealed moving enemy patrol Patrol Sentry/i)).toBeInTheDocument();
+        });
+
+        fireEvent.keyDown(boardApplication, { key: 'Enter' });
+        expect(onTileSelect).toHaveBeenCalledWith('a2');
     });
 
     it('sets shuffle animating on the frame while the WebGL stagger window is active', async () => {

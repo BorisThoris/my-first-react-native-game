@@ -32,6 +32,25 @@ export const REG107_POWER_TEACHING_ANCHOR = 'gameplay-power-teaching-rail' as co
  */
 export const REG108_CARD_MATERIAL_LANES = ['match', 'mismatch', 'invalid', 'combo', 'guard'] as const;
 
+/** DNG-065: keyboard/controller focus order for dense dungeon surfaces. */
+export const DNG065_DUNGEON_COMFORT_FOCUS_ORDER = [
+    'occupied_cards',
+    'exit_cards',
+    'shop_cards',
+    'room_cards',
+    'board_powers',
+    'required_prompts'
+] as const;
+
+export const DNG065_BOARD_APPLICATION_LABEL =
+    'Memory tile board. Use arrow keys or controller direction controls to move focus; Enter, Space, or controller confirm selects.';
+
+export const DNG065_MOBILE_BOARD_PRIORITY = {
+    boardPrimary: true,
+    minTouchTargetPx: REG103_MIN_POWER_TOUCH_PX,
+    promptPolicy: 'inline_first_no_focus_trap'
+} as const;
+
 export const reg104ShellAttributes = (variant: 'playing' | 'floor_clear' | 'paused'): Record<string, string> => ({
     [REG104_DATA_SHELL]: variant,
     'data-reg-regional-variant': 'reg104-v1'

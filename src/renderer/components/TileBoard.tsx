@@ -50,7 +50,14 @@ import { BOARD_LAYOUT_VIEWPORT_PADDING, TILE_SPACING } from './tileShatter';
 import { computeBoardEntranceMotionBudgetMs, computeShuffleMotionBudgetMs } from './shuffleFlipAnimation';
 import { boardWebglPerfSampleRecordReactCommit, boardWebglPerfSampleVerboseEnabled } from '../dev/boardWebglPerfSample';
 import { preloadTileTextureImages } from './tileTextures';
-import { REG103_BOARD_TOUCH_ACTION, REG105_DATA_DAIS, REG105_DATA_STAGEVIEW } from '../gameplay/regPhase4PlayContract';
+import {
+    DNG065_BOARD_APPLICATION_LABEL,
+    DNG065_DUNGEON_COMFORT_FOCUS_ORDER,
+    DNG065_MOBILE_BOARD_PRIORITY,
+    REG103_BOARD_TOUCH_ACTION,
+    REG105_DATA_DAIS,
+    REG105_DATA_STAGEVIEW
+} from '../gameplay/regPhase4PlayContract';
 
 /** Minimum time the pre-board “gather / release” motif stays visible while GPU warm-up runs in parallel. */
 const BOARD_PRESTAGE_DWELL_MS = 360;
@@ -1431,6 +1438,9 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
             data-board-rows={board.rows}
             data-board-run-status={runStatus}
             data-dungeon-stage-layer-policy={DUNGEON_BOARD_STAGE_LAYER_POLICY.version}
+            data-dungeon-comfort-focus-order={DNG065_DUNGEON_COMFORT_FOCUS_ORDER.join('>')}
+            data-dungeon-mobile-board-primary={DNG065_MOBILE_BOARD_PRIORITY.boardPrimary ? 'true' : 'false'}
+            data-dungeon-touch-target-min={DNG065_MOBILE_BOARD_PRIORITY.minTouchTargetPx}
             data-hidden-tile-count={hiddenTileCount}
             data-hidden-slots={hiddenSlotsAttr}
             {...(devE2ePairPositionsJson ? { 'data-e2e-pair-positions': devE2ePairPositionsJson } : {})}
@@ -1460,7 +1470,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                 </div>
             ) : (
                 <div
-                    aria-label="Memory tile board. Use arrow keys to move focus, Enter or Space to flip."
+                    aria-label={DNG065_BOARD_APPLICATION_LABEL}
                     className={styles.boardCanvasApplication}
                     data-testid="tile-board-application"
                     onBlur={handleBoardApplicationBlur}

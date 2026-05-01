@@ -1,7 +1,7 @@
 # DNG-065: Mobile and controller comfort
 
 ## Status
-Not started
+Done
 
 ## Priority
 P0
@@ -44,5 +44,4 @@ Every dungeon action can be performed comfortably without precision mouse input.
 - `../../refined-experience-gaps/REG-103-touch-drag-pan-zoom-and-one-hand-comfort.md`
 
 ## Future handoff notes
-Verify after any new prompt or toolbar action.
-
+Dungeon comfort now has a stable focus-order contract for occupied cards, exits, shops, rooms, board powers, and required prompts. TileBoard exposes that contract plus board-primary mobile/touch-target metadata, and renderer tests cover keyboard selection of an occupied enemy patrol tile without pointer input. Future controller/gamepad work should map physical controls onto the same board application focus contract.

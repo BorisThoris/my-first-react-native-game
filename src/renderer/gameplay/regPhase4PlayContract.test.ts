@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+    DNG065_BOARD_APPLICATION_LABEL,
+    DNG065_DUNGEON_COMFORT_FOCUS_ORDER,
+    DNG065_MOBILE_BOARD_PRIORITY,
     REG103_MIN_POWER_TOUCH_PX,
     REG104_DATA_SHELL,
     REG106_HUD_IA,
@@ -25,5 +28,20 @@ describe('REG-103–108 gameplay shell contract', () => {
 
     it('REG-108: material lanes include match and mismatch for feedback system parity', () => {
         expect(REG108_CARD_MATERIAL_LANES).toEqual(expect.arrayContaining(['match', 'mismatch', 'invalid']));
+    });
+
+    it('DNG-065: defines dungeon comfort focus order and board-primary mobile policy', () => {
+        expect(DNG065_DUNGEON_COMFORT_FOCUS_ORDER).toEqual([
+            'occupied_cards',
+            'exit_cards',
+            'shop_cards',
+            'room_cards',
+            'board_powers',
+            'required_prompts'
+        ]);
+        expect(DNG065_BOARD_APPLICATION_LABEL).toMatch(/controller/i);
+        expect(DNG065_MOBILE_BOARD_PRIORITY.boardPrimary).toBe(true);
+        expect(DNG065_MOBILE_BOARD_PRIORITY.minTouchTargetPx).toBeGreaterThanOrEqual(44);
+        expect(DNG065_MOBILE_BOARD_PRIORITY.promptPolicy).toMatch(/inline/i);
     });
 });
