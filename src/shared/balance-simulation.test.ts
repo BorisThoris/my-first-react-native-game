@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
     BALANCE_SIMULATION_BASELINE,
     assertBalanceSimulationWithinBaseline,
+    assertDungeonBalanceProfilesWithinBounds,
+    DUNGEON_BALANCE_PROFILES,
+    runDungeonBalanceProfileSimulation,
     runBalanceSimulation
 } from './balance-simulation';
 import { GAME_RULES_VERSION } from './contracts';
@@ -64,5 +67,46 @@ describe('REG-086 balance simulation economy and drop-rate tuning', () => {
 
         expect(drift.ok).toBe(true);
         expect(drift.issues).toEqual([]);
+    });
+
+    it('DNG-071 reports dungeon balance profiles with pressure, economy, boss, and shop metrics', () => {
+        const result = runDungeonBalanceProfileSimulation({
+            seeds: [42_001, 42_777],
+            floors: 12,
+            rulesVersion: GAME_RULES_VERSION
+        });
+
+        expect(result.profiles.map((profile) => profile.profile)).toEqual(DUNGEON_BALANCE_PROFILES.map((profile) => profile.id));
+        for (const profile of result.profiles) {
+            expect(profile.floorsCleared).toBeGreaterThan(0);
+            expect(profile.livesLost).toBeGreaterThanOrEqual(0);
+            expect(profile.guardUsed).toBeGreaterThanOrEqual(0);
+            expect(profile.shopGoldEarned).toBeGreaterThan(0);
+            expect(profile.rewardClaims).toBeGreaterThan(0);
+            expect(profile.bossAttempts).toBeGreaterThan(0);
+            expect(profile.shopsVisited).toBeGreaterThanOrEqual(0);
+        }
+
+        const greedy = result.profiles.find((profile) => profile.profile === 'greedy')!;
+        const cautious = result.profiles.find((profile) => profile.profile === 'cautious')!;
+        expect(greedy.rewardClaims).toBeGreaterThan(cautious.rewardClaims);
+        expect(cautious.guardUsed).toBeGreaterThanOrEqual(greedy.guardUsed);
+    });
+
+    it('DNG-071 profile bounds fail with profile/seed/floor context', () => {
+        const result = runDungeonBalanceProfileSimulation({ seed: 42_001, floors: 12, rulesVersion: GAME_RULES_VERSION });
+        const healthy = assertDungeonBalanceProfilesWithinBounds(result);
+
+        expect(healthy.ok).toBe(true);
+        expect(healthy.issues).toEqual([]);
+
+        const impossible = assertDungeonBalanceProfilesWithinBounds({
+            ...result,
+            bounds: { ...result.bounds, minFloorsClearedShare: 1.1 }
+        });
+        expect(impossible.ok).toBe(false);
+        expect(impossible.issues[0]).toMatch(/@(seed|seed:)/);
+        expect(impossible.issues[0]).toMatch(/floor:/);
+        expect(impossible.issues[0]).toMatch(/floorsCleared/);
     });
 });

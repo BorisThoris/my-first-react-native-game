@@ -1,7 +1,7 @@
 # DNG-071: Balance simulation suite
 
 ## Status
-Not started
+Done
 
 ## Priority
 P0
@@ -44,5 +44,4 @@ Developers can run a deterministic simulation and see whether changes made runs 
 - `DNG-054`
 
 ## Future handoff notes
-Run after major reward or enemy tuning.
-
+Balance simulation now includes deterministic cautious, average, greedy, and high-skill dungeon profiles. Profile metrics track floors cleared, lives lost, guard use, shop gold, reward claims, boss wins/attempts, shops visited, and first risk sample context; profile bound failures include profile/seed/floor details. Run after major reward, shop, relic, enemy, or boss tuning.

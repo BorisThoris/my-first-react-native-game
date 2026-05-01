@@ -68,6 +68,48 @@ export interface BalanceSimulationReport {
     notes: string[];
 }
 
+export type DungeonBalanceProfileId = 'cautious' | 'average' | 'greedy' | 'high_skill';
+
+export interface DungeonBalanceProfileDefinition {
+    id: DungeonBalanceProfileId;
+    riskTolerance: number;
+    rewardBias: number;
+    guardEfficiency: number;
+    shopVisitBias: number;
+}
+
+export interface DungeonBalanceProfileMetrics {
+    profile: DungeonBalanceProfileId;
+    floorsCleared: number;
+    livesLost: number;
+    guardUsed: number;
+    shopGoldEarned: number;
+    rewardClaims: number;
+    bossWins: number;
+    bossAttempts: number;
+    shopsVisited: number;
+    firstRiskSample: { floor: number; seed: number } | null;
+}
+
+export interface DungeonBalanceProfileReport {
+    base: BalanceSimulationReport;
+    profiles: DungeonBalanceProfileMetrics[];
+    bounds: {
+        minFloorsClearedShare: number;
+        maxLivesLostPerFloor: number;
+        minBossWinShare: number;
+        maxShopGoldPerFloor: number;
+    };
+    notes: string[];
+}
+
+export const DUNGEON_BALANCE_PROFILES: readonly DungeonBalanceProfileDefinition[] = [
+    { id: 'cautious', riskTolerance: 0.72, rewardBias: 0.82, guardEfficiency: 0.88, shopVisitBias: 0.92 },
+    { id: 'average', riskTolerance: 0.58, rewardBias: 1, guardEfficiency: 0.72, shopVisitBias: 1 },
+    { id: 'greedy', riskTolerance: 0.42, rewardBias: 1.24, guardEfficiency: 0.52, shopVisitBias: 1.16 },
+    { id: 'high_skill', riskTolerance: 0.84, rewardBias: 1.08, guardEfficiency: 0.95, shopVisitBias: 1.06 }
+] as const;
+
 const statusFor = (value: number, targetMin: number, targetMax: number): BalanceSimulationRow['status'] =>
     value < targetMin ? 'below_range' : value > targetMax ? 'above_range' : 'within_range';
 
@@ -384,5 +426,118 @@ export const assertBalanceSimulationWithinBaseline = (
         const range = baseline[key];
         return value < range.min || value > range.max ? [`${key}:${value} outside ${range.min}-${range.max}`] : [];
     });
+    return { ok: issues.length === 0, issues };
+};
+
+const sampleRewardPotential = (sample: BalanceSimulationReport['samples'][number]): number =>
+    sample.relicFavorPotential +
+    sample.comboShardPotential +
+    sample.guardRewardPotential +
+    sample.consumableRewardPotential +
+    sample.treasureRewardPairs +
+    sample.findablePickupPairs;
+
+const samplePressure = (sample: BalanceSimulationReport['samples'][number]): number =>
+    sample.contactRisk + sample.enemyThreatPairs * 0.25 + sample.bossMovingEnemyHazards * 0.9;
+
+export const runDungeonBalanceProfileSimulation = (
+    input: BalanceSimulationInput & { profiles?: readonly DungeonBalanceProfileId[] }
+): DungeonBalanceProfileReport => {
+    const base = runBalanceSimulation(input);
+    const selectedProfiles = input.profiles?.length
+        ? DUNGEON_BALANCE_PROFILES.filter((profile) => input.profiles?.includes(profile.id))
+        : DUNGEON_BALANCE_PROFILES;
+
+    const profiles = selectedProfiles.map((profile) => {
+        let floorsCleared = 0;
+        let livesLost = 0;
+        let guardUsed = 0;
+        let rewardClaims = 0;
+        let bossWins = 0;
+        let bossAttempts = 0;
+        let firstRiskSample: DungeonBalanceProfileMetrics['firstRiskSample'] = null;
+
+        for (const sample of base.samples) {
+            const pressure = samplePressure(sample);
+            const guardAvailable = sample.guardRewardPotential + (profile.id === 'cautious' ? 1 : 0);
+            const guardSpend = Math.min(guardAvailable, Math.floor(pressure * profile.guardEfficiency));
+            const residualPressure = Math.max(0, pressure - guardSpend - profile.riskTolerance);
+            const lost = Math.floor(residualPressure / (profile.id === 'greedy' ? 1.35 : 1.55));
+            const cleared = lost <= (profile.id === 'greedy' ? 1 : 2);
+
+            guardUsed += guardSpend;
+            livesLost += lost;
+            rewardClaims += sampleRewardPotential(sample) * profile.rewardBias;
+            if (sample.floorTag === 'boss') {
+                bossAttempts += 1;
+                if (cleared && residualPressure <= 2.25) {
+                    bossWins += 1;
+                }
+            }
+            if (cleared) {
+                floorsCleared += 1;
+            } else if (!firstRiskSample) {
+                firstRiskSample = { floor: sample.floor, seed: sample.seed };
+            }
+        }
+
+        const shopsVisited = Math.round(
+            base.samples.filter((sample) => sample.dungeonNodeKind === 'shop').length * profile.shopVisitBias
+        );
+
+        return {
+            profile: profile.id,
+            floorsCleared,
+            livesLost,
+            guardUsed,
+            shopGoldEarned: Number((base.aggregate.totalShopGoldEarned * profile.rewardBias).toFixed(2)),
+            rewardClaims: Number(rewardClaims.toFixed(2)),
+            bossWins,
+            bossAttempts,
+            shopsVisited,
+            firstRiskSample
+        };
+    });
+
+    return {
+        base,
+        profiles,
+        bounds: {
+            minFloorsClearedShare: 0.82,
+            maxLivesLostPerFloor: 1.35,
+            minBossWinShare: 0.5,
+            maxShopGoldPerFloor: 12
+        },
+        notes: [
+            'Profiles are broad deterministic guardrails, not exact win-rate claims.',
+            'Bounds intentionally report profile/seed/floor context so balance failures are actionable.'
+        ]
+    };
+};
+
+export const assertDungeonBalanceProfilesWithinBounds = (
+    report: DungeonBalanceProfileReport
+): { ok: boolean; issues: string[] } => {
+    const totalFloors = Math.max(1, report.base.samples.length);
+    const issues = report.profiles.flatMap((profile) => {
+        const context = `${profile.profile}@seed:${profile.firstRiskSample?.seed ?? report.base.seeds[0] ?? 0}/floor:${
+            profile.firstRiskSample?.floor ?? report.base.floors
+        }`;
+        const profileIssues: string[] = [];
+        if (profile.floorsCleared / totalFloors < report.bounds.minFloorsClearedShare) {
+            profileIssues.push(`${context}:floorsCleared=${profile.floorsCleared}/${totalFloors}`);
+        }
+        if (profile.livesLost / totalFloors > report.bounds.maxLivesLostPerFloor) {
+            profileIssues.push(`${context}:livesLost=${profile.livesLost}/${totalFloors}`);
+        }
+        if (profile.bossAttempts > 0 && profile.bossWins / profile.bossAttempts < report.bounds.minBossWinShare) {
+            profileIssues.push(`${context}:bossWins=${profile.bossWins}/${profile.bossAttempts}`);
+        }
+        if (profile.shopGoldEarned / totalFloors > report.bounds.maxShopGoldPerFloor) {
+            profileIssues.push(`${context}:shopGoldEarned=${profile.shopGoldEarned}/${totalFloors}`);
+        }
+        return profileIssues;
+    });
+
     return { ok: issues.length === 0, issues };
 };
