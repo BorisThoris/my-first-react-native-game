@@ -1104,7 +1104,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
             <div
                 aria-hidden="true"
                 className={styles.stageBackdrop}
-                style={{ backgroundImage: `url(${UI_ART.gameplayScene})` }}
+                style={{ backgroundImage: `url(${UI_ART.gameplayWorkshopScene})` }}
             />
             <div className={`${styles.gameForeground} ${cameraViewportMode ? styles.mobileCameraForeground : ''}`}>
                 <div
@@ -1200,6 +1200,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                             ref={boardStageRef}
                             data-testid="board-stage"
                             className={`${styles.boardStage} ${cameraViewportMode ? styles.boardStageCamera : ''} ${boardPresentationClass} ${boardStageCssBloomClass}`.trim()}
+                            style={{ '--gameplay-workshop-table-image': `url(${UI_ART.gameplayWorkshopTable})` } as CSSProperties}
                         >
                             <div className={styles.boardGlow} aria-hidden="true" />
                             {activeRouteBannerLine ? (

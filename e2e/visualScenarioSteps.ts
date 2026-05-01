@@ -13,7 +13,8 @@ import {
     openLevel1Play,
     openMainMenuFromSave,
     visualE2eUsesSandboxGameOver,
-    waitLevel1PlayReady
+    waitLevel1PlayReady,
+    waitLevel1VisualReady
 } from './visualScreenHelpers';
 
 /**
@@ -182,7 +183,7 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
         name: 'game playing (level 1)',
         run: async (page, capture) => {
             await openLevel1Play(page);
-            await waitLevel1PlayReady(page);
+            await waitLevel1VisualReady(page);
             await expect(page.getByTestId('game-hud')).toBeVisible();
             await expect(page.getByRole('toolbar', { name: /game controls/i })).toBeVisible();
             await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible();

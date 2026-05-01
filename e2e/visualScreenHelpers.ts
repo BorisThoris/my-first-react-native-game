@@ -526,6 +526,12 @@ async function waitForPlayingAndHiddenCount(page: Page, expected: number): Promi
     await expect.poll(async () => readFrameHiddenTileCount(page), { timeout: 15000 }).toBe(expected);
 }
 
+/** Visual captures only need a playable board; dungeon objective cards can add non-pair hidden slots. */
+export async function waitLevel1VisualReady(page: Page): Promise<void> {
+    await waitForBoardPlayPhase(page);
+    await expect.poll(async () => readFrameHiddenTileCount(page), { timeout: 15000 }).toBeGreaterThanOrEqual(4);
+}
+
 async function clickHiddenTile(page: Page, row: number, col: number): Promise<void> {
     await flipTileAtGridCellKeyboard(page, row, col);
 }

@@ -14,6 +14,8 @@ Per [docs/new_design/ASSET_AND_ART_PIPELINE.md](../../docs/new_design/ASSET_AND_
 |------|------|---------------|-------|
 | `ui/backgrounds/bg-main-menu-cathedral-v1.png` | Main menu hero layer | AI-generated (Cursor image tool, project batch) | Fantasy vault; central negative space for title. **`GameOverScreen`** composites the same raster via `UI_ART.menuScene` behind the scrim (**META-002** shell parity). |
 | `ui/backgrounds/bg-gameplay-dungeon-ring-v1.png` | Gameplay stage under board | AI-generated | Memory ring / arena; board-safe center |
+| `ui/backgrounds/bg-gameplay-arcane-workshop-v1.png` | Gameplay stage under board | Procedural local raster (Pillow), after OpenAI image API billing limit blocked live generation | Arcane workshop backdrop; dark center reserved for board readability. |
+| `ui/backgrounds/bg-board-arcane-table-v1.png` | Gameplay board-stage workbench texture | Procedural local raster (Pillow), after OpenAI image API billing limit blocked live generation | Etched table / rune projection layer behind the tile board. |
 | `ui/backgrounds/bg-mode-classic-v1.png` | Mode card poster | AI-generated | Classic / blue-silver gate |
 | `ui/backgrounds/bg-mode-daily-v1.png` | Mode card poster | AI-generated | Daily / purple crystal featured |
 | `ui/backgrounds/bg-mode-endless-v1.png` | Mode card poster (locked) | AI-generated | Endless / ember gate, darker |

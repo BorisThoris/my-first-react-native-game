@@ -1,5 +1,7 @@
 import brandCrestUrl from './brand-crest.svg';
 import choosePathSceneUrl from './backgrounds/bg-choose-path-stage-v1.png';
+import gameplayWorkshopTableUrl from './backgrounds/bg-board-arcane-table-v1.png';
+import gameplayWorkshopSceneUrl from './backgrounds/bg-gameplay-arcane-workshop-v1.png';
 import gameplaySceneUrl from './backgrounds/bg-gameplay-dungeon-ring-v1.png';
 import dividerOrnamentUrl from './divider-ornament.svg';
 import menuEmblemUrl from './menu-emblem.svg';
@@ -13,6 +15,8 @@ export const UI_ART = {
     choosePathScene: choosePathSceneUrl,
     dividerOrnament: dividerOrnamentUrl,
     gameplayScene: gameplaySceneUrl,
+    gameplayWorkshopScene: gameplayWorkshopSceneUrl,
+    gameplayWorkshopTable: gameplayWorkshopTableUrl,
     menuEmblem: menuEmblemUrl,
     menuScene: menuSceneUrl,
     menuSeal: menuSealUrl,

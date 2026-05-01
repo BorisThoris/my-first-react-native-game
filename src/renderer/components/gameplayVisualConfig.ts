@@ -10,11 +10,11 @@ export const GAMEPLAY_VISUAL_CSS_VARS = {
         'color-mix(in srgb, var(--theme-gold-bright) 34%, var(--theme-hud-chrome-border))',
     ['--gameplay-chrome-radius' as string]: 'calc(var(--ui-radius-lg) + 0.08rem)',
     ['--gameplay-chrome-shadow' as string]:
-        'var(--theme-hud-chrome-shadow), 0 10px 24px color-mix(in srgb, var(--theme-shadow) 20%, transparent)',
+        'var(--theme-hud-chrome-shadow), 0 14px 32px color-mix(in srgb, var(--theme-shadow) 26%, transparent), 0 0 22px color-mix(in srgb, var(--theme-glow-cyan-soft) 10%, transparent)',
     ['--gameplay-chrome-shadow-strong' as string]:
         '0 16px 40px color-mix(in srgb, var(--theme-shadow) 32%, transparent), 0 0 0 1px color-mix(in srgb, var(--theme-shadow) 14%, transparent)',
     ['--gameplay-chrome-surface' as string]:
-        'linear-gradient(180deg, rgba(255, 243, 217, 0.04), transparent 24%), linear-gradient(180deg, rgba(31, 24, 19, 0.16), transparent 62%), color-mix(in srgb, var(--theme-panel-solid) 90%, var(--theme-stone) 8%)',
+        'radial-gradient(ellipse 120% 90% at 50% 0%, rgba(242, 211, 157, 0.075), transparent 46%), linear-gradient(180deg, rgba(255, 243, 217, 0.045), transparent 24%), linear-gradient(180deg, rgba(31, 24, 19, 0.18), transparent 62%), color-mix(in srgb, var(--theme-panel-solid) 88%, var(--theme-stone) 10%)',
     ['--gameplay-chrome-surface-muted' as string]:
         'linear-gradient(180deg, rgba(255, 243, 217, 0.028), transparent 28%), linear-gradient(180deg, rgba(16, 14, 18, 0.16), transparent 64%), color-mix(in srgb, var(--theme-void) 70%, var(--theme-stone) 8%)',
     ['--gameplay-hud-context-strip-border' as string]:
@@ -60,13 +60,13 @@ export const GAMEPLAY_VISUAL_CSS_VARS = {
         'radial-gradient(ellipse 120% 48% at 50% 0%, rgba(242, 211, 157, 0.1), transparent 58%), radial-gradient(ellipse 80% 55% at 18% 88%, rgba(140, 98, 223, 0.06), transparent 52%), linear-gradient(168deg, rgba(26, 20, 16, 0.98), rgba(7, 6, 10, 0.99))',
     ['--gameplay-floor-badge-plate-shadow' as string]:
         'inset 0 1px 0 var(--theme-hud-chrome-inset), inset 0 10px 18px color-mix(in srgb, var(--theme-gold-bright) 9%, transparent), inset 0 -22px 28px color-mix(in srgb, var(--theme-void) 72%, transparent), 0 0 0 1px color-mix(in srgb, var(--theme-glow-gold-soft) 34%, transparent), 0 0 16px color-mix(in srgb, var(--theme-glow-gold) 14%, transparent)',
-    ['--gameplay-stage-board-glow-inset' as string]: '5% 8% 10%',
-    ['--gameplay-stage-dais-bottom' as string]: '-14%',
-    ['--gameplay-stage-dais-height' as string]: '48%',
-    ['--gameplay-stage-dais-width' as string]: 'min(110%, 58rem)',
-    ['--gameplay-stage-ring-bottom' as string]: '-11%',
-    ['--gameplay-stage-ring-opacity' as string]: '0.41',
-    ['--gameplay-stage-ring-size' as string]: 'min(116%, 60rem)'
+    ['--gameplay-stage-board-glow-inset' as string]: '3% 5% 6%',
+    ['--gameplay-stage-dais-bottom' as string]: '-9%',
+    ['--gameplay-stage-dais-height' as string]: '56%',
+    ['--gameplay-stage-dais-width' as string]: 'min(116%, 66rem)',
+    ['--gameplay-stage-ring-bottom' as string]: '-7%',
+    ['--gameplay-stage-ring-opacity' as string]: '0.52',
+    ['--gameplay-stage-ring-size' as string]: 'min(118%, 68rem)'
 } as CSSProperties;
 
 /** REG-108 / REG-012: material lanes align with `REG108_CARD_MATERIAL_LANES` in `regPhase4PlayContract`. */
@@ -128,9 +128,9 @@ export const GAMEPLAY_BOARD_VISUALS = {
             reduceMotion: 0.35
         },
         colors: {
-            core: [0.98, 1.0, 0.86],
-            ember: [1.0, 0.72, 0.34],
-            glow: [0.42, 1.0, 0.7]
+            core: [0.98, 0.94, 0.72],
+            ember: [1.0, 0.62, 0.28],
+            glow: [0.48, 0.92, 1.0]
         },
         geometry: {
             innerCorner: 0.084,
@@ -144,20 +144,20 @@ export const GAMEPLAY_BOARD_VISUALS = {
         },
         tiers: {
             high: {
-                baseIntensity: 0.86,
-                burstIntensity: 0.34,
-                emberStrength: 1,
+                baseIntensity: 0.9,
+                burstIntensity: 0.38,
+                emberStrength: 0.92,
                 innerWidthMul: 1,
                 motion: 1,
-                outerWidthMul: 1.06
+                outerWidthMul: 1.12
             },
             medium: {
-                baseIntensity: 0.66,
-                burstIntensity: 0.24,
-                emberStrength: 0.74,
+                baseIntensity: 0.7,
+                burstIntensity: 0.26,
+                emberStrength: 0.68,
                 innerWidthMul: 0.96,
                 motion: 0.74,
-                outerWidthMul: 0.92
+                outerWidthMul: 0.98
             },
             reduceMotion: {
                 baseIntensity: 0.58,
@@ -186,13 +186,13 @@ export const GAMEPLAY_CARD_VISUALS = {
         fallback: 0.88,
         textured: 0.42
     },
-    surfaceMapVersion: 3,
-    textureVersion: 47,
-    texturedBackEmblemOpacity: 0.14,
-    texturedBackPatternOpacity: 0.18,
+    surfaceMapVersion: 4,
+    textureVersion: 48,
+    texturedBackEmblemOpacity: 0.18,
+    texturedBackPatternOpacity: 0.22,
     texturedBackTint: {
-        end: 'rgba(8, 6, 6, 0.18)',
-        start: 'rgba(62, 39, 20, 0.09)'
+        end: 'rgba(6, 8, 12, 0.2)',
+        start: 'rgba(75, 45, 22, 0.12)'
     }
 } as const;
 

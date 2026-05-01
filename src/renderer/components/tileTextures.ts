@@ -777,18 +777,18 @@ const getPalette = (variant: FaceVariant, layer: LayerSlot): CardPalette => {
               }
             : {
                   accent: 'rgba(242, 211, 157, 0.12)',
-                  backBase: '#251c17',
-                  backPattern: 'rgba(242, 211, 157, 0.22)',
-                  edge: '#140f0d',
-                  faceBase: '#202735',
-                  faceEdge: '#121925',
+                  backBase: '#211914',
+                  backPattern: 'rgba(242, 211, 157, 0.26)',
+                  edge: '#110d0c',
+                  faceBase: '#1b2731',
+                  faceEdge: '#0d151c',
                   foil: colors.goldBright,
                   glow: colors.glowGoldSoft,
                   ink: '#fffaf2',
                   label: 'rgba(244, 236, 220, 0.92)',
-                  line: 'rgba(242, 211, 157, 0.48)',
-                  rim: 'rgba(242, 211, 157, 0.62)',
-                  rimSoft: 'rgba(184, 217, 228, 0.18)'
+                  line: 'rgba(242, 211, 157, 0.52)',
+                  rim: 'rgba(242, 211, 157, 0.68)',
+                  rimSoft: 'rgba(184, 217, 228, 0.24)'
               };
     }
 
@@ -844,18 +844,18 @@ const getPalette = (variant: FaceVariant, layer: LayerSlot): CardPalette => {
           }
         : {
               accent: 'rgba(242, 211, 157, 0.14)',
-              backBase: '#3b291d',
-              backPattern: 'rgba(242, 211, 157, 0.28)',
-              edge: '#20140d',
-              faceBase: '#473122',
-              faceEdge: '#2a190f',
+              backBase: '#332216',
+              backPattern: 'rgba(242, 211, 157, 0.32)',
+              edge: '#1a100b',
+              faceBase: '#3f2a1b',
+              faceEdge: '#24160e',
               foil: colors.goldBright,
               glow: colors.glowGoldSoft,
               ink: 'rgba(248, 244, 234, 0.94)',
               label: 'rgba(241, 236, 222, 0.92)',
-              line: 'rgba(242, 211, 157, 0.48)',
-              rim: 'rgba(242, 211, 157, 0.68)',
-              rimSoft: 'rgba(195, 149, 79, 0.28)'
+              line: 'rgba(242, 211, 157, 0.54)',
+              rim: 'rgba(242, 211, 157, 0.74)',
+              rimSoft: 'rgba(99, 165, 187, 0.22)'
           };
 };
 
