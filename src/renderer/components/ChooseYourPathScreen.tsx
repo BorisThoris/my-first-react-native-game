@@ -85,6 +85,7 @@ const ChooseYourPathScreen = () => {
         closeSubscreen,
         openSettings,
         startDailyRun,
+        startDungeonShowcaseRun,
         startGauntletRun,
         startMeditationRun,
         startMeditationRunWithMutators,
@@ -101,6 +102,7 @@ const ChooseYourPathScreen = () => {
             closeSubscreen: state.closeSubscreen,
             openSettings: state.openSettings,
             startDailyRun: state.startDailyRun,
+            startDungeonShowcaseRun: state.startDungeonShowcaseRun,
             startGauntletRun: state.startGauntletRun,
             startMeditationRun: state.startMeditationRun,
             startMeditationRunWithMutators: state.startMeditationRunWithMutators,
@@ -287,6 +289,9 @@ const ChooseYourPathScreen = () => {
         switch (action.type) {
             case 'startRun':
                 startRun();
+                return;
+            case 'startDungeonShowcaseRun':
+                startDungeonShowcaseRun();
                 return;
             case 'startDailyRun':
                 startDailyRun();
@@ -720,6 +725,9 @@ const ChooseYourPathScreen = () => {
                     title={libraryDetailMode.title}
                 >
                     <p className={styles.libraryDetailDescription}>{libraryDetailMode.shortDescription}</p>
+                    {libraryDetailMode.identityTag ? (
+                        <p className={styles.libraryDetailIdentity}>{libraryDetailMode.identityTag}</p>
+                    ) : null}
                     {libraryDetailMode.promise ? (
                         <p className={styles.libraryDetailPromise}>{libraryDetailMode.promise}</p>
                     ) : null}

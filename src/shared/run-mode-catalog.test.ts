@@ -34,6 +34,20 @@ describe('REG-050 mode identity promises', () => {
         expect(modes.gauntlet?.eligibilityNote).toMatch(/Gauntlet proof/i);
         expect(modes.meditation?.eligibilityNote).toMatch(/practice\/comfort/i);
     });
+
+    it('surfaces a player-facing dungeon showcase launch path', () => {
+        const showcase = RUN_MODE_CATALOG.find((mode) => mode.id === 'dungeon_showcase');
+
+        expect(showcase).toMatchObject({
+            title: 'Dungeon Showcase',
+            group: 'core',
+            availability: 'available',
+            testId: 'choose-path-dungeon-showcase',
+            action: { type: 'startDungeonShowcaseRun' }
+        });
+        expect(showcase?.shortDescription).toMatch(/enemy patrols/i);
+        expect(showcase?.eligibilityNote).toMatch(/disables achievements/i);
+    });
 });
 
 describe('REG-050 mode identity copy', () => {

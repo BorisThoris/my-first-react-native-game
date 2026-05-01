@@ -4585,6 +4585,36 @@ export const createWildRun = (bestScore: number, extra: Partial<CreateRunOptions
         ...extra
     });
 
+export const createDungeonShowcaseRun = (bestScore: number, extra: Partial<CreateRunOptions> = {}): RunState => {
+    const runSeed = extra.runSeed ?? 72_001;
+    const base = finishMemorizePhase(
+        createNewRun(bestScore, {
+            ...extra,
+            gameMode: 'endless',
+            practiceMode: true,
+            runSeed,
+            activeMutators: extra.activeMutators ?? ['wide_recall']
+        })
+    );
+    const board = buildBoard(5, {
+        activeMutators: base.activeMutators,
+        dungeonNodeKind: 'combat',
+        floorArchetypeId: 'survey_hall',
+        floorTag: 'normal',
+        gameMode: 'endless',
+        runRulesVersion: base.runRulesVersion,
+        runSeed
+    });
+
+    return {
+        ...base,
+        board,
+        dungeonRun: createDungeonRunMapState(runSeed, base.runRulesVersion, 5),
+        findablesTotalThisFloor: countFindablePairs(board.tiles),
+        lastLevelResult: null
+    };
+};
+
 export const createDailyRun = (bestScore: number, extra: Partial<CreateRunOptions> = {}): RunState => {
     const runSeed = deriveDailyRunSeed(GAME_RULES_VERSION);
     const mutIndex = deriveDailyMutatorIndex(runSeed, DAILY_MUTATOR_TABLE.length);

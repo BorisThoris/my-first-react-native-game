@@ -4,6 +4,7 @@ export {
     calculatePerfectClearBonus,
     calculateRating,
     createDailyRun,
+    createDungeonShowcaseRun,
     createGauntletRun,
     createMeditationRun,
     createNewRun,

@@ -80,8 +80,8 @@ describe('pickFloorScheduleEntry', () => {
             floorTag: 'normal',
             floorArchetypeId: 'survey_hall',
             featuredObjectiveId: 'flip_par',
-            title: 'Survey Hall',
-            theme: 'Survey',
+            title: 'Dungeon Gate',
+            theme: 'Gate',
             actTitle: 'Act I — Survey Grounds',
             biomeTitle: 'Lantern Academy',
             actFloorNumber: 1,
@@ -126,7 +126,7 @@ describe('pickFloorScheduleEntry', () => {
         }
         expect(themes.size).toBeGreaterThanOrEqual(3);
         expect([...themes]).toEqual(
-            expect.arrayContaining(['Survey', 'Treasure', 'Trap', 'Spotlight'])
+            expect.arrayContaining(['Gate', 'Treasure', 'Trap', 'Spotlight'])
         );
     });
 

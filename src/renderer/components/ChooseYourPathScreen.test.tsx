@@ -43,6 +43,7 @@ vi.mock('../store/useAppStore', async () => {
         saveData,
         settings: saveData.settings,
         startDailyRun: vi.fn(),
+        startDungeonShowcaseRun: vi.fn(),
         startGauntletRun: vi.fn(),
         startMeditationRun: vi.fn(),
         startMeditationRunWithMutators: vi.fn(),
@@ -80,6 +81,7 @@ describe('ChooseYourPathScreen REG-010 discoverability', () => {
 
         const library = screen.getByTestId('choose-path-more-modes');
         expect(library).toHaveTextContent(/Daily Challenge/);
+        expect(library).toHaveTextContent(/Dungeon Showcase/);
         expect(library).toHaveTextContent(/Endless Mode/);
         expect(library).toHaveTextContent(/Locked/);
         expect(screen.getByRole('button', { name: /search modes/i })).toBeInTheDocument();
@@ -87,5 +89,17 @@ describe('ChooseYourPathScreen REG-010 discoverability', () => {
         const offlineNote = screen.getByTestId('choose-path-offline-note');
         expect(offlineNote).toHaveTextContent(/Offline-first/);
         expect(offlineNote).toHaveTextContent(/Profile/);
+    });
+
+    it('explains the dungeon showcase from Browse modes', async () => {
+        const user = userEvent.setup();
+        render(<ChooseYourPathScreen />);
+
+        await user.click(screen.getByRole('button', { name: /browse modes/i }));
+        await user.click(screen.getByTestId('choose-path-dungeon-showcase'));
+
+        expect(screen.getByText(/Dungeon preview/i)).toBeInTheDocument();
+        expect(screen.getByText(/patrols, route exits, trap vocabulary/i)).toBeInTheDocument();
+        expect(screen.getByText(/disables achievements/i)).toBeInTheDocument();
     });
 });

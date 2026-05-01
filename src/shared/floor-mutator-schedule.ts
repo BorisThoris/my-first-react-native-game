@@ -33,10 +33,10 @@ export interface FloorArchetypeDefinition {
 
 export const FLOOR_ARCHETYPE_CATALOG: Record<FloorArchetypeId, FloorArchetypeDefinition> = {
     survey_hall: {
-        title: 'Survey Hall',
-        hint: 'Read the board fast and stay on flip par.',
-        theme: 'Survey',
-        riskProfile: 'Wide-recall pressure; prioritize efficient pair routes.'
+        title: 'Dungeon Gate',
+        hint: 'First room shows the dungeon route, exit pressure, and patrol intel before the descent branches.',
+        theme: 'Gate',
+        riskProfile: 'Readable opener with dungeon route intel; clear fast to choose the next room.'
     },
     speed_trial: {
         title: 'Speed Trial',

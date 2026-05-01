@@ -27,7 +27,8 @@ describe('GameplayHudBar', () => {
             />
         );
 
-        expect(screen.getByTestId('hud-endless-archetype').textContent).toContain('Survey Hall');
+        expect(screen.getByTestId('hud-wing-right')).toHaveTextContent('Classic Dungeon');
+        expect(screen.getByTestId('hud-endless-archetype').textContent).toContain('Dungeon Gate');
         expect(screen.getByTestId('hud-chapter-act').textContent).toContain('Act I');
         expect(screen.getByTestId('hud-chapter-act').textContent).toContain('Lantern Academy');
         expect(screen.getByTestId('hud-chapter-act').getAttribute('title')).toContain('Readable halls');

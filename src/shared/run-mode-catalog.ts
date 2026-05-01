@@ -12,6 +12,7 @@ export type PuzzleRunModeId = 'starter_pairs' | 'mirror_craft' | 'glyph_cross';
 
 export type RunModeAction =
     | { type: 'startRun' }
+    | { type: 'startDungeonShowcaseRun' }
     | { type: 'startDailyRun' }
     | { type: 'locked' }
     | {
@@ -88,6 +89,20 @@ export const RUN_MODE_CATALOG: readonly RunModeDefinition[] = [
         availability: 'available',
         posterKey: 'daily',
         action: { type: 'startDailyRun' }
+    },
+    {
+        id: 'dungeon_showcase',
+        title: 'Dungeon Showcase',
+        shortDescription: 'Jump straight into a live dungeon board with enemy patrols, route exits, traps, shops, bosses, and locked-room vocabulary.',
+        identityTag: 'Dungeon preview',
+        promise: 'See the shipped dungeon systems immediately: patrols, route exits, trap vocabulary, boss prep, and locked-room rewards.',
+        eligibilityNote: 'Showcase disables achievements and mastery records so it can start on a staged dungeon floor.',
+        outcomeSummary: 'Showcase results are practice-only and do not affect daily fairness or Classic mastery.',
+        group: 'core',
+        availability: 'available',
+        posterKey: 'classic',
+        testId: 'choose-path-dungeon-showcase',
+        action: { type: 'startDungeonShowcaseRun' }
     },
     {
         id: 'endless',

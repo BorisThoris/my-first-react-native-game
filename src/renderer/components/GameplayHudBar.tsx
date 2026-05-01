@@ -140,7 +140,9 @@ const GameplayHudBar = ({
                   ? 'Meditation Run'
                   : run.wildMenuRun
                     ? 'Wild Run'
-                    : 'Arcade Run';
+                    : run.gameMode === 'endless'
+                      ? 'Classic Dungeon'
+                      : 'Arcade Run';
     const nBackMutatorActive = run.activeMutators.includes('n_back_anchor');
     const nBackLabel =
         run.nBackAnchorPairKey && nBackMutatorActive ? `Anchor ${run.nBackAnchorPairKey.slice(0, 6)}` : null;

@@ -139,6 +139,21 @@ describe('useAppStore timers', () => {
         expect(useAppStore.getState().run?.lives).toBe(4);
     });
 
+    it('starts a practice-only dungeon showcase on an active combat room', () => {
+        useAppStore.getState().startDungeonShowcaseRun();
+
+        const state = useAppStore.getState();
+        const run = state.run;
+        expect(state.view).toBe('playing');
+        expect(run?.status).toBe('playing');
+        expect(run?.practiceMode).toBe(true);
+        expect(run?.achievementsEnabled).toBe(false);
+        expect(run?.board?.level).toBe(5);
+        expect(run?.board?.enemyHazards?.length).toBeGreaterThan(0);
+        expect(run?.board?.tiles.some((tile) => tile.dungeonCardKind === 'enemy')).toBe(true);
+        expect(run?.dungeonRun.currentFloor).toBe(5);
+    });
+
     it('does not set matchScorePop on mismatch resolve; mismatches increment and mismatchScorePop payload is stored', async () => {
         useAppStore.getState().startRun();
 

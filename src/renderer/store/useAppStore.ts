@@ -22,6 +22,7 @@ import {
 import {
     advanceToNextLevel,
     createDailyRun,
+    createDungeonShowcaseRun,
     createGauntletRun,
     createMeditationRun,
     createNewRun,
@@ -166,6 +167,7 @@ interface AppState {
     dismissMismatchScorePop: () => void;
     hydrate: () => Promise<void>;
     startRun: () => void;
+    startDungeonShowcaseRun: () => void;
     startDailyRun: () => void;
     startGauntletRun: (durationMs?: number) => void;
     startPuzzleRun: (puzzleId: string) => void;
@@ -644,6 +646,29 @@ export const useAppStore = create<AppState>((set, get) => ({
             get().settings
         );
         trackEvent('run_start', { mode: run.gameMode, practice: run.practiceMode });
+        playRunStartUiSfxFromStore();
+
+        set({
+            view: 'playing',
+            newlyUnlockedAchievements: [],
+            boardPinMode: false,
+            destroyPairArmed: false,
+            peekModeArmed: false,
+            run
+        });
+
+        if (run.timerState.memorizeRemainingMs !== null) {
+            scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
+        }
+    },
+
+    startDungeonShowcaseRun: () => {
+        clearAllTimers();
+        const run = patchRunFromUserSettings(
+            createDungeonShowcaseRun(get().saveData.bestScore, metaRelicOpts(get().saveData)),
+            get().settings
+        );
+        trackEvent('run_start', { mode: run.gameMode, practice: run.practiceMode, showcase: 'dungeon' });
         playRunStartUiSfxFromStore();
 
         set({
