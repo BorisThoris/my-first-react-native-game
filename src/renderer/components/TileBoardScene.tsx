@@ -105,6 +105,11 @@ import {
 } from './tileBoardRimGeometry';
 import { clampMatchedCardRimFireDriverUniforms, createMatchedCardRimFireMaterial } from './matchedCardRimFireMaterial';
 import { GAMEPLAY_BOARD_VISUALS } from './gameplayVisualConfig';
+import {
+    DUNGEON_BOARD_STAGE_LAYER_POLICY,
+    getDungeonBoardStageLod,
+    getDungeonEnemyMarkerAnchor
+} from './tileBoardStageLayers';
 
 /** FX-006 / HOVER_DOM_WEBGL_TOKENS: border emphasis → warm tint lerp (~20% toward `#fff0d4` in sRGB mix space). */
 const HOVER_RIM_TINT = new Color('#fff0d4');
@@ -318,6 +323,7 @@ interface TileTransform {
 interface EnemyHazardMarkerProps {
     hazard: EnemyHazardState;
     currentTransform: TileTransform;
+    graphicsQuality: GraphicsQualityPreset;
     nextTransform: TileTransform | null;
     reduceMotion: boolean;
 }
@@ -330,31 +336,27 @@ const enemyHazardColor = (hazard: EnemyHazardState): string => {
     return '#ff9f86';
 };
 
-const EnemyHazardMarker = ({ hazard, currentTransform, nextTransform, reduceMotion }: EnemyHazardMarkerProps) => {
+const EnemyHazardMarker = ({ hazard, currentTransform, graphicsQuality, nextTransform, reduceMotion }: EnemyHazardMarkerProps) => {
     const groupRef = useRef<Group | null>(null);
     const color = enemyHazardColor(hazard);
+    const lod = getDungeonBoardStageLod(graphicsQuality, reduceMotion);
     const healthRatio = hazard.maxHp > 0 ? MathUtils.clamp(hazard.hp / hazard.maxHp, 0, 1) : 0;
     const scale = (hazard.bossId ? 1.35 : 1) * (0.82 + healthRatio * 0.18);
 
     useLayoutEffect(() => {
         const group = groupRef.current;
         if (!group) return;
-        group.position.set(
-            currentTransform.baseX + currentTransform.imperfectionX + currentTransform.layoutJitterX,
-            currentTransform.baseY + currentTransform.imperfectionY + currentTransform.layoutJitterY,
-            ENEMY_MARKER_Z
-        );
+        group.position.set(...getDungeonEnemyMarkerAnchor(currentTransform, 'currentThreat'));
         group.scale.setScalar(scale);
     }, []); // eslint-disable-line react-hooks/exhaustive-deps -- first render seeds the animated marker at its current tile
 
     useFrame((state, delta) => {
         const group = groupRef.current;
         if (!group) return;
-        const bob = reduceMotion ? 0 : Math.sin(state.clock.elapsedTime * 2.1 + currentTransform.seed * 0.017) * 0.025;
-        const x = currentTransform.baseX + currentTransform.imperfectionX + currentTransform.layoutJitterX;
-        const y = currentTransform.baseY + currentTransform.imperfectionY + currentTransform.layoutJitterY + bob;
-        const z = ENEMY_MARKER_Z + (hazard.state === 'revealed' ? 0.035 : 0);
-        if (reduceMotion) {
+        const bob = lod.markerMotionEnabled ? Math.sin(state.clock.elapsedTime * 2.1 + currentTransform.seed * 0.017) * 0.025 : 0;
+        const [x, y, baseZ] = getDungeonEnemyMarkerAnchor(currentTransform, 'currentThreat', bob);
+        const z = baseZ + (hazard.state === 'revealed' ? 0.035 : 0);
+        if (!lod.markerMotionEnabled) {
             group.position.set(x, y, z);
         } else {
             group.position.x = MathUtils.damp(group.position.x, x, 8.5, delta);
@@ -370,28 +372,34 @@ const EnemyHazardMarker = ({ hazard, currentTransform, nextTransform, reduceMoti
             {nextTransform ? (
                 <mesh
                     geometry={ENEMY_NEXT_MARKER_GEOMETRY}
-                    position={[
-                        nextTransform.baseX + nextTransform.imperfectionX + nextTransform.layoutJitterX,
-                        nextTransform.baseY + nextTransform.imperfectionY + nextTransform.layoutJitterY,
-                        ENEMY_MARKER_Z - 0.055
-                    ]}
+                    position={getDungeonEnemyMarkerAnchor(nextTransform, 'nextThreatTelegraph')}
+                    renderOrder={DUNGEON_BOARD_STAGE_LAYER_POLICY.nextThreatTelegraph.renderOrder}
                     rotation={[0, 0, Math.PI / 4]}
                     scale={hazard.bossId ? 1.12 : 0.9}
                 >
                     <meshBasicMaterial
                         color={color}
                         depthWrite={false}
-                        opacity={reduceMotion ? 0.22 : 0.32}
+                        opacity={lod.nextTelegraphOpacity}
                         toneMapped={false}
                         transparent
                     />
                 </mesh>
             ) : null}
             <group ref={groupRef}>
-                <mesh geometry={ENEMY_MARKER_GEOMETRY} rotation={[0, 0, Math.PI / 4]}>
-                    <meshBasicMaterial color={color} depthWrite={false} opacity={0.88} toneMapped={false} transparent />
+                <mesh
+                    geometry={ENEMY_MARKER_GEOMETRY}
+                    renderOrder={DUNGEON_BOARD_STAGE_LAYER_POLICY.currentThreat.renderOrder}
+                    rotation={[0, 0, Math.PI / 4]}
+                >
+                    <meshBasicMaterial color={color} depthWrite={false} opacity={lod.currentMarkerOpacity} toneMapped={false} transparent />
                 </mesh>
-                <mesh geometry={ENEMY_MARKER_GEOMETRY} rotation={[0, 0, Math.PI / 4]} scale={1.42}>
+                <mesh
+                    geometry={ENEMY_MARKER_GEOMETRY}
+                    renderOrder={DUNGEON_BOARD_STAGE_LAYER_POLICY.currentThreat.renderOrder}
+                    rotation={[0, 0, Math.PI / 4]}
+                    scale={1.42}
+                >
                     <meshBasicMaterial color={color} depthWrite={false} opacity={0.18} toneMapped={false} transparent />
                 </mesh>
             </group>
@@ -406,7 +414,6 @@ const CARD_FACE_WIDTH = CARD_WIDTH - CARD_FACE_INSET * 2;
 const CARD_FACE_HEIGHT = CARD_HEIGHT - CARD_FACE_INSET * 2;
 const ENEMY_MARKER_GEOMETRY = new PlaneGeometry(0.22, 0.22, 1, 1);
 const ENEMY_NEXT_MARKER_GEOMETRY = new PlaneGeometry(0.32, 0.32, 1, 1);
-const ENEMY_MARKER_Z = 0.22;
 
 /** FX-006: thin quads approximating DOM `0 0 0 2px` gold ring on the visible back face while hidden. */
 const HOVER_GOLD_RIM_STRIP = 0.0036;
@@ -3264,6 +3271,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                     <EnemyHazardMarker
                         key={hazard.id}
                         currentTransform={currentTransform}
+                        graphicsQuality={graphicsQuality}
                         hazard={hazard}
                         nextTransform={nextTransform}
                         reduceMotion={reduceMotion}

@@ -1,7 +1,7 @@
 # DNG-061: Board stage encounter presentation
 
 ## Status
-Not started
+Done
 
 ## Priority
 P0
@@ -44,5 +44,4 @@ The board reads as a dungeon encounter with clear layers: cards, active threats,
 - `DNG-062`
 
 ## Future handoff notes
-Use screenshots after major visual changes.
-
+Board stage hierarchy now has a named `dng-061-v1` layer policy exposed on the TileBoard frame and tested through renderer coverage. Enemy current markers occupy the upper-right card corner while next-target telegraphs occupy the lower-left corner, keeping center card text clear; low quality and reduced motion retain critical threat readability without adding new VFX assets.

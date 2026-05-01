@@ -32,6 +32,7 @@ import { pairProximityUiStrings } from '../ui/strings/pairProximityUi';
 import { isTilePickable } from './tileBoardPick';
 import TileBoardPostFx from './TileBoardPostFx';
 import TileBoardScene, { type TileBoardSceneHandle, type TileHoverTiltState } from './TileBoardScene';
+import { DUNGEON_BOARD_STAGE_LAYER_POLICY } from './tileBoardStageLayers';
 import {
     COMPACT_BOARD_FIT_MARGIN,
     MOBILE_CAMERA_FIT_MARGIN,
@@ -1429,6 +1430,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
             data-board-columns={board.columns}
             data-board-rows={board.rows}
             data-board-run-status={runStatus}
+            data-dungeon-stage-layer-policy={DUNGEON_BOARD_STAGE_LAYER_POLICY.version}
             data-hidden-tile-count={hiddenTileCount}
             data-hidden-slots={hiddenSlotsAttr}
             {...(devE2ePairPositionsJson ? { 'data-e2e-pair-positions': devE2ePairPositionsJson } : {})}

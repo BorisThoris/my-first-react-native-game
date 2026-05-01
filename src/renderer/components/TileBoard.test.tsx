@@ -4,6 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BoardState } from '../../shared/contracts';
 import { PlatformTiltProvider } from '../platformTilt/PlatformTiltProvider';
 import TileBoard, { type TileBoardHandle } from './TileBoard';
+import {
+    DUNGEON_BOARD_STAGE_LAYER_POLICY,
+    getDungeonBoardStageLod,
+    getDungeonEnemyMarkerAnchor
+} from './tileBoardStageLayers';
 
 /** jsdom has no GPU; stub a minimal WebGL context so the board mounts the canvas path. */
 const mockWebGL2Context = (): object => ({
@@ -308,6 +313,61 @@ describe('TileBoard touch and click controls', () => {
         const frame = screen.getByTestId('tile-board-frame');
         expect(frame.getAttribute('data-board-columns')).toBe('2');
         expect(frame.getAttribute('data-board-rows')).toBe('2');
+    });
+
+    it('exposes the dungeon stage layer policy version on the frame', () => {
+        renderBoard({
+            board,
+            debugPeekActive: false,
+            interactive: true,
+            onTileSelect: vi.fn(),
+            previewActive: false,
+            reduceMotion: false
+        });
+
+        expect(screen.getByTestId('tile-board-frame')).toHaveAttribute(
+            'data-dungeon-stage-layer-policy',
+            DUNGEON_BOARD_STAGE_LAYER_POLICY.version
+        );
+    });
+
+    it('keeps dungeon encounter markers above objective chrome without covering card center text', () => {
+        expect(DUNGEON_BOARD_STAGE_LAYER_POLICY.nextThreatTelegraph.renderOrder).toBeGreaterThan(
+            DUNGEON_BOARD_STAGE_LAYER_POLICY.objectiveGlyph.renderOrder
+        );
+        expect(DUNGEON_BOARD_STAGE_LAYER_POLICY.currentThreat.renderOrder).toBeGreaterThan(
+            DUNGEON_BOARD_STAGE_LAYER_POLICY.resolvingMatch.renderOrder
+        );
+        expect(DUNGEON_BOARD_STAGE_LAYER_POLICY.keyboardFocus.renderOrder).toBeGreaterThan(
+            DUNGEON_BOARD_STAGE_LAYER_POLICY.currentThreat.renderOrder
+        );
+
+        const baseTransform = {
+            baseX: 0,
+            baseY: 0,
+            imperfectionX: 0,
+            imperfectionY: 0,
+            layoutJitterX: 0,
+            layoutJitterY: 0
+        };
+        const [currentX, currentY] = getDungeonEnemyMarkerAnchor(baseTransform, 'currentThreat');
+        const [nextX, nextY] = getDungeonEnemyMarkerAnchor(baseTransform, 'nextThreatTelegraph');
+
+        expect(currentX).toBeGreaterThan(0);
+        expect(currentY).toBeGreaterThan(0);
+        expect(nextX).toBeLessThan(0);
+        expect(nextY).toBeLessThan(0);
+    });
+
+    it('keeps low-quality and reduced-motion dungeon threat indicators readable', () => {
+        const low = getDungeonBoardStageLod('low', false);
+        const reduced = getDungeonBoardStageLod('high', true);
+
+        expect(low.strongEffectBudget).toBe('critical-only');
+        expect(low.currentMarkerOpacity).toBeGreaterThanOrEqual(0.88);
+        expect(low.nextTelegraphOpacity).toBeGreaterThan(0.3);
+        expect(reduced.markerMotionEnabled).toBe(false);
+        expect(reduced.nextTelegraphOpacity).toBeGreaterThan(0.3);
     });
 
     it('sets shuffle animating on the frame while the WebGL stagger window is active', async () => {
