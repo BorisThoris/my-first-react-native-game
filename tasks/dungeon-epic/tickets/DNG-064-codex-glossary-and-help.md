@@ -1,7 +1,7 @@
 # DNG-064: Codex glossary and help
 
 ## Status
-Not started
+Done
 
 ## Priority
 P0
@@ -44,5 +44,4 @@ Players can look up every dungeon term and trust that in-game copy matches rules
 - `../../refined-experience-gaps/REG-138-rules-encyclopedia-drift-and-forbidden-combos.md`
 
 ## Future handoff notes
-Update this whenever new mechanics ship.
-
+Dungeon glossary terms now cover enemies, patrols, trap cards, keys, locks/exits, rooms, rest shrines, treasure caches, route cards, boss floors, elite anchors, and objectives. The mechanics encyclopedia version was bumped and the Codex board guide now includes a compact dungeon glossary row; future shipped mechanics should add glossary IDs and update the drift test.

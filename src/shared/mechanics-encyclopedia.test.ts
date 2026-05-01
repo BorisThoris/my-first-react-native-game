@@ -31,7 +31,7 @@ function assertCatalogEntry<T extends { id: string; title: string; description: 
 
 describe('mechanics-encyclopedia', () => {
     it('ENCYCLOPEDIA_VERSION is monotonic (bump when doc set changes)', () => {
-        expect(ENCYCLOPEDIA_VERSION).toBeGreaterThanOrEqual(13);
+        expect(ENCYCLOPEDIA_VERSION).toBeGreaterThanOrEqual(14);
     });
 
     it('REG-064 glossary locks preferred player-facing labels for recurring mechanics', () => {
@@ -45,6 +45,34 @@ describe('mechanics-encyclopedia', () => {
         expect(MECHANICS_GLOSSARY.every((row) => row.avoidLabels.length > 0)).toBe(true);
         expect(MECHANICS_GLOSSARY.flatMap((row) => row.avoidLabels)).not.toContain('shop currency');
         expect(MECHANICS_GLOSSARY.find((row) => row.id === 'shop_gold')?.avoidLabels).toContain('premium gold');
+    });
+
+    it('DNG-064 covers shipped dungeon terms in the glossary and Codex board guide', () => {
+        const requiredDungeonTerms = [
+            'dungeon_enemies',
+            'enemy_patrols',
+            'trap_cards',
+            'dungeon_keys',
+            'locked_exits',
+            'dungeon_rooms',
+            'rest_shrines',
+            'treasure_caches',
+            'route_cards',
+            'boss_floors',
+            'elite_anchors',
+            'dungeon_objectives'
+        ];
+
+        for (const id of requiredDungeonTerms) {
+            const row = MECHANICS_GLOSSARY.find((term) => term.id === id);
+            expect(row?.shortDefinition.length, id).toBeGreaterThan(20);
+            expect(row?.surfaces.length, id).toBeGreaterThanOrEqual(2);
+        }
+
+        const guide = ENCYCLOPEDIA_PICKUP_AND_BOARD_TOPICS.find((topic) => topic.id === 'board_dungeon_glossary');
+        expect(guide?.description).toContain('enemy patrols');
+        expect(guide?.description).toContain('locked exits');
+        expect(guide?.description).toContain('dungeon objectives');
     });
 
     it('ACHIEVEMENT_CATALOG has an entry per AchievementId with id/title/description aligned to keys', () => {

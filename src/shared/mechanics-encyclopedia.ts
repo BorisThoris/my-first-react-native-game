@@ -8,7 +8,7 @@
 import type { AchievementId, GameMode, MutatorId, RelicId } from './contracts';
 
 /** Monotonic reference doc version (increment when the encyclopedia meaningfully changes). */
-export const ENCYCLOPEDIA_VERSION = 13 as const;
+export const ENCYCLOPEDIA_VERSION = 14 as const;
 
 export interface RelicDefinition {
     id: RelicId;
@@ -57,7 +57,19 @@ export interface MechanicsGlossaryTerm {
         | 'findables'
         | 'perfect_memory'
         | 'daily_challenge'
-        | 'powers';
+        | 'powers'
+        | 'dungeon_enemies'
+        | 'enemy_patrols'
+        | 'trap_cards'
+        | 'dungeon_keys'
+        | 'locked_exits'
+        | 'dungeon_rooms'
+        | 'rest_shrines'
+        | 'treasure_caches'
+        | 'route_cards'
+        | 'boss_floors'
+        | 'elite_anchors'
+        | 'dungeon_objectives';
     preferredLabel: string;
     shortDefinition: string;
     avoidLabels: string[];
@@ -148,6 +160,90 @@ export const MECHANICS_GLOSSARY_TERMS: readonly MechanicsGlossaryTerm[] = [
         shortDefinition: 'Player-triggered board tools such as shuffle, peek, destroy, pin, stray remove, and flash pair.',
         avoidLabels: ['boosters for sale'],
         surfaces: ['Toolbar', 'Inventory', 'Codex']
+    },
+    {
+        id: 'dungeon_enemies',
+        preferredLabel: 'Enemies',
+        shortDefinition: 'Dungeon threats tied to cards, moving patrol overlays, or floor objectives.',
+        avoidLabels: ['monsters as cards', 'random attackers'],
+        surfaces: ['HUD', 'Tile a11y', 'Codex']
+    },
+    {
+        id: 'enemy_patrols',
+        preferredLabel: 'enemy patrols',
+        shortDefinition: 'Moving threat overlays with an occupied tile and a telegraphed next target.',
+        avoidLabels: ['roaming mobs', 'unshown movement'],
+        surfaces: ['Board', 'Tile a11y', 'HUD']
+    },
+    {
+        id: 'trap_cards',
+        preferredLabel: 'Trap cards',
+        shortDefinition: 'Dungeon card pairs that resolve as hazards through normal reveal and matching rules.',
+        avoidLabels: ['trap enemies', 'unfair traps'],
+        surfaces: ['Board', 'HUD', 'Codex']
+    },
+    {
+        id: 'dungeon_keys',
+        preferredLabel: 'dungeon keys',
+        shortDefinition: 'Run-only keys and master keys used for lock and route interactions.',
+        avoidLabels: ['premium keys', 'permanent keys'],
+        surfaces: ['Inventory', 'HUD', 'Codex']
+    },
+    {
+        id: 'locked_exits',
+        preferredLabel: 'locked exits',
+        shortDefinition: 'Exit cards blocked by locks, levers, bosses, or objective requirements until rules are satisfied.',
+        avoidLabels: ['paywalls', 'random locks'],
+        surfaces: ['Board', 'HUD', 'Tile a11y']
+    },
+    {
+        id: 'dungeon_rooms',
+        preferredLabel: 'rooms',
+        shortDefinition: 'One-shot board or route interactions such as shops, rest shrines, events, and utility rooms.',
+        avoidLabels: ['menus only', 'repeat farms'],
+        surfaces: ['Board', 'Route', 'Codex']
+    },
+    {
+        id: 'rest_shrines',
+        preferredLabel: 'rest shrines',
+        shortDefinition: 'Room services for healing, guard, Favor bargains, or boss preparation with clear costs.',
+        avoidLabels: ['healing shop', 'paid rest'],
+        surfaces: ['Room UI', 'Inventory', 'Codex']
+    },
+    {
+        id: 'treasure_caches',
+        preferredLabel: 'treasure caches',
+        shortDefinition: 'Reward sources that can be claimed through treasure, cache, supply, lock, or secret-door hooks.',
+        avoidLabels: ['loot boxes', 'cash chests'],
+        surfaces: ['Board', 'Route', 'Results']
+    },
+    {
+        id: 'route_cards',
+        preferredLabel: 'Route cards',
+        shortDefinition: 'Safe, Greed, or Mystery card families stamped onto the next floor after a route choice.',
+        avoidLabels: ['random route cards', 'route loot boxes'],
+        surfaces: ['Choose Path', 'Board', 'Codex']
+    },
+    {
+        id: 'boss_floors',
+        preferredLabel: 'boss floors',
+        shortDefinition: 'Dungeon floors with a named boss identity, special threat hook, and defeat-gated rewards or exits.',
+        avoidLabels: ['boss rounds', 'raid bosses'],
+        surfaces: ['HUD', 'Board', 'Results']
+    },
+    {
+        id: 'elite_anchors',
+        preferredLabel: 'elite anchors',
+        shortDefinition: 'Hard-route non-boss anchors such as Elite Cache, Final Ward, and Omen Seal.',
+        avoidLabels: ['mini bosses', 'elite loot boxes'],
+        surfaces: ['Board', 'Route', 'Codex']
+    },
+    {
+        id: 'dungeon_objectives',
+        preferredLabel: 'dungeon objectives',
+        shortDefinition: 'Floor goals such as find exit, disarm traps, defeat boss, pacify floor, loot cache, or reveal unknowns.',
+        avoidLabels: ['quests with rewards store', 'hidden chores'],
+        surfaces: ['HUD', 'Results', 'Codex']
     }
 ];
 
@@ -697,6 +793,12 @@ export const ENCYCLOPEDIA_PICKUP_AND_BOARD_TOPICS: readonly EncyclopediaTopic[] 
         title: 'Route side rooms and relic weighting',
         description:
             'Route choices can open side-room interludes before the next board and mark bonus-reward ledgers. Safe leans defensive, Greed leans risky economy, and Mystery leans event/reveal outcomes; relic weighting can nudge shrine drafts toward the chosen route when eligible.'
+    },
+    {
+        id: 'board_dungeon_glossary',
+        title: 'Dungeon board glossary',
+        description:
+            '**Enemies** may appear as card pairs or moving **enemy patrols**; patrols always expose an occupied tile and next-target telegraph. **Trap cards**, **Route cards**, **elite anchors**, **treasure caches**, **rooms**, **rest shrines**, **dungeon keys**, **locked exits**, **boss floors**, and **dungeon objectives** use the same board/focus vocabulary across HUD, tile a11y, and results copy.'
     }
 ];
 
