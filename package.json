@@ -168,6 +168,8 @@
         "wait-on": "9.0.4"
     },
     "resolutions": {
+        "**/@xmldom/xmldom": "0.8.13",
+        "**/ajv-formats/ajv": "8.18.0",
         "baseline-browser-mapping": "2.10.23",
         "react": "19.2.4",
         "react-dom": "19.2.4",
