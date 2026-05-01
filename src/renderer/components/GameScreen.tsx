@@ -1215,6 +1215,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                             {activeDungeonPanel.chips.map((chip) => (
                                                 <span
                                                     className={styles.dungeonStatusChip}
+                                                    data-priority={chip.priority}
                                                     data-tone={chip.tone}
                                                     key={chip.id}
                                                 >

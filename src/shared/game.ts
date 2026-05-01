@@ -5673,6 +5673,7 @@ export interface DungeonBoardPresentationChip {
     label: string;
     value: string;
     tone: DungeonBoardPresentationChipTone;
+    priority: number;
 }
 
 export interface DungeonBoardPresentation {
@@ -6149,6 +6150,19 @@ const dungeonLockSummary = (status: DungeonExitStatus): string | null => {
     return status.canActivate ? `${status.lockKind} key ready` : `Needs ${status.lockKind} key`;
 };
 
+const DUNGEON_HUD_CHIP_LIMIT = 6;
+
+const dungeonHudChip = (
+    id: string,
+    label: string,
+    value: string,
+    tone: DungeonBoardPresentationChipTone,
+    priority: number
+): DungeonBoardPresentationChip => ({ id, label, value, tone, priority });
+
+const orderDungeonHudChips = (chips: readonly DungeonBoardPresentationChip[]): DungeonBoardPresentationChip[] =>
+    [...chips].sort((a, b) => a.priority - b.priority || a.id.localeCompare(b.id)).slice(0, DUNGEON_HUD_CHIP_LIMIT);
+
 export const getDungeonBoardPresentation = (run: RunState): DungeonBoardPresentation => {
     const board = run.board;
     const objective = getDungeonObjectiveStatus(run);
@@ -6176,38 +6190,43 @@ export const getDungeonBoardPresentation = (run: RunState): DungeonBoardPresenta
     const keyText = `${status.keyCount} ${status.keyCount === 1 ? 'key' : 'keys'}`;
     const chips: DungeonBoardPresentationChip[] = [];
     if (activeExitText) {
-        chips.push({
-            id: 'exit',
-            label: 'Exit',
-            value: activeExitText,
-            tone: exit.canActivate ? 'success' : exit.revealed ? 'warning' : 'neutral'
-        });
+        chips.push(dungeonHudChip('exit', 'Exit', activeExitText, exit.canActivate ? 'success' : exit.revealed ? 'warning' : 'neutral', 30));
+    }
+    const bossText = status.bossHazardLabel ?? status.bossReadModel?.label ?? dungeonBossLabel(status.bossId);
+    if (bossText) {
+        const bossValue = status.bossReadModel
+            ? `${status.bossReadModel.hp}/${status.bossReadModel.maxHp} HP`
+            : 'active';
+        chips.push(dungeonHudChip('boss', 'Boss', bossValue, status.objectiveId === 'defeat_boss' ? 'danger' : 'warning', 20));
     }
     if (status.keyCount > 0 || exit.lockKind !== 'none') {
-        chips.push({ id: 'keys', label: 'Keys', value: keyText, tone: status.keyCount > 0 ? 'info' : 'neutral' });
+        chips.push(dungeonHudChip('keys', 'Keys', keyText, status.keyCount > 0 ? 'info' : 'neutral', 50));
     }
     if (status.armedTrapCount > 0) {
-        chips.push({ id: 'traps', label: 'Traps', value: String(status.armedTrapCount), tone: 'danger' });
+        chips.push(dungeonHudChip('traps', 'Traps', String(status.armedTrapCount), 'danger', 10));
     }
     if (status.awakeEnemyCount > 0) {
-        chips.push({ id: 'enemies', label: 'Enemies', value: String(status.awakeEnemyCount), tone: 'danger' });
+        chips.push(dungeonHudChip('enemies', 'Enemies', String(status.awakeEnemyCount), 'danger', 25));
     }
     if (status.enemyHazardCount > 0) {
-        chips.push({
-            id: 'enemy-hazards',
-            label: 'Patrols',
-            value: `${status.revealedEnemyHazardCount}/${status.enemyHazardCount}`,
-            tone: status.revealedEnemyHazardCount > 0 ? 'danger' : 'warning'
-        });
+        chips.push(
+            dungeonHudChip(
+                'enemy-hazards',
+                'Patrols',
+                `${status.revealedEnemyHazardCount}/${status.enemyHazardCount}`,
+                status.revealedEnemyHazardCount > 0 ? 'danger' : 'warning',
+                15
+            )
+        );
     }
     if (hiddenCount > 0) {
-        chips.push({ id: 'hidden', label: 'Hidden', value: String(hiddenCount), tone: 'neutral' });
+        chips.push(dungeonHudChip('hidden', 'Hidden', String(hiddenCount), 'neutral', 90));
     }
     if (status.roomAvailable) {
-        chips.push({ id: 'room', label: 'Room', value: 'available', tone: 'info' });
+        chips.push(dungeonHudChip('room', 'Room', 'available', 'info', 70));
     }
     if (status.shopAvailable) {
-        chips.push({ id: 'shop', label: 'Shop', value: 'available', tone: 'info' });
+        chips.push(dungeonHudChip('shop', 'Shop', 'available', 'info', 80));
     }
 
     const alertText =
@@ -6234,9 +6253,9 @@ export const getDungeonBoardPresentation = (run: RunState): DungeonBoardPresenta
         objectiveDetail: objective.detail,
         exitText: activeExitText,
         keyText,
-        bossText: status.bossHazardLabel ?? status.bossReadModel?.label ?? dungeonBossLabel(status.bossId),
+        bossText,
         alertText,
-        chips
+        chips: orderDungeonHudChips(chips)
     };
 };
 

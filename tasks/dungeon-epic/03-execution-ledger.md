@@ -39,6 +39,7 @@ Future agents must update this file after every implementation session that uses
 | `DNG-053` | Done | 2026-05-01 session | Secondary objective result tags now include dungeon achievements with reward-bearing metadata and deduped floor-clear tags. |
 | `DNG-054` | Done | 2026-05-01 session | Balance simulation now tracks reward pacing for Favor, shards, guard, relic offers, consumables, treasure, and floor bands. |
 | `DNG-055` | Done | 2026-05-01 session | Exploit surface review doc and regression suite now cover local shop/rest/bonus/event/relic farm prevention. |
+| `DNG-060` | Done | 2026-05-01 session | Dungeon HUD chips now use urgency priority, a visible cap, and one primary alert line. |
 
 ## Completed Work Log
 | Date | Ticket(s) | Summary | Verification |
@@ -69,12 +70,13 @@ Future agents must update this file after every implementation session that uses
 | 2026-05-01 | `DNG-053` | Added shared dungeon result tag definitions/generator and threaded dungeon achievement tags into level finalization without changing reward payout math. | `yarn test src/shared/secondary-objectives.test.ts src/shared/game.test.ts src/renderer/components/GameScreen.test.tsx`; `yarn typecheck` |
 | 2026-05-01 | `DNG-054` | Extended deterministic balance simulation with reward-source and floor-band pacing rows and broad starvation/runaway bounds. | `yarn test src/shared/balance-simulation.test.ts src/shared/run-economy.test.ts`; `yarn typecheck` |
 | 2026-05-01 | `DNG-055` | Documented exploit surfaces and added regressions for one-shot shop, rest, bonus, side-room, and relic service reward paths. | `yarn test src/shared/exploit-surface.test.ts src/shared/bonus-rewards.test.ts src/shared/relics.test.ts src/shared/rest-shrine.test.ts`; `yarn typecheck` |
+| 2026-05-01 | `DNG-060` | Added priority/cap metadata to dungeon HUD chips and renderer/shared tests for crowded danger-first HUD ordering. | `yarn test src/shared/game.test.ts src/renderer/components/GameScreen.test.tsx`; `yarn typecheck` |
 
 ## Blockers
 - None recorded in this pack yet.
 
 ## Next Recommended Ticket
-Start `tickets/DNG-060-dungeon-hud-information-architecture.md`.
+Start `tickets/DNG-061-board-stage-encounter-presentation.md`.
 
 ## Session Handoff Template
 Copy this block for future updates:

@@ -1,7 +1,7 @@
 # DNG-060: Dungeon HUD information architecture
 
 ## Status
-Not started
+Done
 
 ## Priority
 P0
@@ -44,5 +44,4 @@ The HUD prioritizes objective, danger, lives/guard, route/floor identity, and ac
 - `DNG-064`
 
 ## Future handoff notes
-Coordinate with gameplay screen composition.
-
+Dungeon HUD presentation now sorts and caps status chips by urgency, keeps one primary alert line, and exposes chip priority to renderer tests. Future UI work should preserve the objective/danger/exit/boss/key/utility priority contract instead of adding uncapped HUD rows.

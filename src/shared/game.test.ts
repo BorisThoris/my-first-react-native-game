@@ -1750,6 +1750,102 @@ describe('dungeon cards', () => {
         );
     });
 
+    it('prioritizes crowded dungeon HUD chips and keeps one alert line', () => {
+        const base = finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false, runSeed: 60_001 }));
+        const exitTile: Tile = {
+            ...createTile('exit', EXIT_PAIR_KEY, '^'),
+            state: 'flipped',
+            label: 'Locked Exit',
+            dungeonCardKind: 'exit',
+            dungeonCardState: 'revealed',
+            dungeonCardEffectId: 'exit_safe',
+            dungeonExitLockKind: 'iron'
+        };
+        const bossTileA: Tile = {
+            ...createTile('boss-a', 'boss', 'B'),
+            label: 'Trap Warden',
+            dungeonCardKind: 'enemy',
+            dungeonCardState: 'revealed',
+            dungeonBossId: 'trap_warden',
+            dungeonCardHp: 2,
+            dungeonCardMaxHp: 4
+        };
+        const bossTileB: Tile = { ...bossTileA, id: 'boss-b' };
+        const trapA: Tile = {
+            ...createTile('trap-a', 'trap', '!'),
+            label: 'Alarm Trap',
+            dungeonCardKind: 'trap',
+            dungeonCardState: 'revealed',
+            dungeonCardEffectId: 'trap_alarm'
+        };
+        const trapB: Tile = { ...trapA, id: 'trap-b' };
+        const enemyA: Tile = {
+            ...createTile('enemy-a', 'enemy', 'E'),
+            label: 'Awake Sentry',
+            dungeonCardKind: 'enemy',
+            dungeonCardState: 'revealed'
+        };
+        const enemyB: Tile = { ...enemyA, id: 'enemy-b' };
+        const shopTile: Tile = {
+            ...createTile('shop', SHOP_PAIR_KEY, 'S'),
+            label: 'Vendor',
+            dungeonCardKind: 'shop',
+            dungeonCardState: 'hidden'
+        };
+        const roomTile: Tile = {
+            ...createTile('room', ROOM_PAIR_KEY, 'R'),
+            label: 'Campfire',
+            dungeonCardKind: 'room',
+            dungeonCardState: 'hidden',
+            dungeonCardEffectId: 'room_campfire'
+        };
+        const run: RunState = {
+            ...base,
+            dungeonKeys: {},
+            dungeonMasterKeys: 0,
+            board: {
+                ...base.board!,
+                tiles: [exitTile, bossTileA, bossTileB, trapA, trapB, enemyA, enemyB, shopTile, roomTile],
+                dungeonBossId: 'trap_warden',
+                dungeonObjectiveId: 'defeat_boss',
+                dungeonExitTileId: 'exit',
+                dungeonExitLockKind: 'iron',
+                enemyHazards: [
+                    {
+                        id: 'patrol',
+                        kind: 'sentinel',
+                        label: 'Moving Patrol',
+                        currentTileId: 'room',
+                        nextTileId: 'shop',
+                        pattern: 'patrol',
+                        state: 'revealed',
+                        damage: 1,
+                        hp: 1,
+                        maxHp: 1
+                    }
+                ]
+            }
+        };
+
+        const presentation = getDungeonBoardPresentation(run);
+
+        expect(presentation.alertText).toMatch(/armed trap/i);
+        expect(presentation.alertText).not.toMatch(/moving enemy|Needs iron key|hidden dungeon/i);
+        expect(presentation.chips).toHaveLength(6);
+        expect(presentation.chips.map((chip) => chip.id)).toEqual([
+            'traps',
+            'enemy-hazards',
+            'boss',
+            'enemies',
+            'exit',
+            'keys'
+        ]);
+        expect(presentation.chips.map((chip) => chip.priority)).toEqual([10, 15, 20, 25, 30, 50]);
+        expect(presentation.chips.some((chip) => chip.id === 'room')).toBe(false);
+        expect(presentation.chips.some((chip) => chip.id === 'shop')).toBe(false);
+        expect(presentation.chips.some((chip) => chip.id === 'hidden')).toBe(false);
+    });
+
     it('tracks dungeon objective progress and awards objective rewards on exit activation', () => {
         const bossBoard = buildBoard(9, {
             runSeed: 42_013,

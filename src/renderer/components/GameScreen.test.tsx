@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { forwardRef, useImperativeHandle } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RunState, Tile } from '../../shared/contracts';
-import { EXIT_PAIR_KEY, ROOM_PAIR_KEY } from '../../shared/dungeon-rules';
+import { EXIT_PAIR_KEY, ROOM_PAIR_KEY, SHOP_PAIR_KEY } from '../../shared/dungeon-rules';
 import { createNewRun, finishMemorizePhase } from '../../shared/game-core';
 import { createDefaultSaveData } from '../../shared/save-data';
 import { GAMBIT_KEYBOARD_HELP_TIP } from '../copy/gameplayHints';
@@ -870,6 +870,134 @@ describe('GameScreen (OVR-014)', () => {
         expect(panel).toHaveTextContent(/armed trap/i);
         expect(screen.queryByTestId('dungeon-card-board-banner')).toBeNull();
         expect(screen.getByTestId('dungeon-run-strip')).toHaveTextContent('Dungeon gate');
+    });
+
+    it('renders crowded dungeon status chips in priority order with one alert', () => {
+        const baseRun = finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false, gameMode: 'endless' }));
+        const exitTile: Tile = {
+            id: 'exit',
+            pairKey: EXIT_PAIR_KEY,
+            state: 'flipped',
+            symbol: '^',
+            label: 'Locked Exit',
+            dungeonCardKind: 'exit',
+            dungeonCardState: 'revealed',
+            dungeonCardEffectId: 'exit_safe',
+            dungeonExitLockKind: 'iron'
+        };
+        const bossTile: Tile = {
+            id: 'boss-a',
+            pairKey: 'boss',
+            state: 'hidden',
+            symbol: 'B',
+            label: 'Trap Warden',
+            dungeonCardKind: 'enemy',
+            dungeonCardState: 'revealed',
+            dungeonBossId: 'trap_warden',
+            dungeonCardHp: 2,
+            dungeonCardMaxHp: 4
+        };
+        const trapTile: Tile = {
+            id: 'trap-a',
+            pairKey: 'trap',
+            state: 'hidden',
+            symbol: '!',
+            label: 'Alarm Trap',
+            dungeonCardKind: 'trap',
+            dungeonCardState: 'revealed',
+            dungeonCardEffectId: 'trap_alarm'
+        };
+        const enemyTile: Tile = {
+            id: 'enemy-a',
+            pairKey: 'enemy',
+            state: 'hidden',
+            symbol: 'E',
+            label: 'Awake Sentry',
+            dungeonCardKind: 'enemy',
+            dungeonCardState: 'revealed'
+        };
+        const roomTile: Tile = {
+            id: 'room',
+            pairKey: ROOM_PAIR_KEY,
+            state: 'hidden',
+            symbol: 'R',
+            label: 'Campfire',
+            dungeonCardKind: 'room',
+            dungeonCardState: 'hidden',
+            dungeonCardEffectId: 'room_campfire'
+        };
+        const shopTile: Tile = {
+            id: 'shop',
+            pairKey: SHOP_PAIR_KEY,
+            state: 'hidden',
+            symbol: 'S',
+            label: 'Vendor',
+            dungeonCardKind: 'shop',
+            dungeonCardState: 'hidden'
+        };
+        const run: RunState = {
+            ...baseRun,
+            dungeonKeys: {},
+            dungeonMasterKeys: 0,
+            board: {
+                ...baseRun.board!,
+                tiles: [
+                    exitTile,
+                    bossTile,
+                    { ...bossTile, id: 'boss-b' },
+                    trapTile,
+                    { ...trapTile, id: 'trap-b' },
+                    enemyTile,
+                    { ...enemyTile, id: 'enemy-b' },
+                    roomTile,
+                    shopTile
+                ],
+                dungeonBossId: 'trap_warden',
+                dungeonObjectiveId: 'defeat_boss',
+                dungeonExitTileId: 'exit',
+                dungeonExitLockKind: 'iron',
+                enemyHazards: [
+                    {
+                        id: 'patrol',
+                        kind: 'sentinel',
+                        label: 'Moving Patrol',
+                        currentTileId: 'room',
+                        nextTileId: 'shop',
+                        pattern: 'patrol',
+                        state: 'revealed',
+                        damage: 1,
+                        hp: 1,
+                        maxHp: 1
+                    }
+                ]
+            }
+        };
+
+        render(
+            <PlatformTiltProvider>
+                <NotificationHost>
+                    <GameScreen achievements={[]} run={run} />
+                </NotificationHost>
+            </PlatformTiltProvider>
+        );
+
+        const panel = screen.getByTestId('dungeon-status-panel');
+        const chipLabels = Array.from(panel.querySelectorAll('[data-priority]')).map((chip) =>
+            chip.textContent?.replace(/\s+/g, ' ').trim()
+        );
+
+        expect(chipLabels).toEqual([
+            'Traps1',
+            'Patrols1/1',
+            'Boss2/4 HP',
+            'Enemies2',
+            'ExitNeeds iron key',
+            'Keys0 keys'
+        ]);
+        expect(panel).toHaveTextContent(/armed trap/i);
+        expect(panel).not.toHaveTextContent(/moving enemy/);
+        expect(panel).not.toHaveTextContent('Room available');
+        expect(panel).not.toHaveTextContent('Shop available');
     });
 
     it('hides the dungeon status panel on plain boards', () => {
