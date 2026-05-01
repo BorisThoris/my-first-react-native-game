@@ -158,6 +158,10 @@ export const normalizeSaveData = (input?: Partial<SaveData> | null): SaveData =>
     const psIn: Partial<PlayerStatsPersisted> = input.playerStats ?? {};
     const dailiesCount =
         typeof psIn.dailiesCompleted === 'number' ? psIn.dailiesCompleted : defaultPlayerStats().dailiesCompleted;
+    const relicPickCounts =
+        psIn.relicPickCounts && typeof psIn.relicPickCounts === 'object' && !Array.isArray(psIn.relicPickCounts)
+            ? psIn.relicPickCounts
+            : defaultPlayerStats().relicPickCounts;
     const relicShrineExtraPickUnlocked =
         psIn.relicShrineExtraPickUnlocked === true ||
         mergedAchievements.ACH_SEVEN_DAILIES === true ||
@@ -190,6 +194,7 @@ export const normalizeSaveData = (input?: Partial<SaveData> | null): SaveData =>
                 input.playerStats?.puzzleCompletions && typeof input.playerStats.puzzleCompletions === 'object'
                     ? input.playerStats.puzzleCompletions
                     : defaultPlayerStats().puzzleCompletions,
+            relicPickCounts,
             relicShrineExtraPickUnlocked
         },
         unlocks: Array.isArray(input.unlocks) ? input.unlocks : defaults.unlocks ?? [],

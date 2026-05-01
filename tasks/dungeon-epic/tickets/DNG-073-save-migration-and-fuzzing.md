@@ -1,7 +1,7 @@
 # DNG-073: Save migration and fuzzing
 
 ## Status
-Not started
+Done
 
 ## Priority
 P0
@@ -44,5 +44,4 @@ Players can update builds and resume safely, or receive a recoverable local-data
 - `../../refined-experience-gaps/REG-139-migration-fuzzing-and-partial-corruption.md`
 
 ## Future handoff notes
-Run whenever `SaveData` or persisted `RunState` shape changes.
-
+Run whenever `SaveData` or persisted `RunState` shape changes. DNG-073 v1 documents current dungeon active-run fields as run-local/recoverable rather than persisted `SaveData`, and adds fuzz coverage for corrupted dungeon-adjacent save fields.

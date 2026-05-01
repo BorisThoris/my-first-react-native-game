@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { GAME_RULES_VERSION, SAVE_SCHEMA_VERSION } from './contracts';
+import {
+    DUNGEON_SAVE_MIGRATION_POLICY_VERSION,
+    getDungeonSaveMigrationFieldPolicies,
+    shouldDungeonSaveFieldRequireMigration
+} from './dungeon-save-migration';
 import { createAchievementState, DEFAULT_SETTINGS, mergeDailyComplete, normalizeSaveData } from './save-data';
 import type { SaveData } from './contracts';
 import {
@@ -157,6 +162,114 @@ describe('save normalization', () => {
             expect(normalized.schemaVersion, name).toBe(SAVE_SCHEMA_VERSION);
             assertNoUndefinedDeep(normalized, `${name}.`);
         }
+    });
+
+    it('DNG-073 fuzzes corrupted dungeon-adjacent save fields without startup crashes', () => {
+        const corrupted = {
+            schemaVersion: SAVE_SCHEMA_VERSION - 1,
+            settings: {
+                ...DEFAULT_SETTINGS,
+                cameraViewportModePreference: 'sideways',
+                pairProximityHintsEnabled: null
+            },
+            playerStats: {
+                bestFloorNoPowers: 5,
+                dailiesCompleted: 2,
+                lastDailyDateKeyUtc: '2026-04-30',
+                dailyStreakCosmetic: 2,
+                relicPickCounts: null,
+                encorePairKeysLastRun: null,
+                puzzleCompletions: null,
+                relicShrineExtraPickUnlocked: false
+            },
+            lastRunSummary: {
+                totalScore: 1200,
+                bestScore: 1200,
+                levelsCleared: 6,
+                highestLevel: 7,
+                achievementsEnabled: true,
+                unlockedAchievements: [],
+                bestStreak: 4,
+                perfectClears: 1,
+                runSeed: 72001,
+                runRulesVersion: GAME_RULES_VERSION,
+                gameMode: 'endless',
+                dungeonKeys: null,
+                dungeonRun: { corrupt: true },
+                board: null
+            },
+            currentRun: {
+                dungeonRun: null,
+                dungeonKeys: null,
+                dungeonMasterKeys: null,
+                board: {
+                    dungeonExitTileId: null,
+                    enemyHazards: null
+                }
+            }
+        } as unknown as Partial<SaveData>;
+
+        const normalized = normalizeSaveData(corrupted);
+
+        expect(normalized.schemaVersion).toBe(SAVE_SCHEMA_VERSION);
+        expect(normalized.settings.cameraViewportModePreference).toBe(DEFAULT_SETTINGS.cameraViewportModePreference);
+        expect(normalized.settings.pairProximityHintsEnabled).toBe(DEFAULT_SETTINGS.pairProximityHintsEnabled);
+        expect(normalized.playerStats?.encorePairKeysLastRun).toEqual([]);
+        expect(normalized.playerStats?.relicPickCounts).toEqual({});
+        expect(normalized.playerStats?.puzzleCompletions).toEqual({});
+        expect(normalized.lastRunSummary?.runSeed).toBe(72001);
+        expect(normalized.lastRunSummary?.runRulesVersion).toBe(GAME_RULES_VERSION);
+        expect('currentRun' in normalized).toBe(false);
+        assertNoUndefinedDeep(normalized, 'dng073.');
+    });
+
+    it('DNG-073 drops summaries from future save schemas instead of trusting obsolete active-run data', () => {
+        const normalized = normalizeSaveData({
+            schemaVersion: SAVE_SCHEMA_VERSION + 1,
+            lastRunSummary: {
+                totalScore: 800,
+                bestScore: 800,
+                levelsCleared: 3,
+                highestLevel: 4,
+                achievementsEnabled: true,
+                unlockedAchievements: [],
+                bestStreak: 2,
+                perfectClears: 0,
+                runSeed: 73001,
+                runRulesVersion: GAME_RULES_VERSION,
+                gameMode: 'endless'
+            }
+        });
+
+        expect(normalized.lastRunSummary).toBeNull();
+    });
+
+    it('DNG-073 documents which dungeon fields require save migrations', () => {
+        const policies = getDungeonSaveMigrationFieldPolicies();
+        const fields = policies.map((policy) => policy.field);
+
+        expect(DUNGEON_SAVE_MIGRATION_POLICY_VERSION).toBe('dng-073-v1');
+        expect(fields).toEqual(expect.arrayContaining([
+            'lastRunSummary.runSeed',
+            'lastRunSummary.runRulesVersion',
+            'lastRunSummary.gameMode',
+            'playerStats.encorePairKeysLastRun',
+            'playerStats.relicPickCounts',
+            'settings.cameraViewportModePreference',
+            'settings.pairProximityHintsEnabled',
+            'dungeonRun',
+            'pendingRouteCardPlan',
+            'sideRoom',
+            'bonusRewardLedger',
+            'dungeonKeys',
+            'dungeonMasterKeys',
+            'board.dungeonExitTileId',
+            'board.enemyHazards',
+            'board.dungeonBossId'
+        ]));
+        expect(policies.filter((policy) => policy.scope === 'run_local_recoverable')).toHaveLength(9);
+        expect(shouldDungeonSaveFieldRequireMigration('playerStats.relicPickCounts')).toBe(true);
+        expect(shouldDungeonSaveFieldRequireMigration('dungeonKeys')).toBe(false);
     });
 });
 
