@@ -45,6 +45,7 @@ Future agents must update this file after every implementation session that uses
 | `DNG-063` | Done | 2026-05-01 session | Dungeon audio event matrix covers critical events with cue mappings, gain multipliers, ducking, and merge policy. |
 | `DNG-064` | Done | 2026-05-01 session | Codex/glossary coverage now includes shipped dungeon terms and a board glossary guide row. |
 | `DNG-065` | Done | 2026-05-01 session | Mobile/controller comfort contract now exposes dungeon focus order and keyboard selection of occupied patrol cards. |
+| `DNG-070` | Done | 2026-05-01 session | Versioned dungeon combinatoric matrix maps P0 route, boss, trap, economy, input, and forbidden-combo rows to tests. |
 
 ## Completed Work Log
 | Date | Ticket(s) | Summary | Verification |
@@ -81,12 +82,13 @@ Future agents must update this file after every implementation session that uses
 | 2026-05-01 | `DNG-063` | Added tested dungeon audio event coverage for contact, reveal, trap, defeat, treasure, shop, exit, and route events using existing cue fallbacks and placeholder mappings. | `yarn test src/renderer/audio/dungeonAudioEventCoverage.test.ts src/renderer/audio/audioInteractionCoverage.test.ts src/renderer/audio/audioMixDuckingPolicy.test.ts`; `yarn typecheck`; `yarn lint` |
 | 2026-05-01 | `DNG-064` | Added dungeon glossary terms and a Codex board glossary row, bumping encyclopedia version and locking coverage with drift tests. | `yarn test src/shared/mechanics-encyclopedia.test.ts src/shared/codex-knowledge-base.test.ts src/shared/copy-tone.test.ts src/renderer/components/CodexScreen.test.tsx`; `yarn typecheck`; `yarn lint` |
 | 2026-05-01 | `DNG-065` | Added dungeon comfort focus-order/mobile policy constants, exposed them on TileBoard, and tested keyboard selection of occupied enemy patrol cards. | `yarn test src/renderer/components/TileBoard.test.tsx src/renderer/gameplay/regPhase4PlayContract.test.ts`; `yarn typecheck`; `yarn lint` |
+| 2026-05-01 | `DNG-070` | Added a machine-readable dungeon combinatoric matrix with P0 evidence rows and explicit forbidden/future coverage buckets. | `yarn test src/shared/dungeon-combinatoric-matrix.test.ts src/shared/game.test.ts src/shared/softlock-fairness.test.ts`; `yarn typecheck`; `yarn lint` |
 
 ## Blockers
 - None recorded in this pack yet.
 
 ## Next Recommended Ticket
-Start `tickets/DNG-070-combinatoric-test-matrix.md`.
+Start `tickets/DNG-071-balance-simulation-suite.md`.
 
 ## Session Handoff Template
 Copy this block for future updates:

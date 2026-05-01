@@ -1,7 +1,7 @@
 # DNG-070: Combinatoric test matrix
 
 ## Status
-Not started
+Done
 
 ## Priority
 P0
@@ -44,5 +44,4 @@ Major combinations are either tested, intentionally excluded, or documented as f
 - `DNG-071`
 
 ## Future handoff notes
-Build this before broad mechanics rollout.
-
+The matrix now lives in `src/shared/dungeon-combinatoric-matrix.ts` with drift tests. P0 rows cover Safe/Greed/Mystery routes, boss floors, elite anchors, trap/decoy interactions, room/shop/rest/event one-shot behavior, relic/contract exclusions, keyboard/mobile coverage, and an explicit forbidden Stray-remove protected-anchor combination. Future dungeon tickets should add or update rows rather than leaving new mechanic combinations implicit.
