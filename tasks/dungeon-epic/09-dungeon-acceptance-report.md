@@ -1,12 +1,12 @@
 # Dungeon Acceptance Report
 
 ## Status
-Generated on 2026-05-01 for `DNG-075`.
+Generated on 2026-05-01 for `DNG-075`; refreshed after completing `DNG-010` through `DNG-015`.
 
 ## Release Scope
-The shipped dungeon slice is local/offline only. It covers deterministic dungeon card generation, threat and objective rules, moving enemy patrols, boss/elite identity, room/shop/rest/treasure/event economy surfaces, HUD/board/a11y/audio copy contracts, QA matrices, balance profiles, save fuzzing, and board performance budgets.
+The shipped dungeon slice is local/offline only. It covers deterministic dungeon card generation, route and node presentation, floor archetype progression, act/biome identity, between-floor route choice UX, run journal summaries, threat and objective rules, moving enemy patrols, boss/elite identity, room/shop/rest/treasure/event economy surfaces, HUD/board/a11y/audio copy contracts, QA matrices, balance profiles, save fuzzing, and board performance budgets.
 
-Online authority, leaderboards, cloud replay validation, final audio assets, final VFX polish, and richer route-map/journal presentation remain out of scope for this acceptance pass.
+Online authority, leaderboards, cloud replay validation, final audio assets, and final VFX polish remain out of scope for this acceptance pass.
 
 ## P0 Gate
 All P0 dungeon tickets are complete: `DNG-001`, `DNG-002`, `DNG-003`, `DNG-004`, `DNG-005`, `DNG-020`, `DNG-021`, `DNG-024`, `DNG-025`, `DNG-030`, `DNG-032`, `DNG-033`, `DNG-045`, `DNG-050`, `DNG-060`, `DNG-061`, `DNG-064`, `DNG-065`, `DNG-070`, `DNG-071`, `DNG-073`, `DNG-074`, and `DNG-075`.
@@ -19,12 +19,12 @@ All P0 dungeon tickets are complete: `DNG-001`, `DNG-002`, `DNG-003`, `DNG-004`,
 | `DNG-003` | P0 | Done | Rules-version policy classifies replay-affecting dungeon changes. |
 | `DNG-004` | P0 | Done | Determinism contract guards seeded generation surfaces. |
 | `DNG-005` | P0 | Done | Softlock/completion invariants cover dungeon boards. |
-| `DNG-010` | P1 | Deferred | Route map flow exists, but richer player-facing comparison UX remains content-depth work. |
-| `DNG-011` | P1 | Deferred | Node presentation exists; stricter min/max node contract catalog remains future depth. |
-| `DNG-012` | P1 | Deferred | Archetypes exist and are tested indirectly; long-run frequency tuning remains future depth. |
-| `DNG-013` | P2 | Deferred | Act/biome metadata exists; final biome identity/audio/art hooks remain future polish. |
-| `DNG-014` | P1 | Deferred | Floor-clear route decisions work; overlay composition polish remains future UI work. |
-| `DNG-015` | P1 | Deferred | Local replay/run history exists; richer dungeon journal summaries remain future depth. |
+| `DNG-010` | P1 | Done | Route decision rows expose next-room risk, reward, mechanic, and node context. |
+| `DNG-011` | P1 | Done | Node type contracts cover every node kind with objective, archetype, reward, and UI tone defaults. |
+| `DNG-012` | P1 | Done | Floor archetype progression rows/reports cover pacing roles, budgets, frequencies, and fairness samples. |
+| `DNG-013` | P2 | Done | Act/biome presentation hooks cover palette/audio placeholders, pressure cues, and route previews. |
+| `DNG-014` | P1 | Done | Floor-clear route choice is a single active decision surface with compact result notes. |
+| `DNG-015` | P1 | Done | Game Over and export strings include capped, derived dungeon journal highlights. |
 | `DNG-020` | P0 | Done | Dungeon card taxonomy and copy fallback shipped. |
 | `DNG-021` | P0 | Done | Encounter generation budgets and caps shipped. |
 | `DNG-022` | P1 | Done | Card reveal information rules shipped. |
@@ -78,14 +78,14 @@ Screenshot coverage:
 
 ## Verification Commands
 Final gate commands passed in this workspace:
-- `yarn test`
+- `yarn test` (161 files, 931 tests)
 - `yarn typecheck`
 - `yarn lint`
 - `yarn build`
-- `yarn test:e2e e2e/dungeon-fixtures-smoke.spec.ts --workers=1`
+- `yarn test:e2e e2e/dungeon-fixtures-smoke.spec.ts --workers=1` (11 tests)
 
 ## Known Deferrals
-`DNG-010` through `DNG-015` are not P0 and remain deferred to future route-map, act/biome, between-floor presentation, and dungeon journal depth work. The current release still has deterministic route choices, node state, route-influenced board generation, and local replay/run-history summaries; the deferral is richer presentation and long-run narrative structure, not a blocker for the P0 dungeon rule slice.
+No DNG tickets remain deferred in this epic. Remaining out-of-scope work is non-DNG release polish: online authority/leaderboards, cloud replay validation, and final authored audio/VFX assets.
 
 ## Release Assessment
-The dungeon epic is acceptable for a local/offline gameplay slice. The final verification gate passed in this workspace. The strongest remaining risks are visual polish depth, route-map UX richness, and journal storytelling, all explicitly outside the P0 gate.
+The dungeon epic is acceptable for a local/offline gameplay slice. The final verification gate passed in this workspace. The strongest remaining risks are final presentation polish and online services, both explicitly outside this local/offline dungeon acceptance scope.
