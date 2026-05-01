@@ -7,6 +7,7 @@ import {
     enterSelectedDungeonNode,
     generateRunMapChoices,
     getDungeonMapPresentation,
+    getDungeonRouteDecisionPresentation,
     revealDungeonChoices,
     selectDungeonNode
 } from './run-map';
@@ -111,5 +112,51 @@ describe('REG-069 run map route nodes', () => {
             tone: 'danger'
         });
         expect(presentation.bossDistance).toBe(5);
+    });
+
+    it('DNG-010 builds route decision rows with consistent risk and reward columns', () => {
+        const routeChoices = [
+            {
+                id: 'choice:safe',
+                routeType: 'safe' as const,
+                label: 'Safe passage',
+                detail: 'Standard next floor.',
+                rewardPreview: 'Steady clear route.',
+                riskPreview: 'Low threat.'
+            },
+            {
+                id: 'choice:greed',
+                routeType: 'greed' as const,
+                label: 'Greedy route',
+                detail: 'Higher pressure route hook.',
+                rewardPreview: 'Better cache odds.',
+                riskPreview: 'High pressure.'
+            },
+            {
+                id: 'choice:mystery',
+                routeType: 'mystery' as const,
+                label: 'Mystery route',
+                detail: 'Hidden treasure or secret-room hook.',
+                rewardPreview: 'Unknown room reward.',
+                riskPreview: 'Unusual rules.'
+            }
+        ];
+        const decision = getDungeonRouteDecisionPresentation(
+            createDungeonRunMapState(101, GAME_RULES_VERSION, 1),
+            routeChoices
+        );
+
+        expect(decision.current?.label).toBe('Dungeon gate');
+        expect(decision.rows.map((row) => row.choiceLabel)).toEqual(['Safe passage', 'Greedy route', 'Mystery route']);
+        expect(decision.rows.every((row) => row.sourceNodeId === decision.current?.id)).toBe(true);
+        expect(decision.rows.every((row) => row.targetFloor === 2)).toBe(true);
+        expect(decision.rows.map((row) => row.reward)).toEqual(['Steady clear route.', 'Better cache odds.', 'Unknown room reward.']);
+        expect(decision.rows.map((row) => row.risk)).toEqual(['Low threat.', 'High pressure.', 'Unusual rules.']);
+        expect(decision.rows.find((row) => row.id === 'choice:greed')).toMatchObject({
+            nodeKind: 'elite',
+            tone: 'danger',
+            mechanic: 'Elite enemy pressure and greed anchors.'
+        });
+        expect(decision.summary).toContain('Safe passage: Standard next floor.');
     });
 });

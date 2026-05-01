@@ -26,7 +26,7 @@ import {
     getDungeonBoardPresentation,
     getDungeonExitStatus
 } from '../../shared/dungeon-rules';
-import { getDungeonMapPresentation } from '../../shared/run-map';
+import { getDungeonMapPresentation, getDungeonRouteDecisionPresentation } from '../../shared/run-map';
 import { useNotificationStore } from '@cross-repo-libs/notifications';
 import type { CSSProperties } from 'react';
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
@@ -834,6 +834,10 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const routeChoiceRequired = Boolean(run.lastLevelResult?.routeChoices && !run.pendingRouteCardPlan);
     const currentDungeonNode = run.dungeonRun?.nodes.find((node) => node.id === run.dungeonRun.currentNodeId) ?? null;
     const dungeonMapPresentation = getDungeonMapPresentation(run.dungeonRun);
+    const dungeonRouteDecisionPresentation =
+        routeChoiceRequired && run.lastLevelResult?.routeChoices
+            ? getDungeonRouteDecisionPresentation(run.dungeonRun, run.lastLevelResult.routeChoices)
+            : null;
     const currentDungeonRoom = dungeonMapPresentation.current;
     const visibleDungeonMapNodes = dungeonMapPresentation.nodes.filter(
         (node) => node.status === 'current' || node.status === 'cleared' || node.status === 'revealed' || node.status === 'skipped'
@@ -1594,28 +1598,29 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                     ))}
                                 </div>
                                 <div className={styles.dungeonMapChoiceActions}>
-                                    {run.lastLevelResult.routeChoices.map((option) => {
-                                        const node = dungeonMapPresentation.revealed.find((candidate) => candidate.id === option.id);
+                                    {dungeonRouteDecisionPresentation?.rows.map((row) => {
                                         return (
                                             <button
-                                                aria-label={node?.label ?? option.label}
+                                                aria-label={row.choiceLabel}
                                                 className={styles.dungeonMapRoomButton}
-                                                data-tone={node?.tone ?? 'neutral'}
-                                                key={option.id}
+                                                data-route-type={row.routeType}
+                                                data-testid={`route-choice-${row.routeType}`}
+                                                data-tone={row.tone}
+                                                key={row.id}
                                                 onClick={() => {
                                                     playUiClick();
-                                                    chooseRouteAndContinue(option.id);
+                                                    chooseRouteAndContinue(row.id);
                                                 }}
                                                 type="button"
                                             >
-                                                <span className={styles.dungeonMapRoomGlyph}>{node?.glyph ?? '?'}</span>
+                                                <span className={styles.dungeonMapRoomGlyph}>{row.glyph}</span>
                                                 <span className={styles.dungeonMapRoomCopy}>
-                                                    <strong>{node?.label ?? option.label}</strong>
-                                                    <small>{node?.mechanic ?? option.detail}</small>
-                                                    <em>{node?.reward ?? option.rewardPreview ?? 'Balanced route reward.'}</em>
+                                                    <strong>{row.choiceLabel}</strong>
+                                                    <small>{row.nodeLabel}: {row.mechanic}</small>
+                                                    <em>Reward: {row.reward}</em>
                                                 </span>
                                                 <span className={styles.dungeonMapRoomRisk}>
-                                                    {node?.risk ?? option.riskPreview ?? 'Stable path.'}
+                                                    Risk: {row.risk}
                                                 </span>
                                             </button>
                                         );

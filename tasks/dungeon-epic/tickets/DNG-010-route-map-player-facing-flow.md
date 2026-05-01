@@ -1,7 +1,7 @@
 # DNG-010: Route map player-facing flow
 
 ## Status
-Not started
+Done
 
 ## Priority
 P1
@@ -44,5 +44,4 @@ Between floors, players quickly understand available routes, node type, risk, re
 - `../../refined-experience-gaps/REG-017-between-floor-route-choice.md`
 
 ## Future handoff notes
-Implement after core invariants are safe.
-
+Implemented with shared route decision rows consumed by the floor-clear route panel. Future route polish should extend `getDungeonRouteDecisionPresentation` instead of duplicating route risk/reward logic in UI.

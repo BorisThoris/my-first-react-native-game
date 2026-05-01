@@ -723,6 +723,10 @@ describe('GameScreen (OVR-014)', () => {
         expect(getByText(/Extra relic pick banked/)).toBeTruthy();
         expect(getByText(/Next: Speed Trial/)).toBeTruthy();
         expect(screen.getByTestId('route-choice-panel')).toHaveTextContent('Choose the next room');
+        expect(screen.getByTestId('route-choice-safe')).toHaveTextContent('Reward: Balanced score and survival path.');
+        expect(screen.getByTestId('route-choice-safe')).toHaveTextContent('Risk: Stable path.');
+        expect(screen.getByTestId('route-choice-greed')).toHaveAttribute('data-route-type', 'greed');
+        expect(screen.getByTestId('route-choice-greed')).toHaveTextContent('Elite memory: Elite enemy pressure and greed anchors.');
         expect(screen.getByRole('button', { name: 'Safe passage' })).toBeTruthy();
         expect(screen.getByRole('button', { name: 'Greedy route' })).toBeTruthy();
         expect(screen.queryByRole('button', { name: /visit shop/i })).toBeNull();

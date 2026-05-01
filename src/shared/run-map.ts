@@ -57,6 +57,32 @@ export interface DungeonMapPresentation {
     skipped: DungeonMapNodePresentation[];
 }
 
+export interface DungeonRouteDecisionRow {
+    id: string;
+    routeType: RouteNodeType;
+    choiceLabel: string;
+    nodeLabel: string;
+    nodeKind: DungeonRunNodeKind;
+    glyph: string;
+    tone: DungeonRoomTone;
+    risk: string;
+    reward: string;
+    mechanic: string;
+    detail: string;
+    sourceNodeId: string | null;
+    targetFloor: number;
+    selected: boolean;
+}
+
+export interface DungeonRouteDecisionPresentation {
+    act: number;
+    bossFloor: number;
+    bossDistance: number;
+    current: DungeonMapNodePresentation | null;
+    rows: DungeonRouteDecisionRow[];
+    summary: string;
+}
+
 const DUNGEON_ACT_LENGTH = 6;
 const DUNGEON_BRANCH_LANES = [-1, 0, 1] as const;
 
@@ -458,6 +484,44 @@ export const getDungeonMapPresentation = (state: DungeonRunMapState): DungeonMap
         revealed: nodes.filter((node) => node.status === 'revealed'),
         cleared: nodes.filter((node) => node.status === 'cleared'),
         skipped: nodes.filter((node) => node.status === 'skipped')
+    };
+};
+
+export const getDungeonRouteDecisionPresentation = (
+    state: DungeonRunMapState,
+    choices: readonly RouteChoice[]
+): DungeonRouteDecisionPresentation => {
+    const preview = revealDungeonChoices(state, state.currentFloor, choices);
+    const map = getDungeonMapPresentation(preview);
+    const rows = choices.map((choice) => {
+        const fallbackNode = routeChoiceToMapNode(choice, state.currentFloor + 1);
+        const node = map.revealed.find((candidate) => candidate.id === choice.id) ?? presentNode(fallbackNode);
+        const source = preview.nodes.find((candidate) => candidate.id === node.id) ?? fallbackNode;
+        return {
+            id: choice.id,
+            routeType: choice.routeType,
+            choiceLabel: choice.label,
+            nodeLabel: labelForKind(source.kind),
+            nodeKind: source.kind,
+            glyph: node.glyph,
+            tone: node.tone,
+            risk: node.risk,
+            reward: node.reward,
+            mechanic: node.mechanic,
+            detail: node.detail,
+            sourceNodeId: map.current?.id ?? null,
+            targetFloor: node.floor,
+            selected: state.selectedNodeId === choice.id
+        };
+    });
+
+    return {
+        act: map.act,
+        bossFloor: map.bossFloor,
+        bossDistance: map.bossDistance,
+        current: map.current,
+        rows,
+        summary: rows.map((row) => `${row.choiceLabel}: ${row.detail}`).join(' · ')
     };
 };
 
