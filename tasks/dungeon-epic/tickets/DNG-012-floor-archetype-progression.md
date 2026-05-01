@@ -1,7 +1,7 @@
 # DNG-012: Floor archetype progression
 
 ## Status
-Not started
+Done
 
 ## Priority
 P1
@@ -43,5 +43,4 @@ Players recognize floor styles and adapt: trap-heavy halls, treasure rooms, reca
 - `DNG-070`
 
 ## Future handoff notes
-This is a good early content-depth ticket after node contracts.
-
+Shipped 2026-05-01. Added a shared floor archetype progression contract over the authored twelve-floor endless cycle, including pacing roles, route affinities, budget expectations, frequency bands, and fairness-backed coverage tests for 12/30/100 floor samples.

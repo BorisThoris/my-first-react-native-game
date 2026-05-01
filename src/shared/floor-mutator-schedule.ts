@@ -3,7 +3,8 @@ import type {
     FloorArchetypeId,
     FloorTag,
     GameMode,
-    MutatorId
+    MutatorId,
+    RouteNodeType
 } from './contracts';
 import { createMulberry32, hashStringToSeed } from './rng';
 
@@ -188,6 +189,53 @@ export const CHAPTER_ACT_BIOME_STRUCTURE: readonly ChapterActBiomeDefinition[] =
 
 export const ENDLESS_CYCLE_FLOOR_COUNT = 12;
 
+export type FloorArchetypePressureRole =
+    | 'baseline'
+    | 'pressure'
+    | 'reward'
+    | 'recovery'
+    | 'boss'
+    | 'mystery';
+
+export interface FloorArchetypeProgressionRow {
+    cycleFloor: number;
+    floorArchetypeId: FloorArchetypeId;
+    title: string;
+    floorTag: FloorTag;
+    featuredObjectiveId: FeaturedObjectiveId;
+    mutators: readonly MutatorId[];
+    role: FloorArchetypePressureRole;
+    routeAffinity: RouteNodeType;
+    budgetExpectation: string;
+    softlockInvariant: string;
+    actId: ChapterActId;
+    actTitle: string;
+    biomeId: ChapterBiomeId;
+    biomeTitle: string;
+}
+
+export interface FloorArchetypeFrequencyBand {
+    role: FloorArchetypePressureRole;
+    minPerCycle: number;
+    maxPerCycle: number;
+}
+
+export interface FloorArchetypeProgressionReport {
+    floorsSampled: number;
+    cycleLength: number;
+    rows: readonly FloorArchetypeProgressionRow[];
+    frequencyBands: readonly FloorArchetypeFrequencyBand[];
+    roleCounts: Record<FloorArchetypePressureRole, number>;
+    archetypeCounts: Partial<Record<FloorArchetypeId, number>>;
+    floorTagCounts: Record<FloorTag, number>;
+    featuredObjectiveCounts: Partial<Record<FeaturedObjectiveId, number>>;
+    hasPressure: boolean;
+    hasRecovery: boolean;
+    hasReward: boolean;
+    hasBoss: boolean;
+    hasMystery: boolean;
+}
+
 export const getChapterActBiomeForCycleFloor = (
     cycleFloor: number
 ): (ChapterActBiomeDefinition & { actFloorNumber: number; actFloorCount: number }) => {
@@ -268,6 +316,157 @@ const ENDLESS_FLOOR_CYCLE: FloorScheduleEntry[] = [
     makeEntry(11, 'parasite_tithe', 'scholar_style', ['score_parasite'], 'normal'),
     makeEntry(12, 'spotlight_hunt', 'cursed_last', ['shifting_spotlight'], 'normal')
 ];
+
+const FLOOR_ARCHETYPE_FREQUENCY_BANDS: readonly FloorArchetypeFrequencyBand[] = [
+    { role: 'baseline', minPerCycle: 1, maxPerCycle: 2 },
+    { role: 'pressure', minPerCycle: 4, maxPerCycle: 6 },
+    { role: 'reward', minPerCycle: 2, maxPerCycle: 2 },
+    { role: 'recovery', minPerCycle: 1, maxPerCycle: 1 },
+    { role: 'boss', minPerCycle: 2, maxPerCycle: 2 },
+    { role: 'mystery', minPerCycle: 1, maxPerCycle: 1 }
+] as const;
+
+const emptyRoleCounts = (): Record<FloorArchetypePressureRole, number> => ({
+    baseline: 0,
+    pressure: 0,
+    reward: 0,
+    recovery: 0,
+    boss: 0,
+    mystery: 0
+});
+
+const emptyFloorTagCounts = (): Record<FloorTag, number> => ({
+    normal: 0,
+    breather: 0,
+    boss: 0
+});
+
+const roleForArchetype = (entry: FloorScheduleEntry): FloorArchetypePressureRole => {
+    if (entry.floorTag === 'boss') {
+        return 'boss';
+    }
+    if (entry.floorArchetypeId === 'treasure_gallery') {
+        return 'reward';
+    }
+    if (entry.floorArchetypeId === 'breather') {
+        return 'recovery';
+    }
+    if (entry.floorArchetypeId === 'script_room') {
+        return 'mystery';
+    }
+    if (entry.floorArchetypeId === 'survey_hall') {
+        return 'baseline';
+    }
+    return 'pressure';
+};
+
+const routeAffinityForArchetype = (entry: FloorScheduleEntry): RouteNodeType => {
+    if (entry.floorArchetypeId === 'treasure_gallery' || entry.floorArchetypeId === 'script_room') {
+        return 'mystery';
+    }
+    if (entry.floorArchetypeId === 'breather' || entry.floorArchetypeId === 'survey_hall') {
+        return 'safe';
+    }
+    return 'greed';
+};
+
+const budgetExpectationForRole = (role: FloorArchetypePressureRole): string => {
+    switch (role) {
+        case 'baseline':
+            return 'standard enemy budget with readable recall pressure';
+        case 'pressure':
+            return 'elevated hazard or mutator budget with normal completion route';
+        case 'reward':
+            return 'pickup and cache reward budget with reduced combat pressure';
+        case 'recovery':
+            return 'lower threat utility budget for resource recovery';
+        case 'boss':
+            return 'boss or trap-heavy budget with explicit defeat objective support';
+        case 'mystery':
+            return 'event-style information budget with altered card reading';
+    }
+};
+
+const progressionRowForEntry = (entry: FloorScheduleEntry): FloorArchetypeProgressionRow | null => {
+    if (
+        entry.cycleFloor == null ||
+        entry.floorArchetypeId == null ||
+        entry.featuredObjectiveId == null ||
+        entry.title == null ||
+        entry.actId == null ||
+        entry.actTitle == null ||
+        entry.biomeId == null ||
+        entry.biomeTitle == null
+    ) {
+        return null;
+    }
+    const role = roleForArchetype(entry);
+    return {
+        cycleFloor: entry.cycleFloor,
+        floorArchetypeId: entry.floorArchetypeId,
+        title: entry.title,
+        floorTag: entry.floorTag,
+        featuredObjectiveId: entry.featuredObjectiveId,
+        mutators: [...entry.mutators],
+        role,
+        routeAffinity: routeAffinityForArchetype(entry),
+        budgetExpectation: budgetExpectationForRole(role),
+        softlockInvariant: 'inspectBoardFairness must report a completion route for generated samples.',
+        actId: entry.actId,
+        actTitle: entry.actTitle,
+        biomeId: entry.biomeId,
+        biomeTitle: entry.biomeTitle
+    };
+};
+
+export const getFloorArchetypeProgressionRows = (): readonly FloorArchetypeProgressionRow[] =>
+    ENDLESS_FLOOR_CYCLE.map((entry) => progressionRowForEntry(entry)).filter(
+        (row): row is FloorArchetypeProgressionRow => row != null
+    );
+
+export const getFloorArchetypeProgressionReport = (
+    floors = ENDLESS_CYCLE_FLOOR_COUNT,
+    runSeed = 12_012,
+    rulesVersion = FLOOR_SCHEDULE_RULES_VERSION
+): FloorArchetypeProgressionReport => {
+    const roleCounts = emptyRoleCounts();
+    const archetypeCounts: Partial<Record<FloorArchetypeId, number>> = {};
+    const floorTagCounts = emptyFloorTagCounts();
+    const featuredObjectiveCounts: Partial<Record<FeaturedObjectiveId, number>> = {};
+    const rows: FloorArchetypeProgressionRow[] = [];
+    const floorsSampled = Math.max(0, Math.floor(floors));
+
+    for (let level = 1; level <= floorsSampled; level += 1) {
+        const row = progressionRowForEntry(
+            pickFloorScheduleEntry(runSeed, rulesVersion, level, 'endless')
+        );
+        if (!row) {
+            continue;
+        }
+        rows.push(row);
+        roleCounts[row.role] += 1;
+        archetypeCounts[row.floorArchetypeId] = (archetypeCounts[row.floorArchetypeId] ?? 0) + 1;
+        floorTagCounts[row.floorTag] += 1;
+        featuredObjectiveCounts[row.featuredObjectiveId] =
+            (featuredObjectiveCounts[row.featuredObjectiveId] ?? 0) + 1;
+    }
+
+    return {
+        floorsSampled,
+        cycleLength: ENDLESS_CYCLE_FLOOR_COUNT,
+        rows,
+        frequencyBands: FLOOR_ARCHETYPE_FREQUENCY_BANDS,
+        roleCounts,
+        archetypeCounts,
+        floorTagCounts,
+        featuredObjectiveCounts,
+        hasPressure: roleCounts.pressure > 0,
+        hasRecovery: roleCounts.recovery > 0,
+        hasReward: roleCounts.reward > 0,
+        hasBoss: roleCounts.boss > 0,
+        hasMystery: roleCounts.mystery > 0
+    };
+};
 
 export const getFloorArchetypeDefinition = (
     id: FloorArchetypeId | null

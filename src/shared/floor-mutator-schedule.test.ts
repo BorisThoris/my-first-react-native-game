@@ -4,10 +4,14 @@ import {
     ENDLESS_CYCLE_FLOOR_COUNT,
     FLOOR_SCHEDULE_RULES_VERSION,
     getChapterActBiomeForCycleFloor,
+    getFloorArchetypeProgressionReport,
+    getFloorArchetypeProgressionRows,
     getFloorChapterIdentity,
     pickFloorScheduleEntry,
     usesEndlessFloorSchedule
 } from './floor-mutator-schedule';
+import { GAME_RULES_VERSION } from './contracts';
+import { buildBoard, inspectBoardFairness } from './game';
 
 describe('usesEndlessFloorSchedule', () => {
     it('is false for non-endless modes', () => {
@@ -197,6 +201,116 @@ describe('pickFloorScheduleEntry', () => {
             const d = e.mutators.filter((m) => m === 'distraction_channel');
             expect(d.length).toBeLessThanOrEqual(1);
             expect(e.mutators.length).toBeLessThanOrEqual(3);
+        }
+    });
+});
+
+describe('floor archetype progression contract', () => {
+    it('assigns a pacing role, route affinity, and budget expectation to every cycle floor', () => {
+        const rows = getFloorArchetypeProgressionRows();
+
+        expect(rows).toHaveLength(ENDLESS_CYCLE_FLOOR_COUNT);
+        expect(rows.map((row) => row.cycleFloor)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+        expect(rows.map((row) => row.role)).toEqual([
+            'baseline',
+            'pressure',
+            'reward',
+            'pressure',
+            'pressure',
+            'recovery',
+            'boss',
+            'mystery',
+            'boss',
+            'reward',
+            'pressure',
+            'pressure'
+        ]);
+        for (const row of rows) {
+            expect(row.title.length).toBeGreaterThan(0);
+            expect(row.mutators.length).toBeGreaterThanOrEqual(0);
+            expect(row.budgetExpectation.length).toBeGreaterThan(12);
+            expect(row.softlockInvariant).toContain('inspectBoardFairness');
+            expect(row.actTitle.length).toBeGreaterThan(0);
+            expect(row.biomeTitle.length).toBeGreaterThan(0);
+        }
+    });
+
+    it('keeps representative archetypes distinct for route previews and budgets', () => {
+        const rows = getFloorArchetypeProgressionRows();
+        const byArchetype = new Map(rows.map((row) => [`${row.floorArchetypeId}:${row.cycleFloor}`, row]));
+
+        expect(byArchetype.get('treasure_gallery:3')).toMatchObject({
+            role: 'reward',
+            routeAffinity: 'mystery',
+            floorTag: 'breather',
+            featuredObjectiveId: 'scholar_style'
+        });
+        expect(byArchetype.get('breather:6')).toMatchObject({
+            role: 'recovery',
+            routeAffinity: 'safe',
+            floorTag: 'breather'
+        });
+        expect(byArchetype.get('trap_hall:7')).toMatchObject({
+            role: 'boss',
+            routeAffinity: 'greed',
+            floorTag: 'boss',
+            featuredObjectiveId: 'glass_witness'
+        });
+        expect(byArchetype.get('script_room:8')).toMatchObject({
+            role: 'mystery',
+            routeAffinity: 'mystery',
+            featuredObjectiveId: 'flip_par'
+        });
+    });
+
+    it('reports pressure, recovery, reward, boss, and mystery coverage across 12, 30, and 100 floors', () => {
+        for (const floors of [12, 30, 100]) {
+            const report = getFloorArchetypeProgressionReport(floors, 12_012, FLOOR_SCHEDULE_RULES_VERSION);
+            expect(report.floorsSampled).toBe(floors);
+            expect(report.cycleLength).toBe(ENDLESS_CYCLE_FLOOR_COUNT);
+            expect(report.rows).toHaveLength(floors);
+            expect(report.hasPressure).toBe(true);
+            expect(report.hasRecovery).toBe(true);
+            expect(report.hasReward).toBe(true);
+            expect(report.hasBoss).toBe(true);
+            expect(report.hasMystery).toBe(true);
+            expect(report.floorTagCounts.normal).toBeGreaterThan(0);
+            expect(report.floorTagCounts.breather).toBeGreaterThan(0);
+            expect(report.floorTagCounts.boss).toBeGreaterThan(0);
+            expect(report.featuredObjectiveCounts.flip_par).toBeGreaterThan(0);
+            expect(report.featuredObjectiveCounts.scholar_style).toBeGreaterThan(0);
+            expect(report.featuredObjectiveCounts.cursed_last).toBeGreaterThan(0);
+        }
+    });
+
+    it('keeps one-cycle role counts inside authored frequency bands', () => {
+        const report = getFloorArchetypeProgressionReport(ENDLESS_CYCLE_FLOOR_COUNT);
+
+        for (const band of report.frequencyBands) {
+            const count = report.roleCounts[band.role];
+            expect(count).toBeGreaterThanOrEqual(band.minPerCycle);
+            expect(count).toBeLessThanOrEqual(band.maxPerCycle);
+        }
+        expect(report.archetypeCounts.treasure_gallery).toBe(2);
+        expect(report.archetypeCounts.trap_hall).toBe(1);
+        expect(report.archetypeCounts.rush_recall).toBe(1);
+    });
+
+    it('generates fair boards for each authored archetype row', () => {
+        for (const row of getFloorArchetypeProgressionRows()) {
+            const board = buildBoard(row.cycleFloor, {
+                runSeed: 12_012,
+                runRulesVersion: GAME_RULES_VERSION,
+                activeMutators: [...row.mutators],
+                floorTag: row.floorTag,
+                floorArchetypeId: row.floorArchetypeId,
+                featuredObjectiveId: row.featuredObjectiveId,
+                cycleFloor: row.cycleFloor,
+                gameMode: 'endless'
+            });
+            const fairness = inspectBoardFairness(board);
+            expect(fairness.hasCompletionRoute, row.title).toBe(true);
+            expect(fairness.issues, row.title).toEqual([]);
         }
     });
 });
