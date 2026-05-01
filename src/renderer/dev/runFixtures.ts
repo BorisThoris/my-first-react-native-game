@@ -17,7 +17,7 @@
  * **Repro bundle for QA:** copy app version from Settings / About, the query string above, and any non-default
  * settings from `patchRunFromUserSettings` when filing bugs.
  */
-import type { RunState, Tile } from '../../shared/contracts';
+import type { DungeonRunNodeKind, FloorArchetypeId, FloorTag, MutatorId, RunState, Tile } from '../../shared/contracts';
 import { buildBoard, countFindablePairs } from '../../shared/board-generation';
 import {
     createDailyRun,
@@ -56,7 +56,14 @@ const SANDBOX_FIXTURE_IDS = [
     'gambitTripleMissSetup',
     'paused',
     'shop',
-    'gameOver'
+    'gameOver',
+    'dungeonEnemy',
+    'dungeonBoss',
+    'dungeonTrapRoom',
+    'dungeonRest',
+    'dungeonTreasure',
+    'dungeonEvent',
+    'dungeonExitLock'
 ] as const;
 
 type SandboxFixtureId = (typeof SANDBOX_FIXTURE_IDS)[number];
@@ -86,6 +93,36 @@ const flipFirstMismatchPair = (run: RunState): RunState => {
     }
 
     return flipTile(flipTile(run, orderedGroups[0]![0]!), orderedGroups[1]![0]!);
+};
+
+const buildDungeonBoardFixtureRun = (
+    bestScore: number,
+    options: {
+        activeMutators?: MutatorId[];
+        dungeonNodeKind: DungeonRunNodeKind;
+        floorArchetypeId?: FloorArchetypeId | null;
+        floorTag?: FloorTag;
+        level: number;
+        runSeed: number;
+    }
+): RunState => {
+    const run = finishMemorizePhase(createNewRun(bestScore, { practiceMode: true, runSeed: options.runSeed }));
+    const board = buildBoard(options.level, {
+        activeMutators: options.activeMutators,
+        dungeonNodeKind: options.dungeonNodeKind,
+        floorArchetypeId: options.floorArchetypeId,
+        floorTag: options.floorTag,
+        gameMode: 'endless',
+        runRulesVersion: run.runRulesVersion,
+        runSeed: options.runSeed
+    });
+
+    return {
+        ...run,
+        activeMutators: options.activeMutators ?? run.activeMutators,
+        board,
+        findablesTotalThisFloor: countFindablePairs(board.tiles)
+    };
 };
 
 /**
@@ -182,6 +219,62 @@ export const buildSandboxRun = (fixtureId: string | null, bestScore: number): Ru
             run = finishMemorizePhase(run);
             run = { ...run, status: 'gameOver', lives: 0 };
             return createRunSummary(run, []);
+        }
+        case 'dungeonEnemy': {
+            return buildDungeonBoardFixtureRun(bestScore, {
+                dungeonNodeKind: 'combat',
+                level: 5,
+                runSeed: 72_001
+            });
+        }
+        case 'dungeonBoss': {
+            return buildDungeonBoardFixtureRun(bestScore, {
+                dungeonNodeKind: 'boss',
+                floorTag: 'boss',
+                level: 9,
+                runSeed: 72_002
+            });
+        }
+        case 'dungeonTrapRoom': {
+            return buildDungeonBoardFixtureRun(bestScore, {
+                activeMutators: ['glass_floor'],
+                dungeonNodeKind: 'trap',
+                floorArchetypeId: 'trap_hall',
+                level: 7,
+                runSeed: 72_003
+            });
+        }
+        case 'dungeonRest': {
+            return buildDungeonBoardFixtureRun(bestScore, {
+                dungeonNodeKind: 'rest',
+                floorArchetypeId: 'breather',
+                floorTag: 'breather',
+                level: 6,
+                runSeed: 72_004
+            });
+        }
+        case 'dungeonTreasure': {
+            return buildDungeonBoardFixtureRun(bestScore, {
+                dungeonNodeKind: 'treasure',
+                floorArchetypeId: 'treasure_gallery',
+                level: 10,
+                runSeed: 72_005
+            });
+        }
+        case 'dungeonEvent': {
+            return buildDungeonBoardFixtureRun(bestScore, {
+                dungeonNodeKind: 'event',
+                floorArchetypeId: 'script_room',
+                level: 4,
+                runSeed: 72_006
+            });
+        }
+        case 'dungeonExitLock': {
+            return buildDungeonBoardFixtureRun(bestScore, {
+                dungeonNodeKind: 'exit',
+                level: 6,
+                runSeed: 72_007
+            });
         }
         case 'arcade':
         default: {

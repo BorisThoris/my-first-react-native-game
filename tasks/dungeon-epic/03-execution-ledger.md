@@ -47,6 +47,7 @@ Future agents must update this file after every implementation session that uses
 | `DNG-065` | Done | 2026-05-01 session | Mobile/controller comfort contract now exposes dungeon focus order and keyboard selection of occupied patrol cards. |
 | `DNG-070` | Done | 2026-05-01 session | Versioned dungeon combinatoric matrix maps P0 route, boss, trap, economy, input, and forbidden-combo rows to tests. |
 | `DNG-071` | Done | 2026-05-01 session | Balance simulation now reports deterministic cautious/average/greedy/high-skill dungeon profile metrics and bounds. |
+| `DNG-072` | Done | 2026-05-01 session | Dungeon E2E fixture recipes and dev sandbox board fixtures now cover major screenshot states. |
 
 ## Completed Work Log
 | Date | Ticket(s) | Summary | Verification |
@@ -85,12 +86,13 @@ Future agents must update this file after every implementation session that uses
 | 2026-05-01 | `DNG-065` | Added dungeon comfort focus-order/mobile policy constants, exposed them on TileBoard, and tested keyboard selection of occupied enemy patrol cards. | `yarn test src/renderer/components/TileBoard.test.tsx src/renderer/gameplay/regPhase4PlayContract.test.ts`; `yarn typecheck`; `yarn lint` |
 | 2026-05-01 | `DNG-070` | Added a machine-readable dungeon combinatoric matrix with P0 evidence rows and explicit forbidden/future coverage buckets. | `yarn test src/shared/dungeon-combinatoric-matrix.test.ts src/shared/game.test.ts src/shared/softlock-fairness.test.ts`; `yarn typecheck`; `yarn lint` |
 | 2026-05-01 | `DNG-071` | Extended balance simulation with dungeon player profiles, pressure/economy/boss/shop metrics, and profile/seed/floor bound failure context. | `yarn test src/shared/balance-simulation.test.ts src/shared/run-economy.test.ts`; `yarn typecheck`; `yarn lint` |
+| 2026-05-01 | `DNG-072` | Added deterministic dungeon fixture recipes, matching dev sandbox board fixtures, and a Playwright smoke spec for fixture opening/screenshot capture. | `yarn test src/shared/dungeon-e2e-fixtures.test.ts src/renderer/dev/runFixtures.test.ts src/renderer/dev/devSandboxParams.test.ts`; `yarn typecheck`; `yarn lint` |
 
 ## Blockers
 - None recorded in this pack yet.
 
 ## Next Recommended Ticket
-Start `tickets/DNG-072-e2e-fixtures-and-screenshots.md`.
+Start `tickets/DNG-073-save-migration-and-fuzzing.md`.
 
 ## Session Handoff Template
 Copy this block for future updates:

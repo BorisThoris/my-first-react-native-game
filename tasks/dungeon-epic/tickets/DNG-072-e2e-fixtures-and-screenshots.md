@@ -1,7 +1,7 @@
 # DNG-072: E2E fixtures and screenshots
 
 ## Status
-Not started
+Done
 
 ## Priority
 P1
@@ -44,5 +44,4 @@ Agents can open a known scenario for enemy floor, boss floor, trap room, shop, r
 - `../../refined-experience-gaps/REG-062-e2e-flake-budget-and-ci-visual-sharding.md`
 
 ## Future handoff notes
-Useful once visual layers stabilize.
-
+Dungeon E2E recipes now cover enemy floor, boss floor, trap room, shop, rest, treasure, event, exit lock, floor clear, and game over. Board-heavy states have matching dev sandbox fixtures, and `e2e/dungeon-fixtures-smoke.spec.ts` can open every recipe plus capture representative desktop/mobile screenshots. Focused unit/type/lint checks were run; the Playwright browser spec is available for visual smoke batches.
