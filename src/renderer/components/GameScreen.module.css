@@ -577,6 +577,22 @@
     font-weight: 800;
 }
 
+.floorClearResultStack {
+    display: grid;
+    gap: 0.42rem;
+    margin-bottom: 0.62rem;
+}
+
+.floorClearResultStack .modalNote {
+    margin-bottom: 0;
+}
+
+.floorClearResultStack[data-route-choice-required='true'] {
+    max-height: min(19rem, 34dvh);
+    overflow-y: auto;
+    padding-right: 0.16rem;
+}
+
 .dungeonRunStrip {
     display: grid;
     grid-template-columns: minmax(12rem, 1.1fr) minmax(12rem, 1fr) minmax(11rem, 1.2fr);
@@ -752,6 +768,18 @@
 .dungeonMapChoiceSummary {
     color: var(--theme-text-muted);
     font-size: 0.68rem;
+    line-height: 1.32;
+}
+
+.dungeonMapChoiceInstruction {
+    margin: 0;
+    padding: 0.42rem 0.54rem;
+    border: 1px solid color-mix(in srgb, var(--theme-cyan-bright) 22%, transparent);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--theme-cyan) 9%, var(--theme-void));
+    color: color-mix(in srgb, var(--theme-text) 86%, var(--theme-cyan-bright));
+    font-size: 0.7rem;
+    font-weight: 800;
     line-height: 1.32;
 }
 

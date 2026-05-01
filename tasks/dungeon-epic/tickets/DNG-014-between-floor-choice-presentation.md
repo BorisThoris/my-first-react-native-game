@@ -1,7 +1,7 @@
 # DNG-014: Between-floor choice presentation
 
 ## Status
-Not started
+Done
 
 ## Priority
 P1
@@ -44,5 +44,4 @@ After clearing a floor, the player sees result, reward, and next route choices i
 - `DNG-060`
 
 ## Future handoff notes
-Coordinate with final overlay polish.
-
+Shipped 2026-05-01. Route choice remains inside the floor-clear modal, but the result notes are visually bounded, the route panel is labelled as the required active decision, Continue/shop/risk-wager actions do not compete while a route is required, and mobile/desktop reachability is preserved with the existing responsive route grid.

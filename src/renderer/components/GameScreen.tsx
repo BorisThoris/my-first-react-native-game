@@ -1551,21 +1551,27 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         subtitle={`Level ${run.lastLevelResult.level} cleared. Score +${run.lastLevelResult.scoreGained}. Try Daily or Scholar contract from the menu for different goals.`}
                         title="Floor cleared"
                     >
-                        {clearLifeBonusLabel ? <p className={styles.modalNote}>{clearLifeBonusLabel}</p> : null}
-                        {featuredObjectiveResultLine ? <p className={styles.modalNote}>{featuredObjectiveResultLine}</p> : null}
-                        {featuredObjectiveFailureLine ? <p className={styles.modalNote}>{featuredObjectiveFailureLine}</p> : null}
-                        {featuredObjectiveStreakLine ? <p className={styles.modalNote}>{featuredObjectiveStreakLine}</p> : null}
-                        {endlessRiskWagerOutcomeLine ? <p className={styles.modalNote}>{endlessRiskWagerOutcomeLine}</p> : null}
-                        {favorGainLine ? <p className={styles.modalNote}>{favorGainLine}</p> : null}
-                        {favorBankedLine ? <p className={styles.modalNote}>{favorBankedLine}</p> : null}
-                        {objectiveBonusLine ? <p className={styles.modalNote}>{objectiveBonusLine}</p> : null}
-                        {bonusTagsLine ? <p className={styles.modalNote}>{bonusTagsLine}</p> : null}
-                        {nextFloorPreviewLine ? <p className={styles.modalNote}>{nextFloorPreviewLine}</p> : null}
-                        {currentDungeonNode ? (
-                            <p className={styles.modalNote}>
-                                Cleared node: {currentDungeonNode.label}. Choose a connected room to shape the next board.
-                            </p>
-                        ) : null}
+                        <div
+                            className={styles.floorClearResultStack}
+                            data-route-choice-required={routeChoiceRequired ? 'true' : 'false'}
+                            data-testid="floor-clear-result-stack"
+                        >
+                            {clearLifeBonusLabel ? <p className={styles.modalNote}>{clearLifeBonusLabel}</p> : null}
+                            {featuredObjectiveResultLine ? <p className={styles.modalNote}>{featuredObjectiveResultLine}</p> : null}
+                            {featuredObjectiveFailureLine ? <p className={styles.modalNote}>{featuredObjectiveFailureLine}</p> : null}
+                            {featuredObjectiveStreakLine ? <p className={styles.modalNote}>{featuredObjectiveStreakLine}</p> : null}
+                            {endlessRiskWagerOutcomeLine ? <p className={styles.modalNote}>{endlessRiskWagerOutcomeLine}</p> : null}
+                            {favorGainLine ? <p className={styles.modalNote}>{favorGainLine}</p> : null}
+                            {favorBankedLine ? <p className={styles.modalNote}>{favorBankedLine}</p> : null}
+                            {objectiveBonusLine ? <p className={styles.modalNote}>{objectiveBonusLine}</p> : null}
+                            {bonusTagsLine ? <p className={styles.modalNote}>{bonusTagsLine}</p> : null}
+                            {nextFloorPreviewLine ? <p className={styles.modalNote}>{nextFloorPreviewLine}</p> : null}
+                            {currentDungeonNode ? (
+                                <p className={styles.modalNote}>
+                                    Cleared node: {currentDungeonNode.label}. Choose a connected room to shape the next board.
+                                </p>
+                            ) : null}
+                        </div>
                         {pendingRouteLine ? <p className={styles.routeSelectedNote}>{pendingRouteLine}</p> : null}
                         {pendingDungeonNode ? (
                             <p className={styles.routeSelectedNote}>
@@ -1578,14 +1584,22 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                             </p>
                         ) : null}
                         {routeChoiceRequired && run.lastLevelResult.routeChoices ? (
-                            <div className={styles.dungeonMapChoicePanel} data-testid="route-choice-panel">
+                            <section
+                                aria-labelledby="dungeon-route-choice-title"
+                                className={styles.dungeonMapChoicePanel}
+                                data-decision-state="required"
+                                data-testid="route-choice-panel"
+                            >
                                 <div className={styles.dungeonMapChoiceHeader}>
                                     <span>Dungeon map</span>
-                                    <strong>Choose the next room</strong>
+                                    <strong id="dungeon-route-choice-title">Choose the next room</strong>
                                     <small>
                                         Act {dungeonMapPresentation.act} / boss at depth {dungeonMapPresentation.bossFloor}
                                     </small>
                                 </div>
+                                <p className={styles.dungeonMapChoiceInstruction} data-testid="route-choice-required-copy">
+                                    Pick one room to continue. Route choice is the active decision; other floor-clear actions resume after the route is locked.
+                                </p>
                                 <span className={styles.dungeonMapChoiceSummary}>
                                     {run.lastLevelResult.routeChoices
                                         .map((option) => `${option.label}: ${option.detail}`)
@@ -1634,9 +1648,9 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                         );
                                     })}
                                 </div>
-                            </div>
+                            </section>
                         ) : null}
-                        {endlessRiskWagerOfferAvailable || acceptedEndlessRiskWager ? (
+                        {acceptedEndlessRiskWager || (!routeChoiceRequired && endlessRiskWagerOfferAvailable) ? (
                             <div className={styles.endlessRiskWagerPanel} data-testid="endless-risk-wager-panel">
                                 {acceptedEndlessRiskWager ? (
                                     <>

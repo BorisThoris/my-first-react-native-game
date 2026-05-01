@@ -635,6 +635,7 @@ describe('GameScreen (OVR-014)', () => {
             status: 'levelComplete',
             relicOffer: null,
             shopGold: 5,
+            featuredObjectiveStreak: 2,
             shopOffers: [
                 {
                     id: 'test-shop-peek',
@@ -724,13 +725,18 @@ describe('GameScreen (OVR-014)', () => {
         expect(getByText(/Next: Speed Trial/)).toBeTruthy();
         expect(getByText(/Lantern Academy/)).toBeTruthy();
         expect(getByText(/speed check/)).toBeTruthy();
+        expect(screen.getByTestId('floor-clear-result-stack')).toHaveAttribute('data-route-choice-required', 'true');
         expect(screen.getByTestId('route-choice-panel')).toHaveTextContent('Choose the next room');
+        expect(screen.getByTestId('route-choice-panel')).toHaveAttribute('data-decision-state', 'required');
+        expect(screen.getByTestId('route-choice-required-copy')).toHaveTextContent('Pick one room to continue');
         expect(screen.getByTestId('route-choice-safe')).toHaveTextContent('Reward: Balanced score and survival path.');
         expect(screen.getByTestId('route-choice-safe')).toHaveTextContent('Risk: Stable path.');
         expect(screen.getByTestId('route-choice-greed')).toHaveAttribute('data-route-type', 'greed');
         expect(screen.getByTestId('route-choice-greed')).toHaveTextContent('Elite memory: Elite enemy pressure and greed anchors.');
         expect(screen.getByRole('button', { name: 'Safe passage' })).toBeTruthy();
         expect(screen.getByRole('button', { name: 'Greedy route' })).toBeTruthy();
+        expect(screen.queryByRole('button', { name: /^Continue$/i })).toBeNull();
+        expect(screen.queryByTestId('endless-risk-wager-panel')).toBeNull();
         expect(screen.queryByRole('button', { name: /visit shop/i })).toBeNull();
         expect(screen.queryByTestId('shop-offer-panel')).toBeNull();
         expect(screen.getByText(/Vendor alcove available: 1 services, 5 shop gold/)).toBeTruthy();
