@@ -2,6 +2,7 @@ export {
     activateDungeonExit,
     createDungeonFloorBlueprint,
     EXIT_PAIR_KEY,
+    getDungeonBoardPresentation,
     getDungeonBoardStatus,
     getDungeonCardCopy,
     getDungeonExitStatus,
@@ -11,9 +12,11 @@ export {
     revealDungeonShop,
     ROOM_PAIR_KEY,
     SHOP_PAIR_KEY,
+    type DungeonBoardPresentation,
+    type DungeonBoardPresentationChip,
+    type DungeonBoardPresentationChipTone,
     type DungeonBoardStatus,
     type DungeonExitActivationSpend,
     type DungeonExitStatus,
     type DungeonObjectiveStatus
 } from './game';
-

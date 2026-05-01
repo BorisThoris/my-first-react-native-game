@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { GAME_RULES_VERSION } from './contracts';
-import { createRunMapState, chooseRunMapNode, generateRunMapChoices } from './run-map';
+import {
+    createDungeonRunMapState,
+    createRunMapState,
+    chooseRunMapNode,
+    enterSelectedDungeonNode,
+    generateRunMapChoices,
+    getDungeonMapPresentation,
+    revealDungeonChoices,
+    selectDungeonNode
+} from './run-map';
 
 describe('REG-069 run map route nodes', () => {
     it('generates deterministic local route choices with shop hooks', () => {
@@ -8,8 +17,8 @@ describe('REG-069 run map route nodes', () => {
         const b = generateRunMapChoices({ runSeed: 69_001, rulesVersion: GAME_RULES_VERSION, currentFloor: 2 });
 
         expect(a).toEqual(b);
-        expect(a.map((node) => node.kind)).toEqual(['combat', 'shop', 'event']);
-        expect(a[1]).toMatchObject({
+        expect(a.map((node) => node.kind).sort()).toEqual(['combat', 'event', 'shop']);
+        expect(a.find((node) => node.kind === 'shop')).toMatchObject({
             label: 'Vendor alcove',
             offlineOnly: true,
             unlocksSystems: ['REG-015', 'REG-070', 'REG-071']
@@ -34,6 +43,73 @@ describe('REG-069 run map route nodes', () => {
             label: 'Treasure gallery',
             unlocksSystems: ['REG-017', 'REG-069', 'REG-075']
         });
-        expect(secret.find((node) => node.kind === 'event')?.detail).toContain('secret-room hook');
+        expect(secret.find((node) => node.kind === 'event')?.detail).toContain('oddity');
+    });
+
+    it('promotes route choices into a persistent dungeon graph', () => {
+        const routeChoices = [
+            {
+                id: 'choice:safe',
+                routeType: 'safe' as const,
+                label: 'Safe passage',
+                detail: 'Standard next floor.'
+            },
+            {
+                id: 'choice:greed',
+                routeType: 'greed' as const,
+                label: 'Greedy route',
+                detail: 'Higher pressure route hook.'
+            },
+            {
+                id: 'choice:mystery',
+                routeType: 'mystery' as const,
+                label: 'Mystery route',
+                detail: 'Hidden treasure or secret-room hook.'
+            }
+        ];
+        const initial = createDungeonRunMapState(99, GAME_RULES_VERSION, 1);
+        const revealed = revealDungeonChoices(initial, 1, routeChoices);
+        const selected = selectDungeonNode(revealed, 'choice:greed');
+        const entered = enterSelectedDungeonNode(selected);
+
+        expect(revealed.nodes.find((node) => node.id === initial.currentNodeId)?.status).toBe('cleared');
+        expect(revealed.nodes.filter((node) => node.status === 'revealed')).toHaveLength(3);
+        expect(entered.currentNodeId).toBe('choice:greed');
+        expect(entered.nodes.find((node) => node.id === 'choice:greed')).toMatchObject({
+            kind: 'elite',
+            status: 'current'
+        });
+        expect(entered.nodes.find((node) => node.id === 'choice:safe')?.status).toBe('skipped');
+    });
+
+    it('builds UI-ready room and map presentation for the dungeon shell', () => {
+        const routeChoices = [
+            {
+                id: 'choice:safe',
+                routeType: 'safe' as const,
+                label: 'Safe passage',
+                detail: 'Standard next floor.'
+            },
+            {
+                id: 'choice:greed',
+                routeType: 'greed' as const,
+                label: 'Greedy route',
+                detail: 'Higher pressure route hook.'
+            }
+        ];
+        const map = revealDungeonChoices(createDungeonRunMapState(101, GAME_RULES_VERSION, 1), 1, routeChoices);
+        const presentation = getDungeonMapPresentation(map);
+
+        expect(presentation.current).toMatchObject({
+            label: 'Dungeon gate',
+            glyph: 'G',
+            tone: 'safe'
+        });
+        expect(presentation.revealed.map((node) => node.label)).toEqual(['Safe passage', 'Greedy route']);
+        expect(presentation.revealed.find((node) => node.id === 'choice:greed')).toMatchObject({
+            mechanic: 'Elite enemy pressure and greed anchors.',
+            tone: 'danger'
+        });
+        expect(presentation.bossDistance).toBe(5);
     });
 });

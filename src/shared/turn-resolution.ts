@@ -1,5 +1,6 @@
 export {
     calculateMatchScore,
+    applyEnemyHazardClick,
     computeFlipResolveDelayMs,
     flipTile,
     getMatchFloaterAnchorTileIds,
@@ -9,4 +10,3 @@ export {
     resolveBoardTurn,
     tilesArePairMatch
 } from './game';
-

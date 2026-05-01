@@ -59,6 +59,27 @@
     color: var(--theme-text);
 }
 
+.choiceList {
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.choiceRow {
+    display: grid;
+    gap: 4px;
+    padding: 10px;
+    border: 1px solid color-mix(in srgb, var(--theme-card-border-muted) 84%, transparent);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--theme-panel-surface) 84%, transparent);
+}
+
+.choiceRow p {
+    margin: 0;
+    color: var(--theme-text-muted);
+    line-height: 1.4;
+}
+
 .actions {
     display: flex;
     flex-wrap: wrap;

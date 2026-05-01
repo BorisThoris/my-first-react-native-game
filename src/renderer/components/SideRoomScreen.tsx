@@ -19,8 +19,9 @@ const routeLabel = (routeType: RouteNodeType): string =>
 
 const SideRoomScreen = () => {
     const rootRef = useRef<HTMLElement | null>(null);
-    const { claimSideRoomPrimary, run, settings, skipSideRoom } = useAppStore(
+    const { claimSideRoomChoice, claimSideRoomPrimary, run, settings, skipSideRoom } = useAppStore(
         useShallow((state) => ({
+            claimSideRoomChoice: state.claimSideRoomChoice,
             claimSideRoomPrimary: state.claimSideRoomPrimary,
             run: state.run,
             settings: state.settings,
@@ -84,6 +85,16 @@ const SideRoomScreen = () => {
                 <div className={styles.rewardPanel}>
                     <strong>{sideRoom.primaryLabel}</strong>
                     <p className={styles.rewardText}>{sideRoom.primaryDetail}</p>
+                    {sideRoom.choices && sideRoom.choices.length > 0 ? (
+                        <div className={styles.choiceList}>
+                            {sideRoom.choices.map((choice) => (
+                                <div className={styles.choiceRow} key={choice.id}>
+                                    <strong>{choice.label}</strong>
+                                    <p>{choice.detail}</p>
+                                </div>
+                            ))}
+                        </div>
+                    ) : null}
                 </div>
 
                 <footer className={styles.actions}>
@@ -99,18 +110,36 @@ const SideRoomScreen = () => {
                     >
                         {sideRoom.skipLabel}
                     </UiButton>
-                    <UiButton
-                        onClick={() => {
-                            resumeUiSfxContext();
-                            playUiConfirmSfx(uiGain);
-                            claimSideRoomPrimary();
-                        }}
-                        size="md"
-                        type="button"
-                        variant="primary"
-                    >
-                        {sideRoom.primaryLabel}
-                    </UiButton>
+                    {sideRoom.choices && sideRoom.choices.length > 0 ? (
+                        sideRoom.choices.map((choice) => (
+                            <UiButton
+                                key={choice.id}
+                                onClick={() => {
+                                    resumeUiSfxContext();
+                                    playUiConfirmSfx(uiGain);
+                                    claimSideRoomChoice(choice.id);
+                                }}
+                                size="md"
+                                type="button"
+                                variant={choice.primary ? 'primary' : 'secondary'}
+                            >
+                                {choice.label}
+                            </UiButton>
+                        ))
+                    ) : (
+                        <UiButton
+                            onClick={() => {
+                                resumeUiSfxContext();
+                                playUiConfirmSfx(uiGain);
+                                claimSideRoomPrimary();
+                            }}
+                            size="md"
+                            type="button"
+                            variant="primary"
+                        >
+                            {sideRoom.primaryLabel}
+                        </UiButton>
+                    )}
                 </footer>
             </div>
         </section>

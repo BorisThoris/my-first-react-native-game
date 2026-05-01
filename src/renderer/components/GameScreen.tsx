@@ -23,9 +23,10 @@ import {
     tileIsStrayEligiblePreview
 } from '../../shared/board-powers';
 import {
-    getDungeonBoardStatus,
+    getDungeonBoardPresentation,
     getDungeonExitStatus
 } from '../../shared/dungeon-rules';
+import { getDungeonMapPresentation } from '../../shared/run-map';
 import { useNotificationStore } from '@cross-repo-libs/notifications';
 import type { CSSProperties } from 'react';
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
@@ -826,6 +827,12 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
             ? run.endlessRiskWager
             : null;
     const routeChoiceRequired = Boolean(run.lastLevelResult?.routeChoices && !run.pendingRouteCardPlan);
+    const currentDungeonNode = run.dungeonRun?.nodes.find((node) => node.id === run.dungeonRun.currentNodeId) ?? null;
+    const dungeonMapPresentation = getDungeonMapPresentation(run.dungeonRun);
+    const currentDungeonRoom = dungeonMapPresentation.current;
+    const visibleDungeonMapNodes = dungeonMapPresentation.nodes.filter(
+        (node) => node.status === 'current' || node.status === 'cleared' || node.status === 'revealed' || node.status === 'skipped'
+    );
     const pendingRouteCardKind = run.pendingRouteCardPlan
         ? routeCardKindForRouteType(run.pendingRouteCardPlan.routeType)
         : null;
@@ -839,6 +846,9 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         : 'next floor adds deterministic mystery veils.'
               }`
             : null;
+    const pendingDungeonNode = run.pendingRouteCardPlan
+        ? run.dungeonRun?.nodes.find((node) => node.id === run.pendingRouteCardPlan?.choiceId) ?? null
+        : null;
     const dungeonExitStatus = getDungeonExitStatus(run);
     const dungeonExitRouteLine = dungeonExitStatus.routeType
         ? `${routeTypeLabel(dungeonExitStatus.routeType)} beyond this door.`
@@ -870,51 +880,8 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         activeRouteSpecialKind && activeRoutePairCount > 0 && run.status !== 'levelComplete'
             ? `${routeSpecialDisplayLabel(activeRouteSpecialKind)} in play: ${routeSpecialDisplayRewardLine(activeRouteSpecialKind)}`
             : null;
-    const dungeonBoardStatus = getDungeonBoardStatus(run);
-    const activeDungeonTiles = (run.board?.tiles ?? []).filter(
-        (tile) =>
-            tile.dungeonCardKind &&
-            tile.dungeonCardState !== 'resolved' &&
-            tile.state !== 'matched' &&
-            tile.state !== 'removed'
-    );
-    const activeDungeonEnemyCount = new Set(
-        activeDungeonTiles
-            .filter((tile) => tile.dungeonCardKind === 'enemy' && tile.dungeonCardState === 'revealed')
-            .map((tile) => tile.pairKey)
-    ).size;
-    const armedTrapCount = new Set(
-        activeDungeonTiles
-            .filter((tile) => tile.dungeonCardKind === 'trap' && tile.dungeonCardState === 'revealed')
-            .map((tile) => tile.pairKey)
-    ).size;
-    const hiddenDungeonPairCount = new Set(
-        activeDungeonTiles
-            .filter((tile) => tile.dungeonCardState === 'hidden')
-            .map((tile) => tile.pairKey)
-    ).size;
-    const dungeonObjectiveLine =
-        dungeonBoardStatus.objectiveId && run.status !== 'levelComplete'
-            ? `Objective: ${dungeonBoardStatus.objectiveLabel} ${dungeonBoardStatus.objectiveProgress}/${dungeonBoardStatus.objectiveRequired}${dungeonBoardStatus.objectiveCompleted ? ' complete' : ''}.`
-            : null;
-    const activeDungeonBannerLine =
-        run.status !== 'levelComplete' &&
-        (armedTrapCount > 0 || activeDungeonEnemyCount > 0 || hiddenDungeonPairCount > 0 || dungeonObjectiveLine)
-            ? [
-                  dungeonObjectiveLine,
-                  armedTrapCount > 0
-                      ? `${armedTrapCount} trap ${armedTrapCount === 1 ? 'is' : 'cards are'} armed. Match its pair to disarm; mismatch springs it.`
-                      : activeDungeonEnemyCount > 0
-                        ? `${activeDungeonEnemyCount} enemy ${activeDungeonEnemyCount === 1 ? 'card is' : 'cards are'} awake. Mismatches trigger attacks.`
-                        : dungeonBoardStatus.requiredLeverCount > 0
-                          ? `Exit levers: ${dungeonBoardStatus.leverCount}/${dungeonBoardStatus.requiredLeverCount}. ${hiddenDungeonPairCount} dungeon ${hiddenDungeonPairCount === 1 ? 'card' : 'cards'} hidden.`
-                          : hiddenDungeonPairCount > 0
-                            ? `${hiddenDungeonPairCount} dungeon ${hiddenDungeonPairCount === 1 ? 'card' : 'cards'} hidden in this floor.`
-                            : null
-              ]
-                  .filter(Boolean)
-                  .join(' ')
-            : null;
+    const dungeonPresentation = getDungeonBoardPresentation(run);
+    const activeDungeonPanel = run.status !== 'levelComplete' && dungeonPresentation.visible ? dungeonPresentation : null;
     const nextFloorPreview =
         endlessChapterActive && run.lastLevelResult
             ? pickFloorScheduleEntry(run.runSeed, run.runRulesVersion, run.lastLevelResult.level + 1, run.gameMode)
@@ -1180,6 +1147,35 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                             </div>
                         ) : null}
 
+                        {currentDungeonRoom ? (
+                            <section className={styles.dungeonRunStrip} data-testid="dungeon-run-strip">
+                                <div className={styles.dungeonRunCurrent} data-tone={currentDungeonRoom.tone}>
+                                    <span className={styles.dungeonRunGlyph}>{currentDungeonRoom.glyph}</span>
+                                    <div>
+                                        <span>{currentDungeonRoom.eyebrow}</span>
+                                        <strong>{currentDungeonRoom.label}</strong>
+                                    </div>
+                                </div>
+                                <div className={styles.dungeonRunNodeRail} aria-label="Dungeon route">
+                                    {visibleDungeonMapNodes.slice(-7).map((node) => (
+                                        <span
+                                            className={styles.dungeonRunNode}
+                                            data-status={node.status}
+                                            data-tone={node.tone}
+                                            key={node.id}
+                                            title={`${node.label}: ${node.mechanic}`}
+                                        >
+                                            {node.glyph}
+                                        </span>
+                                    ))}
+                                </div>
+                                <div className={styles.dungeonRunIntel}>
+                                    <strong>Boss in {dungeonMapPresentation.bossDistance}</strong>
+                                    <span>{currentDungeonRoom.mechanic}</span>
+                                </div>
+                            </section>
+                        ) : null}
+
                         <div
                             ref={boardStageRef}
                             data-testid="board-stage"
@@ -1192,13 +1188,40 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                     <span>{routeSpecialDisplayRewardLine(activeRouteSpecialKind!)}</span>
                                 </div>
                             ) : null}
-                            {activeDungeonBannerLine ? (
+                            {activeDungeonPanel ? (
                                 <div
-                                    className={`${styles.routeCardBanner} ${styles.dungeonCardBanner}`}
-                                    data-testid="dungeon-card-board-banner"
+                                    className={styles.dungeonStatusPanel}
+                                    data-testid="dungeon-status-panel"
                                 >
-                                    <strong>Dungeon cards</strong>
-                                    <span>{activeDungeonBannerLine}</span>
+                                    <div className={styles.dungeonStatusHeader}>
+                                        <strong>{activeDungeonPanel.title}</strong>
+                                        {activeDungeonPanel.bossText ? <span>{activeDungeonPanel.bossText}</span> : null}
+                                    </div>
+                                    {activeDungeonPanel.objectiveText ? (
+                                        <div className={styles.dungeonStatusObjective}>
+                                            <span>{activeDungeonPanel.objectiveText}</span>
+                                            {activeDungeonPanel.objectiveDetail ? (
+                                                <small>{activeDungeonPanel.objectiveDetail}</small>
+                                            ) : null}
+                                        </div>
+                                    ) : null}
+                                    {activeDungeonPanel.chips.length > 0 ? (
+                                        <div className={styles.dungeonStatusChips} aria-label="Dungeon status">
+                                            {activeDungeonPanel.chips.map((chip) => (
+                                                <span
+                                                    className={styles.dungeonStatusChip}
+                                                    data-tone={chip.tone}
+                                                    key={chip.id}
+                                                >
+                                                    <span>{chip.label}</span>
+                                                    <strong>{chip.value}</strong>
+                                                </span>
+                                            ))}
+                                        </div>
+                                    ) : null}
+                                    {activeDungeonPanel.alertText ? (
+                                        <div className={styles.dungeonStatusAlert}>{activeDungeonPanel.alertText}</div>
+                                    ) : null}
                                 </div>
                             ) : null}
                             <MemoTileBoard
@@ -1520,34 +1543,77 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                         {objectiveBonusLine ? <p className={styles.modalNote}>{objectiveBonusLine}</p> : null}
                         {bonusTagsLine ? <p className={styles.modalNote}>{bonusTagsLine}</p> : null}
                         {nextFloorPreviewLine ? <p className={styles.modalNote}>{nextFloorPreviewLine}</p> : null}
+                        {currentDungeonNode ? (
+                            <p className={styles.modalNote}>
+                                Cleared node: {currentDungeonNode.label}. Choose a connected room to shape the next board.
+                            </p>
+                        ) : null}
                         {pendingRouteLine ? <p className={styles.routeSelectedNote}>{pendingRouteLine}</p> : null}
+                        {pendingDungeonNode ? (
+                            <p className={styles.routeSelectedNote}>
+                                Dungeon node armed: {pendingDungeonNode.label}. {pendingDungeonNode.detail}
+                            </p>
+                        ) : null}
                         {run.shopOffers.length > 0 ? (
                             <p className={styles.modalNote}>
                                 Vendor alcove available: {run.shopOffers.length} services, {run.shopGold} shop gold.
                             </p>
                         ) : null}
                         {routeChoiceRequired && run.lastLevelResult.routeChoices ? (
-                            <div className={styles.endlessRiskWagerPanel} data-testid="route-choice-panel">
-                                <strong>Choose next route</strong>
-                                <span>
+                            <div className={styles.dungeonMapChoicePanel} data-testid="route-choice-panel">
+                                <div className={styles.dungeonMapChoiceHeader}>
+                                    <span>Dungeon map</span>
+                                    <strong>Choose the next room</strong>
+                                    <small>
+                                        Act {dungeonMapPresentation.act} / boss at depth {dungeonMapPresentation.bossFloor}
+                                    </small>
+                                </div>
+                                <span className={styles.dungeonMapChoiceSummary}>
                                     {run.lastLevelResult.routeChoices
                                         .map((option) => `${option.label}: ${option.detail}`)
                                         .join(' · ')}
                                 </span>
-                                <div className={styles.routeChoiceActions}>
-                                    {run.lastLevelResult.routeChoices.map((option) => (
-                                        <button
-                                            className={styles.endlessRiskWagerButton}
-                                            key={option.id}
-                                            onClick={() => {
-                                                playUiClick();
-                                                chooseRouteAndContinue(option.id);
-                                            }}
-                                            type="button"
+                                <div className={styles.dungeonMapTimeline} aria-label="Dungeon map route">
+                                    {visibleDungeonMapNodes.map((node) => (
+                                        <span
+                                            className={styles.dungeonMapTimelineNode}
+                                            data-status={node.status}
+                                            data-tone={node.tone}
+                                            key={node.id}
+                                            title={`${node.label}: ${node.risk}`}
                                         >
-                                            {option.label}
-                                        </button>
+                                            <span>{node.glyph}</span>
+                                            <small>{node.floor}</small>
+                                        </span>
                                     ))}
+                                </div>
+                                <div className={styles.dungeonMapChoiceActions}>
+                                    {run.lastLevelResult.routeChoices.map((option) => {
+                                        const node = dungeonMapPresentation.revealed.find((candidate) => candidate.id === option.id);
+                                        return (
+                                            <button
+                                                aria-label={node?.label ?? option.label}
+                                                className={styles.dungeonMapRoomButton}
+                                                data-tone={node?.tone ?? 'neutral'}
+                                                key={option.id}
+                                                onClick={() => {
+                                                    playUiClick();
+                                                    chooseRouteAndContinue(option.id);
+                                                }}
+                                                type="button"
+                                            >
+                                                <span className={styles.dungeonMapRoomGlyph}>{node?.glyph ?? '?'}</span>
+                                                <span className={styles.dungeonMapRoomCopy}>
+                                                    <strong>{node?.label ?? option.label}</strong>
+                                                    <small>{node?.mechanic ?? option.detail}</small>
+                                                    <em>{node?.reward ?? option.rewardPreview ?? 'Balanced route reward.'}</em>
+                                                </span>
+                                                <span className={styles.dungeonMapRoomRisk}>
+                                                    {node?.risk ?? option.riskPreview ?? 'Stable path.'}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         ) : null}

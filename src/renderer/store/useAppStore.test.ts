@@ -1,6 +1,11 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
+import type { BoardState, Tile } from '../../shared/contracts';
 import { buildBoard, countFindablePairs } from '../../shared/board-generation';
+import { ROOM_PAIR_KEY, SHOP_PAIR_KEY } from '../../shared/dungeon-rules';
 import { createNewRun } from '../../shared/game-core';
+import { generateRouteChoices } from '../../shared/route-rules';
+import { rollRunEventRoom } from '../../shared/run-events';
+import { createDungeonRunMapState, revealDungeonChoices } from '../../shared/run-map';
 import { createRunShopOffers } from '../../shared/shop-rules';
 import { createDefaultSaveData } from '../../shared/save-data';
 import { BOARD_FLOATER_POP_CLEAR } from './matchScorePop';
@@ -55,6 +60,28 @@ const resetStore = (): void => {
     });
 };
 
+const normalPairGroups = (board: BoardState): Tile[][] => {
+    const groups = new Map<string, Tile[]>();
+    for (const tile of board.tiles) {
+        if (
+            tile.dungeonCardKind != null ||
+            tile.routeSpecialKind != null ||
+            tile.routeCardKind != null ||
+            tile.pairKey === '__decoy__' ||
+            tile.pairKey === '__wild__' ||
+            tile.pairKey === '__exit__' ||
+            tile.pairKey === '__shop__' ||
+            tile.pairKey === '__room__'
+        ) {
+            continue;
+        }
+        const group = groups.get(tile.pairKey) ?? [];
+        group.push(tile);
+        groups.set(tile.pairKey, group);
+    }
+    return [...groups.values()].filter((group) => group.length === 2);
+};
+
 describe('useAppStore timers', () => {
     beforeEach(() => {
         window.localStorage.clear();
@@ -80,8 +107,9 @@ describe('useAppStore timers', () => {
         const board = run?.board;
         expect(board).not.toBeNull();
 
-        const firstTile = board?.tiles[0];
-        const mismatchTile = board?.tiles.find((tile) => tile.pairKey !== firstTile?.pairKey);
+        const pairGroups = normalPairGroups(board!);
+        const firstTile = pairGroups[0]?.[0];
+        const mismatchTile = pairGroups[1]?.[0];
 
         expect(firstTile).toBeDefined();
         expect(mismatchTile).toBeDefined();
@@ -120,8 +148,9 @@ describe('useAppStore timers', () => {
         const board = useAppStore.getState().run?.board;
         expect(board).not.toBeNull();
 
-        const firstTile = board?.tiles[0];
-        const mismatchTile = board?.tiles.find((tile) => tile.pairKey !== firstTile?.pairKey);
+        const pairGroups = normalPairGroups(board!);
+        const firstTile = pairGroups[0]?.[0];
+        const mismatchTile = pairGroups[1]?.[0];
 
         expect(firstTile).toBeDefined();
         expect(mismatchTile).toBeDefined();
@@ -204,11 +233,10 @@ describe('useAppStore timers', () => {
         const board = run?.board;
         expect(board).not.toBeNull();
 
-        const firstTile = board?.tiles[0];
-        const matchingTile = board?.tiles.find(
-            (tile) => tile.id !== firstTile?.id && tile.pairKey === firstTile?.pairKey
-        );
-        const nextPairTile = board?.tiles.find((tile) => tile.pairKey !== firstTile?.pairKey);
+        const pairGroups = normalPairGroups(board!);
+        const firstTile = pairGroups[0]?.[0];
+        const matchingTile = pairGroups[0]?.[1];
+        const nextPairTile = pairGroups[1]?.[0];
 
         expect(firstTile).toBeDefined();
         expect(matchingTile).toBeDefined();
@@ -399,6 +427,227 @@ describe('useAppStore timers', () => {
         expect(useAppStore.getState().run?.board?.tiles.some((tile) => tile.routeCardKind === 'greed_cache')).toBe(
             true
         );
+    });
+
+    it('routes into concrete dungeon node gameplay instead of only stamping route cards', () => {
+        const runSeed = 47;
+        const baseRun = createNewRun(0, { echoFeedbackEnabled: false, runSeed });
+        const currentLevel = 4;
+        const nextLevel = 5;
+        const board = buildBoard(currentLevel, {
+            runSeed,
+            runRulesVersion: baseRun.runRulesVersion,
+            gameMode: 'endless'
+        });
+        const routeChoices = generateRouteChoices(baseRun, nextLevel);
+        const dungeonRun = revealDungeonChoices(
+            createDungeonRunMapState(runSeed, baseRun.runRulesVersion, currentLevel),
+            currentLevel,
+            routeChoices
+        );
+        const greedChoice = routeChoices.find((choice) => choice.routeType === 'greed')!;
+        useAppStore.setState({
+            view: 'playing',
+            run: {
+                ...baseRun,
+                board,
+                dungeonRun,
+                status: 'levelComplete',
+                relicOffer: null,
+                timerState: {
+                    memorizeRemainingMs: null,
+                    resolveRemainingMs: null,
+                    debugRevealRemainingMs: null,
+                    pausedFromStatus: null
+                },
+                lastLevelResult: {
+                    level: currentLevel,
+                    scoreGained: 100,
+                    rating: 'S',
+                    livesRemaining: baseRun.lives,
+                    perfect: true,
+                    mistakes: 0,
+                    clearLifeReason: 'none',
+                    clearLifeGained: 0,
+                    routeChoices
+                }
+            }
+        });
+
+        useAppStore.getState().chooseRouteAndContinue(greedChoice.id);
+        expect(useAppStore.getState().view).toBe('sideRoom');
+        expect(useAppStore.getState().run?.sideRoom).toMatchObject({ routeType: 'greed', nodeKind: 'treasure' });
+
+        useAppStore.getState().skipSideRoom();
+
+        const nextRun = useAppStore.getState().run;
+        expect(useAppStore.getState().view).toBe('playing');
+        expect(nextRun?.status).toBe('memorize');
+        expect(nextRun?.dungeonRun.nodes.find((node) => node.id === nextRun.dungeonRun.currentNodeId)?.kind).toBe('trap');
+        expect(nextRun?.board?.floorArchetypeId).toBe('trap_hall');
+        expect(nextRun?.board?.dungeonObjectiveId).toBe('disarm_traps');
+        expect(nextRun?.board?.tiles.some((tile) => tile.dungeonCardKind === 'trap')).toBe(true);
+        expect(nextRun?.board?.tiles.some((tile) => tile.dungeonCardKind === 'enemy')).toBe(true);
+    });
+
+    it('opens a generated in-board dungeon shop through tile press', () => {
+        const runSeed = 48;
+        const baseRun = createNewRun(0, { echoFeedbackEnabled: false, runSeed });
+        const board = buildBoard(5, {
+            runSeed,
+            runRulesVersion: baseRun.runRulesVersion,
+            dungeonNodeKind: 'shop',
+            gameMode: 'endless'
+        });
+        const shopTile = board.tiles.find((tile) => tile.pairKey === SHOP_PAIR_KEY)!;
+        expect(shopTile).toBeDefined();
+        useAppStore.setState({
+            view: 'playing',
+            run: {
+                ...baseRun,
+                board,
+                status: 'playing',
+                shopGold: 5,
+                findablesTotalThisFloor: countFindablePairs(board.tiles)
+            },
+            boardPinMode: true,
+            destroyPairArmed: true,
+            peekModeArmed: true
+        });
+
+        useAppStore.getState().pressTile(shopTile.id);
+
+        expect(useAppStore.getState().view).toBe('shop');
+        expect(useAppStore.getState().shopReturnMode).toBe('floor');
+        expect(useAppStore.getState().run?.status).toBe('paused');
+        expect(useAppStore.getState().run?.shopOffers.length).toBeGreaterThan(0);
+        expect(useAppStore.getState().run?.board?.dungeonShopVisited).toBe(true);
+        expect(useAppStore.getState().boardPinMode).toBe(false);
+        expect(useAppStore.getState().destroyPairArmed).toBe(false);
+        expect(useAppStore.getState().peekModeArmed).toBe(false);
+    });
+
+    it('claims a generated in-board dungeon room through tile press without leaving the board', () => {
+        const runSeed = 49;
+        const baseRun = createNewRun(0, { echoFeedbackEnabled: false, runSeed });
+        const board = buildBoard(5, {
+            runSeed,
+            runRulesVersion: baseRun.runRulesVersion,
+            dungeonNodeKind: 'rest',
+            gameMode: 'endless'
+        });
+        const roomTile = board.tiles.find((tile) => tile.pairKey === ROOM_PAIR_KEY)!;
+        expect(roomTile).toBeDefined();
+        useAppStore.setState({
+            view: 'playing',
+            run: {
+                ...baseRun,
+                board,
+                status: 'playing',
+                findablesTotalThisFloor: countFindablePairs(board.tiles)
+            },
+            boardPinMode: true,
+            destroyPairArmed: true,
+            peekModeArmed: true
+        });
+
+        useAppStore.getState().pressTile(roomTile.id);
+
+        const usedRoomTile = useAppStore.getState().run?.board?.tiles.find((tile) => tile.id === roomTile.id);
+        expect(useAppStore.getState().view).toBe('playing');
+        expect(useAppStore.getState().run?.status).toBe('playing');
+        expect(usedRoomTile).toMatchObject({ dungeonRoomUsed: true, dungeonCardState: 'resolved' });
+        expect(useAppStore.getState().boardPinMode).toBe(false);
+        expect(useAppStore.getState().destroyPairArmed).toBe(false);
+        expect(useAppStore.getState().peekModeArmed).toBe(false);
+    });
+
+    it('handles generated rotating enemy hazard clicks before normal tile flips', () => {
+        const runSeed = 50;
+        const baseRun = createNewRun(0, { echoFeedbackEnabled: false, runSeed });
+        const board = buildBoard(5, {
+            runSeed,
+            runRulesVersion: baseRun.runRulesVersion,
+            dungeonNodeKind: 'trap',
+            gameMode: 'endless'
+        });
+        const hazard = board.enemyHazards![0]!;
+        useAppStore.setState({
+            view: 'playing',
+            run: {
+                ...baseRun,
+                board,
+                status: 'playing',
+                stats: { ...baseRun.stats, guardTokens: 0 },
+                findablesTotalThisFloor: countFindablePairs(board.tiles)
+            },
+            boardPinMode: true,
+            destroyPairArmed: true,
+            peekModeArmed: true
+        });
+
+        useAppStore.getState().pressTile(hazard.currentTileId);
+
+        const nextRun = useAppStore.getState().run!;
+        expect(nextRun.lives).toBe(baseRun.lives - hazard.damage);
+        expect(nextRun.enemyHazardHitsThisFloor).toBe(1);
+        expect(nextRun.board!.tiles.find((tile) => tile.id === hazard.currentTileId)!.state).toBe('hidden');
+        expect(nextRun.board!.flippedTileIds).toEqual([]);
+        expect(nextRun.board!.enemyHazards!.find((item) => item.id === hazard.id)!.currentTileId).toBe(hazard.nextTileId);
+        expect(useAppStore.getState().boardPinMode).toBe(false);
+        expect(useAppStore.getState().destroyPairArmed).toBe(false);
+        expect(useAppStore.getState().peekModeArmed).toBe(false);
+    });
+
+    it('claims a selected side-room event choice before advancing', () => {
+        const baseRun = createNewRun(0, { echoFeedbackEnabled: false, runSeed: 46 });
+        const event = rollRunEventRoom({ runSeed: baseRun.runSeed, rulesVersion: baseRun.runRulesVersion, floor: 2 });
+        const choice = event.options.find((option) => option.effect === 'gain_iron_key') ?? event.options[0]!;
+        useAppStore.setState({
+            view: 'sideRoom',
+            run: {
+                ...baseRun,
+                status: 'levelComplete',
+                sideRoom: {
+                    id: `${event.eventKey}:side`,
+                    kind: 'run_event',
+                    routeType: 'mystery',
+                    nodeKind: 'event',
+                    floor: 2,
+                    title: event.title,
+                    body: event.body,
+                    primaryLabel: event.options[0]!.label,
+                    primaryDetail: event.options[0]!.detail,
+                    skipLabel: 'Decline',
+                    choices: event.options.map((option, index) => ({
+                        id: option.id,
+                        label: option.label,
+                        detail: option.detail,
+                        primary: index === 0
+                    })),
+                    payload: { kind: 'event_choice', eventKey: event.eventKey, choiceId: event.options[0]!.id }
+                },
+                lastLevelResult: {
+                    level: 1,
+                    scoreGained: 100,
+                    rating: 'S',
+                    livesRemaining: baseRun.lives,
+                    perfect: true,
+                    mistakes: 0,
+                    clearLifeReason: 'none',
+                    clearLifeGained: 0
+                }
+            }
+        });
+
+        useAppStore.getState().claimSideRoomChoice(choice.id);
+
+        expect(useAppStore.getState().view).toBe('playing');
+        expect(useAppStore.getState().run?.sideRoom).toBeNull();
+        expect(useAppStore.getState().run?.status).toBe('memorize');
+        if (choice.effect === 'gain_iron_key') {
+            expect(useAppStore.getState().run?.dungeonKeys.iron).toBe(1);
+        }
     });
 
     it('keeps the shop route unavailable without an active completed floor', () => {
@@ -632,7 +881,7 @@ describe('useAppStore scholar contract', () => {
         useAppStore.getState().toggleDestroyPairArmed();
         expect(useAppStore.getState().destroyPairArmed).toBe(true);
 
-        const hidden = useAppStore.getState().run!.board!.tiles.find((t) => t.state === 'hidden')!;
+        const hidden = normalPairGroups(useAppStore.getState().run!.board!)[0]![0]!;
         const boardKeyBefore = JSON.stringify(
             useAppStore.getState().run!.board!.tiles.map((t) => ({ id: t.id, state: t.state }))
         );

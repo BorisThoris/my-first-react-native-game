@@ -394,6 +394,8 @@ export interface BoardState {
     dungeonShopVisited?: boolean;
     dungeonBossId?: DungeonBossId | null;
     dungeonObjectiveId?: DungeonObjectiveId | null;
+    enemyHazards?: EnemyHazardState[];
+    enemyHazardTurn?: number;
 }
 
 export interface SessionStats {
@@ -469,11 +471,29 @@ export type DungeonCardKind =
     | 'room';
 export type DungeonCardState = 'hidden' | 'revealed' | 'resolved';
 export type DungeonBossId = 'trap_warden' | 'rush_sentinel' | 'treasure_keeper' | 'spire_observer';
+export type EnemyHazardKind = 'sentinel' | 'stalker' | 'warden' | 'observer';
+export type EnemyHazardPattern = 'patrol' | 'stalk' | 'guard' | 'observe';
+export type EnemyHazardStateKind = 'hidden' | 'revealed' | 'defeated';
+export interface EnemyHazardState {
+    id: string;
+    kind: EnemyHazardKind;
+    label: string;
+    currentTileId: string;
+    nextTileId: string;
+    pattern: EnemyHazardPattern;
+    state: EnemyHazardStateKind;
+    damage: number;
+    hp: number;
+    maxHp: number;
+    bossId?: DungeonBossId;
+}
 export type DungeonObjectiveId =
     | 'find_exit'
     | 'open_bonus_exit'
     | 'disarm_traps'
     | 'defeat_boss'
+    | 'pacify_floor'
+    | 'claim_route'
     | 'loot_cache'
     | 'reveal_unknowns';
 export interface DungeonFloorBlueprint {
@@ -510,10 +530,13 @@ export interface DungeonFloorBlueprint {
 export type DungeonCardEffectId =
     | 'enemy_sentry'
     | 'enemy_elite'
+    | 'enemy_stalker'
     | 'trap_spikes'
     | 'trap_curse'
     | 'trap_mimic'
     | 'trap_alarm'
+    | 'trap_snare'
+    | 'trap_hex'
     | 'treasure_gold'
     | 'treasure_cache'
     | 'treasure_shard'
@@ -539,7 +562,10 @@ export type DungeonCardEffectId =
     | 'room_shrine'
     | 'room_scrying_lens'
     | 'room_armory'
-    | 'room_locked_cache';
+    | 'room_locked_cache'
+    | 'room_key_cache'
+    | 'room_trap_workshop'
+    | 'room_omen_archive';
 
 export interface RouteWorldProfile {
     routeType: RouteNodeType;
@@ -571,6 +597,47 @@ export interface RouteChoice {
     riskPreview?: string;
 }
 
+export type DungeonRunNodeKind =
+    | 'entrance'
+    | 'combat'
+    | 'elite'
+    | 'trap'
+    | 'treasure'
+    | 'shop'
+    | 'rest'
+    | 'event'
+    | 'boss'
+    | 'exit';
+export type DungeonRunNodeStatus = 'hidden' | 'revealed' | 'current' | 'cleared' | 'skipped' | 'locked';
+
+export interface DungeonRunNode {
+    id: string;
+    floor: number;
+    depth: number;
+    lane: number;
+    kind: DungeonRunNodeKind;
+    status: DungeonRunNodeStatus;
+    routeType: RouteNodeType;
+    label: string;
+    detail: string;
+    rewardPreview?: string;
+    riskPreview?: string;
+    edgeIds: string[];
+    choiceId?: string;
+    offlineOnly: true;
+    unlocksSystems: string[];
+}
+
+export interface DungeonRunMapState {
+    seed: number;
+    rulesVersion: number;
+    act: number;
+    currentFloor: number;
+    currentNodeId: string;
+    selectedNodeId: string | null;
+    nodes: DungeonRunNode[];
+}
+
 export type BonusRewardId = 'chest_gold' | 'secret_favor' | 'bonus_shards';
 
 export interface BonusRewardLedger {
@@ -581,6 +648,13 @@ export interface BonusRewardLedger {
 }
 
 export type RouteSideRoomKind = 'rest_shrine' | 'run_event' | 'bonus_reward';
+
+export interface RouteSideRoomChoiceState {
+    id: string;
+    label: string;
+    detail: string;
+    primary?: boolean;
+}
 
 export interface RouteSideRoomState {
     id: string;
@@ -593,6 +667,7 @@ export interface RouteSideRoomState {
     primaryLabel: string;
     primaryDetail: string;
     skipLabel: string;
+    choices?: RouteSideRoomChoiceState[];
     payload:
         | { kind: 'rest_heal'; serviceId: string }
         | { kind: 'event_choice'; eventKey: string; choiceId: string }
@@ -679,6 +754,8 @@ export interface RunState {
     pendingRouteCardPlan: RouteCardPlan | null;
     /** Run-local route side-room stop offered after route choice and before the next floor. */
     sideRoom: RouteSideRoomState | null;
+    /** Persistent roguelite dungeon graph for the current run. Boards resolve the current node. */
+    dungeonRun: DungeonRunMapState;
     /** Anti-grind ledger for route side-room bonus rewards. */
     bonusRewardLedger: BonusRewardLedger;
     /**
@@ -770,12 +847,16 @@ export interface RunState {
     /** `shifting_spotlight`: increments each time ward/bounty rotates this floor (seed step for next pick). */
     shiftingSpotlightNonce: number;
     dungeonEnemiesDefeated: number;
+    dungeonEnemiesDefeatedThisFloor: number;
     dungeonTrapsTriggered: number;
+    dungeonTrapsResolvedThisFloor: number;
     dungeonTreasuresOpened: number;
     dungeonGatewaysUsed: number;
     dungeonKeys: Partial<Record<DungeonKeyKind, number>>;
     dungeonMasterKeys: number;
     dungeonShopVisitedThisFloor: boolean;
+    enemyHazardHitsThisFloor: number;
+    enemyHazardsDefeatedThisFloor: number;
 }
 
 export type AchievementState = Record<AchievementId, boolean>;

@@ -49,6 +49,7 @@ import {
 } from '../../shared/board-powers';
 import {
     applyRouteChoiceOutcome,
+    claimRouteSideRoomChoice,
     claimRouteSideRoomPrimary,
     openRouteSideRoom,
     skipRouteSideRoom
@@ -68,6 +69,7 @@ import {
     type DungeonExitActivationSpend
 } from '../../shared/dungeon-rules';
 import {
+    applyEnemyHazardClick,
     flipTile,
     resolveBoardTurn
 } from '../../shared/turn-resolution';
@@ -212,6 +214,7 @@ interface AppState {
     continueToNextLevel: () => void;
     chooseRouteAndContinue: (choiceId: string) => void;
     claimSideRoomPrimary: () => void;
+    claimSideRoomChoice: (choiceId: string) => void;
     skipSideRoom: () => void;
     restartRun: () => void;
     endRun: () => void;
@@ -1050,6 +1053,29 @@ export const useAppStore = create<AppState>((set, get) => ({
         get().continueToNextLevel();
     },
 
+    claimSideRoomChoice: (choiceId: string) => {
+        const { run } = get();
+        if (!run || run.status !== 'levelComplete' || !run.sideRoom) {
+            set({ view: 'playing' });
+            return;
+        }
+        const nextRun = claimRouteSideRoomChoice(run, choiceId);
+        if (nextRun.shopOffers.length > 0) {
+            set({
+                run: nextRun,
+                view: 'shop',
+                shopReturnMode: 'summary',
+                boardPinMode: false,
+                destroyPairArmed: false,
+                peekModeArmed: false,
+                ...BOARD_FLOATER_POP_CLEAR
+            });
+            return;
+        }
+        set({ run: nextRun, view: 'playing' });
+        get().continueToNextLevel();
+    },
+
     skipSideRoom: () => {
         const { run } = get();
         if (!run || run.status !== 'levelComplete' || !run.sideRoom) {
@@ -1206,6 +1232,22 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
 
         const pressedTile = run.board?.tiles.find((tile) => tile.id === tileId) ?? null;
+        const hazardRun = applyEnemyHazardClick(run, tileId);
+        if (hazardRun !== run) {
+            void resumeAudioContext();
+            playResolveSfx(run, hazardRun, sfxGainFromStore());
+            set({
+                run: hazardRun,
+                boardPinMode: false,
+                destroyPairArmed: false,
+                peekModeArmed: false,
+                ...BOARD_FLOATER_POP_CLEAR
+            });
+            if (hazardRun.status === 'gameOver') {
+                applyResolvedRun(hazardRun);
+            }
+            return;
+        }
         if (pressedTile?.pairKey === EXIT_PAIR_KEY) {
             const nextRun = revealDungeonExit(run, tileId);
             if (nextRun !== run) {

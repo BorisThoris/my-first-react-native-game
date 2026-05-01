@@ -1,8 +1,21 @@
 import { hashStringToSeed } from './rng';
 import type { RunState } from './contracts';
 
-export type RunEventId = 'lost_cache' | 'mirror_bargain' | 'quiet_lantern';
-export type RunEventChoiceEffect = 'gain_shop_gold' | 'gain_relic_favor' | 'heal_or_guard' | 'skip';
+export type RunEventId =
+    | 'lost_cache'
+    | 'mirror_bargain'
+    | 'quiet_lantern'
+    | 'sealed_keyring'
+    | 'cracked_altar'
+    | 'trap_survey';
+export type RunEventChoiceEffect =
+    | 'gain_shop_gold'
+    | 'gain_relic_favor'
+    | 'heal_or_guard'
+    | 'gain_iron_key'
+    | 'gain_destroy_charge'
+    | 'gain_score'
+    | 'skip';
 
 export interface RunEventChoice {
     id: string;
@@ -54,6 +67,36 @@ export const RUN_EVENT_TABLE: readonly RunEventDefinition[] = [
         choices: [
             { id: 'rest_light', label: 'Rest in the light', effect: 'heal_or_guard', detail: '+1 life if wounded; otherwise +1 guard token if uncapped.' },
             { id: 'press_on', label: 'Press on', effect: 'skip', detail: 'No change.' }
+        ]
+    },
+    {
+        id: 'sealed_keyring',
+        title: 'Sealed keyring',
+        body: 'A brittle keyring hangs from a cracked route marker. Breaking it makes noise, but the key is real.',
+        choices: [
+            { id: 'break_keyring', label: 'Take the key', effect: 'gain_iron_key', detail: '+1 iron key for dungeon locks.' },
+            { id: 'sell_keyring', label: 'Pocket the coin', effect: 'gain_shop_gold', detail: '+2 shop gold this run.' },
+            { id: 'leave_keyring', label: 'Leave it', effect: 'skip', detail: 'No change.' }
+        ]
+    },
+    {
+        id: 'cracked_altar',
+        title: 'Cracked altar',
+        body: 'The altar hums with old Favor, but its safer light can also steady the next floor.',
+        choices: [
+            { id: 'take_favor', label: 'Draw Favor', effect: 'gain_relic_favor', detail: '+1 relic Favor progress.' },
+            { id: 'take_shelter', label: 'Take shelter', effect: 'heal_or_guard', detail: '+1 life if wounded; otherwise +1 guard token if uncapped.' },
+            { id: 'ignore_altar', label: 'Move on', effect: 'skip', detail: 'No change.' }
+        ]
+    },
+    {
+        id: 'trap_survey',
+        title: 'Trap survey',
+        body: 'Old chalk marks describe the next room mechanisms. You can turn the notes into tools or score.',
+        choices: [
+            { id: 'prep_tools', label: 'Prepare tools', effect: 'gain_destroy_charge', detail: '+1 destroy charge if not capped.' },
+            { id: 'study_marks', label: 'Study the marks', effect: 'gain_score', detail: '+25 score.' },
+            { id: 'skip_marks', label: 'Skip the marks', effect: 'skip', detail: 'No change.' }
         ]
     }
 ] as const;
@@ -114,6 +157,8 @@ export const chooseRunEventOption = (
         next = { ...next, relicFavorProgress: (next.relicFavorProgress + 1) % 3 };
     } else if (choice.effect === 'heal_or_guard') {
         next = { ...next, lives: Math.min(5, next.lives + 1) };
+    } else if (choice.effect === 'gain_iron_key' || choice.effect === 'gain_destroy_charge' || choice.effect === 'gain_score') {
+        next = { ...next, shopGold: next.shopGold };
     }
     return { applied: true, eventId: event.id, choiceId, next };
 };
@@ -155,6 +200,26 @@ export const applyRunEventChoice = (
             }
             return {
                 run: { ...run, stats: { ...run.stats, guardTokens: Math.min(2, run.stats.guardTokens + 1) } },
+                applied: true
+            };
+        case 'gain_iron_key':
+            return {
+                run: { ...run, dungeonKeys: { ...run.dungeonKeys, iron: (run.dungeonKeys.iron ?? 0) + 1 } },
+                applied: true
+            };
+        case 'gain_destroy_charge':
+            return { run: { ...run, destroyPairCharges: Math.min(2, run.destroyPairCharges + 1) }, applied: true };
+        case 'gain_score':
+            return {
+                run: {
+                    ...run,
+                    stats: {
+                        ...run.stats,
+                        totalScore: run.stats.totalScore + 25,
+                        currentLevelScore: run.stats.currentLevelScore + 25,
+                        bestScore: Math.max(run.stats.bestScore, run.stats.totalScore + 25)
+                    }
+                },
                 applied: true
             };
         case 'skip':

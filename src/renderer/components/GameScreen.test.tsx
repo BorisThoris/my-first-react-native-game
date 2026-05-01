@@ -2,7 +2,8 @@ import { NotificationHost, useNotificationStore } from '@cross-repo-libs/notific
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { forwardRef, useImperativeHandle } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { RunState } from '../../shared/contracts';
+import type { RunState, Tile } from '../../shared/contracts';
+import { EXIT_PAIR_KEY, ROOM_PAIR_KEY } from '../../shared/dungeon-rules';
 import { createNewRun, finishMemorizePhase } from '../../shared/game-core';
 import { createDefaultSaveData } from '../../shared/save-data';
 import { GAMBIT_KEYBOARD_HELP_TIP } from '../copy/gameplayHints';
@@ -217,7 +218,8 @@ describe('GameScreen (OVR-014)', () => {
 
     it('REG-026 surfaces action-gated playable onboarding without hiding card targets', () => {
         const playing = finishMemorizePhase(createNewRun(0));
-        const firstPair = playing.board!.tiles.filter((tile) => tile.pairKey === playing.board!.tiles[0]!.pairKey);
+        const firstRealTile = playing.board!.tiles.find((tile) => tile.dungeonCardKind == null)!;
+        const firstPair = playing.board!.tiles.filter((tile) => tile.pairKey === firstRealTile.pairKey);
 
         const { rerender } = render(
             <PlatformTiltProvider>
@@ -720,7 +722,7 @@ describe('GameScreen (OVR-014)', () => {
         expect(getByText('Favor gained: +1')).toBeTruthy();
         expect(getByText(/Extra relic pick banked/)).toBeTruthy();
         expect(getByText(/Next: Speed Trial/)).toBeTruthy();
-        expect(screen.getByTestId('route-choice-panel')).toHaveTextContent('Choose next route');
+        expect(screen.getByTestId('route-choice-panel')).toHaveTextContent('Choose the next room');
         expect(screen.getByRole('button', { name: 'Safe passage' })).toBeTruthy();
         expect(screen.getByRole('button', { name: 'Greedy route' })).toBeTruthy();
         expect(screen.queryByRole('button', { name: /visit shop/i })).toBeNull();
@@ -795,6 +797,106 @@ describe('GameScreen (OVR-014)', () => {
 
         expect(screen.getByTestId('route-card-board-banner')).toHaveTextContent('Greed Cache');
         expect(screen.getByTestId('route-card-board-banner')).toHaveTextContent('+2 gold +25 score');
+    });
+
+    it('shows a structured dungeon status panel for active dungeon boards', () => {
+        const baseRun = finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false, gameMode: 'endless' }));
+        const exitTile: Tile = {
+            id: 'exit',
+            pairKey: EXIT_PAIR_KEY,
+            state: 'flipped',
+            symbol: '^',
+            label: 'Primary Safe Exit',
+            dungeonCardKind: 'exit',
+            dungeonCardState: 'revealed',
+            dungeonCardEffectId: 'exit_safe',
+            dungeonRouteType: 'safe',
+            dungeonExitLockKind: 'lever',
+            dungeonExitRequiredLeverCount: 1,
+            dungeonExitActivated: false
+        };
+        const trapA: Tile = {
+            id: 'trap-a',
+            pairKey: 'trap',
+            state: 'hidden',
+            symbol: '!',
+            label: 'Snare Trap',
+            dungeonCardKind: 'trap',
+            dungeonCardState: 'revealed',
+            dungeonCardEffectId: 'trap_snare'
+        };
+        const trapB: Tile = { ...trapA, id: 'trap-b' };
+        const roomTile: Tile = {
+            id: 'room',
+            pairKey: ROOM_PAIR_KEY,
+            state: 'hidden',
+            symbol: 'R',
+            label: 'Campfire',
+            dungeonCardKind: 'room',
+            dungeonCardState: 'hidden',
+            dungeonCardEffectId: 'room_campfire'
+        };
+        const run: RunState = {
+            ...baseRun,
+            board: {
+                ...baseRun.board!,
+                tiles: [exitTile, trapA, trapB, roomTile],
+                pairCount: 1,
+                columns: 2,
+                rows: 2,
+                dungeonObjectiveId: 'disarm_traps',
+                dungeonExitTileId: 'exit',
+                dungeonExitLockKind: 'lever',
+                dungeonExitRequiredLeverCount: 1,
+                dungeonLeverCount: 0
+            }
+        };
+
+        render(
+            <PlatformTiltProvider>
+                <NotificationHost>
+                    <GameScreen achievements={[]} run={run} />
+                </NotificationHost>
+            </PlatformTiltProvider>
+        );
+
+        const panel = screen.getByTestId('dungeon-status-panel');
+        expect(panel).toHaveTextContent('Dungeon');
+        expect(panel).toHaveTextContent('Disarm the traps 0/1');
+        expect(panel).toHaveTextContent('Exit');
+        expect(panel).toHaveTextContent('Levers 0/1');
+        expect(panel).toHaveTextContent('Traps');
+        expect(panel).toHaveTextContent('Room');
+        expect(panel).toHaveTextContent(/armed trap/i);
+        expect(screen.queryByTestId('dungeon-card-board-banner')).toBeNull();
+        expect(screen.getByTestId('dungeon-run-strip')).toHaveTextContent('Dungeon gate');
+    });
+
+    it('hides the dungeon status panel on plain boards', () => {
+        const baseRun = finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false, gameMode: 'puzzle' }));
+        const run: RunState = {
+            ...baseRun,
+            board: {
+                ...baseRun.board!,
+                tiles: baseRun.board!.tiles.map((tile) => ({
+                    ...tile,
+                    dungeonCardKind: undefined,
+                    dungeonCardState: undefined,
+                    dungeonCardEffectId: undefined
+                })),
+                dungeonObjectiveId: 'find_exit'
+            }
+        };
+
+        render(
+            <PlatformTiltProvider>
+                <NotificationHost>
+                    <GameScreen achievements={[]} run={run} />
+                </NotificationHost>
+            </PlatformTiltProvider>
+        );
+
+        expect(screen.queryByTestId('dungeon-status-panel')).toBeNull();
     });
 
     it('shows and arms an endless risk wager when the cleared streak is eligible', () => {

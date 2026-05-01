@@ -109,6 +109,36 @@ describe('REG-087 board fairness inspection', () => {
         }
     });
 
+    it('accepts dungeon-layout endless floors across the first cycle', () => {
+        for (const runSeed of testSeeds) {
+            for (let level = 1; level <= 12; level += 1) {
+                const advancedBoard = buildBoard(level, {
+                    runSeed,
+                    runRulesVersion: GAME_RULES_VERSION,
+                    activeMutators:
+                        level === 7
+                            ? ['glass_floor', 'sticky_fingers']
+                            : level === 9
+                              ? ['short_memorize', 'wide_recall']
+                              : [],
+                    floorTag: level === 7 || level === 9 ? 'boss' : level === 10 ? 'breather' : 'normal',
+                    floorArchetypeId:
+                        level === 4
+                            ? 'shadow_read'
+                            : level === 7
+                              ? 'trap_hall'
+                              : level === 9
+                                ? 'rush_recall'
+                                : level === 10
+                                  ? 'treasure_gallery'
+                                  : null,
+                    gameMode: 'endless'
+                });
+                expectBoardFair(advancedBoard);
+            }
+        }
+    });
+
     it('accepts every daily mutator as structurally completeable', () => {
         for (const mutator of DAILY_MUTATOR_TABLE) {
             expectBoardFair(
