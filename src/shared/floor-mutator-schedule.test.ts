@@ -3,6 +3,7 @@ import {
     CHAPTER_ACT_BIOME_STRUCTURE,
     ENDLESS_CYCLE_FLOOR_COUNT,
     FLOOR_SCHEDULE_RULES_VERSION,
+    getChapterActBiomePresentation,
     getChapterActBiomeForCycleFloor,
     getFloorArchetypeProgressionReport,
     getFloorArchetypeProgressionRows,
@@ -148,6 +149,33 @@ describe('pickFloorScheduleEntry', () => {
             biomeId: 'lantern_academy',
             actFloorNumber: 1
         });
+    });
+
+    it('exposes act and biome hooks for UI, palette, audio, and route previews', () => {
+        expect(getChapterActBiomePresentation(2)).toMatchObject({
+            actId: 'act_1_survey',
+            biomeId: 'lantern_academy',
+            actProgress: '2/4',
+            paletteHook: 'warm_lantern_gold',
+            audioHook: 'lantern_study_pulse'
+        });
+        expect(getChapterActBiomePresentation(7)).toMatchObject({
+            actId: 'act_2_shadow',
+            biomeId: 'shadow_archive',
+            actProgress: '3/4',
+            pressureCue: 'Anchor tracking rises into a trap boss before script pressure.'
+        });
+        expect(getChapterActBiomePresentation(12).routePreview).toContain('spotlight rotation');
+
+        const identity = getFloorChapterIdentity(pickFloorScheduleEntry(0, rv, 9, 'endless'));
+        expect(identity).toMatchObject({
+            actTitle: 'Act III — Spire Convergence',
+            biomeTitle: 'Spire Convergence',
+            actProgress: '1/4',
+            paletteHook: 'spire_prismatic_alarm',
+            audioHook: 'spire_recall_alarm'
+        });
+        expect(identity.routePreview).toContain('parasite sustain');
     });
 
     const cycleLen = 12;

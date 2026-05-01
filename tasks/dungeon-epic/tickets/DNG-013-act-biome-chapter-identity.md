@@ -1,7 +1,7 @@
 # DNG-013: Act, biome, and chapter identity
 
 ## Status
-Not started
+Done
 
 ## Priority
 P2
@@ -43,5 +43,4 @@ The run feels like moving through acts or biomes, with rule pressure, copy, audi
 - `DNG-063`
 
 ## Future handoff notes
-Defer final art until gameplay identity is stable.
-
+Shipped 2026-05-01. Added shared act/biome presentation hooks for palette, audio, pressure, and route previews, and surfaced upcoming biome pressure in the floor-clear next-floor preview. Final art/audio assets remain deferred.

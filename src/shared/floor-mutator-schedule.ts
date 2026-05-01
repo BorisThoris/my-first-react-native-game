@@ -151,6 +151,10 @@ export interface ChapterActBiomeDefinition {
     biomeId: ChapterBiomeId;
     biomeTitle: string;
     biomeTone: string;
+    paletteHook: string;
+    audioHook: string;
+    pressureCue: string;
+    routePreview: string;
     gateRule: string;
 }
 
@@ -163,6 +167,10 @@ export const CHAPTER_ACT_BIOME_STRUCTURE: readonly ChapterActBiomeDefinition[] =
         biomeId: 'lantern_academy',
         biomeTitle: 'Lantern Academy',
         biomeTone: 'Readable halls, early treasure, and silhouette onboarding.',
+        paletteHook: 'warm_lantern_gold',
+        audioHook: 'lantern_study_pulse',
+        pressureCue: 'Readable recall pressure with one early reward reset.',
+        routePreview: 'Expect readable halls, a speed check, treasure relief, then silhouette pressure.',
         gateRule: 'Floors 1-4 of each endless cycle.'
     },
     {
@@ -173,6 +181,10 @@ export const CHAPTER_ACT_BIOME_STRUCTURE: readonly ChapterActBiomeDefinition[] =
         biomeId: 'shadow_archive',
         biomeTitle: 'Shadow Archive',
         biomeTone: 'Anchor tracking, breather recovery, trap boss, and script pressure.',
+        paletteHook: 'cool_archive_violet',
+        audioHook: 'shadow_anchor_tick',
+        pressureCue: 'Anchor tracking rises into a trap boss before script pressure.',
+        routePreview: 'Expect anchor tracking, one breather, a trap boss, then letter-symbol pressure.',
         gateRule: 'Floors 5-8 of each endless cycle.'
     },
     {
@@ -183,6 +195,10 @@ export const CHAPTER_ACT_BIOME_STRUCTURE: readonly ChapterActBiomeDefinition[] =
         biomeId: 'spire_convergence',
         biomeTitle: 'Spire Convergence',
         biomeTone: 'Boss recall, treasure reset, parasite sustain, and spotlight finale.',
+        paletteHook: 'spire_prismatic_alarm',
+        audioHook: 'spire_recall_alarm',
+        pressureCue: 'Boss recall and sustain pressure frame the final spotlight read.',
+        routePreview: 'Expect boss recall, a treasure reset, parasite sustain, then spotlight rotation.',
         gateRule: 'Floors 9-12 of each endless cycle.'
     }
 ] as const;
@@ -236,6 +252,20 @@ export interface FloorArchetypeProgressionReport {
     hasMystery: boolean;
 }
 
+export interface ChapterActBiomePresentation {
+    actId: ChapterActId;
+    actTitle: string;
+    biomeId: ChapterBiomeId;
+    biomeTitle: string;
+    biomeTone: string;
+    actProgress: string;
+    paletteHook: string;
+    audioHook: string;
+    pressureCue: string;
+    routePreview: string;
+    gateRule: string;
+}
+
 export const getChapterActBiomeForCycleFloor = (
     cycleFloor: number
 ): (ChapterActBiomeDefinition & { actFloorNumber: number; actFloorCount: number }) => {
@@ -247,6 +277,23 @@ export const getChapterActBiomeForCycleFloor = (
         ...definition,
         actFloorNumber: normalized - definition.firstCycleFloor + 1,
         actFloorCount: definition.lastCycleFloor - definition.firstCycleFloor + 1
+    };
+};
+
+export const getChapterActBiomePresentation = (cycleFloor: number): ChapterActBiomePresentation => {
+    const definition = getChapterActBiomeForCycleFloor(cycleFloor);
+    return {
+        actId: definition.actId,
+        actTitle: definition.actTitle,
+        biomeId: definition.biomeId,
+        biomeTitle: definition.biomeTitle,
+        biomeTone: definition.biomeTone,
+        actProgress: `${definition.actFloorNumber}/${definition.actFloorCount}`,
+        paletteHook: definition.paletteHook,
+        audioHook: definition.audioHook,
+        pressureCue: definition.pressureCue,
+        routePreview: definition.routePreview,
+        gateRule: definition.gateRule
     };
 };
 
@@ -481,20 +528,34 @@ export const getFloorChapterIdentity = (
     chapterTheme: string | null;
     actTitle: string | null;
     biomeTitle: string | null;
+    biomeTone: string | null;
     actProgress: string | null;
     riskProfile: string | null;
+    paletteHook: string | null;
+    audioHook: string | null;
+    pressureCue: string | null;
+    routePreview: string | null;
     mutatorTitles: string[];
-} => ({
-    chapterTheme: entry.theme,
-    actTitle: entry.actTitle,
-    biomeTitle: entry.biomeTitle,
-    actProgress:
-        entry.actFloorNumber != null && entry.actFloorCount != null
-            ? `${entry.actFloorNumber}/${entry.actFloorCount}`
-            : null,
-    riskProfile: entry.riskProfile,
-    mutatorTitles: entry.mutators.map((id) => id.replace(/_/g, ' '))
-});
+} => {
+    const biomePresentation =
+        entry.cycleFloor != null ? getChapterActBiomePresentation(entry.cycleFloor) : null;
+    return {
+        chapterTheme: entry.theme,
+        actTitle: entry.actTitle,
+        biomeTitle: entry.biomeTitle,
+        biomeTone: entry.biomeTone,
+        actProgress:
+            entry.actFloorNumber != null && entry.actFloorCount != null
+                ? `${entry.actFloorNumber}/${entry.actFloorCount}`
+                : null,
+        riskProfile: entry.riskProfile,
+        paletteHook: biomePresentation?.paletteHook ?? null,
+        audioHook: biomePresentation?.audioHook ?? null,
+        pressureCue: biomePresentation?.pressureCue ?? null,
+        routePreview: biomePresentation?.routePreview ?? null,
+        mutatorTitles: entry.mutators.map((id) => id.replace(/_/g, ' '))
+    };
+};
 
 /**
  * Deterministic mutators + pacing tag for endless (rules v3+).

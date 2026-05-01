@@ -37,6 +37,7 @@ import { deriveCameraViewportMode, latchPhoneWidthForMobileCamera } from '../../
 import {
     getFeaturedObjectiveLabel,
     getFloorArchetypeDefinition,
+    getFloorChapterIdentity,
     pickFloorScheduleEntry,
     usesEndlessFloorSchedule
 } from '../../shared/floor-mutator-schedule';
@@ -896,10 +897,17 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
             ? pickFloorScheduleEntry(run.runSeed, run.runRulesVersion, run.lastLevelResult.level + 1, run.gameMode)
             : null;
     const nextFloorObjectiveLabel = getFeaturedObjectiveLabel(nextFloorPreview?.featuredObjectiveId ?? null);
-    const nextFloorMutatorLabels =
+    const nextFloorChapterIdentity = nextFloorPreview ? getFloorChapterIdentity(nextFloorPreview) : null;
+    const nextFloorMutatorNames =
         nextFloorPreview && nextFloorPreview.mutators.length > 0
             ? nextFloorPreview.mutators.map((id) => MUTATOR_CATALOG[id]?.title ?? id).join(', ')
             : 'No mutators';
+    const nextFloorMutatorLabels =
+        nextFloorChapterIdentity?.actTitle && nextFloorChapterIdentity.biomeTitle
+            ? `${nextFloorChapterIdentity.actTitle} - ${nextFloorChapterIdentity.biomeTitle} - ${nextFloorMutatorNames}.${
+                  nextFloorChapterIdentity.routePreview ? ` ${nextFloorChapterIdentity.routePreview}` : ''
+              }`
+            : nextFloorMutatorNames;
     const nextFloorPreviewLine =
         nextFloorPreview?.title && nextFloorObjectiveLabel
             ? `Next: ${nextFloorPreview.title} В· ${nextFloorObjectiveLabel} В· ${nextFloorMutatorLabels}`

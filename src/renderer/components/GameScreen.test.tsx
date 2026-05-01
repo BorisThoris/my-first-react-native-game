@@ -722,6 +722,8 @@ describe('GameScreen (OVR-014)', () => {
         expect(getByText('Favor gained: +1')).toBeTruthy();
         expect(getByText(/Extra relic pick banked/)).toBeTruthy();
         expect(getByText(/Next: Speed Trial/)).toBeTruthy();
+        expect(getByText(/Lantern Academy/)).toBeTruthy();
+        expect(getByText(/speed check/)).toBeTruthy();
         expect(screen.getByTestId('route-choice-panel')).toHaveTextContent('Choose the next room');
         expect(screen.getByTestId('route-choice-safe')).toHaveTextContent('Reward: Balanced score and survival path.');
         expect(screen.getByTestId('route-choice-safe')).toHaveTextContent('Risk: Stable path.');
