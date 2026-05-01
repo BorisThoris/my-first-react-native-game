@@ -42,6 +42,7 @@ Future agents must update this file after every implementation session that uses
 | `DNG-060` | Done | 2026-05-01 session | Dungeon HUD chips now use urgency priority, a visible cap, and one primary alert line. |
 | `DNG-061` | Done | 2026-05-01 session | Board stage layer policy now reserves card text space while preserving enemy telegraphs in low quality and reduced motion. |
 | `DNG-062` | Done | 2026-05-01 session | Enemy and boss markers now have non-color-only shape profiles with low-quality and reduced-motion LOD bounds. |
+| `DNG-063` | Done | 2026-05-01 session | Dungeon audio event matrix covers critical events with cue mappings, gain multipliers, ducking, and merge policy. |
 
 ## Completed Work Log
 | Date | Ticket(s) | Summary | Verification |
@@ -75,12 +76,13 @@ Future agents must update this file after every implementation session that uses
 | 2026-05-01 | `DNG-060` | Added priority/cap metadata to dungeon HUD chips and renderer/shared tests for crowded danger-first HUD ordering. | `yarn test src/shared/game.test.ts src/renderer/components/GameScreen.test.tsx`; `yarn typecheck` |
 | 2026-05-01 | `DNG-061` | Added a named board-stage layer policy, moved enemy/current telegraphs to reserved card corners, and covered low/reduced-motion threat readability. | `yarn test src/renderer/components/TileBoard.test.tsx`; `yarn typecheck` |
 | 2026-05-01 | `DNG-062` | Added marker visual profiles for each enemy kind and bosses, with shared-geometry scene wiring and reduced-motion/low-quality tests. | `yarn test src/renderer/components/TileBoard.test.tsx src/renderer/components/GameScreen.test.tsx`; `yarn typecheck`; `yarn lint` |
+| 2026-05-01 | `DNG-063` | Added tested dungeon audio event coverage for contact, reveal, trap, defeat, treasure, shop, exit, and route events using existing cue fallbacks and placeholder mappings. | `yarn test src/renderer/audio/dungeonAudioEventCoverage.test.ts src/renderer/audio/audioInteractionCoverage.test.ts src/renderer/audio/audioMixDuckingPolicy.test.ts`; `yarn typecheck`; `yarn lint` |
 
 ## Blockers
 - None recorded in this pack yet.
 
 ## Next Recommended Ticket
-Start `tickets/DNG-063-dungeon-audio-event-coverage.md`.
+Start `tickets/DNG-064-codex-glossary-and-help.md`.
 
 ## Session Handoff Template
 Copy this block for future updates:

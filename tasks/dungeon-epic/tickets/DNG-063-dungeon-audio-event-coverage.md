@@ -1,7 +1,7 @@
 # DNG-063: Dungeon audio event coverage
 
 ## Status
-Not started
+Done
 
 ## Priority
 P1
@@ -44,5 +44,4 @@ Important dungeon events have clear audio confirmation and priority: contact, re
 - `DNG-062`
 
 ## Future handoff notes
-Do after event semantics are stable.
-
+Dungeon audio coverage now has a tested event matrix for contact, reveal, trap trigger, enemy defeat, boss defeat, treasure, shop purchase, exit open, and route choice. Rows map to existing sampled/procedural cues or explicit placeholder mappings, include gain multipliers, ducking lanes, and merge policy so final asset work can replace cue mappings without changing event semantics.
