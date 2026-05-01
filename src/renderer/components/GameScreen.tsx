@@ -181,6 +181,9 @@ const getClearLifeBonusLabel = (result: NonNullable<RunState['lastLevelResult']>
     return null;
 };
 
+const FLOOR_CLEAR_LIFE_CARRYOVER_NOTE =
+    'Lives carry across the run. Clean clears, safe routes, shops, rests, and shrines can restore them.';
+
 const formatBonusTagsLine = (tags: string[] | undefined): string | null => {
     if (!tags || tags.length === 0) {
         return null;
@@ -1557,6 +1560,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                             data-testid="floor-clear-result-stack"
                         >
                             {clearLifeBonusLabel ? <p className={styles.modalNote}>{clearLifeBonusLabel}</p> : null}
+                            <p className={styles.modalNote}>{FLOOR_CLEAR_LIFE_CARRYOVER_NOTE}</p>
                             {featuredObjectiveResultLine ? <p className={styles.modalNote}>{featuredObjectiveResultLine}</p> : null}
                             {featuredObjectiveFailureLine ? <p className={styles.modalNote}>{featuredObjectiveFailureLine}</p> : null}
                             {featuredObjectiveStreakLine ? <p className={styles.modalNote}>{featuredObjectiveStreakLine}</p> : null}

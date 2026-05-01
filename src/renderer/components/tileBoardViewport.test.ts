@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
     DESKTOP_STAGE_FIT_MARGIN,
+    clampBoardViewport,
     createRafCoalescedViewportNotifier,
     getBoardFitZoom,
     MOBILE_CAMERA_FIT_MARGIN,
@@ -73,5 +74,37 @@ describe('tileBoardViewport', () => {
         expect(DESKTOP_STAGE_FIT_MARGIN).toBeGreaterThan(0.9);
         expect(DESKTOP_STAGE_FIT_MARGIN).toBeLessThan(MOBILE_CAMERA_FIT_MARGIN);
         expect(zoom).toBeCloseTo((768 * DESKTOP_STAGE_FIT_MARGIN) / 640, 5);
+    });
+
+    it('clamps pan so a board that fits cannot be dragged outside the viewport', () => {
+        const viewport = clampBoardViewport({
+            boardHeight: 400,
+            boardWidth: 400,
+            fitZoom: 1,
+            panX: 999,
+            panY: -999,
+            viewportHeight: 600,
+            viewportWidth: 800,
+            zoom: 1
+        });
+
+        expect(viewport.panX).toBe(200);
+        expect(viewport.panY).toBe(-100);
+    });
+
+    it('clamps zoomed pan so the camera remains inside the board', () => {
+        const viewport = clampBoardViewport({
+            boardHeight: 400,
+            boardWidth: 400,
+            fitZoom: 1,
+            panX: 999,
+            panY: 999,
+            viewportHeight: 300,
+            viewportWidth: 300,
+            zoom: 2
+        });
+
+        expect(viewport.panX).toBe(250);
+        expect(viewport.panY).toBe(250);
     });
 });

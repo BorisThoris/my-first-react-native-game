@@ -194,6 +194,19 @@ describe('GameScreen (OVR-014)', () => {
         expect(achievementNotifications()).toBe(1);
     });
 
+    it('explains that lives carry across floors on the floor-cleared modal', () => {
+        render(
+            <PlatformTiltProvider>
+                <NotificationHost>
+                    <GameScreen achievements={[]} run={{ ...levelCompleteRunFixture(), lives: 3 }} />
+                </NotificationHost>
+            </PlatformTiltProvider>
+        );
+
+        expect(screen.getByText(/Lives carry across the run/i)).toBeInTheDocument();
+        expect(screen.getByText(/Clean clears, safe routes, shops, rests, and shrines can restore them/i)).toBeInTheDocument();
+    });
+
     it('keyboard shortcuts overlay lists board navigation and Gambit tip after F1', () => {
         const playing = finishMemorizePhase(createNewRun(0));
         render(

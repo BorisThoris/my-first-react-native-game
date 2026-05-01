@@ -75,12 +75,10 @@ const getBoardPanBounds = ({
     const scaledBoardWidth = boardWidth * activeScale;
     const scaledBoardHeight = boardHeight * activeScale;
 
-    // Pan limits: viewport [-V/2,V/2] must still overlap board [pan-B/2, pan+B/2] on each axis (non-empty 2D
-    // intersection ⟺ overlap on both axes). That allows dragging when the board is smaller than the viewport
-    // while still preventing the whole grid from leaving the frame (at worst an edge/corner remains).
+    // Keep the board contained in the stage when it fits, and keep the camera contained by the board when zoomed in.
     return {
-        maxPanX: (viewportWidth + scaledBoardWidth) / 2,
-        maxPanY: (viewportHeight + scaledBoardHeight) / 2
+        maxPanX: Math.abs(scaledBoardWidth - viewportWidth) / 2,
+        maxPanY: Math.abs(scaledBoardHeight - viewportHeight) / 2
     };
 };
 

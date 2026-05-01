@@ -1,7 +1,7 @@
 # UC-001 — Lives behaviour between levels / floor transitions
 
 **Source:** Pavel (`300 konq Average bobi gameplay pov`)  
-**Status:** Open
+**Status:** Done
 
 ## Comment (verbatim)
 
@@ -13,5 +13,6 @@ Player expectation or tone issue around **lives not resetting** when advancing t
 
 ## Notes
 
-- Clarify design intent (carry-over vs reset per floor) in UI or docs if intentional.
-- If unintentional, align implementation with intended run rules.
+- Kept the intended run-wide life model: lives carry between floors and only recover through explicit rewards.
+- Added floor-clear modal copy and Codex glossary/core-topic copy explaining that lives carry across the run.
+- Added regression coverage for `advanceToNextLevel` preserving the current life total.

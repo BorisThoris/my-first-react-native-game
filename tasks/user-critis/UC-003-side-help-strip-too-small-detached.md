@@ -1,7 +1,7 @@
 # UC-003 — Side help strip too small and feels detached from the board
 
 **Source:** Pavel (`300 konq Average bobi gameplay pov`)  
-**Status:** Open
+**Status:** Done
 
 ## Comment (verbatim)
 
@@ -14,5 +14,6 @@ The **side strip / lane with help UI** is **too small** and **too far from the p
 
 ## Notes
 
-- Audit layout spacing, typography scale, and visual hierarchy on gameplay shell (desktop).
-- Tie help strip to board region (proximity, shared frame, or HUD tokens) per design system.
+- Increased desktop action/help dock scale, spacing, icon size, rules affordance size, and visual contrast.
+- Pulled the dock closer to the board with a slight negative top margin while preserving the existing mobile action dock layout.
+- Verified with focused renderer tests; visual tuning is intentionally scoped to the existing gameplay shell.

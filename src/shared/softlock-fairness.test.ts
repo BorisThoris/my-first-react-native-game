@@ -207,6 +207,50 @@ describe('REG-087 board fairness inspection', () => {
         expect(inspectBoardFairness(board).issues).toEqual([]);
     });
 
+    it('keeps a late hidden decoy from blocking completion after the last real pair clears', () => {
+        const board = boardFromTiles(
+            [
+                tile('a1', 'a', 'matched'),
+                tile('a2', 'a', 'matched'),
+                tile('b1', 'b', 'matched'),
+                tile('b2', 'b', 'matched'),
+                tile('decoy', DECOY_PAIR_KEY)
+            ],
+            { matchedPairs: 2 }
+        );
+        const report = inspectBoardFairness(board);
+
+        expect(isBoardComplete(board)).toBe(true);
+        expect(report.complete).toBe(true);
+        expect(report.hasCompletionRoute).toBe(true);
+        expect(report.issues).toEqual([]);
+    });
+
+    it('keeps a trap pair actionable when it is the final unmatched pair', () => {
+        const trapA: Tile = {
+            ...tile('trap-a', 'trap'),
+            dungeonCardKind: 'trap',
+            dungeonCardEffectId: 'trap_alarm'
+        };
+        const trapB: Tile = { ...trapA, id: 'trap-b' };
+        const board = boardFromTiles(
+            [
+                tile('a1', 'a', 'matched'),
+                tile('a2', 'a', 'matched'),
+                trapA,
+                trapB,
+                tile('decoy', DECOY_PAIR_KEY)
+            ],
+            { matchedPairs: 1 }
+        );
+        const report = inspectBoardFairness(board);
+
+        expect(report.complete).toBe(false);
+        expect(report.actionableRealPairKeys).toEqual(['trap']);
+        expect(report.hasCompletionRoute).toBe(true);
+        expect(report.issues).toEqual([]);
+    });
+
     it('flags declared exits that point at missing or non-exit cards', () => {
         const missingExit = boardFromTiles([tile('a1', 'a'), tile('a2', 'a')], {
             dungeonExitTileId: 'missing-exit'

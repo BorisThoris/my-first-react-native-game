@@ -80,7 +80,7 @@ export const MECHANICS_GLOSSARY_TERMS: readonly MechanicsGlossaryTerm[] = [
     {
         id: 'lives',
         preferredLabel: 'Lives',
-        shortDefinition: 'Run health. Mismatches can remove lives after grace/guard protection.',
+        shortDefinition: 'Run-wide health. Lives carry between floors; mismatches can remove them after grace/guard protection.',
         avoidLabels: ['hearts as currency', 'energy'],
         surfaces: ['HUD', 'Game over', 'Settings']
     },
@@ -514,7 +514,7 @@ export const CODEX_CORE_TOPICS: CodexCoreTopic[] = [
     {
         id: 'lives',
         title: 'Lives and clears',
-        description: 'Mismatches cost lives. Clears advance the floor and may trigger relic offers on milestone floors.'
+        description: 'Mismatches cost lives. Lives carry across the run instead of resetting each floor; clears advance the floor and may trigger relic offers on milestone floors.'
     },
     {
         id: 'scoring',

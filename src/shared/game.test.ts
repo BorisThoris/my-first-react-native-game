@@ -4343,6 +4343,20 @@ describe('game rules', () => {
         expect(nextRun.timerState.memorizeRemainingMs).toBe(getMemorizeDuration(2) + bankedMs);
     });
 
+    it('carries the current life total into the next level instead of resetting it', () => {
+        const started = createRun([createTile('a1', 'A', 'A'), createTile('a2', 'A', 'A')]);
+        const finishedLevel = resolveBoardTurn(flipTile(flipTile({ ...started, lives: 2 }, 'a1'), 'a2'));
+
+        expect(finishedLevel.status).toBe('levelComplete');
+        expect(finishedLevel.lives).toBe(3);
+
+        const nextRun = advanceToNextLevel(finishedLevel);
+
+        expect(nextRun.status).toBe('memorize');
+        expect(nextRun.lives).toBe(finishedLevel.lives);
+        expect(nextRun.lives).toBe(3);
+    });
+
     it('consumes a guard token on mismatch and prevents life loss', () => {
         const tiles: Tile[] = [
             createTile('a1', 'A', 'A'),

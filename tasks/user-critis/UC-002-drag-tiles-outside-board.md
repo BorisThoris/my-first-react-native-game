@@ -1,7 +1,7 @@
 # UC-002 — Tiles can be dragged outside the playfield
 
 **Source:** Pavel (`300 konq Average bobi gameplay pov`)  
-**Status:** Open
+**Status:** Done
 
 ## Comment (verbatim)
 
@@ -21,5 +21,6 @@ Hidden / non-obvious behaviour → players may not notice and get confused.
 
 ## Notes
 
-- Reproduce: gameplay POV drag gesture near/over board bounds.
-- Consider clamping camera/pan rect to stage, rubber-band, or stronger visual bounds.
+- Tightened the shared board viewport clamp so a fitted board stays contained in the stage and a zoomed board keeps the camera inside board bounds.
+- Existing mouse pan, touch pan, wheel zoom, fit/reset, and viewport carry-forward all flow through the same clamp.
+- Added `tileBoardViewport` regression tests and reran `TileBoard` coverage.
