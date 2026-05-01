@@ -90,6 +90,16 @@ export const getDungeonEnemyMarkerAnchor = (
 
 export type DungeonEnemyMarkerShape = 'sentinel-diamond' | 'stalker-spear' | 'warden-shield' | 'observer-eye' | 'boss-crown';
 
+export const DUNGEON_BOARD_STAGE_PERFORMANCE_BUDGET = {
+    version: 'dng-074-v1',
+    maxActiveEnemyHazards: 6,
+    maxMovingThreatDrawCalls: 24,
+    maxMovingThreatMaterialSlots: 24,
+    sharedEnemyMarkerGeometryCount: 7,
+    trapCardExtraDrawCallsPerPair: 0,
+    contextLossRecovery: 'remount_canvas_on_restore'
+} as const;
+
 export const getDungeonEnemyMarkerVisualProfile = (
     hazard: Pick<EnemyHazardState, 'bossId' | 'kind'>,
     graphicsQuality: GraphicsQualityPreset,
@@ -158,5 +168,53 @@ export const getDungeonEnemyMarkerVisualProfile = (
         motionHz,
         secondaryOpacity,
         shape: 'sentinel-diamond'
+    };
+};
+
+const movingThreatMeshCountFor = (
+    hazard: Pick<EnemyHazardState, 'bossId' | 'kind'>,
+    hasNextTelegraph: boolean
+): number => {
+    const secondaryMeshCount = hazard.bossId || hazard.kind === 'observer' ? 1 : 0;
+    return 2 + secondaryMeshCount + (hasNextTelegraph ? 1 : 0);
+};
+
+export const estimateDungeonBoardStagePerformanceCost = (input: {
+    hazards: readonly Pick<EnemyHazardState, 'bossId' | 'kind' | 'nextTileId' | 'state'>[];
+    graphicsQuality: GraphicsQualityPreset;
+    reduceMotion: boolean;
+}): {
+    activeHazardCount: number;
+    contextLossRecovery: typeof DUNGEON_BOARD_STAGE_PERFORMANCE_BUDGET.contextLossRecovery;
+    estimatedMovingThreatDrawCalls: number;
+    estimatedMovingThreatMaterialSlots: number;
+    lowOrReducedQualityReadable: boolean;
+    sharedEnemyMarkerGeometryCount: number;
+    trapCardExtraDrawCallsPerPair: number;
+    withinBudget: boolean;
+} => {
+    const activeHazards = input.hazards.filter((hazard) => hazard.state !== 'defeated');
+    const estimatedMovingThreatDrawCalls = activeHazards.reduce(
+        (sum, hazard) => sum + movingThreatMeshCountFor(hazard, Boolean(hazard.nextTileId)),
+        0
+    );
+    const lod = getDungeonBoardStageLod(input.graphicsQuality, input.reduceMotion);
+
+    return {
+        activeHazardCount: activeHazards.length,
+        contextLossRecovery: DUNGEON_BOARD_STAGE_PERFORMANCE_BUDGET.contextLossRecovery,
+        estimatedMovingThreatDrawCalls,
+        estimatedMovingThreatMaterialSlots: estimatedMovingThreatDrawCalls,
+        lowOrReducedQualityReadable:
+            lod.currentMarkerOpacity >= 0.88 &&
+            lod.nextTelegraphOpacity >= 0.3 &&
+            (input.graphicsQuality !== 'low' || lod.strongEffectBudget === 'critical-only') &&
+            (!input.reduceMotion || !lod.markerMotionEnabled),
+        sharedEnemyMarkerGeometryCount: DUNGEON_BOARD_STAGE_PERFORMANCE_BUDGET.sharedEnemyMarkerGeometryCount,
+        trapCardExtraDrawCallsPerPair: DUNGEON_BOARD_STAGE_PERFORMANCE_BUDGET.trapCardExtraDrawCallsPerPair,
+        withinBudget:
+            activeHazards.length <= DUNGEON_BOARD_STAGE_PERFORMANCE_BUDGET.maxActiveEnemyHazards &&
+            estimatedMovingThreatDrawCalls <= DUNGEON_BOARD_STAGE_PERFORMANCE_BUDGET.maxMovingThreatDrawCalls &&
+            estimatedMovingThreatDrawCalls <= DUNGEON_BOARD_STAGE_PERFORMANCE_BUDGET.maxMovingThreatMaterialSlots
     };
 };

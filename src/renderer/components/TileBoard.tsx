@@ -32,7 +32,7 @@ import { pairProximityUiStrings } from '../ui/strings/pairProximityUi';
 import { isTilePickable } from './tileBoardPick';
 import TileBoardPostFx from './TileBoardPostFx';
 import TileBoardScene, { type TileBoardSceneHandle, type TileHoverTiltState } from './TileBoardScene';
-import { DUNGEON_BOARD_STAGE_LAYER_POLICY } from './tileBoardStageLayers';
+import { DUNGEON_BOARD_STAGE_LAYER_POLICY, DUNGEON_BOARD_STAGE_PERFORMANCE_BUDGET } from './tileBoardStageLayers';
 import {
     COMPACT_BOARD_FIT_MARGIN,
     MOBILE_CAMERA_FIT_MARGIN,
@@ -1438,6 +1438,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
             data-board-rows={board.rows}
             data-board-run-status={runStatus}
             data-dungeon-stage-layer-policy={DUNGEON_BOARD_STAGE_LAYER_POLICY.version}
+            data-dungeon-stage-perf-budget={DUNGEON_BOARD_STAGE_PERFORMANCE_BUDGET.version}
             data-dungeon-comfort-focus-order={DNG065_DUNGEON_COMFORT_FOCUS_ORDER.join('>')}
             data-dungeon-mobile-board-primary={DNG065_MOBILE_BOARD_PRIORITY.boardPrimary ? 'true' : 'false'}
             data-dungeon-touch-target-min={DNG065_MOBILE_BOARD_PRIORITY.minTouchTargetPx}

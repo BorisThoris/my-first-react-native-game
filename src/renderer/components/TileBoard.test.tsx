@@ -11,6 +11,8 @@ import {
 import TileBoard, { type TileBoardHandle } from './TileBoard';
 import {
     DUNGEON_BOARD_STAGE_LAYER_POLICY,
+    DUNGEON_BOARD_STAGE_PERFORMANCE_BUDGET,
+    estimateDungeonBoardStagePerformanceCost,
     getDungeonBoardStageLod,
     getDungeonEnemyMarkerAnchor,
     getDungeonEnemyMarkerVisualProfile
@@ -335,6 +337,10 @@ describe('TileBoard touch and click controls', () => {
             'data-dungeon-stage-layer-policy',
             DUNGEON_BOARD_STAGE_LAYER_POLICY.version
         );
+        expect(screen.getByTestId('tile-board-frame')).toHaveAttribute(
+            'data-dungeon-stage-perf-budget',
+            DUNGEON_BOARD_STAGE_PERFORMANCE_BUDGET.version
+        );
     });
 
     it('exposes dungeon comfort focus order and mobile board-primary policy', () => {
@@ -422,6 +428,35 @@ describe('TileBoard touch and click controls', () => {
         expect(low.motionHz).toBeLessThan(high.motionHz);
         expect(reduced.motionHz).toBe(0);
         expect(reduced.secondaryOpacity).toBeGreaterThan(0.5);
+    });
+
+    it('keeps dungeon moving threat overlays inside the documented DNG-074 draw-call budget', () => {
+        const hazards = [
+            { kind: 'sentinel' as const, bossId: undefined, nextTileId: 'a2', state: 'revealed' as const },
+            { kind: 'stalker' as const, bossId: undefined, nextTileId: 'b1', state: 'revealed' as const },
+            { kind: 'warden' as const, bossId: undefined, nextTileId: 'b2', state: 'revealed' as const },
+            { kind: 'observer' as const, bossId: undefined, nextTileId: 'a1', state: 'revealed' as const },
+            { kind: 'sentinel' as const, bossId: 'rush_sentinel' as const, nextTileId: 'a2', state: 'revealed' as const },
+            { kind: 'observer' as const, bossId: 'spire_observer' as const, nextTileId: 'b1', state: 'revealed' as const }
+        ];
+
+        const high = estimateDungeonBoardStagePerformanceCost({ hazards, graphicsQuality: 'high', reduceMotion: false });
+        const reduced = estimateDungeonBoardStagePerformanceCost({ hazards, graphicsQuality: 'high', reduceMotion: true });
+        const low = estimateDungeonBoardStagePerformanceCost({ hazards, graphicsQuality: 'low', reduceMotion: false });
+
+        expect(high.activeHazardCount).toBe(DUNGEON_BOARD_STAGE_PERFORMANCE_BUDGET.maxActiveEnemyHazards);
+        expect(high.estimatedMovingThreatDrawCalls).toBeLessThanOrEqual(
+            DUNGEON_BOARD_STAGE_PERFORMANCE_BUDGET.maxMovingThreatDrawCalls
+        );
+        expect(high.estimatedMovingThreatMaterialSlots).toBe(high.estimatedMovingThreatDrawCalls);
+        expect(high.sharedEnemyMarkerGeometryCount).toBe(DUNGEON_BOARD_STAGE_PERFORMANCE_BUDGET.sharedEnemyMarkerGeometryCount);
+        expect(high.trapCardExtraDrawCallsPerPair).toBe(0);
+        expect(high.contextLossRecovery).toBe('remount_canvas_on_restore');
+        expect(high.withinBudget).toBe(true);
+        expect(reduced.withinBudget).toBe(true);
+        expect(reduced.lowOrReducedQualityReadable).toBe(true);
+        expect(low.withinBudget).toBe(true);
+        expect(low.lowOrReducedQualityReadable).toBe(true);
     });
 
     it('selects an occupied enemy patrol card from keyboard focus without pointer input', async () => {

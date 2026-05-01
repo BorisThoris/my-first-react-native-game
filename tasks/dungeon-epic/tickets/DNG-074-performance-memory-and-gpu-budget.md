@@ -1,7 +1,7 @@
 # DNG-074: Performance, memory, and GPU budget
 
 ## Status
-Not started
+Done
 
 ## Priority
 P0
@@ -45,5 +45,4 @@ Dungeon floors remain responsive on target devices and degrade gracefully throug
 - `../../refined-experience-gaps/REG-110-memory-gpu-leak-and-context-lifecycle.md`
 
 ## Future handoff notes
-Run after major visual effect work.
-
+Run after major visual effect work. DNG-074 v1 adds a static dungeon board stage performance budget for moving enemy/boss markers, documents trap-card overlay cost as card-surface only, and keeps existing WebGL context restore/remount recovery named in the budget.

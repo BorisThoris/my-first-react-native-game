@@ -49,6 +49,7 @@ Future agents must update this file after every implementation session that uses
 | `DNG-071` | Done | 2026-05-01 session | Balance simulation now reports deterministic cautious/average/greedy/high-skill dungeon profile metrics and bounds. |
 | `DNG-072` | Done | 2026-05-01 session | Dungeon E2E fixture recipes and dev sandbox board fixtures now cover major screenshot states. |
 | `DNG-073` | Done | 2026-05-01 session | Save normalization now fuzzes corrupted dungeon-adjacent persisted fields and documents run-local dungeon recovery policy. |
+| `DNG-074` | Done | 2026-05-01 session | Dungeon board stage now exposes a documented draw-call/material/geometry budget for moving threat overlays and context restore policy. |
 
 ## Completed Work Log
 | Date | Ticket(s) | Summary | Verification |
@@ -89,12 +90,13 @@ Future agents must update this file after every implementation session that uses
 | 2026-05-01 | `DNG-071` | Extended balance simulation with dungeon player profiles, pressure/economy/boss/shop metrics, and profile/seed/floor bound failure context. | `yarn test src/shared/balance-simulation.test.ts src/shared/run-economy.test.ts`; `yarn typecheck`; `yarn lint` |
 | 2026-05-01 | `DNG-072` | Added deterministic dungeon fixture recipes, matching dev sandbox board fixtures, and a Playwright smoke spec for fixture opening/screenshot capture. | `yarn test src/shared/dungeon-e2e-fixtures.test.ts src/renderer/dev/runFixtures.test.ts src/renderer/dev/devSandboxParams.test.ts`; `yarn typecheck`; `yarn lint` |
 | 2026-05-01 | `DNG-073` | Added a dungeon save migration policy, hardened corrupted relic-pick stat normalization, and covered dungeon-adjacent legacy/partial save fuzz cases. | `yarn test src/shared/save-data.test.ts src/shared/version-gate.test.ts`; `yarn typecheck`; `yarn lint` |
+| 2026-05-01 | `DNG-074` | Added a dungeon board-stage performance budget/read model for moving enemy and boss overlays, including low/reduced-motion readability and context restore policy checks. | `yarn test src/renderer/components/TileBoard.test.tsx src/shared/qa/regPhase5Hardening.test.ts src/shared/graphicsQuality.test.ts`; `yarn typecheck`; `yarn lint` |
 
 ## Blockers
 - None recorded in this pack yet.
 
 ## Next Recommended Ticket
-Start `tickets/DNG-074-performance-memory-and-gpu-budget.md`.
+Start `tickets/DNG-075-dungeon-acceptance-report.md`.
 
 ## Session Handoff Template
 Copy this block for future updates:
