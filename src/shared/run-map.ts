@@ -3,6 +3,9 @@ import type {
     DungeonRunNode,
     DungeonRunNodeKind,
     DungeonRunNodeStatus,
+    DungeonObjectiveId,
+    FloorArchetypeId,
+    FloorTag,
     RouteChoice,
     RouteNodeType
 } from './contracts';
@@ -83,8 +86,32 @@ export interface DungeonRouteDecisionPresentation {
     summary: string;
 }
 
+export interface DungeonNodeTypeContract {
+    kind: DungeonRunNodeKind;
+    label: string;
+    floorTag: FloorTag;
+    floorArchetypeId: FloorArchetypeId | null;
+    defaultObjectiveId: DungeonObjectiveId;
+    rewardPolicy: string;
+    cardFamilyBounds: Partial<Record<'enemy' | 'trap' | 'treasure' | 'shop' | 'room' | 'boss' | 'exit' | 'key' | 'lock' | 'shrine' | 'gateway' | 'lever', { min: number; max: number }>>;
+    routeType: RouteNodeType;
+    uiTone: DungeonRoomTone;
+}
+
 const DUNGEON_ACT_LENGTH = 6;
 const DUNGEON_BRANCH_LANES = [-1, 0, 1] as const;
+const DUNGEON_RUN_NODE_KINDS: readonly DungeonRunNodeKind[] = [
+    'entrance',
+    'combat',
+    'elite',
+    'trap',
+    'treasure',
+    'shop',
+    'rest',
+    'event',
+    'boss',
+    'exit'
+];
 
 const nodeId = (floor: number, lane: number, kind: DungeonRunNodeKind): string => `floor-${floor}:lane-${lane}:${kind}`;
 
@@ -268,6 +295,56 @@ const routeTypeForKind = (kind: DungeonRunNodeKind): RouteNodeType => {
     }
     return 'safe';
 };
+
+const floorTagForKind = (kind: DungeonRunNodeKind): FloorTag => {
+    if (kind === 'boss') return 'boss';
+    if (kind === 'rest' || kind === 'shop') return 'breather';
+    return 'normal';
+};
+
+const floorArchetypeForKind = (kind: DungeonRunNodeKind): FloorArchetypeId | null => {
+    if (kind === 'treasure') return 'treasure_gallery';
+    if (kind === 'trap') return 'trap_hall';
+    if (kind === 'event') return 'script_room';
+    if (kind === 'elite' || kind === 'boss') return 'rush_recall';
+    if (kind === 'rest' || kind === 'shop') return 'breather';
+    return null;
+};
+
+const objectiveForKind = (kind: DungeonRunNodeKind): DungeonObjectiveId => {
+    if (kind === 'boss') return 'defeat_boss';
+    if (kind === 'elite') return 'pacify_floor';
+    if (kind === 'trap') return 'disarm_traps';
+    if (kind === 'treasure') return 'loot_cache';
+    if (kind === 'event') return 'reveal_unknowns';
+    return 'find_exit';
+};
+
+const cardFamilyBoundsForKind = (kind: DungeonRunNodeKind): DungeonNodeTypeContract['cardFamilyBounds'] => {
+    if (kind === 'boss') return { boss: { min: 1, max: 1 }, enemy: { min: 1, max: 4 }, exit: { min: 1, max: 3 } };
+    if (kind === 'elite') return { enemy: { min: 1, max: 4 }, treasure: { min: 0, max: 2 }, exit: { min: 1, max: 3 } };
+    if (kind === 'trap') return { trap: { min: 1, max: 4 }, enemy: { min: 0, max: 3 }, exit: { min: 1, max: 3 } };
+    if (kind === 'treasure') return { treasure: { min: 1, max: 4 }, key: { min: 0, max: 2 }, lock: { min: 0, max: 2 }, exit: { min: 1, max: 3 } };
+    if (kind === 'shop') return { shop: { min: 1, max: 1 }, room: { min: 0, max: 2 }, exit: { min: 1, max: 3 } };
+    if (kind === 'rest') return { room: { min: 1, max: 3 }, shrine: { min: 0, max: 2 }, exit: { min: 1, max: 3 } };
+    if (kind === 'event') return { room: { min: 1, max: 3 }, gateway: { min: 0, max: 2 }, exit: { min: 1, max: 3 } };
+    return { enemy: { min: 0, max: 3 }, gateway: { min: 0, max: 3 }, exit: { min: 1, max: 3 } };
+};
+
+export const getDungeonNodeTypeContract = (kind: DungeonRunNodeKind): DungeonNodeTypeContract => ({
+    kind,
+    label: labelForKind(kind),
+    floorTag: floorTagForKind(kind),
+    floorArchetypeId: floorArchetypeForKind(kind),
+    defaultObjectiveId: objectiveForKind(kind),
+    rewardPolicy: rewardForKind(kind),
+    cardFamilyBounds: cardFamilyBoundsForKind(kind),
+    routeType: routeTypeForKind(kind),
+    uiTone: toneForKind(kind)
+});
+
+export const getDungeonNodeTypeContracts = (): readonly DungeonNodeTypeContract[] =>
+    DUNGEON_RUN_NODE_KINDS.map(getDungeonNodeTypeContract);
 
 const kindFromRouteType = (routeType: RouteNodeType, floor: number): DungeonRunNodeKind => {
     if (floor > 0 && floor % DUNGEON_ACT_LENGTH === 0) {

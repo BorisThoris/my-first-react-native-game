@@ -17,6 +17,7 @@ Future agents must update this file after every implementation session that uses
 | `DNG-004` | Done | 2026-05-01 session | Dungeon determinism contract now names replay seed inputs and guards seeded generation modules against unseeded randomness. |
 | `DNG-005` | Done | 2026-05-01 session | Dungeon-specific fairness invariants and corrupt-state tests added. |
 | `DNG-010` | Done | 2026-05-01 session | Route decision rows now expose current node, next room, risk, reward, and mechanic columns through a shared selector used by floor-clear UI. |
+| `DNG-011` | Done | 2026-05-01 session | Dungeon node type contracts now cover every node kind with floor tag, archetype, objective, reward, card-family bounds, and UI tone. |
 | `DNG-020` | Done | 2026-05-01 session | Shared dungeon card kind/effect taxonomy and coverage tests added. |
 | `DNG-021` | Done | 2026-05-01 session | Encounter budget inspector, capacity cap, and budget coverage tests added. |
 | `DNG-022` | Done | 2026-05-01 session | Shared dungeon card knowledge selector and ARIA integration added. |
@@ -63,6 +64,7 @@ Future agents must update this file after every implementation session that uses
 | 2026-05-01 | `DNG-003`, `DNG-004` | Added shared dungeon rules versioning and determinism contracts, updated the ticket template, and guarded seeded generation modules from unseeded randomness/time sources. | `yarn test src/shared/dungeon-versioning.test.ts src/shared/version-gate.test.ts src/shared/run-map.test.ts src/shared/run-events.test.ts`; `yarn typecheck`; `yarn lint` |
 | 2026-05-01 | `DNG-005` | Added dungeon fairness checks for exit references, lever reachability, active enemy hazard tile references, dungeon pair metadata, enemy HP mirrors, and defeat-boss objective reachability. | `yarn test src/shared/softlock-fairness.test.ts src/shared/game.test.ts` |
 | 2026-05-01 | `DNG-010` | Added shared dungeon route decision rows and wired the floor-clear route panel to consistent risk/reward/mechanic columns. | `yarn test src/shared/run-map.test.ts src/renderer/components/GameScreen.test.tsx`; `yarn typecheck`; `yarn lint` |
+| 2026-05-01 | `DNG-011` | Added shared dungeon node type contracts for all node kinds, including objective defaults and card-family bounds. | `yarn test src/shared/run-map.test.ts src/shared/game.test.ts src/shared/softlock-fairness.test.ts`; `yarn typecheck`; `yarn lint` |
 | 2026-05-01 | `DNG-020` | Added `src/shared/dungeon-cards.ts` with typed kind/effect taxonomy rows and catalog-backed copy fallback for dungeon cards. | `yarn test src/shared/dungeon-cards.test.ts src/shared/softlock-fairness.test.ts src/shared/game.test.ts`; `yarn typecheck` |
 | 2026-05-01 | `DNG-021` | Added `inspectDungeonEncounterBudget`, explicit paired-card capacity capping in blueprint creation, and budget tests for node/archetype influence and representative floors. | `yarn test src/shared/game.test.ts src/shared/softlock-fairness.test.ts src/shared/dungeon-cards.test.ts`; `yarn typecheck` |
 | 2026-05-01 | `DNG-022` | Added `getDungeonCardKnowledge` for hidden/revealed/resolved information state and wired TileBoard ARIA dungeon copy to it. | `yarn test src/shared/dungeon-cards.test.ts src/shared/game.test.ts src/renderer/components/TileBoard.test.tsx`; `yarn typecheck` |
@@ -103,7 +105,7 @@ Future agents must update this file after every implementation session that uses
 - None recorded in this pack yet.
 
 ## Next Recommended Ticket
-Continue with `tickets/DNG-011-node-type-contracts.md`.
+Continue with `tickets/DNG-012-floor-archetype-progression.md`.
 
 ## Session Handoff Template
 Copy this block for future updates:

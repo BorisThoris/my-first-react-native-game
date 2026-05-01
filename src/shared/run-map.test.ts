@@ -7,6 +7,8 @@ import {
     enterSelectedDungeonNode,
     generateRunMapChoices,
     getDungeonMapPresentation,
+    getDungeonNodeTypeContract,
+    getDungeonNodeTypeContracts,
     getDungeonRouteDecisionPresentation,
     revealDungeonChoices,
     selectDungeonNode
@@ -158,5 +160,38 @@ describe('REG-069 run map route nodes', () => {
             mechanic: 'Elite enemy pressure and greed anchors.'
         });
         expect(decision.summary).toContain('Safe passage: Standard next floor.');
+    });
+
+    it('DNG-011 covers every dungeon node kind with a renderable contract', () => {
+        const contracts = getDungeonNodeTypeContracts();
+
+        expect(contracts.map((contract) => contract.kind)).toEqual([
+            'entrance',
+            'combat',
+            'elite',
+            'trap',
+            'treasure',
+            'shop',
+            'rest',
+            'event',
+            'boss',
+            'exit'
+        ]);
+        expect(contracts.every((contract) => contract.label.length > 0)).toBe(true);
+        expect(contracts.every((contract) => contract.rewardPolicy.length > 0)).toBe(true);
+        expect(contracts.every((contract) => Object.keys(contract.cardFamilyBounds).length > 0)).toBe(true);
+        expect(getDungeonNodeTypeContract('boss')).toMatchObject({
+            floorTag: 'boss',
+            defaultObjectiveId: 'defeat_boss',
+            routeType: 'greed',
+            uiTone: 'boss'
+        });
+        expect(getDungeonNodeTypeContract('shop')).toMatchObject({
+            floorTag: 'breather',
+            floorArchetypeId: 'breather',
+            defaultObjectiveId: 'find_exit'
+        });
+        expect(getDungeonNodeTypeContract('trap').cardFamilyBounds.trap).toEqual({ min: 1, max: 4 });
+        expect(getDungeonNodeTypeContract('treasure').cardFamilyBounds.treasure).toEqual({ min: 1, max: 4 });
     });
 });

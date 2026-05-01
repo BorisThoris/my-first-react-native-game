@@ -1,7 +1,7 @@
 # DNG-011: Node type contracts
 
 ## Status
-Not started
+Done
 
 ## Priority
 P1
@@ -43,5 +43,4 @@ Each node kind has a promise: combat pressures memory, elite raises stakes, shop
 - `../../refined-experience-gaps/REG-069-run-map-route-node-system.md`
 
 ## Future handoff notes
-Use this ticket before adding new map nodes.
-
+Use `getDungeonNodeTypeContract` before adding new map nodes so route/map presentation, objective defaults, and card-family expectations stay aligned.
