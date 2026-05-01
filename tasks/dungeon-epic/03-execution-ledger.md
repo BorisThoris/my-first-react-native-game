@@ -41,6 +41,7 @@ Future agents must update this file after every implementation session that uses
 | `DNG-055` | Done | 2026-05-01 session | Exploit surface review doc and regression suite now cover local shop/rest/bonus/event/relic farm prevention. |
 | `DNG-060` | Done | 2026-05-01 session | Dungeon HUD chips now use urgency priority, a visible cap, and one primary alert line. |
 | `DNG-061` | Done | 2026-05-01 session | Board stage layer policy now reserves card text space while preserving enemy telegraphs in low quality and reduced motion. |
+| `DNG-062` | Done | 2026-05-01 session | Enemy and boss markers now have non-color-only shape profiles with low-quality and reduced-motion LOD bounds. |
 
 ## Completed Work Log
 | Date | Ticket(s) | Summary | Verification |
@@ -73,12 +74,13 @@ Future agents must update this file after every implementation session that uses
 | 2026-05-01 | `DNG-055` | Documented exploit surfaces and added regressions for one-shot shop, rest, bonus, side-room, and relic service reward paths. | `yarn test src/shared/exploit-surface.test.ts src/shared/bonus-rewards.test.ts src/shared/relics.test.ts src/shared/rest-shrine.test.ts`; `yarn typecheck` |
 | 2026-05-01 | `DNG-060` | Added priority/cap metadata to dungeon HUD chips and renderer/shared tests for crowded danger-first HUD ordering. | `yarn test src/shared/game.test.ts src/renderer/components/GameScreen.test.tsx`; `yarn typecheck` |
 | 2026-05-01 | `DNG-061` | Added a named board-stage layer policy, moved enemy/current telegraphs to reserved card corners, and covered low/reduced-motion threat readability. | `yarn test src/renderer/components/TileBoard.test.tsx`; `yarn typecheck` |
+| 2026-05-01 | `DNG-062` | Added marker visual profiles for each enemy kind and bosses, with shared-geometry scene wiring and reduced-motion/low-quality tests. | `yarn test src/renderer/components/TileBoard.test.tsx src/renderer/components/GameScreen.test.tsx`; `yarn typecheck`; `yarn lint` |
 
 ## Blockers
 - None recorded in this pack yet.
 
 ## Next Recommended Ticket
-Start `tickets/DNG-062-enemy-and-boss-vfx-lod.md`.
+Start `tickets/DNG-063-dungeon-audio-event-coverage.md`.
 
 ## Session Handoff Template
 Copy this block for future updates:

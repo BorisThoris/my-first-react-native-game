@@ -1,4 +1,4 @@
-import type { GraphicsQualityPreset } from '../../shared/contracts';
+import type { EnemyHazardState, GraphicsQualityPreset } from '../../shared/contracts';
 import { CARD_PLANE_HEIGHT, CARD_PLANE_WIDTH } from './tileShatter';
 
 export const DUNGEON_BOARD_STAGE_LAYER_POLICY = {
@@ -86,4 +86,77 @@ export const getDungeonEnemyMarkerAnchor = (
         transform.baseY + transform.imperfectionY + transform.layoutJitterY + yOffset + bob,
         z
     ];
+};
+
+export type DungeonEnemyMarkerShape = 'sentinel-diamond' | 'stalker-spear' | 'warden-shield' | 'observer-eye' | 'boss-crown';
+
+export const getDungeonEnemyMarkerVisualProfile = (
+    hazard: Pick<EnemyHazardState, 'bossId' | 'kind'>,
+    graphicsQuality: GraphicsQualityPreset,
+    reduceMotion: boolean
+): {
+    haloOpacity: number;
+    mainRotation: number;
+    mainScale: [number, number, number];
+    motionHz: number;
+    secondaryOpacity: number;
+    shape: DungeonEnemyMarkerShape;
+} => {
+    const lowOrReduced = graphicsQuality === 'low' || reduceMotion;
+    const secondaryOpacity = lowOrReduced ? 0.58 : graphicsQuality === 'high' ? 0.72 : 0.64;
+    const haloOpacity = lowOrReduced ? 0.12 : graphicsQuality === 'high' ? 0.22 : 0.18;
+    const motionHz = reduceMotion ? 0 : graphicsQuality === 'low' ? 0.55 : graphicsQuality === 'high' ? 0.85 : 0.7;
+
+    if (hazard.bossId) {
+        return {
+            haloOpacity,
+            mainRotation: Math.PI / 4,
+            mainScale: [1.18, 1.18, 1],
+            motionHz,
+            secondaryOpacity,
+            shape: 'boss-crown'
+        };
+    }
+
+    if (hazard.kind === 'stalker') {
+        return {
+            haloOpacity,
+            mainRotation: 0,
+            mainScale: [0.72, 1.28, 1],
+            motionHz,
+            secondaryOpacity,
+            shape: 'stalker-spear'
+        };
+    }
+
+    if (hazard.kind === 'warden') {
+        return {
+            haloOpacity,
+            mainRotation: 0,
+            mainScale: [1.26, 0.86, 1],
+            motionHz,
+            secondaryOpacity,
+            shape: 'warden-shield'
+        };
+    }
+
+    if (hazard.kind === 'observer') {
+        return {
+            haloOpacity,
+            mainRotation: Math.PI / 2,
+            mainScale: [1.34, 0.5, 1],
+            motionHz,
+            secondaryOpacity,
+            shape: 'observer-eye'
+        };
+    }
+
+    return {
+        haloOpacity,
+        mainRotation: Math.PI / 4,
+        mainScale: [1, 1, 1],
+        motionHz,
+        secondaryOpacity,
+        shape: 'sentinel-diamond'
+    };
 };

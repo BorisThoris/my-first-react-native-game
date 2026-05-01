@@ -1,7 +1,7 @@
 # DNG-062: Enemy and boss VFX LOD
 
 ## Status
-Not started
+Done
 
 ## Priority
 P1
@@ -44,5 +44,4 @@ Enemies and bosses feel present and responsive without obscuring cards or causin
 - `DNG-074`
 
 ## Future handoff notes
-Implement after gameplay semantics are stable.
-
+Enemy marker VFX now use a shared visual profile read model with distinct non-color-only shapes for sentinel, stalker, warden, observer, and boss patrols. Low quality lowers halo/motion intensity, reduced motion disables marker oscillation, and boss markers add a separate crown bar instead of relying on brightness alone. Final defeat audio/VFX assets remain deferred to the dedicated presentation/audio tickets.

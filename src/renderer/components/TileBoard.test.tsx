@@ -7,7 +7,8 @@ import TileBoard, { type TileBoardHandle } from './TileBoard';
 import {
     DUNGEON_BOARD_STAGE_LAYER_POLICY,
     getDungeonBoardStageLod,
-    getDungeonEnemyMarkerAnchor
+    getDungeonEnemyMarkerAnchor,
+    getDungeonEnemyMarkerVisualProfile
 } from './tileBoardStageLayers';
 
 /** jsdom has no GPU; stub a minimal WebGL context so the board mounts the canvas path. */
@@ -368,6 +369,36 @@ describe('TileBoard touch and click controls', () => {
         expect(low.nextTelegraphOpacity).toBeGreaterThan(0.3);
         expect(reduced.markerMotionEnabled).toBe(false);
         expect(reduced.nextTelegraphOpacity).toBeGreaterThan(0.3);
+    });
+
+    it('assigns non-color-only visual identities to each enemy kind and bosses', () => {
+        const hazards = [
+            { kind: 'sentinel' as const, bossId: undefined, expectedShape: 'sentinel-diamond' },
+            { kind: 'stalker' as const, bossId: undefined, expectedShape: 'stalker-spear' },
+            { kind: 'warden' as const, bossId: undefined, expectedShape: 'warden-shield' },
+            { kind: 'observer' as const, bossId: undefined, expectedShape: 'observer-eye' },
+            { kind: 'sentinel' as const, bossId: 'rush_sentinel' as const, expectedShape: 'boss-crown' }
+        ];
+
+        for (const hazard of hazards) {
+            expect(getDungeonEnemyMarkerVisualProfile(hazard, 'medium', false).shape).toBe(hazard.expectedShape);
+        }
+
+        const boss = getDungeonEnemyMarkerVisualProfile({ kind: 'sentinel', bossId: 'rush_sentinel' }, 'high', false);
+        const sentinel = getDungeonEnemyMarkerVisualProfile({ kind: 'sentinel', bossId: undefined }, 'high', false);
+        expect(boss.mainScale[0]).toBeGreaterThan(sentinel.mainScale[0]);
+        expect(boss.secondaryOpacity).toBeGreaterThan(0);
+    });
+
+    it('keeps enemy marker VFX within static reduced-motion and low-quality LOD bounds', () => {
+        const low = getDungeonEnemyMarkerVisualProfile({ kind: 'stalker', bossId: undefined }, 'low', false);
+        const reduced = getDungeonEnemyMarkerVisualProfile({ kind: 'stalker', bossId: undefined }, 'high', true);
+        const high = getDungeonEnemyMarkerVisualProfile({ kind: 'stalker', bossId: undefined }, 'high', false);
+
+        expect(low.haloOpacity).toBeLessThan(high.haloOpacity);
+        expect(low.motionHz).toBeLessThan(high.motionHz);
+        expect(reduced.motionHz).toBe(0);
+        expect(reduced.secondaryOpacity).toBeGreaterThan(0.5);
     });
 
     it('sets shuffle animating on the frame while the WebGL stagger window is active', async () => {

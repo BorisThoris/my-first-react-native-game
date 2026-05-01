@@ -108,7 +108,9 @@ import { GAMEPLAY_BOARD_VISUALS } from './gameplayVisualConfig';
 import {
     DUNGEON_BOARD_STAGE_LAYER_POLICY,
     getDungeonBoardStageLod,
-    getDungeonEnemyMarkerAnchor
+    getDungeonEnemyMarkerAnchor,
+    getDungeonEnemyMarkerVisualProfile,
+    type DungeonEnemyMarkerShape
 } from './tileBoardStageLayers';
 
 /** FX-006 / HOVER_DOM_WEBGL_TOKENS: border emphasis → warm tint lerp (~20% toward `#fff0d4` in sRGB mix space). */
@@ -336,10 +338,20 @@ const enemyHazardColor = (hazard: EnemyHazardState): string => {
     return '#ff9f86';
 };
 
+const enemyHazardGeometryForShape = (shape: DungeonEnemyMarkerShape): BufferGeometry => {
+    if (shape === 'stalker-spear') return ENEMY_STALKER_MARKER_GEOMETRY;
+    if (shape === 'warden-shield') return ENEMY_WARDEN_MARKER_GEOMETRY;
+    if (shape === 'observer-eye') return ENEMY_OBSERVER_MARKER_GEOMETRY;
+    if (shape === 'boss-crown') return ENEMY_BOSS_MARKER_GEOMETRY;
+    return ENEMY_MARKER_GEOMETRY;
+};
+
 const EnemyHazardMarker = ({ hazard, currentTransform, graphicsQuality, nextTransform, reduceMotion }: EnemyHazardMarkerProps) => {
     const groupRef = useRef<Group | null>(null);
     const color = enemyHazardColor(hazard);
     const lod = getDungeonBoardStageLod(graphicsQuality, reduceMotion);
+    const visual = getDungeonEnemyMarkerVisualProfile(hazard, graphicsQuality, reduceMotion);
+    const geometry = enemyHazardGeometryForShape(visual.shape);
     const healthRatio = hazard.maxHp > 0 ? MathUtils.clamp(hazard.hp / hazard.maxHp, 0, 1) : 0;
     const scale = (hazard.bossId ? 1.35 : 1) * (0.82 + healthRatio * 0.18);
 
@@ -353,7 +365,10 @@ const EnemyHazardMarker = ({ hazard, currentTransform, graphicsQuality, nextTran
     useFrame((state, delta) => {
         const group = groupRef.current;
         if (!group) return;
-        const bob = lod.markerMotionEnabled ? Math.sin(state.clock.elapsedTime * 2.1 + currentTransform.seed * 0.017) * 0.025 : 0;
+        const bob =
+            lod.markerMotionEnabled && visual.motionHz > 0
+                ? Math.sin(state.clock.elapsedTime * (1.6 + visual.motionHz) + currentTransform.seed * 0.017) * 0.025
+                : 0;
         const [x, y, baseZ] = getDungeonEnemyMarkerAnchor(currentTransform, 'currentThreat', bob);
         const z = baseZ + (hazard.state === 'revealed' ? 0.035 : 0);
         if (!lod.markerMotionEnabled) {
@@ -387,11 +402,7 @@ const EnemyHazardMarker = ({ hazard, currentTransform, graphicsQuality, nextTran
                 </mesh>
             ) : null}
             <group ref={groupRef}>
-                <mesh
-                    geometry={ENEMY_MARKER_GEOMETRY}
-                    renderOrder={DUNGEON_BOARD_STAGE_LAYER_POLICY.currentThreat.renderOrder}
-                    rotation={[0, 0, Math.PI / 4]}
-                >
+                <mesh geometry={geometry} renderOrder={DUNGEON_BOARD_STAGE_LAYER_POLICY.currentThreat.renderOrder} rotation={[0, 0, visual.mainRotation]} scale={visual.mainScale}>
                     <meshBasicMaterial color={color} depthWrite={false} opacity={lod.currentMarkerOpacity} toneMapped={false} transparent />
                 </mesh>
                 <mesh
@@ -400,8 +411,27 @@ const EnemyHazardMarker = ({ hazard, currentTransform, graphicsQuality, nextTran
                     rotation={[0, 0, Math.PI / 4]}
                     scale={1.42}
                 >
-                    <meshBasicMaterial color={color} depthWrite={false} opacity={0.18} toneMapped={false} transparent />
+                    <meshBasicMaterial color={color} depthWrite={false} opacity={visual.haloOpacity} toneMapped={false} transparent />
                 </mesh>
+                {visual.shape === 'observer-eye' ? (
+                    <mesh
+                        geometry={ENEMY_OBSERVER_MARKER_GEOMETRY}
+                        renderOrder={DUNGEON_BOARD_STAGE_LAYER_POLICY.currentThreat.renderOrder}
+                        rotation={[0, 0, 0]}
+                        scale={[1.34, 0.5, 1]}
+                    >
+                        <meshBasicMaterial color="#fff8d8" depthWrite={false} opacity={visual.secondaryOpacity} toneMapped={false} transparent />
+                    </mesh>
+                ) : null}
+                {visual.shape === 'boss-crown' ? (
+                    <mesh
+                        geometry={ENEMY_BOSS_CROWN_GEOMETRY}
+                        position={[0, 0.115, 0.001]}
+                        renderOrder={DUNGEON_BOARD_STAGE_LAYER_POLICY.currentThreat.renderOrder}
+                    >
+                        <meshBasicMaterial color="#fff8d8" depthWrite={false} opacity={visual.secondaryOpacity} toneMapped={false} transparent />
+                    </mesh>
+                ) : null}
             </group>
         </>
     );
@@ -413,6 +443,11 @@ const CARD_FACE_INSET = 0.016;
 const CARD_FACE_WIDTH = CARD_WIDTH - CARD_FACE_INSET * 2;
 const CARD_FACE_HEIGHT = CARD_HEIGHT - CARD_FACE_INSET * 2;
 const ENEMY_MARKER_GEOMETRY = new PlaneGeometry(0.22, 0.22, 1, 1);
+const ENEMY_STALKER_MARKER_GEOMETRY = new PlaneGeometry(0.14, 0.28, 1, 1);
+const ENEMY_WARDEN_MARKER_GEOMETRY = new PlaneGeometry(0.28, 0.18, 1, 1);
+const ENEMY_OBSERVER_MARKER_GEOMETRY = new PlaneGeometry(0.3, 0.08, 1, 1);
+const ENEMY_BOSS_MARKER_GEOMETRY = new PlaneGeometry(0.28, 0.28, 1, 1);
+const ENEMY_BOSS_CROWN_GEOMETRY = new PlaneGeometry(0.24, 0.07, 1, 1);
 const ENEMY_NEXT_MARKER_GEOMETRY = new PlaneGeometry(0.32, 0.32, 1, 1);
 
 /** FX-006: thin quads approximating DOM `0 0 0 2px` gold ring on the visible back face while hidden. */
