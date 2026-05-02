@@ -1,5 +1,5 @@
 /**
- * Loads each card SVG (`back.svg` / `front.svg`) as a **single merged** `BufferGeometry` per URL.
+ * Loads each card SVG (`authored-card-back.svg` / `front.svg`) as a **single merged** `BufferGeometry` per URL.
  * Traced SVGs are not decomposed into separate meshes per motif; DOM chrome uses the same URLs via CSS / `<img>`.
  */
 import { BufferAttribute, Color, ShapeGeometry } from 'three';

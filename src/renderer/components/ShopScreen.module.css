@@ -6,24 +6,24 @@
     align-items: center;
     justify-content: center;
     padding: var(--ui-shell-screen-pad-safe);
-    background:
-        radial-gradient(ellipse 72% 46% at 50% 16%, rgba(242, 211, 157, 0.05), transparent 58%),
-        var(--gameplay-overlay-scrim-bg, var(--theme-scrim-heavy));
-    backdrop-filter: var(--gameplay-overlay-scrim-filter, blur(8px) saturate(118%));
+    background: var(--gameplay-overlay-scrim-bg, var(--theme-modal-scrim-bg, var(--theme-scrim-dialog)));
+    backdrop-filter: var(--gameplay-overlay-scrim-filter, var(--theme-modal-scrim-backdrop-filter, blur(14px) saturate(130%)));
     overflow: hidden;
 }
 
 .shell {
     width: min(980px, 100%);
-    max-height: min(90dvh, 100%);
+    max-height: min(82dvh, 100%);
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
-    gap: var(--theme-space-md);
-    padding: clamp(0.78rem, 1.8vw, 1.05rem);
-    border-radius: calc(var(--ui-radius-lg) + 0.1rem);
-    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 26%, transparent);
-    background: var(--theme-surface-glass-strong);
-    box-shadow: var(--theme-elevation-polished);
+    gap: clamp(0.58rem, 1.3vw, var(--theme-space-md));
+    padding: clamp(0.68rem, 1.45vw, 0.95rem);
+    border-radius: calc(var(--theme-overlay-plate-radius, var(--ui-radius-lg)) + 0.08rem);
+    border: var(--gameplay-overlay-border, var(--theme-overlay-plate-border, 1px solid color-mix(in srgb, var(--theme-gold-bright) 26%, transparent)));
+    background:
+        radial-gradient(ellipse 92% 58% at 50% 0%, rgba(255, 232, 190, 0.055), transparent 58%),
+        var(--gameplay-overlay-surface, var(--theme-surface-glass-strong));
+    box-shadow: var(--gameplay-overlay-shadow, var(--theme-overlay-plate-shadow, var(--theme-elevation-polished)));
     overflow: hidden;
 }
 
@@ -31,8 +31,8 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: var(--theme-space-xl);
-    padding-bottom: var(--theme-space-md);
+    gap: var(--theme-space-lg);
+    padding-bottom: clamp(0.52rem, 1vw, var(--theme-space-md));
     border-bottom: 1px solid color-mix(in srgb, var(--theme-gold-bright) 12%, transparent);
 }
 
@@ -103,7 +103,7 @@
     overflow-y: auto;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--theme-space-md);
+    gap: clamp(0.58rem, 1vw, var(--theme-space-md));
     padding-right: 0.1rem;
 }
 
@@ -111,9 +111,9 @@
     min-width: 0;
     display: grid;
     align-content: start;
-    gap: 0.48rem;
-    padding: var(--ui-card-pad-md);
-    border-radius: var(--ui-radius-md);
+    gap: 0.38rem;
+    padding: clamp(0.7rem, 1.1vw, var(--ui-card-pad-md));
+    border-radius: calc(var(--ui-radius-md) - 0.04rem);
     border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 18%, transparent);
     background: var(--theme-surface-glass);
     box-shadow: var(--theme-elevation-soft);
@@ -180,7 +180,7 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--theme-space-lg);
-    padding-top: var(--theme-space-md);
+    padding-top: clamp(0.52rem, 1vw, var(--theme-space-md));
     border-top: 1px solid color-mix(in srgb, var(--theme-gold-bright) 10%, transparent);
 }
 
@@ -193,16 +193,17 @@
     text-align: left;
 }
 
+.footerActions .rerollButton {
+    width: min(14rem, 100%);
+}
+
 .rerollButton small {
     color: var(--theme-text-muted);
     font-size: 0.72rem;
 }
 
 .footerActions {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: var(--ui-footer-action-gap);
+    width: 100%;
 }
 
 :global([data-reduce-motion='true']) .overlay {
@@ -211,14 +212,17 @@
 
 @media (max-width: 760px) {
     .overlay {
-        align-items: stretch;
+        align-items: flex-end;
         padding: max(0.55rem, env(safe-area-inset-top, 0px)) max(0.55rem, env(safe-area-inset-right, 0px))
             max(0.55rem, env(safe-area-inset-bottom, 0px)) max(0.55rem, env(safe-area-inset-left, 0px));
     }
 
     .shell {
-        max-height: 100%;
+        width: 100%;
+        max-height: min(calc(100dvh - 0.8rem), calc(100svh - 0.8rem));
         gap: var(--theme-space-md);
+        border-bottom-left-radius: max(var(--ui-radius-lg), env(safe-area-inset-bottom, 0px));
+        border-bottom-right-radius: max(var(--ui-radius-lg), env(safe-area-inset-bottom, 0px));
     }
 
     .header,
@@ -236,12 +240,12 @@
         grid-template-columns: 1fr;
     }
 
-    .footerActions {
-        flex-direction: column;
-    }
-
     .footerActions :global(button),
     .rerollButton {
+        width: 100%;
+    }
+
+    .footerActions .rerollButton {
         width: 100%;
     }
 }

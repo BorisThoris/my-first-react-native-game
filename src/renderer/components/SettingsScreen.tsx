@@ -33,7 +33,7 @@ import {
     uiSfxGainFromSettings
 } from '../audio/uiSfx';
 import { useAppStore } from '../store/useAppStore';
-import { Eyebrow, Panel, ScreenTitle, UiButton } from '../ui';
+import { Eyebrow, OverlayActionDock, Panel, ScreenTitle, UiButton } from '../ui';
 import { pairProximityUiStrings } from '../ui/strings/pairProximityUi';
 import packageJson from '../../../package.json';
 import { GAMEPLAY_VISUAL_CSS_VARS } from './gameplayVisualConfig';
@@ -313,8 +313,7 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
     const activeCategoryMeta = SETTINGS_CATEGORIES.find((item) => item.id === activeCategory) ?? SETTINGS_CATEGORIES[0];
     const subsectionOptions = SETTINGS_SUBSECTIONS[activeCategory];
     /** Wide-short (e.g. 1280×720): one subsection at a time so the right column scroll region stays usable with full Gameplay subsections. */
-    const subsectionOneAtATime =
-        compactDisclosure || (wideShortDesktopShell && subsectionOptions.length > 1);
+    const subsectionOneAtATime = subsectionOptions.length > 1;
     const showSubsectionNav = subsectionOneAtATime && subsectionOptions.length > 1;
     const showSubsection = (id: SettingsSubsection): boolean =>
         !subsectionOneAtATime || activeSubsection === id;
@@ -507,8 +506,9 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                                         <p className={styles.headerCopy}>{activeCategoryMeta.note}</p>
                                         <div className={styles.controlCenterStrip} data-testid="settings-control-center-strip">
                                             {controlCenterRows.map((row) => (
-                                                <span key={row.id}>
-                                                    {row.label}<strong>{row.value}</strong>
+                                                <span className={styles.controlCenterRow} key={row.id}>
+                                                    <span>{row.label}</span>
+                                                    <strong>{row.value}</strong>
                                                 </span>
                                             ))}
                                         </div>
@@ -867,23 +867,25 @@ const SettingsScreen = ({ presentation = 'page' }: SettingsScreenProps) => {
                                     </div>
 
                                     <footer className={styles.footer} data-testid="settings-shell-footer">
-                                        <div className={styles.footerActions}>
-                                            <UiButton
-                                                onClick={handleBack}
-                                                size={footerButtonSize}
-                                                variant="secondary"
-                                            >
-                                                Back
-                                            </UiButton>
-                                            <UiButton
-                                                disabled={!isDirty}
-                                                onClick={handleSave}
-                                                size={footerButtonSize}
-                                                variant={isDirty ? 'primary' : 'secondary'}
-                                            >
-                                                Save
-                                            </UiButton>
-                                        </div>
+                                        <OverlayActionDock
+                                            actions={[
+                                                {
+                                                    label: 'Back',
+                                                    onClick: handleBack,
+                                                    variant: 'secondary'
+                                                },
+                                                {
+                                                    disabled: !isDirty,
+                                                    label: 'Save',
+                                                    onClick: handleSave,
+                                                    variant: 'primary'
+                                                }
+                                            ]}
+                                            className={styles.footerActions}
+                                            placement="dock"
+                                            size={footerButtonSize}
+                                            testId="settings-action-dock"
+                                        />
                                     </footer>
                                 </div>
                             </div>

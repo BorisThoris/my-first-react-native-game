@@ -37,8 +37,8 @@
     flex-wrap: wrap;
     align-items: flex-start;
     justify-content: space-between;
-    gap: var(--theme-space-xl);
-    padding-bottom: var(--theme-space-xs);
+    gap: var(--theme-space-lg);
+    padding-bottom: var(--theme-space-sm);
     border-bottom: 1px solid color-mix(in srgb, var(--theme-gold-bright) 10%, transparent);
 }
 
@@ -51,7 +51,7 @@
 .subtitle {
     margin: 0;
     color: var(--theme-text-muted);
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     line-height: 1.45;
     text-wrap: balance;
 }
@@ -61,7 +61,7 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
-    gap: max(var(--theme-space-lg), calc(var(--ui-shell-screen-gap) * 0.92));
+    gap: max(var(--theme-space-md), calc(var(--ui-shell-screen-gap) * 0.78));
     width: min(1200px, 100%);
     margin: 0 auto;
     overflow-x: hidden;
@@ -80,8 +80,8 @@
 .inPageToc {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--theme-space-xs);
-    padding: var(--theme-space-2xs) 0 var(--theme-space-sm);
+    gap: 0.42rem;
+    padding: 0.28rem 0 0.48rem;
     border-bottom: 1px solid var(--theme-divider-hairline);
     position: sticky;
     top: 0;
@@ -97,7 +97,7 @@
     align-items: center;
     justify-content: center;
     min-height: var(--ui-touch-target-min);
-    padding: 0.24rem 0.7rem;
+    padding: 0.22rem 0.62rem;
     border-radius: var(--ui-radius-pill);
     border: 1px solid var(--theme-card-border-polished);
     background: var(--theme-surface-control);
@@ -215,8 +215,14 @@
 
 .modalInnerDesk .header {
     padding: 0.2rem 0.2rem 0;
-    align-items: stretch;
+    align-items: flex-start;
     gap: 0.9rem;
+}
+
+.modalInnerDesk .header :global(button) {
+    width: auto;
+    min-width: 7rem;
+    align-self: center;
 }
 
 .modalInnerDesk .headerText {

@@ -131,11 +131,15 @@ const MainMenu = ({
     };
 
     const howToPanel = showHowToPlay ? (
-        <Panel className={styles.supportPanel} padding="lg" variant="accent">
-            <Eyebrow tone="tight">How To Play</Eyebrow>
-            <ScreenTitle as="h2" className={styles.supportHeading} role="screen">
-                Read, match, and protect the streak
-            </ScreenTitle>
+        <Panel className={styles.supportPanel} padding="md" variant="accent">
+            <details className={styles.helpDisclosure}>
+                <summary>
+                    <span>
+                        <Eyebrow tone="tight">How To Play</Eyebrow>
+                        <strong className={styles.supportHeading}>Read, match, and protect the streak</strong>
+                    </span>
+                    <span className={styles.helpSummaryAction}>Open</span>
+                </summary>
             <p className={styles.emptyState}>Skippable/replayable help center · guided prompts continue inside the first run.</p>
             <div className={styles.howToGrid} data-testid="main-menu-help-center">
                 {helpCenterRows.map((row) => (
@@ -155,6 +159,7 @@ const MainMenu = ({
             >
                 Dismiss
             </UiButton>
+            </details>
         </Panel>
     ) : null;
 

@@ -39,7 +39,6 @@ export const MAX_GUARD_TOKENS = 2;
 export const MAX_COMBO_SHARDS = 2;
 export const INITIAL_SHUFFLE_CHARGES = 1;
 export const INITIAL_REGION_SHUFFLE_CHARGES = 1;
-export const MAX_DESTROY_PAIR_BANK = 2;
 export const MAX_PINNED_TILES = 3;
 
 /** Bonus score when the floor is cleared without shuffle or destroy (per-floor). */

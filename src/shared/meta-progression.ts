@@ -255,31 +255,20 @@ export const getCosmeticTrackDefinitionRows = (save: SaveData): CosmeticTrackRow
         owned: cosmeticIsOwned(save, 'title_ascendant_v') ? 1 : 0,
         progress: { current: Math.min(save.playerStats?.bestFloorNoPowers ?? 0, 5), target: 5 },
         gameplayAffecting: false
-    },
-    {
-        trackId: 'relic',
-        cosmeticId: 'card_back_relic_gold',
-        label: COSMETIC_CATALOG.card_back_relic_gold.label,
-        status: legacyStatus(cosmeticIsOwned(save, 'card_back_relic_gold'), totalRelicPicks(save), 10),
-        owned: cosmeticIsOwned(save, 'card_back_relic_gold') ? 1 : 0,
-        progress: { current: Math.min(totalRelicPicks(save), 10), target: 10 },
-        gameplayAffecting: false
     }
 ];
 
 /** Aggregate owned/total per track for collection UI. Lives here to avoid a cosmetics ↔ meta-progression import cycle. */
 export const getCosmeticTrackProgressSummary = (save: SaveData) => {
     const legacyRows = getCosmeticTrackDefinitionRows(save);
-    const trackIds = ['starter', 'daily', 'mastery', 'relic'] as const;
+    const trackIds = ['starter', 'daily', 'mastery'] as const;
     return trackIds.map((trackId) => {
         const matching =
             trackId === 'starter'
                 ? deriveCosmeticStates(save).filter((row) => row.defaultOwned)
                 : trackId === 'daily'
                   ? legacyRows.filter((row) => row.cosmeticId === 'crest_daily_bronze')
-                  : trackId === 'mastery'
-                    ? legacyRows.filter((row) => row.cosmeticId === 'title_ascendant_v')
-                    : legacyRows.filter((row) => row.cosmeticId === 'card_back_relic_gold');
+                  : legacyRows.filter((row) => row.cosmeticId === 'title_ascendant_v');
         return {
             trackId,
             owned: matching.filter((row) => row.status === 'owned').length,

@@ -60,24 +60,21 @@ vi.mock('../store/useAppStore', async () => {
 });
 
 describe('ChooseYourPathScreen REG-010 discoverability', () => {
-    it('defaults to a quiet Classic Run launcher with browse content hidden', () => {
+    it('defaults to a Classic Run launcher with browse content open', () => {
         render(<ChooseYourPathScreen />);
 
         const launcher = screen.getByTestId('choose-path-launcher');
         expect(launcher).toHaveTextContent(/Classic Run/);
         expect(launcher).toHaveTextContent(/clean dungeon descent/i);
         expect(screen.getByRole('button', { name: /start run/i })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /browse modes/i })).toBeInTheDocument();
-        expect(screen.queryByTestId('choose-path-more-modes')).not.toBeInTheDocument();
-        expect(screen.queryByTestId('choose-path-offline-note')).not.toBeInTheDocument();
-        expect(screen.queryByText(/Endless Mode/)).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /hide modes/i })).toBeInTheDocument();
+        expect(screen.getByTestId('choose-path-more-modes')).toBeInTheDocument();
+        expect(screen.getByTestId('choose-path-offline-note')).toBeInTheDocument();
+        expect(screen.getByText(/Endless Mode/)).toBeInTheDocument();
     });
 
-    it('shows browse/search/page and locked-mode copy only after opening Browse modes', async () => {
-        const user = userEvent.setup();
+    it('shows browse/search/page and locked-mode copy by default', () => {
         render(<ChooseYourPathScreen />);
-
-        await user.click(screen.getByRole('button', { name: /browse modes/i }));
 
         const library = screen.getByTestId('choose-path-more-modes');
         expect(library).toHaveTextContent(/Daily Challenge/);
@@ -95,7 +92,6 @@ describe('ChooseYourPathScreen REG-010 discoverability', () => {
         const user = userEvent.setup();
         render(<ChooseYourPathScreen />);
 
-        await user.click(screen.getByRole('button', { name: /browse modes/i }));
         await user.click(screen.getByTestId('choose-path-dungeon-showcase'));
 
         expect(screen.getByText(/Dungeon preview/i)).toBeInTheDocument();

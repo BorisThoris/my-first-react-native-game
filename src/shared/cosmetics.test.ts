@@ -19,29 +19,33 @@ describe('REG-025 cosmetics catalog', () => {
         expect(Object.keys(COSMETIC_CATALOG)).toEqual(expect.arrayContaining([
             'crest_daily_bronze',
             'title_ascendant_v',
-            'card_back_relic_gold'
+            'card_back_classic'
         ] satisfies CosmeticId[]));
         expect(unlockedCosmeticIds(save)).toEqual(['crest_daily_bronze', 'title_ascendant_v']);
 
         const rows = getCosmeticRows(save);
         expect(rows.find((row) => row.id === 'crest_daily_bronze')?.status).toBe('owned');
         expect(rows.find((row) => row.id === 'title_ascendant_v')?.status).toBe('owned');
-        expect(rows.find((row) => row.id === 'card_back_relic_gold')?.status).toBe('locked');
+        expect(rows.some((row) => row.label.includes('Relic Gold'))).toBe(false);
         expect(rows.every((row) => row.gameplayAffecting === false)).toBe(true);
     });
 
-    it('REG-066 exposes card-back theme ownership, equipped fallback, and asset fallback contract', () => {
+    it('REG-066 exposes one shared equipped card-back theme', () => {
         const save = createDefaultSaveData();
-        save.unlocks = ['cosmetic:card_back_relic_gold'];
+        save.unlocks = ['cosmetic:obsolete_card_back'];
 
-        expect(Object.keys(CARD_THEME_CATALOG)).toEqual(['card_back_classic', 'card_back_relic_gold']);
+        expect(Object.keys(CARD_THEME_CATALOG)).toEqual(['card_back_classic']);
         expect(resolveEquippedCardTheme(save).id).toBe('classic_card_back');
-        expect(resolveEquippedCardTheme(save).asset.back).toBe('/src/renderer/assets/textures/cards/back.svg');
+        expect(resolveEquippedCardTheme(save).asset.back).toBe('/src/renderer/assets/textures/cards/authored-card-back.svg');
 
         const rows = getCardThemeRows(save);
-        expect(rows.find((row) => row.id === 'classic_card_back')?.equipped).toBe(true);
-        expect(rows.find((row) => row.id === 'relic_gold_card_back')?.status).toBe('owned');
-        expect(rows.find((row) => row.id === 'relic_gold_card_back')?.asset.back).toBe('/src/renderer/assets/textures/cards/back.svg');
+        expect(rows).toHaveLength(1);
+        expect(rows[0]).toMatchObject({
+            id: 'classic_card_back',
+            equipped: true,
+            asset: { back: '/src/renderer/assets/textures/cards/authored-card-back.svg' }
+        });
+        expect(rows[0]?.readability).toContain('same shared back');
     });
 
     it('REG-080 maps cosmetics onto a local visual-only progression track', () => {
@@ -49,7 +53,7 @@ describe('REG-025 cosmetics catalog', () => {
         save.unlocks = ['cosmetic:crest_daily_bronze'];
 
         const rows = getCosmeticTrackRows(save);
-        expect(rows.map((row) => row.trackId)).toEqual(['starter', 'daily', 'mastery', 'relic']);
+        expect(rows.map((row) => row.trackId)).toEqual(['starter', 'daily', 'mastery']);
         expect(rows.find((row) => row.trackId === 'daily')?.owned).toBe(1);
         expect(rows.every((row) => row.gameplayAffecting === false)).toBe(true);
     });

@@ -52,7 +52,7 @@ Earlier sections of this log listed **`PLAY-*`** IDs as completed during impleme
 
 | Namespace | IDs | Notes |
 |-----------|-----|--------|
-| **Card textures (implementation milestone)** | authored SVG pipeline | Shipped `authored-card-back.svg` / `authored-card-front.svg`; `TILE_TEXTURE_VERSION` 30; motif pivots in `cardArt/constants.ts`. **Open mock parity** remains **`PLAY-007`** in [`PLAYING_ENDPRODUCT/05-cards.md`](./PLAYING_ENDPRODUCT/05-cards.md). |
+| **Card textures (implementation milestone)** | shared SVG pipeline | Shipped one shared `authored-card-back.svg` plus face/front texture support; `TILE_TEXTURE_VERSION` 30; motif pivots in `cardArt/constants.ts`. **Open mock parity** remains **`PLAY-007`** in [`PLAYING_ENDPRODUCT/05-cards.md`](./PLAYING_ENDPRODUCT/05-cards.md). |
 | **META / OVR** | `META-009`, `OVR-011`, `OVR-012` | Distinct pause / floor / relic header tones + SR copy (`OverlayModal`, `GameScreen`) |
 | **E2E** | `E2E-004`, `E2E-005` | `e2e/a11y-toast-gameover.spec.ts`; dev sandbox `unlockAchievements` |
 | **HUD** | `HUD-016` | `src/renderer/dev/hudFixtures.ts` + Vitest smoke |

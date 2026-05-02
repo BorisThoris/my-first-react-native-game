@@ -170,6 +170,10 @@
     gap: var(--gameplay-shell-gap, 0.42rem);
 }
 
+.shell:not([data-mobile-camera-mode='true']) .mainGameColumn {
+    isolation: isolate;
+}
+
 .leftToolbar {
     position: relative;
     flex: 0 0 auto;
@@ -605,8 +609,8 @@
 
 .floorClearResultStack {
     display: grid;
-    gap: 0.42rem;
-    margin-bottom: 0.62rem;
+    gap: 0.38rem;
+    margin-bottom: 0.48rem;
 }
 
 .floorClearResultStack .modalNote {
@@ -614,7 +618,7 @@
 }
 
 .floorClearResultStack[data-route-choice-required='true'] {
-    max-height: min(19rem, 34dvh);
+    max-height: min(11.5rem, 24dvh);
     overflow-y: auto;
     padding-right: 0.16rem;
 }
@@ -768,9 +772,9 @@
 
 .dungeonMapChoicePanel {
     display: grid;
-    gap: 0.58rem;
-    margin: 0.65rem 0;
-    padding: 0.74rem;
+    gap: 0.46rem;
+    margin: 0.44rem 0;
+    padding: 0.64rem;
     border: 1px solid color-mix(in srgb, var(--theme-cyan-bright) 24%, var(--theme-border-strong));
     border-radius: 8px;
     background:
@@ -783,7 +787,7 @@
 
 .dungeonMapChoiceHeader {
     display: grid;
-    gap: 0.08rem;
+    gap: 0.04rem;
 }
 
 .dungeonMapChoiceHeader span {
@@ -809,7 +813,7 @@
 
 .dungeonMapChoiceInstruction {
     margin: 0;
-    padding: 0.42rem 0.54rem;
+    padding: 0.34rem 0.48rem;
     border: 1px solid color-mix(in srgb, var(--theme-cyan-bright) 22%, transparent);
     border-radius: 8px;
     background: color-mix(in srgb, var(--theme-cyan) 9%, var(--theme-void));
@@ -824,7 +828,7 @@
     align-items: center;
     gap: 0.36rem;
     overflow-x: auto;
-    padding: 0.42rem;
+    padding: 0.34rem;
     border-radius: 8px;
     background: color-mix(in srgb, var(--theme-void) 34%, transparent);
 }
@@ -879,7 +883,7 @@
 .dungeonMapChoiceActions {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.5rem;
+    gap: 0.42rem;
 }
 
 .dungeonMapRoomButton {
@@ -889,9 +893,9 @@
     grid-template-areas:
         'glyph copy'
         'risk risk';
-    gap: 0.34rem 0.48rem;
-    min-height: 8.2rem;
-    padding: 0.62rem;
+    gap: 0.28rem 0.42rem;
+    min-height: 7.35rem;
+    padding: 0.54rem;
     border: 1px solid color-mix(in srgb, var(--theme-cyan-bright) 20%, var(--theme-border-strong));
     border-radius: 8px;
     background:
@@ -2597,13 +2601,23 @@
 /* REG-002: desktop stage density — avoid a board floating in an oversized frame on 1366×768+.
    Mobile camera keeps its full-bleed rules below; this applies only to the non-camera desktop/tablet layout. */
 .shell:not([data-mobile-camera-mode='true']) .boardStage {
-    max-width: min(100%, 86rem);
-    margin-inline: auto;
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    z-index: 0;
     --gameplay-stage-dais-bottom: -10%;
-    --gameplay-stage-dais-width: min(82%, 44rem);
+    --gameplay-stage-dais-width: min(86%, 62rem);
     --gameplay-stage-dais-height: 36%;
     --gameplay-stage-ring-bottom: -9%;
-    --gameplay-stage-ring-size: min(88%, 48rem);
+    --gameplay-stage-ring-size: min(92%, 66rem);
     --gameplay-stage-ring-opacity: 0.24;
 }
 
@@ -2955,6 +2969,30 @@
 .boardStage > :global(*) {
     position: relative;
     z-index: 1;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudRow,
+.shell:not([data-mobile-camera-mode='true']) .actionDock {
+    z-index: 6;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .actionDock {
+    position: absolute;
+    left: 50%;
+    bottom: max(0.36rem, env(safe-area-inset-bottom, 0px));
+    width: fit-content;
+    max-width: calc(100% - 1rem);
+    margin: 0;
+    transform: translateX(-50%);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .routeCardBanner,
+.shell:not([data-mobile-camera-mode='true']) .dungeonStatusPanel,
+.shell:not([data-mobile-camera-mode='true']) .playableOnboardingPrompt,
+.shell:not([data-mobile-camera-mode='true']) .matchScoreFloater,
+.shell:not([data-mobile-camera-mode='true']) .mismatchScoreFloater,
+.shell:not([data-mobile-camera-mode='true']) .distractionHud {
+    z-index: 7;
 }
 
 .playableOnboardingPrompt {
@@ -3442,6 +3480,25 @@
     gap: var(--gameplay-shell-gap, 0.5rem);
 }
 
+.shell:not([data-mobile-camera-mode='true']) .gameForeground {
+    padding: 0;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudRow {
+    box-sizing: border-box;
+    padding:
+        var(--gameplay-shell-block-pad, 0.36rem)
+        var(--gameplay-shell-inline-pad, clamp(0.3rem, 0.8vw, 0.58rem))
+        0;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .gambitOpportunityHint,
+.shell:not([data-mobile-camera-mode='true']) .endlessChapterBanner,
+.shell:not([data-mobile-camera-mode='true']) .dungeonRunStrip {
+    position: relative;
+    z-index: 6;
+}
+
 .leftToolbar,
 .floatingDeck {
     background: var(--gameplay-chrome-surface, var(--theme-surface-glass-strong));
@@ -3507,6 +3564,215 @@
     box-shadow: var(--theme-focus-ring);
 }
 
+/* AI-HUD-001: first concept pass — forged obsidian command bar over the full-bleed board. */
+.shell:not([data-mobile-camera-mode='true']) .hudDeck {
+    width: min(96vw, 78rem);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudDeck.floatingDeck {
+    padding: 0.28rem 0.38rem 0.36rem;
+    border-radius: calc(var(--ui-radius-md) + 0.14rem);
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 24%, transparent);
+    background:
+        radial-gradient(ellipse 42% 160% at 50% -16%, color-mix(in srgb, var(--theme-gold-bright) 16%, transparent), transparent 58%),
+        radial-gradient(ellipse 70% 140% at 50% 115%, color-mix(in srgb, var(--theme-cyan-bright) 7%, transparent), transparent 62%),
+        linear-gradient(180deg, color-mix(in srgb, var(--theme-stone-highlight) 13%, transparent), transparent 38%),
+        color-mix(in srgb, var(--theme-void) 82%, transparent);
+    box-shadow:
+        0 18px 42px color-mix(in srgb, var(--theme-shadow) 42%, transparent),
+        0 0 0 1px color-mix(in srgb, var(--theme-shadow) 36%, transparent),
+        0 0 34px color-mix(in srgb, var(--theme-glow-gold-soft) 12%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--theme-text) 7%, transparent),
+        inset 0 -1px 0 color-mix(in srgb, var(--theme-gold-deep) 22%, transparent);
+    backdrop-filter: blur(calc(var(--game-deck-blur) * 0.78)) saturate(1.16);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudDeckDualRow {
+    gap: 0.2rem;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudDeckDualRow::before {
+    inset: -0.08rem;
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 22%, transparent);
+    background:
+        linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--theme-gold-bright) 18%, transparent) 50%, transparent 100%) top / 100% 1px no-repeat,
+        linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--theme-cyan-bright) 10%, transparent) 50%, transparent 100%) bottom / 100% 1px no-repeat,
+        radial-gradient(ellipse 68% 180% at 50% 0%, color-mix(in srgb, var(--theme-gold-bright) 7%, transparent), transparent 58%);
+    box-shadow:
+        inset 0 1px 0 color-mix(in srgb, var(--theme-text) 5%, transparent),
+        inset 0 -1px 0 color-mix(in srgb, var(--theme-shadow) 36%, transparent),
+        0 0 0 1px color-mix(in srgb, var(--theme-gold-deep) 18%, transparent);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudDeckDualRow::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: -0.2rem;
+    z-index: 2;
+    width: min(10rem, 22%);
+    height: 0.22rem;
+    transform: translateX(-50%);
+    border-radius: var(--ui-radius-pill);
+    background: linear-gradient(
+        90deg,
+        transparent,
+        color-mix(in srgb, var(--theme-gold-bright) 34%, transparent) 28%,
+        color-mix(in srgb, var(--theme-gold-bright) 72%, transparent) 50%,
+        color-mix(in srgb, var(--theme-gold-bright) 34%, transparent) 72%,
+        transparent
+    );
+    box-shadow: 0 0 18px color-mix(in srgb, var(--theme-glow-gold-soft) 42%, transparent);
+    pointer-events: none;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudPrimaryStatsRow {
+    grid-template-columns: minmax(18rem, 1fr) auto minmax(13rem, 0.62fr) auto minmax(12rem, 1fr);
+    padding-inline: 0.04rem;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudSegment,
+.shell:not([data-mobile-camera-mode='true']) .statPillCompact {
+    border-radius: calc(var(--ui-radius-sm) - 0.04rem);
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 12%, transparent);
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--theme-text) 4%, transparent), transparent 52%),
+        color-mix(in srgb, var(--theme-void) 42%, transparent);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .floorBadgeHexFrame {
+    padding-inline: 0.2rem;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .floorBadge {
+    min-width: 3.6rem;
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 34%, transparent);
+    background:
+        radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--theme-gold-bright) 12%, transparent), transparent 62%),
+        color-mix(in srgb, var(--theme-void) 52%, transparent);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudLivesSegment {
+    min-width: 8.6rem;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudShardsSegment {
+    min-width: 5.4rem;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudScoreSegment {
+    min-width: 13rem;
+    border-radius: calc(var(--ui-radius-md) + 0.06rem);
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 58%, var(--theme-gold-deep));
+    background:
+        url('../assets/ui/frames/hud-segment-ornament.svg') center -8px / 184px 62px no-repeat,
+        radial-gradient(ellipse 82% 120% at 50% 4%, color-mix(in srgb, var(--theme-gold-bright) 22%, transparent), transparent 58%),
+        radial-gradient(ellipse 110% 120% at 50% 100%, color-mix(in srgb, var(--theme-cyan-bright) 8%, transparent), transparent 62%),
+        linear-gradient(180deg, color-mix(in srgb, var(--theme-gold-deep) 18%, transparent), transparent 48%),
+        color-mix(in srgb, var(--theme-void) 62%, transparent);
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--theme-gold-bright) 18%, transparent),
+        0 0 34px color-mix(in srgb, var(--theme-glow-gold-soft) 38%, transparent),
+        0 16px 32px color-mix(in srgb, var(--theme-shadow) 36%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--theme-text) 9%, transparent),
+        inset 0 -1px 0 color-mix(in srgb, var(--theme-gold-deep) 28%, transparent);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .statValScore {
+    font-size: clamp(1.88rem, 2.8vw, 2.45rem);
+    letter-spacing: 0.02em;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudContextSecondaryStrip {
+    justify-content: center;
+    padding: 0.02rem 0.1rem 0.02rem;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudContextSecondaryStrip::after {
+    left: 0.24rem;
+    right: 0.24rem;
+    top: 0.02rem;
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 9%, transparent);
+    background:
+        linear-gradient(90deg, color-mix(in srgb, var(--theme-cyan-bright) 5%, transparent), transparent 28%, transparent 72%, color-mix(in srgb, var(--theme-cyan-bright) 5%, transparent)),
+        color-mix(in srgb, var(--theme-void) 32%, transparent);
+    opacity: 0.74;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudDeck .hudContextSecondaryStrip .hudMetaSegment,
+.shell:not([data-mobile-camera-mode='true']) .hudContextSecondaryStrip .statPillCompact {
+    opacity: 0.9;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudDeck .hudContextSecondaryStrip .hudMetaSegment {
+    flex: 1 1 24rem;
+    max-width: 35rem;
+    background: transparent;
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 7%, transparent);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudContextSecondaryStrip .statPillCompact {
+    min-width: 4.2rem;
+    background: color-mix(in srgb, var(--theme-void) 30%, transparent);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudTertiaryDetails > summary {
+    min-height: 2rem;
+    border-color: color-mix(in srgb, var(--theme-cyan-bright) 16%, transparent);
+    background: color-mix(in srgb, var(--theme-cyan-deep) 9%, transparent);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .actionDock {
+    bottom: max(0.58rem, env(safe-area-inset-bottom, 0px));
+    padding: 0.38rem clamp(0.58rem, 1vw, 0.8rem);
+    border-radius: calc(var(--ui-radius-md) + 0.04rem);
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 28%, transparent);
+    background:
+        radial-gradient(ellipse 52% 150% at 50% -10%, color-mix(in srgb, var(--theme-gold-bright) 12%, transparent), transparent 60%),
+        linear-gradient(180deg, color-mix(in srgb, var(--theme-stone-highlight) 12%, transparent), transparent 46%),
+        color-mix(in srgb, var(--theme-void) 76%, transparent);
+    box-shadow:
+        0 18px 42px color-mix(in srgb, var(--theme-shadow) 44%, transparent),
+        0 0 30px color-mix(in srgb, var(--theme-glow-gold-soft) 13%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--theme-text) 7%, transparent),
+        inset 0 -1px 0 color-mix(in srgb, var(--theme-gold-deep) 24%, transparent);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .actionDock::before {
+    inset: 0.18rem;
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 13%, transparent);
+    background:
+        linear-gradient(90deg, transparent, color-mix(in srgb, var(--theme-gold-bright) 12%, transparent), transparent),
+        repeating-linear-gradient(90deg, transparent 0 2.65rem, color-mix(in srgb, var(--theme-cyan-bright) 5%, transparent) 2.65rem 2.72rem);
+    opacity: 0.72;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .iconAction {
+    border-radius: calc(var(--ui-radius-sm) - 0.04rem);
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 18%, transparent);
+    background:
+        radial-gradient(circle at 50% 18%, color-mix(in srgb, var(--theme-gold-bright) 10%, transparent), transparent 56%),
+        linear-gradient(180deg, color-mix(in srgb, var(--theme-text) 5%, transparent), transparent 58%),
+        color-mix(in srgb, var(--theme-void) 50%, transparent);
+    box-shadow:
+        inset 0 1px 0 color-mix(in srgb, var(--theme-text) 5%, transparent),
+        inset 0 -1px 0 color-mix(in srgb, var(--theme-shadow) 18%, transparent),
+        0 8px 18px color-mix(in srgb, var(--theme-shadow) 24%, transparent);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .iconAction:hover:not(:disabled),
+.shell:not([data-mobile-camera-mode='true']) .iconActionActive {
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 52%, transparent);
+    background:
+        radial-gradient(circle at 50% 18%, color-mix(in srgb, var(--theme-gold-bright) 18%, transparent), transparent 58%),
+        linear-gradient(180deg, color-mix(in srgb, var(--theme-gold-deep) 18%, transparent), transparent 58%),
+        color-mix(in srgb, var(--theme-void) 54%, var(--theme-gold-deep) 12%);
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--theme-gold-bright) 14%, transparent),
+        0 0 18px color-mix(in srgb, var(--theme-glow-gold-soft) 44%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--theme-text) 8%, transparent);
+}
+
 .boardStage {
     border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 16%, transparent);
     box-shadow:
@@ -3515,6 +3781,600 @@
         inset 0 28px 90px color-mix(in srgb, var(--theme-shadow) 38%, transparent),
         0 24px 58px color-mix(in srgb, var(--theme-shadow) 26%, transparent),
         0 0 48px color-mix(in srgb, var(--theme-glow-cyan-soft) 16%, transparent);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .boardStage {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    z-index: 0;
+}
+
+/* UIL-001: gameplay HTML layer v2. The board is the full-screen canvas; HUD chrome is a set of
+   independent islands above it, not one central dashboard box. */
+.shell:not([data-mobile-camera-mode='true']) [data-html-ui-layer='gameplay-chrome-v2'] {
+    --gameplay-html-edge-pad: clamp(0.55rem, 1.15vw, 1rem);
+    --gameplay-island-surface:
+        radial-gradient(ellipse 120% 180% at 50% -28%, color-mix(in srgb, var(--theme-gold-bright) 13%, transparent), transparent 58%),
+        linear-gradient(180deg, color-mix(in srgb, var(--theme-text) 5%, transparent), transparent 52%),
+        color-mix(in srgb, var(--theme-void) 70%, transparent);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudRow {
+    padding: var(--gameplay-html-edge-pad) var(--gameplay-html-edge-pad) 0;
+    pointer-events: none;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudRow > * {
+    pointer-events: auto;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudDeck {
+    width: min(calc(100vw - (var(--gameplay-html-edge-pad) * 2)), 88rem);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudDeck.floatingDeck {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudDeckDualRow {
+    display: grid;
+    grid-template-rows: auto auto;
+    gap: 0.34rem;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudDeckDualRow::before,
+.shell:not([data-mobile-camera-mode='true']) .hudDeckDualRow::after {
+    content: none;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudPrimaryStatsRow {
+    grid-template-columns: minmax(14rem, 1fr) auto minmax(14rem, 1fr);
+    gap: clamp(0.44rem, 1vw, 0.9rem);
+    align-items: start;
+    padding: 0;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudStripDivider {
+    display: none;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudStripLeftModule,
+.shell:not([data-mobile-camera-mode='true']) .hudStripScoreModule,
+.shell:not([data-mobile-camera-mode='true']) .hudStripRightModule {
+    min-height: 0;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudStripLeftModule {
+    justify-self: start;
+    max-width: min(30rem, 34vw);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudStripScoreModule {
+    justify-self: center;
+    min-width: min(20rem, 30vw);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudStripRightModule {
+    justify-self: end;
+    max-width: min(31rem, 36vw);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudSegment,
+.shell:not([data-mobile-camera-mode='true']) .statPillCompact,
+.shell:not([data-mobile-camera-mode='true']) .floorBadge {
+    background: var(--gameplay-island-surface);
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 18%, transparent);
+    box-shadow:
+        0 14px 34px color-mix(in srgb, var(--theme-shadow) 34%, transparent),
+        0 0 0 1px color-mix(in srgb, var(--theme-shadow) 26%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--theme-text) 7%, transparent),
+        inset 0 -1px 0 color-mix(in srgb, var(--theme-gold-deep) 18%, transparent);
+    backdrop-filter: blur(calc(var(--game-deck-blur) * 0.58)) saturate(1.12);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudScoreSegment {
+    min-width: clamp(14rem, 22vw, 22rem);
+    padding: 0.52rem clamp(0.9rem, 1.5vw, 1.35rem) 0.62rem;
+    border-radius: calc(var(--ui-radius-md) + 0.18rem);
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 62%, var(--theme-gold-deep));
+    background:
+        url('../assets/ui/frames/hud-segment-ornament.svg') center -6px / 210px 70px no-repeat,
+        radial-gradient(ellipse 86% 130% at 50% -6%, color-mix(in srgb, var(--theme-gold-bright) 24%, transparent), transparent 58%),
+        radial-gradient(ellipse 120% 150% at 50% 118%, color-mix(in srgb, var(--theme-cyan-bright) 10%, transparent), transparent 62%),
+        color-mix(in srgb, var(--theme-void) 76%, transparent);
+    box-shadow:
+        0 20px 48px color-mix(in srgb, var(--theme-shadow) 42%, transparent),
+        0 0 38px color-mix(in srgb, var(--theme-glow-gold-soft) 42%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--theme-text) 10%, transparent),
+        inset 0 -1px 0 color-mix(in srgb, var(--theme-gold-deep) 34%, transparent);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .statValScore {
+    font-size: clamp(2.1rem, 3.3vw, 3rem);
+    line-height: 0.92;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudContextSecondaryStrip {
+    justify-self: center;
+    width: min(42vw, 32rem);
+    min-height: 0;
+    justify-content: center;
+    padding: 0.06rem 0.3rem;
+    border-radius: var(--ui-radius-pill);
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 9%, transparent);
+    background:
+        linear-gradient(90deg, transparent, color-mix(in srgb, var(--theme-void) 72%, transparent) 18%, color-mix(in srgb, var(--theme-void) 72%, transparent) 82%, transparent),
+        radial-gradient(ellipse 70% 180% at 50% 0%, color-mix(in srgb, var(--theme-cyan-bright) 7%, transparent), transparent 62%);
+    box-shadow:
+        0 12px 28px color-mix(in srgb, var(--theme-shadow) 22%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--theme-text) 4%, transparent);
+    backdrop-filter: blur(calc(var(--game-deck-blur) * 0.42)) saturate(1.04);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudContextSecondaryStrip::after {
+    content: none;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudDeck .hudContextSecondaryStrip .hudMetaSegment {
+    flex: 0 1 18rem;
+    max-width: 20rem;
+    min-height: 0;
+    padding: 0.18rem 0.38rem 0.22rem;
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudContextSecondaryStrip .statPillCompact {
+    min-width: 3.4rem;
+    min-height: 1.95rem;
+    padding: 0.18rem 0.38rem 0.2rem;
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 8%, transparent);
+    background: color-mix(in srgb, var(--theme-void) 34%, transparent);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--theme-text) 4%, transparent);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudContextSecondaryStrip .statPillCompact .statVal {
+    font-size: 0.76rem;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudDeck .hudContextSecondaryStrip .mutatorChip {
+    border-radius: var(--ui-radius-pill);
+}
+
+.shell:not([data-mobile-camera-mode='true']) [data-html-ui-layer='gameplay-actions-v2'] {
+    bottom: max(0.62rem, env(safe-area-inset-bottom, 0px));
+    max-width: min(calc(100vw - 1.2rem), 58rem);
+    padding: 0.36rem clamp(0.52rem, 1vw, 0.78rem);
+    border-radius: var(--ui-radius-pill);
+    background:
+        radial-gradient(ellipse 42% 150% at 50% -22%, color-mix(in srgb, var(--theme-gold-bright) 14%, transparent), transparent 62%),
+        linear-gradient(180deg, color-mix(in srgb, var(--theme-text) 5%, transparent), transparent 52%),
+        color-mix(in srgb, var(--theme-void) 74%, transparent);
+    box-shadow:
+        0 18px 42px color-mix(in srgb, var(--theme-shadow) 44%, transparent),
+        0 0 30px color-mix(in srgb, var(--theme-glow-gold-soft) 14%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--theme-text) 7%, transparent),
+        inset 0 -1px 0 color-mix(in srgb, var(--theme-gold-deep) 24%, transparent);
+}
+
+.shell:not([data-mobile-camera-mode='true']) [data-html-ui-layer='gameplay-actions-v2'] .actionDockGroup {
+    gap: 0.32rem;
+}
+
+.shell:not([data-mobile-camera-mode='true']) [data-html-ui-layer='gameplay-actions-v2'] .iconAction {
+    width: 2.72rem;
+    height: 2.72rem;
+    border-radius: 50%;
+}
+
+.shell:not([data-mobile-camera-mode='true']) [data-html-ui-layer='gameplay-actions-v2'] .toolbarGlyphImg {
+    width: 1.34rem;
+    height: 1.34rem;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .dungeonRunStrip {
+    position: absolute;
+    left: var(--gameplay-html-edge-pad, 0.75rem);
+    bottom: clamp(5.3rem, 9vh, 6.4rem);
+    z-index: 6;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.32rem;
+    width: min(22rem, 27vw);
+    margin: 0;
+    padding: 0.36rem;
+    border-radius: calc(var(--ui-radius-md) + 0.08rem);
+    background:
+        radial-gradient(ellipse 100% 150% at 0% 0%, color-mix(in srgb, var(--theme-cyan-bright) 10%, transparent), transparent 62%),
+        color-mix(in srgb, var(--theme-void) 68%, transparent);
+    backdrop-filter: blur(calc(var(--game-deck-blur) * 0.48)) saturate(1.08);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .dungeonRunNodeRail {
+    display: none;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .dungeonRunCurrent {
+    padding: 0.3rem 0.42rem;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .dungeonRunGlyph {
+    width: 1.85rem;
+    height: 1.85rem;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .dungeonRunIntel {
+    padding: 0.28rem 0.42rem;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .dungeonRunIntel span {
+    white-space: normal;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .dungeonStatusPanel {
+    position: absolute;
+    left: auto;
+    right: var(--gameplay-html-edge-pad, 0.75rem);
+    top: clamp(5.2rem, 10vh, 6.8rem);
+    width: min(22rem, 28vw);
+    padding: 0.42rem 0.52rem;
+    transform: none;
+    border-radius: calc(var(--ui-radius-md) + 0.08rem);
+    background:
+        radial-gradient(ellipse 100% 160% at 100% 0%, color-mix(in srgb, var(--theme-cyan-bright) 12%, transparent), transparent 62%),
+        color-mix(in srgb, var(--theme-void) 70%, transparent);
+    backdrop-filter: blur(calc(var(--game-deck-blur) * 0.5)) saturate(1.08);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .dungeonStatusHeader,
+.shell:not([data-mobile-camera-mode='true']) .dungeonStatusObjective,
+.shell:not([data-mobile-camera-mode='true']) .dungeonStatusChips {
+    gap: 0.3rem;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .dungeonStatusChips {
+    grid-template-columns: 1fr;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .routeCardBanner {
+    top: clamp(5.2rem, 10vh, 6.8rem);
+    width: min(24rem, 32vw);
+    min-width: 0;
+}
+
+/* UIL-007: minimal HUD reset. Persistent UI becomes small edge chrome; optional context lives behind Info. */
+.shell:not([data-mobile-camera-mode='true']) [data-html-ui-layer='gameplay-chrome-v2'] {
+    --gameplay-island-surface:
+        linear-gradient(180deg, color-mix(in srgb, var(--theme-text) 4%, transparent), transparent 55%),
+        color-mix(in srgb, var(--theme-void) 54%, transparent);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudDeck {
+    width: calc(100vw - (var(--gameplay-html-edge-pad) * 2));
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudDeckDualRow {
+    display: block;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudPrimaryStatsRow {
+    grid-template-columns: minmax(11rem, 21rem) minmax(9rem, auto) minmax(10rem, 21rem);
+    align-items: start;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudStripLeftModule,
+.shell:not([data-mobile-camera-mode='true']) .hudStripRightModule {
+    gap: 0.24rem;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudStripLeftModule {
+    max-width: min(21rem, 27vw);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudStripRightModule {
+    max-width: min(22rem, 28vw);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .floorBadgeHexFrame {
+    padding-inline: 0;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .floorBadgeHexSvg {
+    display: none;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudSegment,
+.shell:not([data-mobile-camera-mode='true']) .floorBadge,
+.shell:not([data-mobile-camera-mode='true']) .hudParasiteSegment {
+    min-height: 2.58rem;
+    padding: 0.24rem 0.48rem 0.28rem;
+    border-radius: calc(var(--ui-radius-sm) - 0.08rem);
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 12%, transparent);
+    background: var(--gameplay-island-surface);
+    box-shadow:
+        0 8px 22px color-mix(in srgb, var(--theme-shadow) 26%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--theme-text) 5%, transparent);
+    backdrop-filter: blur(calc(var(--game-deck-blur) * 0.35)) saturate(1.04);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .floorBadge {
+    min-width: 3rem;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .floorLabel,
+.shell:not([data-mobile-camera-mode='true']) .statKey {
+    font-size: 0.56rem;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .floorValue {
+    font-size: 1.7rem;
+    line-height: 0.92;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudLivesSegment {
+    min-width: 7.4rem;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .lifeTrack {
+    gap: 0.06rem;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudShardsSegment {
+    min-width: 4.35rem;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudScoreSegment {
+    min-width: clamp(8.5rem, 14vw, 13rem);
+    padding: 0.22rem 0.82rem 0.3rem;
+    border-radius: var(--ui-radius-pill);
+    background:
+        radial-gradient(ellipse 70% 170% at 50% -38%, color-mix(in srgb, var(--theme-gold-bright) 18%, transparent), transparent 62%),
+        color-mix(in srgb, var(--theme-void) 44%, transparent);
+    box-shadow:
+        0 10px 26px color-mix(in srgb, var(--theme-shadow) 30%, transparent),
+        0 0 22px color-mix(in srgb, var(--theme-glow-gold-soft) 22%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--theme-text) 7%, transparent);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .statValScore {
+    font-size: clamp(1.55rem, 2.4vw, 2.25rem);
+    line-height: 0.9;
+}
+
+.hudContextSummary {
+    list-style: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.9rem;
+    min-height: 2.2rem;
+    padding: 0.12rem 0.48rem;
+    border-radius: var(--ui-radius-pill);
+    border: 1px solid color-mix(in srgb, var(--theme-cyan-bright) 18%, transparent);
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--theme-text) 4%, transparent), transparent 52%),
+        color-mix(in srgb, var(--theme-void) 58%, transparent);
+    color: color-mix(in srgb, var(--theme-text-muted) 86%, var(--theme-cyan-bright));
+    font-size: 0.58rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.hudContextSummary::-webkit-details-marker {
+    display: none;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudContextSecondaryStrip {
+    position: absolute;
+    top: calc(var(--gameplay-html-edge-pad) + 0.08rem);
+    left: 50%;
+    z-index: 8;
+    display: grid;
+    justify-items: center;
+    width: auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    transform: translateX(calc(clamp(8.5rem, 14vw, 13rem) / 2 + 0.5rem));
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudContextSecondaryStrip[open] {
+    width: min(32rem, calc(100vw - 2rem));
+    justify-items: stretch;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudContextSecondaryStrip[open] .hudContextSummary {
+    justify-self: center;
+    margin-bottom: 0.34rem;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudContextSecondaryStrip .hudStripRightInnerColumn {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.4rem;
+    padding: 0.48rem;
+    border-radius: calc(var(--ui-radius-md) + 0.06rem);
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 12%, transparent);
+    background: color-mix(in srgb, var(--theme-void) 82%, transparent);
+    box-shadow: 0 18px 44px color-mix(in srgb, var(--theme-shadow) 44%, transparent);
+    backdrop-filter: blur(calc(var(--game-deck-blur) * 0.68)) saturate(1.08);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudDeck .hudContextSecondaryStrip .hudMetaSegment {
+    max-width: none;
+    padding: 0.28rem 0.36rem;
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 8%, transparent);
+    background: color-mix(in srgb, var(--theme-void) 30%, transparent);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .hudDeck .hudContextSecondaryStrip .statRail {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+
+.shell:not([data-mobile-camera-mode='true']) [data-html-ui-layer='gameplay-actions-v2'] {
+    bottom: max(0.8rem, env(safe-area-inset-bottom, 0px));
+    gap: 0.22rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+}
+
+.shell:not([data-mobile-camera-mode='true']) [data-html-ui-layer='gameplay-actions-v2']::before {
+    content: none;
+}
+
+.shell:not([data-mobile-camera-mode='true']) [data-html-ui-layer='gameplay-actions-v2'] .actionDockGroup,
+.shell:not([data-mobile-camera-mode='true']) [data-html-ui-layer='gameplay-actions-v2'] .actionDockRules {
+    padding: 0.24rem;
+    border-radius: var(--ui-radius-pill);
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 10%, transparent);
+    background: color-mix(in srgb, var(--theme-void) 42%, transparent);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--theme-shadow) 24%, transparent);
+    backdrop-filter: blur(calc(var(--game-deck-blur) * 0.42)) saturate(1.04);
+}
+
+.shell:not([data-mobile-camera-mode='true']) [data-html-ui-layer='gameplay-actions-v2'] .actionDockGroup + .actionDockGroup,
+.shell:not([data-mobile-camera-mode='true']) [data-html-ui-layer='gameplay-actions-v2'] .actionDockRules + .actionDockGroup,
+.shell:not([data-mobile-camera-mode='true']) [data-html-ui-layer='gameplay-actions-v2'] .actionDockGroup + .actionDockRules {
+    margin-left: 0;
+    padding-left: 0.24rem;
+    border-left: 1px solid color-mix(in srgb, var(--theme-gold-bright) 10%, transparent);
+}
+
+.shell:not([data-mobile-camera-mode='true']) [data-html-ui-layer='gameplay-actions-v2'] .iconAction {
+    width: 2.38rem;
+    height: 2.38rem;
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 12%, transparent);
+    background:
+        radial-gradient(circle at 50% 14%, color-mix(in srgb, var(--theme-gold-bright) 8%, transparent), transparent 58%),
+        color-mix(in srgb, var(--theme-void) 50%, transparent);
+}
+
+.shell:not([data-mobile-camera-mode='true']) .dungeonStatusPanel {
+    width: min(16rem, 20vw);
+    max-height: 2.8rem;
+    overflow: hidden;
+    opacity: 0.82;
+    pointer-events: auto;
+    transition:
+        max-height 160ms ease,
+        opacity 160ms ease;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .dungeonStatusPanel:hover,
+.shell:not([data-mobile-camera-mode='true']) .dungeonStatusPanel:focus-within {
+    max-height: 14rem;
+    opacity: 1;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .dungeonRunStrip {
+    width: min(16rem, 20vw);
+    opacity: 0.78;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .playableOnboardingPrompt {
+    left: auto;
+    right: var(--gameplay-html-edge-pad, 0.75rem);
+    bottom: clamp(4.6rem, 8vh, 5.8rem);
+    width: min(19rem, 25vw);
+    transform: none;
+    opacity: 0.9;
+}
+
+.shell:not([data-mobile-camera-mode='true']) .playableOnboardingPrompt p {
+    display: none;
+}
+
+.shell[data-mobile-camera-mode='true'] .playableOnboardingPrompt {
+    width: min(21rem, calc(100dvi - 1.6rem));
+    padding: 0.52rem 0.64rem;
+}
+
+.shell[data-mobile-camera-mode='true'] .playableOnboardingPrompt p {
+    margin: 0.3rem 0 0;
+    font-size: 0.82rem;
+    line-height: 1.3;
+}
+
+/* PARITY-001: floor/reward overlays share the compact modal card language used by pause/settings/shop. */
+.floorClearResultStack {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+}
+
+.floorClearResultStack .modalNote,
+.routeSelectedNote,
+.endlessRiskWagerPanel {
+    border-radius: calc(var(--ui-radius-md) - 0.04rem);
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 14%, transparent);
+    background:
+        linear-gradient(180deg, rgba(255, 243, 217, 0.035), transparent 54%),
+        color-mix(in srgb, var(--theme-void) 38%, transparent);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.035),
+        0 8px 18px color-mix(in srgb, var(--theme-shadow) 10%, transparent);
+}
+
+.floorClearResultStack .modalNote {
+    min-height: 0;
+    padding: 0.36rem 0.52rem;
+    line-height: 1.28;
+}
+
+.dungeonMapChoicePanel {
+    border-radius: calc(var(--ui-radius-md) + 0.06rem);
+    border-color: color-mix(in srgb, var(--theme-cyan-bright) 18%, transparent);
+    background:
+        radial-gradient(ellipse 92% 62% at 50% 0%, color-mix(in srgb, var(--theme-cyan-bright) 9%, transparent), transparent 58%),
+        linear-gradient(180deg, rgba(255, 243, 217, 0.035), transparent 54%),
+        color-mix(in srgb, var(--theme-void) 42%, transparent);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.035),
+        0 12px 28px color-mix(in srgb, var(--theme-shadow) 18%, transparent);
+}
+
+.dungeonMapChoiceActions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+    gap: 0.42rem;
+}
+
+.dungeonMapRoomButton {
+    min-height: max(6.4rem, var(--ui-touch-target-min));
+}
+
+.modalStats {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 7rem), 1fr));
+}
+
+@media (max-width: 760px) {
+    .floorClearResultStack[data-route-choice-required='true'] {
+        max-height: none;
+    }
+
+    .dungeonMapChoicePanel {
+        padding: 0.58rem;
+    }
 }
 
 .toast,

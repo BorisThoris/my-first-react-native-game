@@ -322,8 +322,8 @@ export const RELIC_CATALOG: Record<RelicId, RelicDefinition> = {
     },
     destroy_bank_plus_one: {
         id: 'destroy_bank_plus_one',
-        title: 'Destroy bank +1',
-        description: 'Increases the destroy-pair charge bank capacity for trap-control routes.'
+        title: 'Destroy charge +1',
+        description: 'Adds one destroy-pair charge to the uncapped run bank for trap-control routes.'
     },
     combo_shard_plus_step: {
         id: 'combo_shard_plus_step',

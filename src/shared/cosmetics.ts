@@ -1,15 +1,14 @@
 import type { SaveData } from './contracts';
 
 export type CosmeticSlot = 'title' | 'crest' | 'card_back';
-export type CardThemeId = 'classic_card_back' | 'relic_gold_card_back';
+export type CardThemeId = 'classic_card_back';
 export type CosmeticStatus = 'owned' | 'locked';
 export type CosmeticId =
     | 'title_seeker'
     | 'crest_lantern'
     | 'card_back_classic'
     | 'crest_daily_bronze'
-    | 'title_ascendant_v'
-    | 'card_back_relic_gold';
+    | 'title_ascendant_v';
 
 export interface CosmeticDefinition {
     id: CosmeticId;
@@ -93,29 +92,14 @@ export const COSMETIC_CATALOG: Record<CosmeticId, CosmeticDefinition> = {
         fallback: 'Seeker title',
         gameplayAffecting: false
     },
-    card_back_relic_gold: {
-        id: 'card_back_relic_gold',
-        slot: 'card_back',
-        label: 'Relic Gold Card Back',
-        description: 'Future card-back cosmetic; display only until REG-066 wires theme rendering.',
-        unlockSource: 'Future cosmetic/theme economy',
-        fallback: 'Classic Card Back',
-        gameplayAffecting: false
-    }
 };
 
 export const CARD_THEME_CATALOG = {
     card_back_classic: {
         id: 'card_back_classic',
         label: 'Classic Card Back',
-        asset: { back: '/src/renderer/assets/textures/cards/back.svg' },
-        fallbackAsset: '/src/renderer/assets/textures/cards/back.svg'
-    },
-    card_back_relic_gold: {
-        id: 'card_back_relic_gold',
-        label: 'Relic Gold Card Back',
-        asset: { back: '/src/renderer/assets/textures/cards/back.svg' },
-        fallbackAsset: '/src/renderer/assets/textures/cards/back.svg'
+        asset: { back: '/src/renderer/assets/textures/cards/authored-card-back.svg' },
+        fallbackAsset: '/src/renderer/assets/textures/cards/authored-card-back.svg'
     }
 } as const;
 
@@ -169,31 +153,19 @@ export const getEquippedCosmeticId = (save: SaveData, slot: CosmeticSlot): Cosme
     deriveCosmeticStates(save).find((row) => row.slot === slot && row.equipped)?.id ?? null;
 
 export const getCardThemeRows = (save: SaveData): CardThemeRow[] => {
-    const cardBack = deriveCosmeticStates(save).find((row) => row.id === 'card_back_relic_gold');
+    void save;
     return [
         {
             id: 'classic_card_back',
             cosmeticId: null,
-            label: 'Classic Card Back',
+            label: 'Shared Card Back',
             status: 'owned',
-            equipped: cardBack?.equipped !== true,
+            equipped: true,
             asset: CARD_THEME_CATALOG.card_back_classic.asset,
             previewAsset: CARD_THEME_CATALOG.card_back_classic.asset.back,
             fallbackAsset: CARD_THEME_CATALOG.card_back_classic.fallbackAsset,
             unlockSource: 'Default',
-            readability: 'Current gameplay card back; shipped fallback for every theme.'
-        },
-        {
-            id: 'relic_gold_card_back',
-            cosmeticId: 'card_back_relic_gold',
-            label: 'Relic Gold Card Back',
-            status: cardBack?.status ?? 'locked',
-            equipped: cardBack?.equipped === true,
-            asset: CARD_THEME_CATALOG.card_back_relic_gold.asset,
-            previewAsset: 'src/renderer/assets/textures/cards/authored-card-back.svg',
-            fallbackAsset: CARD_THEME_CATALOG.card_back_relic_gold.fallbackAsset,
-            unlockSource: cardBack?.unlockSource ?? 'Future cosmetic/theme economy',
-            readability: 'Preview-only until card theme rendering is wired; falls back to Classic Card Back.'
+            readability: 'All hidden cards use this same shared back; hidden-card theme variants are not available.'
         }
     ];
 };

@@ -1,7 +1,6 @@
 import {
     type DungeonKeyKind,
     MAX_COMBO_SHARDS,
-    MAX_DESTROY_PAIR_BANK,
     MAX_GUARD_TOKENS,
     type RunState
 } from './contracts';
@@ -12,6 +11,10 @@ export type RunInventoryItemId =
     | 'destroy_charge'
     | 'peek_charge'
     | 'stray_remove_charge'
+    | 'flash_pair_charge'
+    | 'undo_charge'
+    | 'gambit_token'
+    | 'wild_match_token'
     | 'iron_key'
     | 'master_key'
     | 'guard_token'
@@ -82,9 +85,9 @@ export const RUN_INVENTORY_CATALOG: Record<RunInventoryItemId, RunInventoryDefin
         id: 'destroy_charge',
         kind: 'consumable',
         label: 'Destroy charge',
-        stackLimit: MAX_DESTROY_PAIR_BANK,
+        stackLimit: null,
         mutableAt: 'mid_run',
-        source: 'Clean clears, relics, and shop services.',
+        source: 'Clean clears, relics, room rewards, and shop services.',
         useRule: 'Spend during play to remove a hidden pair; disabled by no-destroy contracts.'
     },
     peek_charge: {
@@ -104,6 +107,42 @@ export const RUN_INVENTORY_CATALOG: Record<RunInventoryItemId, RunInventoryDefin
         mutableAt: 'mid_run',
         source: 'Wild/practice setup and relics.',
         useRule: 'Spend during play to remove one hidden stray tile from the board.'
+    },
+    flash_pair_charge: {
+        id: 'flash_pair_charge',
+        kind: 'consumable',
+        label: 'Flash pair',
+        stackLimit: null,
+        mutableAt: 'mid_run',
+        source: 'Practice, Wild setup, and future recall pickups.',
+        useRule: 'Spend during play to briefly reveal one random hidden pair.'
+    },
+    undo_charge: {
+        id: 'undo_charge',
+        kind: 'consumable',
+        label: 'Undo charge',
+        stackLimit: null,
+        mutableAt: 'floor_only',
+        source: 'Floor start and future recovery pickups.',
+        useRule: 'Spend while resolving to cancel a pending flip result before it commits.'
+    },
+    gambit_token: {
+        id: 'gambit_token',
+        kind: 'consumable',
+        label: 'Gambit token',
+        stackLimit: null,
+        mutableAt: 'floor_only',
+        source: 'Floor start and future risk pickups.',
+        useRule: 'Spend the floor gambit window to attempt a third flip rescue.'
+    },
+    wild_match_token: {
+        id: 'wild_match_token',
+        kind: 'consumable',
+        label: 'Wild match',
+        stackLimit: null,
+        mutableAt: 'mid_run',
+        source: 'Wild/Joker setup and future rare pickups.',
+        useRule: 'Spend by matching with a wild joker tile when one is present.'
     },
     iron_key: {
         id: 'iron_key',
@@ -182,6 +221,14 @@ const quantityFor = (run: RunState, id: RunInventoryItemId): number => {
             return run.peekCharges;
         case 'stray_remove_charge':
             return run.strayRemoveCharges;
+        case 'flash_pair_charge':
+            return run.flashPairCharges;
+        case 'undo_charge':
+            return run.undoUsesThisFloor;
+        case 'gambit_token':
+            return run.gambitAvailableThisFloor && !run.gambitThirdFlipUsed ? 1 : 0;
+        case 'wild_match_token':
+            return run.wildMatchesRemaining;
         case 'iron_key':
             return Object.values(run.dungeonKeys).reduce((sum, count) => sum + (count ?? 0), 0);
         case 'master_key':
@@ -217,7 +264,8 @@ const unavailableReasonFor = (run: RunState, id: RunInventoryItemId, quantity: n
 const quantityLabelFor = (definition: RunInventoryDefinition, quantity: number): string =>
     definition.stackLimit == null ? String(quantity) : `${quantity}/${definition.stackLimit}`;
 
-const maxStackFor = (definition: RunInventoryDefinition): number => definition.stackLimit ?? 3;
+const maxStackFor = (definition: RunInventoryDefinition, quantity: number): number =>
+    definition.stackLimit ?? Math.max(1, quantity);
 
 export const getRunInventoryRows = (run: RunState): RunInventoryRow[] =>
     (Object.keys(RUN_INVENTORY_CATALOG) as RunInventoryItemId[]).map((id) => {
@@ -228,7 +276,7 @@ export const getRunInventoryRows = (run: RunState): RunInventoryRow[] =>
             ...definition,
             quantity,
             quantityLabel: quantityLabelFor(definition, quantity),
-            maxStack: maxStackFor(definition),
+            maxStack: maxStackFor(definition, quantity),
             slotId: id,
             mutability: definition.mutableAt,
             useWindow: definition.useRule,
@@ -241,7 +289,7 @@ export const getRunInventoryRows = (run: RunState): RunInventoryRow[] =>
 export const getRunConsumableRows = (run: RunState): RunInventoryRow[] =>
     getRunInventoryRows(run)
         .filter((row) => row.kind === 'consumable')
-        .map((row) => ({ ...row, quantity: Math.min(row.quantity, row.maxStack) }));
+        .map((row) => ({ ...row }));
 
 export const getRunLoadoutRows = (run: RunState): RunInventoryRow[] =>
     getRunInventoryRows(run).filter((row) => row.kind === 'loadout');
@@ -278,7 +326,7 @@ export const buildRunInventory = (run: RunState): RunInventorySnapshot => ({
     offlineOnly: true,
     consumables: getRunConsumableRows(run)
         .filter((row) => row.id !== 'guard_token' && row.id !== 'combo_shard')
-        .map((row) => ({ ...row, quantity: Math.min(row.quantity, row.maxStack) })),
+        .map((row) => ({ ...row })),
     loadout: getRunInventoryLoadoutRows(run)
 });
 
@@ -306,11 +354,19 @@ export const gainRunInventoryItem = (
         case 'region_shuffle_charge':
             return { ...run, regionShuffleCharges: run.regionShuffleCharges + gain };
         case 'destroy_charge':
-            return { ...run, destroyPairCharges: Math.min(MAX_DESTROY_PAIR_BANK, run.destroyPairCharges + gain) };
+            return { ...run, destroyPairCharges: run.destroyPairCharges + gain };
         case 'peek_charge':
             return { ...run, peekCharges: run.peekCharges + gain };
         case 'stray_remove_charge':
             return { ...run, strayRemoveCharges: run.strayRemoveCharges + gain };
+        case 'flash_pair_charge':
+            return { ...run, flashPairCharges: run.flashPairCharges + gain };
+        case 'undo_charge':
+            return { ...run, undoUsesThisFloor: run.undoUsesThisFloor + gain };
+        case 'gambit_token':
+            return { ...run, gambitAvailableThisFloor: true };
+        case 'wild_match_token':
+            return { ...run, wildMatchesRemaining: run.wildMatchesRemaining + gain };
         case 'iron_key':
             return { ...run, dungeonKeys: { ...run.dungeonKeys, iron: (run.dungeonKeys.iron ?? 0) + gain } };
         case 'master_key':
@@ -344,6 +400,14 @@ export const useRunInventoryItem = (run: RunState, itemId: RunInventoryItemId): 
             return { run: { ...run, peekCharges: Math.max(0, run.peekCharges - 1) }, itemId, applied: true };
         case 'stray_remove_charge':
             return { run: { ...run, strayRemoveCharges: Math.max(0, run.strayRemoveCharges - 1) }, itemId, applied: true };
+        case 'flash_pair_charge':
+            return { run: { ...run, flashPairCharges: Math.max(0, run.flashPairCharges - 1) }, itemId, applied: true };
+        case 'undo_charge':
+            return { run: { ...run, undoUsesThisFloor: Math.max(0, run.undoUsesThisFloor - 1) }, itemId, applied: true };
+        case 'gambit_token':
+            return { run: { ...run, gambitAvailableThisFloor: false, gambitThirdFlipUsed: true }, itemId, applied: true };
+        case 'wild_match_token':
+            return { run: { ...run, wildMatchesRemaining: Math.max(0, run.wildMatchesRemaining - 1) }, itemId, applied: true };
         case 'iron_key': {
             const spendKind = KEY_SPEND_ORDER.find((kind) => (run.dungeonKeys[kind] ?? 0) > 0);
             if (!spendKind) {

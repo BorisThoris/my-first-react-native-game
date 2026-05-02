@@ -31,7 +31,7 @@ slots:
   - mode_posters: `src/renderer/assets/ui/modeArt.ts` custom/fallback manifest; non-bespoke modes may use fallback poster with visible badge.
   - ui_scenes: `UI_ART.menuScene`, `UI_ART.choosePathScene`, `UI_ART.gameplayScene`.
   - audio: `docs/AUDIO_INTERACTION_MATRIX.md` + runtime `audioInteractionCoverage.ts`; sampled cues fall back to procedural SFX.
-  - card_textures: `textures/cards/back.svg`, `front.svg`, optional authored card theme shelf stock.
+  - card_textures: `textures/cards/authored-card-back.svg`, `front.svg`; hidden cards intentionally share one back.
   - store_media: deferred to REG-061; not bundled runtime.
 
 fallbacks:

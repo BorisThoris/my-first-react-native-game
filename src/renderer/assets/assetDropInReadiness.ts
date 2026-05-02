@@ -56,7 +56,7 @@ export const ASSET_DROP_IN_CATEGORIES: readonly AssetDropInCategory[] = [
         label: 'Card backs/fronts and material maps',
         authoritativePath: 'src/renderer/assets/textures/cards/',
         acceptedFormats: ['svg', 'png', 'webp'],
-        namingExample: 'back.svg',
+        namingExample: 'authored-card-back.svg',
         manifestOrBarrel: 'src/renderer/components/tileTextures.ts',
         fallbackBehavior: 'Card rendering treats front/back SVGs as atomic layers; optional authored-card assets remain shelf stock.',
         rightsStatus: 'generated_pipeline',

@@ -192,6 +192,7 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
             className={`${styles.actionDock} ${cameraViewportMode ? styles.mobileActionDock : ''}`.trim()}
             data-dock-density={cameraViewportMode ? 'compact' : 'desktop'}
             data-dock-model="bottom-icon-dock"
+            data-html-ui-layer="gameplay-actions-v2"
             data-testid="game-action-dock"
             ref={asideRef}
         >

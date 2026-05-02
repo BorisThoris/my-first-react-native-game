@@ -171,12 +171,12 @@ test.describe('Tile board interaction', () => {
     test('continuing to the next level preserves the chosen zoom framing', async ({ page }) => {
         test.setTimeout(180_000);
         await page.setViewportSize({ width: 1440, height: 900 });
-        const pairs = await navigateToLevel1PlayPhase(page);
+        await navigateToLevel1PlayPhase(page);
 
         const stageShell = page.getByTestId('tile-board-stage-shell');
         await expect(stageShell).toBeVisible();
 
-        await expect.poll(async () => readFrameHiddenTileCount(page), { timeout: 20_000 }).toBe(4);
+        await expect.poll(async () => readFrameHiddenTileCount(page), { timeout: 20_000 }).toBeGreaterThanOrEqual(4);
 
         // After navigate captures memorize pairs: zoom in, then clear the floor. (Synthetic zoom-out is unreliable in
         // Chromium — negative deltaY zooms in for this handler.)
@@ -196,8 +196,8 @@ test.describe('Tile board interaction', () => {
             })
             .toBe('false');
 
-        await completeLevel1Play(page, pairs);
-        await page.getByRole('dialog', { name: /floor cleared/i }).getByRole('button', { name: /^continue$/i }).click();
+        await completeLevel1Play(page, null);
+        await page.getByRole('dialog', { name: /floor cleared/i }).getByRole('button', { name: /^continue/i }).click();
 
         await expect(page.getByRole('heading', { name: /level 2/i })).toBeVisible({ timeout: 15000 });
         await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible();

@@ -57,6 +57,16 @@
 }
 
 /* Body-only layouts (e.g. relic draft cards) — drop empty action column. */
+.modal[data-action-placement='dock'] {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) auto;
+    width: min(860px, 100%);
+}
+
+.modal[data-action-placement='dock'][data-overlay-size='sheet'] {
+    width: min(980px, 100%);
+}
+
 .modalNoActions {
     grid-template-columns: 1fr;
 }
@@ -282,28 +292,21 @@
 .actions {
     flex-shrink: 0;
     min-height: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.55rem;
     margin-top: 0.1rem;
-    padding: 0.38rem;
-    border-radius: calc(var(--ui-radius-lg) - 0.08rem);
-    border: 1px solid color-mix(in srgb, var(--overlay-accent) 18%, transparent);
-    background: var(--gameplay-overlay-actions-surface, var(--theme-surface-control));
-    box-shadow:
-        inset 0 1px 0 color-mix(in srgb, rgba(255, 255, 255, 0.035) 80%, transparent),
-        inset 0 0 0 1px color-mix(in srgb, var(--theme-shadow) 8%, transparent);
     position: relative;
     z-index: 1;
 }
 
-.modal[data-overlay-size='decision'] .actions,
-.modal[data-overlay-size='alert'] .actions,
-.modal[data-overlay-size='sheet'] .actions {
+.modal[data-action-placement='rail'] .actions {
     position: sticky;
     bottom: 0;
     align-self: end;
+}
+
+.modal[data-action-placement='dock'] .actions {
+    position: sticky;
+    bottom: 0;
+    align-self: stretch;
 }
 
 .modalAction {
@@ -376,11 +379,6 @@
     .actions {
         position: sticky;
         bottom: 0;
-        flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: flex-end;
-        padding: 0.35rem;
-        padding-bottom: max(0.35rem, env(safe-area-inset-bottom, 0px));
     }
 
     .modalAction {
@@ -390,11 +388,6 @@
 }
 
 @media (max-width: 430px) {
-    .actions {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
     .modalAction {
         width: 100%;
     }

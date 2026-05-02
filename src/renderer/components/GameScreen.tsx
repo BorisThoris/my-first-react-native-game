@@ -110,6 +110,12 @@ import { routeSpecialLabel, routeSpecialRewardLine } from '../../shared/route-wo
 const DISTRACTION_CHANNEL_LABEL = 'Chaff';
 
 const EMPTY_TILE_ID_SET: ReadonlySet<string> = new Set();
+const DESKTOP_FULL_BLEED_TILE_BOARD_FRAME_STYLE: CSSProperties = {
+    height: '100%',
+    inset: 0,
+    position: 'absolute',
+    width: '100%'
+};
 
 interface GameScreenProps {
     achievements: AchievementId[];
@@ -1131,6 +1137,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                     >
                     <div
                         className={`${styles.mainGameColumn} ${cameraViewportMode ? styles.mobileCameraMainColumn : ''}`.trim()}
+                        data-html-ui-layer="gameplay-chrome-v2"
                     >
                         <MemoGameplayHudBar
                             cameraViewportMode={cameraViewportMode}
@@ -1269,6 +1276,9 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                 previewActive={run.status === 'memorize'}
                                 boardBloomEnabled={settingsBoardBloomEnabled}
                                 boardScreenSpaceAA={settingsBoardScreenSpaceAA}
+                                frameStyle={
+                                    cameraViewportMode ? undefined : DESKTOP_FULL_BLEED_TILE_BOARD_FRAME_STYLE
+                                }
                                 graphicsQuality={settingsGraphicsQuality}
                                 reduceMotion={settingsReduceMotion}
                                 runStatus={run.status}

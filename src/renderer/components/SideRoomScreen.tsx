@@ -10,7 +10,7 @@ import {
     uiSfxGainFromSettings
 } from '../audio/uiSfx';
 import { useAppStore } from '../store/useAppStore';
-import { UiButton } from '../ui';
+import { OverlayActionDock } from '../ui';
 import { GAMEPLAY_VISUAL_CSS_VARS } from './gameplayVisualConfig';
 import styles from './SideRoomScreen.module.css';
 
@@ -98,48 +98,42 @@ const SideRoomScreen = () => {
                 </div>
 
                 <footer className={styles.actions}>
-                    <UiButton
-                        onClick={() => {
-                            resumeUiSfxContext();
-                            playUiBackSfx(uiGain);
-                            skipSideRoom();
-                        }}
-                        size="md"
-                        type="button"
-                        variant="secondary"
-                    >
-                        {sideRoom.skipLabel}
-                    </UiButton>
-                    {sideRoom.choices && sideRoom.choices.length > 0 ? (
-                        sideRoom.choices.map((choice) => (
-                            <UiButton
-                                key={choice.id}
-                                onClick={() => {
+                    <OverlayActionDock
+                        actions={[
+                            {
+                                label: sideRoom.skipLabel,
+                                onClick: () => {
                                     resumeUiSfxContext();
-                                    playUiConfirmSfx(uiGain);
-                                    claimSideRoomChoice(choice.id);
-                                }}
-                                size="md"
-                                type="button"
-                                variant={choice.primary ? 'primary' : 'secondary'}
-                            >
-                                {choice.label}
-                            </UiButton>
-                        ))
-                    ) : (
-                        <UiButton
-                            onClick={() => {
-                                resumeUiSfxContext();
-                                playUiConfirmSfx(uiGain);
-                                claimSideRoomPrimary();
-                            }}
-                            size="md"
-                            type="button"
-                            variant="primary"
-                        >
-                            {sideRoom.primaryLabel}
-                        </UiButton>
-                    )}
+                                    playUiBackSfx(uiGain);
+                                    skipSideRoom();
+                                },
+                                variant: 'secondary'
+                            },
+                            ...(sideRoom.choices && sideRoom.choices.length > 0
+                                ? sideRoom.choices.map((choice) => ({
+                                      label: choice.label,
+                                      onClick: () => {
+                                          resumeUiSfxContext();
+                                          playUiConfirmSfx(uiGain);
+                                          claimSideRoomChoice(choice.id);
+                                      },
+                                      variant: choice.primary ? ('primary' as const) : ('secondary' as const)
+                                  }))
+                                : [
+                                      {
+                                          label: sideRoom.primaryLabel,
+                                          onClick: () => {
+                                              resumeUiSfxContext();
+                                              playUiConfirmSfx(uiGain);
+                                              claimSideRoomPrimary();
+                                          },
+                                          variant: 'primary' as const
+                                      }
+                                  ])
+                        ]}
+                        placement="dock"
+                        testId="side-room-action-dock"
+                    />
                 </footer>
             </div>
         </section>

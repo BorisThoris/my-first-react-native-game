@@ -9,7 +9,7 @@ This document turns [GAME_MECHANICS_IDEAS.md](./GAME_MECHANICS_IDEAS.md) into a 
 | **Forgiveness vs powers** | Mistake economy stays as-is; powers are **tools** (layout / planning / overload). |
 | **Shuffle** | **1** charge at **run start**; **no refill** between floors in v1. |
 | **Pin** | **Max 3** markers; **playing** only; no charge counter. |
-| **Destroy** | **0** at run start; **+1** charge on **clean** floor clear (`tries ≤ 1`); bank cap **2**. |
+| **Destroy** | **0** at run start; **+1** charge on clean/no-mistake floor clear; uncapped run-local bank. |
 | **Destroy scoring** | **0** match score; **no** `currentStreak` gain; counts toward `matchedPairs` / clear. |
 | **Achievements** | **Option B**: do **not** disable the whole run; only gate **perfect-run-style** checks when powers used (see §7). |
 | **Shuffle / pins** | **Clear all pins** after shuffle. |

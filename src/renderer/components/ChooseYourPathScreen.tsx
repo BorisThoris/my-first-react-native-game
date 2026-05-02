@@ -158,7 +158,7 @@ const ChooseYourPathScreen = () => {
 
     const [libraryQuery, setLibraryQuery] = useState('');
     const [librarySearchOpen, setLibrarySearchOpen] = useState(false);
-    const [browseOpen, setBrowseOpen] = useState(false);
+    const [browseOpen, setBrowseOpen] = useState(true);
     const [cardsPerPage, setCardsPerPage] = useState(2);
     const [libraryPageIndex, setLibraryPageIndex] = useState(0);
 

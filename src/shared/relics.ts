@@ -100,7 +100,7 @@ export const RELIC_BUILD_ARCHETYPE_DEFINITIONS: Record<RelicBuildArchetype, Reli
         label: 'Trap control',
         summary: 'Use shuffle, destroy, and search tools to stabilize trap halls and armed dungeon trap pairs.',
         dungeonInteractions: ['trap halls', 'dungeon trap cards', 'row shuffle', 'destroy-pair charges'],
-        supportHooks: ['shuffle relic contract filters', 'destroy_bank_plus_one charge cap', 'trap route contextual weighting']
+        supportHooks: ['shuffle relic contract filters', 'destroy_bank_plus_one uncapped charge grant', 'trap route contextual weighting']
     },
     treasure_greed: {
         id: 'treasure_greed',

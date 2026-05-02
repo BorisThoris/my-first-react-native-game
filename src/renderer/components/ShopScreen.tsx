@@ -11,7 +11,7 @@ import {
     resumeUiSfxContext,
     uiSfxGainFromSettings
 } from '../audio/uiSfx';
-import { UiButton } from '../ui';
+import { OverlayActionDock } from '../ui';
 import { useAppStore } from '../store/useAppStore';
 import { GAMEPLAY_VISUAL_CSS_VARS } from './gameplayVisualConfig';
 import styles from './ShopScreen.module.css';
@@ -194,31 +194,42 @@ const ShopScreen = () => {
                 </div>
 
                 <footer className={styles.footer}>
-                    <button
-                        className={styles.rerollButton}
-                        disabled={!rerollAvailable}
-                        onClick={() => {
-                            resumeUiSfxContext();
-                            playUiClickSfx(uiGain);
-                            rerollShopOffers();
-                        }}
-                        type="button"
-                    >
-                        <span>{run.shopRerolls >= 1 ? 'Stock rerolled' : 'Reroll stock'}</span>
-                        <small>{run.shopRerolls >= 1 ? 'One reroll per visit' : `${rerollCost}g`}</small>
-                    </button>
-                    <div className={styles.footerActions}>
-                        <UiButton onClick={onBack} size="md" variant="secondary" type="button">
-                            {inFloorShop ? 'Back to board' : 'Back to floor summary'}
-                        </UiButton>
-                        <UiButton onClick={onContinue} size="md" variant="primary" type="button">
-                            {inFloorShop
-                                ? 'Return to board'
-                                : run.pendingRouteCardPlan
-                                ? `Continue to ${routeTypeLabel(run.pendingRouteCardPlan.routeType)} floor`
-                                : 'Continue'}
-                        </UiButton>
-                    </div>
+                    <OverlayActionDock
+                        actions={[
+                            {
+                                label: inFloorShop ? 'Back to board' : 'Back to floor summary',
+                                onClick: onBack,
+                                variant: 'secondary'
+                            },
+                            {
+                                label: inFloorShop
+                                    ? 'Return to board'
+                                    : run.pendingRouteCardPlan
+                                    ? `Continue to ${routeTypeLabel(run.pendingRouteCardPlan.routeType)} floor`
+                                    : 'Continue',
+                                onClick: onContinue,
+                                variant: 'primary'
+                            }
+                        ]}
+                        className={styles.footerActions}
+                        leading={
+                            <button
+                                className={styles.rerollButton}
+                                disabled={!rerollAvailable}
+                                onClick={() => {
+                                    resumeUiSfxContext();
+                                    playUiClickSfx(uiGain);
+                                    rerollShopOffers();
+                                }}
+                                type="button"
+                            >
+                                <span>{run.shopRerolls >= 1 ? 'Stock rerolled' : 'Reroll stock'}</span>
+                                <small>{run.shopRerolls >= 1 ? 'One reroll per visit' : `${rerollCost}g`}</small>
+                            </button>
+                        }
+                        placement="dock"
+                        testId="shop-action-dock"
+                    />
                 </footer>
             </div>
         </section>

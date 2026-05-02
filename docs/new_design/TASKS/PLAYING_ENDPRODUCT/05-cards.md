@@ -7,7 +7,7 @@
 From [`CURRENT_VS_ENDPRODUCT.md`](../../../reference-comparison/CURRENT_VS_ENDPRODUCT.md) **§4** — **Card backs:**
 
 - Reference: **leather / walnut**, symmetric **gold filigree**, glowing diamond center.
-- Live **`card-face-down.png`**: authored back is detailed but still skews **cool teal / charcoal** vs warmer leather/walnut mock ([`authored-card-back.svg`](../../../../src/renderer/assets/textures/cards/authored-card-back.svg), [`ASSET_SOURCES.md`](../../../../src/renderer/assets/ASSET_SOURCES.md)).
+- Live **`card-face-down.png`**: all hidden cards now use the same shared authored SVG back; future art work should replace that default instead of adding per-card back variants ([`authored-card-back.svg`](../../../../src/renderer/assets/textures/cards/authored-card-back.svg), [`ASSET_SOURCES.md`](../../../../src/renderer/assets/ASSET_SOURCES.md)).
 
 ## Required end state
 

@@ -88,6 +88,8 @@ const SCREEN_MAP: Record<string, DevSandboxScreen> = {
     settings: 'settings',
     playing: 'playing',
     shop: 'shop',
+    sideroom: 'sideRoom',
+    'side-room': 'sideRoom',
     gameover: 'gameOver',
     'game-over': 'gameOver',
     modeSelect: 'modeSelect',

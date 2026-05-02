@@ -206,7 +206,7 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                                 {inventoryRows.map((row) => (
                                     <div className={metaStyles.archiveCatalogRow} key={row.slotId}>
                                         <p className={metaStyles.archiveCatalogRowTitle}>
-                                            {row.label}: {row.quantity}/{row.maxStack}
+                                            {row.label}: {row.quantityLabel}
                                         </p>
                                         <p className={metaStyles.subtitle}>
                                             {row.mutability}. {row.source} → {row.useWindow}. {row.effectPreview}

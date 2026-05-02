@@ -450,11 +450,14 @@
 
 .controlCenterRow {
     min-width: 0;
+    display: grid;
+    gap: 0.12rem;
     padding: 0.48rem 0.58rem;
     border-radius: var(--ui-radius-md);
     border: 1px solid color-mix(in srgb, var(--theme-gold) 24%, transparent);
     background: var(--theme-surface-glass);
     box-shadow: var(--theme-elevation-soft);
+    overflow-wrap: anywhere;
 }
 
 .controlCenterRow strong,
@@ -466,6 +469,12 @@
     color: var(--theme-text-muted);
     font-size: 0.72rem;
     line-height: 1.25;
+}
+
+.controlCenterRow strong {
+    color: var(--theme-rune);
+    font-size: 0.84rem;
+    line-height: 1.2;
 }
 
 .subsectionNav {
@@ -756,9 +765,8 @@
 }
 
 .footerActions {
-    display: flex;
-    justify-content: flex-end;
-    gap: var(--ui-footer-action-gap);
+    margin-inline: auto 0;
+    width: min(32rem, 100%);
 }
 
 .stackedShell .fitViewport {
@@ -831,8 +839,6 @@
 }
 
 .stackedShell .footerActions {
-    flex-direction: column;
-    align-items: stretch;
     width: 100%;
 }
 
@@ -1125,6 +1131,14 @@
 
     .stackedShell .categoryNote {
         display: none;
+    }
+
+    .stackedShell .controlCenterStrip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .stackedShell .controlCenterRow {
+        padding: 0.5rem;
     }
 
     .toggleRow {

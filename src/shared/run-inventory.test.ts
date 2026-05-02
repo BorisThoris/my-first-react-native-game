@@ -22,11 +22,28 @@ describe('REG-079 run inventory, consumables, and loadout model', () => {
             'destroy_charge',
             'peek_charge',
             'stray_remove_charge',
+            'flash_pair_charge',
+            'undo_charge',
+            'gambit_token',
+            'wild_match_token',
             'iron_key',
             'master_key'
         ]);
-        expect(inventory.consumables.every((row) => row.quantity <= row.maxStack)).toBe(true);
-        expect(getRunConsumableRows({ ...run, shuffleCharges: 99 }).find((row) => row.id === 'shuffle_charge')?.quantity).toBe(3);
+        expect(inventory.consumables.find((row) => row.id === 'destroy_charge')?.stackLimit).toBeNull();
+        expect(getRunConsumableRows({ ...run, shuffleCharges: 99 }).find((row) => row.id === 'shuffle_charge')?.quantity).toBe(99);
+        expect(getRunConsumableRows({ ...run, destroyPairCharges: 7 }).find((row) => row.id === 'destroy_charge')?.quantityLabel).toBe('7');
+    });
+
+    it('grants uncapped destroy charges through the shared pickup path', () => {
+        const run = { ...createNewRun(0), destroyPairCharges: 2 };
+        const charged = gainRunInventoryItem(run, 'destroy_charge', 3);
+
+        expect(charged.destroyPairCharges).toBe(5);
+        expect(buildRunInventory(charged).consumables.find((row) => row.id === 'destroy_charge')).toMatchObject({
+            quantity: 5,
+            quantityLabel: '5',
+            stackLimit: null
+        });
     });
 
     it('connects shop and treasure key rewards to the same run-only inventory rows', () => {

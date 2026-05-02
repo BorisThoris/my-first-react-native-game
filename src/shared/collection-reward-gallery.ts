@@ -1,5 +1,5 @@
 import type { SaveData } from './contracts';
-import { getOwnedCosmeticIds } from './cosmetics';
+import { getCosmeticRows, getOwnedCosmeticIds } from './cosmetics';
 import { getMetaProgressionBoard } from './meta-progression';
 import { buildRunJournalRowsFromSave } from './run-history';
 
@@ -31,6 +31,7 @@ export const getCollectionRewardGalleryRows = (save: SaveData): CollectionReward
     const achievements = Object.values(save.achievements);
     const meta = getMetaProgressionBoard(save);
     const cosmeticsOwned = getOwnedCosmeticIds(save).length;
+    const cosmeticsTotal = getCosmeticRows(save).length;
     const relicPickTotal = Object.values(save.playerStats?.relicPickCounts ?? {}).reduce((sum, count) => sum + (count ?? 0), 0);
     const historyRows = buildRunJournalRowsFromSave(save);
 
@@ -68,11 +69,11 @@ export const getCollectionRewardGalleryRows = (save: SaveData): CollectionReward
         {
             id: 'cosmetics',
             title: 'Cosmetic gallery',
-            description: 'Visual-only profile titles, crests, and card-back slots.',
+            description: 'Visual-only profile titles, crests, and the shared card-back record.',
             owned: cosmeticsOwned,
-            status: statusFor(cosmeticsOwned, 6),
-            total: 6,
-            progressLabel: `${cosmeticsOwned}/6 owned`,
+            status: statusFor(cosmeticsOwned, cosmeticsTotal),
+            total: cosmeticsTotal,
+            progressLabel: `${cosmeticsOwned}/${cosmeticsTotal} owned`,
             unlockHint: 'Earned from honors and local progress; never pay-to-win.',
             nextAction: 'Earned from honors and local progress; never pay-to-win.',
             icon: '◇',

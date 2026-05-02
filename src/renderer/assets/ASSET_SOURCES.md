@@ -48,22 +48,22 @@ Per [docs/new_design/ASSET_AND_ART_PIPELINE.md](../../docs/new_design/ASSET_AND_
 | `ui/icons/icon-undo-v1.svg` | Resolving-phase undo | Authored SVG | Same |
 | `ui/icons/icon-score-parasite-crystal.svg` | HUD score parasite mutator crystal glyph | Authored SVG | **HUD-007:** arcane-violet / gold-rim crystal aligned to `VISUAL_SYSTEM_SPEC` + `theme.ts` `--theme-hud-parasite-*`; used in `GameplayHudBar.tsx` (`?url` import). |
 | `ui/frames/hud-segment-ornament.svg` | HUD score segment flourish | Authored SVG | Hex motif; used in `GameScreen.module.css` |
-| `textures/cards/back.svg` | Tile **hidden** side (default runtime) | SVG Storm–style trace; wired from `tileTextures.ts`, `TileBoard.module.css`, `TileBoardScene.tsx`. WebGL merged mesh when under byte/vertex caps ([`cardSvgPlaneGeometry.ts`](../components/cardSvgPlaneGeometry.ts)). | Large path count; primary card back source. |
-| `textures/cards/front.svg` | Face-up panel (default runtime) | Traced front; pairs with `back.svg` | Same pipeline as `back.svg`. |
-| `textures/cards/authored-card-back.svg` | Alternate back art (optional) | Hand-authored vector (**PLAY-007**, [`PLAYING_ENDPRODUCT/05-cards.md`](../../../docs/new_design/TASKS/PLAYING_ENDPRODUCT/05-cards.md)); not wired by default | On disk for reference or future toggle. |
-| `textures/cards/authored-card-front.svg` | Alternate face panel (optional) | Hand-authored stone frame + center well | Pairs with `authored-card-back.svg`. |
-| _(not in repo)_ `tmp/card-backs-normalized/` | Local SDXL batch card backs (36× portrait PNGs) | `yarn card-backs:local` → [`batch_local_card_backs.py`](../../../scripts/card-pipeline/batch_local_card_backs.py); manifest [`generated-backs-last-run.json`](../../../scripts/card-pipeline/generated-backs-last-run.json) | Gitignored temp output (~1403×2048 each). Pick a keeper and replace raster imports or add a theme pool when product wires multi-back selection in `tileTextures.ts`. |
+| `textures/cards/authored-card-back.svg` | Tile **hidden** side (default runtime) | Shared authored SVG card back; wired from `tileTextures.ts` and `TileBoardScene.tsx`. WebGL merged mesh when under byte/vertex caps ([`cardSvgPlaneGeometry.ts`](../components/cardSvgPlaneGeometry.ts)). | Primary card back source; every hidden card uses this same asset. |
+| `textures/cards/back.svg` | Legacy hidden-side trace | SVG Storm-style trace | Shelf stock only; not the default runtime card back. |
+| `textures/cards/front.svg` | Face-up panel (default runtime) | Traced front; pairs with the shared hidden-side SVG at runtime | Same atomic SVG pipeline. |
+| `textures/cards/authored-card-front.svg` | Alternate face panel reference (optional) | Hand-authored stone frame + center well | Shelf stock only; hidden card backs are intentionally single-style. |
+| _(not in repo)_ `tmp/card-backs-normalized/` | Local SDXL batch card-back experiments | `yarn card-backs:local` → [`batch_local_card_backs.py`](../../../scripts/card-pipeline/batch_local_card_backs.py); manifest [`generated-backs-last-run.json`](../../../scripts/card-pipeline/generated-backs-last-run.json) | Gitignored temp output only; runtime intentionally uses one shared card back. |
 | `textures/cards/edge.png` | Card edge map | `scripts/card-pipeline/generate-card-textures.ps1` | Pairs with `tileTextures.ts` |
 | `textures/cards/panel-roughness.png` | Panel roughness | `scripts/card-pipeline/generate-card-textures.ps1` | |
 | `textures/cards/edge-roughness.png` | Edge roughness | `scripts/card-pipeline/generate-card-textures.ps1` | |
-| `textures/cards/reference-back.png` | Card-back **pipeline source** (normalize / PS1 raster steps) | Authored / AI → normalize | Default input for [`generate-card-textures.ps1`](../../../scripts/card-pipeline/generate-card-textures.ps1); **not** the runtime `back.svg` URL in `tileTextures.ts`. |
+| `textures/cards/reference-back.png` | Card-back **pipeline source** (normalize / PS1 raster steps) | Authored / AI → normalize | Default input for [`generate-card-textures.ps1`](../../../scripts/card-pipeline/generate-card-textures.ps1); **not** the runtime `authored-card-back.svg` URL in `tileTextures.ts`. |
 | `textures/cards/front-face.png` | Card-face **pipeline output** / plate reference | Same PS1 pipeline from `reference-back.png` | Runtime faces still use `front.svg` + illustration mats unless you replace imports. |
 | `cards/illustrations/face-panel-01.png` … `face-panel-80.png` | Tarot illustration **mat** rasters (center panel), tiered common/uncommon/rare | `yarn face-panels:local` → [`batch_local_face_panels.py`](../../../scripts/card-pipeline/batch_local_face_panels.py); URL barrel [`facePanelRasterUrls.ts`](../cardFace/facePanelRasterUrls.ts) | Weighted fallback in [`weightedFacePanelPool.ts`](../cardFace/weightedFacePanelPool.ts). Legacy `deck-01..06.svg` stay referenced for `yarn build:card-illustration-manifest`. |
 | _(not in repo)_ `tmp/face-panels/` | Local SDXL batch staging | Same | Gitignored until copied into `cards/illustrations/`. |
 
 ### Card faces: atomic SVG vs overlay FX
 
-`back.svg` / `front.svg` are **SVG Storm–style traces**: huge flat `<g>`/`<path` soup with no semantic `id`s. The game treats each file as **one drawable** everywhere it matters for gameplay parity:
+`authored-card-back.svg` / `front.svg` are treated as **one drawable** everywhere it matters for gameplay parity:
 
 - **WebGL:** [`tileTextures.ts`](../components/tileTextures.ts) loads each side as a single URL; [`cardSvgPlaneGeometry.ts`](../components/cardSvgPlaneGeometry.ts) merges paths into one plane mesh per side (vertex cap in that file).
 - **DOM:** [`TileBoard.module.css`](../components/TileBoard.module.css) uses each file as a full-bleed `background-image` on `.cardBack` / `.cardFaceFront`.
@@ -99,12 +99,12 @@ yarn card-texture:ideal 3072
 # Menu / wide hero (default if you omit resolution)
 yarn imagegen -- --prompt "YOUR PROMPT" --out src/renderer/assets/ui/backgrounds/name.png
 
-# Optional raster back (if not using `back.svg`): API 1024×1536 → trim → normalize to exact 0.74:1.08
+# Optional raster back (if not using `authored-card-back.svg`): API 1024×1536 → trim → normalize to exact 0.74:1.08
 # yarn imagegen … --out tmp/card-back-raw.png
 # yarn png:trim-bbox tmp/card-back-raw.png tmp/card-back-trimmed.png --pad 2
 # powershell … normalize-card-texture.ps1 … -OutputPath src/renderer/assets/textures/cards/some-back.png
 
-# Vector sides: edit `back.svg` / `front.svg` (also `?url` imports in `tileTextures.ts`). WebGL builds merged meshes in `cardSvgPlaneGeometry.ts`.
+# Vector sides: edit `authored-card-back.svg` / `front.svg` (also `?url` imports in `tileTextures.ts`). WebGL builds merged meshes in `cardSvgPlaneGeometry.ts`.
 ```
 
 In-game mapping is **contain** (not cover): full illustration stays visible; stretch is avoided so filigree/gems stay round.

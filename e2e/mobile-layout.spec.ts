@@ -223,6 +223,39 @@ test.describe('Mobile layout (renderer)', () => {
         await expect(frame).toHaveAttribute('data-mobile-camera-mode', 'false');
     });
 
+    test('desktop gameplay uses a full-bleed board behind HUD chrome', async ({ page }) => {
+        test.setTimeout(180_000);
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await navigateToLevel1PlayPhase(page);
+
+        const shell = page.getByTestId('game-shell');
+        const hud = page.getByTestId('game-hud');
+        const frame = page.getByTestId('tile-board-frame');
+        const actionDock = page.getByTestId('game-action-dock');
+
+        await expect(shell).toHaveAttribute('data-mobile-camera-mode', 'false');
+        await expect(frame).toHaveAttribute('data-mobile-camera-mode', 'false');
+        await expect(page.getByRole('button', { name: /^fit board$/i })).toBeVisible();
+
+        const shellBox = await shell.boundingBox();
+        const hudBox = await hud.boundingBox();
+        const frameBox = await frame.boundingBox();
+        const dockBox = await actionDock.boundingBox();
+
+        expect(shellBox).toBeTruthy();
+        expect(hudBox).toBeTruthy();
+        expect(frameBox).toBeTruthy();
+        expect(dockBox).toBeTruthy();
+
+        expect(frameBox!.y).toBeLessThanOrEqual(shellBox!.y + 2);
+        expect(Math.abs(frameBox!.x - shellBox!.x)).toBeLessThanOrEqual(2);
+        expect(Math.abs(frameBox!.width - shellBox!.width)).toBeLessThanOrEqual(4);
+        expect(Math.abs(frameBox!.height - shellBox!.height)).toBeLessThanOrEqual(4);
+        expect(hudBox!.y).toBeLessThan(frameBox!.y + frameBox!.height * 0.18);
+        expect(dockBox!.y).toBeGreaterThan(frameBox!.y + frameBox!.height * 0.72);
+        expect(dockBox!.y + dockBox!.height).toBeLessThanOrEqual(frameBox!.y + frameBox!.height + 2);
+    });
+
     test('game control icons meet minimum touch target on compact touch viewport', async ({ page }) => {
         await forceCoarsePointerMedia(page);
         await page.setViewportSize({ width: 390, height: 844 });

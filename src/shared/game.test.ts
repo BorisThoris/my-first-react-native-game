@@ -11,7 +11,6 @@ import {
     GAUNTLET_FLOOR_CLEAR_TIME_BONUS_MS,
     GAME_RULES_VERSION,
     MATCH_DELAY_MS,
-    MAX_DESTROY_PAIR_BANK,
     MAX_LIVES,
     MEMORIZE_BONUS_PER_LIFE_LOST_MS,
     SHIFTING_BOUNTY_MATCH_BONUS,
@@ -2737,7 +2736,7 @@ describe('dungeon cards', () => {
         });
         expect(getDungeonRoomReadModel(forge, { ...createRun([forge]), shopGold: 1 })).toMatchObject({
             canUse: false,
-            blockedText: 'Needs 2 shop gold and destroy capacity.'
+            blockedText: 'Needs 2 shop gold.'
         });
         expect(getDungeonRoomReadModel(usedCampfire, createRun([usedCampfire]))).toMatchObject({
             used: true,
@@ -2782,12 +2781,12 @@ describe('dungeon cards', () => {
         expect(fountainRun.stats.guardTokens).toBe(1);
 
         const paidForge = revealDungeonRoom(
-            { ...createRun([forge]), shopGold: 4, destroyPairCharges: MAX_DESTROY_PAIR_BANK - 2 },
+            { ...createRun([forge]), shopGold: 4, destroyPairCharges: 2 },
             'forge'
         );
         const repaidForge = revealDungeonRoom(paidForge, 'forge');
         expect(repaidForge.shopGold).toBe(0);
-        expect(repaidForge.destroyPairCharges).toBe(MAX_DESTROY_PAIR_BANK);
+        expect(repaidForge.destroyPairCharges).toBe(4);
         expect(repaidForge.board!.tiles.find((tile) => tile.id === 'forge')!.dungeonCardState).toBe('revealed');
     });
 
@@ -3800,7 +3799,7 @@ describe('REG-015 run shop wallet', () => {
         expect(canRerollShopOffers({ ...shopRun, shopGold: 0 })).toBe(false);
     });
 
-    it('REG-071 exposes item catalog compatibility and stack caps', () => {
+    it('REG-071 exposes item catalog compatibility and uncapped destroy charges', () => {
         const fullLifeBase = playPerfectFloors(createNewRun(0, { echoFeedbackEnabled: false, runSeed: 71_001 }), 1);
         const fullLife = {
             ...fullLifeBase,
@@ -3816,10 +3815,12 @@ describe('REG-015 run shop wallet', () => {
         expect(healAvailable.compatible).toBe(true);
         expect(purchaseShopOffer({ ...damaged, shopOffers: [healAvailable], shopGold: 99 }, healAvailable.id).lives).toBe(4);
 
-        const cappedDestroy = { ...fullLife, destroyPairCharges: MAX_DESTROY_PAIR_BANK };
-        const destroyOffer = createRunShopOffers(cappedDestroy).find((offer) => offer.itemId === 'destroy_charge')!;
-        expect(destroyOffer.compatible).toBe(false);
-        expect(destroyOffer.unavailableReason).toContain('bank full');
+        const stockedDestroy = { ...fullLife, destroyPairCharges: 7 };
+        const destroyOffer = createRunShopOffers(stockedDestroy).find((offer) => offer.itemId === 'destroy_charge')!;
+        expect(destroyOffer.compatible).toBe(true);
+        expect(destroyOffer.unavailableReason).toBeNull();
+        expect(destroyOffer.stackLimit).toBeNull();
+        expect(purchaseShopOffer({ ...stockedDestroy, shopOffers: [destroyOffer], shopGold: 99 }, destroyOffer.id).destroyPairCharges).toBe(8);
     });
 
     it('sells run-local dungeon keys', () => {
@@ -4694,12 +4695,12 @@ describe('game rules', () => {
         const dirty = { ...base, lastLevelResult: { ...base.lastLevelResult!, mistakes: 2 } };
         expect(advanceToNextLevel(dirty).destroyPairCharges).toBe(0);
 
-        const capped = {
+        const stocked = {
             ...base,
-            destroyPairCharges: MAX_DESTROY_PAIR_BANK,
+            destroyPairCharges: 7,
             lastLevelResult: { ...base.lastLevelResult!, mistakes: 0 }
         };
-        expect(advanceToNextLevel(capped).destroyPairCharges).toBe(MAX_DESTROY_PAIR_BANK);
+        expect(advanceToNextLevel(stocked).destroyPairCharges).toBe(8);
     });
 
     it('can disable achievements when debug reveal is used', () => {

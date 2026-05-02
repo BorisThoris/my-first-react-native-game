@@ -407,12 +407,15 @@ const GameplayHudBar = ({
                         ) : null}
                     </div>
                     </div>
-                    <div
+                    <details
                         className={`${styles.hudContextSecondaryStrip} ${styles.hudContextRegion}`}
                         data-testid="hud-wing-right"
-                        role="group"
+                        open={cameraViewportMode ? true : undefined}
                         aria-label="Run context"
                     >
+                        <summary className={styles.hudContextSummary} title="Run context">
+                            Info
+                        </summary>
                         <div className={styles.hudStripRightInnerColumn}>
                             <div className={`${styles.hudSegment} ${styles.hudMetaSegment}`}>
                                 <span className={styles.statKey}>Mode</span>
@@ -665,7 +668,7 @@ const GameplayHudBar = ({
                                 </div>
                             </details>
                         </div>
-                    </div>
+                    </details>
                 </div>
             </div>
             <div

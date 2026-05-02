@@ -478,6 +478,9 @@ async function completeLevel1ByTryingHiddenPairs(page: Page): Promise<void> {
         if (await page.getByRole('dialog', { name: /floor cleared/i }).isVisible().catch(() => false)) {
             return;
         }
+        if (await proceedThroughUnlockedExitIfVisible(page)) {
+            return;
+        }
         const positions = await getHiddenTilePositions(page);
         if (positions.length < 2) {
             await page.waitForTimeout(120);
@@ -503,6 +506,9 @@ async function completeLevel1ByTryingHiddenPairs(page: Page): Promise<void> {
                 }
                 tried.add(pk);
                 if (settled === 'floor_cleared') {
+                    return;
+                }
+                if (await proceedThroughUnlockedExitIfVisible(page)) {
                     return;
                 }
                 clicked = true;
@@ -536,6 +542,16 @@ async function clickHiddenTile(page: Page, row: number, col: number): Promise<vo
     await flipTileAtGridCellKeyboard(page, row, col);
 }
 
+async function proceedThroughUnlockedExitIfVisible(page: Page): Promise<boolean> {
+    const exitDialog = page.getByRole('dialog', { name: /unlocked exit/i });
+    if (!(await exitDialog.isVisible().catch(() => false))) {
+        return false;
+    }
+    await exitDialog.getByRole('button', { name: /^proceed$/i }).click();
+    await expect(page.getByRole('dialog', { name: /floor cleared/i })).toBeVisible({ timeout: 15_000 });
+    return true;
+}
+
 /**
  * Level 1: wait for play phase (4 hidden tiles). Captures memorize map when possible; otherwise returns null
  * and callers should use `completeLevel1Play`.
@@ -567,6 +583,9 @@ export async function completeLevel1AllMatches(page: Page, pairs: PairPositions)
         await clickHiddenTile(page, a.row, a.col);
         await clickHiddenTile(page, b.row, b.col);
         await page.waitForTimeout(MATCH_SETTLE_MS);
+    }
+    if (await proceedThroughUnlockedExitIfVisible(page)) {
+        return;
     }
     await expect(page.getByRole('dialog', { name: /floor cleared/i })).toBeVisible({ timeout: 15000 });
 }

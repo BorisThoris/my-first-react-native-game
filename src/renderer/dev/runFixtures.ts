@@ -20,11 +20,13 @@
 import type { DungeonRunNodeKind, FloorArchetypeId, FloorTag, MutatorId, RunState, Tile } from '../../shared/contracts';
 import { buildBoard, countFindablePairs } from '../../shared/board-generation';
 import {
+    generateRouteChoices,
     createDailyRun,
     createGauntletRun,
     createNewRun,
     createRunSummary,
     finishMemorizePhase,
+    openRelicOffer,
     pauseRun
 } from '../../shared/game-core';
 import { createRunShopOffers } from '../../shared/shop-rules';
@@ -55,7 +57,11 @@ const SANDBOX_FIXTURE_IDS = [
     'resolvingMismatch',
     'gambitTripleMissSetup',
     'paused',
+    'floorCleared',
+    'routeChoice',
+    'relicOffer',
     'shop',
+    'sideRoom',
     'gameOver',
     'dungeonEnemy',
     'dungeonBoss',
@@ -125,6 +131,40 @@ const buildDungeonBoardFixtureRun = (
     };
 };
 
+const completeFixtureRun = (
+    runSeed: number,
+    overrides?: Partial<NonNullable<RunState['lastLevelResult']>>
+): RunState => {
+    const playing = finishMemorizePhase(createNewRun(0, { practiceMode: true, runSeed }));
+    const level = overrides?.level ?? playing.board?.level ?? 1;
+    const lastLevelResult: NonNullable<RunState['lastLevelResult']> = {
+        level,
+        scoreGained: 120,
+        rating: 'S++',
+        livesRemaining: playing.lives,
+        perfect: true,
+        mistakes: 0,
+        clearLifeReason: 'perfect',
+        clearLifeGained: 1,
+        ...overrides
+    };
+
+    return {
+        ...playing,
+        status: 'levelComplete',
+        shopGold: 5,
+        shopRerolls: 0,
+        relicOffer: null,
+        timerState: {
+            memorizeRemainingMs: null,
+            resolveRemainingMs: null,
+            debugRevealRemainingMs: null,
+            pausedFromStatus: null
+        },
+        lastLevelResult
+    };
+};
+
 /**
  * Build a non-persisted run for dev sandbox. Caller should apply `patchRunFromUserSettings`.
  */
@@ -184,34 +224,94 @@ export const buildSandboxRun = (fixtureId: string | null, bestScore: number): Ru
             const playing = finishMemorizePhase(createNewRun(bestScore, { practiceMode: true, runSeed: 0xbeefe }));
             return pauseRun(playing);
         }
-        case 'shop': {
-            const playing = finishMemorizePhase(createNewRun(bestScore, { practiceMode: true, runSeed: 0x5150 }));
-            const shopBase: RunState = {
-                ...playing,
-                status: 'levelComplete',
-                shopGold: 5,
-                shopRerolls: 0,
-                relicOffer: null,
-                timerState: {
-                    memorizeRemainingMs: null,
-                    resolveRemainingMs: null,
-                    debugRevealRemainingMs: null,
-                    pausedFromStatus: null
-                },
-                lastLevelResult: {
-                    level: playing.board?.level ?? 1,
-                    scoreGained: 120,
-                    rating: 'S++',
-                    livesRemaining: playing.lives,
-                    perfect: true,
-                    mistakes: 0,
-                    clearLifeReason: 'perfect',
-                    clearLifeGained: 1
-                }
+        case 'floorCleared': {
+            const floorClear = completeFixtureRun(0xf10c, {
+                scoreGained: 185,
+                rating: 'S',
+                featuredObjectiveId: 'flip_par',
+                featuredObjectiveCompleted: true,
+                featuredObjectiveStreak: 2,
+                featuredObjectiveStreakBonus: 10,
+                relicFavorGained: 1,
+                objectiveBonusScore: 30,
+                bonusTags: ['flip_par', 'objective_streak']
+            });
+            return {
+                ...floorClear,
+                shopOffers: createRunShopOffers(floorClear)
             };
+        }
+        case 'routeChoice': {
+            const floorClear = completeFixtureRun(0xf10d, {
+                scoreGained: 210,
+                rating: 'S++',
+                bonusTags: ['perfect', 'loot_cache']
+            });
+            return {
+                ...floorClear,
+                lastLevelResult: {
+                    ...floorClear.lastLevelResult!,
+                    routeChoices: generateRouteChoices(floorClear, floorClear.lastLevelResult!.level + 1)
+                },
+                shopOffers: createRunShopOffers(floorClear)
+            };
+        }
+        case 'relicOffer': {
+            const floorClear = completeFixtureRun(0xf10e, {
+                level: 3,
+                scoreGained: 260,
+                rating: 'S++',
+                relicFavorGained: 1,
+                featuredObjectiveId: 'flip_par',
+                featuredObjectiveCompleted: true
+            });
+            return openRelicOffer({
+                ...floorClear,
+                relicTiersClaimed: 0,
+                shopGold: 6
+            });
+        }
+        case 'shop': {
+            const shopBase = completeFixtureRun(0x5150);
             return {
                 ...shopBase,
                 shopOffers: createRunShopOffers(shopBase)
+            };
+        }
+        case 'sideRoom': {
+            return {
+                ...completeFixtureRun(0x51de, {
+                    scoreGained: 160,
+                    rating: 'S',
+                    clearLifeReason: 'none',
+                    clearLifeGained: 0
+                }),
+                sideRoom: {
+                    id: 'sandbox-side-room',
+                    kind: 'bonus_reward',
+                    routeType: 'greed',
+                    nodeKind: 'treasure',
+                    floor: 2,
+                    title: 'Greed Treasure chest',
+                    body: 'A route reward waits before the next floor.',
+                    primaryLabel: 'Claim Treasure chest',
+                    primaryDetail: '+2 shop gold and +25 score.',
+                    skipLabel: 'Leave it',
+                    choices: [
+                        {
+                            id: 'take-gold',
+                            label: 'Take gold',
+                            detail: '+2 shop gold for the next vendor.',
+                            primary: true
+                        },
+                        {
+                            id: 'take-score',
+                            label: 'Take score',
+                            detail: '+25 score now.'
+                        }
+                    ],
+                    payload: { kind: 'bonus_reward', instanceId: 'sandbox-side-room-reward' }
+                }
             };
         }
         case 'gameOver': {

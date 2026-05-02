@@ -43,7 +43,7 @@ describe('REG-080 permanent upgrade tree and cosmetic track', () => {
         expect(rows.every((row) => row.gameplayAffecting === false)).toBe(true);
         expect(metaProgressionSummary(save)).toMatchObject({
             upgradesUnlocked: 1,
-            cosmeticTrackOwned: 4
+            cosmeticTrackOwned: 3
         });
     });
 

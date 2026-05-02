@@ -20,7 +20,7 @@ Use this when final art is ready. Swap files **or** update imports in `src/rende
 ## Card raster (**PLAY-007** — [`PLAYING_ENDPRODUCT/05-cards.md`](TASKS/PLAYING_ENDPRODUCT/05-cards.md); optional AI path [`CARD_TEXTURE_AI_BRIEF.md`](CARD_TEXTURE_AI_BRIEF.md))
 | Role | File / import |
 |------|----------------|
-| Hidden-side card art | `back.svg` — `tileTextures.ts` (`cardReference`), `cardSvgPlaneGeometry.ts`, DOM `.cardFaceBack` |
+| Hidden-side card art | `authored-card-back.svg` — `tileTextures.ts` (`cardReference`), `cardSvgPlaneGeometry.ts`, DOM/WebGL hidden back |
 | Face-up panel art | `front.svg` — `tileTextures.ts` (`cardFace`), DOM `.cardFaceFront` / `.faceUp .cardBack` |
 | Edge / roughness | `edge.png`, `panel-roughness.png`, `edge-roughness.png` |
 

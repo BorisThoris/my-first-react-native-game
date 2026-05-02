@@ -1973,6 +1973,22 @@ export const useAppStore = create<AppState>((set, get) => ({
             return;
         }
 
+        if (screen === 'sideRoom') {
+            const run = patchRunFromUserSettings(buildSandboxRun(config.fixture ?? 'sideRoom', best), settings);
+            const sideRoomRun =
+                run.status === 'levelComplete' && run.sideRoom
+                    ? run
+                    : patchRunFromUserSettings(buildSandboxRun('sideRoom', best), settings);
+            set({
+                view: 'sideRoom',
+                run: sideRoomRun,
+                ...resetChrome,
+                subscreenReturnView: 'menu',
+                settingsReturnView: 'menu'
+            });
+            return;
+        }
+
         if (screen === 'gameOver') {
             const run = patchRunFromUserSettings(buildSandboxRun(config.fixture ?? 'gameOver', best), settings);
             set({

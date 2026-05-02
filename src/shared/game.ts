@@ -23,7 +23,6 @@ import {
     INITIAL_SHUFFLE_CHARGES,
     MATCH_DELAY_MS,
     MAX_COMBO_SHARDS,
-    MAX_DESTROY_PAIR_BANK,
     MAX_GUARD_TOKENS,
     MAX_LIVES,
     MAX_PENDING_MEMORIZE_BONUS_MS,
@@ -562,14 +561,14 @@ export const SHOP_ITEM_CATALOG: Record<
     destroy_charge: {
         itemId: 'destroy_charge',
         label: 'Destroy charge',
-        description: 'Add 1 destroy charge, capped by the current bank limit.',
+        description: 'Add 1 destroy charge to the uncapped run bank.',
         category: 'service',
-        compatibleWhen: 'not_capped',
+        compatibleWhen: 'owned',
         baseCost: 3,
         cost: 3,
         stock: 1,
         maxStock: 1,
-        stackLimit: MAX_DESTROY_PAIR_BANK
+        stackLimit: null
     },
     iron_key: {
         itemId: 'iron_key',
@@ -683,9 +682,6 @@ const getShopOfferCompatibility = (
     if (itemId === 'heal_life' && run.lives >= MAX_LIVES) {
         return { compatible: false, unavailableReason: 'Life already full.' };
     }
-    if (itemId === 'destroy_charge' && run.destroyPairCharges >= MAX_DESTROY_PAIR_BANK) {
-        return { compatible: false, unavailableReason: 'Destroy bank full.' };
-    }
     return { compatible: true, unavailableReason: null };
 };
 
@@ -755,7 +751,7 @@ export const purchaseShopOffer = (run: RunState, offerId: string): RunState => {
             next = { ...next, peekCharges: next.peekCharges + 1 };
             break;
         case 'destroy_charge':
-            next = { ...next, destroyPairCharges: Math.min(MAX_DESTROY_PAIR_BANK, next.destroyPairCharges + 1) };
+            next = { ...next, destroyPairCharges: next.destroyPairCharges + 1 };
             break;
         case 'iron_key':
             next = {
@@ -1111,9 +1107,9 @@ export const DUNGEON_ROOM_EFFECT_DEFINITIONS: Record<DungeonRoomEffectId, Dungeo
         label: 'Forge',
         trigger: 'reveal_or_reuse',
         costText: 'Costs 2 shop gold.',
-        rewardText: 'Adds 1 destroy-pair charge up to the bank cap.',
+        rewardText: 'Adds 1 destroy-pair charge to the uncapped bank.',
         resolvedState: 'reusable_revealed',
-        blockedText: 'Needs 2 shop gold and destroy capacity.'
+        blockedText: 'Needs 2 shop gold.'
     },
     room_shrine: {
         effectId: 'room_shrine',
@@ -1138,7 +1134,7 @@ export const DUNGEON_ROOM_EFFECT_DEFINITIONS: Record<DungeonRoomEffectId, Dungeo
         label: 'Armory',
         trigger: 'reveal',
         costText: 'No cost.',
-        rewardText: 'Adds a destroy-pair charge, or pays shop gold if the bank is full.',
+        rewardText: 'Adds 1 destroy-pair charge to the uncapped bank.',
         resolvedState: 'one_shot_resolved',
         blockedText: null
     },
@@ -1201,7 +1197,7 @@ export const getDungeonRoomReadModel = (
     const used = tile.dungeonRoomUsed === true || tile.dungeonCardState === 'resolved';
     const hasIronKey = (run?.dungeonKeys.iron ?? 0) > 0;
     const hasMasterKey = (run?.dungeonMasterKeys ?? 0) > 0;
-    const forgeCanPay = (run?.shopGold ?? 0) >= 2 && (run?.destroyPairCharges ?? 0) < MAX_DESTROY_PAIR_BANK;
+    const forgeCanPay = (run?.shopGold ?? 0) >= 2;
     const canUse =
         definition.effectId === 'room_forge'
             ? forgeCanPay
@@ -4378,7 +4374,7 @@ const applyRelicImmediate = (run: RunState, relicId: RelicId): RunState => {
         case 'destroy_bank_plus_one':
             return {
                 ...run,
-                destroyPairCharges: Math.min(MAX_DESTROY_PAIR_BANK, run.destroyPairCharges + 1)
+                destroyPairCharges: run.destroyPairCharges + 1
             };
         case 'first_shuffle_free_per_floor':
             return { ...run, freeShuffleThisFloor: true };
@@ -6535,11 +6531,11 @@ export const revealDungeonRoom = (run: RunState, tileId: string): RunState => {
     } else if (effectId === 'room_map') {
         nextRun = run;
     } else if (effectId === 'room_forge') {
-        if (run.shopGold >= 2 && run.destroyPairCharges < MAX_DESTROY_PAIR_BANK) {
+        if (run.shopGold >= 2) {
             nextRun = {
                 ...run,
                 shopGold: run.shopGold - 2,
-                destroyPairCharges: Math.min(MAX_DESTROY_PAIR_BANK, run.destroyPairCharges + 1)
+                destroyPairCharges: run.destroyPairCharges + 1
             };
         }
         markUsed = false;
@@ -6565,13 +6561,10 @@ export const revealDungeonRoom = (run: RunState, tileId: string): RunState => {
     } else if (effectId === 'room_scrying_lens') {
         nextRun = run;
     } else if (effectId === 'room_armory') {
-        nextRun =
-            run.destroyPairCharges < MAX_DESTROY_PAIR_BANK
-                ? {
-                      ...run,
-                      destroyPairCharges: Math.min(MAX_DESTROY_PAIR_BANK, run.destroyPairCharges + 1)
-                  }
-                : { ...run, shopGold: run.shopGold + 1 };
+        nextRun = {
+            ...run,
+            destroyPairCharges: run.destroyPairCharges + 1
+        };
     } else if (effectId === 'room_key_cache') {
         nextRun = {
             ...run,
@@ -7373,10 +7366,7 @@ export const advanceToNextLevel = (run: RunState): RunState => {
 
     const cleanClearDestroyBonus =
         run.lastLevelResult !== null && run.lastLevelResult.mistakes === 0 ? 1 : 0;
-    const nextDestroyPairCharges = Math.min(
-        MAX_DESTROY_PAIR_BANK,
-        run.destroyPairCharges + cleanClearDestroyBonus
-    );
+    const nextDestroyPairCharges = run.destroyPairCharges + cleanClearDestroyBonus;
 
     const nextLevelNum = run.board.level + 1;
     const currentDungeonRun = dungeonRunFor(run);

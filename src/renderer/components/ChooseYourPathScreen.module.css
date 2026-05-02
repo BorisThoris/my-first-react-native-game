@@ -66,8 +66,8 @@
     container-type: size;
     container-name: path-shell;
 
-    --path-stack-gap: var(--theme-space-lg);
-    --path-card-grid-gap: var(--theme-space-md);
+    --path-stack-gap: calc(var(--theme-space-md) + var(--theme-space-2xs));
+    --path-card-grid-gap: calc(var(--theme-space-sm) + var(--theme-space-2xs));
     --path-card-inner-gap: var(--theme-space-sm);
     --path-card-pad-block: var(--theme-space-lg);
     --path-card-pad-inline: calc(var(--theme-space-lg) + var(--theme-space-2xs));
@@ -125,7 +125,7 @@
 
 .pathTitle {
     max-width: min(760px, 100%);
-    font-size: clamp(2.6rem, 6.4vw, 5.15rem);
+    font-size: clamp(2.35rem, 5.8vw, 4.65rem);
 }
 
 .discoveryStrip {
@@ -242,7 +242,7 @@
     overscroll-behavior: contain;
     display: flex;
     flex-direction: column;
-    gap: var(--theme-space-md);
+    gap: calc(var(--theme-space-sm) + var(--theme-space-2xs));
 }
 
 .heroSection,
@@ -256,7 +256,7 @@
 /* More modes: uniform compact tiles (fixed height); hero uses full-width thirds. */
 .librarySection {
     --library-tile-max-width: 100%;
-    --library-tile-height: 196px;
+    --library-tile-height: 184px;
 }
 
 .sectionEyebrow {
@@ -270,7 +270,7 @@
 .launchPanel {
     position: relative;
     overflow: hidden;
-    min-height: clamp(17rem, 38vh, 21rem);
+    min-height: clamp(14.5rem, 32vh, 18rem);
     display: grid;
     align-items: end;
     border-radius: var(--ui-radius-lg);
@@ -311,7 +311,7 @@
     width: min(32rem, 100%);
     display: grid;
     gap: 0.5rem;
-    padding: clamp(1rem, 2.4vw, 1.45rem);
+    padding: clamp(0.9rem, 2vw, 1.2rem);
 }
 
 .launchEyebrow {

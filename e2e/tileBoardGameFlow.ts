@@ -82,9 +82,18 @@ export async function navigateToLevel1PlayPhase(
     );
     await page.goto('/');
     await dismissStartupIntro(page);
-    await page.getByRole('button', { name: /^play$/i }).click();
-    await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
-    await page.getByRole('button', { name: /start run/i }).click();
+    await expect(async () => {
+        const playButton = page.getByRole('button', { name: /^play$/i });
+        await expect(playButton).toBeVisible({ timeout: 5_000 });
+        await playButton.evaluate((el) => (el as HTMLButtonElement).click());
+        await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible({ timeout: 5_000 });
+    }).toPass({ timeout: 30_000 });
+    await expect(async () => {
+        const startRunButton = page.getByRole('button', { name: /start run/i });
+        await expect(startRunButton).toBeVisible({ timeout: 5_000 });
+        await startRunButton.evaluate((el) => (el as HTMLButtonElement).click());
+        await expect(page.getByRole('heading', { name: /level 1/i })).toBeAttached({ timeout: 5_000 });
+    }).toPass({ timeout: 30_000 });
     // Level title can be sr-only on compact viewports; attached is enough to proceed.
     await expect(page.getByRole('heading', { name: /level 1/i })).toBeAttached({ timeout: 15_000 });
     await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible({ timeout: 15_000 });

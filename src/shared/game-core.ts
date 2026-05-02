@@ -14,9 +14,11 @@ export {
     disableDebugPeek,
     enableDebugPeek,
     finishMemorizePhase,
+    generateRouteChoices,
     getMemorizeDuration,
     getMemorizeDurationForRun,
     isGauntletExpired,
+    openRelicOffer,
     pauseRun,
     resumeRun
 } from './game';

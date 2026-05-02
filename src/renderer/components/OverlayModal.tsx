@@ -3,7 +3,8 @@ import { focusFirstTabbableOrContainer, handleTabFocusTrapEvent } from '../a11y/
 import { popModalFocusSnapshot, pushModalFocusSnapshot } from '../a11y/modalFocusReturnStack';
 import { popVerticalToolbarRovingPause, pushVerticalToolbarRovingPause } from '../a11y/toolbarRoving';
 import { getOverlayDecisionPolicyRow } from '../../shared/overlay-decision-policy';
-import { MetaFrame, ScreenTitle, UiButton, type UiButtonVariant } from '../ui';
+import { MetaFrame, OverlayActionDock, ScreenTitle } from '../ui';
+import type { OverlayActionPlacement } from '../ui';
 import styles from './OverlayModal.module.css';
 
 interface ModalAction {
@@ -12,6 +13,8 @@ interface ModalAction {
     variant?: 'primary' | 'secondary' | 'danger';
     disabled?: boolean;
 }
+
+type OverlayModalActionPlacement = OverlayActionPlacement | 'auto';
 
 /** META-009: pause=blue-neutral, floor=gold+success well, relic=violet — only when `ornamentalHeaderPlate`. */
 type OverlayModalHeaderPlateTone = 'neutral' | 'success' | 'pause' | 'relic' | 'danger';
@@ -36,6 +39,8 @@ interface OverlayModalProps {
     quietHeaderPlate?: boolean;
     /** When `ornamentalHeaderPlate` is set: chrome wash + MetaFrame glow (see {@link OverlayModalHeaderPlateTone}). */
     headerPlateTone?: OverlayModalHeaderPlateTone;
+    /** Hybrid parity: compact decisions use a rail; body-heavy overlays use a bottom dock. */
+    actionPlacement?: OverlayModalActionPlacement;
 }
 
 const modalKindFor = (actions: readonly ModalAction[], hasChildren: boolean): 'alert' | 'decision' | 'sheet' => {
@@ -104,16 +109,18 @@ const overlayToneClass = (tone: OverlayModalHeaderPlateTone): string => {
     return styles.modalToneNeutral;
 };
 
-const toUiVariant = (variant: ModalAction['variant']): UiButtonVariant => {
-    if (variant === 'danger') {
-        return 'danger';
+const resolveActionPlacement = (
+    requested: OverlayModalActionPlacement,
+    actions: readonly ModalAction[],
+    hasChildren: boolean
+): OverlayActionPlacement => {
+    if (requested !== 'auto') {
+        return requested;
     }
-
-    if (variant === 'secondary') {
-        return 'secondary';
+    if (actions.length === 0) {
+        return 'dock';
     }
-
-    return 'primary';
+    return hasChildren ? 'dock' : 'rail';
 };
 
 const OverlayModal = ({
@@ -124,7 +131,8 @@ const OverlayModal = ({
     testId,
     ornamentalHeaderPlate = false,
     quietHeaderPlate = false,
-    headerPlateTone = 'neutral'
+    headerPlateTone = 'neutral',
+    actionPlacement = 'auto'
 }: OverlayModalProps) => {
     const modalRef = useRef<HTMLElement | null>(null);
     const titleId = useId();
@@ -133,6 +141,7 @@ const OverlayModal = ({
     const describedBy = [subtitle ? subtitleId : null, children ? bodyId : null].filter(Boolean).join(' ') || undefined;
     const modalKind = modalKindFor(actions, Boolean(children));
     const decisionPolicy = getOverlayDecisionPolicyRow(modalKind);
+    const resolvedActionPlacement = resolveActionPlacement(actionPlacement, actions, Boolean(children));
 
     /* OVR-010: initial focus + restore — same lifecycle pattern as Settings modal (`presentation="modal"`). */
     useEffect(() => {
@@ -185,6 +194,7 @@ const OverlayModal = ({
                 className={`${styles.modal} ${overlayToneClass(headerPlateTone)} ${
                     actions.length === 0 ? styles.modalNoActions : ''
                 }`.trim()}
+                data-action-placement={resolvedActionPlacement}
                 data-modal-kind={modalKind}
                 data-overlay-size={modalKind}
                 data-keyboard-contract={decisionPolicy.keyboardPath}
@@ -233,23 +243,13 @@ const OverlayModal = ({
                 </div>
 
                 {actions.length > 0 ? (
-                    <div className={styles.actions} data-testid="overlay-modal-actions">
-                        <span className={styles.actionPolicyLabel} data-testid="overlay-modal-policy">
-                            {decisionPolicy.modalKind}: {decisionPolicy.keyboardPath}
-                        </span>
-                        {actions.map((action) => (
-                            <UiButton
-                                className={styles.modalAction}
-                                disabled={action.disabled}
-                                key={action.label}
-                                onClick={action.onClick}
-                                size="md"
-                                variant={toUiVariant(action.variant)}
-                            >
-                                {action.label}
-                            </UiButton>
-                        ))}
-                    </div>
+                    <OverlayActionDock
+                        actionClassName={styles.modalAction}
+                        actions={actions}
+                        className={styles.actions}
+                        placement={resolvedActionPlacement}
+                        testId="overlay-modal-actions"
+                    />
                 ) : null}
             </section>
         </div>
