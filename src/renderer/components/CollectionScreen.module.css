@@ -20,8 +20,9 @@
 .achievementCard {
     padding: 0.85rem 1rem;
     border-radius: var(--ui-radius-md);
-    border: 1px solid var(--theme-divider-hairline);
-    background: var(--theme-panel-alt);
+    border: 1px solid var(--theme-card-border-polished);
+    background: var(--theme-surface-glass);
+    box-shadow: var(--theme-elevation-soft);
 }
 
 .galleryGrid {
@@ -35,18 +36,20 @@
     gap: 0.28rem;
     padding: 0.85rem 1rem;
     border-radius: var(--ui-radius-md);
-    border: 1px solid color-mix(in srgb, var(--theme-gold) 18%, var(--theme-divider-hairline));
+    border: 1px solid color-mix(in srgb, var(--theme-gold) 26%, var(--theme-divider-hairline));
     background:
         radial-gradient(circle at top left, color-mix(in srgb, var(--theme-gold) 7%, transparent), transparent 52%),
-        var(--theme-panel-alt);
+        var(--theme-surface-glass);
+    box-shadow: var(--theme-elevation-soft);
 }
 
 .galleryBadge {
     width: fit-content;
     padding: 0.12rem 0.42rem;
     border-radius: var(--ui-radius-pill);
-    background: color-mix(in srgb, var(--theme-cyan) 16%, transparent);
-    color: var(--theme-text-muted);
+    border: 1px solid color-mix(in srgb, var(--theme-cyan) 24%, transparent);
+    background: color-mix(in srgb, var(--theme-cyan) 18%, transparent);
+    color: color-mix(in srgb, var(--theme-cyan-bright) 72%, var(--theme-text-muted));
     font-size: 0.62rem;
     font-weight: 700;
     letter-spacing: 0.07em;
@@ -98,8 +101,8 @@
     padding: 0.35rem 0.5rem;
     text-align: center;
     border-radius: var(--ui-radius-sm);
-    border: 1px solid var(--theme-hud-chrome-border-soft);
-    background: var(--theme-panel);
+    border: 1px solid var(--theme-card-border-polished);
+    background: var(--theme-surface-control);
     font-size: 0.95rem;
 }
 
@@ -141,9 +144,10 @@
 
 .dailyArchiveCard {
     padding: 0.75rem 0.85rem;
-    border: 1px solid var(--theme-divider-hairline);
+    border: 1px solid var(--theme-card-border-polished);
     border-radius: var(--ui-radius-md);
-    background: var(--theme-panel-alt);
+    background: var(--theme-surface-glass);
+    box-shadow: var(--theme-elevation-soft);
 }
 
 .trackSummary {

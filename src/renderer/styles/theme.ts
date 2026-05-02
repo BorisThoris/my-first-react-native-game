@@ -251,11 +251,31 @@ export const RENDERER_THEME = {
             'linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent), rgba(12, 12, 18, 0.62)',
         '--theme-surface-raised-soft':
             'linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent), rgba(12, 12, 18, 0.44)',
+        '--theme-surface-glass':
+            'linear-gradient(180deg, rgba(255, 243, 217, 0.055), rgba(255, 243, 217, 0.012) 38%, transparent 100%), color-mix(in srgb, var(--theme-panel-solid) 84%, transparent)',
+        '--theme-surface-glass-strong':
+            'radial-gradient(ellipse 120% 78% at 50% 0%, rgba(242, 211, 157, 0.08), transparent 58%), linear-gradient(180deg, rgba(255, 243, 217, 0.05), rgba(255, 243, 217, 0.012) 44%, transparent 100%), color-mix(in srgb, var(--theme-panel-solid) 91%, var(--theme-stone) 9%)',
+        '--theme-surface-control':
+            'linear-gradient(180deg, rgba(255, 243, 217, 0.048), transparent 52%), color-mix(in srgb, var(--theme-void) 56%, transparent)',
+        '--theme-surface-control-hover':
+            'linear-gradient(180deg, rgba(255, 243, 217, 0.07), transparent 52%), color-mix(in srgb, var(--theme-gold-deep) 10%, var(--theme-void) 68%)',
+        '--theme-surface-danger':
+            'radial-gradient(ellipse 120% 80% at 50% 0%, color-mix(in srgb, var(--theme-danger) 15%, transparent), transparent 58%), color-mix(in srgb, var(--theme-panel-solid) 88%, var(--theme-danger) 12%)',
+        '--theme-surface-success':
+            'radial-gradient(ellipse 120% 80% at 50% 0%, color-mix(in srgb, var(--theme-success) 15%, transparent), transparent 58%), color-mix(in srgb, var(--theme-panel-solid) 88%, var(--theme-success) 12%)',
         '--theme-divider-hairline': 'rgba(242, 211, 157, 0.1)',
         '--theme-card-border-muted': 'rgba(242, 211, 157, 0.08)',
+        '--theme-card-border-polished': 'color-mix(in srgb, var(--theme-gold-bright) 18%, var(--theme-card-border-muted))',
+        '--theme-card-inner-stroke': 'color-mix(in srgb, var(--theme-gold-bright) 8%, transparent)',
         '--theme-glow-violet-drop': 'rgba(140, 98, 223, 0.36)',
         '--theme-elevation-card': '0 10px 26px rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.035)',
         '--theme-elevation-lift': '0 10px 32px rgba(0, 0, 0, 0.28)',
+        '--theme-elevation-soft':
+            '0 12px 30px color-mix(in srgb, var(--theme-shadow) 24%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.04)',
+        '--theme-elevation-polished':
+            '0 18px 44px color-mix(in srgb, var(--theme-shadow) 34%, transparent), 0 0 0 1px color-mix(in srgb, var(--theme-gold-bright) 5%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.055)',
+        '--theme-focus-ring':
+            '0 0 0 1px var(--theme-void), 0 0 0 3px color-mix(in srgb, var(--theme-focus) 74%, transparent), 0 0 22px color-mix(in srgb, var(--theme-focus) 24%, transparent)',
         /** Secondary meta sections / rails — aligned with card elevation, flatter than `--theme-panel-shadow`. */
         '--theme-panel-shadow-muted': 'var(--theme-elevation-card)',
         /** Decorative deck cards in TileBoard pre-stage — drop shadow tuned via theme shadow mix. */

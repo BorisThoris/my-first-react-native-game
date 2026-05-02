@@ -13,11 +13,12 @@
     inset: 0;
     pointer-events: none;
     z-index: 0;
-    opacity: 0.19;
+    opacity: 0.28;
     background-position: center bottom;
     background-repeat: no-repeat;
     background-size: cover;
     mix-blend-mode: screen;
+    filter: saturate(1.08) contrast(1.04);
 }
 
 .scrim {
@@ -27,6 +28,7 @@
     z-index: 0;
     /* Slightly brighter core so title + CTAs separate from the scene. */
     background:
+        radial-gradient(ellipse 80% 62% at 50% 20%, color-mix(in srgb, var(--theme-gold-bright) 7%, transparent), transparent 58%),
         radial-gradient(
             circle at 50% 38%,
             rgba(255, 255, 255, 0),
@@ -40,6 +42,23 @@
             transparent 14% 84%,
             var(--theme-backdrop-body-rim)
         );
+}
+
+.scrim::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        linear-gradient(
+            90deg,
+            color-mix(in srgb, var(--theme-gold-bright) 5%, transparent),
+            transparent 18%,
+            transparent 82%,
+            color-mix(in srgb, var(--theme-cyan-bright) 5%, transparent)
+        ),
+        radial-gradient(ellipse 64% 18% at 50% 100%, color-mix(in srgb, var(--theme-ember-soft) 8%, transparent), transparent 70%);
+    opacity: 0.9;
 }
 
 .fitViewport {
@@ -176,7 +195,9 @@
 .brandCrest {
     width: clamp(4.25rem, 10vw, 5.8rem);
     height: auto;
-    filter: drop-shadow(0 0 14px color-mix(in srgb, var(--theme-glow-violet-drop) 58%, transparent));
+    filter:
+        drop-shadow(0 0 18px color-mix(in srgb, var(--theme-glow-violet-drop) 62%, transparent))
+        drop-shadow(0 8px 18px color-mix(in srgb, var(--theme-shadow) 46%, transparent));
 }
 
 .heroEyebrow {
@@ -200,6 +221,7 @@
     font-size: 1rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
+    text-wrap: balance;
 }
 
 /*
@@ -209,7 +231,9 @@
  */
 .ctaMetaFrameWrap {
     width: min(100%, 22rem);
-    filter: drop-shadow(0 14px 32px color-mix(in srgb, var(--theme-shadow) 38%, transparent));
+    filter:
+        drop-shadow(0 14px 32px color-mix(in srgb, var(--theme-shadow) 38%, transparent))
+        drop-shadow(0 0 18px color-mix(in srgb, var(--theme-gold-bright) 8%, transparent));
 }
 
 .ctaPanel {
@@ -252,6 +276,11 @@
     justify-content: flex-start;
     text-align: left;
     align-items: center;
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 30%, var(--theme-border));
+}
+
+.ctaButton:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 54%, var(--theme-border-strong));
 }
 
 /*
@@ -311,6 +340,7 @@
         rotateX(calc(var(--tilt-y, 0) * -4deg))
         rotateY(calc(var(--tilt-x, 0) * 4deg));
     transform-style: preserve-3d;
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 18%, var(--theme-border));
 }
 
 .supportHeading {

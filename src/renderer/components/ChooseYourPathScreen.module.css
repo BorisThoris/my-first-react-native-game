@@ -16,12 +16,13 @@
 }
 
 .sceneBaseLayer {
-    opacity: 0.36;
+    opacity: 0.46;
     background-position: center 58%;
+    filter: saturate(1.06) contrast(1.04);
 }
 
 .sceneLayer {
-    opacity: 0.08;
+    opacity: 0.13;
     background-position: center 42%;
     mix-blend-mode: soft-light;
 }
@@ -32,6 +33,7 @@
     pointer-events: none;
     z-index: 0;
     background:
+        radial-gradient(ellipse 78% 54% at 58% 18%, color-mix(in srgb, var(--theme-gold-bright) 8%, transparent), transparent 58%),
         linear-gradient(
             90deg,
             rgba(4, 5, 10, 0.76) 0%,
@@ -135,13 +137,9 @@
     margin-top: 0.24rem;
     padding: 0.42rem 0.48rem 0.42rem 0.68rem;
     border-radius: var(--ui-radius-md);
-    border: 1px solid color-mix(in srgb, var(--theme-cyan) 16%, var(--theme-divider-hairline));
-    background:
-        linear-gradient(180deg, rgba(255, 243, 217, 0.035), transparent 54%),
-        color-mix(in srgb, var(--theme-panel-solid) 86%, transparent);
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.025),
-        0 8px 22px color-mix(in srgb, var(--theme-shadow) 18%, transparent);
+    border: 1px solid color-mix(in srgb, var(--theme-cyan) 22%, var(--theme-card-border-polished));
+    background: var(--theme-surface-glass);
+    box-shadow: var(--theme-elevation-soft);
     backdrop-filter: blur(8px) saturate(112%);
     font-size: 0.72rem;
     line-height: 1.35;
@@ -276,20 +274,18 @@
     display: grid;
     align-items: end;
     border-radius: var(--ui-radius-lg);
-    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 24%, var(--theme-card-border-muted));
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 32%, var(--theme-card-border-muted));
     background:
         linear-gradient(180deg, rgba(255, 243, 217, 0.035), transparent 26%),
         color-mix(in srgb, var(--theme-panel-solid) 88%, transparent);
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.035),
-        0 18px 44px color-mix(in srgb, var(--theme-shadow) 34%, transparent);
+    box-shadow: var(--theme-elevation-polished);
 }
 
 .launchPoster {
     position: absolute;
     inset: 0;
     z-index: 0;
-    opacity: 0.34;
+    opacity: 0.46;
     pointer-events: none;
 }
 
@@ -334,6 +330,7 @@
     font-size: 0.98rem;
     font-weight: 500;
     line-height: 1.42;
+    text-wrap: balance;
 }
 
 .launchActions {
@@ -430,8 +427,8 @@
     min-height: var(--ui-touch-target-min);
     border: none;
     border-radius: var(--ui-radius-md);
-    background: transparent;
-    box-shadow: none;
+    background: color-mix(in srgb, var(--theme-panel-solid) 38%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--theme-gold-bright) 6%, transparent);
     color: color-mix(in srgb, var(--theme-text-muted) 88%, var(--theme-gold-bright) 12%);
     cursor: pointer;
     transition: color 140ms ease, opacity 140ms ease;
@@ -439,6 +436,7 @@
 
 .librarySearchIconBtn:hover {
     color: color-mix(in srgb, var(--theme-text) 78%, var(--theme-gold-bright) 22%);
+    background: color-mix(in srgb, var(--theme-gold-deep) 10%, var(--theme-panel-solid) 42%);
 }
 
 .librarySearchIconBtn:focus-visible {
@@ -496,8 +494,8 @@
     max-width: 22rem;
     padding: 0.5rem 0.65rem;
     border-radius: var(--theme-radius-sm, var(--ui-radius-md));
-    border: 1px solid var(--theme-card-border-muted);
-    background: var(--theme-surface-raised);
+    border: 1px solid var(--theme-card-border-polished);
+    background: var(--theme-surface-control);
     color: var(--theme-text-primary, var(--theme-text));
     font-size: 0.9rem;
 }
@@ -587,14 +585,14 @@
     touch-action: pan-x;
     -webkit-overflow-scrolling: touch;
     border-radius: var(--ui-radius-lg);
-    border: 1px solid color-mix(in srgb, var(--theme-card-border-muted) 92%, transparent);
+    border: 1px solid color-mix(in srgb, var(--theme-card-border-polished) 92%, transparent);
     background:
         linear-gradient(180deg, rgba(255, 243, 217, 0.04), transparent 18%),
         linear-gradient(90deg, rgba(6, 8, 14, 0.72), rgba(10, 12, 20, 0.9) 48%, rgba(6, 8, 14, 0.72)),
         color-mix(in srgb, var(--theme-panel-solid, rgba(12, 14, 22)) 94%, transparent);
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.028),
-        0 8px 20px color-mix(in srgb, var(--theme-shadow) 18%, transparent);
+        0 14px 30px color-mix(in srgb, var(--theme-shadow) 22%, transparent);
 }
 
 .libraryScroller::-webkit-scrollbar {
@@ -651,7 +649,7 @@
     height: var(--library-tile-height);
     min-height: var(--library-tile-height);
     max-height: var(--library-tile-height);
-    border-color: color-mix(in srgb, var(--theme-border) 74%, var(--theme-gold-deep) 26%);
+    border-color: color-mix(in srgb, var(--theme-card-border-polished) 84%, var(--theme-gold-deep) 16%);
     box-shadow:
         var(--theme-elevation-card),
         inset 0 1px 0 rgba(255, 255, 255, 0.026);
@@ -866,7 +864,7 @@
     gap: var(--path-card-inner-gap);
     padding: var(--path-card-pad-block) var(--path-card-pad-inline);
     border-radius: var(--ui-radius-lg);
-    border: 1px solid color-mix(in srgb, var(--theme-hud-chrome-border) 55%, var(--theme-gold-deep) 45%);
+    border: 1px solid color-mix(in srgb, var(--theme-card-border-polished) 80%, var(--theme-gold-deep) 20%);
     background:
         linear-gradient(180deg, rgba(255, 243, 217, 0.065), transparent 34%),
         linear-gradient(180deg, rgba(5, 6, 10, 0.2), rgba(5, 6, 10, 0.62)),
@@ -874,7 +872,7 @@
         rgba(8, 10, 16, 0.86);
     box-shadow:
         inset 0 1px 0 var(--theme-hud-chrome-inset),
-        0 12px 30px color-mix(in srgb, var(--theme-shadow) 24%, transparent);
+        var(--theme-elevation-soft);
     text-align: left;
     color: inherit;
     cursor: pointer;
@@ -922,7 +920,7 @@
     border-color: color-mix(in srgb, var(--theme-gold-bright) 56%, var(--theme-border-cyan) 44%);
     box-shadow:
         0 0 0 1px color-mix(in srgb, var(--theme-gold-bright) 26%, transparent),
-        0 0 18px color-mix(in srgb, var(--theme-gold-bright) 12%, transparent),
+        0 0 22px color-mix(in srgb, var(--theme-gold-bright) 16%, transparent),
         0 12px 30px color-mix(in srgb, var(--theme-shadow) 28%, transparent),
         inset 0 1px 0 color-mix(in srgb, var(--theme-gold-bright) 15%, transparent);
 }

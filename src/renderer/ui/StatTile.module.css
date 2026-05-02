@@ -3,12 +3,10 @@
     border-radius: var(--ui-radius-lg);
     padding: var(--ui-space-lg);
     background:
-        radial-gradient(circle at top left, rgba(195, 149, 79, 0.06), transparent 34%),
-        linear-gradient(160deg, rgba(16, 14, 21, 0.88), rgba(9, 9, 13, 0.86));
-    border: 1px solid var(--theme-border);
-    box-shadow:
-        0 10px 22px color-mix(in srgb, var(--theme-shadow) 26%, transparent),
-        inset 0 1px 0 rgba(255, 255, 255, 0.03);
+        radial-gradient(ellipse 90% 70% at 18% 0%, rgba(195, 149, 79, 0.08), transparent 56%),
+        var(--theme-surface-glass);
+    border: 1px solid var(--theme-card-border-polished);
+    box-shadow: var(--theme-elevation-soft);
 }
 
 .compact {
@@ -27,6 +25,7 @@
     text-transform: uppercase;
     font-size: var(--ui-font-label);
     font-weight: 600;
+    text-wrap: balance;
 }
 
 .value {
@@ -36,6 +35,7 @@
     font-family: var(--theme-display-font);
     font-size: var(--ui-font-stat);
     line-height: 1.1;
+    font-variant-numeric: tabular-nums;
 }
 
 .valueAccent {

@@ -5,7 +5,9 @@
     inset: 0;
     z-index: -1;
     pointer-events: none;
-    background: var(--theme-meta-stage-wash);
+    background:
+        radial-gradient(ellipse 82% 48% at 50% 0%, color-mix(in srgb, var(--theme-gold-bright) 7%, transparent), transparent 62%),
+        var(--theme-meta-stage-wash);
 }
 
 /* Shared shell chrome: safe-area padding + column gap for full-viewport shells and modal stack. */
@@ -36,6 +38,8 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: var(--theme-space-xl);
+    padding-bottom: var(--theme-space-xs);
+    border-bottom: 1px solid color-mix(in srgb, var(--theme-gold-bright) 10%, transparent);
 }
 
 .headerText {
@@ -49,6 +53,7 @@
     color: var(--theme-text-muted);
     font-size: 0.95rem;
     line-height: 1.45;
+    text-wrap: balance;
 }
 
 .body {
@@ -81,7 +86,9 @@
     position: sticky;
     top: 0;
     z-index: 1;
-    background: var(--theme-meta-toc-sticky-bg);
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--theme-gold-bright) 4%, transparent), transparent 48%),
+        var(--theme-meta-toc-sticky-bg);
     backdrop-filter: blur(8px) saturate(118%);
 }
 
@@ -92,8 +99,8 @@
     min-height: var(--ui-touch-target-min);
     padding: 0.24rem 0.7rem;
     border-radius: var(--ui-radius-pill);
-    border: 1px solid var(--theme-card-border-muted);
-    background: var(--theme-surface-raised-soft);
+    border: 1px solid var(--theme-card-border-polished);
+    background: var(--theme-surface-control);
     font-size: 0.65rem;
     font-weight: 700;
     letter-spacing: 0.1em;
@@ -104,6 +111,8 @@
 
 .inPageToc a:hover {
     color: var(--theme-gold-bright);
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 34%, transparent);
+    background: var(--theme-surface-control-hover);
 }
 
 .sectionAnchor {
@@ -170,7 +179,7 @@
             radial-gradient(ellipse 80% 55% at 18% 88%, rgba(140, 98, 223, 0.06), transparent 52%),
             linear-gradient(168deg, rgba(26, 20, 16, 0.98), rgba(7, 6, 10, 0.99))
         );
-    border: 1px solid var(--gameplay-meta-desk-border, color-mix(in srgb, var(--theme-gold-bright) 22%, transparent));
+    border: 1px solid var(--gameplay-meta-desk-border, color-mix(in srgb, var(--theme-gold-bright) 30%, transparent));
     box-shadow:
         var(--gameplay-meta-desk-shadow, 0 28px 74px rgba(0, 0, 0, 0.56), inset 0 1px 0 rgba(255, 236, 205, 0.1)),
         0 0 0 1px color-mix(in srgb, var(--theme-gold-deep) 44%, transparent);
@@ -311,8 +320,9 @@
     margin: 0;
     padding: 0.75rem 0.95rem;
     border-radius: var(--ui-radius-md);
-    border: 1px solid var(--theme-divider-hairline);
-    background: var(--theme-panel-alt);
+    border: 1px solid var(--theme-card-border-polished);
+    background: var(--theme-surface-glass);
+    box-shadow: var(--theme-elevation-soft);
     display: grid;
     gap: var(--theme-space-2xs);
 }

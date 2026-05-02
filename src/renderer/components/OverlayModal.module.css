@@ -48,10 +48,12 @@
     min-height: 0;
     position: relative;
     isolation: isolate;
-    background: var(--gameplay-overlay-surface, var(--theme-panel-surface-strong, var(--theme-panel-surface)));
+    background: var(--gameplay-overlay-surface, var(--theme-surface-glass-strong, var(--theme-panel-surface-strong)));
     border: var(--gameplay-overlay-border, var(--theme-overlay-plate-border, 1px solid var(--theme-border-strong)));
     border-radius: calc(var(--theme-overlay-plate-radius, calc(var(--ui-radius-modal) + 0.18rem)) + 0.08rem);
-    box-shadow: var(--gameplay-overlay-shadow, var(--theme-overlay-plate-shadow));
+    box-shadow:
+        var(--gameplay-overlay-shadow, var(--theme-overlay-plate-shadow)),
+        0 0 44px color-mix(in srgb, var(--overlay-accent) 18%, transparent);
 }
 
 /* Body-only layouts (e.g. relic draft cards) — drop empty action column. */
@@ -104,8 +106,12 @@
     text-align: center;
     border-radius: var(--ui-radius-md);
     border: 1px solid color-mix(in srgb, var(--theme-border) 80%, transparent);
-    background: linear-gradient(168deg, rgba(16, 14, 18, 0.88), rgba(8, 8, 11, 0.82));
-    box-shadow: inset 0 1px 0 rgba(255, 243, 217, 0.04);
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--overlay-accent) 12%, transparent), transparent 58%),
+        var(--theme-surface-control);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 243, 217, 0.05),
+        0 8px 20px color-mix(in srgb, var(--theme-shadow) 18%, transparent);
 }
 
 .headerQuietToneSuccess {
@@ -155,6 +161,7 @@
     text-align: center;
     border-radius: calc(var(--ui-radius-md) + 0.12rem);
     background:
+        radial-gradient(ellipse 120% 80% at 50% 0%, color-mix(in srgb, var(--overlay-accent) 16%, transparent), transparent 58%),
         linear-gradient(180deg, rgba(255, 243, 217, 0.055) 0%, transparent 44%),
         linear-gradient(168deg, rgba(18, 14, 12, 0.94), rgba(8, 8, 11, 0.9));
     box-shadow:
@@ -283,7 +290,7 @@
     padding: 0.38rem;
     border-radius: calc(var(--ui-radius-lg) - 0.08rem);
     border: 1px solid color-mix(in srgb, var(--overlay-accent) 18%, transparent);
-    background: var(--gameplay-overlay-actions-surface, color-mix(in srgb, var(--theme-void) 54%, transparent));
+    background: var(--gameplay-overlay-actions-surface, var(--theme-surface-control));
     box-shadow:
         inset 0 1px 0 color-mix(in srgb, rgba(255, 255, 255, 0.035) 80%, transparent),
         inset 0 0 0 1px color-mix(in srgb, var(--theme-shadow) 8%, transparent);
@@ -302,6 +309,10 @@
 .modalAction {
     flex: 0 0 auto;
     min-width: min(100%, 10.5rem);
+}
+
+.body {
+    scrollbar-color: color-mix(in srgb, var(--overlay-accent) 55%, var(--theme-gold-bright) 20%) transparent;
 }
 
 @media (max-height: 720px) {

@@ -48,10 +48,11 @@
         env(safe-area-inset-bottom)
         env(safe-area-inset-left);
     background:
-        radial-gradient(circle at 12% 12%, var(--theme-glow-gold-soft), transparent 22%),
-        radial-gradient(circle at 86% 12%, var(--theme-glow-cyan-soft), transparent 20%),
-        radial-gradient(circle at 52% 84%, var(--theme-app-ember-bloom), transparent 28%),
-        linear-gradient(180deg, var(--theme-app-mist-top), transparent 18%),
+        radial-gradient(ellipse 74% 58% at 50% -12%, color-mix(in srgb, var(--theme-gold-bright) 9%, transparent), transparent 60%),
+        radial-gradient(circle at 12% 12%, color-mix(in srgb, var(--theme-glow-gold-soft) 80%, transparent), transparent 22%),
+        radial-gradient(circle at 86% 12%, color-mix(in srgb, var(--theme-glow-cyan-soft) 88%, transparent), transparent 20%),
+        radial-gradient(circle at 52% 84%, color-mix(in srgb, var(--theme-app-ember-bloom) 78%, transparent), transparent 28%),
+        linear-gradient(180deg, color-mix(in srgb, var(--theme-app-mist-top) 70%, transparent), transparent 18%),
         linear-gradient(148deg, var(--theme-void) 0%, var(--theme-void-soft) 42%, var(--theme-smoke-deep) 100%);
 }
 
@@ -68,6 +69,28 @@
     pointer-events: none;
     opacity: 0.34;
     transition: opacity 160ms ease;
+}
+
+.ambientGlow::before,
+.ambientGlow::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.ambientGlow::before {
+    background:
+        linear-gradient(115deg, transparent 0 32%, color-mix(in srgb, var(--theme-gold-bright) 4%, transparent) 48%, transparent 64%),
+        radial-gradient(ellipse 72% 28% at 50% 100%, color-mix(in srgb, var(--theme-cyan-bright) 8%, transparent), transparent 72%);
+    opacity: 0.74;
+}
+
+.ambientGlow::after {
+    inset: 1px;
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 5%, transparent);
+    box-shadow: inset 0 0 120px color-mix(in srgb, var(--theme-void) 74%, transparent);
+    opacity: 0.82;
 }
 
 .content {

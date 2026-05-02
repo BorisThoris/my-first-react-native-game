@@ -3431,6 +3431,99 @@
     animation-name: matchScoreFloaterFade;
 }
 
+/* UI-REFINE: final chrome pass for the HTML gameplay shell. */
+.stageBackdrop {
+    opacity: 0.58;
+    filter: saturate(1.14) contrast(1.06) brightness(1.02);
+}
+
+.gameForeground,
+.mainGameColumn {
+    gap: var(--gameplay-shell-gap, 0.5rem);
+}
+
+.leftToolbar,
+.floatingDeck {
+    background: var(--gameplay-chrome-surface, var(--theme-surface-glass-strong));
+    border-color: var(--gameplay-chrome-border, color-mix(in srgb, var(--theme-gold-bright) 18%, var(--theme-hud-chrome-border)));
+    box-shadow:
+        var(--gameplay-chrome-shadow, var(--theme-hud-chrome-shadow)),
+        0 0 30px color-mix(in srgb, var(--theme-cyan-bright) 6%, transparent);
+}
+
+.actionDock {
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 30%, transparent);
+    box-shadow:
+        0 18px 42px color-mix(in srgb, var(--theme-shadow) 38%, transparent),
+        0 0 28px color-mix(in srgb, var(--theme-glow-gold-soft) 14%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--theme-text) 7%, transparent),
+        inset 0 -1px 0 color-mix(in srgb, var(--theme-gold-deep) 18%, transparent);
+}
+
+.toolbarFlyoutLabel,
+.powerBadge {
+    background: var(--theme-surface-glass-strong);
+}
+
+.dungeonRunStrip,
+.routeCardBanner,
+.routeSelectedNote,
+.modalNote {
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 24%, var(--theme-border-strong));
+    box-shadow: var(--theme-elevation-soft);
+}
+
+.hudSegment,
+.statPillCompact,
+.floorBadge,
+.regionShuffleSummary,
+.regionRowBtn,
+.ruleHint {
+    background: var(--theme-surface-control);
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 14%, var(--theme-hud-chrome-border-soft));
+}
+
+.hudSegment,
+.statPillCompact {
+    box-shadow:
+        inset 0 1px 0 color-mix(in srgb, var(--theme-text) 4%, transparent),
+        inset 0 -1px 0 color-mix(in srgb, var(--theme-shadow) 10%, transparent);
+}
+
+.iconAction {
+    background:
+        linear-gradient(180deg, rgba(255, 243, 217, 0.048), transparent 58%),
+        var(--theme-surface-control);
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 16%, var(--theme-hud-chrome-border-soft));
+}
+
+.iconAction:hover:not(:disabled) {
+    transform: translateY(-1px) scale(1.015);
+}
+
+.iconAction:focus-visible,
+.regionRowBtn:focus-visible,
+.rulesToggle:focus-visible {
+    box-shadow: var(--theme-focus-ring);
+}
+
+.boardStage {
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 16%, transparent);
+    box-shadow:
+        inset 0 0 0 1px color-mix(in srgb, var(--theme-cyan-bright) 14%, transparent),
+        inset 0 0 0 2px color-mix(in srgb, var(--theme-gold-bright) 8%, transparent),
+        inset 0 28px 90px color-mix(in srgb, var(--theme-shadow) 38%, transparent),
+        0 24px 58px color-mix(in srgb, var(--theme-shadow) 26%, transparent),
+        0 0 48px color-mix(in srgb, var(--theme-glow-cyan-soft) 16%, transparent);
+}
+
+.toast,
+.scorePop {
+    box-shadow:
+        0 10px 30px color-mix(in srgb, var(--theme-shadow) 38%, transparent),
+        0 0 24px color-mix(in srgb, var(--theme-gold-bright) 12%, transparent);
+}
+
 @keyframes matchScoreFloaterRise {
     0% {
         opacity: 0;

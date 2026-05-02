@@ -5,16 +5,18 @@
     display: grid;
     place-items: center;
     padding: clamp(16px, 4vw, 40px);
-    background: var(--gameplay-overlay-scrim-bg, var(--theme-scrim-heavy));
+    background:
+        radial-gradient(ellipse 80% 54% at 50% 8%, color-mix(in srgb, var(--theme-gold-bright) 7%, transparent), transparent 62%),
+        var(--gameplay-overlay-scrim-bg, var(--theme-scrim-heavy));
     color: var(--theme-text);
 }
 
 .shell {
     width: min(620px, 100%);
-    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 16%, transparent);
-    border-radius: 8px;
-    background: var(--theme-panel-surface-hero, var(--theme-panel-surface-strong));
-    box-shadow: var(--theme-panel-shadow-hero, var(--theme-panel-shadow-strong));
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 28%, transparent);
+    border-radius: var(--ui-radius-lg);
+    background: var(--theme-surface-glass-strong);
+    box-shadow: var(--theme-elevation-polished);
     padding: clamp(18px, 4vw, 28px);
 }
 
@@ -50,9 +52,10 @@
     gap: 8px;
     margin-top: 18px;
     padding: 14px;
-    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 14%, transparent);
-    border-radius: 8px;
-    background: var(--theme-panel-surface);
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 24%, transparent);
+    border-radius: var(--ui-radius-md);
+    background: var(--theme-surface-glass);
+    box-shadow: var(--theme-elevation-soft);
 }
 
 .rewardPanel strong {
@@ -69,9 +72,9 @@
     display: grid;
     gap: 4px;
     padding: 10px;
-    border: 1px solid color-mix(in srgb, var(--theme-card-border-muted) 84%, transparent);
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--theme-panel-surface) 84%, transparent);
+    border: 1px solid color-mix(in srgb, var(--theme-card-border-polished) 84%, transparent);
+    border-radius: var(--ui-radius-md);
+    background: var(--theme-surface-control);
 }
 
 .choiceRow p {

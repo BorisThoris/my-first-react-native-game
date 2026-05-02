@@ -133,6 +133,41 @@ textarea:focus-visible {
     outline-offset: 2px;
 }
 
+a:focus-visible,
+[tabindex]:focus-visible {
+    outline: none;
+    box-shadow: var(--theme-focus-ring, 0 0 0 2px var(--theme-focus, #f1d4a0));
+}
+
+input,
+select,
+textarea {
+    border-radius: var(--ui-radius-md, 10px);
+    border: 1px solid var(--theme-card-border-polished, rgba(242, 211, 157, 0.16));
+    background: var(--theme-surface-control, rgba(12, 12, 18, 0.72));
+    color: var(--theme-text, #f4ecdc);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--theme-text-subtle, rgba(231, 221, 202, 0.58));
+}
+
+input:hover,
+select:hover,
+textarea:hover {
+    border-color: color-mix(in srgb, var(--theme-gold-bright, #f2d39d) 28%, transparent);
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: none;
+    box-shadow:
+        var(--theme-focus-ring, 0 0 0 2px var(--theme-focus, #f1d4a0)),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
 h1,
 h2,
 h3,
@@ -141,7 +176,26 @@ h5,
 h6 {
     font-family: var(--theme-display-font, 'Palatino Linotype', Georgia, serif);
     font-weight: 700;
-    letter-spacing: 0.02em;
+    letter-spacing: 0;
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: color-mix(in srgb, var(--theme-void, #05050a) 82%, transparent);
+}
+
+::-webkit-scrollbar-thumb {
+    border: 2px solid color-mix(in srgb, var(--theme-void, #05050a) 82%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--theme-gold-bright, #f2d39d) 30%, var(--theme-cyan, #63a5bb) 16%);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--theme-gold-bright, #f2d39d) 44%, var(--theme-cyan, #63a5bb) 18%);
 }
 
 /*

@@ -16,7 +16,7 @@
     inset: 0;
     pointer-events: none;
     z-index: 0;
-    opacity: 0.24;
+    opacity: 0.32;
     background-position: center bottom;
     background-repeat: no-repeat;
     background-size: cover;
@@ -29,6 +29,7 @@
     pointer-events: none;
     z-index: 0;
     background:
+        radial-gradient(ellipse 78% 52% at 50% 12%, color-mix(in srgb, var(--theme-gold-bright) 8%, transparent), transparent 58%),
         radial-gradient(
             circle at center,
             rgba(255, 255, 255, 0),
@@ -91,7 +92,9 @@
 .brandCrest {
     width: clamp(3.75rem, 8vw, 5.25rem);
     height: auto;
-    filter: drop-shadow(0 0 14px var(--theme-glow-violet-drop));
+    filter:
+        drop-shadow(0 0 18px var(--theme-glow-violet-drop))
+        drop-shadow(0 8px 18px color-mix(in srgb, var(--theme-shadow) 42%, transparent));
 }
 
 .scoreHero {
@@ -145,8 +148,8 @@
 .metaChip {
     padding: 0.34rem 0.7rem 0.38rem;
     border-radius: var(--ui-radius-pill);
-    border: 1px solid var(--theme-border);
-    background: var(--theme-surface-raised);
+    border: 1px solid var(--theme-card-border-polished);
+    background: var(--theme-surface-control);
     color: var(--theme-rune);
     font-size: 0.72rem;
     font-weight: 700;
@@ -232,7 +235,8 @@
     padding: 0.55rem 0.65rem;
     border-radius: var(--ui-radius-md);
     border: 1px solid color-mix(in srgb, var(--theme-gold) 18%, transparent);
-    background: color-mix(in srgb, var(--theme-panel-alt) 72%, transparent);
+    background: var(--theme-surface-glass);
+    box-shadow: var(--theme-elevation-soft);
 }
 
 .nextRunRow strong {
@@ -258,7 +262,7 @@
     padding: 0.48rem 0.56rem;
     border: 1px solid color-mix(in srgb, var(--theme-rune) 18%, transparent);
     border-radius: var(--ui-radius-sm);
-    background: color-mix(in srgb, var(--theme-panel-alt) 58%, transparent);
+    background: var(--theme-surface-control);
 }
 
 .journalRow strong {
@@ -289,7 +293,7 @@
 
 .detailsPanel {
     opacity: 0.98;
-    border: 1px solid var(--theme-card-border-muted);
+    border: 1px solid var(--theme-card-border-polished);
 }
 
 .achievementHeading {
@@ -309,8 +313,9 @@
     gap: 0.15rem;
     padding: 0.95rem 1rem;
     border-radius: var(--ui-radius-lg);
-    border: 1px solid var(--theme-divider-hairline);
-    background: var(--theme-surface-well);
+    border: 1px solid var(--theme-card-border-polished);
+    background: var(--theme-surface-glass);
+    box-shadow: var(--theme-elevation-soft);
 }
 
 .achievementItem strong {

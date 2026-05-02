@@ -8,6 +8,7 @@
     border: 1px solid var(--theme-border);
     border-radius: var(--ui-radius-panel);
     backdrop-filter: blur(12px) saturate(128%);
+    -webkit-backdrop-filter: blur(12px) saturate(128%);
 }
 
 .root::before,
@@ -19,8 +20,10 @@
 }
 
 .root::before {
-    background: var(--theme-panel-frame);
-    opacity: 0.45;
+    background:
+        linear-gradient(90deg, transparent, color-mix(in srgb, var(--theme-gold-bright) 12%, transparent), transparent),
+        var(--theme-panel-frame);
+    opacity: 0.54;
 }
 
 .root::after {
@@ -30,13 +33,13 @@
 }
 
 .default {
-    background: var(--theme-panel-surface);
-    box-shadow: var(--theme-panel-shadow);
+    background: var(--theme-surface-glass);
+    box-shadow: var(--theme-elevation-polished);
 }
 
 .strong {
-    background: var(--theme-panel-surface-strong);
-    border-color: var(--theme-border-strong);
+    background: var(--theme-surface-glass-strong);
+    border-color: color-mix(in srgb, var(--theme-border-strong) 78%, var(--theme-cyan) 10%);
     box-shadow: var(--theme-panel-shadow-strong);
 }
 
@@ -46,8 +49,10 @@
 }
 
 .accent {
-    background: var(--theme-panel-surface-accent);
-    box-shadow: var(--theme-panel-shadow);
+    background:
+        radial-gradient(ellipse 120% 80% at 100% 0%, color-mix(in srgb, var(--theme-violet) 10%, transparent), transparent 62%),
+        var(--theme-surface-glass);
+    box-shadow: var(--theme-elevation-polished);
 }
 
 .paddingMd {

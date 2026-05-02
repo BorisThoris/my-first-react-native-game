@@ -21,11 +21,9 @@
     gap: var(--theme-space-md);
     padding: clamp(0.78rem, 1.8vw, 1.05rem);
     border-radius: calc(var(--ui-radius-lg) + 0.1rem);
-    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 16%, transparent);
-    background:
-        radial-gradient(ellipse 105% 62% at 50% 0%, rgba(242, 211, 157, 0.06), transparent 54%),
-        var(--theme-panel-surface-hero, var(--theme-panel-surface-strong));
-    box-shadow: var(--theme-panel-shadow-hero, var(--theme-panel-shadow-strong));
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 26%, transparent);
+    background: var(--theme-surface-glass-strong);
+    box-shadow: var(--theme-elevation-polished);
     overflow: hidden;
 }
 
@@ -80,9 +78,8 @@
     padding: 0.66rem 0.82rem;
     border-radius: var(--ui-radius-md);
     border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 24%, transparent);
-    background:
-        linear-gradient(180deg, rgba(255, 243, 217, 0.06), transparent 54%),
-        color-mix(in srgb, var(--theme-gold-deep) 24%, var(--theme-void));
+    background: var(--theme-surface-control-hover);
+    box-shadow: var(--theme-elevation-soft);
     text-align: right;
 }
 
@@ -117,10 +114,9 @@
     gap: 0.48rem;
     padding: var(--ui-card-pad-md);
     border-radius: var(--ui-radius-md);
-    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 11%, transparent);
-    background:
-        linear-gradient(180deg, rgba(255, 243, 217, 0.028), transparent 44%),
-        color-mix(in srgb, var(--theme-panel-solid) 68%, transparent);
+    border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 18%, transparent);
+    background: var(--theme-surface-glass);
+    box-shadow: var(--theme-elevation-soft);
 }
 
 .stockCard[data-status='available'] {
@@ -155,12 +151,16 @@
     appearance: none;
     border-radius: var(--ui-radius-md);
     border: 1px solid color-mix(in srgb, var(--theme-gold-bright) 20%, transparent);
-    background:
-        linear-gradient(180deg, rgba(255, 243, 217, 0.05), transparent 52%),
-        color-mix(in srgb, var(--theme-gold-deep) 20%, var(--theme-void));
+    background: var(--theme-surface-control-hover);
     color: var(--theme-text);
     font-weight: 800;
     cursor: pointer;
+}
+
+.stockAction:hover:not(:disabled),
+.rerollButton:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--theme-gold-bright) 44%, transparent);
+    filter: saturate(1.06) brightness(1.04);
 }
 
 .stockAction {

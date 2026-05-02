@@ -53,8 +53,9 @@
     gap: 0.28rem;
     padding: var(--ui-card-pad-md);
     border-radius: var(--ui-radius-md);
-    border: 1px solid color-mix(in srgb, var(--theme-gold) 18%, var(--theme-divider-hairline));
-    background: color-mix(in srgb, var(--theme-panel-alt) 78%, transparent);
+    border: 1px solid color-mix(in srgb, var(--theme-gold) 26%, var(--theme-divider-hairline));
+    background: var(--theme-surface-glass);
+    box-shadow: var(--theme-elevation-soft);
 }
 
 .prepCard[data-status='ready'] {
@@ -80,6 +81,10 @@
     flex-wrap: wrap;
     gap: var(--theme-space-sm) var(--theme-space-xl);
     font-size: 0.9rem;
+    padding: 0.5rem 0.65rem;
+    border-radius: var(--ui-radius-md);
+    border: 1px solid var(--theme-card-border-polished);
+    background: var(--theme-surface-control);
 }
 
 .kvRow span {

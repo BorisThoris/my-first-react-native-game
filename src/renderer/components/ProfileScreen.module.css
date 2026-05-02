@@ -25,7 +25,7 @@
     height: 2.4rem;
     border-radius: 50%;
     border: 1px solid color-mix(in srgb, var(--theme-gold) 34%, transparent);
-    background: color-mix(in srgb, var(--theme-void) 50%, transparent);
+    background: var(--theme-surface-control-hover);
     color: var(--theme-rune);
     font-size: 0.72rem;
     font-weight: 800;
@@ -67,8 +67,9 @@
 .summaryCell {
     padding: var(--theme-space-md);
     border-radius: var(--ui-radius-lg);
-    border: 1px solid var(--theme-hud-chrome-border-soft);
-    background: var(--theme-surface-archive);
+    border: 1px solid var(--theme-card-border-polished);
+    background: var(--theme-surface-glass);
+    box-shadow: var(--theme-elevation-soft);
 }
 
 .summaryLabel {
@@ -125,8 +126,8 @@
 .objectiveItem {
     padding: var(--theme-space-sm) var(--theme-space-md);
     border-radius: var(--ui-radius-md);
-    border: 1px solid color-mix(in srgb, var(--theme-gold) 18%, transparent);
-    background: color-mix(in srgb, var(--theme-void) 38%, transparent);
+    border: 1px solid color-mix(in srgb, var(--theme-gold) 26%, transparent);
+    background: var(--theme-surface-control);
 }
 
 .objectiveItem strong {
@@ -195,7 +196,8 @@
     padding: var(--theme-space-md);
     border-radius: var(--ui-radius-md);
     border: 1px solid color-mix(in srgb, var(--theme-gold) 16%, var(--theme-border));
-    background: color-mix(in srgb, var(--theme-panel-solid) 64%, transparent);
+    background: var(--theme-surface-glass);
+    box-shadow: var(--theme-elevation-soft);
 }
 
 .relicDetails summary {
