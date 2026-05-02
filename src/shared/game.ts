@@ -2019,7 +2019,8 @@ export const applyEnemyHazardClick = (
 ): RunState => {
     const board = run.board;
     const hazard = board?.enemyHazards?.find((candidate) => candidate.currentTileId === tileId && candidate.state !== 'defeated');
-    if (!board || !hazard || run.status !== 'playing') {
+    const tile = board?.tiles.find((candidate) => candidate.id === tileId) ?? null;
+    if (!board || !hazard || !tile || tile.state !== 'hidden' || run.status !== 'playing') {
         return run;
     }
     const advanceHazards = options.advanceHazards ?? true;

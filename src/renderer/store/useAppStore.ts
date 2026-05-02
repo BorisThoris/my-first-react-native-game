@@ -1256,28 +1256,31 @@ export const useAppStore = create<AppState>((set, get) => ({
             return;
         }
 
-        const pressedTile = run.board?.tiles.find((tile) => tile.id === tileId) ?? null;
-        const flippedBefore = run.board?.flippedTileIds.length ?? 0;
-        const hazardRun = applyEnemyHazardClick(run, tileId, { advanceHazards: flippedBefore === 0 });
-        if (hazardRun !== run) {
+        let actionRun = run;
+        let pressedTile = actionRun.board?.tiles.find((tile) => tile.id === tileId) ?? null;
+        const flippedBefore = actionRun.board?.flippedTileIds.length ?? 0;
+        const hazardRun = applyEnemyHazardClick(actionRun, tileId, { advanceHazards: flippedBefore === 0 });
+        const enemyContacted = hazardRun !== actionRun;
+        if (enemyContacted) {
             void resumeAudioContext();
             playResolveSfx(run, hazardRun, sfxGainFromStore());
-            set({
-                run: hazardRun,
-                boardPinMode: false,
-                destroyPairArmed: false,
-                peekModeArmed: false,
-                ...BOARD_FLOATER_POP_CLEAR
-            });
             if (hazardRun.status === 'gameOver') {
                 applyResolvedRun(hazardRun);
+                set({
+                    boardPinMode: false,
+                    destroyPairArmed: false,
+                    peekModeArmed: false,
+                    ...BOARD_FLOATER_POP_CLEAR
+                });
+                return;
             }
-            return;
+            actionRun = hazardRun;
+            pressedTile = actionRun.board?.tiles.find((tile) => tile.id === tileId) ?? pressedTile;
         }
 
         if (pressedTile?.pairKey === EXIT_PAIR_KEY) {
-            const nextRun = revealDungeonExit(run, tileId);
-            if (nextRun !== run) {
+            const nextRun = revealDungeonExit(actionRun, tileId);
+            if (nextRun !== actionRun) {
                 void resumeAudioContext();
                 playFlipSfx(sfxGainFromStore());
             }
@@ -1291,8 +1294,8 @@ export const useAppStore = create<AppState>((set, get) => ({
             return;
         }
         if (pressedTile?.pairKey === SHOP_PAIR_KEY) {
-            const nextRun = revealDungeonShop(run, tileId);
-            if (nextRun === run || nextRun.shopOffers.length === 0) {
+            const nextRun = revealDungeonShop(actionRun, tileId);
+            if (nextRun === actionRun || nextRun.shopOffers.length === 0) {
                 return;
             }
             void resumeAudioContext();
@@ -1310,8 +1313,8 @@ export const useAppStore = create<AppState>((set, get) => ({
             return;
         }
         if (pressedTile?.pairKey === ROOM_PAIR_KEY) {
-            const nextRun = revealDungeonRoom(run, tileId);
-            if (nextRun !== run) {
+            const nextRun = revealDungeonRoom(actionRun, tileId);
+            if (nextRun !== actionRun) {
                 void resumeAudioContext();
                 playFlipSfx(sfxGainFromStore());
                 set({
@@ -1324,17 +1327,17 @@ export const useAppStore = create<AppState>((set, get) => ({
             return;
         }
 
-        if (boardPinMode) {
-            const nextRun = togglePinnedTile(run, tileId);
-            if (nextRun !== run) {
+        if (!enemyContacted && boardPinMode) {
+            const nextRun = togglePinnedTile(actionRun, tileId);
+            if (nextRun !== actionRun) {
                 set({ run: nextRun });
             }
             return;
         }
 
-        if (run.strayRemoveArmed) {
-            const nextRun = applyStrayRemove(run, tileId);
-            if (nextRun !== run) {
+        if (!enemyContacted && actionRun.strayRemoveArmed) {
+            const nextRun = applyStrayRemove(actionRun, tileId);
+            if (nextRun !== actionRun) {
                 void resumeAudioContext();
                 playStrayPowerSfx(sfxGainFromStore());
                 set({ run: nextRun });
@@ -1342,9 +1345,15 @@ export const useAppStore = create<AppState>((set, get) => ({
             return;
         }
 
-        if (peekModeArmed && run.peekCharges > 0 && run.board && run.board.flippedTileIds.length === 0) {
-            const nextRun = applyPeek(run, tileId);
-            if (nextRun !== run) {
+        if (
+            !enemyContacted &&
+            peekModeArmed &&
+            actionRun.peekCharges > 0 &&
+            actionRun.board &&
+            actionRun.board.flippedTileIds.length === 0
+        ) {
+            const nextRun = applyPeek(actionRun, tileId);
+            if (nextRun !== actionRun) {
                 void resumeAudioContext();
                 playPeekPowerSfx(sfxGainFromStore());
                 set({ run: nextRun, peekModeArmed: false });
@@ -1352,9 +1361,9 @@ export const useAppStore = create<AppState>((set, get) => ({
             return;
         }
 
-        if (destroyPairArmed) {
-            const nextRun = applyDestroyPair(run, tileId);
-            if (nextRun === run) {
+        if (!enemyContacted && destroyPairArmed) {
+            const nextRun = applyDestroyPair(actionRun, tileId);
+            if (nextRun === actionRun) {
                 return;
             }
 
@@ -1369,9 +1378,18 @@ export const useAppStore = create<AppState>((set, get) => ({
             return;
         }
 
-        const nextRun = flipTile(run, tileId);
+        const nextRun = flipTile(actionRun, tileId);
 
-        if (nextRun === run) {
+        if (nextRun === actionRun) {
+            if (enemyContacted) {
+                set({
+                    run: actionRun,
+                    boardPinMode: false,
+                    destroyPairArmed: false,
+                    peekModeArmed: false,
+                    ...BOARD_FLOATER_POP_CLEAR
+                });
+            }
             return;
         }
 

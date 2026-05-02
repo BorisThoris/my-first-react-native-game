@@ -796,6 +796,37 @@ describe('REG-017 route choices', () => {
         expect(flipped.board!.enemyHazards!.find((item) => item.id === hazard.id)!.state).toBe('revealed');
     });
 
+    it('does not apply repeat enemy contact damage once the occupied card is flipped', () => {
+        const [a1, a2] = createPair('p1', 'A', 'a');
+        const board = createBoard([a1, a2], {
+            enemyHazards: [
+                {
+                    id: 'single-contact',
+                    kind: 'sentinel',
+                    label: 'Patrol Sentry',
+                    currentTileId: a1.id,
+                    nextTileId: a2.id,
+                    pattern: 'patrol',
+                    state: 'hidden',
+                    damage: 1,
+                    hp: 1,
+                    maxHp: 1
+                }
+            ],
+            enemyHazardTurn: 0
+        });
+        const run = createRun([a1, a2], { board, status: 'playing' });
+
+        const hit = applyEnemyHazardClick(run, a1.id, { advanceHazards: false });
+        const flipped = flipTile(hit, a1.id);
+        const repeated = applyEnemyHazardClick(flipped, a1.id, { advanceHazards: false });
+
+        expect(flipped.lives).toBe(run.lives - 1);
+        expect(repeated).toBe(flipped);
+        expect(repeated.lives).toBe(flipped.lives);
+        expect(repeated.enemyHazardHitsThisFloor).toBe(1);
+    });
+
     it('can defer enemy movement to the match resolution on an occupied second flip', () => {
         const [a1, a2] = createPair('p1', 'A', 'a');
         const [b1, b2] = createPair('p2', 'B', 'b');

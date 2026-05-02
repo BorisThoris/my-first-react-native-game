@@ -577,7 +577,7 @@ describe('useAppStore timers', () => {
         expect(useAppStore.getState().peekModeArmed).toBe(false);
     });
 
-    it('handles generated rotating enemy hazard clicks before normal tile flips', () => {
+    it('handles generated rotating enemy hazard contact and flips the occupied card', () => {
         const runSeed = 50;
         const baseRun = createNewRun(0, { echoFeedbackEnabled: false, runSeed });
         const board = buildBoard(5, {
@@ -606,12 +606,18 @@ describe('useAppStore timers', () => {
         const nextRun = useAppStore.getState().run!;
         expect(nextRun.lives).toBe(baseRun.lives - hazard.damage);
         expect(nextRun.enemyHazardHitsThisFloor).toBe(1);
-        expect(nextRun.board!.tiles.find((tile) => tile.id === hazard.currentTileId)!.state).toBe('hidden');
-        expect(nextRun.board!.flippedTileIds).toEqual([]);
+        expect(nextRun.board!.tiles.find((tile) => tile.id === hazard.currentTileId)!.state).toBe('flipped');
+        expect(nextRun.board!.flippedTileIds).toEqual([hazard.currentTileId]);
         expect(nextRun.board!.enemyHazards!.find((item) => item.id === hazard.id)!.currentTileId).toBe(hazard.nextTileId);
         expect(useAppStore.getState().boardPinMode).toBe(false);
         expect(useAppStore.getState().destroyPairArmed).toBe(false);
         expect(useAppStore.getState().peekModeArmed).toBe(false);
+
+        useAppStore.getState().pressTile(hazard.currentTileId);
+
+        const repeated = useAppStore.getState().run!;
+        expect(repeated.lives).toBe(nextRun.lives);
+        expect(repeated.enemyHazardHitsThisFloor).toBe(1);
     });
 
     it('claims a selected side-room event choice before advancing', () => {
