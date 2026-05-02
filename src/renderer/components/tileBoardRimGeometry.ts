@@ -129,6 +129,7 @@ const createRoundedRectBezelRingGeometry = (
 let resolvingRoundedSingleton: ShapeGeometry | null = null;
 let focusRoundedSingleton: ShapeGeometry | null = null;
 let matchedRoundedSingleton: ShapeGeometry | null = null;
+let arcaneGlowRoundedSingleton: ShapeGeometry | null = null;
 
 export const getResolvingRoundedRectRingGeometry = (): ShapeGeometry => {
     if (!resolvingRoundedSingleton) {
@@ -155,6 +156,13 @@ export const getMatchedRoundedRectRingGeometry = (): ShapeGeometry => {
         );
     }
     return matchedRoundedSingleton;
+};
+
+export const getArcaneGlowRoundedRectRingGeometry = (): ShapeGeometry => {
+    if (!arcaneGlowRoundedSingleton) {
+        arcaneGlowRoundedSingleton = createRoundedRectBezelRingGeometry(0.06, 0.018, 0.108, 0.086);
+    }
+    return arcaneGlowRoundedSingleton;
 };
 
 const crispRingByQuality = new Map<GraphicsQualityPreset, RingGeometry>();

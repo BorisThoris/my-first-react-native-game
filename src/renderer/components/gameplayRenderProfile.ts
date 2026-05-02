@@ -3,6 +3,8 @@ import type { GraphicsQualityPreset } from '../../shared/contracts';
 export type GameplayRenderQualityProfile = {
     bloomIntensity: number;
     bloomThreshold: number;
+    cardGlowIntensity: number;
+    cardGlowMotion: number;
     cardDisplacementScale: number;
     cardMetalness: number;
     cardNormalScale: [number, number];
@@ -13,6 +15,9 @@ export type GameplayRenderQualityProfile = {
     hoverRimOpacity: number;
     matchBurstIntensity: number;
     matchOuterWidth: number;
+    resolveGlowIntensity: number;
+    stageRuneFieldIntensity: number;
+    stageRuneFieldMotion: number;
     stagePointLight: number;
 };
 
@@ -31,6 +36,8 @@ export const GAMEPLAY_RENDER_PROFILE: GameplayRenderProfile = {
         high: {
             bloomIntensity: 0.58,
             bloomThreshold: 0.68,
+            cardGlowIntensity: 1.18,
+            cardGlowMotion: 1,
             cardDisplacementScale: 0.0118,
             cardMetalness: 0.07,
             cardNormalScale: [0.22, 0.22],
@@ -41,11 +48,16 @@ export const GAMEPLAY_RENDER_PROFILE: GameplayRenderProfile = {
             hoverRimOpacity: 0.92,
             matchBurstIntensity: 0.48,
             matchOuterWidth: 1.26,
+            resolveGlowIntensity: 1.22,
+            stageRuneFieldIntensity: 0.72,
+            stageRuneFieldMotion: 1,
             stagePointLight: 0.34
         },
         medium: {
             bloomIntensity: 0.46,
             bloomThreshold: 0.72,
+            cardGlowIntensity: 0.82,
+            cardGlowMotion: 0.72,
             cardDisplacementScale: 0.0096,
             cardMetalness: 0.045,
             cardNormalScale: [0.18, 0.18],
@@ -56,11 +68,16 @@ export const GAMEPLAY_RENDER_PROFILE: GameplayRenderProfile = {
             hoverRimOpacity: 0.72,
             matchBurstIntensity: 0.32,
             matchOuterWidth: 1.04,
+            resolveGlowIntensity: 0.88,
+            stageRuneFieldIntensity: 0.46,
+            stageRuneFieldMotion: 0.68,
             stagePointLight: 0.24
         },
         low: {
             bloomIntensity: 0.34,
             bloomThreshold: 0.78,
+            cardGlowIntensity: 0,
+            cardGlowMotion: 0,
             cardDisplacementScale: 0.0064,
             cardMetalness: 0.02,
             cardNormalScale: [0.12, 0.12],
@@ -71,6 +88,9 @@ export const GAMEPLAY_RENDER_PROFILE: GameplayRenderProfile = {
             hoverRimOpacity: 0.48,
             matchBurstIntensity: 0.18,
             matchOuterWidth: 0.82,
+            resolveGlowIntensity: 0,
+            stageRuneFieldIntensity: 0,
+            stageRuneFieldMotion: 0,
             stagePointLight: 0.14
         }
     }

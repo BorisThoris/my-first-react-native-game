@@ -27,6 +27,12 @@ describe('gameplay renderer profile', () => {
         expect(gameplayRenderQualityProfile('high').cardDisplacementScale).toBeGreaterThan(
             gameplayRenderQualityProfile('low').cardDisplacementScale
         );
+        expect(gameplayRenderQualityProfile('high').cardGlowIntensity).toBeGreaterThan(
+            gameplayRenderQualityProfile('medium').cardGlowIntensity
+        );
+        expect(gameplayRenderQualityProfile('medium').stageRuneFieldIntensity).toBeGreaterThan(0);
+        expect(gameplayRenderQualityProfile('low').cardGlowIntensity).toBe(0);
+        expect(gameplayRenderQualityProfile('low').stageRuneFieldIntensity).toBe(0);
         expect(GAMEPLAY_BOARD_VISUALS.hoverGoldQualityScales.high.emissiveIntensity).toBe(
             GAMEPLAY_RENDER_PROFILE.quality.high.hoverEmissive
         );

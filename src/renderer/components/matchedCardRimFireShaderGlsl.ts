@@ -90,23 +90,30 @@ void main() {
   vec2 emberUv = vec2(phase * 2.6 + uSeed * 17.0, bandT * 5.2 - motionTime * 2.25);
   float emberNoise = fbm(emberUv + vec2(0.0, fbm(vec2(phase * 1.4 - motionTime * 0.6, bandT * 2.6 + uSeed * 13.0)) * 0.65));
   float emberTravel = 0.5 + 0.5 * sin(phase * 8.0 - motionTime * (2.3 + motion * 2.0) + uSeed * 31.0);
+  float fastTravel = 0.5 + 0.5 * sin(phase * 16.0 + motionTime * (4.4 + motion * 3.2) + uSeed * 53.0);
   float cornerSpark = cornerness * pow(clamp(noise(vec2(phase * 5.2 + uSeed * 47.0 - motionTime * 3.0, bandT * 9.0)), 0.0, 1.0), 3.4);
   float innerSpark = pow(clamp(noise(vec2(phase * 7.0 + uSeed * 23.0, motionTime * 1.1 + bandT * 6.0)), 0.0, 1.0), 4.5);
+  float outerAura = smoothstep(0.34, 1.0, bandT) *
+    (0.36 + 0.34 * fbm(vec2(phase * 3.8 + uSeed * 12.0, motionTime * 0.9))) *
+    (0.82 + burst * 0.6);
+  float cornerFlare = cornerness *
+    pow(clamp(emberNoise * 0.52 + fastTravel * 0.48, 0.0, 1.0), 2.0) *
+    (0.36 + burst * 0.84);
 
   float coreWidth = max(0.04, uInnerWidth + burst * 0.075);
   float outerStart = clamp(1.0 - (uOuterWidth + burst * 0.12), 0.18, 0.9);
 
   float core = (1.0 - smoothstep(0.02, coreWidth, bandT)) * (0.9 + 0.1 * (1.0 - bandT));
-  float glow = smoothstep(0.0, 0.34 + burst * 0.12, centerBand) * (0.45 + 0.18 * cornerness);
+  float glow = smoothstep(0.0, 0.34 + burst * 0.12, centerBand) * (0.55 + 0.24 * cornerness) + outerAura * 0.32;
   float ember = smoothstep(outerStart, 1.0, bandT) *
-    pow(clamp(emberNoise * 0.82 + emberTravel * 0.34 + cornerSpark * 0.72, 0.0, 1.0), mix(2.25, 1.35, burst)) *
+    pow(clamp(emberNoise * 0.82 + emberTravel * 0.34 + cornerSpark * 0.72 + fastTravel * 0.18, 0.0, 1.0), mix(2.25, 1.25, burst)) *
     (0.3 + 0.44 * emberStrength) *
-    (0.78 + 0.34 * cornerness);
-  float innerAccent = smoothstep(0.0, coreWidth * 0.9, bandT) * innerSpark * 0.18;
+    (0.88 + 0.44 * cornerness);
+  float innerAccent = smoothstep(0.0, coreWidth * 0.9, bandT) * innerSpark * 0.24;
 
-  vec3 color = uCoreColor * (core + innerAccent) + uGlowColor * glow + uEmberColor * ember;
-  float alpha = ringMask * intensity * (core * 0.94 + glow * 0.34 + ember);
-  alpha *= 0.88 + burst * 0.34;
+  vec3 color = uCoreColor * (core + innerAccent + cornerFlare * 0.38) + uGlowColor * glow + uEmberColor * (ember + cornerFlare);
+  float alpha = ringMask * intensity * (core * 1.02 + glow * 0.42 + ember + cornerFlare * 0.62);
+  alpha *= 0.94 + burst * 0.42;
   alpha = clamp(alpha, 0.0, 1.0);
   if (alpha < 0.01) {
     discard;

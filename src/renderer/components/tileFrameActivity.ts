@@ -206,6 +206,10 @@ export function shouldAdvanceTileBezelThisFrame(
         return true;
     }
 
+    if (p.graphicsQuality !== 'low' && p.keyboardFocused && p.pickable && p.tile.state !== 'matched') {
+        return true;
+    }
+
     if (bag.matchPulseRef.current > 0.002) {
         return true;
     }

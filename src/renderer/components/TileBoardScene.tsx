@@ -93,6 +93,7 @@ import {
 } from './shuffleFlipAnimation';
 import {
     getFocusRoundedRectRingGeometry,
+    getArcaneGlowRoundedRectRingGeometry,
     getMatchedRoundedRectRingGeometry,
     getResolvingRoundedRectRingGeometry,
     getSharedCurseRingGeometry,
@@ -104,6 +105,8 @@ import {
     getSharedResolvingCrispRingGeometry
 } from './tileBoardRimGeometry';
 import { clampMatchedCardRimFireDriverUniforms, createMatchedCardRimFireMaterial } from './matchedCardRimFireMaterial';
+import { clampCardArcaneGlowDriverUniforms, createCardArcaneGlowMaterial } from './cardArcaneGlowMaterial';
+import { clampBoardRuneFieldDriverUniforms, createBoardRuneFieldMaterial } from './boardRuneFieldMaterial';
 import { GAMEPLAY_BOARD_VISUALS } from './gameplayVisualConfig';
 import { gameplayRenderQualityProfile } from './gameplayRenderProfile';
 import {
@@ -139,6 +142,7 @@ const PRESENTATION_N_BACK_TINT = new Color(RENDERER_THEME.colors.cyanBright);
 /** `wide_recall` — cooler, slightly desaturated face during play. */
 const PRESENTATION_WIDE_RECALL_TINT = new Color('#c5c0d8');
 const scratchCardTint = new Color();
+const scratchGlowColor = new Color();
 
 const getHoverGoldQualityScales = (
     quality: GraphicsQualityPreset
@@ -771,6 +775,14 @@ interface TileBezelFrameBag {
     hoverFrontRimLeftMatRef: MutableRefObject<MeshBasicMaterial | null>;
     resolvingRimMatRef: MutableRefObject<MeshBasicMaterial | null>;
     focusRimMatRef: MutableRefObject<MeshBasicMaterial | null>;
+    hoverBackGlowMatRef: MutableRefObject<ShaderMaterial | null>;
+    hoverBackGlowMeshRef: MutableRefObject<Mesh | null>;
+    hoverFrontGlowMatRef: MutableRefObject<ShaderMaterial | null>;
+    hoverFrontGlowMeshRef: MutableRefObject<Mesh | null>;
+    resolvingGlowMatRef: MutableRefObject<ShaderMaterial | null>;
+    resolvingGlowMeshRef: MutableRefObject<Mesh | null>;
+    focusGlowMatRef: MutableRefObject<ShaderMaterial | null>;
+    focusGlowMeshRef: MutableRefObject<Mesh | null>;
     matchedVictoryFlameMatRef: MutableRefObject<ShaderMaterial | null>;
     matchedVictoryFlameMeshRef: MutableRefObject<Mesh | null>;
     matchedVictoryBurstT0Ref: MutableRefObject<number | null>;
@@ -1137,6 +1149,8 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
     const hoverRimOpacityTarget = hoverDomParity ? hoverRimOpacity : 0;
     const faceUpHoverMul = getFaceUpHoverRimOpacityMul(p.graphicsQuality);
     const hoverFrontRimOpacityTarget = hoverFaceUpPickable ? hoverRimOpacity * faceUpHoverMul : 0;
+    const shaderGlowEnabled = p.graphicsQuality !== 'low';
+    const renderQuality = gameplayRenderQualityProfile(p.graphicsQuality);
     for (const matRef of [
         bag.hoverRimTopMatRef,
         bag.hoverRimBottomMatRef,
@@ -1145,7 +1159,7 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
     ]) {
         const m = matRef.current;
         if (m) {
-            m.opacity = hoverRimOpacityTarget;
+            m.opacity = shaderGlowEnabled ? hoverRimOpacityTarget * 0.18 : hoverRimOpacityTarget;
         }
     }
     for (const matRef of [
@@ -1156,7 +1170,7 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
     ]) {
         const m = matRef.current;
         if (m) {
-            m.opacity = hoverFrontRimOpacityTarget;
+            m.opacity = shaderGlowEnabled ? hoverFrontRimOpacityTarget * 0.22 : hoverFrontRimOpacityTarget;
         }
     }
 
@@ -1201,13 +1215,90 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
                           clock.elapsedTime * (p.resolvingSelection === 'mismatch' ? 5.1 : 4.05)
                       );
             resolvingCrispOpacity = pinnedFaceResolvingFx ? Math.min(1, pulse + 0.2) : pulse;
-            resolvingRim.opacity = resolvingCrispOpacity;
+            resolvingRim.opacity = shaderGlowEnabled ? resolvingCrispOpacity * 0.18 : resolvingCrispOpacity;
         }
     } else {
         if (resolvingRim) {
             resolvingRim.opacity = 0;
         }
     }
+
+    const applyCardGlow = (
+        mat: ShaderMaterial | null,
+        mesh: Mesh | null,
+        intensity: number,
+        pulse: number,
+        mode: number,
+        primary: string,
+        secondary: string,
+        accent: string
+    ): void => {
+        if (!mat || !mesh || !mat.uniforms) {
+            return;
+        }
+
+        mesh.visible = shaderGlowEnabled && intensity > 0.002;
+        const u = mat.uniforms;
+        u.uTime.value = clock.elapsedTime;
+        u.uIntensity.value = shaderGlowEnabled ? intensity : 0;
+        u.uPulse.value = pulse;
+        u.uMotion.value = p.reduceMotion ? Math.min(renderQuality.cardGlowMotion, 0.08) : renderQuality.cardGlowMotion;
+        u.uMode.value = mode;
+        scratchGlowColor.set(primary);
+        u.uPrimaryColor.value.set(scratchGlowColor.r, scratchGlowColor.g, scratchGlowColor.b);
+        scratchGlowColor.set(secondary);
+        u.uSecondaryColor.value.set(scratchGlowColor.r, scratchGlowColor.g, scratchGlowColor.b);
+        scratchGlowColor.set(accent);
+        u.uAccentColor.value.set(scratchGlowColor.r, scratchGlowColor.g, scratchGlowColor.b);
+        clampCardArcaneGlowDriverUniforms({ uIntensity: u.uIntensity, uPulse: u.uPulse, uMotion: u.uMotion });
+    };
+
+    const focusActive = p.keyboardFocused && p.pickable && p.tile.state !== 'matched';
+    const focusPulse = p.reduceMotion ? 0.18 : 0.38 + 0.22 * Math.sin(clock.elapsedTime * 2.35);
+    applyCardGlow(
+        bag.hoverBackGlowMatRef.current,
+        bag.hoverBackGlowMeshRef.current,
+        hoverDomParity ? renderQuality.cardGlowIntensity * hoverRimOpacity : 0,
+        hoverDomParity ? 0.28 + hoverRimOpacity * 0.28 : 0,
+        0,
+        colors.goldBright,
+        colors.cyanBright,
+        colors.emberSoft
+    );
+    applyCardGlow(
+        bag.hoverFrontGlowMatRef.current,
+        bag.hoverFrontGlowMeshRef.current,
+        hoverFaceUpPickable ? renderQuality.cardGlowIntensity * hoverFrontRimOpacityTarget : 0,
+        hoverFaceUpPickable ? 0.2 + hoverFrontRimOpacityTarget * 0.24 : 0,
+        0.35,
+        colors.goldBright,
+        colors.cyanBright,
+        colors.emberSoft
+    );
+    applyCardGlow(
+        bag.resolvingGlowMatRef.current,
+        bag.resolvingGlowMeshRef.current,
+        resolvingActive ? renderQuality.resolveGlowIntensity * Math.max(0.42, resolvingCrispOpacity) : 0,
+        resolvingActive ? (p.resolvingSelection === 'mismatch' ? 0.84 : 0.62) : 0,
+        p.resolvingSelection === 'mismatch' ? 1.3 : p.resolvingSelection === 'gambitNeutral' ? 0.8 : 1,
+        p.resolvingSelection === 'mismatch'
+            ? colors.danger
+            : p.resolvingSelection === 'gambitNeutral'
+              ? colors.cyanBright
+              : colors.emeraldBright,
+        colors.goldBright,
+        p.resolvingSelection === 'mismatch' ? colors.emberSoft : colors.cyanBright
+    );
+    applyCardGlow(
+        bag.focusGlowMatRef.current,
+        bag.focusGlowMeshRef.current,
+        focusActive ? renderQuality.cardGlowIntensity * 0.68 : 0,
+        focusActive ? focusPulse : 0,
+        0.55,
+        colors.goldBright,
+        colors.cyanBright,
+        colors.text
+    );
 
     const matchedFlame = bag.matchedVictoryFlameMatRef.current;
     const matchedFlameMesh = bag.matchedVictoryFlameMeshRef.current;
@@ -1422,6 +1513,7 @@ const TileBezelInner = ({
     const findableShardGlyphGeometry = useMemo(() => getSharedFindableShardGlyphGeometry(), []);
     const findableScoreGlyphGeometry = useMemo(() => getSharedFindableScoreGlyphGeometry(), []);
     const matchedEdgeGeometry = useMemo(() => getMatchedRoundedRectRingGeometry(), []);
+    const arcaneGlowGeometry = useMemo(() => getArcaneGlowRoundedRectRingGeometry(), []);
     const resolvingInnerGeometry = useMemo(
         () =>
             graphicsQuality === 'low'
@@ -1530,18 +1622,46 @@ const TileBezelInner = ({
     const hoverFrontRimLeftMatRef = useRef<MeshBasicMaterial | null>(null);
     const resolvingRimMatRef = useRef<MeshBasicMaterial | null>(null);
     const focusRimMatRef = useRef<MeshBasicMaterial | null>(null);
+    const hoverBackGlowMatRef = useRef<ShaderMaterial | null>(null);
+    const hoverBackGlowMeshRef = useRef<Mesh | null>(null);
+    const hoverFrontGlowMatRef = useRef<ShaderMaterial | null>(null);
+    const hoverFrontGlowMeshRef = useRef<Mesh | null>(null);
+    const resolvingGlowMatRef = useRef<ShaderMaterial | null>(null);
+    const resolvingGlowMeshRef = useRef<Mesh | null>(null);
+    const focusGlowMatRef = useRef<ShaderMaterial | null>(null);
+    const focusGlowMeshRef = useRef<Mesh | null>(null);
     const matchedVictoryFlameMatRef = useRef<ShaderMaterial | null>(null);
     const matchedVictoryFlameMeshRef = useRef<Mesh | null>(null);
     const matchedVictoryBurstT0Ref = useRef<number | null>(null);
+    const hoverBackGlowMaterial = useMemo(
+        () => createCardArcaneGlowMaterial(transform.seed + 11),
+        [transform.seed]
+    );
+    const hoverFrontGlowMaterial = useMemo(
+        () => createCardArcaneGlowMaterial(transform.seed + 23),
+        [transform.seed]
+    );
+    const resolvingGlowMaterial = useMemo(
+        () => createCardArcaneGlowMaterial(transform.seed + 37),
+        [transform.seed]
+    );
+    const focusGlowMaterial = useMemo(
+        () => createCardArcaneGlowMaterial(transform.seed + 53),
+        [transform.seed]
+    );
     const matchedRimFireMaterial = useMemo(
         () => createMatchedCardRimFireMaterial(transform.seed),
         [transform.seed]
     );
     useEffect(() => {
         return () => {
+            hoverBackGlowMaterial.dispose();
+            hoverFrontGlowMaterial.dispose();
+            resolvingGlowMaterial.dispose();
+            focusGlowMaterial.dispose();
             matchedRimFireMaterial.dispose();
         };
-    }, [matchedRimFireMaterial]);
+    }, [focusGlowMaterial, hoverBackGlowMaterial, hoverFrontGlowMaterial, matchedRimFireMaterial, resolvingGlowMaterial]);
     const prevTileMatchedRef = useRef(false);
     const lastActivityVisualGateRef = useRef<{
         textureRevision: number;
@@ -1589,6 +1709,14 @@ const TileBezelInner = ({
                 hoverFrontRimLeftMatRef,
                 resolvingRimMatRef,
                 focusRimMatRef,
+                hoverBackGlowMatRef,
+                hoverBackGlowMeshRef,
+                hoverFrontGlowMatRef,
+                hoverFrontGlowMeshRef,
+                resolvingGlowMatRef,
+                resolvingGlowMeshRef,
+                focusGlowMatRef,
+                focusGlowMeshRef,
                 matchedVictoryFlameMatRef,
                 matchedVictoryFlameMeshRef,
                 matchedVictoryBurstT0Ref,
@@ -2075,6 +2203,16 @@ const TileBezelInner = ({
                 */}
                 <group position={[0, 0, -faceZ - 0.00028]} rotation={[0, Math.PI, 0]}>
                     <mesh
+                        ref={hoverBackGlowMeshRef}
+                        geometry={arcaneGlowGeometry}
+                        position={[0, 0, 0.00064]}
+                        raycast={noopMeshRaycast}
+                        renderOrder={8}
+                        visible={false}
+                    >
+                        <primitive ref={hoverBackGlowMatRef} object={hoverBackGlowMaterial} attach="material" />
+                    </mesh>
+                    <mesh
                         geometry={hoverGoldRimGeomH}
                         position={[0, CARD_HEIGHT * 0.5 - HOVER_GOLD_RIM_STRIP * 0.5, 0.00045]}
                         raycast={noopMeshRaycast}
@@ -2356,6 +2494,16 @@ const TileBezelInner = ({
                   TBF-008: softer gold strips on the front face when face-up + pickable (gambit third pick path).
                 */}
                 <group position={[0, 0, faceZ + 0.00032]}>
+                    <mesh
+                        ref={hoverFrontGlowMeshRef}
+                        geometry={arcaneGlowGeometry}
+                        position={[0, 0, 0.00068]}
+                        raycast={noopMeshRaycast}
+                        renderOrder={8}
+                        visible={false}
+                    >
+                        <primitive ref={hoverFrontGlowMatRef} object={hoverFrontGlowMaterial} attach="material" />
+                    </mesh>
                     <mesh
                         geometry={hoverGoldRimGeomH}
                         position={[0, CARD_HEIGHT * 0.5 - HOVER_GOLD_RIM_STRIP * 0.5, 0.00042]}
@@ -2645,6 +2793,16 @@ const TileBezelInner = ({
                         transparent
                     />
                 </mesh>
+                <mesh
+                    ref={resolvingGlowMeshRef}
+                    geometry={arcaneGlowGeometry}
+                    position={[0, 0, faceZ + 0.026]}
+                    raycast={noopMeshRaycast}
+                    renderOrder={14}
+                    visible={false}
+                >
+                    <primitive ref={resolvingGlowMatRef} object={resolvingGlowMaterial} attach="material" />
+                </mesh>
                 <mesh geometry={focusRingGeometry} position={[0, 0, faceZ + 0.027]} raycast={noopMeshRaycast} renderOrder={15}>
                     <meshBasicMaterial
                         ref={focusRimMatRef}
@@ -2659,6 +2817,16 @@ const TileBezelInner = ({
                         toneMapped={false}
                         transparent
                     />
+                </mesh>
+                <mesh
+                    ref={focusGlowMeshRef}
+                    geometry={arcaneGlowGeometry}
+                    position={[0, 0, faceZ + 0.029]}
+                    raycast={noopMeshRaycast}
+                    renderOrder={16}
+                    visible={false}
+                >
+                    <primitive ref={focusGlowMatRef} object={focusGlowMaterial} attach="material" />
                 </mesh>
             </group>
         </group>
@@ -2927,6 +3095,42 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                 row != null
             );
     }, [board.enemyHazards, tileBezelRows]);
+    const boardRuneFieldMetrics = useMemo(() => {
+        if (tileBezelRows.length === 0) {
+            return { centerX: 0, centerY: 0, height: CARD_HEIGHT * 3, width: CARD_WIDTH * 4 };
+        }
+
+        let minX = Number.POSITIVE_INFINITY;
+        let maxX = Number.NEGATIVE_INFINITY;
+        let minY = Number.POSITIVE_INFINITY;
+        let maxY = Number.NEGATIVE_INFINITY;
+
+        for (const row of tileBezelRows) {
+            const { transform } = row;
+            const x = transform.baseX + transform.imperfectionX + transform.layoutJitterX;
+            const y = transform.baseY + transform.imperfectionY + transform.layoutJitterY;
+            minX = Math.min(minX, x - CARD_WIDTH * 0.78);
+            maxX = Math.max(maxX, x + CARD_WIDTH * 0.78);
+            minY = Math.min(minY, y - CARD_HEIGHT * 0.78);
+            maxY = Math.max(maxY, y + CARD_HEIGHT * 0.78);
+        }
+
+        const padX = TILE_SPACING * 0.72;
+        const padY = TILE_SPACING * 0.6;
+
+        return {
+            centerX: (minX + maxX) * 0.5,
+            centerY: (minY + maxY) * 0.5,
+            height: Math.max(CARD_HEIGHT * 2.6, maxY - minY + padY),
+            width: Math.max(CARD_WIDTH * 3.4, maxX - minX + padX)
+        };
+    }, [tileBezelRows]);
+    const boardRuneFieldGeometry = useMemo(
+        () => new PlaneGeometry(boardRuneFieldMetrics.width, boardRuneFieldMetrics.height, 1, 1),
+        [boardRuneFieldMetrics.height, boardRuneFieldMetrics.width]
+    );
+    const boardRuneFieldMaterial = useMemo(() => createBoardRuneFieldMaterial(), []);
+    const boardRuneFieldMatRef = useRef<ShaderMaterial | null>(null);
     const boardGroupRef = useRef<Group | null>(null);
     const pickRaycasterRef = useRef<Raycaster>(new Raycaster());
     const pickPointerRef = useRef<Vector2>(new Vector2());
@@ -2957,6 +3161,18 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
         }),
         []
     );
+
+    useEffect(() => {
+        return () => {
+            boardRuneFieldGeometry.dispose();
+        };
+    }, [boardRuneFieldGeometry]);
+
+    useEffect(() => {
+        return () => {
+            boardRuneFieldMaterial.dispose();
+        };
+    }, [boardRuneFieldMaterial]);
 
     useEffect(() => subscribeTextureImageUpdates(() => setTextureRevision((current) => current + 1)), []);
 
@@ -3195,6 +3411,20 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
             viewportMs = performance.now() - tViewport0;
             boardWebglPerfSampleAccumulatePhases({ tileStepMs, viewportMs });
         }
+
+        const runeMat = boardRuneFieldMatRef.current;
+        if (runeMat?.uniforms) {
+            const u = runeMat.uniforms;
+            u.uTime.value = state.clock.elapsedTime;
+            u.uIntensity.value = reduceMotion
+                ? sceneRenderQuality.stageRuneFieldIntensity * 0.46
+                : sceneRenderQuality.stageRuneFieldIntensity;
+            u.uMotion.value = reduceMotion
+                ? Math.min(sceneRenderQuality.stageRuneFieldMotion, 0.06)
+                : sceneRenderQuality.stageRuneFieldMotion;
+            u.uGrid.value.set(boardRuneFieldMetrics.width, boardRuneFieldMetrics.height);
+            clampBoardRuneFieldDriverUniforms({ uIntensity: u.uIntensity, uMotion: u.uMotion });
+        }
     });
 
     return (
@@ -3231,6 +3461,16 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
             />
 
             <group ref={boardGroupRef} rotation={[0, 0, 0]}>
+                {graphicsQuality !== 'low' ? (
+                    <mesh
+                        geometry={boardRuneFieldGeometry}
+                        position={[boardRuneFieldMetrics.centerX, boardRuneFieldMetrics.centerY, -0.075]}
+                        raycast={noopMeshRaycast}
+                        renderOrder={-20}
+                    >
+                        <primitive ref={boardRuneFieldMatRef} object={boardRuneFieldMaterial} attach="material" />
+                    </mesh>
+                ) : null}
                 {tileBezelRows.map(
                     ({
                         destroyBlockedDecoyBack,

@@ -2,7 +2,7 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 import { GAMEPLAY_BOARD_VISUALS } from '../src/renderer/components/gameplayVisualConfig';
-import { buildMatchedFlameCaptureSaveJson, gotoWithSaveAndQuery, waitLevel1PlayReady } from './visualScreenHelpers';
+import { buildMatchedFlameCaptureSaveJson, gotoWithSaveAndQuery, waitLevel1VisualReady } from './visualScreenHelpers';
 import { flipTileAtGridCellKeyboard, readFrameHiddenTileCount, waitForBoardPlayPhase } from './tileBoardGameFlow';
 
 /** Aligned with `GAMEPLAY_BOARD_VISUALS.matchedEdgeEffect.burstDuration` + small buffer for GPU/frame jitter. */
@@ -60,7 +60,8 @@ async function setRangeControl(page: Page, label: string, value: number): Promis
 
 /**
  * WebGL boards have no memorize `button` nodes — `waitLevel1PlayReady` pair map is often null.
- * Try unordered pairs of `data-hidden-slots` cells until a match (hidden count → 2).
+ * Try unordered pairs of `data-hidden-slots` cells until a match. Dungeon objective cards can add
+ * an extra hidden non-pair slot, so success is "hidden count dropped by two" rather than exactly 2.
  */
 async function flipFirstMatchingPairWebGl(page: Page): Promise<void> {
     const readHiddenSlots = async (): Promise<{ row: number; col: number }[]> => {
@@ -78,11 +79,12 @@ async function flipFirstMatchingPairWebGl(page: Page): Promise<void> {
     };
 
     let positions = await readHiddenSlots();
-    expect(positions.length, 'four hidden tiles for level 1').toBe(4);
+    const startingHidden = positions.length;
+    expect(startingHidden, 'at least four hidden tiles for level 1').toBeGreaterThanOrEqual(4);
 
     const indexPairs: [number, number][] = [];
-    for (let i = 0; i < 4; i += 1) {
-        for (let j = i + 1; j < 4; j += 1) {
+    for (let i = 0; i < startingHidden; i += 1) {
+        for (let j = i + 1; j < startingHidden; j += 1) {
             indexPairs.push([i, j]);
         }
     }
@@ -97,11 +99,11 @@ async function flipFirstMatchingPairWebGl(page: Page): Promise<void> {
         let matched = false;
         while (Date.now() < deadline) {
             const hidden = await readFrameHiddenTileCount(page);
-            if (hidden === 2) {
+            if (hidden === startingHidden - 2) {
                 matched = true;
                 break;
             }
-            if (hidden === 4) {
+            if (hidden === startingHidden) {
                 break;
             }
             await page.waitForTimeout(80);
@@ -110,7 +112,7 @@ async function flipFirstMatchingPairWebGl(page: Page): Promise<void> {
             return;
         }
         positions = await readHiddenSlots();
-        expect(positions.length, 'back to four hidden after mismatch').toBe(4);
+        expect(positions.length, 'back to starting hidden count after mismatch').toBe(startingHidden);
     }
     throw new Error('failed to find a matching pair (level 1)');
 }
@@ -182,12 +184,13 @@ test.describe('Matched flame capture (dev)', () => {
             )
             .toBeTruthy();
 
-        await waitLevel1PlayReady(page);
+        await waitLevel1VisualReady(page);
         await waitForBoardPlayPhase(page);
-        await expect.poll(async () => readFrameHiddenTileCount(page), { timeout: 15_000 }).toBe(4);
+        const startingHidden = await readFrameHiddenTileCount(page);
+        expect(startingHidden).toBeGreaterThanOrEqual(4);
 
         await flipFirstMatchingPairWebGl(page);
-        await expect.poll(async () => readFrameHiddenTileCount(page), { timeout: 15_000 }).toBe(2);
+        await expect.poll(async () => readFrameHiddenTileCount(page), { timeout: 15_000 }).toBe(startingHidden - 2);
         /** Match resolve + ember rim burst visibility (TileBoardScene advances shader each frame). */
         await page.waitForTimeout(MATCHED_RIM_BURST_WAIT_MS);
         await screenshotStageShell(page, '03-ingame-match-burst-stage-1280x720.png');

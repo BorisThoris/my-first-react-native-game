@@ -303,4 +303,46 @@ describe('shouldAdvanceTileBezelThisFrame', () => {
 
         expect(shouldAdvanceTileBezelThisFrame(bag, 50, nowMs)).toBe(true);
     });
+
+    it('keeps focused medium-quality tiles advancing for shader glow pulse', () => {
+        const nowMs = 1_000_000;
+        const p = {
+            reduceMotion: false,
+            faceUp: false,
+            pickable: true,
+            focusDimmed: false,
+            keyboardFocused: true,
+            graphicsQuality: 'medium' as const,
+            textureRevision: 0,
+            resolvingSelection: null,
+            shuffleMotionDeadlineMs: 0,
+            shuffleMotionBudgetMs: 0,
+            shuffleStaggerTileCount: 0,
+            boardEntranceMotionDeadlineMs: 0,
+            boardEntranceMotionBudgetMs: 0,
+            boardEntranceStaggerTileCount: 0,
+            tile: baseTile({ state: 'hidden' }),
+            tileFieldParallaxEnabled: false,
+            fieldAmp: 1,
+            fieldTiltRef: { current: { x: 0, y: 0 } },
+            hoverTiltRef: { current: { tileId: null, x: 0, y: 0 } },
+            transform: {
+                imperfectionRotationX: 0,
+                imperfectionRotationZ: 0,
+                layoutYaw: 0,
+                flipRotationY: 0,
+                baseX: 0,
+                baseY: 0,
+                imperfectionX: 0,
+                imperfectionY: 0,
+                layoutJitterX: 0,
+                layoutJitterY: 0,
+                layoutJitterZ: 0
+            }
+        } as TileBezelActivityBag['propsRef']['current'];
+
+        const bag = makeBag({ p });
+
+        expect(shouldAdvanceTileBezelThisFrame(bag, 50, nowMs)).toBe(true);
+    });
 });
