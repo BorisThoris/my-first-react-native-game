@@ -116,6 +116,7 @@ import {
     playRelicPickSfx,
     playResolveSfx,
     playStrayPowerSfx,
+    playTrapSfx,
     playWagerArmSfx,
     resumeAudioContext,
     sfxGainFromSettings
@@ -1397,6 +1398,10 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (flippedAfter > flippedBefore) {
             void resumeAudioContext();
             playFlipSfx(sfxGainFromStore());
+        }
+        if (nextRun.dungeonTrapsTriggered > actionRun.dungeonTrapsTriggered) {
+            void resumeAudioContext();
+            playTrapSfx(sfxGainFromStore());
         }
 
         set({

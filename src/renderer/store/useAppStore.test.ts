@@ -21,6 +21,7 @@ const gameSfxMocks = vi.hoisted(() => ({
     playRelicPickSfx: vi.fn(),
     playResolveSfx: vi.fn(),
     playStrayPowerSfx: vi.fn(),
+    playTrapSfx: vi.fn(),
     playWagerArmSfx: vi.fn(),
     resumeAudioContext: vi.fn(),
     sfxGainFromSettings: (masterVolume: number, sfxVolume: number) =>
@@ -618,6 +619,40 @@ describe('useAppStore timers', () => {
         const repeated = useAppStore.getState().run!;
         expect(repeated.lives).toBe(nextRun.lives);
         expect(repeated.enemyHazardHitsThisFloor).toBe(1);
+    });
+
+    it('springs generated trap cards on the same tile press', () => {
+        const runSeed = 51;
+        const baseRun = createNewRun(0, { echoFeedbackEnabled: false, runSeed });
+        const board = buildBoard(5, {
+            runSeed,
+            runRulesVersion: baseRun.runRulesVersion,
+            dungeonNodeKind: 'trap',
+            gameMode: 'endless'
+        });
+        const trapTile = board.tiles.find((tile) => tile.dungeonCardKind === 'trap')!;
+        useAppStore.setState({
+            view: 'playing',
+            run: {
+                ...baseRun,
+                board,
+                status: 'playing',
+                findablesTotalThisFloor: countFindablePairs(board.tiles)
+            }
+        });
+
+        useAppStore.getState().pressTile(trapTile.id);
+
+        const nextRun = useAppStore.getState().run!;
+        expect(nextRun.dungeonTrapsTriggered).toBe(1);
+        expect(nextRun.board!.tiles.find((tile) => tile.id === trapTile.id)!.state).toBe('flipped');
+        expect(
+            nextRun.board!.tiles
+                .filter((tile) => tile.pairKey === trapTile.pairKey)
+                .every((tile) => tile.dungeonCardState === 'resolved')
+        ).toBe(true);
+        expect(gameSfxMocks.playFlipSfx).toHaveBeenCalled();
+        expect(gameSfxMocks.playTrapSfx).toHaveBeenCalled();
     });
 
     it('claims a selected side-room event choice before advancing', () => {

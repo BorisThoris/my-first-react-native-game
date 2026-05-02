@@ -1592,16 +1592,21 @@ const revealDungeonCardPair = (run: RunState, tile: Tile): RunState => {
     if (!run.board || tile.dungeonCardState !== 'hidden' || tile.dungeonCardKind == null) {
         return run;
     }
+    const revealedBoard: BoardState = {
+        ...run.board,
+        tiles: run.board.tiles.map((candidate) =>
+            candidate.pairKey === tile.pairKey && candidate.dungeonCardKind === tile.dungeonCardKind
+                ? { ...candidate, dungeonCardState: 'revealed' }
+                : candidate
+        )
+    };
+    if (tile.dungeonCardKind === 'trap') {
+        const sprung = springArmedDungeonTraps({ ...run, board: revealedBoard }, revealedBoard, [tile.pairKey]);
+        return { ...sprung.run, board: sprung.board };
+    }
     return {
         ...run,
-        board: {
-            ...run.board,
-            tiles: run.board.tiles.map((candidate) =>
-                candidate.pairKey === tile.pairKey && candidate.dungeonCardKind === tile.dungeonCardKind
-                    ? { ...candidate, dungeonCardState: 'revealed' }
-                    : candidate
-            )
-        }
+        board: revealedBoard
     };
 };
 
