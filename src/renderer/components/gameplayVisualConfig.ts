@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 import { MATCH_DELAY_MS, RESOLVE_DELAY_MULTIPLIER_MIN } from '../../shared/contracts';
+import { GAMEPLAY_RENDER_PROFILE } from './gameplayRenderProfile';
 
 export const GAMEPLAY_VISUAL_CSS_VARS = {
     ['--gameplay-chrome-blur' as string]: '14px',
@@ -78,14 +79,23 @@ export const GAMEPLAY_BOARD_VISUALS = {
     },
     hoverFaceUpTintLerp: 0.1,
     hoverGoldQualityScales: {
-        high: { emissiveIntensity: 0.26, rimOpacity: 0.82 },
-        low: { emissiveIntensity: 0.12, rimOpacity: 0.46 },
-        medium: { emissiveIntensity: 0.19, rimOpacity: 0.66 }
+        high: {
+            emissiveIntensity: GAMEPLAY_RENDER_PROFILE.quality.high.hoverEmissive,
+            rimOpacity: GAMEPLAY_RENDER_PROFILE.quality.high.hoverRimOpacity
+        },
+        low: {
+            emissiveIntensity: GAMEPLAY_RENDER_PROFILE.quality.low.hoverEmissive,
+            rimOpacity: GAMEPLAY_RENDER_PROFILE.quality.low.hoverRimOpacity
+        },
+        medium: {
+            emissiveIntensity: GAMEPLAY_RENDER_PROFILE.quality.medium.hoverEmissive,
+            rimOpacity: GAMEPLAY_RENDER_PROFILE.quality.medium.hoverRimOpacity
+        }
     },
-    hoverHiddenDepth: 0.0048,
-    hoverHiddenLift: 0.00315,
-    hoverHiddenTiltX: 0.114,
-    hoverHiddenTiltZ: 0.104,
+    hoverHiddenDepth: 0.0062,
+    hoverHiddenLift: 0.0044,
+    hoverHiddenTiltX: 0.128,
+    hoverHiddenTiltZ: 0.116,
     lowQualityMatchedBackEmissive: {
         base: 0.12,
         pulse: 0.1
@@ -145,19 +155,19 @@ export const GAMEPLAY_BOARD_VISUALS = {
         tiers: {
             high: {
                 baseIntensity: 0.9,
-                burstIntensity: 0.38,
+                burstIntensity: GAMEPLAY_RENDER_PROFILE.quality.high.matchBurstIntensity,
                 emberStrength: 0.92,
                 innerWidthMul: 1,
                 motion: 1,
-                outerWidthMul: 1.12
+                outerWidthMul: GAMEPLAY_RENDER_PROFILE.quality.high.matchOuterWidth
             },
             medium: {
                 baseIntensity: 0.7,
-                burstIntensity: 0.26,
+                burstIntensity: GAMEPLAY_RENDER_PROFILE.quality.medium.matchBurstIntensity,
                 emberStrength: 0.68,
                 innerWidthMul: 0.96,
                 motion: 0.74,
-                outerWidthMul: 0.98
+                outerWidthMul: GAMEPLAY_RENDER_PROFILE.quality.medium.matchOuterWidth
             },
             reduceMotion: {
                 baseIntensity: 0.58,
@@ -186,10 +196,11 @@ export const GAMEPLAY_CARD_VISUALS = {
         fallback: 0.88,
         textured: 0.42
     },
-    surfaceMapVersion: 4,
-    textureVersion: 48,
-    texturedBackEmblemOpacity: 0.18,
-    texturedBackPatternOpacity: 0.22,
+    renderProfile: GAMEPLAY_RENDER_PROFILE.id,
+    surfaceMapVersion: 5,
+    textureVersion: 49,
+    texturedBackEmblemOpacity: 0.26,
+    texturedBackPatternOpacity: 0.28,
     texturedBackTint: {
         end: 'rgba(6, 8, 12, 0.2)',
         start: 'rgba(75, 45, 22, 0.12)'

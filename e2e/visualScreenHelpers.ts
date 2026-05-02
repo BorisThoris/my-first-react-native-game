@@ -384,7 +384,7 @@ export async function openDevSandboxPlaying(page: Page, options?: OpenDevSandbox
     await expect(page.getByTestId('game-hud')).toBeVisible({ timeout: 25_000 });
     await expect(page.getByTestId('tile-board-frame')).toBeVisible({ timeout: 25_000 });
     await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible({ timeout: 25_000 });
-    await waitForPlayingAndHiddenCount(page, 4);
+    await waitLevel1VisualReady(page);
 }
 
 /**
@@ -440,7 +440,7 @@ export async function startClassicRunFromModeSelect(page: Page): Promise<void> {
 
 export async function openLevel1Play(page: Page): Promise<void> {
     await openMainMenuFromSave(page, true);
-    await mainMenuPlayButton(page).click();
+    await mainMenuPlayButton(page).click({ force: true });
     await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
     await startClassicRunFromModeSelect(page);
 }

@@ -146,6 +146,7 @@ export const setTileTextureSamplingQuality = (quality: GraphicsQualityPreset): v
     }
 };
 const TILE_TEXTURE_VERSION = GAMEPLAY_CARD_VISUALS.textureVersion;
+const TILE_RENDER_PROFILE_CACHE_SALT = GAMEPLAY_CARD_VISUALS.renderProfile;
 /** Bump when procedural card-surface maps change (independent of tile face caches). */
 const CARD_SURFACE_MAP_VERSION = GAMEPLAY_CARD_VISUALS.surfaceMapVersion;
 const textureCache = new Map<string, CanvasTexture>();
@@ -937,7 +938,7 @@ const drawCardReferenceRoundPanel = (
     context.strokeStyle = palette.backPattern;
     context.lineWidth = Math.max(1, Math.round(width * 0.0026));
 
-    const step = Math.max(20, Math.round(width * 0.08));
+    const step = Math.max(18, Math.round(width * 0.068));
     for (let x = -cardHeight; x < cardWidth + cardHeight; x += step) {
         context.beginPath();
         context.moveTo(inset + x, inset);
@@ -978,6 +979,29 @@ const drawCardReferenceRoundPanel = (
     context.lineWidth = Math.max(1.5, Math.round(width * 0.0032));
     context.strokeStyle = palette.line;
     context.stroke();
+
+    context.save();
+    context.globalAlpha = hasCardTexture ? 0.32 : 0.46;
+    context.strokeStyle = palette.foil;
+    context.lineWidth = Math.max(1, Math.round(width * 0.0022));
+    for (let index = 0; index < 12; index += 1) {
+        const angle = (Math.PI * 2 * index) / 12;
+        const inner = ring * 0.72;
+        const outer = ring * 0.86;
+        context.beginPath();
+        context.moveTo(centerX + Math.cos(angle) * inner, centerY + Math.sin(angle) * inner);
+        context.lineTo(centerX + Math.cos(angle) * outer, centerY + Math.sin(angle) * outer);
+        context.stroke();
+    }
+    for (let index = 0; index < 6; index += 1) {
+        const angle = (Math.PI * 2 * index) / 6 + Math.PI / 6;
+        const x = centerX + Math.cos(angle) * ring * 0.78;
+        const y = centerY + Math.sin(angle) * ring * 0.78;
+        context.beginPath();
+        context.arc(x, y, ring * 0.045, 0, Math.PI * 2);
+        context.stroke();
+    }
+    context.restore();
 
     const diamondSize = ring * 0.42;
     const innerDiamondSize = diamondSize * 0.28;
@@ -1367,7 +1391,7 @@ const drawCardBase = (
 };
 
 const buildKey = (tile: Tile, face: TileFace, variant: FaceVariant, layer: TileLayer): string =>
-    `${TILE_TEXTURE_VERSION}:${layer}:${variant}:${face}:${tile.id}:${tile.pairKey}:${tile.symbol}:${tile.label}:route=${tile.routeCardKind ?? 'none'}:special=${tile.routeSpecialKind ?? 'none'}:revealed=${tile.routeSpecialRevealed ? '1' : '0'}:dungeon=${tile.dungeonCardKind ?? 'none'}:${tile.dungeonCardState ?? 'none'}:${tile.dungeonCardEffectId ?? 'none'}:${tile.dungeonCardHp ?? 'x'}`;
+    `${TILE_RENDER_PROFILE_CACHE_SALT}:${TILE_TEXTURE_VERSION}:${layer}:${variant}:${face}:${tile.id}:${tile.pairKey}:${tile.symbol}:${tile.label}:route=${tile.routeCardKind ?? 'none'}:special=${tile.routeSpecialKind ?? 'none'}:revealed=${tile.routeSpecialRevealed ? '1' : '0'}:dungeon=${tile.dungeonCardKind ?? 'none'}:${tile.dungeonCardState ?? 'none'}:${tile.dungeonCardEffectId ?? 'none'}:${tile.dungeonCardHp ?? 'x'}`;
 
 export const getTileFaceOverlayTextureCacheKey = (
     tile: Tile,
@@ -1773,7 +1797,7 @@ export const resetDemandDrivenOverlayPrewarmForTest = (): void => {
 
 export const getCardFaceStaticTexture = (): CanvasTexture | null =>
     createTexture(
-        `static-card-face:${TILE_TEXTURE_VERSION}`,
+        `static-card-face:${TILE_RENDER_PROFILE_CACHE_SALT}:${TILE_TEXTURE_VERSION}`,
         (context, canvas) => {
             const rendered = drawCardRasterFullBleed(context, canvas, 'cardFace', 1);
 

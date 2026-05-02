@@ -105,6 +105,7 @@ import {
 } from './tileBoardRimGeometry';
 import { clampMatchedCardRimFireDriverUniforms, createMatchedCardRimFireMaterial } from './matchedCardRimFireMaterial';
 import { GAMEPLAY_BOARD_VISUALS } from './gameplayVisualConfig';
+import { gameplayRenderQualityProfile } from './gameplayRenderProfile';
 import {
     DUNGEON_BOARD_STAGE_LAYER_POLICY,
     getDungeonBoardStageLod,
@@ -461,12 +462,9 @@ const hoverGoldRimGeomV = new PlaneGeometry(HOVER_GOLD_RIM_STRIP, CARD_HEIGHT, 1
  */
 const CARD_BEND_SEGMENTS = 48;
 /** World units: height map × scale + bias displaces vertices along normals (see `getCardPanelDisplacementTexture`). */
-const CARD_DISPLACEMENT_SCALE = 0.0082;
-const CARD_DISPLACEMENT_BIAS = -CARD_DISPLACEMENT_SCALE * 0.5;
 /** Keep wear multiply layer above peak displacement (front/back). */
 const CARD_WEAR_Z_SLIVER = 0.0052;
 /** Shared tangent-space strength for authored + procedural normal maps (front and back). */
-const CARD_NORMAL_SCALE: [number, number] = [0.14, 0.14];
 /** Base bulge depth (world units); tuned so a single click is clearly visible. */
 const CARD_BEND_MAX_DEPTH = 0.038;
 const CARD_BEND_RADIUS = 0.52 * Math.min(CARD_WIDTH, CARD_HEIGHT);
@@ -1915,6 +1913,7 @@ const TileBezelInner = ({
     const halfDepth = TILE_DEPTH * 0.5;
     const faceZ = halfDepth + 0.0004;
     const overlayZ = halfDepth + 0.004;
+    const renderQuality = gameplayRenderQualityProfile(graphicsQuality);
 
     return (
         <>
@@ -1946,13 +1945,13 @@ const TileBezelInner = ({
                             alphaTest={0.06}
                             color={cardTint}
                             depthWrite
-                            displacementBias={CARD_DISPLACEMENT_BIAS}
+                            displacementBias={-renderQuality.cardDisplacementScale * 0.5}
                             displacementMap={cardPanelDisplacementMap ?? undefined}
-                            displacementScale={CARD_DISPLACEMENT_SCALE}
-                            metalness={0.02}
+                            displacementScale={renderQuality.cardDisplacementScale}
+                            metalness={renderQuality.cardMetalness}
                             normalMap={frontNormalMapEffective ?? undefined}
-                            normalScale={CARD_NORMAL_SCALE}
-                            roughness={0.84}
+                            normalScale={renderQuality.cardNormalScale}
+                            roughness={renderQuality.cardRoughness}
                             side={DoubleSide}
                             toneMapped={false}
                             transparent
@@ -1966,14 +1965,14 @@ const TileBezelInner = ({
                             alphaTest={0.06}
                             color={cardTint}
                             depthWrite
-                            displacementBias={CARD_DISPLACEMENT_BIAS}
+                            displacementBias={-renderQuality.cardDisplacementScale * 0.5}
                             displacementMap={cardPanelDisplacementMap ?? undefined}
-                            displacementScale={CARD_DISPLACEMENT_SCALE}
+                            displacementScale={renderQuality.cardDisplacementScale}
                             map={cardFrontArtTexture ?? undefined}
-                            metalness={0.02}
+                            metalness={renderQuality.cardMetalness}
                             normalMap={frontNormalMapEffective ?? undefined}
-                            normalScale={CARD_NORMAL_SCALE}
-                            roughness={0.84}
+                            normalScale={renderQuality.cardNormalScale}
+                            roughness={renderQuality.cardRoughness}
                             side={DoubleSide}
                             toneMapped={false}
                             transparent
@@ -2012,13 +2011,13 @@ const TileBezelInner = ({
                             alphaTest={0.06}
                             color={cardTint}
                             depthWrite
-                            displacementBias={CARD_DISPLACEMENT_BIAS}
+                            displacementBias={-renderQuality.cardDisplacementScale * 0.5}
                             displacementMap={cardPanelDisplacementMap ?? undefined}
-                            displacementScale={CARD_DISPLACEMENT_SCALE}
-                            metalness={0.02}
+                            displacementScale={renderQuality.cardDisplacementScale}
+                            metalness={renderQuality.cardMetalness}
                             normalMap={backNormalMapEffective ?? undefined}
-                            normalScale={CARD_NORMAL_SCALE}
-                            roughness={0.84}
+                            normalScale={renderQuality.cardNormalScale}
+                            roughness={renderQuality.cardRoughness}
                             side={DoubleSide}
                             toneMapped={false}
                             transparent
@@ -2032,14 +2031,14 @@ const TileBezelInner = ({
                             alphaTest={0.06}
                             color={cardTint}
                             depthWrite
-                            displacementBias={CARD_DISPLACEMENT_BIAS}
+                            displacementBias={-renderQuality.cardDisplacementScale * 0.5}
                             displacementMap={cardPanelDisplacementMap ?? undefined}
-                            displacementScale={CARD_DISPLACEMENT_SCALE}
+                            displacementScale={renderQuality.cardDisplacementScale}
                             map={cardBackArtTexture ?? undefined}
-                            metalness={0.02}
+                            metalness={renderQuality.cardMetalness}
                             normalMap={backNormalMapEffective ?? undefined}
-                            normalScale={CARD_NORMAL_SCALE}
-                            roughness={0.84}
+                            normalScale={renderQuality.cardNormalScale}
+                            roughness={renderQuality.cardRoughness}
                             side={DoubleSide}
                             toneMapped={false}
                             transparent
@@ -2718,6 +2717,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
 }: TileBoardSceneProps, ref) => {
     const { camera, gl, viewport } = useThree();
     const { colors } = RENDERER_THEME;
+    const sceneRenderQuality = gameplayRenderQualityProfile(graphicsQuality);
     const tileFieldParallaxEnabled = useMemo(
         () => shouldApplyTileFieldParallax({ motionParallaxSuppressed, reduceMotion }),
         [motionParallaxSuppressed, reduceMotion]
@@ -3201,26 +3201,34 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
         <TileBezelFrameRegistryContext.Provider value={tileFrameRegistry}>
         <TilePickMeshRegistryContext.Provider value={pickMeshRegistry}>
         <>
-            <ambientLight color={colors.text} intensity={compact ? 0.62 : 0.72} />
+            <ambientLight color={colors.text} intensity={compact ? 0.54 : 0.62} />
             <hemisphereLight
                 color={colors.text}
                 groundColor={colors.smokeDeep}
-                intensity={compact ? 0.26 : 0.32}
+                intensity={compact ? 0.24 : 0.3}
             />
             <directionalLight
                 castShadow={false}
                 color={colors.text}
-                intensity={compact ? 0.24 : 0.3}
+                intensity={compact ? 0.18 : 0.24}
                 position={[0, 2.2, 12]}
             />
             <directionalLight
                 castShadow={false}
                 color={colors.goldBright}
-                intensity={compact ? 0.9 : 1.02}
+                intensity={compact ? sceneRenderQuality.goldKeyLight * 0.86 : sceneRenderQuality.goldKeyLight}
                 position={[5.4, 7.2, 8.5]}
             />
-            <directionalLight color={colors.cyan} intensity={compact ? 0.14 : 0.18} position={[-5.8, 2.2, 6.8]} />
-            <pointLight color={colors.gold} intensity={compact ? 0.14 : 0.2} position={[0, -2.2, 5.4]} />
+            <directionalLight
+                color={colors.cyanBright}
+                intensity={compact ? sceneRenderQuality.cyanKeyLight * 0.82 : sceneRenderQuality.cyanKeyLight}
+                position={[-5.8, 2.2, 6.8]}
+            />
+            <pointLight
+                color={colors.gold}
+                intensity={compact ? sceneRenderQuality.stagePointLight * 0.82 : sceneRenderQuality.stagePointLight}
+                position={[0, -2.2, 5.4]}
+            />
 
             <group ref={boardGroupRef} rotation={[0, 0, 0]}>
                 {tileBezelRows.map(

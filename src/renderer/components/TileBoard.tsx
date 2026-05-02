@@ -1595,6 +1595,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                                     />
                                     <TileBoardPostFx
                                         bloomEnabled={bloomEffective}
+                                        graphicsQuality={graphicsQuality}
                                         smaaEnabled={resolvedBoardAa === 'smaa'}
                                     />
                                 </Canvas>

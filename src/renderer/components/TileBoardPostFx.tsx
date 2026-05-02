@@ -1,17 +1,23 @@
 import { Bloom, EffectComposer, SMAA } from '@react-three/postprocessing';
 import { Suspense, type ReactElement } from 'react';
+import type { GraphicsQualityPreset } from '../../shared/contracts';
+import { gameplayRenderQualityProfile } from './gameplayRenderProfile';
 
 interface TileBoardPostFxProps {
     smaaEnabled: boolean;
     /** FX-015: gated by settings + non-low graphics quality (PERF-001). */
     bloomEnabled: boolean;
+    graphicsQuality?: GraphicsQualityPreset;
 }
 
-const ComposerBloomOnly = () => (
+const ComposerBloomOnly = ({ graphicsQuality }: { graphicsQuality?: GraphicsQualityPreset }) => {
+    const fx = gameplayRenderQualityProfile(graphicsQuality);
+    return (
     <EffectComposer multisampling={0}>
-        <Bloom intensity={0.38} luminanceSmoothing={0.33} luminanceThreshold={0.78} mipmapBlur />
+        <Bloom intensity={fx.bloomIntensity} luminanceSmoothing={0.31} luminanceThreshold={fx.bloomThreshold} mipmapBlur />
     </EffectComposer>
-);
+    );
+};
 
 const ComposerSmaaOnly = () => (
     <EffectComposer multisampling={0}>
@@ -19,24 +25,27 @@ const ComposerSmaaOnly = () => (
     </EffectComposer>
 );
 
-const ComposerBloomSmaa = () => (
+const ComposerBloomSmaa = ({ graphicsQuality }: { graphicsQuality?: GraphicsQualityPreset }) => {
+    const fx = gameplayRenderQualityProfile(graphicsQuality);
+    return (
     <EffectComposer multisampling={0}>
-        <Bloom intensity={0.38} luminanceSmoothing={0.33} luminanceThreshold={0.78} mipmapBlur />
+        <Bloom intensity={fx.bloomIntensity} luminanceSmoothing={0.31} luminanceThreshold={fx.bloomThreshold} mipmapBlur />
         <SMAA />
     </EffectComposer>
-);
+    );
+};
 
 /** Screen-space AA and optional bloom for the tile board (PERF-001 / FX-015). */
-const TileBoardPostFx = ({ bloomEnabled, smaaEnabled }: TileBoardPostFxProps) => {
+const TileBoardPostFx = ({ bloomEnabled, graphicsQuality, smaaEnabled }: TileBoardPostFxProps) => {
     if (!smaaEnabled && !bloomEnabled) {
         return null;
     }
 
     let composer: ReactElement;
     if (bloomEnabled && smaaEnabled) {
-        composer = <ComposerBloomSmaa />;
+        composer = <ComposerBloomSmaa graphicsQuality={graphicsQuality} />;
     } else if (bloomEnabled) {
-        composer = <ComposerBloomOnly />;
+        composer = <ComposerBloomOnly graphicsQuality={graphicsQuality} />;
     } else {
         composer = <ComposerSmaaOnly />;
     }

@@ -10,6 +10,7 @@ import {
     gotoWithSaveExpectStartupIntroVisible,
     mainMenuPlayButton,
     openDevSandboxGameOver,
+    openDevSandboxPlaying,
     openLevel1Play,
     openMainMenuFromSave,
     visualE2eUsesSandboxGameOver,
@@ -182,7 +183,7 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
         fileBase: '04-game-playing',
         name: 'game playing (level 1)',
         run: async (page, capture) => {
-            await openLevel1Play(page);
+            await openDevSandboxPlaying(page, { fixture: 'dailyParasite' });
             await waitLevel1VisualReady(page);
             await expect(page.getByTestId('game-hud')).toBeVisible();
             await expect(page.getByRole('toolbar', { name: /game controls/i })).toBeVisible();

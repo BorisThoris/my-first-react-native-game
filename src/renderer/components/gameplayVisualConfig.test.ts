@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { GAMEPLAY_BOARD_VISUALS } from './gameplayVisualConfig';
+import { GAMEPLAY_BOARD_VISUALS, GAMEPLAY_CARD_VISUALS } from './gameplayVisualConfig';
+import { GAMEPLAY_RENDER_PROFILE, gameplayRenderQualityProfile } from './gameplayRenderProfile';
 
 describe('REG-012 card materials and interaction FX tokens', () => {
     it('keeps match, mismatch, invalid, and combo feedback distinct and reduced-motion safe', () => {
@@ -11,5 +12,26 @@ describe('REG-012 card materials and interaction FX tokens', () => {
             new Set(Object.values(GAMEPLAY_BOARD_VISUALS.interactionFeedback).map((entry) => entry.material)).size
         ).toBe(4);
         expect(Object.values(GAMEPLAY_BOARD_VISUALS.interactionFeedback).every((entry) => entry.reducedMotion.length > 0)).toBe(true);
+    });
+});
+
+describe('gameplay renderer profile', () => {
+    it('drives spectacle values from one arcane workshop profile', () => {
+        expect(GAMEPLAY_RENDER_PROFILE.id).toBe('arcane-workshop-v2');
+        expect(GAMEPLAY_CARD_VISUALS.renderProfile).toBe(GAMEPLAY_RENDER_PROFILE.id);
+        expect(GAMEPLAY_CARD_VISUALS.textureVersion).toBeGreaterThanOrEqual(49);
+        expect(GAMEPLAY_CARD_VISUALS.surfaceMapVersion).toBeGreaterThanOrEqual(5);
+        expect(gameplayRenderQualityProfile('high').bloomIntensity).toBeGreaterThan(
+            gameplayRenderQualityProfile('medium').bloomIntensity
+        );
+        expect(gameplayRenderQualityProfile('high').cardDisplacementScale).toBeGreaterThan(
+            gameplayRenderQualityProfile('low').cardDisplacementScale
+        );
+        expect(GAMEPLAY_BOARD_VISUALS.hoverGoldQualityScales.high.emissiveIntensity).toBe(
+            GAMEPLAY_RENDER_PROFILE.quality.high.hoverEmissive
+        );
+        expect(GAMEPLAY_BOARD_VISUALS.matchedEdgeEffect.tiers.high.outerWidthMul).toBe(
+            GAMEPLAY_RENDER_PROFILE.quality.high.matchOuterWidth
+        );
     });
 });
