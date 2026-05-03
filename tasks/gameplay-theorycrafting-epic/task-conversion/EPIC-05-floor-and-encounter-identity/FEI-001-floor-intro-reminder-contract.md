@@ -1,7 +1,7 @@
 # FEI-001: Floor intro and reminder contract
 
 ## Status
-Planned
+Done
 
 ## Priority
 P0
@@ -41,4 +41,3 @@ Floor identity becomes invisible if rules are only learned after damage or rewar
 
 ## Cross-links
 - `../../passes/06-floor-and-encounter-identity.md`
-

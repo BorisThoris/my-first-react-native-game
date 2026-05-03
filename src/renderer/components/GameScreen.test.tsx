@@ -626,7 +626,7 @@ describe('GameScreen (OVR-014)', () => {
     it('shows the endless chapter banner during memorize on scheduled endless floors', () => {
         const run = createNewRun(0, { echoFeedbackEnabled: false });
 
-        const { getByTestId, getByText } = render(
+        const { getAllByText, getByTestId, getByText } = render(
             <PlatformTiltProvider>
                 <NotificationHost>
                     <GameScreen achievements={[]} run={run} />
@@ -637,8 +637,8 @@ describe('GameScreen (OVR-014)', () => {
         expect(getByTestId('endless-chapter-banner')).toBeTruthy();
         expect(getByTestId('endless-chapter-banner').getAttribute('data-chapter-theme')).toBe('Gate');
         expect(getByText('Dungeon Gate')).toBeTruthy();
-        expect(getByText(/dungeon route intel/i)).toBeTruthy();
-        expect(getByText(/Objective: Flip par/)).toBeTruthy();
+        expect(getByText(/Read the board/i)).toBeTruthy();
+        expect(getAllByText(/Objective: Flip par/).length).toBeGreaterThanOrEqual(1);
     });
 
     it('shows featured objective result, favor gain, and next-floor preview on endless floor clear', () => {

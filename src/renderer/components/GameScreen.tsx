@@ -10,6 +10,7 @@ import {
 } from '../../shared/contracts';
 import { computeFocusDimmedTileIds } from '../../shared/focusDimmedTileIds';
 import { getFloorClearCausalityRows } from '../../shared/level-result-presentation';
+import { getFloorIdentityContract } from '../../shared/boss-encounters';
 import { getPlayableOnboardingStep } from '../../shared/playable-onboarding';
 import { formatLevelResultObjectiveLine } from '../../shared/secondary-objectives';
 import {
@@ -817,6 +818,14 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         run.gameMode === 'endless' && usesEndlessFloorSchedule(run.gameMode, run.runRulesVersion);
     const currentArchetype = getFloorArchetypeDefinition(run.board?.floorArchetypeId ?? null);
     const currentFeaturedObjectiveLabel = getFeaturedObjectiveLabel(run.board?.featuredObjectiveId ?? null);
+    const currentFloorIdentity = run.board
+        ? getFloorIdentityContract({
+              floorTag: run.board.floorTag ?? 'normal',
+              floorArchetypeId: run.board.floorArchetypeId,
+              mutators: run.activeMutators,
+              featuredObjectiveLabel: currentFeaturedObjectiveLabel
+          })
+        : null;
     const featuredObjectiveResultLine = run.lastLevelResult ? formatLevelResultObjectiveLine(run.lastLevelResult) : null;
     const featuredObjectiveFailureLine = featuredObjectiveFailReason(run);
     const favorGained = run.lastLevelResult?.relicFavorGained ?? 0;
@@ -1172,9 +1181,11 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                 data-testid="endless-chapter-banner"
                             >
                                 <strong className={styles.endlessChapterTitle}>{currentArchetype!.title}</strong>
-                                <span className={styles.endlessChapterHint}>{currentArchetype!.hint}</span>
+                                <span className={styles.endlessChapterHint}>
+                                    {currentFloorIdentity?.teachingSentence ?? currentArchetype!.hint}
+                                </span>
                                 <span className={styles.endlessChapterRisk}>
-                                    {currentArchetype!.theme}: {currentArchetype!.riskProfile}
+                                    {currentArchetype!.theme}: {currentFloorIdentity?.counterplaySentence ?? currentArchetype!.riskProfile}
                                 </span>
                                 <span className={styles.endlessChapterObjective}>
                                     Objective: {currentFeaturedObjectiveLabel!}

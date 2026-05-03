@@ -1,7 +1,7 @@
 # FEI-004: Locked Gallery
 
 ## Status
-Planned
+Done
 
 ## Priority
 P1
@@ -41,4 +41,3 @@ Treasure value becomes invisible if the player sees only generic gold/score afte
 
 ## Cross-links
 - `../EPIC-04-safe-card-suite/SCS-004-cache-lock.md`
-

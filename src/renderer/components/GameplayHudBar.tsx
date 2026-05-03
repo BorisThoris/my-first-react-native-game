@@ -1,5 +1,5 @@
 import { useId, type ReactNode } from 'react';
-import { getBossEncounterIdentityForFloor } from '../../shared/boss-encounters';
+import { getBossEncounterIdentityForFloor, getFloorIdentityContract } from '../../shared/boss-encounters';
 import { MAX_LIVES, type MutatorId, type RunState } from '../../shared/contracts';
 import {
     getFeaturedObjectiveHudTooltip,
@@ -160,6 +160,12 @@ const GameplayHudBar = ({
             : 0;
     const archetype = getFloorArchetypeDefinition(board.floorArchetypeId);
     const featuredObjectiveLabel = getFeaturedObjectiveLabel(board.featuredObjectiveId);
+    const floorIdentity = getFloorIdentityContract({
+        floorTag: board.floorTag ?? 'normal',
+        floorArchetypeId: board.floorArchetypeId,
+        mutators: run.activeMutators,
+        featuredObjectiveLabel
+    });
     const difficultyProfile = getDefaultDifficultyProfile();
     const secondaryObjectiveRows = getSecondaryObjectiveStatusRows(run);
     const encounterIdentity = getBossEncounterIdentityForFloor(board.floorTag ?? 'normal', {
@@ -277,7 +283,7 @@ const GameplayHudBar = ({
                                     strokeWidth="0.85"
                                 />
                             </svg>
-                            <div className={`${styles.hudSegment} ${styles.floorBadge}`} title={encounterIdentity?.readabilityChecklist ?? 'Current floor'}>
+                            <div className={`${styles.hudSegment} ${styles.floorBadge}`} title={`${floorIdentity.teachingSentence} ${floorIdentity.counterplaySentence}`}>
                                 <span className={styles.floorLabel}>Floor</span>
                                 <span className={styles.floorValue}>{board.level}</span>
                                 {board.floorTag === 'boss' ? (
@@ -285,8 +291,12 @@ const GameplayHudBar = ({
                                         {encounterIdentity?.label ?? 'Boss'}
                                     </span>
                                 ) : board.floorTag === 'breather' ? (
-                                    <span className={styles.floorTagPill} title="Breather floor">
-                                        Rest
+                                    <span className={styles.floorTagPill} data-testid="hud-floor-identity" title={floorIdentity.activeReminder}>
+                                        {floorIdentity.label}
+                                    </span>
+                                ) : floorIdentity.warningLevel !== 'baseline' ? (
+                                    <span className={styles.floorTagPill} data-testid="hud-floor-identity" title={floorIdentity.activeReminder}>
+                                        {floorIdentity.label}
                                     </span>
                                 ) : null}
                             </div>

@@ -1,7 +1,7 @@
 # FEI-002: Trap Bounty Hall
 
 ## Status
-Planned
+Done
 
 ## Priority
 P1
@@ -42,4 +42,3 @@ Too many trap states can overwhelm the player if armed/resolved/bounty/workshop 
 ## Cross-links
 - `../EPIC-04-safe-card-suite/SCS-001-disarm-bounty.md`
 - `../EPIC-04-safe-card-suite/SCS-005-trap-workshop-room.md`
-

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getEncounterIdentityForFloor, getEncounterIdentityForRouteKind } from './boss-encounters';
+import { getEncounterIdentityForFloor, getEncounterIdentityForRouteKind, getFloorIdentityContract } from './boss-encounters';
 import { GAME_RULES_VERSION } from './contracts';
 import { pickFloorScheduleEntry } from './floor-mutator-schedule';
 
@@ -32,10 +32,59 @@ describe('REG-076 boss and elite encounter identity', () => {
         expect(identity!.placeholderSlots).toContain('elite route badge');
     });
 
-    it('keeps normal/breather floors out of encounter presentation', () => {
+    it('keeps normal/breather floors out of boss encounter presentation', () => {
         const entry = pickFloorScheduleEntry(76_001, GAME_RULES_VERSION, 1, 'endless');
 
         expect(getEncounterIdentityForFloor(entry)).toBeNull();
         expect(getEncounterIdentityForRouteKind('combat')).toBeNull();
+    });
+
+    it('provides floor identity contracts for baseline, trap, recovery, treasure, parasite, and boss floors', () => {
+        const rows = [
+            getFloorIdentityContract({
+                floorTag: 'normal',
+                floorArchetypeId: 'survey_hall',
+                mutators: [],
+                featuredObjectiveLabel: 'Flip par'
+            }),
+            getFloorIdentityContract({
+                floorTag: 'boss',
+                floorArchetypeId: 'trap_hall',
+                mutators: ['glass_floor', 'sticky_fingers'],
+                featuredObjectiveLabel: 'Glass witness'
+            }),
+            getFloorIdentityContract({
+                floorTag: 'breather',
+                floorArchetypeId: 'breather',
+                mutators: [],
+                featuredObjectiveLabel: 'Scholar style'
+            }),
+            getFloorIdentityContract({
+                floorTag: 'breather',
+                floorArchetypeId: 'treasure_gallery',
+                mutators: ['findables_floor'],
+                featuredObjectiveLabel: 'Scholar style'
+            }),
+            getFloorIdentityContract({
+                floorTag: 'normal',
+                floorArchetypeId: 'parasite_tithe',
+                mutators: ['score_parasite'],
+                featuredObjectiveLabel: 'Scholar style'
+            })
+        ];
+
+        expect(rows.map((row) => row.id)).toEqual([
+            'baseline_floor',
+            'boss_trophy_moment',
+            'recovery_study_room',
+            'locked_gallery_late',
+            'parasite_tithe'
+        ]);
+        for (const row of rows) {
+            expect(row.teachingSentence.length).toBeGreaterThan(20);
+            expect(row.counterplaySentence.length).toBeGreaterThan(20);
+            expect(row.activeReminder.length).toBeGreaterThan(10);
+            expect(row.tokens.length).toBeGreaterThan(0);
+        }
     });
 });

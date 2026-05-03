@@ -1,7 +1,7 @@
 # FEI-003: Recovery Study Room
 
 ## Status
-Planned
+Done
 
 ## Priority
 P1
@@ -43,4 +43,3 @@ Recovery floors can feel empty if the next-floor payoff is not visible.
 ## Cross-links
 - `../EPIC-04-safe-card-suite/SCS-002-guard-shrine-pair.md`
 - `../EPIC-04-safe-card-suite/SCS-003-scout-room.md`
-

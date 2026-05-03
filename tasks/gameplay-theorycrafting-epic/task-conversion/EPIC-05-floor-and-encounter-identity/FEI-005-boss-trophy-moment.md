@@ -1,7 +1,7 @@
 # FEI-005: Boss Trophy Moment
 
 ## Status
-Planned
+Done
 
 ## Priority
 P2
@@ -41,4 +41,3 @@ Boss floors remain pressure-only if the payoff appears disconnected from the pla
 
 ## Cross-links
 - `../EPIC-04-safe-card-suite/SCS-006-boss-trophy-cache.md`
-
