@@ -1150,9 +1150,10 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
 
                         {gambitThirdPickActive ? (
                             <div
-                                aria-hidden="true"
+                                aria-live="polite"
                                 className={styles.gambitOpportunityHint}
                                 data-testid="gambit-opportunity-hint"
+                                role="status"
                             >
                                 {GAMBIT_OPPORTUNITY_HINT_LINE}
                             </div>

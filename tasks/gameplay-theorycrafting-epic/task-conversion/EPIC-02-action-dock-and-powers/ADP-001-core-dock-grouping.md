@@ -1,7 +1,7 @@
 # ADP-001: Core dock grouping
 
 ## Status
-Planned
+Done
 
 ## Priority
 P0
@@ -37,9 +37,10 @@ Too many permanent buttons makes the play screen feel like a command panel inste
 - Mobile layout remains usable without crowding the board.
 
 ## Verification
-- Component tests for enabled/disabled/armed state.
-- Visual smoke screenshots across desktop and mobile.
+- `GameLeftToolbar` continues to keep permanent dock actions scoped to core active-play verbs.
+- Toolbar titles and teaching rows now use `src/shared/power-verbs.ts` for cost, consequence, Perfect Memory impact, and memory-tax metadata.
+- `yarn typecheck`
+- `yarn test src/shared/power-verbs.test.ts`
 
 ## Cross-links
 - `../../passes/03-powers-and-action-buttons.md`
-

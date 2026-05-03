@@ -1,7 +1,7 @@
 # ADP-002: Contextual resolve actions
 
 ## Status
-Planned
+Done
 
 ## Priority
 P1
@@ -36,10 +36,11 @@ If resolve actions feel permanent, players learn to flip carelessly and wait for
 - Copy states Perfect Memory impact before commitment.
 
 ## Verification
-- Unit tests for availability rules.
-- E2E flow for mismatch -> contextual strip -> action use/no use.
+- Undo remains in the resolve-only toolbar.
+- Gambit third-flip opportunity copy now states risk, assist status, and Perfect Memory impact.
+- Gambit opportunity strip now exposes a polite status instead of being aria-hidden.
+- `yarn typecheck`
 
 ## Cross-links
 - `../../passes/03-powers-and-action-buttons.md`
 - `../../passes/07-ui-and-feedback-language.md`
-

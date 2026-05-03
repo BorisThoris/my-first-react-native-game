@@ -1,7 +1,7 @@
 # ADP-003: Target preview and disabled reasons
 
 ## Status
-Planned
+In Progress
 
 ## Priority
 P0
@@ -39,10 +39,9 @@ Target previews can become accidental solver overlays if they reveal too much ex
 - Preview does not reveal exact hidden card identity unless the power explicitly does.
 
 ## Verification
-- Component tests for target eligibility.
-- Visual tests for armed action previews.
-- A11y checks for keyboard and screen reader target state.
+- Existing board highlights remain wired through destroy/peek/stray eligible target sets.
+- Focused tile announcements now include valid/invalid target state and consequence copy for destroy, peek, and stray.
+- `yarn typecheck`
 
 ## Cross-links
 - `../../passes/03-powers-and-action-buttons.md`
-

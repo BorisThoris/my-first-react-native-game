@@ -241,6 +241,38 @@ const getTileAriaLabel = (board: BoardState, tile: Tile, faceUp: boolean, row: n
     return `${base}${findableNote}${routeNote}${dungeonNote}${getEnemyHazardText(board, tile.id)}`;
 };
 
+const getPowerTargetAriaText = (
+    tile: Tile,
+    destroyPowerVisualActive: boolean,
+    destroyEligibleTileIds: ReadonlySet<string>,
+    peekPowerVisualActive: boolean,
+    peekEligibleTileIds: ReadonlySet<string>,
+    strayPowerVisualActive: boolean,
+    strayEligibleTileIds: ReadonlySet<string>
+): string => {
+    if (destroyPowerVisualActive) {
+        if (destroyEligibleTileIds.has(tile.id)) {
+            return ' Destroy target: valid. Forfeits match score and pickups or rewards on this pair.';
+        }
+        return tile.state === 'hidden' ? ' Destroy target: invalid for this power.' : '';
+    }
+    if (peekPowerVisualActive) {
+        return peekEligibleTileIds.has(tile.id)
+            ? ' Peek target: valid. Reveals this one tile and locks Perfect Memory.'
+            : tile.state === 'hidden'
+              ? ' Peek target: invalid or already revealed.'
+              : '';
+    }
+    if (strayPowerVisualActive) {
+        return strayEligibleTileIds.has(tile.id)
+            ? ' Stray target: valid. Removes this tile from play and locks Perfect Memory.'
+            : tile.state === 'hidden'
+              ? ' Stray target: invalid or protected.'
+              : '';
+    }
+    return '';
+};
+
 const getTouchCentroid = (first: TouchPoint, second: TouchPoint): TouchPoint => ({
     clientX: (first.clientX + second.clientX) / 2,
     clientY: (first.clientY + second.clientY) / 2
@@ -636,6 +668,15 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
             tile.state !== 'hidden' || debugPeekActive || previewActive || peekSet.has(tile.id);
         const { row, column } = getTilePosition(idx, board.columns);
         let label = getTileAriaLabel(board, tile, faceUp, row, column);
+        label += getPowerTargetAriaText(
+            tile,
+            destroyPowerVisualActive,
+            destroyEligibleTileIds,
+            peekPowerVisualActive,
+            peekEligibleTileIds,
+            strayPowerVisualActive,
+            strayEligibleTileIds
+        );
         if (
             pairProximityHintsEnabled &&
             (runStatus === 'playing' || runStatus === 'resolving') &&
@@ -647,7 +688,21 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
             }
         }
         return label;
-    }, [board, debugPeekActive, focusedTileId, pairProximityHintsEnabled, peekSet, previewActive, runStatus]);
+    }, [
+        board,
+        debugPeekActive,
+        destroyEligibleTileIds,
+        destroyPowerVisualActive,
+        focusedTileId,
+        pairProximityHintsEnabled,
+        peekEligibleTileIds,
+        peekPowerVisualActive,
+        peekSet,
+        previewActive,
+        runStatus,
+        strayEligibleTileIds,
+        strayPowerVisualActive
+    ]);
 
     useEffect(() => {
         queueMicrotask(() => {

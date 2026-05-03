@@ -185,6 +185,11 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
         playMenuOpenSfx(uiGain);
     };
     const powerTeachingRows = getPowerVerbTeachingRows(run);
+    const powerRow = (id: (typeof powerTeachingRows)[number]['id']) => powerTeachingRows.find((row) => row.id === id)!;
+    const powerTitle = (id: (typeof powerTeachingRows)[number]['id'], fallback: string): string => {
+        const row = powerRow(id);
+        return `${fallback}. ${row.cost} ${row.consequence} ${row.perfectMemoryCopy}`;
+    };
 
     return (
         <aside
@@ -326,7 +331,7 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                                 shuffleBoard();
                             }
                         }}
-                        title={shuffleTitle}
+                        title={powerTitle('shuffle', shuffleTitle)}
                         type="button"
                     >
                         <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.shuffle} />
@@ -349,7 +354,7 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                                 : ''
                         }`}
                     >
-                        <summary className={styles.regionShuffleSummary} title={regionShuffleTitle}>
+                        <summary className={styles.regionShuffleSummary} title={powerTitle('region_shuffle', regionShuffleTitle)}>
                             <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.shuffle} />
                             <span aria-hidden="true" className={styles.toolbarFlyoutLabel}>
                                 Shuffle row
@@ -386,7 +391,7 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                                                   shuffleRegionRow(row);
                                               }
                                           }}
-                                          title={regionShuffleTitle}
+                                          title={powerTitle('region_shuffle', regionShuffleTitle)}
                                           type="button"
                                       >
                                           {row + 1}
@@ -396,11 +401,11 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                         </div>
                     </details>
                     <button
-                        aria-label={boardPinMode ? 'Exit pin mode' : 'Pin mode — tap tiles to mark'}
+                        aria-label={boardPinMode ? 'Exit pin mode' : 'Pin mode - tap tiles to mark'}
                         aria-pressed={boardPinMode}
                         className={`${styles.iconAction} ${boardPinMode ? styles.iconActionActive : ''}`}
                         onClick={() => toggleBoardPinMode()}
-                        title={pinTitle}
+                        title={powerTitle('pin', pinTitle)}
                         type="button"
                     >
                         <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.pin} />
@@ -409,18 +414,19 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                         </span>
                     </button>
                     <button
-                        aria-label={`Destroy a hidden pair. Charges: ${run.destroyPairCharges}. ${destroyPairArmed ? 'Tap a tile' : 'Arm then tap a tile'}`}
+                        aria-label={`Destroy a hidden pair. Charges: ${run.destroyPairCharges}. ${destroyPairArmed ? 'Tap a tile' : 'Arm then tap a tile'}. ${powerRow('destroy_pair').perfectMemoryCopy}`}
                         aria-pressed={destroyPairArmed}
                         className={`${styles.iconAction} ${styles.iconActionWithBadge} ${destroyPairArmed ? styles.iconActionActive : ''}`}
                         disabled={destroyDisabled}
                         onClick={() => toggleDestroyPairArmed()}
-                        title={
+                        title={powerTitle(
+                            'destroy_pair',
                             run.destroyPairCharges < 1
-                                ? 'Earn destroy charges on clean floors (≤1 miss)'
+                                ? 'No destroy charges'
                                 : destroyPairArmed
-                                  ? 'Tap a hidden tile to destroy its pair (no score)'
+                                  ? 'Tap a hidden tile to destroy its pair'
                                   : 'Arm destroy, then tap a hidden tile'
-                        }
+                        )}
                         type="button"
                     >
                         <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.destroy} />
@@ -436,18 +442,19 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                         </span>
                     </button>
                     <button
-                        aria-label={`Peek one hidden tile. Charges: ${run.peekCharges}. ${peekModeArmed ? 'Tap a tile' : 'Arm peek then tap'}`}
+                        aria-label={`Peek one hidden tile. Charges: ${run.peekCharges}. ${peekModeArmed ? 'Tap a tile' : 'Arm peek then tap'}. ${powerRow('peek').perfectMemoryCopy}`}
                         aria-pressed={peekModeArmed}
                         className={`${styles.iconAction} ${styles.iconActionWithBadge} ${peekModeArmed ? styles.iconActionActive : ''}`}
                         disabled={run.peekCharges < 1}
                         onClick={() => togglePeekMode()}
-                        title={
+                        title={powerTitle(
+                            'peek',
                             run.peekCharges < 1
                                 ? 'No peek charges this floor'
                                 : peekModeArmed
-                                  ? 'Tap a hidden tile to peek (uses 1 charge)'
+                                  ? 'Tap a hidden tile to peek'
                                   : 'Arm peek, then tap a hidden tile'
-                        }
+                        )}
                         type="button"
                     >
                         <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.peek} />
@@ -473,11 +480,11 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                                 }
                                 applyFlashPairPower();
                             }}
-                            title={flashPairTitle}
+                            title={powerTitle('flash_pair', flashPairTitle)}
                             type="button"
                         >
                             <span className={styles.toolbarFlashGlyph} aria-hidden="true">
-                                ⚡
+                                F
                             </span>
                             <span aria-hidden="true" className={styles.toolbarFlyoutLabel}>
                                 Flash
@@ -492,18 +499,19 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                         </button>
                     ) : null}
                     <button
-                        aria-label={`Remove one stray tile. Charges: ${run.strayRemoveCharges}. ${run.strayRemoveArmed ? 'Tap a tile' : 'Arm then tap'}`}
+                        aria-label={`Remove one stray tile. Charges: ${run.strayRemoveCharges}. ${run.strayRemoveArmed ? 'Tap a tile' : 'Arm then tap'}. ${powerRow('stray_remove').perfectMemoryCopy}`}
                         aria-pressed={run.strayRemoveArmed}
                         className={`${styles.iconAction} ${styles.iconActionWithBadge} ${run.strayRemoveArmed ? styles.iconActionActive : ''}`}
                         disabled={run.strayRemoveCharges < 1}
                         onClick={() => toggleStrayArm()}
-                        title={
+                        title={powerTitle(
+                            'stray_remove',
                             run.strayRemoveCharges < 1
                                 ? 'No stray-remove charges'
                                 : run.strayRemoveArmed
                                   ? 'Tap a hidden tile to remove it from play'
                                   : 'Arm stray remove, then tap a hidden tile'
-                        }
+                        )}
                         type="button"
                     >
                         <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.stray} />
@@ -531,7 +539,9 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                                 <div className={styles.powerTeachingRow} key={row.id}>
                                     <strong>{row.label}</strong>
                                     <span>{row.job}</span>
-                                    <small>{row.disabledReason ?? row.cost}</small>
+                                    <small>
+                                        {row.disabledReason ?? row.cost} {row.consequence} {row.perfectMemoryCopy}
+                                    </small>
                                 </div>
                             ))}
                         </div>
@@ -551,7 +561,7 @@ const GameLeftToolbar = memo(function GameLeftToolbar({
                         aria-label="Undo last flip (uses your one undo this floor)"
                         className={styles.iconAction}
                         onClick={() => undoResolvingFlip()}
-                        title="Undo the current flip before it resolves"
+                        title={powerTitle('undo_resolve', 'Undo the current flip before it resolves')}
                         type="button"
                     >
                         <img alt="" className={styles.toolbarGlyphImg} src={GAMEPLAY_TOOLBAR_ICONS.undo} />

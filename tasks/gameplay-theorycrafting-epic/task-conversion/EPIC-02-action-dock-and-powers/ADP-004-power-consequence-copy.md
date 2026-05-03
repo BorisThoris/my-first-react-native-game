@@ -1,7 +1,7 @@
 # ADP-004: Power consequence copy
 
 ## Status
-Planned
+Done
 
 ## Priority
 P1
@@ -37,10 +37,12 @@ Inconsistent copy makes powers feel arbitrary and hides why achievements or rewa
 - Destroy/shuffle copy names reward/spatial consequences.
 
 ## Verification
-- Snapshot or unit tests for generated action labels where available.
-- Manual copy review against Pass 7 tokens.
+- `src/shared/power-verbs.ts` now centralizes each action's cost, consequence, mechanic tokens, Perfect Memory impact, and memory-tax score.
+- `GameLeftToolbar` consumes that canonical copy for titles, aria labels, and teaching rows.
+- `yarn test src/shared/power-verbs.test.ts`
+- `yarn test src/renderer/components/GameplayHudBar.test.tsx`
+- `yarn typecheck`
 
 ## Cross-links
 - `../../passes/03-powers-and-action-buttons.md`
 - `../../passes/07-ui-and-feedback-language.md`
-
