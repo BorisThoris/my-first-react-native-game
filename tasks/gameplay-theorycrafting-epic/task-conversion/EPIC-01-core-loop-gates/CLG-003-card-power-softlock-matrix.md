@@ -1,7 +1,7 @@
 # CLG-003: Card and power softlock matrix
 
 ## Status
-In Progress
+Done
 
 ## Priority
 P0

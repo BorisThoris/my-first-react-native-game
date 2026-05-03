@@ -1,7 +1,7 @@
 # FBL-003: Accessibility mechanic parity
 
 ## Status
-In Progress
+Done
 
 ## Priority
 P0

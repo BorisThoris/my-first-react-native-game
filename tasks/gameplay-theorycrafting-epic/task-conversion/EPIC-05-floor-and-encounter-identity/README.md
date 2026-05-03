@@ -1,7 +1,7 @@
 # EPIC-05: Floor And Encounter Identity
 
 ## Status
-Planned
+Done
 
 ## Goal
 Turn card and action work into authored-feeling floor slices while keeping deterministic generation.
@@ -12,4 +12,3 @@ Turn card and action work into authored-feeling floor slices while keeping deter
 - `FEI-003-recovery-study-room.md`
 - `FEI-004-locked-gallery.md`
 - `FEI-005-boss-trophy-moment.md`
-

@@ -1,7 +1,7 @@
 # EPIC-04: Safe Card Suite
 
 ## Status
-Planned
+Done
 
 ## Goal
 Add low-risk card decisions that deepen existing dungeon families without changing the board fundamentals.
@@ -13,4 +13,3 @@ Add low-risk card decisions that deepen existing dungeon families without changi
 - `SCS-004-cache-lock.md`
 - `SCS-005-trap-workshop-room.md`
 - `SCS-006-boss-trophy-cache.md`
-

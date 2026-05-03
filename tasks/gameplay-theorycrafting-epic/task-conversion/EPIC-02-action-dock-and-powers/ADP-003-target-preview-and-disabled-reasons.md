@@ -1,7 +1,7 @@
 # ADP-003: Target preview and disabled reasons
 
 ## Status
-In Progress
+Done
 
 ## Priority
 P0

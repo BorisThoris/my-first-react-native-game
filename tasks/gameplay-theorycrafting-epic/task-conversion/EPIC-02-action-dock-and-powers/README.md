@@ -1,7 +1,7 @@
 # EPIC-02: Action Dock And Powers
 
 ## Status
-Planned
+Done
 
 ## Goal
 Make existing powers visible, honest, and expandable before adding more action buttons.
@@ -11,4 +11,3 @@ Make existing powers visible, honest, and expandable before adding more action b
 - `ADP-002-contextual-resolve-actions.md`
 - `ADP-003-target-preview-and-disabled-reasons.md`
 - `ADP-004-power-consequence-copy.md`
-
