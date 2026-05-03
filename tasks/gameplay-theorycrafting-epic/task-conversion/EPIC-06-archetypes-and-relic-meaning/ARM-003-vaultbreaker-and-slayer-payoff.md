@@ -1,7 +1,7 @@
 # ARM-003: Vaultbreaker and Slayer payoff
 
 ## Status
-Planned
+Done
 
 ## Priority
 P2

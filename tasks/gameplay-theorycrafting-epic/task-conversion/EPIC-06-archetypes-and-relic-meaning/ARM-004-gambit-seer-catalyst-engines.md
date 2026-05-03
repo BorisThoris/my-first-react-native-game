@@ -1,7 +1,7 @@
 # ARM-004: Gambit, Seer, and Catalyst engines
 
 ## Status
-Planned
+Done
 
 ## Priority
 P2

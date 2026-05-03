@@ -10,6 +10,7 @@ import {
     getRelicDraftContext,
     getRelicBuildArchetypeSummaries,
     getRelicDraftRow,
+    getRelicRoleAuditRows,
     getRelicDraftOptionReasons,
     isRelicDraftEligible,
     effectiveRelicDraftWeight,
@@ -136,7 +137,18 @@ describe('rollRelicOptions', () => {
             'reveal_scout',
             'combo_shard_engine'
         ]);
+        expect(summaries.map((summary) => summary.label)).toEqual([
+            'The Warden',
+            'The Saboteur',
+            'The Vaultbreaker',
+            'The Slayer',
+            'The Gambit',
+            'The Seer',
+            'The Catalyst'
+        ]);
         expect(summaries.every((summary) => summary.relicIds.length >= 2)).toBe(true);
+        expect(summaries.every((summary) => summary.fantasy.length > 0)).toBe(true);
+        expect(summaries.every((summary) => summary.decisionVerbs.length >= 3)).toBe(true);
         expect(summaries.every((summary) => summary.dungeonInteractions.length > 0)).toBe(true);
         expect(
             summaries.every((summary) => summary.supportHooks.length >= 2 || summary.deferredHooks.length > 0)
@@ -162,6 +174,16 @@ describe('rollRelicOptions', () => {
         expect(summaries.find((summary) => summary.id === 'combo_shard_engine')?.relicIds).toEqual(
             expect.arrayContaining(['combo_shard_plus_step', 'parasite_ledger'])
         );
+    });
+
+    it('audits every relic for build fit and decision impact copy', () => {
+        const rows = getRelicRoleAuditRows();
+
+        expect(rows.map((row) => row.relicId).sort()).toEqual([...RELIC_POOL].sort());
+        expect(rows.every((row) => row.archetypeLabels.every((label) => label.startsWith('The ')))).toBe(true);
+        expect(rows.every((row) => row.decisionImpact.length > 0)).toBe(true);
+        expect(rows.every((row) => row.impactCopy.includes(':'))).toBe(true);
+        expect(rows.every((row) => row.rescueDirection === 'clear')).toBe(true);
     });
 
     it('is deterministic for the same seed, tier, floor, and pickRound', () => {

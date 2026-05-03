@@ -1,7 +1,7 @@
 # ARM-005: Relic role audit
 
 ## Status
-Planned
+Done
 
 ## Priority
 P1

@@ -1,7 +1,7 @@
 # ARM-001: Archetype display language
 
 ## Status
-Planned
+Done
 
 ## Priority
 P1

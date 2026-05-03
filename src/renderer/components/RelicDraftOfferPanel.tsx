@@ -10,6 +10,7 @@ import type { RelicId, RelicOfferServiceState } from '../../shared/contracts';
 import {
     getRelicArchetypeLabels,
     getRelicDraftRow,
+    getRelicDecisionImpactCopy,
     relicDraftRarityLabel,
     type RelicOfferServiceAction,
     type RelicDraftRarity
@@ -169,13 +170,14 @@ const RelicDraftOfferPanel = ({
                     const desc = descriptionById[id] ?? id;
                     const reason = reasonById?.[id];
                     const archetypes = getRelicArchetypeLabels(id);
+                    const impactCopy = getRelicDecisionImpactCopy(id);
                     const ariaTier = relicDraftRarityLabel(row.rarity);
                     const staggerStyle: CSSProperties = {
                         '--relic-card-stagger': index
                     } as CSSProperties;
                     return (
                         <button
-                            aria-label={`${ariaTier} relic: ${desc}${reason ? `. ${reason}` : ''}`}
+                            aria-label={`${ariaTier} relic: ${desc}. ${impactCopy}${reason ? `. ${reason}` : ''}`}
                             className={`${styles.card} ${rarityClass(row.rarity)}`}
                             key={`${id}-${pickRound}`}
                             onClick={() => onPick(id)}
@@ -185,6 +187,7 @@ const RelicDraftOfferPanel = ({
                             <span aria-hidden className={styles.runeStrip} />
                             {reason ? <span className={styles.reason}>{reason}</span> : null}
                             <span className={styles.archetypes}>{archetypes.join(' · ')}</span>
+                            <span className={styles.archetypes}>{impactCopy}</span>
                             <p className={styles.body}>{desc}</p>
                         </button>
                     );

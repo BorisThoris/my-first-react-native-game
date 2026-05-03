@@ -81,6 +81,8 @@ export interface RelicDraftRow {
 export interface RelicBuildArchetypeDefinition {
     id: RelicBuildArchetype;
     label: string;
+    fantasy: string;
+    decisionVerbs: string[];
     summary: string;
     dungeonInteractions: string[];
     supportHooks: string[];
@@ -90,21 +92,27 @@ export interface RelicBuildArchetypeDefinition {
 export const RELIC_BUILD_ARCHETYPE_DEFINITIONS: Record<RelicBuildArchetype, RelicBuildArchetypeDefinition> = {
     guard_tank: {
         id: 'guard_tank',
-        label: 'Guard tank',
+        label: 'The Warden',
+        fantasy: 'Protection and recovery build.',
+        decisionVerbs: ['guard', 'absorb', 'stabilize'],
         summary: 'Bank guard and study time so enemy patrols, traps, and safe routes can be played through mistakes.',
         dungeonInteractions: ['guard tokens', 'safe routes', 'enemy contact', 'trap pressure'],
         supportHooks: ['guard_token_plus_one immediate capped guard', 'safe route contextual draft weighting']
     },
     trap_control: {
         id: 'trap_control',
-        label: 'Trap control',
+        label: 'The Saboteur',
+        fantasy: 'Trap-control and disruption build.',
+        decisionVerbs: ['disarm', 'delete', 'reroute'],
         summary: 'Use shuffle, destroy, and search tools to stabilize trap halls and armed dungeon trap pairs.',
         dungeonInteractions: ['trap halls', 'dungeon trap cards', 'row shuffle', 'destroy-pair charges'],
         supportHooks: ['shuffle relic contract filters', 'destroy_bank_plus_one uncapped charge grant', 'trap route contextual weighting']
     },
     treasure_greed: {
         id: 'treasure_greed',
-        label: 'Treasure greed',
+        label: 'The Vaultbreaker',
+        fantasy: 'Key, lock, cache, and route extraction build.',
+        decisionVerbs: ['unlock', 'extract', 'bank'],
         summary: 'Lean into Greed routes and bonus shrine picks while keeping the current treasure payout hooks bounded.',
         dungeonInteractions: ['treasure rooms', 'Greed routes', 'Relic Favor', 'shop gold pressure'],
         supportHooks: ['Greed route contextual draft weighting', 'shrine_echo one-shot extra relic selection'],
@@ -112,7 +120,9 @@ export const RELIC_BUILD_ARCHETYPE_DEFINITIONS: Record<RelicBuildArchetype, Reli
     },
     boss_hunter: {
         id: 'boss_hunter',
-        label: 'Boss hunter',
+        label: 'The Slayer',
+        fantasy: 'Boss-prep and trophy payoff build.',
+        decisionVerbs: ['prepare', 'focus', 'finish'],
         summary: 'Prepare for boss floors with chapter-aware draft pressure and bounded wager/Favor conversion.',
         dungeonInteractions: ['boss floors', 'boss prep', 'Relic Favor', 'chapter schedule'],
         supportHooks: ['chapter_compass future chapter answer weighting', 'wager_surety bounded Favor bonus'],
@@ -120,21 +130,27 @@ export const RELIC_BUILD_ARCHETYPE_DEFINITIONS: Record<RelicBuildArchetype, Reli
     },
     route_gambler: {
         id: 'route_gambler',
-        label: 'Route gambler',
+        label: 'The Gambit',
+        fantasy: 'Risk shaping and wager build.',
+        decisionVerbs: ['wager', 'push', 'cash out'],
         summary: 'Turn risky route choices and Endless wagers into more Favor without removing the bust condition.',
         dungeonInteractions: ['risk wagers', 'Greed routes', 'Mystery routes', 'Relic Favor'],
         supportHooks: ['risk wager payout hook', 'wager_surety loss floor', 'route contextual draft weighting']
     },
     reveal_scout: {
         id: 'reveal_scout',
-        label: 'Reveal / scout',
+        label: 'The Seer',
+        fantasy: 'Fair-information and read-control build.',
+        decisionVerbs: ['peek', 'pin', 'read'],
         summary: 'Use peeks, pins, stray removal, and study time to read mystery rooms before committing.',
         dungeonInteractions: ['Mystery routes', 'hidden dungeon cards', 'observe patrols', 'memorize phase'],
         supportHooks: ['peek_charge_plus_one immediate charge', 'pin_cap_plus_one capacity cap', 'stray_charge_plus_one immediate charge']
     },
     combo_shard_engine: {
         id: 'combo_shard_engine',
-        label: 'Combo shard engine',
+        label: 'The Catalyst',
+        fantasy: 'Clean-play momentum and Favor engine build.',
+        decisionVerbs: ['chain', 'convert', 'accelerate'],
         summary: 'Convert clean play, parasite answers, and guard safety into bounded combo shard momentum.',
         dungeonInteractions: ['combo shards', 'parasite floors', 'featured objectives', 'guard tokens'],
         supportHooks: ['combo_shard_plus_step shard cap', 'parasite_ward_once one-shot ward', 'parasite_ledger featured-objective hook']
@@ -300,6 +316,8 @@ export const getRelicBuildArchetypeSummaries = (): {
     id: RelicBuildArchetype;
     label: string;
     summary: string;
+    fantasy: string;
+    decisionVerbs: string[];
     dungeonInteractions: string[];
     supportHooks: string[];
     deferredHooks: string[];
@@ -311,12 +329,67 @@ export const getRelicBuildArchetypeSummaries = (): {
             id,
             label: definition.label,
             summary: definition.summary,
+            fantasy: definition.fantasy,
+            decisionVerbs: [...definition.decisionVerbs],
             dungeonInteractions: [...definition.dungeonInteractions],
             supportHooks: [...definition.supportHooks],
             deferredHooks: [...(definition.deferredHooks ?? [])],
             relicIds: RELIC_POOL.filter((relicId) => RELIC_DRAFT[relicId].archetypes.includes(id))
         };
     });
+
+export type RelicDecisionImpact =
+    | 'action_economy'
+    | 'route_risk'
+    | 'information_scope'
+    | 'protection'
+    | 'extraction'
+    | 'engine_momentum'
+    | 'draft_shaping';
+
+export interface RelicRoleAuditRow {
+    relicId: RelicId;
+    archetypeLabels: string[];
+    decisionImpact: RelicDecisionImpact[];
+    impactCopy: string;
+    rescueDirection: 'clear' | 'copy_rescue' | 'mechanical_rescue' | 'deprioritize';
+}
+
+const decisionImpactForRelic = (id: RelicId): RelicDecisionImpact[] => {
+    const row = getRelicDraftRow(id);
+    const impacts = new Set<RelicDecisionImpact>();
+    if (row.tags.includes('shuffle') || row.tags.includes('destroy') || row.tags.includes('search')) impacts.add('action_economy');
+    if (row.tags.includes('peek') || row.tags.includes('pin') || row.tags.includes('memorize')) impacts.add('information_scope');
+    if (row.tags.includes('guard')) impacts.add('protection');
+    if (row.tags.includes('wager')) impacts.add('route_risk');
+    if (row.tags.includes('favor')) impacts.add('extraction');
+    if (row.tags.includes('combo') || row.tags.includes('parasite')) impacts.add('engine_momentum');
+    if (row.tags.includes('draft')) impacts.add('draft_shaping');
+    return [...impacts];
+};
+
+const impactCopyForRelic = (id: RelicId): string => {
+    const labels = getRelicArchetypeLabels(id);
+    const verbs = getRelicBuildArchetypes(id)
+        .flatMap((archetype) => getRelicBuildArchetypeDefinition(archetype).decisionVerbs)
+        .slice(0, 3);
+    return `${labels.join(' / ')}: ${verbs.join(', ')}.`;
+};
+
+export const getRelicRoleAuditRows = (): RelicRoleAuditRow[] =>
+    RELIC_POOL.map((relicId) => {
+        const impacts = decisionImpactForRelic(relicId);
+        return {
+            relicId,
+            archetypeLabels: getRelicArchetypeLabels(relicId),
+            decisionImpact: impacts,
+            impactCopy: impactCopyForRelic(relicId),
+            rescueDirection: impacts.length > 0 ? 'clear' : 'copy_rescue'
+        };
+    });
+
+export const getRelicDecisionImpactCopy = (id: RelicId): string =>
+    getRelicRoleAuditRows().find((row) => row.relicId === id)?.impactCopy ?? getRelicArchetypeSummary(id);
 
 export const getRelicDraftContext = (run: RunState, clearedFloor: number): RelicDraftContext => {
     const isScheduledEndless = isScheduledEndlessDraftRun(run);

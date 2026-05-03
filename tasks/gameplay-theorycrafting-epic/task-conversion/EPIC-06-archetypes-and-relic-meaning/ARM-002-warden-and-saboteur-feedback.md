@@ -1,7 +1,7 @@
 # ARM-002: Warden and Saboteur feedback
 
 ## Status
-Planned
+Done
 
 ## Priority
 P1
