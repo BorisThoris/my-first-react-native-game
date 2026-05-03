@@ -56,6 +56,7 @@ import {
 import {
     applyEnemyHazardClick,
     calculateMatchScore,
+    cancelResolvingWithUndo,
     flipTile,
     getMatchFloaterAnchorTileIds,
     getMismatchFloaterAnchorTileIds,
@@ -3108,9 +3109,48 @@ describe('dungeon cards', () => {
         expect(
             afterReveal.board!.tiles
                 .filter((tile) => tile.pairKey === 'T')
-                .every((tile) => tile.dungeonCardState === 'resolved')
+                .every((tile) => tile.dungeonCardState === 'resolved' && tile.state === 'flipped')
         ).toBe(true);
         expect(afterReveal.board!.tiles.find((tile) => tile.id === 't1')!.state).toBe('flipped');
+    });
+
+    it('keeps sprung traps permanently face-up through misses until they are matched', () => {
+        const tiles: Tile[] = [
+            {
+                ...createTile('t1', 'T', '!'),
+                label: 'Spike Trap',
+                dungeonCardKind: 'trap',
+                dungeonCardState: 'hidden',
+                dungeonCardEffectId: 'trap_spikes'
+            },
+            {
+                ...createTile('t2', 'T', '!'),
+                label: 'Spike Trap',
+                dungeonCardKind: 'trap',
+                dungeonCardState: 'hidden',
+                dungeonCardEffectId: 'trap_spikes'
+            },
+            createTile('a1', 'A', 'A'),
+            createTile('a2', 'A', 'A')
+        ];
+        const run = createRun(tiles);
+        const afterTrapReveal = flipTile(run, 't1');
+        const resolvedMiss = resolveBoardTurn(flipTile(afterTrapReveal, 'a1'));
+
+        expect(resolvedMiss.dungeonTrapsTriggered).toBe(1);
+        expect(
+            resolvedMiss.board!.tiles
+                .filter((tile) => tile.pairKey === 'T')
+                .every((tile) => tile.dungeonCardState === 'resolved' && tile.state === 'flipped')
+        ).toBe(true);
+
+        const selectedFirstTrap = flipTile(resolvedMiss, 't1');
+        expect(selectedFirstTrap.board!.flippedTileIds).toEqual(['t1']);
+
+        const completed = resolveBoardTurn(flipTile(selectedFirstTrap, 't2'));
+        expect(completed.dungeonTrapsTriggered).toBe(1);
+        expect(completed.board!.tiles.filter((tile) => tile.pairKey === 'T').every((tile) => tile.state === 'matched')).toBe(true);
+        expect(isBoardComplete(completed.board!)).toBe(false);
     });
 
     it('does not pay a disarm reward when matching an already-sprung trap pair', () => {
@@ -3173,7 +3213,7 @@ describe('dungeon cards', () => {
         expect(
             resolvedMiss.board!.tiles
                 .filter((tile) => tile.pairKey === 'T')
-                .every((tile) => tile.dungeonCardState === 'resolved')
+                .every((tile) => tile.dungeonCardState === 'resolved' && tile.state === 'flipped')
         ).toBe(true);
         expect(getDungeonThreatStatus(resolvedMiss.board)).toMatchObject({
             trapCardPairCount: 1,
@@ -3184,6 +3224,42 @@ describe('dungeon cards', () => {
             movingHazardVocabulary: 'moving_enemy_hazard'
         });
         expect(inspectBoardFairness(resolvedMiss.board!).issues).toEqual([]);
+    });
+
+    it('keeps sprung traps face-up through undo and gambit failures', () => {
+        const tiles: Tile[] = [
+            {
+                ...createTile('t1', 'T', '!'),
+                label: 'Spike Trap',
+                dungeonCardKind: 'trap',
+                dungeonCardState: 'hidden',
+                dungeonCardEffectId: 'trap_spikes'
+            },
+            {
+                ...createTile('t2', 'T', '!'),
+                label: 'Spike Trap',
+                dungeonCardKind: 'trap',
+                dungeonCardState: 'hidden',
+                dungeonCardEffectId: 'trap_spikes'
+            },
+            createTile('a1', 'A', 'A'),
+            createTile('a2', 'A', 'A'),
+            createTile('b1', 'B', 'B'),
+            createTile('b2', 'B', 'B')
+        ];
+        const run = { ...createRun(tiles), undoUsesThisFloor: 1, gambitAvailableThisFloor: true };
+        const resolving = flipTile(flipTile(run, 't1'), 'a1');
+        const undone = cancelResolvingWithUndo(resolving);
+        const trapTilesAfterUndo = undone.board!.tiles.filter((tile) => tile.pairKey === 'T');
+
+        expect(trapTilesAfterUndo.every((tile) => tile.dungeonCardState === 'resolved' && tile.state === 'flipped')).toBe(true);
+
+        const selectedTrap = flipTile(undone, 't1');
+        const selectedMismatch = flipTile(selectedTrap, 'a2');
+        const gambitFail = resolveBoardTurn(flipTile(selectedMismatch, 'b1'));
+        const trapTilesAfterGambit = gambitFail.board!.tiles.filter((tile) => tile.pairKey === 'T');
+
+        expect(trapTilesAfterGambit.every((tile) => tile.dungeonCardState === 'resolved' && tile.state === 'flipped')).toBe(true);
     });
 
     it('separates trap card status from moving enemy hazards', () => {

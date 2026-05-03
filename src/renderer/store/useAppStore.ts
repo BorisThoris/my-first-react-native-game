@@ -206,6 +206,7 @@ interface AppState {
     shuffleBoard: () => void;
     armRegionShuffleRowPick: (row: number | null) => void;
     shuffleRegionRow: (row: number) => void;
+    notifyMemorizeBoardReady: (boardKey: string) => void;
     applyFlashPairPower: () => void;
     toggleBoardPinMode: () => void;
     toggleDestroyPairArmed: () => void;
@@ -229,6 +230,7 @@ interface AppState {
 let memorizeTimer: ActiveTimer | null = null;
 let resolveTimer: ActiveTimer | null = null;
 let debugRevealTimer: ActiveTimer | null = null;
+let pendingMemorizeBoardKey: string | null = null;
 
 const clearTimer = (timer: ActiveTimer | null): void => {
     if (timer) {
@@ -239,6 +241,20 @@ const clearTimer = (timer: ActiveTimer | null): void => {
 const clearMemorizeTimer = (): void => {
     clearTimer(memorizeTimer);
     memorizeTimer = null;
+};
+
+const getMemorizeBoardKey = (run: RunState): string | null =>
+    run.board
+        ? `${run.board.level}|${run.board.columns}x${run.board.rows}|${[...run.board.tiles]
+              .map((t) => t.id)
+              .sort()
+              .join('|')}`
+        : null;
+
+const prepareMemorizeTimerForBoardReady = (run: RunState): void => {
+    clearMemorizeTimer();
+    pendingMemorizeBoardKey =
+        run.status === 'memorize' && run.timerState.memorizeRemainingMs !== null ? getMemorizeBoardKey(run) : null;
 };
 
 const clearResolveTimer = (): void => {
@@ -302,6 +318,7 @@ const clearAllTimers = (): void => {
     clearResolveTimer();
     clearDebugRevealTimer();
     clearGauntletExpiryWatch();
+    pendingMemorizeBoardKey = null;
 };
 
 const patchRunFromUserSettings = (run: RunState, settings: Settings): RunState => ({
@@ -450,6 +467,7 @@ const applyResolvedRun = (resolvedRun: RunState): void => {
 
 function scheduleMemorizeTimer(duration: number): void {
     clearMemorizeTimer();
+    pendingMemorizeBoardKey = null;
 
     if (duration <= 0) {
         const { run } = useAppStore.getState();
@@ -658,9 +676,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             run
         });
 
-        if (run.timerState.memorizeRemainingMs !== null) {
-            scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
-        }
+        prepareMemorizeTimerForBoardReady(run);
     },
 
     startDungeonShowcaseRun: () => {
@@ -681,9 +697,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             run
         });
 
-        if (run.timerState.memorizeRemainingMs !== null) {
-            scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
-        }
+        prepareMemorizeTimerForBoardReady(run);
     },
 
     startDailyRun: () => {
@@ -702,9 +716,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             peekModeArmed: false,
             run
         });
-        if (run.timerState.memorizeRemainingMs !== null) {
-            scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
-        }
+        prepareMemorizeTimerForBoardReady(run);
     },
 
     startGauntletRun: (durationMs = 10 * 60 * 1000) => {
@@ -723,9 +735,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             peekModeArmed: false,
             run
         });
-        if (run.timerState.memorizeRemainingMs !== null) {
-            scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
-        }
+        prepareMemorizeTimerForBoardReady(run);
     },
 
     startPuzzleRun: (puzzleId) => {
@@ -748,9 +758,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             peekModeArmed: false,
             run
         });
-        if (run.timerState.memorizeRemainingMs !== null) {
-            scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
-        }
+        prepareMemorizeTimerForBoardReady(run);
     },
 
     startPracticeRun: () => {
@@ -769,9 +777,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             peekModeArmed: false,
             run
         });
-        if (run.timerState.memorizeRemainingMs !== null) {
-            scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
-        }
+        prepareMemorizeTimerForBoardReady(run);
     },
 
     startScholarContractRun: () => {
@@ -798,9 +804,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             peekModeArmed: false,
             run
         });
-        if (run.timerState.memorizeRemainingMs !== null) {
-            scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
-        }
+        prepareMemorizeTimerForBoardReady(run);
     },
 
     startMeditationRun: () => {
@@ -819,9 +823,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             peekModeArmed: false,
             run
         });
-        if (run.timerState.memorizeRemainingMs !== null) {
-            scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
-        }
+        prepareMemorizeTimerForBoardReady(run);
     },
 
     startMeditationRunWithMutators: (mutators) => {
@@ -845,9 +847,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             peekModeArmed: false,
             run
         });
-        if (run.timerState.memorizeRemainingMs !== null) {
-            scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
-        }
+        prepareMemorizeTimerForBoardReady(run);
     },
 
     startPinVowRun: () => {
@@ -869,9 +869,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             peekModeArmed: false,
             run
         });
-        if (run.timerState.memorizeRemainingMs !== null) {
-            scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
-        }
+        prepareMemorizeTimerForBoardReady(run);
     },
 
     startWildRun: () => {
@@ -890,9 +888,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             peekModeArmed: false,
             run
         });
-        if (run.timerState.memorizeRemainingMs !== null) {
-            scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
-        }
+        prepareMemorizeTimerForBoardReady(run);
     },
 
     pickRelic: (relicId) => {
@@ -915,9 +911,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             destroyPairArmed: false,
             peekModeArmed: false
         });
-        if (nextRun.timerState.memorizeRemainingMs !== null) {
-            scheduleMemorizeTimer(nextRun.timerState.memorizeRemainingMs);
-        }
+        prepareMemorizeTimerForBoardReady(nextRun);
         void persistSaveData(nextSave);
     },
 
@@ -1520,6 +1514,23 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
     },
 
+    notifyMemorizeBoardReady: (boardKey) => {
+        const { run, view } = get();
+        if (
+            !run ||
+            view !== 'playing' ||
+            run.status !== 'memorize' ||
+            run.timerState.memorizeRemainingMs === null ||
+            memorizeTimer ||
+            pendingMemorizeBoardKey !== boardKey ||
+            getMemorizeBoardKey(run) !== boardKey
+        ) {
+            return;
+        }
+
+        scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
+    },
+
     applyFlashPairPower: () => {
         const { run, view } = get();
         if (!run || view !== 'playing' || run.status !== 'playing') {
@@ -1672,9 +1683,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             ...BOARD_FLOATER_POP_CLEAR
         });
 
-        if (nextRun.timerState.memorizeRemainingMs !== null) {
-            scheduleMemorizeTimer(nextRun.timerState.memorizeRemainingMs);
-        }
+        prepareMemorizeTimerForBoardReady(nextRun);
     },
 
     chooseRouteAndContinue: (choiceId) => {
@@ -1755,9 +1764,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             ...BOARD_FLOATER_POP_CLEAR
         });
 
-        if (nextRun.timerState.memorizeRemainingMs !== null) {
-            scheduleMemorizeTimer(nextRun.timerState.memorizeRemainingMs);
-        }
+        prepareMemorizeTimerForBoardReady(nextRun);
     },
 
     restartRun: () => {
@@ -1810,9 +1817,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             ...BOARD_FLOATER_POP_CLEAR
         });
 
-        if (run.timerState.memorizeRemainingMs !== null) {
-            scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
-        }
+        prepareMemorizeTimerForBoardReady(run);
     },
 
     endRun: () => {
@@ -1944,9 +1949,7 @@ export const useAppStore = create<AppState>((set, get) => ({
                 subscreenReturnView: 'menu',
                 settingsReturnView: 'menu'
             });
-            if (run.timerState.memorizeRemainingMs !== null) {
-                scheduleMemorizeTimer(run.timerState.memorizeRemainingMs);
-            }
+            prepareMemorizeTimerForBoardReady(run);
             if (
                 run.status === 'resolving' &&
                 run.timerState.resolveRemainingMs !== null &&

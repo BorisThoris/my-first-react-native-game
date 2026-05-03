@@ -134,6 +134,8 @@ interface TileBoardProps {
     shuffleSfxGain?: number;
     /** Sticky fingers: board slot that cannot start the next pair (from `RunState.stickyBlockIndex`). */
     stickyBlockedTileId?: string | null;
+    /** Fired once the board has finished prestage/deal-in and is stable enough to begin memorize timing. */
+    onMemorizeBoardReady?: (boardKey: string) => void;
 }
 
 interface StageWorldViewport {
@@ -170,6 +172,8 @@ const MOUSE_PAN_DRAG_THRESHOLD_PX = 8;
 const DECOY_PAIR_KEY = '__decoy__';
 
 const EMPTY_TILE_IDS: ReadonlySet<string> = new Set();
+
+const PRELOAD_READY_TIMEOUT_MS = 320;
 
 const canUseWebGL = (): boolean => {
     if (typeof document === 'undefined') {
@@ -353,7 +357,8 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         strayEligibleTileIds = EMPTY_TILE_IDS,
         pinModeBoardHintActive = false,
         shuffleSfxGain = 1,
-        stickyBlockedTileId = null
+        stickyBlockedTileId = null,
+        onMemorizeBoardReady
     },
     ref
 ) {
@@ -474,16 +479,30 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         [board.columns, board.level, board.rows, board.tiles]
     );
     const prevBoardEntranceKeyRef = useRef<string | null>(null);
+    const notifiedBoardReadyKeyRef = useRef<string | null>(null);
+
+    const notifyMemorizeBoardReady = useCallback(
+        (key: string): void => {
+            if (notifiedBoardReadyKeyRef.current === key) {
+                return;
+            }
+            notifiedBoardReadyKeyRef.current = key;
+            onMemorizeBoardReady?.(key);
+        },
+        [onMemorizeBoardReady]
+    );
 
     useEffect(() => {
         if (reduceMotion) {
             prevBoardEntranceKeyRef.current = boardEntranceKey;
             queueMicrotask(() => {
                 setBoardPreStage('idle');
+                requestAnimationFrame(() => notifyMemorizeBoardReady(boardEntranceKey));
             });
             return;
         }
         if (prevBoardEntranceKeyRef.current === boardEntranceKey) {
+            notifyMemorizeBoardReady(boardEntranceKey);
             return;
         }
 
@@ -517,12 +536,16 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                 setBoardEntranceAnimating(false);
                 setBoardPreStage('idle');
                 entranceClearTimeoutRef.current = null;
+                requestAnimationFrame(() => notifyMemorizeBoardReady(boardEntranceKey));
             }, motionBudgetMs + 100);
         };
 
         void (async () => {
-            void preloadTileTextureImages().catch(() => {
+            const preloadReady = preloadTileTextureImages().catch(() => {
                 /* resilient */
+            });
+            const preloadTimeout = new Promise<void>((resolve) => {
+                window.setTimeout(resolve, PRELOAD_READY_TIMEOUT_MS);
             });
 
             await Promise.all([
@@ -531,7 +554,8 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                 }),
                 new Promise<void>((resolve) => {
                     window.setTimeout(resolve, BOARD_PRESTAGE_DWELL_MS);
-                })
+                }),
+                Promise.race([preloadReady, preloadTimeout])
             ]);
 
             if (runId !== prestageRunIdRef.current) {
@@ -544,7 +568,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
         return () => {
             prestageRunIdRef.current += 1;
         };
-    }, [board.tiles, boardEntranceKey, reduceMotion]);
+    }, [board.tiles, boardEntranceKey, notifyMemorizeBoardReady, reduceMotion]);
 
     useEffect(
         () => () => {

@@ -61,6 +61,21 @@ const resetStore = (): void => {
     });
 };
 
+const currentBoardReadyKey = (): string => {
+    const board = useAppStore.getState().run?.board;
+    if (!board) {
+        throw new Error('Expected an active board');
+    }
+    return `${board.level}|${board.columns}x${board.rows}|${[...board.tiles]
+        .map((tile) => tile.id)
+        .sort()
+        .join('|')}`;
+};
+
+const notifyCurrentBoardReady = (): void => {
+    useAppStore.getState().notifyMemorizeBoardReady(currentBoardReadyKey());
+};
+
 const normalPairGroups = (board: BoardState): Tile[][] => {
     const groups = new Map<string, Tile[]>();
     for (const tile of board.tiles) {
@@ -96,8 +111,25 @@ describe('useAppStore timers', () => {
         vi.clearAllMocks();
     });
 
+    it('starts the memorize countdown only after the current board reports ready', async () => {
+        useAppStore.getState().startRun();
+
+        const memorizeDuration = useAppStore.getState().run?.timerState.memorizeRemainingMs ?? 0;
+        await vi.advanceTimersByTimeAsync(memorizeDuration + 1000);
+        expect(useAppStore.getState().run?.status).toBe('memorize');
+
+        useAppStore.getState().notifyMemorizeBoardReady('stale-board');
+        await vi.advanceTimersByTimeAsync(memorizeDuration + 1000);
+        expect(useAppStore.getState().run?.status).toBe('memorize');
+
+        notifyCurrentBoardReady();
+        await vi.advanceTimersByTimeAsync(memorizeDuration + 1);
+        expect(useAppStore.getState().run?.status).toBe('playing');
+    });
+
     it('freezes a pending board resolution while settings are open', async () => {
         useAppStore.getState().startRun();
+        notifyCurrentBoardReady();
 
         const memorizeDuration = useAppStore.getState().run?.timerState.memorizeRemainingMs ?? 0;
         await vi.advanceTimersByTimeAsync(memorizeDuration + 1);
@@ -157,6 +189,7 @@ describe('useAppStore timers', () => {
 
     it('does not set matchScorePop on mismatch resolve; mismatches increment and mismatchScorePop payload is stored', async () => {
         useAppStore.getState().startRun();
+        notifyCurrentBoardReady();
 
         const memorizeDuration = useAppStore.getState().run?.timerState.memorizeRemainingMs ?? 0;
         await vi.advanceTimersByTimeAsync(memorizeDuration + 1);
@@ -188,6 +221,7 @@ describe('useAppStore timers', () => {
 
     it('gambit triple-no-match sets mismatchScorePop with tileIdC in flip order', async () => {
         useAppStore.getState().startRun();
+        notifyCurrentBoardReady();
 
         const memorizeDuration = useAppStore.getState().run?.timerState.memorizeRemainingMs ?? 0;
         await vi.advanceTimersByTimeAsync(memorizeDuration + 1);
@@ -239,6 +273,7 @@ describe('useAppStore timers', () => {
 
     it('resolves matches immediately so the next pair can be started right away', async () => {
         useAppStore.getState().startRun();
+        notifyCurrentBoardReady();
 
         const memorizeDuration = useAppStore.getState().run?.timerState.memorizeRemainingMs ?? 0;
         await vi.advanceTimersByTimeAsync(memorizeDuration + 1);
@@ -294,6 +329,7 @@ describe('useAppStore timers', () => {
 
     it('SIDE-013: inventory overlay and run settings modal use the same frozen run snapshot after memorize', async () => {
         useAppStore.getState().startRun();
+        notifyCurrentBoardReady();
         const memorizeDuration = useAppStore.getState().run?.timerState.memorizeRemainingMs ?? 0;
         await vi.advanceTimersByTimeAsync(memorizeDuration + 1);
         expect(useAppStore.getState().run?.status).toBe('playing');
@@ -819,6 +855,7 @@ describe('useAppStore timers', () => {
     it('REG-088: first classic run can clear, continue, end locally, and persist first-win progress', async () => {
         useAppStore.getState().startRun();
         expect(useAppStore.getState().view).toBe('playing');
+        notifyCurrentBoardReady();
 
         const memorizeDuration = useAppStore.getState().run?.timerState.memorizeRemainingMs ?? 0;
         await vi.advanceTimersByTimeAsync(memorizeDuration + 1);
@@ -861,6 +898,7 @@ describe('useAppStore timers', () => {
 
             if (floor === 1) {
                 useAppStore.getState().continueToNextLevel();
+                notifyCurrentBoardReady();
                 const nextMemorizeMs = useAppStore.getState().run?.timerState.memorizeRemainingMs ?? 0;
                 await vi.advanceTimersByTimeAsync(nextMemorizeMs + 1);
                 expect(useAppStore.getState().run?.status).toBe('playing');
@@ -897,6 +935,7 @@ describe('useAppStore scholar contract', () => {
 
     it('startScholarContractRun leaves shuffle and region shuffle as no-ops from store', async () => {
         useAppStore.getState().startScholarContractRun();
+        notifyCurrentBoardReady();
         const started = useAppStore.getState().run;
         expect(started?.activeContract).toEqual({
             noShuffle: true,
@@ -927,6 +966,7 @@ describe('useAppStore scholar contract', () => {
 
     it('scholar contract blocks destroy when armed with banked charges', async () => {
         useAppStore.getState().startScholarContractRun();
+        notifyCurrentBoardReady();
         const memorizeDuration = useAppStore.getState().run?.timerState.memorizeRemainingMs ?? 0;
         await vi.advanceTimersByTimeAsync(memorizeDuration + 1);
 
@@ -952,6 +992,7 @@ describe('useAppStore scholar contract', () => {
 
     it('restartRun keeps scholar activeContract on the new run', async () => {
         useAppStore.getState().startScholarContractRun();
+        notifyCurrentBoardReady();
         const memorizeDuration = useAppStore.getState().run?.timerState.memorizeRemainingMs ?? 0;
         await vi.advanceTimersByTimeAsync(memorizeDuration + 1);
 
@@ -987,6 +1028,7 @@ describe('useAppStore restartRun menu modes', () => {
 
     it('restartRun after Wild Run keeps wild menu run and joker mutator bundle', async () => {
         useAppStore.getState().startWildRun();
+        notifyCurrentBoardReady();
         const started = useAppStore.getState().run;
         expect(started?.wildMenuRun).toBe(true);
         expect(started?.wildMatchesRemaining).toBeGreaterThanOrEqual(1);
@@ -1005,6 +1047,7 @@ describe('useAppStore restartRun menu modes', () => {
 
     it('restartRun after Pin vow keeps maxPinsTotalRun contract', async () => {
         useAppStore.getState().startPinVowRun();
+        notifyCurrentBoardReady();
         const started = useAppStore.getState().run;
         expect(started?.activeContract).toEqual({
             noShuffle: false,

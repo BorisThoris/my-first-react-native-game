@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
     FLIP_DURATION_MS,
     STAGGER_MS,
+    computeBoardEntranceMotionBudgetMs,
     computeBoardEntranceMotionTransform,
     computeShuffleMotionBudgetMs,
     computeShuffleMotionTransform,
@@ -51,6 +52,14 @@ describe('computeStaggeredShuffleDealZ (FX-013)', () => {
 });
 
 describe('premium board motion transforms', () => {
+    it('caps entrance timing below the full shuffle budget on larger boards', () => {
+        const entrance = computeBoardEntranceMotionBudgetMs(30);
+        const shuffle = computeShuffleMotionBudgetMs(30);
+
+        expect(entrance).toBeLessThan(shuffle);
+        expect(entrance).toBeLessThanOrEqual(680);
+    });
+
     it('returns neutral transforms outside the active window', () => {
         const budget = computeShuffleMotionBudgetMs(6);
         const deadline = 20_000 + budget;
@@ -104,8 +113,8 @@ describe('premium board motion transforms', () => {
         expect(atRest).toEqual({ rx: 0, ry: 0, rz: 0, rotX: 0, rotY: 0, rotZ: 0 });
     });
 
-    it('entrance transform keeps a broader XY sweep than the in-board shuffle', () => {
-        const budget = computeShuffleMotionBudgetMs(9);
+    it('entrance transform stays visible but less disruptive than the in-board shuffle', () => {
+        const budget = computeBoardEntranceMotionBudgetMs(9);
         const start = 50_000;
         const deadline = start + budget;
         const sampleTime = start + 220;
@@ -113,7 +122,8 @@ describe('premium board motion transforms', () => {
         const shuffle = computeShuffleMotionTransform(sampleTime, deadline, budget, 4, 9, 3, 3);
         const entrance = computeBoardEntranceMotionTransform(sampleTime, deadline, budget, 4, 9, 3, 3);
 
-        expect(Math.hypot(entrance.rx, entrance.ry)).toBeGreaterThan(Math.hypot(shuffle.rx, shuffle.ry));
+        expect(Math.hypot(entrance.rx, entrance.ry)).toBeGreaterThan(0);
+        expect(Math.hypot(entrance.rx, entrance.ry)).toBeLessThan(2.5);
         expect(Math.abs(entrance.rotY)).toBeGreaterThan(0);
     });
 });

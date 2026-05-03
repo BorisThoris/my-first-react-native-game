@@ -1,6 +1,7 @@
 export {
     calculateMatchScore,
     applyEnemyHazardClick,
+    cancelResolvingWithUndo,
     computeFlipResolveDelayMs,
     flipTile,
     getMatchFloaterAnchorTileIds,

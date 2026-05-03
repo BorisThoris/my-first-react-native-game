@@ -32,7 +32,8 @@ import {
     type Mesh,
     type MeshBasicMaterial,
     type MeshStandardMaterial,
-    type ShaderMaterial
+    type ShaderMaterial,
+    type Texture
 } from 'three';
 import type { BoardState, EnemyHazardState, GraphicsQualityPreset, RunStatus, Tile } from '../../shared/contracts';
 import { WILD_PAIR_KEY } from '../../shared/tile-identity';
@@ -86,7 +87,12 @@ import {
 } from './tileResolvingSelection';
 import cardBackSvgUrl from '../assets/textures/cards/authored-card-back.svg?url';
 import cardFrontSvgUrl from '../assets/textures/cards/front.svg?url';
-import { loadSharedCardSvgPlaneGeometry } from './cardSvgPlaneGeometry';
+import {
+    loadSharedCardBackSvgLayerGeometries,
+    loadSharedCardSvgPlaneGeometry,
+    type CardBackSvgLayerGeometry,
+    type CardBackSvgLayerName
+} from './cardSvgPlaneGeometry';
 import { createRafCoalescedViewportNotifier, type TileBoardViewportState } from './tileBoardViewport';
 import {
     computeBoardEntranceMotionTransform,
@@ -252,8 +258,8 @@ interface TileBezelProps {
     graphicsQuality: GraphicsQualityPreset;
     /** Merged SVG mesh at card plane size; when set, replaces front texture and front-plane bend/wear. */
     sharedCardFrontGeometry: BufferGeometry | null;
-    /** Merged SVG mesh for hidden side; when set, replaces back texture and back-plane bend/wear. */
-    sharedCardBackGeometry: BufferGeometry | null;
+    /** Layered SVG meshes for hidden side; when set, replace back texture and animate authored SVG layers. */
+    sharedCardBackLayers: readonly CardBackSvgLayerGeometry[] | null;
     memorizeCurseHighlight?: boolean;
     spotlightWardHighlight?: boolean;
     spotlightBountyHighlight?: boolean;
@@ -1407,6 +1413,140 @@ const TileBezelLegacyFrameDriver = ({ bagRef }: { bagRef: RefObject<TileBezelFra
     return null;
 };
 
+const CARD_BACK_LAYER_BASE_OPACITY: Record<CardBackSvgLayerName, number> = {
+    'back-base': 1,
+    'back-rims': 0.96,
+    'back-corners': 0.9,
+    'back-corner-scrolls': 0.62,
+    'back-scrolls': 0.82,
+    'back-rings': 0.58,
+    'back-gem': 0.96,
+    'back-vignette': 0.72
+};
+
+interface AnimatedCardBackSvgLayersProps {
+    backCardMatRef: MutableRefObject<MeshStandardMaterial | null>;
+    cardPanelDisplacementMap: CanvasTexture | null;
+    cardTint: string;
+    faceZ: number;
+    layers: readonly CardBackSvgLayerGeometry[];
+    normalMap: Texture | null;
+    reduceMotion: boolean;
+    renderQuality: ReturnType<typeof gameplayRenderQualityProfile>;
+    roughnessMap: CanvasTexture | null;
+    seed: number;
+}
+
+const AnimatedCardBackSvgLayers = memo(
+    ({
+        backCardMatRef,
+        cardPanelDisplacementMap,
+        cardTint,
+        faceZ,
+        layers,
+        normalMap,
+        reduceMotion,
+        renderQuality,
+        roughnessMap,
+        seed
+    }: AnimatedCardBackSvgLayersProps) => {
+        const meshRefs = useRef<Array<Mesh | null>>([]);
+        const matRefs = useRef<Array<MeshStandardMaterial | null>>([]);
+        const phase = useMemo(() => ((seed % 997) / 997) * Math.PI * 2, [seed]);
+
+        useFrame((state) => {
+            const t = state.clock.elapsedTime;
+            for (let index = 0; index < layers.length; index += 1) {
+                const layer = layers[index]!;
+                const mesh = meshRefs.current[index];
+                const mat = matRefs.current[index];
+                if (!mesh || !mat) {
+                    continue;
+                }
+
+                const z = index * 0.000035;
+                let x = 0;
+                let y = 0;
+                let rot = 0;
+                let scale = 1;
+                let opacity = CARD_BACK_LAYER_BASE_OPACITY[layer.name] ?? 1;
+                let emissive = 0;
+
+                if (!reduceMotion) {
+                    const wave = Math.sin(t * 0.72 + phase + index * 0.61);
+                    if (layer.name === 'back-rims') {
+                        y = wave * 0.0012;
+                        opacity += wave * 0.035;
+                    } else if (layer.name === 'back-corners' || layer.name === 'back-corner-scrolls') {
+                        x = Math.sin(t * 0.62 + phase + index) * 0.0013;
+                        y = Math.cos(t * 0.58 + phase + index) * 0.0013;
+                        opacity += wave * 0.028;
+                    } else if (layer.name === 'back-scrolls') {
+                        x = wave * 0.0018;
+                        opacity += wave * 0.04;
+                    } else if (layer.name === 'back-rings') {
+                        rot = t * 0.038 + phase * 0.08;
+                        opacity += wave * 0.045;
+                    } else if (layer.name === 'back-gem') {
+                        scale = 1 + wave * 0.012;
+                        emissive = 0.08 + (0.5 + 0.5 * wave) * 0.12;
+                    }
+                }
+
+                mesh.position.set(x, y, z);
+                mesh.rotation.z = rot;
+                mesh.scale.setScalar(scale);
+                mat.opacity = MathUtils.clamp(opacity, 0.24, 1);
+                mat.emissiveIntensity = emissive;
+            }
+        });
+
+        return (
+            <group position={[0, 0, -faceZ]} rotation={[0, Math.PI, 0]}>
+                {layers.map((layer, index) => (
+                    <mesh
+                        key={layer.name}
+                        geometry={layer.geometry}
+                        raycast={noopMeshRaycast}
+                        ref={(mesh) => {
+                            meshRefs.current[index] = mesh;
+                        }}
+                        renderOrder={index}
+                    >
+                        <meshStandardMaterial
+                            ref={(mat) => {
+                                matRefs.current[index] = mat;
+                                if (index === 0) {
+                                    backCardMatRef.current = mat;
+                                }
+                            }}
+                            alphaTest={0.03}
+                            color={cardTint}
+                            depthWrite
+                            displacementBias={-renderQuality.cardDisplacementScale * 0.5}
+                            displacementMap={cardPanelDisplacementMap ?? undefined}
+                            displacementScale={renderQuality.cardDisplacementScale}
+                            emissive="#6eb9d8"
+                            emissiveIntensity={0}
+                            metalness={layer.name === 'back-gem' ? 0.18 : renderQuality.cardMetalness}
+                            normalMap={normalMap ?? undefined}
+                            normalScale={renderQuality.cardNormalScale}
+                            opacity={CARD_BACK_LAYER_BASE_OPACITY[layer.name] ?? 1}
+                            roughness={layer.name === 'back-gem' ? 0.34 : renderQuality.cardRoughness}
+                            roughnessMap={roughnessMap ?? undefined}
+                            side={DoubleSide}
+                            toneMapped={false}
+                            transparent
+                            vertexColors
+                        />
+                    </mesh>
+                ))}
+            </group>
+        );
+    }
+);
+AnimatedCardBackSvgLayers.displayName = 'AnimatedCardBackSvgLayers';
+
 const TileBezelInner = ({
     faceUp,
     fieldAmp,
@@ -1434,7 +1574,7 @@ const TileBezelInner = ({
     tile,
     transform,
     sharedCardFrontGeometry,
-    sharedCardBackGeometry,
+    sharedCardBackLayers,
     memorizeCurseHighlight = false,
     spotlightWardHighlight = false,
     spotlightBountyHighlight = false,
@@ -1499,7 +1639,7 @@ const TileBezelInner = ({
         [graphicsQuality]
     );
     const useSvgMeshFront = sharedCardFrontGeometry != null;
-    const useSvgMeshBack = sharedCardBackGeometry != null;
+    const useSvgMeshBack = sharedCardBackLayers != null;
 
     propsRef.current = {
         faceUp,
@@ -2099,32 +2239,19 @@ const TileBezelInner = ({
                         />
                     </mesh>
                 ) : null}
-                {useSvgMeshBack && sharedCardBackGeometry ? (
-                    <mesh
-                        geometry={sharedCardBackGeometry}
-                        position={[0, 0, -faceZ]}
-                        rotation={[0, Math.PI, 0]}
-                        raycast={noopMeshRaycast}
-                    >
-                        <meshStandardMaterial
-                            ref={backCardMatRef}
-                            alphaTest={0.06}
-                            color={cardTint}
-                            depthWrite
-                            displacementBias={-renderQuality.cardDisplacementScale * 0.5}
-                            displacementMap={cardPanelDisplacementMap ?? undefined}
-                            displacementScale={renderQuality.cardDisplacementScale}
-                            metalness={renderQuality.cardMetalness}
-                            normalMap={backNormalMapEffective ?? undefined}
-                            normalScale={renderQuality.cardNormalScale}
-                            roughness={renderQuality.cardRoughness}
-                            roughnessMap={backRoughnessMap ?? undefined}
-                            side={DoubleSide}
-                            toneMapped={false}
-                            transparent
-                            vertexColors
-                        />
-                    </mesh>
+                {useSvgMeshBack && sharedCardBackLayers ? (
+                    <AnimatedCardBackSvgLayers
+                        backCardMatRef={backCardMatRef}
+                        cardPanelDisplacementMap={cardPanelDisplacementMap}
+                        cardTint={cardTint}
+                        faceZ={faceZ}
+                        layers={sharedCardBackLayers}
+                        normalMap={backNormalMapEffective}
+                        reduceMotion={reduceMotion}
+                        renderQuality={renderQuality}
+                        roughnessMap={backRoughnessMap}
+                        seed={transform.seed}
+                    />
                 ) : (
                     <mesh geometry={backGeometry} position={[0, 0, -faceZ]} rotation={[0, Math.PI, 0]} raycast={noopMeshRaycast}>
                         <meshStandardMaterial
@@ -2733,7 +2860,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
     const totalRows = board.rows;
     const [textureRevision, setTextureRevision] = useState(0);
     const [sharedCardFrontGeometry, setSharedCardFrontGeometry] = useState<BufferGeometry | null>(null);
-    const [sharedCardBackGeometry, setSharedCardBackGeometry] = useState<BufferGeometry | null>(null);
+    const [sharedCardBackLayers, setSharedCardBackLayers] = useState<readonly CardBackSvgLayerGeometry[] | null>(null);
     const flippedN = board.flippedTileIds.length;
     const flipLocked = flippedN >= 2 && !(allowGambitThirdFlip && flippedN === 2);
     const pinnedSet = useMemo(() => new Set(pinnedTileIds), [pinnedTileIds]);
@@ -3023,17 +3150,18 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                 return;
             }
             setSharedCardFrontGeometry(frontG);
-            const loadedBack = await loadSharedCardSvgPlaneGeometry(cardBackSvgUrl);
-            if (loadedBack == null) {
+            const loadedBackLayers = await loadSharedCardBackSvgLayerGeometries(cardBackSvgUrl);
+            if (loadedBackLayers == null) {
                 return;
             }
-            const backG = loadedBack;
             if (cancelled) {
-                backG.dispose();
+                for (const layer of loadedBackLayers) {
+                    layer.geometry.dispose();
+                }
                 frontG.dispose();
                 return;
             }
-            setSharedCardBackGeometry(backG);
+            setSharedCardBackLayers(loadedBackLayers);
         })();
         return () => {
             cancelled = true;
@@ -3048,9 +3176,11 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
 
     useEffect(() => {
         return () => {
-            sharedCardBackGeometry?.dispose();
+            for (const layer of sharedCardBackLayers ?? []) {
+                layer.geometry.dispose();
+            }
         };
-    }, [sharedCardBackGeometry]);
+    }, [sharedCardBackLayers]);
 
     const viewportNotifier = useMemo(
         () => createRafCoalescedViewportNotifier((w, h) => onViewportMetricsChange({ width: w, height: h })),
@@ -3364,7 +3494,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                             boardEntranceStaggerTileCount={boardEntranceStaggerTileCount}
                             boardRows={totalRows}
                             boardColumns={totalColumns}
-                            sharedCardBackGeometry={sharedCardBackGeometry}
+                            sharedCardBackLayers={sharedCardBackLayers}
                             sharedCardFrontGeometry={sharedCardFrontGeometry}
                             textureRevision={textureRevision}
                             tile={tile}

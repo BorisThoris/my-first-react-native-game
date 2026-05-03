@@ -7,6 +7,10 @@ import { TILE_SPACING } from './tileShatter';
 export const FLIP_DURATION_MS = 680;
 export const STAGGER_MS = 28;
 const SHUFFLE_SETTLE_TAIL_MS = 220;
+const ENTRANCE_DURATION_MS = 380;
+const ENTRANCE_STAGGER_MS = 12;
+const ENTRANCE_SETTLE_TAIL_MS = 80;
+const ENTRANCE_MAX_BUDGET_MS = 680;
 
 export interface BoardMotionTransform {
     rx: number;
@@ -35,6 +39,11 @@ interface BoardMotionState {
     rowNorm: number;
 }
 
+interface BoardMotionTiming {
+    durationMs: number;
+    staggerMs: number;
+}
+
 /** Upper bound for 3D ease-out: matches worst-case staggered shuffle motion on this board. */
 export function computeShuffleMotionBudgetMs(tileCount: number): number {
     const n = Math.max(1, tileCount);
@@ -58,7 +67,8 @@ const computeBoardMotionState = (
     boardOrderIndex: number,
     tileCount: number,
     rows: number,
-    columns: number
+    columns: number,
+    timing: BoardMotionTiming = { durationMs: FLIP_DURATION_MS, staggerMs: STAGGER_MS }
 ): BoardMotionState | null => {
     if (budgetMs <= 0 || deadlineMs <= 0 || tileCount <= 0) {
         return null;
@@ -73,9 +83,9 @@ const computeBoardMotionState = (
     const elapsed = nowMs - startMs;
     const n = Math.max(1, tileCount);
     const clampedIndex = Math.min(Math.max(0, boardOrderIndex), Math.max(0, n - 1));
-    const tileStart = clampedIndex * STAGGER_MS;
+    const tileStart = clampedIndex * timing.staggerMs;
     const localT = Math.max(0, elapsed - tileStart);
-    const u = clamp01(localT / FLIP_DURATION_MS);
+    const u = clamp01(localT / timing.durationMs);
     const eased = smoothstep(u);
     const remain = 1 - eased;
     const arch = Math.sin(u * Math.PI);
@@ -146,9 +156,13 @@ export function computeStaggeredShuffleDealZ(
     return computeShuffleMotionTransform(nowMs, deadlineMs, budgetMs, boardOrderIndex, tileCount, 1, tileCount).rz;
 }
 
-/** Same timing envelope as shuffle — used when a new board identity appears (deal-in). */
+/** Short, capped envelope used when a new board identity appears (deal-in). */
 export function computeBoardEntranceMotionBudgetMs(tileCount: number): number {
-    return computeShuffleMotionBudgetMs(tileCount);
+    const n = Math.max(1, tileCount);
+    return Math.min(
+        ENTRANCE_MAX_BUDGET_MS,
+        ENTRANCE_DURATION_MS + Math.max(0, n - 1) * ENTRANCE_STAGGER_MS + ENTRANCE_SETTLE_TAIL_MS
+    );
 }
 
 /**
@@ -170,24 +184,25 @@ export function computeBoardEntranceMotionTransform(
         boardOrderIndex,
         tileCount,
         rows,
-        columns
+        columns,
+        { durationMs: ENTRANCE_DURATION_MS, staggerMs: ENTRANCE_STAGGER_MS }
     );
     if (!state) {
         return ZERO_MOTION_TRANSFORM;
     }
 
     const gridSpan = Math.max((Math.max(1, columns) - 1) * TILE_SPACING, (Math.max(1, rows) - 1) * TILE_SPACING);
-    const radius = (4.6 + gridSpan * 0.62) * state.remain;
-    const theta0 = state.lane * Math.PI * 1.72 + state.columnNorm * Math.PI * 0.9;
-    const theta = theta0 + state.globalSmooth * Math.PI * 2.2;
+    const radius = (1.35 + gridSpan * 0.16) * state.remain;
+    const theta0 = state.lane * Math.PI * 0.88 + state.columnNorm * Math.PI * 0.42;
+    const theta = theta0 + state.globalSmooth * Math.PI * 0.82;
 
     return {
         rx: radius * Math.cos(theta),
-        ry: radius * Math.sin(theta) * 0.78,
-        rz: state.arch * 0.026 + state.remain * 0.01,
-        rotX: -Math.sin(theta) * 0.072 * state.arch,
-        rotY: Math.cos(theta + state.rowNorm * 1.2) * 0.12 * state.remain,
-        rotZ: Math.sin(theta - 0.3) * 0.1 * state.arch
+        ry: radius * Math.sin(theta) * 0.52,
+        rz: state.arch * 0.018 + state.remain * 0.006,
+        rotX: -Math.sin(theta) * 0.038 * state.arch,
+        rotY: Math.cos(theta + state.rowNorm * 0.8) * 0.052 * state.remain,
+        rotZ: Math.sin(theta - 0.3) * 0.044 * state.arch
     };
 }
 

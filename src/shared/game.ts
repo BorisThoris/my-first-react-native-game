@@ -1549,7 +1549,7 @@ const springArmedDungeonTraps = (
         ...board,
         tiles: board.tiles.map((candidate) =>
             keys.includes(candidate.pairKey) && candidate.dungeonCardKind === 'trap'
-                ? { ...candidate, dungeonCardState: 'resolved' as const }
+                ? { ...candidate, dungeonCardState: 'resolved' as const, state: 'flipped' as const }
                 : alarmTriggered && candidate.dungeonCardKind === 'enemy' && candidate.dungeonCardState === 'hidden'
                   ? { ...candidate, dungeonCardState: 'revealed' as const }
                 : triggered > 0 &&
@@ -1583,6 +1583,15 @@ const springArmedDungeonTraps = (
         enemyWoken
     };
 };
+
+const isSprungTrapTile = (tile: Tile): boolean =>
+    tile.dungeonCardKind === 'trap' &&
+    tile.dungeonCardState === 'resolved' &&
+    tile.state !== 'matched' &&
+    tile.state !== 'removed';
+
+const hiddenUnlessSprungTrap = (tile: Tile): Tile =>
+    isSprungTrapTile(tile) ? { ...tile, state: 'flipped' as const } : { ...tile, state: 'hidden' as const };
 
 const revealDungeonCardPair = (run: RunState, tile: Tile): RunState => {
     if (!run.board || tile.dungeonCardState !== 'hidden' || tile.dungeonCardKind == null) {
@@ -4854,7 +4863,7 @@ export const flipTile = (run: RunState, tileId: string): RunState => {
 
     const tile = board.tiles.find((candidate) => candidate.id === tileId);
 
-    if (!tile || tile.state !== 'hidden') {
+    if (!tile || (!isSprungTrapTile(tile) && tile.state !== 'hidden') || board.flippedTileIds.includes(tileId)) {
         return runAfterFlashClear;
     }
 
@@ -4877,7 +4886,7 @@ export const flipTile = (run: RunState, tileId: string): RunState => {
         return revealDungeonRoom(runAfterFlashClear, tileId);
     }
 
-    const runAfterDungeonReveal = revealDungeonCardPair(runAfterFlashClear, tile);
+    const runAfterDungeonReveal = tile.state === 'hidden' ? revealDungeonCardPair(runAfterFlashClear, tile) : runAfterFlashClear;
     if (runAfterDungeonReveal.status === 'gameOver') {
         return runAfterDungeonReveal;
     }
@@ -5211,9 +5220,7 @@ export const cancelResolvingWithUndo = (run: RunState): RunState => {
     const board: BoardState = {
         ...run.board,
         flippedTileIds: [],
-        tiles: run.board.tiles.map((t) =>
-            ids.includes(t.id) ? { ...t, state: 'hidden' as const } : t
-        )
+        tiles: run.board.tiles.map((t) => (ids.includes(t.id) ? hiddenUnlessSprungTrap(t) : t))
     };
     return {
         ...run,
@@ -6821,7 +6828,7 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
                     });
                 }
                 if (tile.id === thirdId) {
-                    return { ...tile, state: 'hidden' as const };
+                    return hiddenUnlessSprungTrap(tile);
                 }
                 return tile;
             }),
@@ -6967,7 +6974,7 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
         ...run.board,
         flippedTileIds: [],
         tiles: run.board.tiles.map((tile) =>
-            tile.id === aId || tile.id === bId || tile.id === cId ? { ...tile, state: 'hidden' } : tile
+            tile.id === aId || tile.id === bId || tile.id === cId ? hiddenUnlessSprungTrap(tile) : tile
         )
     };
     const contractFail =
@@ -7223,7 +7230,7 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
         ...run.board,
         flippedTileIds: [],
         tiles: run.board.tiles.map((tile) =>
-            tile.id === firstId || tile.id === secondId ? { ...tile, state: 'hidden' } : tile
+            tile.id === firstId || tile.id === secondId ? hiddenUnlessSprungTrap(tile) : tile
         )
     };
     const contractFail =

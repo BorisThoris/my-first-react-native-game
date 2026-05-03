@@ -281,6 +281,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
             openInventoryFromPlaying: state.openInventoryFromPlaying,
             openShopFromLevelComplete: state.openShopFromLevelComplete,
             openSettings: state.openSettings,
+            notifyMemorizeBoardReady: state.notifyMemorizeBoardReady,
             pause: state.pause,
             pickRelic: state.pickRelic,
             resume: state.resume,
@@ -1272,6 +1273,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                                 onTileSelect={(tileId) => {
                                     useAppStore.getState().pressTile(tileId);
                                 }}
+                                onMemorizeBoardReady={gameScreenActions.notifyMemorizeBoardReady}
                                 pairProximityHintsEnabled={settingsPairProximityHintsEnabled}
                                 previewActive={run.status === 'memorize'}
                                 boardBloomEnabled={settingsBoardBloomEnabled}

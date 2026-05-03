@@ -39,37 +39,45 @@
     </filter>
   </defs>
 
-  <rect x="0" y="0" width="740" height="1080" rx="52" ry="52" fill="url(#leatherBase)"/>
-  <rect x="0" y="0" width="740" height="1080" rx="52" ry="52" fill="url(#leatherWash)"/>
+  <g id="back-base">
+    <rect x="0" y="0" width="740" height="1080" rx="52" ry="52" fill="url(#leatherBase)"/>
+    <rect x="0" y="0" width="740" height="1080" rx="52" ry="52" fill="url(#leatherWash)"/>
+  </g>
 
-  <rect x="18" y="18" width="704" height="1044" rx="40" ry="40" fill="none" stroke="url(#goldRim)" stroke-width="5" opacity="0.95"/>
-  <rect x="32" y="32" width="676" height="1016" rx="32" ry="32" fill="none" stroke="url(#goldFine)" stroke-width="1.5" opacity="0.55"/>
+  <g id="back-rims">
+    <rect x="18" y="18" width="704" height="1044" rx="40" ry="40" fill="none" stroke="url(#goldRim)" stroke-width="5" opacity="0.95"/>
+    <rect x="32" y="32" width="676" height="1016" rx="32" ry="32" fill="none" stroke="url(#goldFine)" stroke-width="1.5" opacity="0.55"/>
+  </g>
 
-  <g fill="none" stroke="url(#goldFine)" stroke-width="2" stroke-linecap="round" opacity="0.85">
+  <g id="back-corners" fill="none" stroke="url(#goldFine)" stroke-width="2" stroke-linecap="round" opacity="0.85">
     <path d="M 90 96 Q 52 96 52 134 Q 52 168 78 188"/>
     <path d="M 650 96 Q 688 96 688 134 Q 688 168 662 188"/>
     <path d="M 90 984 Q 52 984 52 946 Q 52 912 78 892"/>
     <path d="M 650 984 Q 688 984 688 946 Q 688 912 662 892"/>
   </g>
-  <g fill="none" stroke="#c3954f" stroke-width="1.2" opacity="0.5">
+  <g id="back-corner-scrolls" fill="none" stroke="#c3954f" stroke-width="1.2" opacity="0.5">
     <path d="M 120 120 C 80 140 60 200 100 240"/>
     <path d="M 620 120 C 660 140 680 200 640 240"/>
     <path d="M 120 960 C 80 940 60 880 100 840"/>
     <path d="M 620 960 C 660 940 680 880 640 840"/>
   </g>
 
-  <g fill="none" stroke="url(#goldRim)" stroke-width="2.2" stroke-linecap="round" opacity="0.75">
+  <g id="back-scrolls" fill="none" stroke="url(#goldRim)" stroke-width="2.2" stroke-linecap="round" opacity="0.75">
     <path d="M 280 78 C 320 58 420 58 460 78 C 500 98 500 128 470 148 C 450 160 420 152 400 138"/>
     <path d="M 280 1002 C 320 1022 420 1022 460 1002 C 500 982 500 952 470 932 C 450 920 420 928 400 942"/>
   </g>
 
-  <g filter="url(#gemGlow)" transform="translate(370 540)">
+  <g id="back-gem" filter="url(#gemGlow)" transform="translate(370 540)">
     <path d="M 0 -88 L 52 0 L 0 88 L -52 0 Z" fill="url(#gemCore)" stroke="#f2d39d" stroke-width="2"/>
     <path d="M 0 -72 L 38 0 L 0 72 L -38 0 Z" fill="none" stroke="#b8d9e4" stroke-width="1" opacity="0.7"/>
   </g>
 
-  <circle cx="370" cy="540" r="118" fill="none" stroke="url(#goldFine)" stroke-width="1.5" opacity="0.45"/>
-  <circle cx="370" cy="540" r="132" fill="none" stroke="#c3954f" stroke-width="0.8" opacity="0.35"/>
+  <g id="back-rings">
+    <circle cx="370" cy="540" r="118" fill="none" stroke="url(#goldFine)" stroke-width="1.5" opacity="0.45"/>
+    <circle cx="370" cy="540" r="132" fill="none" stroke="#c3954f" stroke-width="0.8" opacity="0.35"/>
+  </g>
 
-  <rect x="0" y="0" width="740" height="1080" rx="52" ry="52" fill="none" stroke="#000" stroke-width="36" opacity="0.22"/>
+  <g id="back-vignette">
+    <rect x="0" y="0" width="740" height="1080" rx="52" ry="52" fill="none" stroke="#000" stroke-width="36" opacity="0.22"/>
+  </g>
 </svg>
