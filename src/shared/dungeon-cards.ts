@@ -272,9 +272,9 @@ export const DUNGEON_CARD_EFFECT_DEFINITIONS: Record<DungeonCardEffectId, Dungeo
     trap_mimic: {
         effectId: 'trap_mimic',
         kind: 'trap',
-        label: 'Mimic Trap',
+        label: 'Disarm Bounty',
         rulesRole: 'Trap that pays loot when disarmed.',
-        helpText: 'A risk-reward trap that can become a cache if handled cleanly.'
+        helpText: 'A visible risk-reward trap: destroy removes danger but forfeits the bounty; matching pays once.'
     },
     trap_alarm: {
         effectId: 'trap_alarm',
@@ -323,7 +323,7 @@ export const DUNGEON_CARD_EFFECT_DEFINITIONS: Record<DungeonCardEffectId, Dungeo
         kind: 'shrine',
         label: 'Guard Shrine',
         rulesRole: 'Defensive shrine reward.',
-        helpText: 'Adds guard and relic favor.'
+        helpText: 'Adds guard up to the cap and relic Favor, then resolves once.'
     },
     gateway_safe: {
         effectId: 'gateway_safe',
@@ -372,7 +372,7 @@ export const DUNGEON_CARD_EFFECT_DEFINITIONS: Record<DungeonCardEffectId, Dungeo
         kind: 'lock',
         label: 'Locked Cache',
         rulesRole: 'Key-gated loot cache.',
-        helpText: 'Spends a key for full cache rewards.'
+        helpText: 'Spends a key for full cache rewards, or pays only a small fallback when no key is available.'
     },
     exit_safe: {
         effectId: 'exit_safe',
@@ -442,7 +442,7 @@ export const DUNGEON_CARD_EFFECT_DEFINITIONS: Record<DungeonCardEffectId, Dungeo
         kind: 'room',
         label: 'Map Room',
         rulesRole: 'Room scouting service.',
-        helpText: 'Reveals useful dungeon information.'
+        helpText: 'Reveals scoped utility-family information without identifying exact pair solutions.'
     },
     room_forge: {
         effectId: 'room_forge',
@@ -463,7 +463,7 @@ export const DUNGEON_CARD_EFFECT_DEFINITIONS: Record<DungeonCardEffectId, Dungeo
         kind: 'room',
         label: 'Scrying Lens',
         rulesRole: 'Room reveal service.',
-        helpText: 'Reveals targeted dungeon card information.'
+        helpText: 'Reveals a scoped dungeon family clue without paying match rewards.'
     },
     room_armory: {
         effectId: 'room_armory',
@@ -477,7 +477,7 @@ export const DUNGEON_CARD_EFFECT_DEFINITIONS: Record<DungeonCardEffectId, Dungeo
         kind: 'room',
         label: 'Locked Cache Room',
         rulesRole: 'Room key-gated loot service.',
-        helpText: 'Requires key access before its full room reward.'
+        helpText: 'Stays revealed until an iron or master key is spent for the full cache reward.'
     },
     room_key_cache: {
         effectId: 'room_key_cache',
@@ -491,7 +491,7 @@ export const DUNGEON_CARD_EFFECT_DEFINITIONS: Record<DungeonCardEffectId, Dungeo
         kind: 'room',
         label: 'Trap Workshop',
         rulesRole: 'Room trap-control service.',
-        helpText: 'Resolves or reveals trap state to reduce uncertainty.'
+        helpText: 'One-shot room that resolves an armed trap pair, otherwise reveals a hidden trap family clue.'
     },
     room_omen_archive: {
         effectId: 'room_omen_archive',

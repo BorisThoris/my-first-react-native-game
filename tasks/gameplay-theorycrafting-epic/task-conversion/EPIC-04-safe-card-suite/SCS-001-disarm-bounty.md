@@ -1,7 +1,7 @@
 # SCS-001: Disarm Bounty
 
 ## Status
-Planned
+Done
 
 ## Priority
 P0
@@ -43,4 +43,3 @@ The bounty becomes unfair if the player cannot see the trap state before choosin
 ## Cross-links
 - `../../passes/04-card-type-expansion.md`
 - `../../passes/06-floor-and-encounter-identity.md`
-

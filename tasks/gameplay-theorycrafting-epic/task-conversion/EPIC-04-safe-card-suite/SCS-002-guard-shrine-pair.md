@@ -1,7 +1,7 @@
 # SCS-002: Guard Shrine Pair
 
 ## Status
-Planned
+Done
 
 ## Priority
 P1
@@ -42,4 +42,3 @@ Guard can feel invisible if later damage prevention is not attributed back to th
 ## Cross-links
 - `../../passes/04-card-type-expansion.md`
 - `../../passes/05-build-archetypes.md`
-

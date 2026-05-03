@@ -63,4 +63,31 @@ describe('floor clear causality presentation', () => {
         });
         expect(rows.find((row) => row.id === 'risk_wager')?.detail).toContain('streak reduced by 2');
     });
+
+    it('explains boss trophy success and forfeit branches', () => {
+        const claimed = getFloorClearCausalityRows(
+            {
+                ...baseResult,
+                bossTrophyCacheOutcome: 'claimed',
+                bossTrophyCacheScore: 90
+            },
+            false
+        );
+        const forfeited = getFloorClearCausalityRows(
+            {
+                ...baseResult,
+                bossTrophyCacheOutcome: 'forfeited'
+            },
+            false
+        );
+
+        expect(claimed.find((row) => row.id === 'boss_trophy_cache')).toMatchObject({
+            detail: 'Boss objective completed; trophy cache paid +90 score.',
+            tokens: ['objective', 'reward', 'momentum']
+        });
+        expect(forfeited.find((row) => row.id === 'boss_trophy_cache')).toMatchObject({
+            detail: 'Boss objective unresolved; trophy cache was forfeited.',
+            tokens: ['objective', 'forfeit', 'risk']
+        });
+    });
 });

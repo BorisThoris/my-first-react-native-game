@@ -1,7 +1,7 @@
 # SCS-003: Scout Room
 
 ## Status
-Planned
+Done
 
 ## Priority
 P0
@@ -42,4 +42,3 @@ Scout can become a solver if it reveals exact pair identity or too many labels.
 ## Cross-links
 - `../../passes/04-card-type-expansion.md`
 - `../../passes/07-ui-and-feedback-language.md`
-

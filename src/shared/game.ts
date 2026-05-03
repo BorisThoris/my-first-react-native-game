@@ -895,6 +895,7 @@ const DUNGEON_LOCKED_ROOM_CACHE_SCORE_REWARD = 50;
 const DUNGEON_KEY_CACHE_SCORE_REWARD = 15;
 const DUNGEON_OMEN_ARCHIVE_SCORE_REWARD = 15;
 const DUNGEON_BOSS_DEFEAT_SCORE = 70;
+const DUNGEON_BOSS_TROPHY_CACHE_SCORE_REWARD = 90;
 const DUNGEON_OBJECTIVE_SCORE_REWARD = 35;
 const DUNGEON_OBJECTIVE_FAVOR_REWARD = 1;
 type MysteryRouteOutcome = 'shop_gold' | 'combo_shard' | 'relic_favor';
@@ -1098,7 +1099,7 @@ export const DUNGEON_ROOM_EFFECT_DEFINITIONS: Record<DungeonRoomEffectId, Dungeo
         label: 'Map Room',
         trigger: 'reveal',
         costText: 'No cost.',
-        rewardText: 'Reveals hidden utility cards on this floor.',
+        rewardText: 'Reveals hidden utility card families on this floor without solving exact pairs.',
         resolvedState: 'one_shot_resolved',
         blockedText: null
     },
@@ -1125,7 +1126,7 @@ export const DUNGEON_ROOM_EFFECT_DEFINITIONS: Record<DungeonRoomEffectId, Dungeo
         label: 'Scrying Lens',
         trigger: 'reveal',
         costText: 'No cost.',
-        rewardText: 'Reveals one hidden dungeon card pair that shares the target family.',
+        rewardText: 'Reveals one hidden dungeon card family clue without granting match score.',
         resolvedState: 'one_shot_resolved',
         blockedText: null
     },
@@ -1143,7 +1144,7 @@ export const DUNGEON_ROOM_EFFECT_DEFINITIONS: Record<DungeonRoomEffectId, Dungeo
         label: 'Locked Cache Room',
         trigger: 'reveal_or_reuse',
         costText: 'Requires an iron key or master key.',
-        rewardText: 'Spends the key for shop gold and score.',
+        rewardText: 'Spends the key for shop gold and score; without a key it stays revealed until paid.',
         resolvedState: 'key_gated_until_paid',
         blockedText: 'Needs an iron key or master key.'
     },
@@ -1161,7 +1162,7 @@ export const DUNGEON_ROOM_EFFECT_DEFINITIONS: Record<DungeonRoomEffectId, Dungeo
         label: 'Trap Workshop',
         trigger: 'reveal',
         costText: 'No cost.',
-        rewardText: 'Resolves one armed trap pair, or reveals one hidden trap pair.',
+        rewardText: 'Resolves one armed trap pair, or reveals one hidden trap family clue.',
         resolvedState: 'one_shot_resolved',
         blockedText: null
     },
@@ -2594,7 +2595,14 @@ const roomEffectForFloor = (
     }
     const rng = createMulberry32(hashStringToSeed(`dungeonRoom:${rulesVersion}:${runSeed}:${level}`));
     if (dungeonNodeKind === 'rest') {
-        const options: DungeonCardEffectId[] = ['room_campfire', 'room_fountain', 'room_shrine', 'room_armory'];
+        const options: DungeonCardEffectId[] = [
+            'room_campfire',
+            'room_fountain',
+            'room_shrine',
+            'room_map',
+            'room_scrying_lens',
+            'room_armory'
+        ];
         return options[Math.floor(rng() * options.length)]!;
     }
     if (dungeonNodeKind === 'event') {
@@ -2606,8 +2614,7 @@ const roomEffectForFloor = (
         return options[Math.floor(rng() * options.length)]!;
     }
     if (dungeonNodeKind === 'trap') {
-        const options: DungeonCardEffectId[] = ['room_trap_workshop', 'room_armory', 'room_fountain'];
-        return options[Math.floor(rng() * options.length)]!;
+        return 'room_trap_workshop';
     }
     const chance = floorTag === 'breather' ? 0.65 : floorArchetypeId === 'script_room' ? 0.45 : 0.28;
     if (rng() >= chance) {
@@ -2616,12 +2623,21 @@ const roomEffectForFloor = (
     const options: DungeonCardEffectId[] =
         floorArchetypeId === 'script_room'
             ? ['room_map', 'room_omen_archive', 'room_forge', 'room_fountain', 'room_scrying_lens']
-            : floorTag === 'breather'
-              ? ['room_campfire', 'room_fountain', 'room_forge', 'room_shrine', 'room_armory', 'room_key_cache']
+              : floorTag === 'breather'
+              ? [
+                    'room_campfire',
+                    'room_fountain',
+                    'room_forge',
+                    'room_shrine',
+                    'room_map',
+                    'room_scrying_lens',
+                    'room_armory',
+                    'room_key_cache'
+                ]
               : floorArchetypeId === 'treasure_gallery'
                 ? ['room_key_cache', 'room_forge', 'room_armory', 'room_locked_cache', 'room_scrying_lens']
                 : floorArchetypeId === 'trap_hall'
-                  ? ['room_trap_workshop', 'room_armory', 'room_fountain', 'room_scrying_lens']
+                  ? ['room_trap_workshop', 'room_scrying_lens', 'room_armory', 'room_fountain']
                   : floorArchetypeId === 'shadow_read'
                     ? ['room_omen_archive', 'room_map', 'room_scrying_lens', 'room_shrine']
                     : [
@@ -2943,8 +2959,10 @@ const dungeonCardRecipeForFloor = (
                 ? threatsAdded % 2 === 0
                     ? 'trap_hex'
                     : 'trap_curse'
-                : floorArchetypeId === 'trap_hall'
-                  ? threatsAdded % 2 === 0
+                  : floorArchetypeId === 'trap_hall'
+                  ? threatsAdded === 1
+                      ? 'trap_mimic'
+                      : threatsAdded % 2 === 0
                       ? 'trap_snare'
                       : 'trap_hex'
                   : level >= 6
@@ -2961,6 +2979,8 @@ const dungeonCardRecipeForFloor = (
     for (let i = 0; i < budgets.utilityBudget; i++) {
         if (floorArchetypeId === 'trap_hall' && level >= 4 && i === 0) {
             cards.push({ kind: 'lever', effectId: 'rune_seal', symbol: 'R', label: 'Rune Seal' });
+        } else if (floorTag === 'breather') {
+            cards.push(shrineCard());
         } else if (floorArchetypeId === 'script_room' || floorArchetypeId === 'spotlight_hunt' || floorArchetypeId === 'parasite_tithe') {
             cards.push(shrineCard());
         } else if (level >= 3 && floorArchetypeId !== 'breather') {
@@ -4998,6 +5018,12 @@ const finalizeLevel = (run: RunState, board: BoardState): RunState => {
                   FEATURED_OBJECTIVE_STREAK_BONUS_MAX
               )
             : 0;
+    const bossObjectiveCompleted =
+        board.floorTag === 'boss' ? getDungeonObjectiveStatus({ ...run, board }).completed : false;
+    const bossTrophyCacheOutcome =
+        board.floorTag === 'boss' ? (bossObjectiveCompleted ? ('claimed' as const) : ('forfeited' as const)) : undefined;
+    const bossTrophyCacheScore =
+        bossTrophyCacheOutcome === 'claimed' ? DUNGEON_BOSS_TROPHY_CACHE_SCORE_REWARD : 0;
 
     if (featuredObjectiveId != null) {
         if (featuredObjectiveCompleted) {
@@ -5031,13 +5057,19 @@ const finalizeLevel = (run: RunState, board: BoardState): RunState => {
         }
     }
     const preBossSubtotal =
-        run.stats.currentLevelScore + levelBonus + perfectBonus + objectiveBonus + featuredObjectiveStreakBonus;
+        run.stats.currentLevelScore +
+        levelBonus +
+        perfectBonus +
+        objectiveBonus +
+        featuredObjectiveStreakBonus +
+        bossTrophyCacheScore;
     const scoreGained =
         board.floorTag === 'boss'
             ? Math.floor(preBossSubtotal * BOSS_FLOOR_SCORE_MULTIPLIER)
             : preBossSubtotal;
     if (board.floorTag === 'boss') {
         bonusTags.push('boss_floor');
+        bonusTags.push(bossTrophyCacheOutcome === 'claimed' ? 'boss_trophy_cache' : 'boss_trophy_forfeited');
     }
     bonusTags.push(...getDungeonLevelResultTags(run, board, perfect));
     const totalScore = run.stats.totalScore + scoreGained - run.stats.currentLevelScore;
@@ -5086,6 +5118,8 @@ const finalizeLevel = (run: RunState, board: BoardState): RunState => {
         endlessRiskWagerFavorGained:
             endlessRiskWagerFavorGained > 0 ? endlessRiskWagerFavorGained : undefined,
         endlessRiskWagerStreakLost,
+        bossTrophyCacheOutcome,
+        bossTrophyCacheScore: bossTrophyCacheScore > 0 ? bossTrophyCacheScore : undefined,
         routeChoices
     };
 

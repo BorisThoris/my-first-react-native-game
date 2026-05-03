@@ -1,7 +1,7 @@
 # SCS-005: Trap Workshop Room
 
 ## Status
-Planned
+Done
 
 ## Priority
 P1
@@ -41,4 +41,3 @@ Workshop can trivialize trap floors if it resolves too many traps or lacks a cos
 
 ## Cross-links
 - `../../passes/04-card-type-expansion.md`
-

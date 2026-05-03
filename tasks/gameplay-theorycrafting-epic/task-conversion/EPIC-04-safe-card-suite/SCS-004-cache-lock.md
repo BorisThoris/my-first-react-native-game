@@ -1,7 +1,7 @@
 # SCS-004: Cache Lock
 
 ## Status
-Planned
+Done
 
 ## Priority
 P1
@@ -41,4 +41,3 @@ Key-gated cards can block completion or hide value loss if fallback rules are no
 
 ## Cross-links
 - `../../passes/04-card-type-expansion.md`
-

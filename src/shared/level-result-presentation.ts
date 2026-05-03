@@ -87,6 +87,22 @@ export const getFloorClearCausalityRows = (
         });
     }
 
+    if (result.bossTrophyCacheOutcome) {
+        rows.push({
+            id: 'boss_trophy_cache',
+            group: 'reward',
+            label: 'Boss trophy',
+            detail:
+                result.bossTrophyCacheOutcome === 'claimed'
+                    ? `Boss objective completed; trophy cache paid +${result.bossTrophyCacheScore ?? 0} score.`
+                    : 'Boss objective unresolved; trophy cache was forfeited.',
+            tokens:
+                result.bossTrophyCacheOutcome === 'claimed'
+                    ? ['objective', 'reward', 'momentum']
+                    : ['objective', 'forfeit', 'risk']
+        });
+    }
+
     rows.push({
         id: 'perfect_memory',
         group: 'assist',

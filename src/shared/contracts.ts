@@ -437,6 +437,8 @@ export interface LevelResult {
     endlessRiskWagerOutcome?: EndlessRiskWagerOutcome;
     endlessRiskWagerFavorGained?: number;
     endlessRiskWagerStreakLost?: number;
+    bossTrophyCacheOutcome?: 'claimed' | 'forfeited';
+    bossTrophyCacheScore?: number;
     /** REG-017: deterministic local route options for the next floor; UI-only until map/shop nodes land. */
     routeChoices?: RouteChoice[];
 }

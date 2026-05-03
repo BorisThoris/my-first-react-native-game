@@ -773,14 +773,26 @@ describe('REG-017 route choices', () => {
     });
 
     it('can apply enemy contact and then flip the occupied card', () => {
-        const board = buildBoard(5, {
-            runSeed: 182_002,
-            runRulesVersion: GAME_RULES_VERSION,
-            dungeonNodeKind: 'trap',
-            gameMode: 'endless'
+        const [a1, a2] = createPair('p1', 'A', 'a');
+        const board = createBoard([a1, a2], {
+            enemyHazards: [
+                {
+                    id: 'single-contact',
+                    kind: 'sentinel',
+                    label: 'Patrol Sentry',
+                    currentTileId: a1.id,
+                    nextTileId: a2.id,
+                    pattern: 'patrol',
+                    state: 'hidden',
+                    damage: 1,
+                    hp: 1,
+                    maxHp: 1
+                }
+            ],
+            enemyHazardTurn: 0
         });
         const hazard = board.enemyHazards![0]!;
-        const base = finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false, runSeed: 182_002 }));
+        const base = createRun([a1, a2], { board, status: 'playing' });
         const run: RunState = {
             ...base,
             board,
@@ -788,10 +800,11 @@ describe('REG-017 route choices', () => {
             stats: { ...base.stats, guardTokens: 0 }
         };
 
-        const hit = applyEnemyHazardClick(run, hazard.currentTileId);
+        const hit = applyEnemyHazardClick(run, hazard.currentTileId, { advanceHazards: false });
         const flipped = flipTile(hit, hazard.currentTileId);
 
-        expect(flipped.lives).toBe(run.lives - hazard.damage);
+        expect(hit.lives).toBe(run.lives - hazard.damage);
+        expect(flipped.lives).toBe(hit.lives);
         expect(flipped.board!.tiles.find((tile) => tile.id === hazard.currentTileId)!.state).toBe('flipped');
         expect(flipped.board!.enemyHazards!.find((item) => item.id === hazard.id)!.state).toBe('revealed');
     });
@@ -1529,7 +1542,7 @@ describe('dungeon cards', () => {
             rulesVersion: GAME_RULES_VERSION,
             level: 7,
             floorTag: 'normal',
-            floorArchetypeId: null,
+            floorArchetypeId: 'trap_hall',
             gameMode: 'endless',
             dungeonNodeKind: 'trap'
         });
@@ -1537,7 +1550,7 @@ describe('dungeon cards', () => {
             runSeed: 42_010,
             rulesVersion: GAME_RULES_VERSION,
             level: 7,
-            floorTag: 'normal',
+            floorTag: 'breather',
             floorArchetypeId: null,
             gameMode: 'endless',
             dungeonNodeKind: 'rest'
@@ -1559,6 +1572,53 @@ describe('dungeon cards', () => {
         expect(treasureBudget.floorArchetypeId).toBe('treasure_gallery');
         expect(treasureBudget.rewardPairCount).toBeGreaterThan(trapBudget.rewardPairCount);
         expect(trapBudget.warnings, trapBudget.warnings.join('\n')).toEqual([]);
+    });
+
+    it('guarantees safe-card suite anchors in representative generated encounters', () => {
+        const trapBlueprint = createDungeonFloorBlueprint({
+            runSeed: 42_010,
+            rulesVersion: GAME_RULES_VERSION,
+            level: 7,
+            floorTag: 'normal',
+            floorArchetypeId: 'trap_hall',
+            gameMode: 'endless',
+            dungeonNodeKind: 'trap'
+        });
+        const restBlueprint = createDungeonFloorBlueprint({
+            runSeed: 42_010,
+            rulesVersion: GAME_RULES_VERSION,
+            level: 7,
+            floorTag: 'breather',
+            floorArchetypeId: null,
+            gameMode: 'endless',
+            dungeonNodeKind: 'rest'
+        });
+        const treasureBlueprint = createDungeonFloorBlueprint({
+            runSeed: 42_010,
+            rulesVersion: GAME_RULES_VERSION,
+            level: 10,
+            floorTag: 'breather',
+            floorArchetypeId: 'treasure_gallery',
+            gameMode: 'endless',
+            dungeonNodeKind: 'treasure'
+        });
+
+        expect(trapBlueprint.pairedCardSpecs).toEqual(
+            expect.arrayContaining([expect.objectContaining({ effectId: 'trap_mimic' })])
+        );
+        expect(trapBlueprint.roomEffectIds).toContain('room_trap_workshop');
+        expect(restBlueprint.pairedCardSpecs).toEqual(
+            expect.arrayContaining([expect.objectContaining({ effectId: 'shrine_guard' })])
+        );
+        expect(restBlueprint.roomEffectIds).toEqual(
+            expect.arrayContaining([expect.stringMatching(/^room_(map|scrying_lens|campfire|fountain|shrine|armory)$/)])
+        );
+        expect(treasureBlueprint.pairedCardSpecs).toEqual(
+            expect.arrayContaining([expect.objectContaining({ effectId: 'lock_cache' })])
+        );
+        expect(treasureBlueprint.roomEffectIds).toEqual(
+            expect.arrayContaining([expect.stringMatching(/^room_(locked_cache|key_cache|armory|scrying_lens)$/)])
+        );
     });
 
     it('keeps generated encounter budgets within pair capacity across representative floors', () => {
@@ -3781,6 +3841,18 @@ describe('dungeon cards', () => {
             workshopRun.board!.tiles
                 .filter((tile) => tile.pairKey === 'T')
                 .every((tile) => tile.dungeonCardState === 'resolved')
+        ).toBe(true);
+
+        const hiddenTrapA = { ...trapA, id: 'hidden-trap-a', dungeonCardState: 'hidden' as const };
+        const hiddenTrapB = { ...hiddenTrapA, id: 'hidden-trap-b' };
+        const scoutWorkshopRun = revealDungeonRoom(
+            createRun([roomTile('scout-workshop', 'room_trap_workshop', 'Trap Workshop'), hiddenTrapA, hiddenTrapB]),
+            'scout-workshop'
+        );
+        expect(
+            scoutWorkshopRun.board!.tiles
+                .filter((tile) => tile.pairKey === 'T')
+                .every((tile) => tile.dungeonCardState === 'revealed')
         ).toBe(true);
 
         const archiveRun = revealDungeonRoom(

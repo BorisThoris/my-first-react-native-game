@@ -1,7 +1,7 @@
 # SCS-006: Boss Trophy Cache
 
 ## Status
-Planned
+Done
 
 ## Priority
 P2
@@ -42,4 +42,3 @@ Boss payoff can feel arbitrary if the cache appears only after the fact with no 
 ## Cross-links
 - `../../passes/04-card-type-expansion.md`
 - `../../passes/06-floor-and-encounter-identity.md`
-

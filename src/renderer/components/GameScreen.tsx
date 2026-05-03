@@ -132,6 +132,8 @@ const BONUS_TAG_LABELS: Record<string, string> = {
     objective_streak: 'Objective streak',
     boss_floor: 'Boss floor',
     boss_defeated: 'Boss defeated',
+    boss_trophy_cache: 'Boss trophy cache',
+    boss_trophy_forfeited: 'Boss trophy forfeited',
     traps_disarmed: 'Traps disarmed',
     treasure_claimed: 'Treasure claimed',
     route_claimed: 'Route claimed',
