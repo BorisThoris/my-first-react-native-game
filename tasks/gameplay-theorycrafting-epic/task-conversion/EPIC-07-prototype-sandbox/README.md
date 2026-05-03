@@ -1,7 +1,7 @@
 # EPIC-07: Prototype Sandbox
 
 ## Status
-Planned
+Done
 
 ## Goal
 Test higher-risk ideas behind dev fixtures or authored sandbox floors only. These tasks are not normal-run shipping tickets.
@@ -12,4 +12,3 @@ Test higher-risk ideas behind dev fixtures or authored sandbox floors only. Thes
 - `PSB-003-anchor-seal-and-loaded-gateway-prototypes.md`
 - `PSB-004-catalyst-altar-and-parasite-vessel-prototypes.md`
 - `PSB-005-pin-lattice-prototype.md`
-

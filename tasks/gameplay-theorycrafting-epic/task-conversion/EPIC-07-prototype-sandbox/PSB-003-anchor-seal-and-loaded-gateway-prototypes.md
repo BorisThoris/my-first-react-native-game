@@ -1,7 +1,7 @@
 # PSB-003: Anchor Seal and Loaded Gateway prototypes
 
 ## Status
-Prototype
+Done
 
 ## Priority
 P2
@@ -42,4 +42,3 @@ Gateway rerolls can feel random; seal can trivialize pressure if the frozen targ
 ## Cross-links
 - `../../passes/04-card-type-expansion.md`
 - `../../passes/06-floor-and-encounter-identity.md`
-

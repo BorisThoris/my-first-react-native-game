@@ -1,7 +1,7 @@
 # PSB-002: Mimic Cache prototype
 
 ## Status
-Prototype
+Done
 
 ## Priority
 P2
@@ -40,4 +40,3 @@ Mimic is functionally an invisible trap if suspicion is not established before h
 
 ## Cross-links
 - `../../passes/04-card-type-expansion.md`
-

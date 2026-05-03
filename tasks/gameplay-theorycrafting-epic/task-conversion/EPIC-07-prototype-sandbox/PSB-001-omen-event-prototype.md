@@ -1,7 +1,7 @@
 # PSB-001: Omen Event prototype
 
 ## Status
-Prototype
+Done
 
 ## Priority
 P2
@@ -41,4 +41,3 @@ Omen becomes unfair if the target is hidden without a persistent reminder or if 
 
 ## Cross-links
 - `../../passes/04-card-type-expansion.md`
-

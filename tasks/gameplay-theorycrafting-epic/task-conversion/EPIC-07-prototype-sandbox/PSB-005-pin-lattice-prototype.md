@@ -1,7 +1,7 @@
 # PSB-005: Pin Lattice prototype
 
 ## Status
-Prototype
+Done
 
 ## Priority
 P2
@@ -42,4 +42,3 @@ Pin refunds can become busywork if players pin everything for value instead of p
 ## Cross-links
 - `../../passes/04-card-type-expansion.md`
 - `../../passes/05-build-archetypes.md`
-

@@ -1,7 +1,7 @@
 # PSB-004: Catalyst Altar and Parasite Vessel prototypes
 
 ## Status
-Prototype
+Done
 
 ## Priority
 P2
@@ -42,4 +42,3 @@ Shard conversion can become runaway value if costs and caps are not obvious.
 ## Cross-links
 - `../../passes/04-card-type-expansion.md`
 - `../../passes/05-build-archetypes.md`
-

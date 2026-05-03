@@ -1,7 +1,7 @@
 # EPIC-06: Archetypes And Relic Meaning
 
 ## Status
-Planned
+Done
 
 ## Goal
 Make build identity visible through decisions, feedback, and relic meaning without adding a separate v1 talent system.
@@ -12,4 +12,3 @@ Make build identity visible through decisions, feedback, and relic meaning witho
 - `ARM-003-vaultbreaker-and-slayer-payoff.md`
 - `ARM-004-gambit-seer-catalyst-engines.md`
 - `ARM-005-relic-role-audit.md`
-
