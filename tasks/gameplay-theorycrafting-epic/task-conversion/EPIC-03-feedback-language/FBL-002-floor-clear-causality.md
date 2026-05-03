@@ -1,0 +1,46 @@
+# FBL-002: Floor-clear causality summaries
+
+## Status
+Planned
+
+## Priority
+P0
+
+## Source Theory
+- Pass 6: floor identity feedback needs.
+- Pass 7: floor-clear surface contract.
+
+## Player Decision
+Help players understand what the floor changed, what they gained or lost, and what the next choice means.
+
+## Current System Connection
+- Floor result modal.
+- Route choice cards.
+- Objective result summaries.
+- Reward and forfeit records.
+
+## Proposed Behavior
+Refine floor-clear summaries into cause/result groups: performance, objectives, assists used, rewards gained, rewards forfeited, build triggers, and next-route implications.
+
+## UI / Visual / Audio
+Use compact rows with tokens and consistent close/continue placement. Avoid long tutorial copy.
+
+## Memory-Tax Score
+Information bypass 0, spatial disruption 0, mistake recovery 0, hidden punishment 0, board-completion risk 0, UI load 2. Total 2.
+
+## Risks
+If floor clear hides causes, players cannot connect decisions to route, reward, or build outcomes.
+
+## Acceptance Criteria
+- Floor clear names missed objective/reward causes.
+- Assist usage and Perfect Memory impact are visible.
+- Route choices show why they are safe, greedy, or uncertain.
+
+## Verification
+- E2E snapshots for clean clear, assist-used clear, objective fail, and route choice.
+- Copy review against Pass 7 tokens.
+
+## Cross-links
+- `../../passes/06-floor-and-encounter-identity.md`
+- `../../passes/07-ui-and-feedback-language.md`
+

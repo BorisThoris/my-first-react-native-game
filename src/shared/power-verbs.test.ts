@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createNewRun, finishMemorizePhase } from './game-core';
 import { getPowerVerbRows, POWER_VERB_GROUPS } from './power-verbs';
+import { assertTokenCoverage, calculateMemoryTaxReview } from './mechanic-feedback';
 
 describe('REG-045 power verb teaching', () => {
     it('groups every shipped toolbar power by cognitive job with cost and consequence copy', () => {
@@ -20,6 +21,24 @@ describe('REG-045 power verb teaching', () => {
             'gambit'
         ]);
         expect(rows.every((row) => row.cost.length > 0 && row.perfectMemoryImpact.length > 0)).toBe(true);
+        expect(rows.every((row) => row.consequence.length > 0 && row.perfectMemoryCopy.length > 0)).toBe(true);
+        expect(rows.every((row) => assertTokenCoverage(row.tokens))).toBe(true);
+        expect(rows.find((row) => row.id === 'pin')).toMatchObject({
+            mechanicClass: 'tool',
+            perfectMemoryImpact: 'allowed',
+            perfectMemoryCopy: 'Perfect Memory-safe.'
+        });
+        expect(rows.filter((row) => row.id !== 'pin').every((row) => row.perfectMemoryImpact === 'locks_perfect_memory')).toBe(
+            true
+        );
+        expect(calculateMemoryTaxReview(rows.find((row) => row.id === 'shuffle')!.memoryTax)).toMatchObject({
+            band: 'core_safe',
+            total: 4
+        });
+        expect(calculateMemoryTaxReview(rows.find((row) => row.id === 'gambit')!.memoryTax)).toMatchObject({
+            band: 'controlled_assist_or_pressure',
+            total: 5
+        });
         expect(rows.find((row) => row.id === 'shuffle')?.disabledReason).toBeNull();
         expect(getPowerVerbRows({ ...run, shuffleCharges: 0 }).find((row) => row.id === 'shuffle')?.disabledReason).toBe(
             'No shuffle charges.'

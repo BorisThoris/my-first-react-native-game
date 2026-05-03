@@ -5,6 +5,11 @@ import {
     type DungeonCardState,
     type Tile
 } from './contracts';
+import {
+    CORE_SAFE_MEMORY_TAX,
+    type MechanicTokenId,
+    type MemoryTaxScore
+} from './mechanic-feedback';
 
 export type DungeonCardRevealTiming = 'on_flip' | 'on_pair_match' | 'manual_reveal';
 export type DungeonCardMatchRewardRole =
@@ -33,6 +38,8 @@ export interface DungeonCardKindDefinition {
     matchReward: DungeonCardMatchRewardRole;
     mismatchConsequence: DungeonCardMismatchConsequence;
     objectiveContributions: DungeonObjectiveId[];
+    tokens: MechanicTokenId[];
+    memoryTax: MemoryTaxScore;
     copyLabel: string;
     helpText: string;
     usesCardPair: boolean;
@@ -67,6 +74,8 @@ export const DUNGEON_CARD_KIND_DEFINITIONS: Record<DungeonCardKind, DungeonCardK
         matchReward: 'combat',
         mismatchConsequence: 'enemy_attack',
         objectiveContributions: ['defeat_boss', 'pacify_floor'],
+        tokens: ['risk', 'objective', 'reward', 'resolved'],
+        memoryTax: { ...CORE_SAFE_MEMORY_TAX, hiddenPunishment: 1, boardCompletionRisk: 1, uiComprehensionLoad: 1 },
         copyLabel: 'Dungeon enemy',
         helpText: 'Match both enemy cards to defeat the encounter and earn combat rewards.',
         usesCardPair: true,
@@ -80,6 +89,8 @@ export const DUNGEON_CARD_KIND_DEFINITIONS: Record<DungeonCardKind, DungeonCardK
         matchReward: 'disarm',
         mismatchConsequence: 'trap_trigger',
         objectiveContributions: ['disarm_traps', 'reveal_unknowns'],
+        tokens: ['risk', 'armed', 'resolved', 'forfeit'],
+        memoryTax: { ...CORE_SAFE_MEMORY_TAX, hiddenPunishment: 1, boardCompletionRisk: 1, uiComprehensionLoad: 2 },
         copyLabel: 'Dungeon trap',
         helpText: 'Revealed traps stay armed until their matching card is found.',
         usesCardPair: true,
@@ -93,6 +104,8 @@ export const DUNGEON_CARD_KIND_DEFINITIONS: Record<DungeonCardKind, DungeonCardK
         matchReward: 'loot',
         mismatchConsequence: 'none',
         objectiveContributions: ['loot_cache'],
+        tokens: ['reward', 'forfeit'],
+        memoryTax: { ...CORE_SAFE_MEMORY_TAX, uiComprehensionLoad: 1 },
         copyLabel: 'Dungeon treasure',
         helpText: 'Treasure cards are optional rewards that improve the run economy.',
         usesCardPair: true,
@@ -106,6 +119,8 @@ export const DUNGEON_CARD_KIND_DEFINITIONS: Record<DungeonCardKind, DungeonCardK
         matchReward: 'guard',
         mismatchConsequence: 'none',
         objectiveContributions: [],
+        tokens: ['safe', 'reward', 'momentum'],
+        memoryTax: { ...CORE_SAFE_MEMORY_TAX, mistakeRecovery: 1, uiComprehensionLoad: 1 },
         copyLabel: 'Dungeon shrine',
         helpText: 'Shrines provide defensive and progression rewards when matched.',
         usesCardPair: true,
@@ -119,6 +134,8 @@ export const DUNGEON_CARD_KIND_DEFINITIONS: Record<DungeonCardKind, DungeonCardK
         matchReward: 'route',
         mismatchConsequence: 'missed_route_information',
         objectiveContributions: ['claim_route'],
+        tokens: ['objective', 'hidden_known', 'reward'],
+        memoryTax: { ...CORE_SAFE_MEMORY_TAX, informationBypass: 1, uiComprehensionLoad: 2 },
         copyLabel: 'Dungeon gateway',
         helpText: 'Gateways select or reinforce the route profile for the next floor.',
         usesCardPair: true,
@@ -132,6 +149,8 @@ export const DUNGEON_CARD_KIND_DEFINITIONS: Record<DungeonCardKind, DungeonCardK
         matchReward: 'key',
         mismatchConsequence: 'none',
         objectiveContributions: ['loot_cache'],
+        tokens: ['reward', 'cost'],
+        memoryTax: { ...CORE_SAFE_MEMORY_TAX, uiComprehensionLoad: 1 },
         copyLabel: 'Dungeon key',
         helpText: 'Keys open locked exits, caches, and rooms depending on the current floor.',
         usesCardPair: true,
@@ -145,6 +164,8 @@ export const DUNGEON_CARD_KIND_DEFINITIONS: Record<DungeonCardKind, DungeonCardK
         matchReward: 'unlock',
         mismatchConsequence: 'delayed_access',
         objectiveContributions: ['loot_cache'],
+        tokens: ['locked', 'cost', 'reward', 'forfeit'],
+        memoryTax: { ...CORE_SAFE_MEMORY_TAX, boardCompletionRisk: 2, uiComprehensionLoad: 2 },
         copyLabel: 'Dungeon lock',
         helpText: 'Locks can become loot if the run has a matching key available.',
         usesCardPair: true,
@@ -158,6 +179,8 @@ export const DUNGEON_CARD_KIND_DEFINITIONS: Record<DungeonCardKind, DungeonCardK
         matchReward: 'exit',
         mismatchConsequence: 'delayed_access',
         objectiveContributions: ['find_exit', 'open_bonus_exit', 'claim_route'],
+        tokens: ['objective', 'locked', 'resolved'],
+        memoryTax: { ...CORE_SAFE_MEMORY_TAX, boardCompletionRisk: 2, uiComprehensionLoad: 2 },
         copyLabel: 'Dungeon exit',
         helpText: 'Exits are singleton utility cards gated by reveal state, levers, or keys.',
         usesCardPair: false,
@@ -171,6 +194,8 @@ export const DUNGEON_CARD_KIND_DEFINITIONS: Record<DungeonCardKind, DungeonCardK
         matchReward: 'unlock',
         mismatchConsequence: 'none',
         objectiveContributions: ['find_exit', 'disarm_traps'],
+        tokens: ['objective', 'resolved', 'safe'],
+        memoryTax: { ...CORE_SAFE_MEMORY_TAX, boardCompletionRisk: 1, uiComprehensionLoad: 1 },
         copyLabel: 'Dungeon lever',
         helpText: 'Levers satisfy floor-local locks or seal revealed traps.',
         usesCardPair: true,
@@ -184,6 +209,8 @@ export const DUNGEON_CARD_KIND_DEFINITIONS: Record<DungeonCardKind, DungeonCardK
         matchReward: 'service',
         mismatchConsequence: 'none',
         objectiveContributions: [],
+        tokens: ['cost', 'reward'],
+        memoryTax: { ...CORE_SAFE_MEMORY_TAX, uiComprehensionLoad: 1 },
         copyLabel: 'Dungeon shop',
         helpText: 'Shops open floor-local offers and can be revisited while the floor is active.',
         usesCardPair: false,
@@ -197,6 +224,8 @@ export const DUNGEON_CARD_KIND_DEFINITIONS: Record<DungeonCardKind, DungeonCardK
         matchReward: 'room',
         mismatchConsequence: 'delayed_access',
         objectiveContributions: ['loot_cache', 'reveal_unknowns'],
+        tokens: ['cost', 'reward', 'hidden_known'],
+        memoryTax: { ...CORE_SAFE_MEMORY_TAX, informationBypass: 1, boardCompletionRisk: 1, uiComprehensionLoad: 2 },
         copyLabel: 'Dungeon room',
         helpText: 'Rooms provide one-shot services such as healing, scouting, keys, or trap work.',
         usesCardPair: false,

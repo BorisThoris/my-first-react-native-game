@@ -8,6 +8,7 @@ import {
     getDungeonCardKindDefinition
 } from './dungeon-cards';
 import { type DungeonCardEffectId, type DungeonCardKind } from './contracts';
+import { assertTokenCoverage, calculateMemoryTaxReview } from './mechanic-feedback';
 
 const ALL_DUNGEON_CARD_KINDS = [
     'enemy',
@@ -75,6 +76,8 @@ describe('DNG-020 dungeon card taxonomy', () => {
             expect(row.rulesRole.length).toBeGreaterThan(0);
             expect(row.copyLabel.length).toBeGreaterThan(0);
             expect(row.helpText.length).toBeGreaterThan(0);
+            expect(assertTokenCoverage(row.tokens)).toBe(true);
+            expect(calculateMemoryTaxReview(row.memoryTax).blockedByAxis).toBe(false);
         }
     });
 
