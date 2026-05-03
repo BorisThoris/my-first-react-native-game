@@ -1,7 +1,7 @@
 # FBL-003: Accessibility mechanic parity
 
 ## Status
-Planned
+In Progress
 
 ## Priority
 P0
@@ -38,10 +38,10 @@ Hazards and moving/temporary effects become unfair if only sighted, motion-enabl
 - Modal and contextual action focus behavior is predictable.
 
 ## Verification
-- Accessibility audit pass.
-- Keyboard-only smoke flow.
-- Reduced-motion visual/e2e smoke flow.
+- Focused tile announcements now include non-visual target state for destroy, peek, and stray powers.
+- Gambit opportunity strip now uses `role="status"` and `aria-live="polite"`.
+- Semantic token definitions include a11y hints for all token families.
+- `yarn typecheck`
 
 ## Cross-links
 - `../../passes/07-ui-and-feedback-language.md`
-

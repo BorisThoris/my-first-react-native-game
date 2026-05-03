@@ -9,6 +9,7 @@ import {
     type Settings
 } from '../../shared/contracts';
 import { computeFocusDimmedTileIds } from '../../shared/focusDimmedTileIds';
+import { getFloorClearCausalityRows } from '../../shared/level-result-presentation';
 import { getPlayableOnboardingStep } from '../../shared/playable-onboarding';
 import { formatLevelResultObjectiveLine } from '../../shared/secondary-objectives';
 import {
@@ -802,6 +803,9 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const viewportWantsMobileCamera = compactTouchChrome;
     const cameraViewportMode = deriveCameraViewportMode(settingsCameraViewportModePreference, viewportWantsMobileCamera);
     const clearLifeBonusLabel = run.lastLevelResult ? getClearLifeBonusLabel(run.lastLevelResult) : null;
+    const floorClearCausalityRows = run.lastLevelResult
+        ? getFloorClearCausalityRows(run.lastLevelResult, run.powersUsedThisRun)
+        : [];
     const objectiveBonusLine =
         run.lastLevelResult && (run.lastLevelResult.objectiveBonusScore ?? 0) > 0
             ? `Objective bonuses: +${run.lastLevelResult.objectiveBonusScore!.toLocaleString()}`
@@ -1573,6 +1577,20 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                             data-route-choice-required={routeChoiceRequired ? 'true' : 'false'}
                             data-testid="floor-clear-result-stack"
                         >
+                            {floorClearCausalityRows.length > 0 ? (
+                                <div className={styles.floorClearCausalityGrid} data-testid="floor-clear-causality-grid">
+                                    {floorClearCausalityRows.map((row) => (
+                                        <p
+                                            className={styles.modalNote}
+                                            data-causality-group={row.group}
+                                            data-mechanic-tokens={row.tokens.join(' ')}
+                                            key={row.id}
+                                        >
+                                            <strong>{row.label}:</strong> {row.detail}
+                                        </p>
+                                    ))}
+                                </div>
+                            ) : null}
                             {clearLifeBonusLabel ? <p className={styles.modalNote}>{clearLifeBonusLabel}</p> : null}
                             <p className={styles.modalNote}>{FLOOR_CLEAR_LIFE_CARRYOVER_NOTE}</p>
                             {featuredObjectiveResultLine ? <p className={styles.modalNote}>{featuredObjectiveResultLine}</p> : null}

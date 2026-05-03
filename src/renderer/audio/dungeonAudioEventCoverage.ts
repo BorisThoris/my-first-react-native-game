@@ -1,4 +1,5 @@
 import type { Reg114DuckId } from './audioMixDuckingPolicy';
+import type { AudioSemanticMoment } from './audioInteractionCoverage';
 import type { SfxSampleKey } from './sampledSfx';
 import type { UiSfxCue } from './uiSfx';
 
@@ -20,6 +21,7 @@ export interface DungeonAudioEventCoverageRow {
     label: string;
     cue: DungeonAudioCue;
     callsite: string;
+    semanticMoment: AudioSemanticMoment;
     gainMultiplier: number;
     ducking: Reg114DuckId;
     mergePolicy: string;
@@ -33,6 +35,7 @@ export const DUNGEON_AUDIO_EVENT_COVERAGE: readonly DungeonAudioEventCoverageRow
         label: 'Enemy contact resolves',
         cue: 'mismatch',
         callsite: 'useAppStore.pressTile enemy contact branch -> playResolveSfx placeholder',
+        semanticMoment: 'fail',
         gainMultiplier: 0.95,
         ducking: 'run_critical_sfx',
         mergePolicy: 'contact suppresses reveal tick in the same resolution step',
@@ -44,6 +47,7 @@ export const DUNGEON_AUDIO_EVENT_COVERAGE: readonly DungeonAudioEventCoverageRow
         label: 'Dungeon card or patrol information reveals',
         cue: 'flip',
         callsite: 'Tile flip / preview reveal paths',
+        semanticMoment: 'reveal',
         gainMultiplier: 0.72,
         ducking: 'ui_click',
         mergePolicy: 'merge repeated reveal ticks under flip category polyphony',
@@ -55,6 +59,7 @@ export const DUNGEON_AUDIO_EVENT_COVERAGE: readonly DungeonAudioEventCoverageRow
         label: 'Trap card triggers',
         cue: 'stray-power',
         callsite: 'dungeon trap resolution inventory row',
+        semanticMoment: 'fail',
         gainMultiplier: 0.9,
         ducking: 'run_critical_sfx',
         mergePolicy: 'trap trigger wins over generic mismatch when both occur',
@@ -66,6 +71,7 @@ export const DUNGEON_AUDIO_EVENT_COVERAGE: readonly DungeonAudioEventCoverageRow
         label: 'Enemy patrol defeated or pacified',
         cue: 'match-tier-low',
         callsite: 'enemy lifecycle defeat/pacify inventory row',
+        semanticMoment: 'disarm',
         gainMultiplier: 0.82,
         ducking: 'run_critical_sfx',
         mergePolicy: 'defeat merges with match reward bloom, no extra rapid layer',
@@ -77,6 +83,7 @@ export const DUNGEON_AUDIO_EVENT_COVERAGE: readonly DungeonAudioEventCoverageRow
         label: 'Boss defeated',
         cue: 'floor-clear',
         callsite: 'defeat-boss objective completion / floor clear path',
+        semanticMoment: 'reward',
         gainMultiplier: 1,
         ducking: 'run_critical_sfx',
         mergePolicy: 'boss defeat owns the resolution step and suppresses minor reward ticks',
@@ -88,6 +95,7 @@ export const DUNGEON_AUDIO_EVENT_COVERAGE: readonly DungeonAudioEventCoverageRow
         label: 'Treasure, cache, or secret reward claimed',
         cue: 'relic-pick',
         callsite: 'treasure/cache reward claim inventory row',
+        semanticMoment: 'reward',
         gainMultiplier: 0.86,
         ducking: 'run_critical_sfx',
         mergePolicy: 'treasure claim merges duplicate currency pips into one reward cue',
@@ -99,6 +107,7 @@ export const DUNGEON_AUDIO_EVENT_COVERAGE: readonly DungeonAudioEventCoverageRow
         label: 'Dungeon shop purchase succeeds',
         cue: 'confirm',
         callsite: 'ShopScreen purchase buttons',
+        semanticMoment: 'commit',
         gainMultiplier: 0.78,
         ducking: 'ui_click',
         mergePolicy: 'one confirm per accepted purchase',
@@ -110,6 +119,7 @@ export const DUNGEON_AUDIO_EVENT_COVERAGE: readonly DungeonAudioEventCoverageRow
         label: 'Exit opens or lock resolves',
         cue: 'power-arm',
         callsite: 'exit activation / lock resolution inventory row',
+        semanticMoment: 'lock',
         gainMultiplier: 0.84,
         ducking: 'run_critical_sfx',
         mergePolicy: 'exit open takes priority over reveal tick',
@@ -121,6 +131,7 @@ export const DUNGEON_AUDIO_EVENT_COVERAGE: readonly DungeonAudioEventCoverageRow
         label: 'Route choice confirmed',
         cue: 'confirm',
         callsite: 'ChooseYourPathScreen route confirmation',
+        semanticMoment: 'route_choice',
         gainMultiplier: 0.74,
         ducking: 'ui_click',
         mergePolicy: 'single UI confirm, no additional board cue',

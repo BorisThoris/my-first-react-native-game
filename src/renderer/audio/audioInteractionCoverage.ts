@@ -3,6 +3,19 @@ import type { UiSfxCue } from './uiSfx';
 
 export type AudioCoverageDomain = 'startup' | 'menu' | 'settings' | 'gameplay' | 'overlay' | 'meta';
 export type AudioCoverageDecision = 'sampled_with_fallback' | 'procedural_only' | 'silent';
+export type AudioSemanticMoment =
+    | 'arm'
+    | 'commit'
+    | 'reveal'
+    | 'reward'
+    | 'fail'
+    | 'disarm'
+    | 'lock'
+    | 'resolve'
+    | 'floor_clear'
+    | 'route_choice'
+    | 'navigation'
+    | 'ambient';
 type AudioCue = SfxSampleKey | UiSfxCue | 'none';
 
 const GAMEPLAY_CUES = new Set<string>([
@@ -44,6 +57,7 @@ export interface AudioInteractionCoverageRow {
     interaction: string;
     cue: AudioCue;
     callsite: string;
+    semanticMoment: AudioSemanticMoment;
     decision: AudioCoverageDecision;
     cooldownPolicy: string;
     mixRole: string;
@@ -61,6 +75,7 @@ export const AUDIO_INTERACTION_COVERAGE: readonly AudioInteractionCoverageRow[] 
         interaction: 'Startup intro completes or skip resolves',
         cue: 'introSting',
         callsite: 'StartupIntro.completeIntro',
+        semanticMoment: 'navigation',
         decision: 'sampled_with_fallback',
         cooldownPolicy: 'once per boot intro',
         mixRole: 'ceremonial relic sting',
@@ -72,6 +87,7 @@ export const AUDIO_INTERACTION_COVERAGE: readonly AudioInteractionCoverageRow[] 
         interaction: 'Main menu and Choose Path navigation',
         cue: 'menuOpen',
         callsite: 'MainMenu / ChooseYourPathScreen buttons',
+        semanticMoment: 'navigation',
         decision: 'sampled_with_fallback',
         cooldownPolicy: 'UI/menu polyphony cap',
         mixRole: 'panel reveal',
@@ -83,6 +99,7 @@ export const AUDIO_INTERACTION_COVERAGE: readonly AudioInteractionCoverageRow[] 
         interaction: 'Settings category/subsection/toggle/slider adjustment',
         cue: 'counter',
         callsite: 'SettingsScreen.patchSettings',
+        semanticMoment: 'navigation',
         decision: 'sampled_with_fallback',
         cooldownPolicy: 'counter tick throttled by SettingsScreen',
         mixRole: 'restrained settings tick',
@@ -94,6 +111,7 @@ export const AUDIO_INTERACTION_COVERAGE: readonly AudioInteractionCoverageRow[] 
         interaction: 'Tile flip or gambit setup',
         cue: 'flip',
         callsite: 'useAppStore.pressTile -> playFlipSfx',
+        semanticMoment: 'commit',
         decision: 'sampled_with_fallback',
         cooldownPolicy: 'flip category polyphony cap',
         mixRole: 'tactile card tick',
@@ -105,6 +123,7 @@ export const AUDIO_INTERACTION_COVERAGE: readonly AudioInteractionCoverageRow[] 
         interaction: 'Successful pair resolve',
         cue: 'match-tier-low',
         callsite: 'applyResolveBoardTurn -> playResolveSfx',
+        semanticMoment: 'reward',
         decision: 'sampled_with_fallback',
         cooldownPolicy: 'match category polyphony cap; tiered by streak depth',
         mixRole: 'reward bloom',
@@ -116,6 +135,7 @@ export const AUDIO_INTERACTION_COVERAGE: readonly AudioInteractionCoverageRow[] 
         interaction: 'Failed pair resolve',
         cue: 'mismatch',
         callsite: 'applyResolveBoardTurn -> playResolveSfx',
+        semanticMoment: 'fail',
         decision: 'sampled_with_fallback',
         cooldownPolicy: 'mismatch category polyphony cap',
         mixRole: 'soft fail',
@@ -127,6 +147,7 @@ export const AUDIO_INTERACTION_COVERAGE: readonly AudioInteractionCoverageRow[] 
         interaction: 'Arm or use board powers',
         cue: 'power-arm',
         callsite: 'useAppStore power actions',
+        semanticMoment: 'arm',
         decision: 'sampled_with_fallback',
         cooldownPolicy: 'power category polyphony cap',
         mixRole: 'affirmative charge chirp',
@@ -138,6 +159,7 @@ export const AUDIO_INTERACTION_COVERAGE: readonly AudioInteractionCoverageRow[] 
         interaction: 'Floor clear overlay opens',
         cue: 'floor-clear',
         callsite: 'applyResolvedRun levelComplete transition',
+        semanticMoment: 'floor_clear',
         decision: 'sampled_with_fallback',
         cooldownPolicy: 'deferred macrotask; shuffle/match caps still apply',
         mixRole: 'floor reward flourish',
@@ -149,6 +171,7 @@ export const AUDIO_INTERACTION_COVERAGE: readonly AudioInteractionCoverageRow[] 
         interaction: 'Pause and resume',
         cue: 'pauseOpen',
         callsite: 'useAppStore.pause / useAppStore.resume',
+        semanticMoment: 'navigation',
         decision: 'sampled_with_fallback',
         cooldownPolicy: 'menu category polyphony cap',
         mixRole: 'suspend/release chime',
@@ -160,6 +183,7 @@ export const AUDIO_INTERACTION_COVERAGE: readonly AudioInteractionCoverageRow[] 
         interaction: 'Relic offer opens and relic is picked',
         cue: 'relic-offer-open',
         callsite: 'GameScreen relic offer effect / useAppStore.pickRelic',
+        semanticMoment: 'reward',
         decision: 'sampled_with_fallback',
         cooldownPolicy: 'power category polyphony cap',
         mixRole: 'mystical reveal and reward bloom',
@@ -171,6 +195,7 @@ export const AUDIO_INTERACTION_COVERAGE: readonly AudioInteractionCoverageRow[] 
         interaction: 'Game over screen enters',
         cue: 'gameOverOpen',
         callsite: 'GameOverScreen mount',
+        semanticMoment: 'resolve',
         decision: 'sampled_with_fallback',
         cooldownPolicy: 'once per post-run screen mount',
         mixRole: 'elegant downward close',
@@ -182,6 +207,7 @@ export const AUDIO_INTERACTION_COVERAGE: readonly AudioInteractionCoverageRow[] 
         interaction: 'Passive scroll and in-page anchors',
         cue: 'none',
         callsite: 'MetaScreen body scroll / TOC anchors',
+        semanticMoment: 'ambient',
         decision: 'silent',
         cooldownPolicy: 'intentionally silent',
         mixRole: 'avoid UI fatigue',

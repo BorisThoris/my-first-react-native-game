@@ -33,6 +33,7 @@ describe('DNG-063 dungeon audio event coverage', () => {
             expect(row.gainMultiplier).toBeGreaterThan(0);
             expect(row.gainMultiplier).toBeLessThanOrEqual(1);
             expect(row.mergePolicy.length).toBeGreaterThan(12);
+            expect(row.semanticMoment.length).toBeGreaterThan(0);
             expect(getReg114DuckRow(row.ducking)).toBeDefined();
         }
     });
@@ -40,6 +41,7 @@ describe('DNG-063 dungeon audio event coverage', () => {
     it('keeps high-priority resolution events on the run-critical ducking lane', () => {
         expect(getDungeonAudioEventRow('dungeon_contact')?.ducking).toBe('run_critical_sfx');
         expect(getDungeonAudioEventRow('dungeon_trap_trigger')?.mergePolicy).toMatch(/wins/i);
+        expect(getDungeonAudioEventRow('dungeon_route_choice')?.semanticMoment).toBe('route_choice');
         expect(getDungeonAudioEventRow('dungeon_boss_defeat')?.mergePolicy).toMatch(/suppresses/i);
         expect(getDungeonAudioEventRow('dungeon_shop_purchase')?.ducking).toBe('ui_click');
     });

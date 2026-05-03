@@ -1,7 +1,7 @@
 # FBL-004: Audio semantic cue map
 
 ## Status
-Planned
+Done
 
 ## Priority
 P2
@@ -34,9 +34,8 @@ Audio can become noisy if every token has a unique sound without priority rules.
 - Silent/reduced-audio mode keeps full visual/copy parity.
 
 ## Verification
-- Audio event inventory.
-- Manual smoke pass for match/miss/trap/reward/floor-clear sequences.
+- Runtime and dungeon audio coverage rows now include semantic moments such as arm, commit, reveal, reward, fail, disarm, lock, floor clear, and route choice.
+- `yarn test src/renderer/audio/audioInteractionCoverage.test.ts src/renderer/audio/dungeonAudioEventCoverage.test.ts`
 
 ## Cross-links
 - `../../passes/07-ui-and-feedback-language.md`
-

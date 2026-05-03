@@ -8,6 +8,7 @@ describe('REG-037 audio interaction coverage', () => {
         );
         expect(AUDIO_INTERACTION_COVERAGE.every((row) => row.reducedMotionSafe)).toBe(true);
         expect(AUDIO_INTERACTION_COVERAGE.every((row) => row.cooldownPolicy.length > 0)).toBe(true);
+        expect(AUDIO_INTERACTION_COVERAGE.every((row) => row.semanticMoment.length > 0)).toBe(true);
         expect(AUDIO_INTERACTION_COVERAGE.filter((row) => row.decision === 'silent').map((row) => row.id)).toEqual([
             'passive_scroll'
         ]);
@@ -22,6 +23,7 @@ describe('REG-037 audio interaction coverage', () => {
             'board_power'
         ]);
         expect(gameplay.find((row) => row.id === 'resolve_match')?.mixRole).toMatch(/reward/i);
+        expect(gameplay.find((row) => row.id === 'board_power')?.semanticMoment).toBe('arm');
         expect(gameplay.find((row) => row.id === 'resolve_mismatch')?.mixRole).toMatch(/fail/i);
     });
 });

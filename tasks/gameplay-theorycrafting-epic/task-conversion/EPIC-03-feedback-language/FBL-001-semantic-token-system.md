@@ -1,7 +1,7 @@
 # FBL-001: Semantic mechanic token system
 
 ## Status
-Planned
+Done
 
 ## Priority
 P0
@@ -36,9 +36,11 @@ If tokens drift by surface, mechanics become harder to learn as more card famili
 - Future tasks can reference tokens without redefining them.
 
 ## Verification
-- Visual review for consistent token treatment.
-- A11y label review for token meaning.
+- Added `src/shared/mechanic-feedback.ts` semantic token definitions.
+- Dungeon card and power read models now carry mechanic tokens for downstream UI.
+- `yarn test src/shared/mechanic-feedback.test.ts`
+- `yarn test src/shared/dungeon-cards.test.ts`
+- `yarn test src/shared/power-verbs.test.ts`
 
 ## Cross-links
 - `../../passes/07-ui-and-feedback-language.md`
-

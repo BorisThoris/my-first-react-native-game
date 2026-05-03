@@ -617,6 +617,15 @@
     margin-bottom: 0;
 }
 
+.floorClearCausalityGrid {
+    display: contents;
+}
+
+.floorClearCausalityGrid .modalNote[data-causality-group='assist'][data-mechanic-tokens~='forfeit'],
+.floorClearCausalityGrid .modalNote[data-causality-group='objective'][data-mechanic-tokens~='forfeit'] {
+    border-color: color-mix(in srgb, var(--theme-danger, #f87171) 38%, var(--theme-border-strong));
+}
+
 .floorClearResultStack[data-route-choice-required='true'] {
     max-height: min(11.5rem, 24dvh);
     overflow-y: auto;

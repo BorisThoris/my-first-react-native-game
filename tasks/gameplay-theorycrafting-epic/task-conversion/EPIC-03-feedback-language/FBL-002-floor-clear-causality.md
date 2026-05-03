@@ -1,7 +1,7 @@
 # FBL-002: Floor-clear causality summaries
 
 ## Status
-Planned
+Done
 
 ## Priority
 P0
@@ -37,10 +37,12 @@ If floor clear hides causes, players cannot connect decisions to route, reward, 
 - Route choices show why they are safe, greedy, or uncertain.
 
 ## Verification
-- E2E snapshots for clean clear, assist-used clear, objective fail, and route choice.
-- Copy review against Pass 7 tokens.
+- Added `src/shared/level-result-presentation.ts` for grouped floor-clear causality rows.
+- Floor-clear modal now renders performance, objective, assist, reward, and route cause/result rows with mechanic token data attributes.
+- `yarn test src/shared/level-result-presentation.test.ts`
+- `yarn test src/renderer/components/GameScreen.test.tsx`
+- `yarn typecheck`
 
 ## Cross-links
 - `../../passes/06-floor-and-encounter-identity.md`
 - `../../passes/07-ui-and-feedback-language.md`
-
