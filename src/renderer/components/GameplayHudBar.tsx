@@ -10,7 +10,9 @@ import {
 import { getSecondaryObjectiveStatusRows } from '../../shared/secondary-objectives';
 import { getDefaultDifficultyProfile } from '../../shared/difficulty-profile';
 import { getFindableKindLabel, getFindableRewardCopy } from '../../shared/findables';
+import { getHazardTileBoardSummary } from '../../shared/hazard-tiles';
 import { getRunEconomyEntry } from '../../shared/run-economy';
+import { getRunBuildProfile } from '../../shared/relics';
 import codexBookUrl from '../assets/ui/icons/icon-codex-book-v1.svg?url';
 import scoreParasiteCrystalUrl from '../assets/ui/icons/icon-score-parasite-crystal.svg?url';
 import shuffleIconUrl from '../assets/ui/icons/icon-shuffle-v1.svg?url';
@@ -168,6 +170,8 @@ const GameplayHudBar = ({
     });
     const difficultyProfile = getDefaultDifficultyProfile();
     const secondaryObjectiveRows = getSecondaryObjectiveStatusRows(run);
+    const buildProfile = getRunBuildProfile(run);
+    const hazardTileSummary = getHazardTileBoardSummary(board);
     const encounterIdentity = getBossEncounterIdentityForFloor(board.floorTag ?? 'normal', {
         floorArchetypeId: board.floorArchetypeId,
         mutators: run.activeMutators,
@@ -459,6 +463,15 @@ const GameplayHudBar = ({
                                         {board.actTitle ? ` · ${board.actTitle}` : ''}
                                     </span>
                                 ) : null}
+                                {floorIdentity.warningLevel !== 'baseline' ? (
+                                    <span
+                                        className={styles.statSubline}
+                                        data-testid="hud-floor-identity-reminder"
+                                        title={floorIdentity.counterplaySentence}
+                                    >
+                                        {floorIdentity.activeReminder}
+                                    </span>
+                                ) : null}
                                 {nBackLabel ? <span className={styles.statSubline}>{nBackLabel}</span> : null}
                                 {showMutatorChipRow ? (
                                     <div className={styles.mutatorRow}>
@@ -549,6 +562,18 @@ const GameplayHudBar = ({
                                         <span className={styles.statVal}>+{activeRiskWagerFavor} Favor</span>
                                     </div>
                                 ) : null}
+                                {buildProfile.primary ? (
+                                    <div
+                                        className={styles.statPillCompact}
+                                        data-testid="hud-build-profile"
+                                        title={buildProfile.tooltip}
+                                    >
+                                        <span className={styles.statKey}>Build</span>
+                                        <span className={styles.statVal}>
+                                            {buildProfile.primary.label} · {buildProfile.primary.score}
+                                        </span>
+                                    </div>
+                                ) : null}
                                 {run.findablesTotalThisFloor > 0 ? (
                                     <div
                                         className={styles.statPillCompact}
@@ -559,6 +584,16 @@ const GameplayHudBar = ({
                                         <span className={styles.statVal}>
                                             {run.findablesClaimedThisFloor}/{run.findablesTotalThisFloor}
                                         </span>
+                                    </div>
+                                ) : null}
+                                {hazardTileSummary.hasHazards ? (
+                                    <div
+                                        className={styles.statPillCompact}
+                                        data-testid="hud-hazard-tiles"
+                                        title={hazardTileSummary.hudDetail ?? 'Active hazard tiles on this floor'}
+                                    >
+                                        <span className={styles.statKey}>Hazards</span>
+                                        <span className={styles.statVal}>{hazardTileSummary.totalHazardTiles}</span>
                                     </div>
                                 ) : null}
                                 {run.status === 'playing' && run.stats.currentStreak > 0 ? (

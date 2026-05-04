@@ -1,4 +1,5 @@
 import type { DungeonBossId, DungeonRunNode, RunState, SaveData, RunSummary } from './contracts';
+import { getRunBuildProfile } from './relics';
 
 export type RunHistoryPersistence = 'persisted_summary' | 'ephemeral_run' | 'derived_export';
 
@@ -205,6 +206,7 @@ export const buildRunReplayLink = (run: RunState): RunReplayLink => {
 
 export const buildRunHistoryEntry = (run: RunState): RunHistoryEntry => {
     const summary = run.lastRunSummary;
+    const buildProfile = getRunBuildProfile(run);
     const build: RunHistoryBuildSnapshot = {
         relicIds: [...run.relicIds],
         mutatorIds: [...run.activeMutators],
@@ -226,7 +228,8 @@ export const buildRunHistoryEntry = (run: RunState): RunHistoryEntry => {
         {
             id: 'build',
             label: 'Build snapshot',
-            value: `${build.mode} · ${build.contract} · ${build.relicIds.length} relics · ${build.mutatorIds.length} mutators`,
+            value: `${buildProfile.primary?.label ?? build.mode} · ${build.contract} · ${build.relicIds.length} relics · ${build.mutatorIds.length} mutators`,
+            detail: buildProfile.primary ? buildProfile.tooltip : buildProfile.summary,
             persistence: 'derived_export',
             exportSafe: true,
             offlineOnly: true
@@ -274,9 +277,12 @@ export const buildRunJournalEntry = (run: RunState): {
     localOnly: true;
 } => {
     const entry = buildRunHistoryEntry(run);
+    const buildProfile = getRunBuildProfile(run);
     return {
         journalId: entry.replay.replayKey,
-        buildSummary: `${entry.build.relicIds.length} relics / ${entry.build.mutatorIds.length} mutators`,
+        buildSummary: buildProfile.primary
+            ? `${buildProfile.primary.label} · ${entry.build.relicIds.length} relics / ${entry.build.mutatorIds.length} mutators`
+            : `${entry.build.relicIds.length} relics / ${entry.build.mutatorIds.length} mutators`,
         replayLabel: entry.replay.replaySupported ? 'local replay available' : 'replay unavailable',
         rows: entry.journalRows,
         localOnly: true

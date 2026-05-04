@@ -14,11 +14,7 @@ Config uses `trace: 'retain-on-failure'` and `video: 'retain-on-failure'` so pas
 
 The default path drives level 1 and burns lives with intentional mismatches (`forceGameOverWithMismatches` in `visualScreenHelpers.ts`). That harness can flake on slow machines when flip animations lag behind Playwright’s hidden-tile queries.
 
-For a deterministic capture or local green runs without changing CI behavior, set:
-
-`E2E_USE_SANDBOX_GAMEOVER=1`
-
-Then the `08-game-over` scenario opens `/?devSandbox=1&screen=gameOver&fixture=gameOver&skipIntro=1` (same save JSON as other visual baselines) and asserts on the real game-over shell. Unset or omit the variable in CI to keep the live mismatch harness.
+If this path flakes on slow machines, raise the scenario timeout or investigate flip animation settlement before changing the path.
 
 ## `ui-screenshots.spec.ts`
 

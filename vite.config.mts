@@ -70,8 +70,7 @@ export default defineConfig(({ mode }) => ({
         emptyOutDir: process.env.VITE_SKIP_EMPTY_OUT_DIR !== '1',
         rollupOptions: {
             input: {
-                main: path.resolve(__dirname, 'index.html'),
-                logoSandbox: path.resolve(__dirname, 'logo-sandbox.html')
+                main: path.resolve(__dirname, 'index.html')
             },
             output: {
                 manualChunks(id: string): string | undefined {

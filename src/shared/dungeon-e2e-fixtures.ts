@@ -147,11 +147,3 @@ export const DUNGEON_E2E_FIXTURE_RECIPES: readonly DungeonE2EFixtureRecipe[] = [
 ] as const;
 
 export const getDungeonE2EFixtureRecipes = (): readonly DungeonE2EFixtureRecipe[] => DUNGEON_E2E_FIXTURE_RECIPES;
-
-export const dungeonE2EFixtureUrlQuery = (recipe: DungeonE2EFixtureRecipe): string =>
-    new URLSearchParams({
-        devSandbox: '1',
-        fixture: recipe.fixture,
-        screen: recipe.screen,
-        skipIntro: '1'
-    }).toString();

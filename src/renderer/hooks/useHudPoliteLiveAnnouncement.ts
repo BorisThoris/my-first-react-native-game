@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { FindableKind, Tile } from '../../shared/contracts';
+import type { FindableKind, HazardTileKind, Tile } from '../../shared/contracts';
+import { getHazardTileLiveCopy } from '../../shared/hazard-tiles';
 import { GAMBIT_OPPORTUNITY_HINT_LINE } from '../copy/gameplayHints';
 
 const GAUNTLET_WARN_SECS = [60, 30, 10, 5] as const;
@@ -83,6 +84,28 @@ interface HudPoliteLiveAnnouncementInput {
     gambitThirdPickActive: boolean;
     /** Flipped tile ids when Gambit is offered (length 2); used for dedupe keys. */
     gambitOpportunityFlippedIds: readonly string[] | null;
+    /** Motion setting for hazard effect announcement copy. */
+    reduceMotion?: boolean;
+    hazardTileTriggersThisFloor?: number;
+    hazardShuffleSnaresThisFloor?: number;
+    hazardCascadeCachesThisFloor?: number;
+    hazardMirrorDecoysThisFloor?: number;
+    hazardFragileCacheClaimsThisFloor?: number;
+    hazardFragileCacheBreaksThisFloor?: number;
+    hazardTollCachesThisFloor?: number;
+    hazardFuseCachesThisFloor?: number;
+    hazardFuseCacheExpiredClaimsThisFloor?: number;
+    lanternWardScoutsThisFloor?: number;
+    omenSealScoutsThisFloor?: number;
+    mimicCacheClaimsThisFloor?: number;
+    mimicCacheBitesThisFloor?: number;
+    mimicCacheGuardBitesThisFloor?: number;
+    anchorSealUsesThisFloor?: number;
+    loadedGatewayPlansThisFloor?: number;
+    catalystAltarUpgradesThisFloor?: number;
+    parasiteVesselConversionsThisFloor?: number;
+    pinLatticeRewardsThisFloor?: number;
+    safeHazardWardsUsedThisFloor?: number;
 }
 
 interface UseHudPoliteLiveAnnouncementResult {
@@ -98,6 +121,7 @@ const nowMs = (): number => (typeof performance !== 'undefined' ? performance.no
  * and throttles display cadence so screen readers get summaries, not chatter.
  */
 const CHAIN_MILESTONE_THRESHOLDS = [3, 5, 8] as const;
+const HAZARD_ANNOUNCEMENT_ORDER = ['shuffle_snare', 'cascade_cache', 'mirror_decoy', 'fragile_cache', 'toll_cache', 'fuse_cache'] as const satisfies readonly HazardTileKind[];
 
 export const useHudPoliteLiveAnnouncement = ({
     gauntletRemainingMs,
@@ -112,7 +136,28 @@ export const useHudPoliteLiveAnnouncement = ({
     chainMatchStreak,
     chainAnnounceActive,
     gambitThirdPickActive,
-    gambitOpportunityFlippedIds
+    gambitOpportunityFlippedIds,
+    reduceMotion = false,
+    hazardTileTriggersThisFloor = 0,
+    hazardShuffleSnaresThisFloor = 0,
+    hazardCascadeCachesThisFloor = 0,
+    hazardMirrorDecoysThisFloor = 0,
+    hazardFragileCacheClaimsThisFloor = 0,
+    hazardFragileCacheBreaksThisFloor = 0,
+    hazardTollCachesThisFloor = 0,
+    hazardFuseCachesThisFloor = 0,
+    hazardFuseCacheExpiredClaimsThisFloor = 0,
+    lanternWardScoutsThisFloor = 0,
+    omenSealScoutsThisFloor = 0,
+    mimicCacheClaimsThisFloor = 0,
+    mimicCacheBitesThisFloor = 0,
+    mimicCacheGuardBitesThisFloor = 0,
+    anchorSealUsesThisFloor = 0,
+    loadedGatewayPlansThisFloor = 0,
+    catalystAltarUpgradesThisFloor = 0,
+    parasiteVesselConversionsThisFloor = 0,
+    pinLatticeRewardsThisFloor = 0,
+    safeHazardWardsUsedThisFloor = 0
 }: HudPoliteLiveAnnouncementInput): UseHudPoliteLiveAnnouncementResult => {
     const [message, setMessage] = useState('');
     const prevGauntletSecsRef = useRef<number | null>(null);
@@ -128,6 +173,30 @@ export const useHudPoliteLiveAnnouncement = ({
         tiles: readonly Tile[];
     } | null>(null);
     const chainSnapRef = useRef<{ level: number | null; streak: number } | null>(null);
+    const hazardSnapRef = useRef<{
+        level: number;
+        total: number;
+        shuffleSnare: number;
+        cascadeCache: number;
+        mirrorDecoy: number;
+        fragileCacheClaim: number;
+        fragileCacheBreak: number;
+        tollCache: number;
+        fuseCache: number;
+        fuseCacheExpired: number;
+    } | null>(null);
+    const lanternSnapRef = useRef<{ level: number; scouts: number } | null>(null);
+    const omenSnapRef = useRef<{ level: number; scouts: number } | null>(null);
+    const mimicSnapRef = useRef<{ level: number; claims: number; bites: number; guardBites: number } | null>(null);
+    const routeSpecialSnapRef = useRef<{
+        level: number;
+        anchor: number;
+        gateway: number;
+        catalyst: number;
+        parasite: number;
+        pin: number;
+    } | null>(null);
+    const safeWardSnapRef = useRef<{ level: number; wardsUsed: number } | null>(null);
 
     const queueRef = useRef(new Map<string, { text: string; priority: HudAnnouncePriority }>());
     const rafIdRef = useRef<number | null>(null);
@@ -356,6 +425,261 @@ export const useHudPoliteLiveAnnouncement = ({
 
         chainSnapRef.current = { level: boardLevel, streak: chainMatchStreak };
     }, [boardLevel, chainAnnounceActive, chainMatchStreak, queuePoliteAnnouncement]);
+
+    useEffect(() => {
+        if (boardLevel === null) {
+            hazardSnapRef.current = null;
+            return;
+        }
+
+        const nextSnap = {
+            level: boardLevel,
+            total: hazardTileTriggersThisFloor,
+            shuffleSnare: hazardShuffleSnaresThisFloor,
+            cascadeCache: hazardCascadeCachesThisFloor,
+            mirrorDecoy: hazardMirrorDecoysThisFloor,
+            fragileCacheClaim: hazardFragileCacheClaimsThisFloor,
+            fragileCacheBreak: hazardFragileCacheBreaksThisFloor,
+            tollCache: hazardTollCachesThisFloor,
+            fuseCache: hazardFuseCachesThisFloor,
+            fuseCacheExpired: hazardFuseCacheExpiredClaimsThisFloor
+        };
+        const snap = hazardSnapRef.current;
+
+        if (snap === null || snap.level !== boardLevel || hazardTileTriggersThisFloor < snap.total) {
+            hazardSnapRef.current = nextSnap;
+            return;
+        }
+
+        const firedKinds = HAZARD_ANNOUNCEMENT_ORDER.filter((kind) => {
+            if (kind === 'shuffle_snare') return hazardShuffleSnaresThisFloor > snap.shuffleSnare;
+            if (kind === 'cascade_cache') return hazardCascadeCachesThisFloor > snap.cascadeCache;
+            if (kind === 'mirror_decoy') return hazardMirrorDecoysThisFloor > snap.mirrorDecoy;
+            if (kind === 'fragile_cache') {
+                return hazardFragileCacheClaimsThisFloor > snap.fragileCacheClaim || hazardFragileCacheBreaksThisFloor > snap.fragileCacheBreak;
+            }
+            if (kind === 'toll_cache') return hazardTollCachesThisFloor > snap.tollCache;
+            return hazardFuseCachesThisFloor > snap.fuseCache;
+        });
+
+        if (firedKinds.length > 0) {
+            const copy = firedKinds.flatMap((kind) => {
+                const liveCopy = getHazardTileLiveCopy(kind);
+                if (kind !== 'fragile_cache') {
+                    if (kind === 'fuse_cache' && hazardFuseCacheExpiredClaimsThisFloor > snap.fuseCacheExpired) {
+                        return [
+                            reduceMotion
+                                ? liveCopy.reducedMotionBreakLiveAnnouncement ?? liveCopy.reducedMotionLiveAnnouncement
+                                : liveCopy.breakLiveAnnouncement ?? liveCopy.liveAnnouncement
+                        ];
+                    }
+                    return [reduceMotion ? liveCopy.reducedMotionLiveAnnouncement : liveCopy.liveAnnouncement];
+                }
+                const parts: string[] = [];
+                if (hazardFragileCacheClaimsThisFloor > snap.fragileCacheClaim) {
+                    parts.push(reduceMotion ? liveCopy.reducedMotionLiveAnnouncement : liveCopy.liveAnnouncement);
+                }
+                if (hazardFragileCacheBreaksThisFloor > snap.fragileCacheBreak) {
+                    parts.push(
+                        reduceMotion
+                            ? liveCopy.reducedMotionBreakLiveAnnouncement ?? liveCopy.reducedMotionLiveAnnouncement
+                            : liveCopy.breakLiveAnnouncement ?? liveCopy.liveAnnouncement
+                    );
+                }
+                return parts;
+            }).join(' ');
+            queuePoliteAnnouncement(copy, {
+                dedupeKey: `hazard:${boardLevel}:${hazardTileTriggersThisFloor}`,
+                priority: 'info'
+            });
+        }
+
+        hazardSnapRef.current = nextSnap;
+    }, [
+        boardLevel,
+        hazardCascadeCachesThisFloor,
+        hazardFragileCacheBreaksThisFloor,
+        hazardFragileCacheClaimsThisFloor,
+        hazardFuseCacheExpiredClaimsThisFloor,
+        hazardFuseCachesThisFloor,
+        hazardMirrorDecoysThisFloor,
+        hazardShuffleSnaresThisFloor,
+        hazardTileTriggersThisFloor,
+        hazardTollCachesThisFloor,
+        queuePoliteAnnouncement,
+        reduceMotion
+    ]);
+
+    useEffect(() => {
+        if (boardLevel === null) {
+            lanternSnapRef.current = null;
+            return;
+        }
+
+        const snap = lanternSnapRef.current;
+        const nextSnap = { level: boardLevel, scouts: lanternWardScoutsThisFloor };
+        if (snap === null || snap.level !== boardLevel || lanternWardScoutsThisFloor < snap.scouts) {
+            lanternSnapRef.current = nextSnap;
+            return;
+        }
+
+        if (lanternWardScoutsThisFloor > snap.scouts) {
+            queuePoliteAnnouncement('Lantern Ward scouted a hidden threat.', {
+                dedupeKey: `lantern:${boardLevel}:${lanternWardScoutsThisFloor}`,
+                priority: 'info'
+            });
+        }
+
+        lanternSnapRef.current = nextSnap;
+    }, [boardLevel, lanternWardScoutsThisFloor, queuePoliteAnnouncement]);
+
+    useEffect(() => {
+        if (boardLevel === null) {
+            omenSnapRef.current = null;
+            return;
+        }
+
+        const snap = omenSnapRef.current;
+        const nextSnap = { level: boardLevel, scouts: omenSealScoutsThisFloor };
+        if (snap === null || snap.level !== boardLevel || omenSealScoutsThisFloor < snap.scouts) {
+            omenSnapRef.current = nextSnap;
+            return;
+        }
+
+        if (omenSealScoutsThisFloor > snap.scouts) {
+            queuePoliteAnnouncement('Omen Seal revealed hidden danger.', {
+                dedupeKey: `omen:${boardLevel}:${omenSealScoutsThisFloor}`,
+                priority: 'info'
+            });
+        }
+
+        omenSnapRef.current = nextSnap;
+    }, [boardLevel, omenSealScoutsThisFloor, queuePoliteAnnouncement]);
+
+    useEffect(() => {
+        if (boardLevel === null) {
+            mimicSnapRef.current = null;
+            return;
+        }
+
+        const snap = mimicSnapRef.current;
+        const nextSnap = {
+            level: boardLevel,
+            claims: mimicCacheClaimsThisFloor,
+            bites: mimicCacheBitesThisFloor,
+            guardBites: mimicCacheGuardBitesThisFloor
+        };
+        if (
+            snap === null ||
+            snap.level !== boardLevel ||
+            mimicCacheClaimsThisFloor < snap.claims ||
+            mimicCacheBitesThisFloor < snap.bites ||
+            mimicCacheGuardBitesThisFloor < snap.guardBites
+        ) {
+            mimicSnapRef.current = nextSnap;
+            return;
+        }
+
+        if (mimicCacheBitesThisFloor > snap.bites) {
+            const guardBlocked = mimicCacheGuardBitesThisFloor > snap.guardBites;
+            queuePoliteAnnouncement(
+                guardBlocked
+                    ? 'Mimic Cache bit. Guard absorbed the hit.'
+                    : 'Mimic Cache bit. Life lost; reduced loot claimed.',
+                {
+                    dedupeKey: `mimic:bite:${boardLevel}:${mimicCacheBitesThisFloor}`,
+                    priority: 'error'
+                }
+            );
+        } else if (mimicCacheClaimsThisFloor > snap.claims) {
+            queuePoliteAnnouncement('Mimic Cache controlled. Full loot claimed.', {
+                dedupeKey: `mimic:claim:${boardLevel}:${mimicCacheClaimsThisFloor}`,
+                priority: 'info'
+            });
+        }
+
+        mimicSnapRef.current = nextSnap;
+    }, [
+        boardLevel,
+        mimicCacheBitesThisFloor,
+        mimicCacheClaimsThisFloor,
+        mimicCacheGuardBitesThisFloor,
+        queuePoliteAnnouncement
+    ]);
+
+    useEffect(() => {
+        if (boardLevel === null) {
+            routeSpecialSnapRef.current = null;
+            return;
+        }
+        const snap = routeSpecialSnapRef.current;
+        const nextSnap = {
+            level: boardLevel,
+            anchor: anchorSealUsesThisFloor,
+            gateway: loadedGatewayPlansThisFloor,
+            catalyst: catalystAltarUpgradesThisFloor,
+            parasite: parasiteVesselConversionsThisFloor,
+            pin: pinLatticeRewardsThisFloor
+        };
+        if (
+            snap === null ||
+            snap.level !== boardLevel ||
+            anchorSealUsesThisFloor < snap.anchor ||
+            loadedGatewayPlansThisFloor < snap.gateway ||
+            catalystAltarUpgradesThisFloor < snap.catalyst ||
+            parasiteVesselConversionsThisFloor < snap.parasite ||
+            pinLatticeRewardsThisFloor < snap.pin
+        ) {
+            routeSpecialSnapRef.current = nextSnap;
+            return;
+        }
+        const announcements: [boolean, string, string][] = [
+            [anchorSealUsesThisFloor > snap.anchor, 'anchor', 'Anchor Seal froze rotating pressure.'],
+            [loadedGatewayPlansThisFloor > snap.gateway, 'gateway', 'Loaded Gateway prepared the next route.'],
+            [catalystAltarUpgradesThisFloor > snap.catalyst, 'catalyst', 'Catalyst Altar converted a shard into reward.'],
+            [parasiteVesselConversionsThisFloor > snap.parasite, 'parasite', 'Parasite Vessel reduced pressure.'],
+            [pinLatticeRewardsThisFloor > snap.pin, 'pin', 'Pin Lattice rewarded deliberate planning.']
+        ];
+        const nextAnnouncement = announcements.find(([changed]) => changed);
+        if (nextAnnouncement) {
+            queuePoliteAnnouncement(nextAnnouncement[2], {
+                dedupeKey: `route-special:${nextAnnouncement[1]}:${boardLevel}`,
+                priority: 'info'
+            });
+        }
+        routeSpecialSnapRef.current = nextSnap;
+    }, [
+        anchorSealUsesThisFloor,
+        boardLevel,
+        catalystAltarUpgradesThisFloor,
+        loadedGatewayPlansThisFloor,
+        parasiteVesselConversionsThisFloor,
+        pinLatticeRewardsThisFloor,
+        queuePoliteAnnouncement
+    ]);
+
+    useEffect(() => {
+        if (boardLevel === null) {
+            safeWardSnapRef.current = null;
+            return;
+        }
+
+        const snap = safeWardSnapRef.current;
+        const nextSnap = { level: boardLevel, wardsUsed: safeHazardWardsUsedThisFloor };
+        if (snap === null || snap.level !== boardLevel || safeHazardWardsUsedThisFloor < snap.wardsUsed) {
+            safeWardSnapRef.current = nextSnap;
+            return;
+        }
+
+        if (safeHazardWardsUsedThisFloor > snap.wardsUsed) {
+            queuePoliteAnnouncement('Guard Cache ward blocked a hazard.', {
+                dedupeKey: `safeWard:${boardLevel}:${safeHazardWardsUsedThisFloor}`,
+                priority: 'info'
+            });
+        }
+
+        safeWardSnapRef.current = nextSnap;
+    }, [boardLevel, queuePoliteAnnouncement, safeHazardWardsUsedThisFloor]);
 
     useEffect(() => {
         if (

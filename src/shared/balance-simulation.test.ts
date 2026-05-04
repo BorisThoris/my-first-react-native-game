@@ -23,6 +23,7 @@ describe('REG-086 balance simulation economy and drop-rate tuning', () => {
         expect(result.aggregate.enemyThreatPairs).toBeGreaterThan(0);
         expect(result.aggregate.movingEnemyHazards).toBeGreaterThan(0);
         expect(result.aggregate.bossMovingEnemyHazards).toBe(2);
+        expect(result.aggregate.hazardTileCount).toBeGreaterThan(0);
         expect(result.aggregate.contactRisk).toBe(result.aggregate.movingEnemyHazards);
         expect(result.aggregate.shopSinkBudget).toBeGreaterThan(0);
         expect(result.aggregate.relicFavorPotential).toBeGreaterThan(0);
@@ -34,6 +35,7 @@ describe('REG-086 balance simulation economy and drop-rate tuning', () => {
         expect(result.rows.map((row) => row.key)).toEqual(
             expect.arrayContaining([
                 'avg_moving_enemy_hazards_per_floor',
+                'avg_hazard_tiles_per_floor',
                 'avg_contact_risk_per_floor',
                 'elite_route_node_share',
                 'avg_relic_favor_potential_per_floor',
@@ -58,6 +60,7 @@ describe('REG-086 balance simulation economy and drop-rate tuning', () => {
         expect(result.samples.some((sample) => sample.dungeonNodeKind === 'elite' && sample.enemyThreatPairs >= 2)).toBe(
             true
         );
+        expect(result.samples.every((sample) => sample.hazardTileCount > 0)).toBe(true);
         expect(new Set(result.samples.map((sample) => sample.floorBand))).toEqual(new Set(['early', 'mid', 'late']));
     });
 

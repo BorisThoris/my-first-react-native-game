@@ -33,7 +33,7 @@ The route should bias the scheduled floor instead of replacing it. A Greedy `tra
 | Route world profile | **Functional** | `RouteWorldProfile` now feeds next-floor board generation and is stored on `BoardState`. |
 | Greed hazard/reward pressure | **Functional** | Greed route stamps extra reward-risk specials (`greed_cache`, `greed_toll`, `fragile_cache`) on eligible real pairs. |
 | Safe support/ward behavior | **Functional** | Safe route stamps ward support (`safe_ward`, `lantern_ward`) and avoids route-added hazard pressure. |
-| Mystery veils/reveal rules | **Functional** | Mystery route stamps deterministic veil/secret families; peek marks reveal families without claiming. |
+| Mystery veils/reveal rules | **Functional** | Mystery route stamps deterministic veil/secret/mimic families; reveal tools turn suspicion into controlled claims before punishment. |
 | Side-room route hooks | **Functional** | Route choice can open deterministic side-room interludes before shop/relic/next-floor flow. |
 | Route-aware relic weighting | **Functional** | Relic drafts use pending and active route context for weight-only reasons without forcing route slots. |
 | Boss/elite board anchors | **Functional** | Boss floors stamp `keystone_pair`; hard non-boss route floors stamp `elite_cache`, `final_ward`, or `omen_seal` by selected route. |

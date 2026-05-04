@@ -37,6 +37,7 @@ export interface BalanceSimulationReport {
         enemyThreatPairs: number;
         movingEnemyHazards: number;
         bossMovingEnemyHazards: number;
+        hazardTileCount: number;
         contactRisk: number;
         floorBand: 'early' | 'mid' | 'late';
         relicFavorPotential: number;
@@ -55,6 +56,7 @@ export interface BalanceSimulationReport {
         enemyThreatPairs: number;
         movingEnemyHazards: number;
         bossMovingEnemyHazards: number;
+        hazardTileCount: number;
         contactRisk: number;
         shopSinkBudget: number;
         relicFavorPotential: number;
@@ -186,6 +188,7 @@ export const runBalanceSimulation = ({
                 activeMutators: scheduleMutatorsFor(sampleSeed, rulesVersion, floor)
             });
             const activeHazards = board.enemyHazards?.filter((hazard) => hazard.state !== 'defeated') ?? [];
+            const hazardTileCount = board.tiles.filter((tile) => tile.tileHazardKind != null).length;
             const enemyThreatPairs = new Set(
                 board.tiles
                     .filter((tile) => tile.dungeonCardKind === 'enemy' || tile.dungeonCardKind === 'trap')
@@ -215,6 +218,7 @@ export const runBalanceSimulation = ({
                 enemyThreatPairs,
                 movingEnemyHazards: activeHazards.length,
                 bossMovingEnemyHazards: activeHazards.filter((hazard) => hazard.bossId != null).length,
+                hazardTileCount,
                 contactRisk: activeHazards.reduce((sum, hazard) => sum + hazard.damage, 0),
                 floorBand: floorBandFor(floor),
                 relicFavorPotential: schedule.featuredObjectiveId != null ? (schedule.floorTag === 'boss' ? 2 : 1) : 0,
@@ -235,6 +239,7 @@ export const runBalanceSimulation = ({
         floorNumbers.map((floor) => pickFloorScheduleEntry(seed, rulesVersion, floor, 'endless').floorTag === 'boss' ? 1 : 0)
     );
     const movingHazardCounts = samples.map((sample) => sample.movingEnemyHazards);
+    const hazardTileCounts = samples.map((sample) => sample.hazardTileCount);
     const contactRiskCounts = samples.map((sample) => sample.contactRisk);
     const rewardTotalsByBand = samples.reduce<Record<'early' | 'mid' | 'late', number>>(
         (totals, sample) => ({
@@ -291,6 +296,14 @@ export const runBalanceSimulation = ({
             0.6,
             1.6,
             'buildBoard enemyHazards'
+        ),
+        row(
+            'avg_hazard_tiles_per_floor',
+            'Average board hazard tiles per floor',
+            Number(average(hazardTileCounts).toFixed(2)),
+            2,
+            5,
+            'buildBoard tileHazardKind'
         ),
         row(
             'avg_contact_risk_per_floor',
@@ -389,6 +402,7 @@ export const runBalanceSimulation = ({
             enemyThreatPairs: samples.reduce((sum, sample) => sum + sample.enemyThreatPairs, 0),
             movingEnemyHazards: samples.reduce((sum, sample) => sum + sample.movingEnemyHazards, 0),
             bossMovingEnemyHazards: samples.reduce((sum, sample) => sum + sample.bossMovingEnemyHazards, 0),
+            hazardTileCount: samples.reduce((sum, sample) => sum + sample.hazardTileCount, 0),
             contactRisk: samples.reduce((sum, sample) => sum + sample.contactRisk, 0),
             shopSinkBudget: samples.reduce((sum, sample) => sum + sample.shopSinkBudget, 0),
             relicFavorPotential: samples.reduce((sum, sample) => sum + sample.relicFavorPotential, 0),

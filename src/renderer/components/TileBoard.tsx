@@ -18,6 +18,7 @@ import type { BoardScreenSpaceAA, BoardState, GraphicsQualityPreset, RunStatus, 
 import { getFindableRewardText } from '../../shared/findables';
 import { getDungeonCardCopy } from '../../shared/dungeon-rules';
 import { getDungeonCardKnowledge } from '../../shared/dungeon-cards';
+import { getHazardTileTelegraph } from '../../shared/hazard-tiles';
 import { routeSpecialLabel, routeSpecialRewardLine } from '../../shared/route-world';
 import { resolveAdaptiveBoardRenderQuality } from '../../shared/graphicsQuality';
 import { isNarrowShortLandscapeForMenuStack, VIEWPORT_MOBILE_MAX } from '../breakpoints';
@@ -210,6 +211,13 @@ const getEnemyHazardText = (board: BoardState, tileId: string): string => {
         : '';
 };
 
+const getHazardTileText = (tile: Tile): string => {
+    const telegraph = getHazardTileTelegraph(tile);
+    return telegraph.hasHazard && telegraph.label && telegraph.telegraph
+        ? ` Hazard tile: ${telegraph.label}. ${telegraph.telegraph}`
+        : '';
+};
+
 const getTileAriaLabel = (board: BoardState, tile: Tile, faceUp: boolean, row: number, column: number): string => {
     const base = faceUp
         ? tile.pairKey === DECOY_PAIR_KEY
@@ -217,6 +225,12 @@ const getTileAriaLabel = (board: BoardState, tile: Tile, faceUp: boolean, row: n
             : `Tile ${tile.label}, row ${row}, column ${column}`
         : `Hidden tile, row ${row}, column ${column}`;
     const findableNote = tile.findableKind && faceUp && tile.state !== 'matched' ? ` ${getFindableRewardText(tile.findableKind)}` : '';
+    const scoutSourceNote =
+        tile.scoutRevealSource === 'omen_seal'
+            ? ' Scouted by Omen Seal.'
+            : tile.scoutRevealSource === 'lantern_ward' || tile.lanternScouted
+              ? ' Scouted by Lantern Ward.'
+              : '';
     const routeNote =
         (tile.routeSpecialKind || tile.routeCardKind) && tile.state !== 'matched'
             ? ` Route card: ${
@@ -230,15 +244,23 @@ const getTileAriaLabel = (board: BoardState, tile: Tile, faceUp: boolean, row: n
               }${
                   (tile.routeSpecialKind === 'mystery_veil' ||
                       tile.routeSpecialKind === 'secret_door' ||
-                      tile.routeSpecialKind === 'omen_seal') &&
+                      tile.routeSpecialKind === 'omen_seal' ||
+                      tile.routeSpecialKind === 'mimic_cache' ||
+                      tile.routeSpecialKind === 'loaded_gateway' ||
+                      tile.routeSpecialKind === 'parasite_vessel') &&
                   tile.routeSpecialRevealed
-                      ? ' Revealed by peek.'
+                      ? tile.routeSpecialRevealSource === 'lantern_ward'
+                          ? ' Scouted by Lantern Ward.'
+                          : tile.routeSpecialRevealSource === 'omen_seal'
+                            ? ' Scouted by Omen Seal.'
+                          : ' Revealed by peek.'
                       : ''
               }`
             : '';
     const dungeonKnowledge = getDungeonCardKnowledge(tile, faceUp);
     const dungeonNote = dungeonKnowledge.familyKnown ? getDungeonCardText(tile) : '';
-    return `${base}${findableNote}${routeNote}${dungeonNote}${getEnemyHazardText(board, tile.id)}`;
+    const passiveScoutNote = scoutSourceNote && !routeNote.includes(scoutSourceNote.trim()) ? scoutSourceNote : '';
+    return `${base}${findableNote}${routeNote}${dungeonNote}${getHazardTileText(tile)}${passiveScoutNote}${getEnemyHazardText(board, tile.id)}`;
 };
 
 const getPowerTargetAriaText = (

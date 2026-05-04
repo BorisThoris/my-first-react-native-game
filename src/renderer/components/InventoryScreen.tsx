@@ -6,6 +6,7 @@ import { getInventoryPrepRows } from '../../shared/inventory-prep';
 import { getInventoryRewardSignal } from '../../shared/meta-reward-signals';
 import { getRunInventoryRows, getRunLoadoutSummary } from '../../shared/run-inventory';
 import { getRunEconomyRows } from '../../shared/run-economy';
+import { getRunBuildProfile, getRelicDecisionImpactCopy } from '../../shared/relics';
 import { getUiStateCopy } from '../../shared/ui-state-copy';
 import { playUiBackSfx, resumeUiSfxContext, uiSfxGainFromSettings } from '../audio/uiSfx';
 import { inventoryScreenCopy } from '../copy/inventoryScreen';
@@ -82,6 +83,7 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
     const loadoutSummary = getRunLoadoutSummary(run);
     const rewardSignal = getInventoryRewardSignal(run);
     const prepRows = getInventoryPrepRows(run);
+    const buildProfile = getRunBuildProfile(run);
     const equippedCosmetic = getCosmeticCollectionRows(useAppStore.getState().saveData).find((row) => row.equipped);
 
     return (
@@ -103,6 +105,9 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                 <nav aria-label="Inventory sections" className={metaStyles.inPageToc}>
                     <a href="#inventory-run" onClick={(e) => handleMetaBodyTocLinkClick(bodyScrollRef, e)}>
                         Run
+                    </a>
+                    <a href="#inventory-build" onClick={(e) => handleMetaBodyTocLinkClick(bodyScrollRef, e)}>
+                        Build
                     </a>
                     <a href="#inventory-relics" onClick={(e) => handleMetaBodyTocLinkClick(bodyScrollRef, e)}>
                         Relics
@@ -198,6 +203,40 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                     </Panel>
                 </MetaFrame>
 
+                <MetaFrame data-testid="inventory-meta-frame-build">
+                    <Panel className={panelClassName} padding="lg" variant="default">
+                        <div className={`${styles.loadoutSection} ${metaStyles.sectionAnchor}`} id="inventory-build">
+                            <h2 className={styles.sectionTitle}>Build identity</h2>
+                            {buildProfile.primary ? (
+                                <>
+                                    <div className={metaStyles.archiveCatalogGrid} data-testid="inventory-build-identity">
+                                        <div className={metaStyles.archiveCatalogRow}>
+                                            <p className={metaStyles.archiveCatalogRowTitle}>{buildProfile.summary}</p>
+                                            <p className={metaStyles.subtitle}>{buildProfile.primary.summary}</p>
+                                            <span className={styles.cosmeticNote}>
+                                                Decisions: {buildProfile.primary.decisionVerbs.join(', ')}
+                                            </span>
+                                        </div>
+                                        {buildProfile.signals.slice(0, 3).map((signal) => (
+                                            <div className={metaStyles.archiveCatalogRow} key={signal.id}>
+                                                <p className={metaStyles.archiveCatalogRowTitle}>
+                                                    {signal.label}: {signal.score}
+                                                </p>
+                                                <p className={metaStyles.subtitle}>{signal.summary}</p>
+                                                <span className={styles.cosmeticNote}>
+                                                    Relics: {signal.supportingRelicIds.map((id) => RELIC_CATALOG[id]?.title ?? id).join(', ')}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                            ) : (
+                                <p className={styles.empty}>{buildProfile.summary}. Draft a relic to start shaping a build.</p>
+                            )}
+                        </div>
+                    </Panel>
+                </MetaFrame>
+
                 <MetaFrame data-testid="inventory-meta-frame-consumables">
                     <Panel className={panelClassName} padding="lg" variant="default">
                         <div className={`${styles.loadoutSection} ${metaStyles.sectionAnchor}`} id="inventory-consumables">
@@ -232,6 +271,7 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                                                 {def?.description ? (
                                                     <p className={metaStyles.subtitle}>{def.description}</p>
                                                 ) : null}
+                                                <p className={metaStyles.subtitle}>{getRelicDecisionImpactCopy(id)}</p>
                                             </div>
                                         );
                                     })}

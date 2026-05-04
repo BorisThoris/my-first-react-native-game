@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
     DUNGEON_E2E_FIXTURE_RECIPES,
-    dungeonE2EFixtureUrlQuery,
     getDungeonE2EFixtureRecipes
 } from './dungeon-e2e-fixtures';
 
@@ -29,13 +28,8 @@ describe('DNG-072 dungeon E2E fixture recipes', () => {
         }
     });
 
-    it('builds dev sandbox query strings without animation-dependent selectors', () => {
+    it('keeps screenshot selectors animation-independent', () => {
         for (const recipe of DUNGEON_E2E_FIXTURE_RECIPES) {
-            const query = dungeonE2EFixtureUrlQuery(recipe);
-            expect(query).toContain('devSandbox=1');
-            expect(query).toContain(`fixture=${recipe.fixture}`);
-            expect(query).toContain(`screen=${recipe.screen}`);
-            expect(query).toContain('skipIntro=1');
             expect(recipe.selectors.every((selector) => !selector.includes('animation'))).toBe(true);
         }
     });

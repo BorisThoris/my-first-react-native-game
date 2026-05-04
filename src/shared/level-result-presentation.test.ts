@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { LevelResult } from './contracts';
+import { getFloorIdentityContract } from './boss-encounters';
 import { getFloorClearCausalityRows } from './level-result-presentation';
 import { assertTokenCoverage } from './mechanic-feedback';
 
@@ -64,6 +65,24 @@ describe('floor clear causality presentation', () => {
         expect(rows.find((row) => row.id === 'risk_wager')?.detail).toContain('streak reduced by 2');
     });
 
+    it('explains the cleared floor identity when supplied', () => {
+        const identity = getFloorIdentityContract({
+            floorTag: 'normal',
+            floorArchetypeId: 'trap_hall',
+            mutators: ['glass_floor'],
+            featuredObjectiveLabel: 'Glass witness'
+        });
+        const rows = getFloorClearCausalityRows(baseResult, false, identity);
+
+        expect(rows.find((row) => row.id === 'encounter_identity')).toMatchObject({
+            group: 'encounter',
+            label: 'Trap bounty hall',
+            detail: identity.floorClearSentence,
+            tokens: identity.tokens
+        });
+        expect(rows.every((row) => assertTokenCoverage(row.tokens))).toBe(true);
+    });
+
     it('explains boss trophy success and forfeit branches', () => {
         const claimed = getFloorClearCausalityRows(
             {
@@ -89,5 +108,104 @@ describe('floor clear causality presentation', () => {
             detail: 'Boss objective unresolved; trophy cache was forfeited.',
             tokens: ['objective', 'forfeit', 'risk']
         });
+    });
+
+    it('summarizes hazard tile triggers by kind', () => {
+        const rows = getFloorClearCausalityRows(
+            {
+                ...baseResult,
+                hazardTileTriggers: 6,
+                hazardShuffleSnares: 2,
+                hazardCascadeCaches: 1,
+                hazardMirrorDecoys: 1,
+                hazardFragileCacheClaims: 1,
+                hazardFragileCacheBreaks: 1,
+                hazardTollCaches: 1,
+                hazardFuseCaches: 2,
+                hazardFuseCacheExpiredClaims: 1
+            },
+            false
+        );
+
+        expect(rows.find((row) => row.id === 'hazard_tiles')).toMatchObject({
+            group: 'hazard',
+            label: 'Hazard tiles',
+            detail: '2 snare shuffles; 1 cascade clear; 1 mirror decoy read; 1 fragile cache claim; 1 fragile cache break; 1 toll cache claim; 2 fuse cache claims (1 late).',
+            tokens: ['risk', 'hidden_known', 'momentum']
+        });
+        expect(rows.every((row) => assertTokenCoverage(row.tokens))).toBe(true);
+    });
+
+    it('summarizes lantern ward scouting', () => {
+        const rows = getFloorClearCausalityRows(
+            {
+                ...baseResult,
+                lanternWardScouts: 1
+            },
+            false
+        );
+
+        expect(rows.find((row) => row.id === 'lantern_ward_scouts')).toMatchObject({
+            group: 'reward',
+            label: 'Lantern Ward',
+            detail: '1 lantern scout identified hidden danger or mystery information.',
+            tokens: ['safe', 'hidden_known', 'reward']
+        });
+        expect(rows.every((row) => assertTokenCoverage(row.tokens))).toBe(true);
+    });
+
+    it('summarizes omen seal scouting', () => {
+        const rows = getFloorClearCausalityRows(
+            {
+                ...baseResult,
+                omenSealScouts: 2
+            },
+            false
+        );
+
+        expect(rows.find((row) => row.id === 'omen_seal_scouts')).toMatchObject({
+            group: 'reward',
+            label: 'Omen Seal',
+            detail: '2 omen scouts revealed hidden danger or mystery information.',
+            tokens: ['hidden_known', 'reward', 'risk']
+        });
+        expect(rows.every((row) => assertTokenCoverage(row.tokens))).toBe(true);
+    });
+
+    it('summarizes mimic cache claims and bites', () => {
+        const rows = getFloorClearCausalityRows(
+            {
+                ...baseResult,
+                mimicCacheClaims: 2,
+                mimicCacheBites: 1
+            },
+            false
+        );
+
+        expect(rows.find((row) => row.id === 'mimic_cache_claims')).toMatchObject({
+            group: 'hazard',
+            label: 'Mimic Cache',
+            detail: '2 mimic cache claims; 1 bite triggered reduced loot.',
+            tokens: ['risk', 'reward', 'forfeit']
+        });
+        expect(rows.every((row) => assertTokenCoverage(row.tokens))).toBe(true);
+    });
+
+    it('summarizes Guard Cache ward blocks', () => {
+        const rows = getFloorClearCausalityRows(
+            {
+                ...baseResult,
+                safeHazardWardsUsed: 1
+            },
+            false
+        );
+
+        expect(rows.find((row) => row.id === 'safe_hazard_wards')).toMatchObject({
+            group: 'assist',
+            label: 'Guard Cache ward',
+            detail: '1 hazard ward blocked a snare or fragile cache break.',
+            tokens: ['safe', 'risk', 'hidden_known']
+        });
+        expect(rows.every((row) => assertTokenCoverage(row.tokens))).toBe(true);
     });
 });

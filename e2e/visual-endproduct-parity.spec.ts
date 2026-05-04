@@ -11,8 +11,8 @@ import {
     buildVisualSaveJson,
     expectNoHorizontalOverflow,
     getEndproductParityCaptureDir,
-    gotoWithSaveAndQuery,
-    openDevSandboxPlaying
+    openLevel1Play,
+    openLevel1PlayWithSave
 } from './visualScreenHelpers';
 
 type GridPosition = { col: number; row: number };
@@ -149,11 +149,14 @@ async function hoverTile(page: Page, tile: GridPosition): Promise<void> {
 
 async function openParityFixture(
     page: Page,
-    fixture: 'arcade' | 'dailyParasite' | 'resolvingMismatch',
+    _fixture: 'arcade' | 'dailyParasite' | 'resolvingMismatch',
     reduceMotion = true
 ): Promise<void> {
     await page.setViewportSize(PARITY_VIEWPORT);
-    await openDevSandboxPlaying(page, { fixture, reduceMotion });
+    await openLevel1PlayWithSave(page, buildVisualSaveJson(true, reduceMotion));
+    await expect(page.getByTestId('game-hud')).toBeVisible({ timeout: 25_000 });
+    await expect(page.getByTestId('tile-board-frame')).toBeVisible({ timeout: 25_000 });
+    await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible({ timeout: 25_000 });
     await expectNoHorizontalOverflow(page);
 }
 
@@ -173,17 +176,11 @@ function buildActionCaptureSaveJson(): string {
 
 async function openParityFixtureWithSave(
     page: Page,
-    fixture: 'arcade' | 'dailyParasite' | 'resolvingMismatch',
+    _fixture: 'arcade' | 'dailyParasite' | 'resolvingMismatch',
     saveJson: string
 ): Promise<void> {
     await page.setViewportSize(PARITY_VIEWPORT);
-    const params = new URLSearchParams({
-        devSandbox: '1',
-        fixture,
-        screen: 'playing',
-        skipIntro: '1'
-    });
-    await gotoWithSaveAndQuery(page, saveJson, params.toString());
+    await openLevel1PlayWithSave(page, saveJson);
     await expect(page.getByTestId('game-hud')).toBeVisible({ timeout: 25_000 });
     await expect(page.getByTestId('tile-board-frame')).toBeVisible({ timeout: 25_000 });
     await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible({ timeout: 25_000 });
@@ -199,7 +196,7 @@ async function openParityFixtureWithSave(
  * `main-game-screen`, `top-bar-details`, `bottom-action-dock`, `card-face-down`, `card-hover`, `card-flipped`,
  * `card-matched`, `interaction-flip`, `interaction-match`, `interaction-mismatch`.
  */
-test.describe('Endproduct parity captures (dev sandbox)', () => {
+test.describe('Endproduct parity captures', () => {
     test.describe.configure({ mode: 'serial' });
 
     test('1440x900 gameplay shell + panel crops (dailyParasite)', async ({ page }) => {
@@ -230,7 +227,7 @@ test.describe('Endproduct parity captures (dev sandbox)', () => {
     test('1280x720 HUD + tile board (dailyParasite)', async ({ page }) => {
         await page.setViewportSize({ width: 1280, height: 720 });
         const dir = getEndproductParityCaptureDir();
-        await openDevSandboxPlaying(page, { fixture: 'dailyParasite' });
+        await openLevel1Play(page);
         await expectNoHorizontalOverflow(page);
 
         const hud = page.getByTestId('game-hud');

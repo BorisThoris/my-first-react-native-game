@@ -9,11 +9,8 @@ import {
     forceGameOverWithMismatches,
     gotoWithSaveExpectStartupIntroVisible,
     mainMenuPlayButton,
-    openDevSandboxGameOver,
-    openDevSandboxPlaying,
     openLevel1Play,
     openMainMenuFromSave,
-    visualE2eUsesSandboxGameOver,
     waitLevel1PlayReady,
     waitLevel1VisualReady
 } from './visualScreenHelpers';
@@ -183,7 +180,7 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
         fileBase: '04-game-playing',
         name: 'game playing (level 1)',
         run: async (page, capture) => {
-            await openDevSandboxPlaying(page, { fixture: 'dailyParasite' });
+            await openLevel1Play(page);
             await waitLevel1VisualReady(page);
             await expect(page.getByTestId('game-hud')).toBeVisible();
             await expect(page.getByRole('toolbar', { name: /game controls/i })).toBeVisible();
@@ -268,13 +265,9 @@ export const VISUAL_SCREEN_SCENARIOS: ReadonlyArray<VisualScreenScenario> = [
         /** Mismatch discovery + burn loops rival floor-clear duration on cold mobile. */
         timeoutMs: 220_000,
         run: async (page, capture) => {
-            if (visualE2eUsesSandboxGameOver()) {
-                await openDevSandboxGameOver(page);
-            } else {
-                await openLevel1Play(page);
-                const pairs = await waitLevel1PlayReady(page);
-                await forceGameOverWithMismatches(page, pairs);
-            }
+            await openLevel1Play(page);
+            const pairs = await waitLevel1PlayReady(page);
+            await forceGameOverWithMismatches(page, pairs);
             await expect(page.getByText(/Expedition Over/i)).toBeVisible();
             await expectNoHorizontalOverflow(page);
             await capture('08-game-over');

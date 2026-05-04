@@ -62,7 +62,7 @@ test.describe('OVR-013 — overlay smoke', () => {
         }
 
         /* GameScreen defers achievement toasts while the floor overlay is open — continue unblocks the queue. */
-        await floorCleared.getByRole('button', { name: /^continue$/i }).click();
+        await floorCleared.getByRole('button', { name: /^continue/i }).click();
         await expect(floorCleared).toBeHidden({ timeout: 15_000 });
 
         const achievementToast = tipsRegion.locator('[data-crn-stack-key="achievement:ACH_FIRST_CLEAR"]');

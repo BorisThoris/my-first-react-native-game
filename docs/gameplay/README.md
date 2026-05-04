@@ -15,7 +15,9 @@ Epics below are **narrative deep dives** + refinement notes; they must stay cons
 | Epic | Topic |
 |------|--------|
 | [GAMEPLAY_MECHANICS_CATALOG](./GAMEPLAY_MECHANICS_CATALOG.md) | **Master checklist** — all mechanics mapped to code and epics |
+| [GAMEPLAY_EPIC_ACCEPTANCE_REPORT](./GAMEPLAY_EPIC_ACCEPTANCE_REPORT.md) | **Closure report** — converted theory epics mapped to implementation and test coverage |
 | [GAMEPLAY_POLISH_AND_GAPS](./GAMEPLAY_POLISH_AND_GAPS.md) | **Polish / partial / risky** — consolidated from epics |
+| [hazard-tile-matrix](./hazard-tile-matrix.md) | Hazard tile taxonomy, safe-target rules, objective impact, and live-copy contract |
 | [epic-core-memory-loop](./epic-core-memory-loop.md) | Flips, match/mismatch, gambit, wild, decoy, resolve timing |
 | [epic-run-session-flow](./epic-run-session-flow.md) | Memorize/play/resolving, pause, advance, relic gate, undo, debug peek |
 | [epic-board-rendering-assists](./epic-board-rendering-assists.md) | WebGL board, findables/shifting spotlight, pair-distance hints, focus assist, presentation mutator **3D tints** |

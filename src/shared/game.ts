@@ -2,6 +2,8 @@ import {
     BOSS_FLOOR_SCORE_MULTIPLIER,
     CHAIN_HEAL_STREAK_STEP,
     COMBO_GUARD_STREAK_STEP,
+    CATALYST_ALTAR_FALLBACK_SCORE_REWARD,
+    CATALYST_ALTAR_UPGRADED_SCORE_REWARD,
     CURSED_LAST_BONUS_SCORE,
     DEBUG_REVEAL_MS,
     ENDLESS_RISK_WAGER_BONUS_FAVOR,
@@ -14,6 +16,10 @@ import {
     FEATURED_OBJECTIVE_STREAK_BONUS_PER_STEP,
     FLIP_PAR_BONUS_SCORE,
     FLOOR_CLEAR_GOLD_BASE,
+    FUSE_CACHE_EXPIRED_SHOP_GOLD_REWARD,
+    FUSE_CACHE_FRESH_RESOLUTION_LIMIT,
+    FUSE_CACHE_FRESH_SCORE_REWARD,
+    FUSE_CACHE_FRESH_SHOP_GOLD_REWARD,
     GAME_RULES_VERSION,
     SHIFTING_BOUNTY_MATCH_BONUS,
     SHIFTING_WARD_MATCH_PENALTY,
@@ -27,6 +33,12 @@ import {
     MAX_LIVES,
     MAX_PENDING_MEMORIZE_BONUS_MS,
     MAX_PINNED_TILES,
+    LOADED_GATEWAY_SCORE_REWARD,
+    MIMIC_CACHE_BLIND_SHOP_GOLD_REWARD,
+    MIMIC_CACHE_CONTROLLED_SCORE_REWARD,
+    MIMIC_CACHE_CONTROLLED_SHOP_GOLD_REWARD,
+    PARASITE_VESSEL_FALLBACK_SCORE_REWARD,
+    PIN_LATTICE_SCORE_REWARD,
     MEMORIZE_BASE_MS,
     MEMORIZE_BONUS_PER_LIFE_LOST_MS,
     MEMORIZE_DECAY_EVERY_N_LEVELS,
@@ -34,6 +46,8 @@ import {
     MEMORIZE_STEP_MS,
     SCHOLAR_STYLE_FLOOR_BONUS_SCORE,
     type AchievementId,
+    TOLL_CACHE_MATCH_SCORE_TOLL,
+    TOLL_CACHE_SHOP_GOLD_REWARD,
     type BoardState,
     type DungeonCardEffectId,
     type DungeonBossId,
@@ -46,6 +60,7 @@ import {
     type DungeonKeyKind,
     type DungeonCardKind,
     type FindableKind,
+    type HazardTileKind,
     type ClearLifeReason,
     type FeaturedObjectiveId,
     type FloorTag,
@@ -121,6 +136,7 @@ import {
     getSymbolSetForLevel as getSymbolSetForLevelFromCatalog
 } from './tile-symbol-catalog';
 import { getDungeonCardKindDefinition } from './dungeon-cards';
+import { getHazardTileDefinition } from './hazard-tiles';
 
 type SymbolEntry = { symbol: string; label: string };
 const COMBO_SHARD_STREAK_STEP = 2;
@@ -131,6 +147,11 @@ export const EXIT_PAIR_KEY = '__exit__';
 export const SHOP_PAIR_KEY = '__shop__';
 export const ROOM_PAIR_KEY = '__room__';
 const PICKUP_BASELINE_RULES_VERSION = 8;
+const HAZARD_TILE_BASELINE_RULES_VERSION = 20;
+const FRAGILE_CACHE_BASELINE_LEVEL = 3;
+const FRAGILE_CACHE_MATCH_SCORE = 25;
+const TOLL_CACHE_BASELINE_LEVEL = 5;
+const FUSE_CACHE_BASELINE_LEVEL = 7;
 
 const isSingletonUtilityPairKey = (pairKey: string): boolean =>
     pairKey === DECOY_PAIR_KEY ||
@@ -144,7 +165,7 @@ export const getWildTileIdFromBoard = (board: BoardState): string | null =>
     board.tiles.find((t) => t.pairKey === WILD_PAIR_KEY)?.id ?? null;
 
 export const boardHasGlassDecoy = (board: BoardState): boolean =>
-    board.tiles.some((t) => t.pairKey === DECOY_PAIR_KEY);
+    board.tiles.some((t) => t.pairKey === DECOY_PAIR_KEY && t.tileHazardKind !== 'mirror_decoy');
 
 const pickCursedPairKey = (
     tiles: Tile[],
@@ -1358,6 +1379,13 @@ const createRouteCardPlanForRoute = (
 const createRouteCardPlan = (run: RunState, choice: RouteChoice): RouteCardPlan =>
     createRouteCardPlanForRoute(run, choice.routeType, choice.id);
 
+const loadedGatewayRouteTypeFor = (run: RunState, pairKey: string): RouteNodeType => {
+    const seed = hashStringToSeed(
+        `loadedGateway:${run.runRulesVersion}:${run.runSeed}:${run.board?.level ?? run.stats.highestLevel}:${pairKey}`
+    );
+    return Math.abs(seed) % 2 === 0 ? 'mystery' : 'greed';
+};
+
 const hasFirstMismatchGrace = (run: RunState, board: BoardState): boolean =>
     run.stats.tries === 0 && (board.level === 1 || (run.stats.guardTokens === 0 && run.lives >= 2));
 
@@ -1394,7 +1422,9 @@ const clearDungeonCardFields = (tile: Tile): Tile => ({
     dungeonCardEffectId: undefined,
     dungeonCardHp: undefined,
     dungeonCardMaxHp: undefined,
-    dungeonRouteType: undefined
+    dungeonRouteType: undefined,
+    lanternScouted: undefined,
+    scoutRevealSource: undefined
 });
 
 const activeDungeonEnemyPairKeys = (board: BoardState): string[] => [
@@ -1488,6 +1518,124 @@ const revealOneHiddenDungeonHazardPair = (tiles: readonly Tile[]): Set<string> =
             .map((tile) => tile.id)
     );
 };
+
+const tileIsUnresolved = (tile: Tile): boolean => tile.state !== 'matched' && tile.state !== 'removed';
+
+type ScoutRevealSource = 'lantern_ward' | 'omen_seal';
+type ScoutTargetKind = 'dungeon' | 'route' | 'hazard';
+
+const tileAlreadyScouted = (tile: Tile): boolean => tile.scoutRevealSource != null || tile.lanternScouted === true;
+
+const chooseScoutPairKey = (
+    board: BoardState,
+    run: RunState,
+    source: ScoutRevealSource
+): { pairKey: string; kind: ScoutTargetKind } | null => {
+    const dungeonKeys = [
+        ...new Set(
+            board.tiles
+                .filter(
+                    (tile) =>
+                        (tile.dungeonCardKind === 'trap' || tile.dungeonCardKind === 'enemy') &&
+                        tile.dungeonCardState === 'hidden' &&
+                        !tileAlreadyScouted(tile) &&
+                        tileIsUnresolved(tile)
+                )
+                .map((tile) => tile.pairKey)
+        )
+    ];
+    const routeKeys = [
+        ...new Set(
+            board.tiles
+                .filter(
+                    (tile) =>
+                        (tile.routeSpecialKind === 'mystery_veil' ||
+                            tile.routeSpecialKind === 'secret_door' ||
+                            tile.routeSpecialKind === 'omen_seal' ||
+                            tile.routeSpecialKind === 'mimic_cache' ||
+                            tile.routeSpecialKind === 'loaded_gateway' ||
+                            tile.routeSpecialKind === 'parasite_vessel') &&
+                        tile.routeSpecialRevealed !== true &&
+                        tileIsUnresolved(tile)
+                )
+                .map((tile) => tile.pairKey)
+        )
+    ];
+    const hazardKeys = [
+        ...new Set(
+            board.tiles
+                .filter((tile) => tile.tileHazardKind != null && !tileAlreadyScouted(tile) && tileIsUnresolved(tile))
+                .map((tile) => tile.pairKey)
+        )
+    ];
+    const pick = (keys: readonly string[]): string | null => {
+        if (keys.length === 0) {
+            return null;
+        }
+        const rng = createMulberry32(
+            hashStringToSeed(
+                `${source}Scout:${run.runRulesVersion}:${run.runSeed}:${board.level}:${
+                    source === 'lantern_ward' ? run.lanternWardScoutsThisFloor : run.omenSealScoutsThisFloor
+                }`
+            )
+        );
+        return shuffleWithRng(() => rng(), [...keys].sort())[0] ?? null;
+    };
+    const priority: readonly ScoutTargetKind[] =
+        source === 'omen_seal' ? ['hazard', 'dungeon', 'route'] : ['dungeon', 'route', 'hazard'];
+    for (const kind of priority) {
+        const key = pick(kind === 'dungeon' ? dungeonKeys : kind === 'route' ? routeKeys : hazardKeys);
+        if (key) return { pairKey: key, kind };
+    }
+    return null;
+};
+
+const applyScoutReveal = (
+    board: BoardState,
+    run: RunState,
+    source: ScoutRevealSource
+): { board: BoardState; scouted: boolean } => {
+    const target = chooseScoutPairKey(board, run, source);
+    if (!target) {
+        return { board, scouted: false };
+    }
+    return {
+        board: {
+            ...board,
+            tiles: board.tiles.map((tile) => {
+                if (tile.pairKey !== target.pairKey) {
+                    return tile;
+                }
+                if (target.kind === 'dungeon' && (tile.dungeonCardKind === 'trap' || tile.dungeonCardKind === 'enemy')) {
+                    return {
+                        ...tile,
+                        dungeonCardState: 'revealed' as const,
+                        lanternScouted: source === 'lantern_ward' ? true : tile.lanternScouted,
+                        scoutRevealSource: source
+                    };
+                }
+                if (target.kind === 'route') {
+                    return { ...tile, routeSpecialRevealed: true, routeSpecialRevealSource: source };
+                }
+                if (target.kind === 'hazard' && tile.tileHazardKind != null) {
+                    return {
+                        ...tile,
+                        lanternScouted: source === 'lantern_ward' ? true : tile.lanternScouted,
+                        scoutRevealSource: source
+                    };
+                }
+                return tile;
+            })
+        },
+        scouted: true
+    };
+};
+
+const applyLanternWardScout = (board: BoardState, run: RunState): { board: BoardState; scouted: boolean } =>
+    applyScoutReveal(board, run, 'lantern_ward');
+
+const applyOmenSealScout = (board: BoardState, run: RunState): { board: BoardState; scouted: boolean } =>
+    applyScoutReveal(board, run, 'omen_seal');
 
 const springArmedDungeonTraps = (
     run: RunState,
@@ -3131,6 +3279,76 @@ const assignDungeonFillerCardsToTiles = (
     );
 };
 
+const tileCanCarryHazard = (tile: Tile): boolean =>
+    !isSingletonUtilityPairKey(tile.pairKey) &&
+    tile.dungeonCardKind == null &&
+    tile.routeSpecialKind == null &&
+    tile.routeCardKind == null &&
+    tile.findableKind == null &&
+    tile.tileHazardKind == null;
+
+const assignHazardTilesToGeneratedBoard = (
+    tiles: Tile[],
+    runSeed: number,
+    rulesVersion: number,
+    level: number,
+    gameMode?: GameMode
+): Tile[] => {
+    if (!gameMode || rulesVersion < HAZARD_TILE_BASELINE_RULES_VERSION) {
+        return tiles;
+    }
+
+    const eligibleKeys = [
+        ...new Set(tiles.filter(tileCanCarryHazard).map((tile) => tile.pairKey))
+    ].filter((pairKey) => tiles.filter((tile) => tile.pairKey === pairKey && tileCanCarryHazard(tile)).length === 2);
+    const rng = createMulberry32(hashStringToSeed(`hazardTiles:${rulesVersion}:${runSeed}:${level}:${gameMode}`));
+    const shuffledKeys = shuffleWithRng(() => rng(), eligibleKeys);
+    const candidateHazardKinds: HazardTileKind[] = ['shuffle_snare', 'cascade_cache'];
+    if (level >= FRAGILE_CACHE_BASELINE_LEVEL) {
+        candidateHazardKinds.push('fragile_cache');
+    }
+    if (level >= TOLL_CACHE_BASELINE_LEVEL) {
+        candidateHazardKinds.push('toll_cache');
+    }
+    if (level >= FUSE_CACHE_BASELINE_LEVEL) {
+        candidateHazardKinds.push('fuse_cache');
+    }
+    const hazardKinds: HazardTileKind[] =
+        candidateHazardKinds.length > 2
+            ? shuffleWithRng(() => rng(), candidateHazardKinds).slice(0, 2)
+            : candidateHazardKinds;
+    const hazardByPairKey = new Map<string, HazardTileKind>();
+    for (let i = 0; i < Math.min(hazardKinds.length, shuffledKeys.length); i += 1) {
+        hazardByPairKey.set(shuffledKeys[i]!, hazardKinds[i]!);
+    }
+
+    const assignedTiles = tiles.map((tile) => {
+        const kind = hazardByPairKey.get(tile.pairKey);
+        return kind ? { ...tile, tileHazardKind: kind } : tile;
+    });
+
+    const mirrorSourceKey = shuffledKeys.find((key) => !hazardByPairKey.has(key));
+    const mirrorSource =
+        (mirrorSourceKey ? assignedTiles.find((tile) => tile.pairKey === mirrorSourceKey) : null) ??
+        assignedTiles.find((tile) => !isSingletonUtilityPairKey(tile.pairKey));
+    if (!mirrorSource || assignedTiles.some((tile) => tile.tileHazardKind === 'mirror_decoy')) {
+        return assignedTiles;
+    }
+
+    const mirrorDefinition = getHazardTileDefinition('mirror_decoy');
+    return [
+        ...assignedTiles,
+        {
+            id: `hazard-mirror-${rulesVersion}-${runSeed}-${level}`,
+            pairKey: DECOY_PAIR_KEY,
+            symbol: mirrorSource.symbol,
+            label: mirrorDefinition.label,
+            state: 'hidden',
+            tileHazardKind: 'mirror_decoy'
+        }
+    ];
+};
+
 interface DungeonGraphSlots {
     mainPath: number[];
     branches: number[];
@@ -3542,8 +3760,15 @@ export const buildBoard = (level: number, options: BuildBoardOptions = {}): Boar
     const roomAdded = dungeonBlueprint
         ? addDungeonRoomTile(shopAdded.tiles, dungeonBlueprint)
         : { tiles: shopAdded.tiles, roomTileId: null };
-    const tiles = applyDungeonLayoutPlan(
+    const hazardTiles = assignHazardTilesToGeneratedBoard(
         roomAdded.tiles,
+        runSeed,
+        rulesVersion,
+        level,
+        options.gameMode
+    );
+    const tiles = applyDungeonLayoutPlan(
+        hazardTiles,
         runSeed,
         rulesVersion,
         level,
@@ -3630,13 +3855,170 @@ export const isBoardComplete = (board: BoardState): boolean =>
         if (t.state === 'matched' || t.state === 'removed') {
             return true;
         }
-        if (t.pairKey === DECOY_PAIR_KEY && t.state === 'hidden') {
+        if (
+            t.pairKey === DECOY_PAIR_KEY &&
+            (t.state === 'hidden' || (t.tileHazardKind === 'mirror_decoy' && t.state === 'flipped'))
+        ) {
             return board.tiles
                 .filter((x) => !isSingletonUtilityPairKey(x.pairKey))
                 .every((x) => x.state === 'matched' || x.state === 'removed');
         }
         return false;
     });
+
+const tileIsSafeHazardEffectTarget = (tile: Tile): boolean =>
+    tile.state === 'hidden' &&
+    !isSingletonUtilityPairKey(tile.pairKey) &&
+    tile.dungeonCardKind == null &&
+    tile.routeSpecialKind == null &&
+    tile.routeCardKind == null &&
+    tile.findableKind == null &&
+    tile.tileHazardKind == null;
+
+const applyShuffleSnareHazard = (board: BoardState, run: RunState): { board: BoardState; triggered: boolean } => {
+    const hiddenIndices: number[] = [];
+    board.tiles.forEach((tile, index) => {
+        if (tileIsSafeHazardEffectTarget(tile)) {
+            hiddenIndices.push(index);
+        }
+    });
+    if (hiddenIndices.length < 2) {
+        return { board, triggered: false };
+    }
+    const rng = createMulberry32(
+        hashStringToSeed(
+            `hazardSnare:${run.runRulesVersion}:${run.runSeed}:${board.level}:${run.hazardShuffleSnaresThisFloor}:${run.hazardTileTriggersThisFloor}`
+        )
+    );
+    const nextTiles = [...board.tiles];
+    const shuffled = shuffleWithRng(
+        () => rng(),
+        hiddenIndices.map((index) => board.tiles[index]!)
+    );
+    hiddenIndices.forEach((index, slot) => {
+        nextTiles[index] = shuffled[slot]!;
+    });
+    return { board: { ...board, tiles: nextTiles }, triggered: true };
+};
+
+const applyCascadeCacheHazard = (board: BoardState, run: RunState, matchedPairKey: string): { board: BoardState; triggered: boolean } => {
+    const blockedPairKeys = new Set<string>([matchedPairKey]);
+    if (board.cursedPairKey) {
+        blockedPairKeys.add(board.cursedPairKey);
+    }
+    const pairKeys = [
+        ...new Set(
+            board.tiles
+                .filter((tile) => tileIsSafeHazardEffectTarget(tile) && !blockedPairKeys.has(tile.pairKey))
+                .map((tile) => tile.pairKey)
+        )
+    ].filter((pairKey) => board.tiles.filter((tile) => tile.pairKey === pairKey && tileIsSafeHazardEffectTarget(tile)).length === 2);
+    if (pairKeys.length === 0) {
+        return { board, triggered: false };
+    }
+    const rng = createMulberry32(
+        hashStringToSeed(
+            `hazardCascade:${run.runRulesVersion}:${run.runSeed}:${board.level}:${run.hazardCascadeCachesThisFloor}:${matchedPairKey}`
+        )
+    );
+    const targetPairKey = shuffleWithRng(() => rng(), pairKeys)[0]!;
+    return {
+        board: {
+            ...board,
+            matchedPairs: board.matchedPairs + 1,
+            tiles: board.tiles.map((tile) =>
+                tile.pairKey === targetPairKey ? { ...tile, state: 'removed' as const } : tile
+            )
+        },
+        triggered: true
+    };
+};
+
+const withAnchorSealPressureRotation = (
+    run: RunState,
+    board: BoardState
+): { board: BoardState; shiftingSpotlightNonce: number; anchorSealUsed: boolean } => {
+    if (hasMutator(run, 'shifting_spotlight') && !isBoardComplete(board) && run.anchorSealChargesThisFloor > 0) {
+        return {
+            board,
+            shiftingSpotlightNonce: run.shiftingSpotlightNonce ?? 0,
+            anchorSealUsed: true
+        };
+    }
+    return {
+        ...withRotatedShiftingSpotlight(run, board),
+        anchorSealUsed: false
+    };
+};
+
+const breakFragileCacheHazards = (
+    board: BoardState,
+    sourceTiles: readonly Tile[]
+): { board: BoardState; brokenCount: number } => {
+    const brokenPairKeys = new Set(
+        sourceTiles
+            .filter((tile) => tile.tileHazardKind === 'fragile_cache')
+            .map((tile) => tile.pairKey)
+    );
+    if (brokenPairKeys.size === 0) {
+        return { board, brokenCount: 0 };
+    }
+    return {
+        board: {
+            ...board,
+            tiles: board.tiles.map((tile) =>
+                brokenPairKeys.has(tile.pairKey) && tile.tileHazardKind === 'fragile_cache'
+                    ? { ...tile, tileHazardKind: undefined }
+                    : tile
+            )
+        },
+        brokenCount: brokenPairKeys.size
+    };
+};
+
+const applySafeHazardWardMismatch = (
+    run: RunState,
+    board: BoardState,
+    sourceTiles: readonly Tile[],
+    mismatchHazards: ReadonlySet<HazardTileKind>
+): {
+    board: BoardState;
+    fragileBreak: { board: BoardState; brokenCount: number };
+    snareHazard: { board: BoardState; triggered: boolean };
+    wardUsed: boolean;
+} => {
+    const hasWardCharge = (run.safeHazardWardChargesThisFloor ?? 0) > 0;
+    const blocksSnare = hasWardCharge && mismatchHazards.has('shuffle_snare');
+    const blocksFragile =
+        hasWardCharge &&
+        !blocksSnare &&
+        sourceTiles.some((tile) => tile.tileHazardKind === 'fragile_cache');
+    const fragileBreak = blocksFragile
+        ? { board, brokenCount: 0 }
+        : breakFragileCacheHazards(board, sourceTiles);
+    const snareHazard =
+        mismatchHazards.has('shuffle_snare') && !blocksSnare
+            ? applyShuffleSnareHazard(fragileBreak.board, run)
+            : { board: fragileBreak.board, triggered: false };
+
+    return {
+        board: snareHazard.board,
+        fragileBreak,
+        snareHazard,
+        wardUsed: blocksSnare || blocksFragile
+    };
+};
+
+const hazardKindsInTiles = (tiles: readonly Tile[], ids: readonly string[]): Set<HazardTileKind> => {
+    const idsSet = new Set(ids);
+    const kinds = new Set<HazardTileKind>();
+    for (const tile of tiles) {
+        if (idsSet.has(tile.id) && tile.tileHazardKind) {
+            kinds.add(tile.tileHazardKind);
+        }
+    }
+    return kinds;
+};
 
 /** Pairs where both tiles are still hidden (eligible for shuffle / destroy targeting). */
 export const countFullyHiddenPairs = (board: BoardState): number => {
@@ -3839,7 +4221,7 @@ export const inspectBoardFairness = (board: BoardState): BoardFairnessReport => 
 
     const realTilesComplete = realPairKeys.length > 0 && realPairKeys.length === matchedOrRemovedRealPairs;
     for (const decoy of groups.get(DECOY_PAIR_KEY) ?? []) {
-        if (decoy.state !== 'hidden' && !realTilesComplete) {
+        if (decoy.state !== 'hidden' && !(decoy.tileHazardKind === 'mirror_decoy' && decoy.state === 'flipped') && !realTilesComplete) {
             structurallyClearable = false;
             issues.push({
                 code: 'decoy_flipped_or_cleared_before_completion',
@@ -4121,7 +4503,10 @@ const STRAY_PROTECTED_ROUTE_SPECIALS = new Set<RouteSpecialKind>([
 const PEEK_REVEALED_ROUTE_SPECIALS = new Set<RouteSpecialKind>([
     'mystery_veil',
     'secret_door',
-    'omen_seal'
+    'omen_seal',
+    'mimic_cache',
+    'loaded_gateway',
+    'parasite_vessel'
 ]);
 
 /** Stray remove targets one hidden non-decoy, non-protected route tile (mirrors `applyStrayRemove`). */
@@ -4567,6 +4952,28 @@ export const createNewRun = (bestScore: number, options: CreateRunOptions = {}):
         pinsPlacedCountThisRun: 0,
         findablesClaimedThisFloor: 0,
         findablesTotalThisFloor: countFindablePairs(board.tiles),
+        hazardTileTriggersThisFloor: 0,
+        hazardShuffleSnaresThisFloor: 0,
+        hazardCascadeCachesThisFloor: 0,
+        hazardMirrorDecoysThisFloor: 0,
+        hazardFragileCacheClaimsThisFloor: 0,
+        hazardFragileCacheBreaksThisFloor: 0,
+        hazardTollCachesThisFloor: 0,
+        hazardFuseCachesThisFloor: 0,
+        hazardFuseCacheExpiredClaimsThisFloor: 0,
+        lanternWardScoutsThisFloor: 0,
+        omenSealScoutsThisFloor: 0,
+        mimicCacheClaimsThisFloor: 0,
+        mimicCacheBitesThisFloor: 0,
+        mimicCacheGuardBitesThisFloor: 0,
+        anchorSealChargesThisFloor: 0,
+        anchorSealUsesThisFloor: 0,
+        loadedGatewayPlansThisFloor: 0,
+        catalystAltarUpgradesThisFloor: 0,
+        parasiteVesselConversionsThisFloor: 0,
+        pinLatticeRewardsThisFloor: 0,
+        safeHazardWardChargesThisFloor: 0,
+        safeHazardWardsUsedThisFloor: 0,
         shiftingSpotlightNonce: 0,
         dungeonEnemiesDefeated: 0,
         dungeonEnemiesDefeatedThisFloor: 0,
@@ -5120,6 +5527,30 @@ const finalizeLevel = (run: RunState, board: BoardState): RunState => {
         endlessRiskWagerStreakLost,
         bossTrophyCacheOutcome,
         bossTrophyCacheScore: bossTrophyCacheScore > 0 ? bossTrophyCacheScore : undefined,
+        hazardTileTriggers: run.hazardTileTriggersThisFloor > 0 ? run.hazardTileTriggersThisFloor : undefined,
+        hazardShuffleSnares: run.hazardShuffleSnaresThisFloor > 0 ? run.hazardShuffleSnaresThisFloor : undefined,
+        hazardCascadeCaches: run.hazardCascadeCachesThisFloor > 0 ? run.hazardCascadeCachesThisFloor : undefined,
+        hazardMirrorDecoys: run.hazardMirrorDecoysThisFloor > 0 ? run.hazardMirrorDecoysThisFloor : undefined,
+        hazardFragileCacheClaims:
+            run.hazardFragileCacheClaimsThisFloor > 0 ? run.hazardFragileCacheClaimsThisFloor : undefined,
+        hazardFragileCacheBreaks:
+            run.hazardFragileCacheBreaksThisFloor > 0 ? run.hazardFragileCacheBreaksThisFloor : undefined,
+        hazardTollCaches: run.hazardTollCachesThisFloor > 0 ? run.hazardTollCachesThisFloor : undefined,
+        hazardFuseCaches: run.hazardFuseCachesThisFloor > 0 ? run.hazardFuseCachesThisFloor : undefined,
+        hazardFuseCacheExpiredClaims:
+            run.hazardFuseCacheExpiredClaimsThisFloor > 0 ? run.hazardFuseCacheExpiredClaimsThisFloor : undefined,
+        lanternWardScouts: run.lanternWardScoutsThisFloor > 0 ? run.lanternWardScoutsThisFloor : undefined,
+        omenSealScouts: run.omenSealScoutsThisFloor > 0 ? run.omenSealScoutsThisFloor : undefined,
+        mimicCacheClaims: run.mimicCacheClaimsThisFloor > 0 ? run.mimicCacheClaimsThisFloor : undefined,
+        mimicCacheBites: run.mimicCacheBitesThisFloor > 0 ? run.mimicCacheBitesThisFloor : undefined,
+        anchorSealUses: run.anchorSealUsesThisFloor > 0 ? run.anchorSealUsesThisFloor : undefined,
+        loadedGatewayPlans: run.loadedGatewayPlansThisFloor > 0 ? run.loadedGatewayPlansThisFloor : undefined,
+        catalystAltarUpgrades:
+            run.catalystAltarUpgradesThisFloor > 0 ? run.catalystAltarUpgradesThisFloor : undefined,
+        parasiteVesselConversions:
+            run.parasiteVesselConversionsThisFloor > 0 ? run.parasiteVesselConversionsThisFloor : undefined,
+        pinLatticeRewards: run.pinLatticeRewardsThisFloor > 0 ? run.pinLatticeRewardsThisFloor : undefined,
+        safeHazardWardsUsed: run.safeHazardWardsUsedThisFloor > 0 ? run.safeHazardWardsUsedThisFloor : undefined,
         routeChoices
     };
 
@@ -5185,7 +5616,10 @@ export const applyDestroyPair = (run: RunState, tileId: string): RunState => {
                       findableKind: undefined,
                       routeCardKind: undefined,
                       routeSpecialKind: undefined,
-                      routeSpecialRevealed: undefined
+                      routeSpecialRevealed: undefined,
+                      routeSpecialRevealSource: undefined,
+                      lanternScouted: undefined,
+                      scoutRevealSource: undefined
                   }
                 : t
         )
@@ -5233,7 +5667,9 @@ export const applyPeek = (run: RunState, tileId: string): RunState => {
             ? {
                   ...run.board,
                   tiles: run.board.tiles.map((t) =>
-                      t.pairKey === tile.pairKey ? { ...t, routeSpecialRevealed: true } : t
+                  t.pairKey === tile.pairKey
+                      ? { ...t, routeSpecialRevealed: true, routeSpecialRevealSource: 'peek' as const }
+                      : t
                   )
               }
             : run.board;
@@ -5296,14 +5732,20 @@ export const applyStrayRemove = (run: RunState, tileId: string): RunState => {
                       state: 'removed' as const,
                       routeCardKind: undefined,
                       routeSpecialKind: undefined,
-                      routeSpecialRevealed: undefined
+                      routeSpecialRevealed: undefined,
+                      routeSpecialRevealSource: undefined,
+                      lanternScouted: undefined,
+                      scoutRevealSource: undefined
                   }
                 : t.pairKey === tile.pairKey
                   ? {
                         ...t,
                         routeCardKind: undefined,
                         routeSpecialKind: undefined,
-                        routeSpecialRevealed: undefined
+                        routeSpecialRevealed: undefined,
+                        routeSpecialRevealSource: undefined,
+                        lanternScouted: undefined,
+                        scoutRevealSource: undefined
                     }
                   : t
         )
@@ -5397,6 +5839,7 @@ interface RouteCardReward {
     score: number;
     shopGold: number;
     guardTokens: number;
+    safeHazardWardCharges: number;
     comboShards: number;
     relicFavor: number;
 }
@@ -5405,6 +5848,7 @@ const emptyRouteCardReward = (): RouteCardReward => ({
     score: 0,
     shopGold: 0,
     guardTokens: 0,
+    safeHazardWardCharges: 0,
     comboShards: 0,
     relicFavor: 0
 });
@@ -5419,10 +5863,16 @@ const getRouteCardReward = (
     run: RunState,
     level: number,
     pairKey: string,
-    kind: RouteSpecialKind | RouteCardKind | null
+    kind: RouteSpecialKind | RouteCardKind | null,
+    routeSpecialRevealed = false
 ): RouteCardReward => {
     if (kind === 'safe_ward') {
         return { ...emptyRouteCardReward(), guardTokens: 1 };
+    }
+    if (kind === 'guard_cache') {
+        return run.stats.guardTokens >= MAX_GUARD_TOKENS
+            ? { ...emptyRouteCardReward(), safeHazardWardCharges: 1 }
+            : { ...emptyRouteCardReward(), guardTokens: 1 };
     }
     if (kind === 'greed_cache') {
         return {
@@ -5478,6 +5928,45 @@ const getRouteCardReward = (
             relicFavor: 1,
             comboShards: 1
         };
+    }
+    if (kind === 'mimic_cache') {
+        return routeSpecialRevealed
+            ? {
+                  ...emptyRouteCardReward(),
+                  score: MIMIC_CACHE_CONTROLLED_SCORE_REWARD,
+                  shopGold: MIMIC_CACHE_CONTROLLED_SHOP_GOLD_REWARD,
+                  comboShards: 1
+              }
+            : {
+                  ...emptyRouteCardReward(),
+                  shopGold: MIMIC_CACHE_BLIND_SHOP_GOLD_REWARD
+              };
+    }
+    if (kind === 'loaded_gateway') {
+        return {
+            ...emptyRouteCardReward(),
+            score: LOADED_GATEWAY_SCORE_REWARD
+        };
+    }
+    if (kind === 'catalyst_altar') {
+        return {
+            ...emptyRouteCardReward(),
+            score:
+                run.stats.comboShards > 0
+                    ? CATALYST_ALTAR_UPGRADED_SCORE_REWARD
+                    : CATALYST_ALTAR_FALLBACK_SCORE_REWARD
+        };
+    }
+    if (kind === 'parasite_vessel') {
+        return run.parasiteFloors > 0
+            ? {
+                  ...emptyRouteCardReward(),
+                  relicFavor: 1
+              }
+            : {
+                  ...emptyRouteCardReward(),
+                  score: PARASITE_VESSEL_FALLBACK_SCORE_REWARD
+              };
     }
     if (kind === 'keystone_pair') {
         return {
@@ -6830,7 +7319,27 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
             tileMatchB.routeCardKind ??
             null;
         const matchedPairKey = isWildPairKey(tileMatchA.pairKey) ? tileMatchB.pairKey : tileMatchA.pairKey;
-        const routeCardReward = getRouteCardReward(run, run.board.level, matchedPairKey, claimedRouteCardKind);
+        const claimedRouteSpecialRevealed = tileMatchA.routeSpecialRevealed === true || tileMatchB.routeSpecialRevealed === true;
+        const routeCardReward = getRouteCardReward(
+            run,
+            run.board.level,
+            matchedPairKey,
+            claimedRouteCardKind,
+            claimedRouteSpecialRevealed
+        );
+        const mimicCacheClaimed = claimedRouteCardKind === 'mimic_cache';
+        const mimicCacheBite = mimicCacheClaimed && !claimedRouteSpecialRevealed;
+        const mimicCacheGuardBite = mimicCacheBite && run.stats.guardTokens > 0;
+        const mimicCacheFatalBite = mimicCacheBite && !mimicCacheGuardBite && run.lives <= 1;
+        const anchorSealClaimed = claimedRouteCardKind === 'anchor_seal';
+        const loadedGatewayClaimed = claimedRouteCardKind === 'loaded_gateway';
+        const catalystAltarUpgraded = claimedRouteCardKind === 'catalyst_altar' && run.stats.comboShards > 0;
+        const parasiteVesselConverted = claimedRouteCardKind === 'parasite_vessel' && run.parasiteFloors > 0;
+        const pinLatticeRewarded =
+            claimedRouteCardKind === 'pin_lattice' &&
+            run.pinLatticeRewardsThisFloor < 1 &&
+            run.pinnedTileIds.includes(matchA) &&
+            run.pinnedTileIds.includes(matchB);
         const dungeonReward = getDungeonMatchReward(run, tileMatchA, tileMatchB);
         const matchedDungeonKind = tileMatchA.dungeonCardKind ?? tileMatchB.dungeonCardKind ?? null;
         const matchedDungeonKeyKind = tileMatchA.dungeonKeyKind ?? tileMatchB.dungeonKeyKind ?? 'iron';
@@ -6858,7 +7367,10 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
                         findableKind: undefined,
                         routeCardKind: undefined,
                         routeSpecialKind: undefined,
-                        routeSpecialRevealed: undefined
+                        routeSpecialRevealed: undefined,
+                        routeSpecialRevealSource: undefined,
+                        lanternScouted: undefined,
+                        scoutRevealSource: undefined
                     });
                 }
                 if (tile.id === thirdId) {
@@ -6876,27 +7388,45 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
             matchedDungeonKind === 'lever' && (tileMatchA.dungeonCardEffectId ?? tileMatchB.dungeonCardEffectId) === 'rune_seal'
                 ? resolveOneArmedTrapPair(boardBeforeEnemyDamage)
                 : boardBeforeEnemyDamage;
-        const enemyDamage = damageFirstActiveDungeonEnemy(dungeonEffectBoard, 1);
+        const matchedHazards = hazardKindsInTiles(run.board.tiles, [matchA, matchB]);
+        const cascadeHazard = matchedHazards.has('cascade_cache')
+            ? applyCascadeCacheHazard(dungeonEffectBoard, run, matchedPairKey)
+            : { board: dungeonEffectBoard, triggered: false };
+        const fragileCacheClaimed = matchedHazards.has('fragile_cache');
+        const tollCacheClaimed = matchedHazards.has('toll_cache');
+        const fuseCacheClaimed = matchedHazards.has('fuse_cache');
+        const fuseCacheFresh = fuseCacheClaimed && run.matchResolutionsThisFloor < FUSE_CACHE_FRESH_RESOLUTION_LIMIT;
+        const enemyDamage = damageFirstActiveDungeonEnemy(cascadeHazard.board, 1);
         const hazardDamage = damageFirstRevealedEnemyHazard(enemyDamage.board, 1);
-        const board = advanceEnemyHazardsOnBoard(hazardDamage.board);
+        const boardAfterHazards = advanceEnemyHazardsOnBoard(hazardDamage.board);
+        const lanternScout =
+            claimedRouteCardKind === 'lantern_ward'
+                ? applyLanternWardScout(boardAfterHazards, run)
+                : { board: boardAfterHazards, scouted: false };
+        const omenScout =
+            claimedRouteCardKind === 'omen_seal'
+                ? applyOmenSealScout(lanternScout.board, run)
+                : { board: lanternScout.board, scouted: false };
+        const board = omenScout.board;
         const currentStreak = run.stats.currentStreak + 1;
         const meditation = run.gameMode === 'meditation';
         const guardTokenGain =
             meditation || currentStreak % COMBO_GUARD_STREAK_STEP !== 0 ? 0 : 1;
+        const guardTokensBeforeRewards = Math.max(0, run.stats.guardTokens - (mimicCacheGuardBite ? 1 : 0));
         const guardTokens = Math.min(
             MAX_GUARD_TOKENS,
-            run.stats.guardTokens + guardTokenGain + routeCardReward.guardTokens + dungeonReward.guardTokens
+            guardTokensBeforeRewards + guardTokenGain + routeCardReward.guardTokens + dungeonReward.guardTokens
         );
         const comboShardReward = meditation
             ? applyComboShardGain(
-                  run.stats.comboShards,
-                  run.lives,
+                  Math.max(0, run.stats.comboShards - (catalystAltarUpgraded ? 1 : 0)),
+                  mimicCacheFatalBite ? 0 : run.lives - (mimicCacheBite && !mimicCacheGuardBite ? 1 : 0),
                   findableComboShardGain + routeCardReward.comboShards + dungeonReward.comboShards,
                   false
               )
             : applyComboShardGain(
-                  run.stats.comboShards,
-                  run.lives,
+                  Math.max(0, run.stats.comboShards - (catalystAltarUpgraded ? 1 : 0)),
+                  mimicCacheFatalBite ? 0 : run.lives - (mimicCacheBite && !mimicCacheGuardBite ? 1 : 0),
                   (currentStreak % COMBO_SHARD_STREAK_STEP === 0 ? 1 : 0) +
                       findableComboShardGain +
                       routeCardReward.comboShards +
@@ -6904,7 +7434,15 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
               );
         const chainHealLifeGain =
             meditation || currentStreak % CHAIN_HEAL_STREAK_STEP !== 0 ? 0 : 1;
-        const lives = Math.min(MAX_LIVES, run.lives + chainHealLifeGain + comboShardReward.lifeGain);
+        const lives = mimicCacheFatalBite
+            ? 0
+            : Math.min(
+                  MAX_LIVES,
+                  run.lives -
+                      (mimicCacheBite && !mimicCacheGuardBite ? 1 : 0) +
+                      chainHealLifeGain +
+                      comboShardReward.lifeGain
+              );
         const encoreKey = matchedPairKey;
         const cursedKeyG = run.board.cursedPairKey;
         const cursedEarlyG =
@@ -6921,7 +7459,11 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
                 dungeonReward.score +
                 enemyDamage.score +
                 hazardDamage.score +
+                (fragileCacheClaimed ? FRAGILE_CACHE_MATCH_SCORE : 0) +
+                (fuseCacheFresh ? FUSE_CACHE_FRESH_SCORE_REWARD : 0) +
+                (pinLatticeRewarded ? PIN_LATTICE_SCORE_REWARD : 0) +
                 spotlightDelta -
+                (tollCacheClaimed ? TOLL_CACHE_MATCH_SCORE_TOLL : 0) -
                 presentationPenalty
         );
         const totalScore = run.stats.totalScore + matchScore;
@@ -6936,19 +7478,29 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
                 ? 0
                 : run.wildMatchesRemaining;
 
-        const spunG = withRotatedShiftingSpotlight(run, board);
+        const spunG = withAnchorSealPressureRotation(run, board);
+        const loadedGatewayRouteType = loadedGatewayClaimed ? loadedGatewayRouteTypeFor(run, matchedPairKey) : null;
 
         const nextRun: RunState = {
             ...run,
             gambitThirdFlipUsed: true,
             gambitAvailableThisFloor: false,
             powersUsedThisRun: true,
-            status: 'playing',
+            status: mimicCacheFatalBite ? 'gameOver' : 'playing',
             lives,
             board: spunG.board,
             shiftingSpotlightNonce: spunG.shiftingSpotlightNonce,
             wildMatchesRemaining,
-            shopGold: run.shopGold + routeCardReward.shopGold + dungeonReward.shopGold,
+            shopGold:
+                run.shopGold +
+                routeCardReward.shopGold +
+                dungeonReward.shopGold +
+                (tollCacheClaimed ? TOLL_CACHE_SHOP_GOLD_REWARD : 0) +
+                (fuseCacheClaimed
+                    ? fuseCacheFresh
+                        ? FUSE_CACHE_FRESH_SHOP_GOLD_REWARD
+                        : FUSE_CACHE_EXPIRED_SHOP_GOLD_REWARD
+                    : 0),
             dungeonKeys:
                 matchedDungeonKind === 'key'
                     ? addRunDungeonKey(run.dungeonKeys, matchedDungeonKeyKind, 1)
@@ -6960,7 +7512,13 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
             nBackAnchorPairKey,
             matchedPairKeysThisRun: [...run.matchedPairKeysThisRun, encoreKey],
             pendingRouteCardPlan:
-                run.pendingRouteCardPlan == null && dungeonReward.gatewayRouteType
+                run.pendingRouteCardPlan == null && loadedGatewayRouteType
+                    ? createRouteCardPlanForRoute(
+                          run,
+                          loadedGatewayRouteType,
+                          `loaded_gateway:${run.runRulesVersion}:${run.runSeed}:${run.board.level}:${matchedPairKey}`
+                      )
+                    : run.pendingRouteCardPlan == null && dungeonReward.gatewayRouteType
                     ? createRouteCardPlanForRoute(
                           run,
                           dungeonReward.gatewayRouteType,
@@ -6974,6 +7532,39 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
             cursedMatchedEarlyThisFloor: run.cursedMatchedEarlyThisFloor || cursedEarlyG,
             matchResolutionsThisFloor: run.matchResolutionsThisFloor + 1,
             findablesClaimedThisFloor: run.findablesClaimedThisFloor + findablesClaimedDelta,
+            safeHazardWardChargesThisFloor: Math.min(
+                1,
+                (run.safeHazardWardChargesThisFloor ?? 0) + routeCardReward.safeHazardWardCharges
+            ),
+            hazardTileTriggersThisFloor:
+                run.hazardTileTriggersThisFloor +
+                (cascadeHazard.triggered ? 1 : 0) +
+                (fragileCacheClaimed ? 1 : 0) +
+                (tollCacheClaimed ? 1 : 0) +
+                (fuseCacheClaimed ? 1 : 0),
+            hazardCascadeCachesThisFloor: run.hazardCascadeCachesThisFloor + (cascadeHazard.triggered ? 1 : 0),
+            hazardFragileCacheClaimsThisFloor:
+                run.hazardFragileCacheClaimsThisFloor + (fragileCacheClaimed ? 1 : 0),
+            hazardTollCachesThisFloor: run.hazardTollCachesThisFloor + (tollCacheClaimed ? 1 : 0),
+            hazardFuseCachesThisFloor: run.hazardFuseCachesThisFloor + (fuseCacheClaimed ? 1 : 0),
+            hazardFuseCacheExpiredClaimsThisFloor:
+                run.hazardFuseCacheExpiredClaimsThisFloor + (fuseCacheClaimed && !fuseCacheFresh ? 1 : 0),
+            lanternWardScoutsThisFloor: run.lanternWardScoutsThisFloor + (lanternScout.scouted ? 1 : 0),
+            omenSealScoutsThisFloor: run.omenSealScoutsThisFloor + (omenScout.scouted ? 1 : 0),
+            mimicCacheClaimsThisFloor: run.mimicCacheClaimsThisFloor + (mimicCacheClaimed ? 1 : 0),
+            mimicCacheBitesThisFloor: run.mimicCacheBitesThisFloor + (mimicCacheBite ? 1 : 0),
+            mimicCacheGuardBitesThisFloor: run.mimicCacheGuardBitesThisFloor + (mimicCacheGuardBite ? 1 : 0),
+            anchorSealChargesThisFloor:
+                Math.max(0, run.anchorSealChargesThisFloor - (spunG.anchorSealUsed ? 1 : 0)) +
+                (anchorSealClaimed ? 1 : 0),
+            anchorSealUsesThisFloor: run.anchorSealUsesThisFloor + (spunG.anchorSealUsed ? 1 : 0),
+            loadedGatewayPlansThisFloor: run.loadedGatewayPlansThisFloor + (loadedGatewayClaimed ? 1 : 0),
+            catalystAltarUpgradesThisFloor:
+                run.catalystAltarUpgradesThisFloor + (catalystAltarUpgraded ? 1 : 0),
+            parasiteVesselConversionsThisFloor:
+                run.parasiteVesselConversionsThisFloor + (parasiteVesselConverted ? 1 : 0),
+            pinLatticeRewardsThisFloor: run.pinLatticeRewardsThisFloor + (pinLatticeRewarded ? 1 : 0),
+            parasiteFloors: parasiteVesselConverted ? Math.max(0, run.parasiteFloors - 1) : run.parasiteFloors,
             dungeonEnemiesDefeated:
                 run.dungeonEnemiesDefeated + dungeonReward.enemiesDefeated + enemyDamage.defeated + hazardDamage.bossDefeated,
             dungeonEnemiesDefeatedThisFloor:
@@ -6996,7 +7587,11 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
             },
             timerState: clearResolveState(run)
         };
-        return isBoardComplete(spunG.board) ? finalizeLevel(nextRun, spunG.board) : nextRun;
+        return nextRun.status === 'gameOver'
+            ? nextRun
+            : isBoardComplete(spunG.board)
+              ? finalizeLevel(nextRun, spunG.board)
+              : nextRun;
     }
 
     const tries = run.stats.tries + GAMBIT_FAIL_EXTRA_TRIES;
@@ -7037,7 +7632,11 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
     lives = enemyAttack.lives;
     const statusAfterEnemy: RunStatus = lives <= 0 || contractFail || trapSpring.run.status === 'gameOver' ? 'gameOver' : status;
     const advancedTrapBoard = advanceEnemyHazardsOnBoard(trapSpring.board);
-    const spunGambitMiss = withRotatedShiftingSpotlight(run, advancedTrapBoard);
+    const mismatchHazards = hazardKindsInTiles(run.board.tiles, [aId, bId, cId]);
+    const wardedHazards = applySafeHazardWardMismatch(run, advancedTrapBoard, [ta, tb, tc], mismatchHazards);
+    const { fragileBreak, snareHazard } = wardedHazards;
+    const mirrorTriggered = mismatchHazards.has('mirror_decoy');
+    const spunGambitMiss = withRotatedShiftingSpotlight(run, wardedHazards.board);
 
     return {
         ...run,
@@ -7052,6 +7651,19 @@ const resolveGambitThree = (run: RunState, encorePairKeys: string[]): RunState =
         dungeonTrapsTriggered: trapSpring.run.dungeonTrapsTriggered,
         board: spunGambitMiss.board,
         shiftingSpotlightNonce: spunGambitMiss.shiftingSpotlightNonce,
+        pinnedTileIds: snareHazard.triggered ? [] : run.pinnedTileIds,
+        hazardTileTriggersThisFloor:
+            run.hazardTileTriggersThisFloor +
+            (snareHazard.triggered ? 1 : 0) +
+            (mirrorTriggered ? 1 : 0) +
+            fragileBreak.brokenCount,
+        hazardShuffleSnaresThisFloor: run.hazardShuffleSnaresThisFloor + (snareHazard.triggered ? 1 : 0),
+        hazardMirrorDecoysThisFloor: run.hazardMirrorDecoysThisFloor + (mirrorTriggered ? 1 : 0),
+        hazardFragileCacheBreaksThisFloor: run.hazardFragileCacheBreaksThisFloor + fragileBreak.brokenCount,
+        safeHazardWardChargesThisFloor:
+            (run.safeHazardWardChargesThisFloor ?? 0) - (wardedHazards.wardUsed ? 1 : 0),
+        safeHazardWardsUsedThisFloor:
+            (run.safeHazardWardsUsedThisFloor ?? 0) + (wardedHazards.wardUsed ? 1 : 0),
         stickyBlockIndex: null,
         decoyFlippedThisFloor: run.decoyFlippedThisFloor || gambitDecoy,
         stats: {
@@ -7091,7 +7703,27 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
             secondTile.routeCardKind ??
             null;
         const matchedPairKey = isWildPairKey(firstTile.pairKey) ? secondTile.pairKey : firstTile.pairKey;
-        const routeCardReward = getRouteCardReward(run, run.board.level, matchedPairKey, claimedRouteCardKind);
+        const claimedRouteSpecialRevealed = firstTile.routeSpecialRevealed === true || secondTile.routeSpecialRevealed === true;
+        const routeCardReward = getRouteCardReward(
+            run,
+            run.board.level,
+            matchedPairKey,
+            claimedRouteCardKind,
+            claimedRouteSpecialRevealed
+        );
+        const mimicCacheClaimed = claimedRouteCardKind === 'mimic_cache';
+        const mimicCacheBite = mimicCacheClaimed && !claimedRouteSpecialRevealed;
+        const mimicCacheGuardBite = mimicCacheBite && run.stats.guardTokens > 0;
+        const mimicCacheFatalBite = mimicCacheBite && !mimicCacheGuardBite && run.lives <= 1;
+        const anchorSealClaimed = claimedRouteCardKind === 'anchor_seal';
+        const loadedGatewayClaimed = claimedRouteCardKind === 'loaded_gateway';
+        const catalystAltarUpgraded = claimedRouteCardKind === 'catalyst_altar' && run.stats.comboShards > 0;
+        const parasiteVesselConverted = claimedRouteCardKind === 'parasite_vessel' && run.parasiteFloors > 0;
+        const pinLatticeRewarded =
+            claimedRouteCardKind === 'pin_lattice' &&
+            run.pinLatticeRewardsThisFloor < 1 &&
+            run.pinnedTileIds.includes(firstId) &&
+            run.pinnedTileIds.includes(secondId);
         const dungeonReward = getDungeonMatchReward(run, firstTile, secondTile);
         const matchedDungeonKind = firstTile.dungeonCardKind ?? secondTile.dungeonCardKind ?? null;
         const matchedDungeonKeyKind = firstTile.dungeonKeyKind ?? secondTile.dungeonKeyKind ?? 'iron';
@@ -7119,7 +7751,10 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
                           findableKind: undefined,
                           routeCardKind: undefined,
                           routeSpecialKind: undefined,
-                          routeSpecialRevealed: undefined
+                          routeSpecialRevealed: undefined,
+                          routeSpecialRevealSource: undefined,
+                          lanternScouted: undefined,
+                          scoutRevealSource: undefined
                       })
                     : tile
             ),
@@ -7133,27 +7768,45 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
             matchedDungeonKind === 'lever' && (firstTile.dungeonCardEffectId ?? secondTile.dungeonCardEffectId) === 'rune_seal'
                 ? resolveOneArmedTrapPair(boardBeforeEnemyDamage)
                 : boardBeforeEnemyDamage;
-        const enemyDamage = damageFirstActiveDungeonEnemy(dungeonEffectBoard, 1);
+        const matchedHazards = hazardKindsInTiles(run.board.tiles, [firstId, secondId]);
+        const cascadeHazard = matchedHazards.has('cascade_cache')
+            ? applyCascadeCacheHazard(dungeonEffectBoard, run, matchedPairKey)
+            : { board: dungeonEffectBoard, triggered: false };
+        const fragileCacheClaimed = matchedHazards.has('fragile_cache');
+        const tollCacheClaimed = matchedHazards.has('toll_cache');
+        const fuseCacheClaimed = matchedHazards.has('fuse_cache');
+        const fuseCacheFresh = fuseCacheClaimed && run.matchResolutionsThisFloor < FUSE_CACHE_FRESH_RESOLUTION_LIMIT;
+        const enemyDamage = damageFirstActiveDungeonEnemy(cascadeHazard.board, 1);
         const hazardDamage = damageFirstRevealedEnemyHazard(enemyDamage.board, 1);
-        const board = advanceEnemyHazardsOnBoard(hazardDamage.board);
+        const boardAfterHazards = advanceEnemyHazardsOnBoard(hazardDamage.board);
+        const lanternScout =
+            claimedRouteCardKind === 'lantern_ward'
+                ? applyLanternWardScout(boardAfterHazards, run)
+                : { board: boardAfterHazards, scouted: false };
+        const omenScout =
+            claimedRouteCardKind === 'omen_seal'
+                ? applyOmenSealScout(lanternScout.board, run)
+                : { board: lanternScout.board, scouted: false };
+        const board = omenScout.board;
         const currentStreak = run.stats.currentStreak + 1;
         const meditation = run.gameMode === 'meditation';
         const guardTokenGain =
             meditation || currentStreak % COMBO_GUARD_STREAK_STEP !== 0 ? 0 : 1;
+        const guardTokensBeforeRewards = Math.max(0, run.stats.guardTokens - (mimicCacheGuardBite ? 1 : 0));
         const guardTokens = Math.min(
             MAX_GUARD_TOKENS,
-            run.stats.guardTokens + guardTokenGain + routeCardReward.guardTokens + dungeonReward.guardTokens
+            guardTokensBeforeRewards + guardTokenGain + routeCardReward.guardTokens + dungeonReward.guardTokens
         );
         const comboShardReward = meditation
             ? applyComboShardGain(
-                  run.stats.comboShards,
-                  run.lives,
+                  Math.max(0, run.stats.comboShards - (catalystAltarUpgraded ? 1 : 0)),
+                  mimicCacheFatalBite ? 0 : run.lives - (mimicCacheBite && !mimicCacheGuardBite ? 1 : 0),
                   findableComboShardGain + routeCardReward.comboShards,
                   false
               )
             : applyComboShardGain(
-                  run.stats.comboShards,
-                  run.lives,
+                  Math.max(0, run.stats.comboShards - (catalystAltarUpgraded ? 1 : 0)),
+                  mimicCacheFatalBite ? 0 : run.lives - (mimicCacheBite && !mimicCacheGuardBite ? 1 : 0),
                   (currentStreak % COMBO_SHARD_STREAK_STEP === 0 ? 1 : 0) +
                       findableComboShardGain +
                       routeCardReward.comboShards +
@@ -7161,7 +7814,15 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
               );
         const chainHealLifeGain =
             meditation || currentStreak % CHAIN_HEAL_STREAK_STEP !== 0 ? 0 : 1;
-        const lives = Math.min(MAX_LIVES, run.lives + chainHealLifeGain + comboShardReward.lifeGain);
+        const lives = mimicCacheFatalBite
+            ? 0
+            : Math.min(
+                  MAX_LIVES,
+                  run.lives -
+                      (mimicCacheBite && !mimicCacheGuardBite ? 1 : 0) +
+                      chainHealLifeGain +
+                      comboShardReward.lifeGain
+              );
         const encoreKey = matchedPairKey;
         const cursedKey = run.board.cursedPairKey;
         const cursedEarly =
@@ -7178,7 +7839,11 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
                 dungeonReward.score +
                 enemyDamage.score +
                 hazardDamage.score +
+                (fragileCacheClaimed ? FRAGILE_CACHE_MATCH_SCORE : 0) +
+                (fuseCacheFresh ? FUSE_CACHE_FRESH_SCORE_REWARD : 0) +
+                (pinLatticeRewarded ? PIN_LATTICE_SCORE_REWARD : 0) +
                 spotlightDelta -
+                (tollCacheClaimed ? TOLL_CACHE_MATCH_SCORE_TOLL : 0) -
                 presentationPenalty
         );
         const totalScore = run.stats.totalScore + matchScore;
@@ -7195,17 +7860,27 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
         const usedWild = isWildPairKey(firstTile.pairKey) || isWildPairKey(secondTile.pairKey);
         const wildMatchesRemaining = usedWild ? 0 : run.wildMatchesRemaining;
 
-        const spun = withRotatedShiftingSpotlight(run, board);
+        const spun = withAnchorSealPressureRotation(run, board);
+        const loadedGatewayRouteType = loadedGatewayClaimed ? loadedGatewayRouteTypeFor(run, matchedPairKey) : null;
 
         const nextRun: RunState = {
             ...run,
-            status: 'playing',
+            status: mimicCacheFatalBite ? 'gameOver' : 'playing',
             lives,
             board: spun.board,
             shiftingSpotlightNonce: spun.shiftingSpotlightNonce,
             powersUsedThisRun: usedWild ? true : run.powersUsedThisRun,
             wildMatchesRemaining,
-            shopGold: run.shopGold + routeCardReward.shopGold + dungeonReward.shopGold,
+            shopGold:
+                run.shopGold +
+                routeCardReward.shopGold +
+                dungeonReward.shopGold +
+                (tollCacheClaimed ? TOLL_CACHE_SHOP_GOLD_REWARD : 0) +
+                (fuseCacheClaimed
+                    ? fuseCacheFresh
+                        ? FUSE_CACHE_FRESH_SHOP_GOLD_REWARD
+                        : FUSE_CACHE_EXPIRED_SHOP_GOLD_REWARD
+                    : 0),
             dungeonKeys:
                 matchedDungeonKind === 'key'
                     ? addRunDungeonKey(run.dungeonKeys, matchedDungeonKeyKind, 1)
@@ -7217,7 +7892,13 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
             nBackAnchorPairKey,
             matchedPairKeysThisRun: [...run.matchedPairKeysThisRun, encoreKey],
             pendingRouteCardPlan:
-                run.pendingRouteCardPlan == null && dungeonReward.gatewayRouteType
+                run.pendingRouteCardPlan == null && loadedGatewayRouteType
+                    ? createRouteCardPlanForRoute(
+                          run,
+                          loadedGatewayRouteType,
+                          `loaded_gateway:${run.runRulesVersion}:${run.runSeed}:${run.board.level}:${matchedPairKey}`
+                      )
+                    : run.pendingRouteCardPlan == null && dungeonReward.gatewayRouteType
                     ? createRouteCardPlanForRoute(
                           run,
                           dungeonReward.gatewayRouteType,
@@ -7229,6 +7910,39 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
             cursedMatchedEarlyThisFloor: run.cursedMatchedEarlyThisFloor || cursedEarly,
             matchResolutionsThisFloor: run.matchResolutionsThisFloor + 1,
             findablesClaimedThisFloor: run.findablesClaimedThisFloor + findablesClaimedDelta,
+            safeHazardWardChargesThisFloor: Math.min(
+                1,
+                (run.safeHazardWardChargesThisFloor ?? 0) + routeCardReward.safeHazardWardCharges
+            ),
+            hazardTileTriggersThisFloor:
+                run.hazardTileTriggersThisFloor +
+                (cascadeHazard.triggered ? 1 : 0) +
+                (fragileCacheClaimed ? 1 : 0) +
+                (tollCacheClaimed ? 1 : 0) +
+                (fuseCacheClaimed ? 1 : 0),
+            hazardCascadeCachesThisFloor: run.hazardCascadeCachesThisFloor + (cascadeHazard.triggered ? 1 : 0),
+            hazardFragileCacheClaimsThisFloor:
+                run.hazardFragileCacheClaimsThisFloor + (fragileCacheClaimed ? 1 : 0),
+            hazardTollCachesThisFloor: run.hazardTollCachesThisFloor + (tollCacheClaimed ? 1 : 0),
+            hazardFuseCachesThisFloor: run.hazardFuseCachesThisFloor + (fuseCacheClaimed ? 1 : 0),
+            hazardFuseCacheExpiredClaimsThisFloor:
+                run.hazardFuseCacheExpiredClaimsThisFloor + (fuseCacheClaimed && !fuseCacheFresh ? 1 : 0),
+            lanternWardScoutsThisFloor: run.lanternWardScoutsThisFloor + (lanternScout.scouted ? 1 : 0),
+            omenSealScoutsThisFloor: run.omenSealScoutsThisFloor + (omenScout.scouted ? 1 : 0),
+            mimicCacheClaimsThisFloor: run.mimicCacheClaimsThisFloor + (mimicCacheClaimed ? 1 : 0),
+            mimicCacheBitesThisFloor: run.mimicCacheBitesThisFloor + (mimicCacheBite ? 1 : 0),
+            mimicCacheGuardBitesThisFloor: run.mimicCacheGuardBitesThisFloor + (mimicCacheGuardBite ? 1 : 0),
+            anchorSealChargesThisFloor:
+                Math.max(0, run.anchorSealChargesThisFloor - (spun.anchorSealUsed ? 1 : 0)) +
+                (anchorSealClaimed ? 1 : 0),
+            anchorSealUsesThisFloor: run.anchorSealUsesThisFloor + (spun.anchorSealUsed ? 1 : 0),
+            loadedGatewayPlansThisFloor: run.loadedGatewayPlansThisFloor + (loadedGatewayClaimed ? 1 : 0),
+            catalystAltarUpgradesThisFloor:
+                run.catalystAltarUpgradesThisFloor + (catalystAltarUpgraded ? 1 : 0),
+            parasiteVesselConversionsThisFloor:
+                run.parasiteVesselConversionsThisFloor + (parasiteVesselConverted ? 1 : 0),
+            pinLatticeRewardsThisFloor: run.pinLatticeRewardsThisFloor + (pinLatticeRewarded ? 1 : 0),
+            parasiteFloors: parasiteVesselConverted ? Math.max(0, run.parasiteFloors - 1) : run.parasiteFloors,
             dungeonEnemiesDefeated:
                 run.dungeonEnemiesDefeated + dungeonReward.enemiesDefeated + enemyDamage.defeated + hazardDamage.bossDefeated,
             dungeonEnemiesDefeatedThisFloor:
@@ -7252,7 +7966,11 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
             timerState: clearResolveState(run)
         };
 
-        return isBoardComplete(spun.board) ? finalizeLevel(nextRun, spun.board) : nextRun;
+        return nextRun.status === 'gameOver'
+            ? nextRun
+            : isBoardComplete(spun.board)
+              ? finalizeLevel(nextRun, spun.board)
+              : nextRun;
     }
 
     const tries = run.stats.tries + 1;
@@ -7301,7 +8019,11 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
     lives = enemyAttack.lives;
     const statusAfterEnemy: RunStatus = lives <= 0 || contractFail || trapSpring.run.status === 'gameOver' ? 'gameOver' : status;
     const advancedTrapBoard = advanceEnemyHazardsOnBoard(trapSpring.board);
-    const spunMiss = withRotatedShiftingSpotlight(run, advancedTrapBoard);
+    const mismatchHazards = hazardKindsInTiles(run.board.tiles, [firstId, secondId]);
+    const wardedHazards = applySafeHazardWardMismatch(run, advancedTrapBoard, [firstTile, secondTile], mismatchHazards);
+    const { fragileBreak, snareHazard } = wardedHazards;
+    const mirrorTriggered = mismatchHazards.has('mirror_decoy');
+    const spunMiss = withRotatedShiftingSpotlight(run, wardedHazards.board);
 
     return {
         ...run,
@@ -7313,6 +8035,19 @@ const resolveTwoFlippedTiles = (run: RunState, encorePairKeys: string[]): RunSta
         dungeonTrapsTriggered: trapSpring.run.dungeonTrapsTriggered,
         board: spunMiss.board,
         shiftingSpotlightNonce: spunMiss.shiftingSpotlightNonce,
+        pinnedTileIds: snareHazard.triggered ? [] : run.pinnedTileIds,
+        hazardTileTriggersThisFloor:
+            run.hazardTileTriggersThisFloor +
+            (snareHazard.triggered ? 1 : 0) +
+            (mirrorTriggered ? 1 : 0) +
+            fragileBreak.brokenCount,
+        hazardShuffleSnaresThisFloor: run.hazardShuffleSnaresThisFloor + (snareHazard.triggered ? 1 : 0),
+        hazardMirrorDecoysThisFloor: run.hazardMirrorDecoysThisFloor + (mirrorTriggered ? 1 : 0),
+        hazardFragileCacheBreaksThisFloor: run.hazardFragileCacheBreaksThisFloor + fragileBreak.brokenCount,
+        safeHazardWardChargesThisFloor:
+            (run.safeHazardWardChargesThisFloor ?? 0) - (wardedHazards.wardUsed ? 1 : 0),
+        safeHazardWardsUsedThisFloor:
+            (run.safeHazardWardsUsedThisFloor ?? 0) + (wardedHazards.wardUsed ? 1 : 0),
         pendingMemorizeBonusMs,
         stickyBlockIndex: null,
         decoyFlippedThisFloor: run.decoyFlippedThisFloor || decoyTouch,
@@ -7489,6 +8224,28 @@ export const advanceToNextLevel = (run: RunState): RunState => {
         matchResolutionsThisFloor: 0,
         findablesClaimedThisFloor: 0,
         findablesTotalThisFloor: countFindablePairs(nextBoard.tiles),
+        hazardTileTriggersThisFloor: 0,
+        hazardShuffleSnaresThisFloor: 0,
+        hazardCascadeCachesThisFloor: 0,
+        hazardMirrorDecoysThisFloor: 0,
+        hazardFragileCacheClaimsThisFloor: 0,
+        hazardFragileCacheBreaksThisFloor: 0,
+        hazardTollCachesThisFloor: 0,
+        hazardFuseCachesThisFloor: 0,
+        hazardFuseCacheExpiredClaimsThisFloor: 0,
+        lanternWardScoutsThisFloor: 0,
+        omenSealScoutsThisFloor: 0,
+        mimicCacheClaimsThisFloor: 0,
+        mimicCacheBitesThisFloor: 0,
+        mimicCacheGuardBitesThisFloor: 0,
+        anchorSealChargesThisFloor: 0,
+        anchorSealUsesThisFloor: 0,
+        loadedGatewayPlansThisFloor: 0,
+        catalystAltarUpgradesThisFloor: 0,
+        parasiteVesselConversionsThisFloor: 0,
+        pinLatticeRewardsThisFloor: 0,
+        safeHazardWardChargesThisFloor: 0,
+        safeHazardWardsUsedThisFloor: 0,
         shiftingSpotlightNonce: 0,
         flashPairRevealedTileIds: [],
         regionShuffleRowArmed: null,

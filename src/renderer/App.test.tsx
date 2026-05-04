@@ -175,16 +175,15 @@ describe('desktop app flow', () => {
         renderApp();
 
         await dismissStartupIntro(user);
-        expect(
-            await screen.findByRole('heading', { name: /read, match, and protect the streak/i })
-        ).toBeInTheDocument();
+        expect(await screen.findByText(/read, match, and protect the streak/i)).toBeInTheDocument();
+        await user.click(screen.getByText(/^open$/i));
         expect(screen.getByText(/score and recover/i)).toBeInTheDocument();
         expect(screen.getByText(/Codex is the deeper reference/i)).toBeInTheDocument();
 
         await user.click(screen.getByRole('button', { name: /dismiss/i }));
 
         await waitFor(() => {
-            expect(screen.queryByRole('heading', { name: /read, match, and protect the streak/i })).not.toBeInTheDocument();
+            expect(screen.queryByText(/read, match, and protect the streak/i)).not.toBeInTheDocument();
         });
 
         const rawSave = window.localStorage.getItem('memory-dungeon-save-data');
@@ -648,10 +647,13 @@ describe('desktop app flow', () => {
         renderApp();
         await dismissStartupIntro(user);
         await user.click(await screen.findByRole('button', { name: /^play$/i }));
-        expect(await screen.findByRole('region', { name: /choose your path/i })).toBeInTheDocument();
-        await user.click(screen.getByRole('button', { name: /browse modes/i }));
+        const choosePath = await screen.findByRole('region', { name: /choose your path/i });
+        expect(choosePath).toBeInTheDocument();
+        expect(await screen.findByRole('region', { name: /browse modes/i })).toBeInTheDocument();
         await user.click(await screen.findByRole('button', { name: /endless mode/i }));
-        expect(await screen.findByText(/intentionally locked for v1/i)).toBeInTheDocument();
+        await waitFor(() => {
+            expect(within(choosePath).getAllByText(/locked intentionally/i).length).toBeGreaterThan(0);
+        });
     });
 
     it('opens Collection from the main menu and returns', async () => {

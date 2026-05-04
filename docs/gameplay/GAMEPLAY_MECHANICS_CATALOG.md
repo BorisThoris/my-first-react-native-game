@@ -45,8 +45,9 @@
 | Board complete check | `isBoardComplete`, `countFullyHiddenPairs` | Sim |
 | Pair proximity hint (Manhattan) | `getPairProximityGridDistance` | [epic-board-rendering-assists](./epic-board-rendering-assists.md) |
 | Focus dim set (assist) | `computeFocusDimmedTileIds` in `focusDimmedTileIds.ts` | [epic-board-rendering-assists](./epic-board-rendering-assists.md) |
-| Route-world profile and route cards | `deriveRouteWorldProfile`, `assignRouteWorldSpecials`, `BoardState.routeWorldProfile`, `Tile.routeCardKind`, `Tile.routeSpecialKind` | [epic-route-world-pipeline](./epic-route-world-pipeline.md) |
+| Route-world profile and route cards | `deriveRouteWorldProfile`, `assignRouteWorldSpecials`, Guard Cache / Lantern Ward / route reward specials, `BoardState.routeWorldProfile`, `Tile.routeCardKind`, `Tile.routeSpecialKind` | [epic-route-world-pipeline](./epic-route-world-pipeline.md) |
 | Boss/elite route anchors | `keystone_pair`, `elite_cache`, `final_ward`, `omen_seal` route specials | [epic-route-world-pipeline](./epic-route-world-pipeline.md), [boss-encounters](../../src/shared/boss-encounters.ts) |
+| Hazard tiles | `Tile.tileHazardKind`, `assignHazardTilesToGeneratedBoard`, `src/shared/hazard-tiles.ts` | [hazard-tile-matrix](./hazard-tile-matrix.md), theory `PSB-006` |
 
 ---
 
@@ -63,7 +64,8 @@
 | Shifting spotlight scoring + rotation | `shiftingSpotlightMatchDelta`, `withRotatedShiftingSpotlight` | [epic-mutators](./epic-mutators.md), [epic-board-rendering-assists](./epic-board-rendering-assists.md) |
 | Cursed pair early match flag | `cursedMatchedEarlyThisFloor` | [epic-core-memory-loop](./epic-core-memory-loop.md) |
 | Findables on match | `findableKind`, `findablesClaimedThisFloor` | [epic-mutators](./epic-mutators.md) |
-| Route rewards on match | `getRouteCardReward`, route special cleanup in match resolution | [epic-route-world-pipeline](./epic-route-world-pipeline.md) |
+| Route rewards on match | `getRouteCardReward`, Guard Cache ward banking, Lantern/Omen scout reveals, Mimic Cache controlled/blind claim branches, route special cleanup in match resolution | [epic-route-world-pipeline](./epic-route-world-pipeline.md) |
+| Hazard tile resolution | `applyShuffleSnareHazard`, `applyCascadeCacheHazard`, Guard Cache ward block, mirror decoy handling, floor trigger counters | [hazard-tile-matrix](./hazard-tile-matrix.md) |
 | N-back anchor counter / key | `nBackMatchCounter`, `nBackAnchorPairKey` | [epic-mutators](./epic-mutators.md), [epic-board-rendering-assists](./epic-board-rendering-assists.md) |
 | Encore pair keys (spaced bonus) | `matchedPairKeysThisRun`, `encorePairKeysLastRun` | [epic-scoring-objectives](./epic-scoring-objectives.md) |
 
@@ -111,6 +113,8 @@
 | Destroy used floor flag | `destroyUsedThisFloor` | — | objectives |
 | Peek | `applyPeek` | `pressTile` + `togglePeekMode` | [epic-powers-and-interactions](./epic-powers-and-interactions.md) |
 | Peek route reveal | `applyPeek` sets `routeSpecialRevealed` for Mystery Veil, Secret Door, Omen Seal | `pressTile` + `togglePeekMode` | [epic-route-world-pipeline](./epic-route-world-pipeline.md) |
+| Omen Seal scout | `resolveBoardTurn` scouts one hidden hazard, dungeon danger, or Mystery route special after a clean Omen Seal match | `pressTile` pair match | [epic-route-world-pipeline](./epic-route-world-pipeline.md) |
+| Mimic Cache claim | `resolveBoardTurn` pays full loot if route-revealed first; blind match bites guard/life and pays reduced loot | `pressTile` pair match | [epic-route-world-pipeline](./epic-route-world-pipeline.md) |
 | Peek charges / revealed ids | `peekCharges`, `peekRevealedTileIds` | — | [epic-powers-and-interactions](./epic-powers-and-interactions.md) |
 | Pin tiles | `togglePinnedTile`, `pinnedTileIds`, `pinsPlacedCountThisRun` | `toggleBoardPinMode`, `pressTile` | [epic-powers-and-interactions](./epic-powers-and-interactions.md) |
 | Stray remove | `toggleStrayRemoveArmed`, `applyStrayRemove` | `toggleStrayArm`, `pressTile` | [epic-powers-and-interactions](./epic-powers-and-interactions.md) |
@@ -288,6 +292,22 @@ Source: [`RunState`](../../src/shared/contracts.ts) interface.
 | `pinsPlacedCountThisRun` | Contract pin cap | [epic-contracts-challenge-runs](./epic-contracts-challenge-runs.md) |
 | `findablesClaimedThisFloor` | Successful findable pickup matches this floor | [epic-mutators](./epic-mutators.md) |
 | `findablesTotalThisFloor` | Total pickup pairs spawned this floor (claimed or not) | [epic-mutators](./epic-mutators.md) |
+| `hazardTileTriggersThisFloor` | Total promoted hazard triggers this floor | [hazard-tile-matrix](./hazard-tile-matrix.md) |
+| `hazardShuffleSnaresThisFloor` | Shuffle Snare triggers this floor | [hazard-tile-matrix](./hazard-tile-matrix.md) |
+| `hazardCascadeCachesThisFloor` | Cascade Cache triggers this floor | [hazard-tile-matrix](./hazard-tile-matrix.md) |
+| `hazardMirrorDecoysThisFloor` | Mirror Decoy reads this floor | [hazard-tile-matrix](./hazard-tile-matrix.md) |
+| `hazardFragileCacheClaimsThisFloor` | Fragile Cache matched claims this floor | [hazard-tile-matrix](./hazard-tile-matrix.md) |
+| `hazardFragileCacheBreaksThisFloor` | Fragile Cache mismatch breaks this floor | [hazard-tile-matrix](./hazard-tile-matrix.md) |
+| `hazardTollCachesThisFloor` | Toll Cache claims this floor | [hazard-tile-matrix](./hazard-tile-matrix.md) |
+| `hazardFuseCachesThisFloor` | Fuse Cache claims this floor | [hazard-tile-matrix](./hazard-tile-matrix.md) |
+| `hazardFuseCacheExpiredClaimsThisFloor` | Late Fuse Cache claims after the full payout expires | [hazard-tile-matrix](./hazard-tile-matrix.md) |
+| `lanternWardScoutsThisFloor` | Lantern Ward scout reveals this floor | [epic-route-world-pipeline](./epic-route-world-pipeline.md) |
+| `omenSealScoutsThisFloor` | Omen Seal scout reveals this floor | [epic-route-world-pipeline](./epic-route-world-pipeline.md) |
+| `mimicCacheClaimsThisFloor` | Mimic Cache route-special claims this floor | [epic-route-world-pipeline](./epic-route-world-pipeline.md) |
+| `mimicCacheBitesThisFloor` | Blind Mimic Cache bite branches this floor | [epic-route-world-pipeline](./epic-route-world-pipeline.md) |
+| `mimicCacheGuardBitesThisFloor` | Mimic Cache bites absorbed by guard tokens this floor | [epic-route-world-pipeline](./epic-route-world-pipeline.md) |
+| `safeHazardWardChargesThisFloor` | Guard Cache banked ward charge against Safe-route hazards | [epic-route-world-pipeline](./epic-route-world-pipeline.md), [hazard-tile-matrix](./hazard-tile-matrix.md) |
+| `safeHazardWardsUsedThisFloor` | Guard Cache hazard ward blocks this floor | [epic-route-world-pipeline](./epic-route-world-pipeline.md), [hazard-tile-matrix](./hazard-tile-matrix.md) |
 | `shiftingSpotlightNonce` | Ward/bounty rotation seed step | [epic-mutators](./epic-mutators.md) |
 
 ### Appendix A2 — `RunTimerState` (nested in `RunState.timerState`)
@@ -359,6 +379,7 @@ Elements of `BoardState.tiles`. Source: [`Tile`](../../src/shared/contracts.ts).
 | `state` | hidden / flipped / matched / removed | [epic-core-memory-loop](./epic-core-memory-loop.md) |
 | `atomicVariant` | Optional deck art variant index | [epic-content-symbols-and-generation](./epic-content-symbols-and-generation.md) |
 | `findableKind` | Optional shard_spark / score_glint pickup | [epic-mutators](./epic-mutators.md) |
+| `tileHazardKind` | Optional promoted hazard tile marker: shuffle snare, cascade cache, mirror decoy, fragile cache, toll cache, or fuse cache | [hazard-tile-matrix](./hazard-tile-matrix.md) |
 
 ---
 

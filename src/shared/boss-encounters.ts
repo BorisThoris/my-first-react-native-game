@@ -145,6 +145,7 @@ export interface FloorIdentityContract {
     label: string;
     teachingSentence: string;
     counterplaySentence: string;
+    floorClearSentence: string;
     activeReminder: string;
     warningLevel: FloorIdentityWarningLevel;
     tokens: MechanicTokenId[];
@@ -172,6 +173,7 @@ export const getFloorIdentityContract = ({
             counterplaySentence: mutators.includes('short_memorize')
                 ? 'Study the first reveal hard, then spend assists only when the boss route would otherwise collapse.'
                 : 'Prioritize boss blockers before exits and preserve enough safety to finish the objective.',
+            floorClearSentence: 'Boss trophy pressure resolved; read objective payout, forfeited cache value, and route momentum together.',
             activeReminder: 'Boss trophy: finish the boss objective before leaving.',
             warningLevel: 'danger',
             tokens: ['objective', 'risk', 'reward', 'momentum']
@@ -184,6 +186,7 @@ export const getFloorIdentityContract = ({
             label: 'Trap bounty hall',
             teachingSentence: `Trap bounties are live; clean disarms pay, while destroy removes danger but forfeits bounty value.${objectiveSuffix(featuredObjectiveLabel)}`,
             counterplaySentence: 'Use Trap Workshop or Rune Seal to control armed traps before risky matches.',
+            floorClearSentence: 'Trap bounty pressure resolved; clean disarms, workshop safety, and forfeited bounty value should be read together.',
             activeReminder: 'Trap bounty: disarm cleanly or forfeit value for safety.',
             warningLevel: 'danger',
             tokens: ['armed', 'risk', 'reward', 'forfeit', 'resolved', 'safe']
@@ -197,6 +200,7 @@ export const getFloorIdentityContract = ({
             label: late ? 'Late locked gallery' : 'Locked gallery',
             teachingSentence: `Cache value is concentrated here; keys, locks, and pickups are the main extraction puzzle.${objectiveSuffix(featuredObjectiveLabel)}`,
             counterplaySentence: 'Check key count before locks, and avoid destroy on treasure carriers unless safety matters more.',
+            floorClearSentence: 'Gallery extraction resolved; key spends, preserved caches, and forfeited treasure value define the floor result.',
             activeReminder: 'Locked gallery: preserve cache value and spend keys intentionally.',
             warningLevel: 'reward',
             tokens: ['reward', 'cost', 'forfeit', 'locked', 'momentum']
@@ -209,6 +213,7 @@ export const getFloorIdentityContract = ({
             label: 'Recovery study',
             teachingSentence: `Lower pressure gives room to rebuild guard, scout information, and prepare for the next spike.${objectiveSuffix(featuredObjectiveLabel)}`,
             counterplaySentence: 'Claim guard and scout value before leaving; safe routes trade peak payout for steadier recovery.',
+            floorClearSentence: 'Recovery study resolved; guard, scout information, and route preparation are the floor value.',
             activeReminder: 'Recovery study: scout, guard, and prep for the next floor.',
             warningLevel: 'safe',
             tokens: ['safe', 'hidden_known', 'reward', 'momentum']
@@ -221,6 +226,7 @@ export const getFloorIdentityContract = ({
             label: 'Parasite tithe',
             teachingSentence: `Parasite pressure taxes slow play; clean objective progress keeps the run from bleeding value.${objectiveSuffix(featuredObjectiveLabel)}`,
             counterplaySentence: 'Preserve guard, avoid low-value stalls, and use recovery tools before the parasite clock compounds.',
+            floorClearSentence: 'Parasite tithe resolved; tempo, guard, and objective progress explain the sustain result.',
             activeReminder: 'Parasite tithe: keep tempo and protect sustain.',
             warningLevel: 'warning',
             tokens: ['risk', 'cost', 'objective', 'safe']
@@ -233,6 +239,7 @@ export const getFloorIdentityContract = ({
             label: floorArchetypeId === 'script_room' ? 'Script read' : 'Shadow read',
             teachingSentence: `Information is partial; solve the fair clue boundary instead of expecting full card identity.${objectiveSuffix(featuredObjectiveLabel)}`,
             counterplaySentence: 'Use scout, peek, and pins to separate known family information from exact pair memory.',
+            floorClearSentence: 'Read floor resolved; partial information, scout value, and exact-pair restraint define the result.',
             activeReminder: 'Read floor: partial information is the core pressure.',
             warningLevel: 'warning',
             tokens: ['hidden_known', 'risk', 'objective']
@@ -244,6 +251,7 @@ export const getFloorIdentityContract = ({
         label: 'Baseline descent',
         teachingSentence: `Read the board, find the exit, and preserve optional objective value.${objectiveSuffix(featuredObjectiveLabel)}`,
         counterplaySentence: 'Use assists only when they save more value than they forfeit.',
+        floorClearSentence: 'Baseline descent resolved; score, objective value, and assist discipline remain the main read.',
         activeReminder: 'Baseline: match cleanly and keep the objective visible.',
         warningLevel: 'baseline',
         tokens: ['objective', 'safe', 'reward']

@@ -338,6 +338,74 @@ export const getRelicBuildArchetypeSummaries = (): {
         };
     });
 
+export interface RunBuildArchetypeSignal {
+    id: RelicBuildArchetype;
+    label: string;
+    score: number;
+    summary: string;
+    decisionVerbs: string[];
+    supportingRelicIds: RelicId[];
+}
+
+export interface RunBuildProfile {
+    primary: RunBuildArchetypeSignal | null;
+    signals: RunBuildArchetypeSignal[];
+    summary: string;
+    tooltip: string;
+}
+
+const RELIC_BUILD_ARCHETYPE_ORDER = Object.keys(RELIC_BUILD_ARCHETYPE_DEFINITIONS) as RelicBuildArchetype[];
+
+export const getRunBuildProfile = (run: Pick<RunState, 'relicIds'>): RunBuildProfile => {
+    const scoreByArchetype = new Map<RelicBuildArchetype, { score: number; relicIds: RelicId[] }>();
+    for (const relicId of run.relicIds) {
+        const row = RELIC_DRAFT[relicId];
+        if (!row) continue;
+        for (const archetype of row.archetypes) {
+            const current = scoreByArchetype.get(archetype) ?? { score: 0, relicIds: [] };
+            current.score += 1;
+            if (!current.relicIds.includes(relicId)) {
+                current.relicIds.push(relicId);
+            }
+            scoreByArchetype.set(archetype, current);
+        }
+    }
+
+    const signals = RELIC_BUILD_ARCHETYPE_ORDER.flatMap((id) => {
+        const scored = scoreByArchetype.get(id);
+        if (!scored || scored.score <= 0) return [];
+        const definition = getRelicBuildArchetypeDefinition(id);
+        return [{
+            id,
+            label: definition.label,
+            score: scored.score,
+            summary: definition.summary,
+            decisionVerbs: [...definition.decisionVerbs],
+            supportingRelicIds: [...scored.relicIds]
+        }];
+    }).sort((a, b) => b.score - a.score || RELIC_BUILD_ARCHETYPE_ORDER.indexOf(a.id) - RELIC_BUILD_ARCHETYPE_ORDER.indexOf(b.id));
+
+    const primary = signals[0] ?? null;
+    if (!primary) {
+        return {
+            primary: null,
+            signals: [],
+            summary: 'First relic still ahead',
+            tooltip: 'Draft a relic to begin shaping a run build.'
+        };
+    }
+
+    const topSignals = signals.slice(0, 3);
+    return {
+        primary,
+        signals,
+        summary: `${primary.label} · ${primary.score} build signal${primary.score === 1 ? '' : 's'}`,
+        tooltip: topSignals
+            .map((signal) => `${signal.label} x${signal.score}: ${signal.decisionVerbs.join(', ')}`)
+            .join(' · ')
+    };
+};
+
 export type RelicDecisionImpact =
     | 'action_economy'
     | 'route_risk'

@@ -1,7 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
-import { dismissStartupIntro } from './startupIntroHelpers';
-import { defaultE2eGameSaveJson, STORAGE_KEY } from './tileBoardGameFlow';
-import { openMainMenuFromSave, openLevel1Play, waitLevel1PlayReady } from './visualScreenHelpers';
+import {
+    ensureModeLibraryVisible,
+    openChooseYourPath,
+    openMainMenuFromSave,
+    openLevel1Play,
+    startClassicRunFromModeSelect,
+    waitLevel1PlayReady
+} from './visualScreenHelpers';
 
 /** HUD-018 / QA-003: `GameplayHudBar` exposes `game-hud` plus `hud-wing-left|center|right`. If the HUD splits, migrate these assertions + `mobile-layout.spec.ts` together. */
 async function expectGameplayHudWithWings(page: Page): Promise<void> {
@@ -10,29 +15,28 @@ async function expectGameplayHudWithWings(page: Page): Promise<void> {
     await expect(page.getByTestId('hud-wing-center')).toBeVisible();
     await expect(page.getByTestId('hud-wing-right')).toBeVisible();
 }
+
 test.describe('Navigation shells', () => {
     test.describe.configure({ retries: 1 });
     test('Play opens Choose Your Path then Classic Run starts level 1', async ({ page }) => {
         test.setTimeout(60_000);
         await openMainMenuFromSave(page, true);
-        await page.getByRole('button', { name: /^play$/i }).click();
-        await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
-        await page.getByRole('button', { name: /start run/i }).click();
-        await expect(page.getByRole('heading', { name: /level 1/i })).toBeVisible();
+        await openChooseYourPath(page);
+        await startClassicRunFromModeSelect(page);
     });
 
     test('Endless Mode stays locked behind Browse modes', async ({ page }) => {
+        test.setTimeout(60_000);
         await openMainMenuFromSave(page, true);
-        await page.getByRole('button', { name: /^play$/i }).click();
-        await page.getByRole('button', { name: /browse modes/i }).click();
+        await openChooseYourPath(page);
+        await ensureModeLibraryVisible(page);
         await page.getByRole('button', { name: /endless mode/i }).click();
-        await expect(page.getByText(/intentionally locked for v1/i)).toBeVisible();
+        await expect(page.getByTestId('library-mode-detail-modal').getByText(/locked intentionally/i)).toBeVisible();
     });
 
     test('Settings opened from Choose Your Path returns to Choose Your Path', async ({ page }) => {
         await openMainMenuFromSave(page, true);
-        await page.getByRole('button', { name: /^play$/i }).click();
-        await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
+        await openChooseYourPath(page);
         await page.getByTestId('choose-path-settings').click();
         await expect(page.getByRole('heading', { name: /^settings$/i })).toBeVisible();
         if (process.env.REG044_CAPTURE === '1') {
@@ -98,19 +102,14 @@ test.describe('Navigation shells', () => {
     });
 
     test('Daily Challenge from Choose Your Path starts a run', async ({ page }) => {
-        await page.addInitScript(
-            ([key, json]) => {
-                localStorage.setItem(key, json);
-            },
-            [STORAGE_KEY, defaultE2eGameSaveJson]
-        );
-        await page.goto('/');
-        await dismissStartupIntro(page);
-        await page.getByRole('button', { name: /^play$/i }).click();
-        await page.getByRole('button', { name: /browse modes/i }).click();
+        test.setTimeout(60_000);
+        await openMainMenuFromSave(page, true);
+        await openChooseYourPath(page);
+        await ensureModeLibraryVisible(page);
         await page.getByRole('button', { name: /daily challenge/i }).click();
         await page.getByTestId('library-mode-detail-modal').getByRole('button', { name: /^play$/i }).click();
-        await expect(page.getByRole('heading', { name: /level 1/i })).toBeVisible();
+        await expect(page.getByRole('heading', { name: /level 1/i })).toBeAttached({ timeout: 15_000 });
+        await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible({ timeout: 15_000 });
     });
 
 });

@@ -17,7 +17,23 @@ const base = {
     chainMatchStreak: 0,
     chainAnnounceActive: false,
     gambitThirdPickActive: false,
-    gambitOpportunityFlippedIds: null as readonly string[] | null
+    gambitOpportunityFlippedIds: null as readonly string[] | null,
+    reduceMotion: false,
+    hazardTileTriggersThisFloor: 0,
+    hazardShuffleSnaresThisFloor: 0,
+    hazardCascadeCachesThisFloor: 0,
+    hazardMirrorDecoysThisFloor: 0,
+    hazardFragileCacheClaimsThisFloor: 0,
+    hazardFragileCacheBreaksThisFloor: 0,
+    hazardTollCachesThisFloor: 0,
+    hazardFuseCachesThisFloor: 0,
+    hazardFuseCacheExpiredClaimsThisFloor: 0,
+    lanternWardScoutsThisFloor: 0,
+    omenSealScoutsThisFloor: 0,
+    mimicCacheClaimsThisFloor: 0,
+    mimicCacheBitesThisFloor: 0,
+    mimicCacheGuardBitesThisFloor: 0,
+    safeHazardWardsUsedThisFloor: 0
 };
 
 const flushRaf = async (): Promise<void> => {
@@ -156,6 +172,210 @@ describe('useHudPoliteLiveAnnouncement', () => {
         await flushRaf();
 
         expect(result.current.message).toBe('Shard spark claimed: plus one combo shard.');
+    });
+
+    it('announces hazard tile trigger deltas in a stable order', async () => {
+        const { result, rerender } = renderHook(
+            (p: {
+                total: number;
+                snare: number;
+                cascade: number;
+                mirror: number;
+                fragileClaim: number;
+                fragileBreak: number;
+                toll: number;
+                fuse: number;
+                fuseExpired: number;
+            }) =>
+                useHudPoliteLiveAnnouncement({
+                    ...base,
+                    scoreParasiteActive: false,
+                    hazardTileTriggersThisFloor: p.total,
+                    hazardShuffleSnaresThisFloor: p.snare,
+                    hazardCascadeCachesThisFloor: p.cascade,
+                    hazardMirrorDecoysThisFloor: p.mirror,
+                    hazardFragileCacheClaimsThisFloor: p.fragileClaim,
+                    hazardFragileCacheBreaksThisFloor: p.fragileBreak,
+                    hazardTollCachesThisFloor: p.toll,
+                    hazardFuseCachesThisFloor: p.fuse,
+                    hazardFuseCacheExpiredClaimsThisFloor: p.fuseExpired
+                }),
+            { initialProps: { total: 0, snare: 0, cascade: 0, mirror: 0, fragileClaim: 0, fragileBreak: 0, toll: 0, fuse: 0, fuseExpired: 0 } }
+        );
+
+        await act(async () => {
+            rerender({ total: 7, snare: 1, cascade: 1, mirror: 1, fragileClaim: 1, fragileBreak: 1, toll: 1, fuse: 1, fuseExpired: 0 });
+        });
+        await flushRaf();
+
+        expect(result.current.message).toBe(
+            'Shuffle Snare fired. Hidden safe tiles reordered. Cascade Cache fired. One safe hidden pair cleared. Mirror Decoy revealed. It cannot form a pair. Fragile Cache claimed. Bonus score added. Fragile Cache broke. Its bonus is gone, but the pair still matches. Toll Cache claimed. Shop gold gained; score toll paid. Fuse Cache claimed early. Full payout gained.'
+        );
+    });
+
+    it('announces late Fuse Cache claims with expired-fuse copy', async () => {
+        const { result, rerender } = renderHook(
+            (p: { total: number; fuse: number; fuseExpired: number }) =>
+                useHudPoliteLiveAnnouncement({
+                    ...base,
+                    scoreParasiteActive: false,
+                    hazardTileTriggersThisFloor: p.total,
+                    hazardFuseCachesThisFloor: p.fuse,
+                    hazardFuseCacheExpiredClaimsThisFloor: p.fuseExpired
+                }),
+            { initialProps: { total: 0, fuse: 0, fuseExpired: 0 } }
+        );
+
+        await act(async () => {
+            rerender({ total: 1, fuse: 1, fuseExpired: 1 });
+        });
+        await flushRaf();
+
+        expect(result.current.message).toBe('Fuse Cache claimed late. Fuse expired; consolation gold gained.');
+    });
+
+    it('uses reduced-motion copy for hazard tile trigger announcements', async () => {
+        const { result, rerender } = renderHook(
+            (p: { total: number; snare: number }) =>
+                useHudPoliteLiveAnnouncement({
+                    ...base,
+                    scoreParasiteActive: false,
+                    reduceMotion: true,
+                    hazardTileTriggersThisFloor: p.total,
+                    hazardShuffleSnaresThisFloor: p.snare
+                }),
+            { initialProps: { total: 0, snare: 0 } }
+        );
+
+        await act(async () => {
+            rerender({ total: 1, snare: 1 });
+        });
+        await flushRaf();
+
+        expect(result.current.message).toBe(
+            'Shuffle Snare fired. Hidden safe tiles reordered without motion.'
+        );
+    });
+
+    it('announces lantern ward scout deltas', async () => {
+        const { result, rerender } = renderHook(
+            (p: { scouts: number }) =>
+                useHudPoliteLiveAnnouncement({
+                    ...base,
+                    scoreParasiteActive: false,
+                    lanternWardScoutsThisFloor: p.scouts
+                }),
+            { initialProps: { scouts: 0 } }
+        );
+
+        await act(async () => {
+            rerender({ scouts: 1 });
+        });
+        await flushRaf();
+
+        expect(result.current.message).toBe('Lantern Ward scouted a hidden threat.');
+    });
+
+    it('announces omen seal scout deltas', async () => {
+        const { result, rerender } = renderHook(
+            (p: { scouts: number }) =>
+                useHudPoliteLiveAnnouncement({
+                    ...base,
+                    scoreParasiteActive: false,
+                    omenSealScoutsThisFloor: p.scouts
+                }),
+            { initialProps: { scouts: 0 } }
+        );
+
+        await act(async () => {
+            rerender({ scouts: 1 });
+        });
+        await flushRaf();
+
+        expect(result.current.message).toBe('Omen Seal revealed hidden danger.');
+    });
+
+    it('announces controlled mimic cache claims', async () => {
+        const { result, rerender } = renderHook(
+            (p: { claims: number }) =>
+                useHudPoliteLiveAnnouncement({
+                    ...base,
+                    scoreParasiteActive: false,
+                    mimicCacheClaimsThisFloor: p.claims
+                }),
+            { initialProps: { claims: 0 } }
+        );
+
+        await act(async () => {
+            rerender({ claims: 1 });
+        });
+        await flushRaf();
+
+        expect(result.current.message).toBe('Mimic Cache controlled. Full loot claimed.');
+    });
+
+    it('announces mimic cache guard bites before generic life bites', async () => {
+        const { result, rerender } = renderHook(
+            (p: { bites: number; guardBites: number }) =>
+                useHudPoliteLiveAnnouncement({
+                    ...base,
+                    scoreParasiteActive: false,
+                    mimicCacheClaimsThisFloor: p.bites,
+                    mimicCacheBitesThisFloor: p.bites,
+                    mimicCacheGuardBitesThisFloor: p.guardBites
+                }),
+            { initialProps: { bites: 0, guardBites: 0 } }
+        );
+
+        await act(async () => {
+            rerender({ bites: 1, guardBites: 1 });
+        });
+        await flushRaf();
+
+        expect(result.current.message).toBe('Mimic Cache bit. Guard absorbed the hit.');
+    });
+
+    it('announces Guard Cache ward blocks', async () => {
+        const { result, rerender } = renderHook(
+            (p: { wardsUsed: number }) =>
+                useHudPoliteLiveAnnouncement({
+                    ...base,
+                    scoreParasiteActive: false,
+                    safeHazardWardsUsedThisFloor: p.wardsUsed
+                }),
+            { initialProps: { wardsUsed: 0 } }
+        );
+
+        await act(async () => {
+            rerender({ wardsUsed: 1 });
+        });
+        await flushRaf();
+
+        expect(result.current.message).toBe('Guard Cache ward blocked a hazard.');
+    });
+
+    it('does not announce existing hazard counters on first render or reset', async () => {
+        const { result, rerender } = renderHook(
+            (p: { level: number; total: number; cascade: number }) =>
+                useHudPoliteLiveAnnouncement({
+                    ...base,
+                    scoreParasiteActive: false,
+                    boardLevel: p.level,
+                    hazardTileTriggersThisFloor: p.total,
+                    hazardCascadeCachesThisFloor: p.cascade
+                }),
+            { initialProps: { level: 1, total: 1, cascade: 1 } }
+        );
+
+        await flushRaf();
+        expect(result.current.message).toBe('');
+
+        await act(async () => {
+            rerender({ level: 2, total: 0, cascade: 0 });
+        });
+        await flushRaf();
+
+        expect(result.current.message).toBe('');
     });
 
     it('dedupes announcements with the same key in one rAF flush', async () => {

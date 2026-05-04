@@ -33,4 +33,14 @@ describe('CodexScreen REG-095 knowledge base', () => {
         expect(summary).toHaveTextContent(/Deep links/);
         expect(summary).toHaveTextContent(/Filter recovery/);
     });
+
+    it('documents relic build archetypes as the player-facing build language', () => {
+        render(<CodexScreen />);
+
+        expect(screen.getByRole('link', { name: 'Builds' })).toBeInTheDocument();
+        expect(screen.getByText('Build archetypes')).toBeInTheDocument();
+        expect(screen.getByText('The Seer')).toBeInTheDocument();
+        expect(screen.getByText(/peek, pin, read/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/Peek charge/i).length).toBeGreaterThan(0);
+    });
 });

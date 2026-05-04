@@ -8,13 +8,20 @@ import {
     FINDABLE_MATCH_SCORE,
     FLIP_PAR_BONUS_SCORE,
     FLOOR_CLEAR_GOLD_BASE,
+    FUSE_CACHE_EXPIRED_SHOP_GOLD_REWARD,
+    FUSE_CACHE_FRESH_RESOLUTION_LIMIT,
+    FUSE_CACHE_FRESH_SCORE_REWARD,
+    FUSE_CACHE_FRESH_SHOP_GOLD_REWARD,
     GAUNTLET_FLOOR_CLEAR_TIME_BONUS_MS,
     GAME_RULES_VERSION,
     MATCH_DELAY_MS,
+    MAX_GUARD_TOKENS,
     MAX_LIVES,
     MEMORIZE_BONUS_PER_LIFE_LOST_MS,
     SHIFTING_BOUNTY_MATCH_BONUS,
-    SHIFTING_WARD_MATCH_PENALTY
+    SHIFTING_WARD_MATCH_PENALTY,
+    TOLL_CACHE_MATCH_SCORE_TOLL,
+    TOLL_CACHE_SHOP_GOLD_REWARD
 } from './contracts';
 import {
     buildBoard,
@@ -454,10 +461,11 @@ describe('REG-017 route choices', () => {
         expect(next.pendingRouteCardPlan).toBeNull();
         expect(next.board!.routeWorldProfile).toMatchObject({ routeType: 'greed', rewardBudget: 3 });
         const routeTiles = next.board!.tiles.filter((tile) => tile.routeCardKind === 'greed_cache');
-        expect(routeTiles).toHaveLength(6);
-        expect(new Set(routeTiles.map((tile) => tile.pairKey))).toHaveLength(3);
+        expect(routeTiles).toHaveLength(8);
+        expect(new Set(routeTiles.map((tile) => tile.pairKey))).toHaveLength(4);
         expect(next.board!.tiles.filter((tile) => tile.routeSpecialKind === 'greed_toll')).toHaveLength(2);
         expect(next.board!.tiles.filter((tile) => tile.routeSpecialKind === 'elite_cache')).toHaveLength(2);
+        expect(next.board!.tiles.filter((tile) => tile.routeSpecialKind === 'catalyst_altar')).toHaveLength(2);
         expect(routeTiles[0]!.pairKey).not.toBe(DECOY_PAIR_KEY);
         expect(routeTiles[0]!.pairKey).not.toBe(WILD_PAIR_KEY);
     });
@@ -1114,7 +1122,7 @@ describe('REG-017 route choices', () => {
         const mysteryNext = advanceToNextLevel(applyRouteChoiceOutcome(cleared, mysteryId).run);
 
         expect(safeNext.board!.routeWorldProfile).toMatchObject({ routeType: 'safe', hazardBudget: 0 });
-        expect(safeNext.board!.tiles.filter((tile) => tile.routeSpecialKind === 'safe_ward')).toHaveLength(2);
+        expect(safeNext.board!.tiles.filter((tile) => tile.routeSpecialKind === 'guard_cache')).toHaveLength(2);
         expect(safeNext.board!.tiles.filter((tile) => tile.routeSpecialKind === 'lantern_ward')).toHaveLength(2);
         expect(mysteryNext.board!.routeWorldProfile).toMatchObject({ routeType: 'mystery' });
         expect(mysteryNext.board!.tiles.filter((tile) => tile.routeSpecialKind === 'mystery_veil')).toHaveLength(2);
@@ -1126,7 +1134,7 @@ describe('REG-017 route choices', () => {
 
         expect(greedBoard.routeWorldProfile).toMatchObject({
             routeType: 'greed',
-            routeSpecialKinds: ['greed_cache', 'greed_toll', 'fragile_cache']
+            routeSpecialKinds: ['greed_cache', 'greed_toll', 'fragile_cache', 'catalyst_altar']
         });
         expect(greedBoard.tiles.filter((tile) => tile.routeSpecialKind === 'fragile_cache')).toHaveLength(2);
         expect(greedBoard.tiles.filter((tile) => tile.routeSpecialKind === 'fragile_cache')[0]!.routeCardKind).toBe(
@@ -1134,10 +1142,14 @@ describe('REG-017 route choices', () => {
         );
         expect(mysteryBoard.routeWorldProfile).toMatchObject({
             routeType: 'mystery',
-            routeSpecialKinds: ['mystery_veil', 'secret_door']
+            routeSpecialKinds: ['mystery_veil', 'secret_door', 'mimic_cache', 'loaded_gateway']
         });
         expect(mysteryBoard.tiles.filter((tile) => tile.routeSpecialKind === 'secret_door')).toHaveLength(2);
         expect(mysteryBoard.tiles.filter((tile) => tile.routeSpecialKind === 'secret_door')[0]!.routeCardKind).toBe(
+            'mystery_veil'
+        );
+        expect(mysteryBoard.tiles.filter((tile) => tile.routeSpecialKind === 'mimic_cache')).toHaveLength(2);
+        expect(mysteryBoard.tiles.filter((tile) => tile.routeSpecialKind === 'mimic_cache')[0]!.routeCardKind).toBe(
             'mystery_veil'
         );
     });
@@ -1169,15 +1181,15 @@ describe('REG-017 route choices', () => {
 
         expect(safeHard.routeWorldProfile).toMatchObject({
             routeType: 'safe',
-            routeSpecialKinds: ['safe_ward', 'lantern_ward', 'final_ward']
+            routeSpecialKinds: ['guard_cache', 'lantern_ward', 'final_ward', 'anchor_seal']
         });
         expect(greedHard.routeWorldProfile).toMatchObject({
             routeType: 'greed',
-            routeSpecialKinds: ['greed_cache', 'greed_toll', 'elite_cache']
+            routeSpecialKinds: ['greed_cache', 'greed_toll', 'elite_cache', 'catalyst_altar']
         });
         expect(mysteryHard.routeWorldProfile).toMatchObject({
             routeType: 'mystery',
-            routeSpecialKinds: ['mystery_veil', 'omen_seal']
+            routeSpecialKinds: ['mystery_veil', 'omen_seal', 'loaded_gateway']
         });
         expect(safeHard.tiles.filter((tile) => tile.routeSpecialKind === 'final_ward')).toHaveLength(2);
         expect(safeHard.tiles.find((tile) => tile.routeSpecialKind === 'final_ward')!.routeCardKind).toBe(
@@ -1339,10 +1351,29 @@ describe('REG-017 route choices', () => {
         expect(omenResolved.stats.comboShards).toBe(1);
     });
 
-    it('fragile cache and lantern ward pay distinct rewards when matched', () => {
+    it('guard cache, fragile cache, and lantern ward pay distinct rewards when matched', () => {
         const greedBoard = routeBoard('greed', 3);
         const safeBoard = routeBoard('safe', 3);
         const base = finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false, runSeed: 17_215 }));
+        const guardRun: RunState = {
+            ...base,
+            board: safeBoard,
+            status: 'playing',
+            stats: { ...base.stats, guardTokens: 0 }
+        };
+        const guard = guardRun.board!.tiles.filter((tile) => tile.routeSpecialKind === 'guard_cache');
+        const guardResolved = resolveBoardTurn(flipTile(flipTile(guardRun, guard[0]!.id), guard[1]!.id));
+        const cappedGuardRun: RunState = {
+            ...base,
+            board: safeBoard,
+            status: 'playing',
+            stats: { ...base.stats, guardTokens: MAX_GUARD_TOKENS },
+            safeHazardWardChargesThisFloor: 0
+        };
+        const cappedGuard = cappedGuardRun.board!.tiles.filter((tile) => tile.routeSpecialKind === 'guard_cache');
+        const cappedGuardResolved = resolveBoardTurn(
+            flipTile(flipTile(cappedGuardRun, cappedGuard[0]!.id), cappedGuard[1]!.id)
+        );
         const fragileRun: RunState = { ...base, board: greedBoard, status: 'playing' };
         const fragile = fragileRun.board!.tiles.filter((tile) => tile.routeSpecialKind === 'fragile_cache');
         const fragileResolved = resolveBoardTurn(flipTile(flipTile(fragileRun, fragile[0]!.id), fragile[1]!.id));
@@ -1355,10 +1386,336 @@ describe('REG-017 route choices', () => {
         const lantern = lanternRun.board!.tiles.filter((tile) => tile.routeSpecialKind === 'lantern_ward');
         const lanternResolved = resolveBoardTurn(flipTile(flipTile(lanternRun, lantern[0]!.id), lantern[1]!.id));
 
+        expect(guardResolved.stats.guardTokens).toBe(1);
+        expect(guardResolved.safeHazardWardChargesThisFloor).toBe(0);
+        expect(cappedGuardResolved.stats.guardTokens).toBe(MAX_GUARD_TOKENS);
+        expect(cappedGuardResolved.safeHazardWardChargesThisFloor).toBe(1);
         expect(fragileResolved.shopGold).toBe(fragileRun.shopGold + 1);
         expect(fragileResolved.stats.totalScore).toBeGreaterThanOrEqual(fragileRun.stats.totalScore + 20);
         expect(lanternResolved.stats.guardTokens).toBe(1);
         expect(lanternResolved.stats.totalScore).toBeGreaterThanOrEqual(lanternRun.stats.totalScore + 10);
+    });
+
+    it('destroying guard cache denies guard tokens and banked wards', () => {
+        const safeBoard = routeBoard('safe', 3);
+        const base = finishMemorizePhase(createNewRun(0, { echoFeedbackEnabled: false, runSeed: 17_218 }));
+        const run: RunState = {
+            ...base,
+            board: safeBoard,
+            status: 'playing',
+            destroyPairCharges: 1,
+            stats: { ...base.stats, guardTokens: MAX_GUARD_TOKENS },
+            safeHazardWardChargesThisFloor: 0
+        };
+        const guard = run.board!.tiles.find((tile) => tile.routeSpecialKind === 'guard_cache')!;
+
+        const destroyed = applyDestroyPair(run, guard.id);
+
+        expect(destroyed.stats.guardTokens).toBe(MAX_GUARD_TOKENS);
+        expect(destroyed.safeHazardWardChargesThisFloor).toBe(0);
+        expect(destroyed.board!.tiles.filter((tile) => tile.pairKey === guard.pairKey)).toEqual(
+            expect.arrayContaining([expect.objectContaining({ routeSpecialKind: undefined })])
+        );
+    });
+
+    it('lantern ward scouts a hidden dungeon threat without springing it', () => {
+        const run = createRun([
+            createTile('lantern-a', 'A', 'A', { routeSpecialKind: 'lantern_ward', routeCardKind: 'safe_ward' }),
+            createTile('lantern-b', 'A', 'A', { routeSpecialKind: 'lantern_ward', routeCardKind: 'safe_ward' }),
+            createTile('trap-a', 'B', 'B', {
+                dungeonCardKind: 'trap',
+                dungeonCardState: 'hidden',
+                dungeonCardEffectId: 'trap_spikes'
+            }),
+            createTile('trap-b', 'B', 'B', {
+                dungeonCardKind: 'trap',
+                dungeonCardState: 'hidden',
+                dungeonCardEffectId: 'trap_spikes'
+            })
+        ]);
+
+        const resolved = resolveBoardTurn(flipTile(flipTile(run, 'lantern-a'), 'lantern-b'));
+        const trapTiles = resolved.board!.tiles.filter((tile) => tile.pairKey === 'B');
+
+        expect(resolved.lanternWardScoutsThisFloor).toBe(1);
+        expect(resolved.lives).toBe(run.lives);
+        expect(resolved.dungeonTrapsTriggered).toBe(run.dungeonTrapsTriggered);
+        expect(resolved.stats.guardTokens).toBe(1);
+        expect(trapTiles).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    dungeonCardState: 'revealed',
+                    lanternScouted: true,
+                    scoutRevealSource: 'lantern_ward'
+                })
+            ])
+        );
+    });
+
+    it('omen seal scouts a hidden hazard before dungeon or route information', () => {
+        const run = createRun([
+            createTile('omen-a', 'A', 'A', { routeSpecialKind: 'omen_seal', routeCardKind: 'mystery_veil' }),
+            createTile('omen-b', 'A', 'A', { routeSpecialKind: 'omen_seal', routeCardKind: 'mystery_veil' }),
+            createTile('hazard-a', 'B', 'B', { tileHazardKind: 'shuffle_snare' }),
+            createTile('hazard-b', 'B', 'B', { tileHazardKind: 'shuffle_snare' }),
+            createTile('trap-a', 'C', 'C', {
+                dungeonCardKind: 'trap',
+                dungeonCardState: 'hidden',
+                dungeonCardEffectId: 'trap_spikes'
+            }),
+            createTile('trap-b', 'C', 'C', {
+                dungeonCardKind: 'trap',
+                dungeonCardState: 'hidden',
+                dungeonCardEffectId: 'trap_spikes'
+            }),
+            createTile('veil-a', 'D', 'D', { routeSpecialKind: 'mystery_veil', routeCardKind: 'mystery_veil' }),
+            createTile('veil-b', 'D', 'D', { routeSpecialKind: 'mystery_veil', routeCardKind: 'mystery_veil' })
+        ]);
+
+        const resolved = resolveBoardTurn(flipTile(flipTile(run, 'omen-a'), 'omen-b'));
+        const hazardTiles = resolved.board!.tiles.filter((tile) => tile.pairKey === 'B');
+        const trapTiles = resolved.board!.tiles.filter((tile) => tile.pairKey === 'C');
+        const veilTiles = resolved.board!.tiles.filter((tile) => tile.pairKey === 'D');
+
+        expect(resolved.omenSealScoutsThisFloor).toBe(1);
+        expect(resolved.hazardTileTriggersThisFloor).toBe(0);
+        expect(resolved.dungeonTrapsTriggered).toBe(run.dungeonTrapsTriggered);
+        expect(resolved.lives).toBe(run.lives);
+        expect(resolved.relicFavorProgress).toBe(1);
+        expect(resolved.stats.comboShards).toBe(1);
+        expect(hazardTiles).toEqual(
+            expect.arrayContaining([expect.objectContaining({ scoutRevealSource: 'omen_seal' })])
+        );
+        expect(trapTiles).toEqual(expect.arrayContaining([expect.objectContaining({ dungeonCardState: 'hidden' })]));
+        expect(trapTiles.some((tile) => tile.scoutRevealSource != null)).toBe(false);
+        expect(veilTiles.some((tile) => tile.routeSpecialRevealed === true)).toBe(false);
+    });
+
+    it('omen seal scouts hidden dungeon threats when no hazard target exists', () => {
+        const run = createRun([
+            createTile('omen-a', 'A', 'A', { routeSpecialKind: 'omen_seal', routeCardKind: 'mystery_veil' }),
+            createTile('omen-b', 'A', 'A', { routeSpecialKind: 'omen_seal', routeCardKind: 'mystery_veil' }),
+            createTile('trap-a', 'B', 'B', {
+                dungeonCardKind: 'trap',
+                dungeonCardState: 'hidden',
+                dungeonCardEffectId: 'trap_spikes'
+            }),
+            createTile('trap-b', 'B', 'B', {
+                dungeonCardKind: 'trap',
+                dungeonCardState: 'hidden',
+                dungeonCardEffectId: 'trap_spikes'
+            }),
+            createTile('veil-a', 'C', 'C', { routeSpecialKind: 'mystery_veil', routeCardKind: 'mystery_veil' }),
+            createTile('veil-b', 'C', 'C', { routeSpecialKind: 'mystery_veil', routeCardKind: 'mystery_veil' })
+        ]);
+
+        const resolved = resolveBoardTurn(flipTile(flipTile(run, 'omen-a'), 'omen-b'));
+        const trapTiles = resolved.board!.tiles.filter((tile) => tile.pairKey === 'B');
+
+        expect(resolved.omenSealScoutsThisFloor).toBe(1);
+        expect(resolved.dungeonTrapsTriggered).toBe(run.dungeonTrapsTriggered);
+        expect(trapTiles).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ dungeonCardState: 'revealed', scoutRevealSource: 'omen_seal' })
+            ])
+        );
+    });
+
+    it('omen seal scouts mystery route information when no hazard or dungeon target exists', () => {
+        const run = createRun([
+            createTile('omen-a', 'A', 'A', { routeSpecialKind: 'omen_seal', routeCardKind: 'mystery_veil' }),
+            createTile('omen-b', 'A', 'A', { routeSpecialKind: 'omen_seal', routeCardKind: 'mystery_veil' }),
+            createTile('veil-a', 'B', 'B', { routeSpecialKind: 'mystery_veil', routeCardKind: 'mystery_veil' }),
+            createTile('veil-b', 'B', 'B', { routeSpecialKind: 'mystery_veil', routeCardKind: 'mystery_veil' })
+        ]);
+
+        const resolved = resolveBoardTurn(flipTile(flipTile(run, 'omen-a'), 'omen-b'));
+        const veilTiles = resolved.board!.tiles.filter((tile) => tile.pairKey === 'B');
+
+        expect(resolved.omenSealScoutsThisFloor).toBe(1);
+        expect(veilTiles).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ routeSpecialRevealed: true, routeSpecialRevealSource: 'omen_seal' })
+            ])
+        );
+    });
+
+    it('omen seal keeps reward when there is nothing to scout', () => {
+        const run = createRun([
+            createTile('omen-a', 'A', 'A', { routeSpecialKind: 'omen_seal', routeCardKind: 'mystery_veil' }),
+            createTile('omen-b', 'A', 'A', { routeSpecialKind: 'omen_seal', routeCardKind: 'mystery_veil' }),
+            createTile('safe-a', 'B', 'B'),
+            createTile('safe-b', 'B', 'B')
+        ]);
+
+        const resolved = resolveBoardTurn(flipTile(flipTile(run, 'omen-a'), 'omen-b'));
+
+        expect(resolved.omenSealScoutsThisFloor).toBe(0);
+        expect(resolved.relicFavorProgress).toBe(1);
+        expect(resolved.stats.comboShards).toBe(1);
+    });
+
+    it('mimic cache pays full loot when revealed before matching', () => {
+        const run = {
+            ...createRun([
+                createTile('mimic-a', 'A', 'A', {
+                    routeSpecialKind: 'mimic_cache',
+                    routeCardKind: 'mystery_veil'
+                }),
+                createTile('mimic-b', 'A', 'A', {
+                    routeSpecialKind: 'mimic_cache',
+                    routeCardKind: 'mystery_veil'
+                }),
+                createTile('safe-a', 'B', 'B'),
+                createTile('safe-b', 'B', 'B')
+            ]),
+            peekCharges: 1,
+            stats: { ...createRun([]).stats, comboShards: 0 }
+        };
+
+        const peeked = applyPeek(run, 'mimic-a');
+        const resolved = resolveBoardTurn(flipTile(flipTile(peeked, 'mimic-a'), 'mimic-b'));
+
+        expect(resolved.mimicCacheClaimsThisFloor).toBe(1);
+        expect(resolved.mimicCacheBitesThisFloor).toBe(0);
+        expect(resolved.lives).toBe(run.lives);
+        expect(resolved.shopGold).toBe(run.shopGold + 2);
+        expect(resolved.stats.comboShards).toBe(1);
+        expect(resolved.stats.totalScore).toBeGreaterThanOrEqual(run.stats.totalScore + 20);
+    });
+
+    it('mimic cache blind match bites guard first and pays reduced loot', () => {
+        const run = {
+            ...createRun([
+                createTile('mimic-a', 'A', 'A', {
+                    routeSpecialKind: 'mimic_cache',
+                    routeCardKind: 'mystery_veil'
+                }),
+                createTile('mimic-b', 'A', 'A', {
+                    routeSpecialKind: 'mimic_cache',
+                    routeCardKind: 'mystery_veil'
+                }),
+                createTile('safe-a', 'B', 'B'),
+                createTile('safe-b', 'B', 'B')
+            ]),
+            stats: { ...createRun([]).stats, guardTokens: 1, comboShards: 0 }
+        };
+
+        const resolved = resolveBoardTurn(flipTile(flipTile(run, 'mimic-a'), 'mimic-b'));
+
+        expect(resolved.mimicCacheClaimsThisFloor).toBe(1);
+        expect(resolved.mimicCacheBitesThisFloor).toBe(1);
+        expect(resolved.mimicCacheGuardBitesThisFloor).toBe(1);
+        expect(resolved.stats.guardTokens).toBe(0);
+        expect(resolved.lives).toBe(run.lives);
+        expect(resolved.shopGold).toBe(run.shopGold + 1);
+        expect(resolved.stats.comboShards).toBe(0);
+    });
+
+    it('mimic cache blind match can take life and become fatal without finalizing the floor', () => {
+        const run = {
+            ...createRun([
+                createTile('mimic-a', 'A', 'A', {
+                    routeSpecialKind: 'mimic_cache',
+                    routeCardKind: 'mystery_veil'
+                }),
+                createTile('mimic-b', 'A', 'A', {
+                    routeSpecialKind: 'mimic_cache',
+                    routeCardKind: 'mystery_veil'
+                })
+            ]),
+            lives: 1,
+            stats: { ...createRun([]).stats, guardTokens: 0 }
+        };
+
+        const resolved = resolveBoardTurn(flipTile(flipTile(run, 'mimic-a'), 'mimic-b'));
+
+        expect(resolved.status).toBe('gameOver');
+        expect(resolved.lives).toBe(0);
+        expect(resolved.lastLevelResult).toBeNull();
+        expect(resolved.mimicCacheClaimsThisFloor).toBe(1);
+        expect(resolved.mimicCacheBitesThisFloor).toBe(1);
+    });
+
+    it('destroying mimic cache denies reward and bite', () => {
+        const run = {
+            ...createRun([
+                createTile('mimic-a', 'A', 'A', {
+                    routeSpecialKind: 'mimic_cache',
+                    routeCardKind: 'mystery_veil'
+                }),
+                createTile('mimic-b', 'A', 'A', {
+                    routeSpecialKind: 'mimic_cache',
+                    routeCardKind: 'mystery_veil'
+                }),
+                createTile('safe-a', 'B', 'B'),
+                createTile('safe-b', 'B', 'B')
+            ]),
+            destroyPairCharges: 1,
+            stats: { ...createRun([]).stats, comboShards: 0 }
+        };
+
+        const destroyed = applyDestroyPair(run, 'mimic-a');
+
+        expect(destroyed.mimicCacheClaimsThisFloor).toBe(0);
+        expect(destroyed.mimicCacheBitesThisFloor).toBe(0);
+        expect(destroyed.lives).toBe(run.lives);
+        expect(destroyed.shopGold).toBe(run.shopGold);
+        expect(destroyed.stats.comboShards).toBe(0);
+    });
+
+    it('destroying omen seal denies its reward and scout', () => {
+        const run = {
+            ...createRun([
+                createTile('omen-a', 'A', 'A', { routeSpecialKind: 'omen_seal', routeCardKind: 'mystery_veil' }),
+                createTile('omen-b', 'A', 'A', { routeSpecialKind: 'omen_seal', routeCardKind: 'mystery_veil' }),
+                createTile('hazard-a', 'B', 'B', { tileHazardKind: 'shuffle_snare' }),
+                createTile('hazard-b', 'B', 'B', { tileHazardKind: 'shuffle_snare' })
+            ]),
+            destroyPairCharges: 1,
+            relicFavorProgress: 0
+        };
+
+        const destroyed = applyDestroyPair(run, 'omen-a');
+
+        expect(destroyed.omenSealScoutsThisFloor).toBe(0);
+        expect(destroyed.relicFavorProgress).toBe(0);
+        expect(destroyed.stats.comboShards).toBe(0);
+        expect(destroyed.board!.tiles.filter((tile) => tile.pairKey === 'B').some((tile) => tile.scoutRevealSource != null)).toBe(false);
+    });
+
+    it('lantern ward scouts mystery route information when no dungeon threat is hidden', () => {
+        const run = createRun([
+            createTile('lantern-a', 'A', 'A', { routeSpecialKind: 'lantern_ward', routeCardKind: 'safe_ward' }),
+            createTile('lantern-b', 'A', 'A', { routeSpecialKind: 'lantern_ward', routeCardKind: 'safe_ward' }),
+            createTile('veil-a', 'B', 'B', { routeSpecialKind: 'mystery_veil', routeCardKind: 'mystery_veil' }),
+            createTile('veil-b', 'B', 'B', { routeSpecialKind: 'mystery_veil', routeCardKind: 'mystery_veil' })
+        ]);
+
+        const resolved = resolveBoardTurn(flipTile(flipTile(run, 'lantern-a'), 'lantern-b'));
+        const veilTiles = resolved.board!.tiles.filter((tile) => tile.pairKey === 'B');
+
+        expect(resolved.lanternWardScoutsThisFloor).toBe(1);
+        expect(veilTiles).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ routeSpecialRevealed: true, routeSpecialRevealSource: 'lantern_ward' })
+            ])
+        );
+    });
+
+    it('lantern ward keeps its reward when there is nothing to scout', () => {
+        const run = createRun([
+            createTile('lantern-a', 'A', 'A', { routeSpecialKind: 'lantern_ward', routeCardKind: 'safe_ward' }),
+            createTile('lantern-b', 'A', 'A', { routeSpecialKind: 'lantern_ward', routeCardKind: 'safe_ward' }),
+            createTile('safe-a', 'B', 'B'),
+            createTile('safe-b', 'B', 'B')
+        ]);
+
+        const resolved = resolveBoardTurn(flipTile(flipTile(run, 'lantern-a'), 'lantern-b'));
+
+        expect(resolved.lanternWardScoutsThisFloor).toBe(0);
+        expect(resolved.stats.guardTokens).toBe(1);
+        expect(resolved.stats.totalScore).toBeGreaterThanOrEqual(run.stats.totalScore + 10);
     });
 
     it('stray remove refuses keystone route anchors', () => {
@@ -1414,7 +1771,7 @@ describe('REG-017 route choices', () => {
 
         expect(greedTreasure.routeWorldProfile).toMatchObject({
             routeType: 'greed',
-            routeSpecialKinds: ['greed_cache', 'greed_toll', 'fragile_cache']
+            routeSpecialKinds: ['greed_cache', 'greed_toll', 'fragile_cache', 'catalyst_altar']
         });
         const treasureFindablePairKeys = new Set(
             greedTreasure.tiles.filter((tile) => tile.findableKind).map((tile) => tile.pairKey)
@@ -1441,20 +1798,20 @@ describe('REG-017 route choices', () => {
 
         expect(greedTrap.routeWorldProfile).toMatchObject({
             routeType: 'greed',
-            routeSpecialKinds: ['greed_cache', 'greed_toll', 'elite_cache']
+            routeSpecialKinds: ['greed_cache', 'greed_toll', 'elite_cache', 'catalyst_altar']
         });
         expect(greedTrap.tiles.filter((tile) => tile.pairKey === DECOY_PAIR_KEY)).toHaveLength(1);
         expect(greedTrap.tiles.filter((tile) => tile.routeSpecialKind === 'elite_cache')).toHaveLength(2);
 
         expect(safeRush.routeWorldProfile).toMatchObject({
             routeType: 'safe',
-            routeSpecialKinds: ['safe_ward', 'lantern_ward', 'final_ward']
+            routeSpecialKinds: ['guard_cache', 'lantern_ward', 'final_ward', 'anchor_seal']
         });
         expect(safeRush.tiles.filter((tile) => tile.routeSpecialKind === 'final_ward')).toHaveLength(2);
 
         expect(mysterySurvey.routeWorldProfile).toMatchObject({
             routeType: 'mystery',
-            routeSpecialKinds: ['mystery_veil', 'secret_door']
+            routeSpecialKinds: ['mystery_veil', 'secret_door', 'mimic_cache', 'loaded_gateway']
         });
         const secret = mysterySurvey.tiles.find((tile) => tile.routeSpecialKind === 'secret_door')!;
         const mysteryRun: RunState = { ...base, board: mysterySurvey, status: 'playing', peekCharges: 1 };
@@ -1503,6 +1860,364 @@ describe('REG-017 route choices', () => {
 
         expect(applyRouteChoiceOutcome({ ...cleared, status: 'playing' }, safeId).reason).toBe('invalid_status');
         expect(applyRouteChoiceOutcome(cleared, 'missing').reason).toBe('missing_choice');
+    });
+});
+
+describe('normal-run hazard tiles', () => {
+    it('generates hazard tiles deterministically across generated modes but not fixed boards', () => {
+        const modes = ['endless', 'daily', 'gauntlet', 'meditation', 'puzzle'] as const;
+
+        for (const gameMode of modes) {
+            const board = buildBoard(6, {
+                gameMode,
+                runSeed: 91_001,
+                runRulesVersion: GAME_RULES_VERSION,
+                includeWildTile: gameMode === 'puzzle'
+            });
+            const repeat = buildBoard(6, {
+                gameMode,
+                runSeed: 91_001,
+                runRulesVersion: GAME_RULES_VERSION,
+                includeWildTile: gameMode === 'puzzle'
+            });
+
+            expect(board.tiles.map((tile) => tile.tileHazardKind ?? null)).toEqual(
+                repeat.tiles.map((tile) => tile.tileHazardKind ?? null)
+            );
+            expect(board.tiles.some((tile) => tile.tileHazardKind != null)).toBe(true);
+            expect(
+                board.tiles
+                    .filter((tile) => tile.tileHazardKind != null && tile.tileHazardKind !== 'mirror_decoy')
+                    .every(
+                        (tile) =>
+                            tile.dungeonCardKind == null &&
+                            tile.routeCardKind == null &&
+                            tile.routeSpecialKind == null &&
+                            tile.findableKind == null &&
+                            tile.pairKey !== DECOY_PAIR_KEY
+                    )
+            ).toBe(true);
+            expect(inspectBoardFairness(board).issues).toEqual([]);
+        }
+
+        const fixed = buildBoard(6, {
+            gameMode: 'puzzle',
+            runSeed: 91_001,
+            runRulesVersion: GAME_RULES_VERSION,
+            fixedTiles: [createTile('a1', 'A', 'A'), createTile('a2', 'A', 'A')]
+        });
+        expect(fixed.tiles.some((tile) => tile.tileHazardKind != null)).toBe(false);
+    });
+
+    it('removes a full safe pair when cascade cache is matched', () => {
+        const run = createRun([
+            createTile('cache-a', 'A', 'A', { tileHazardKind: 'cascade_cache' }),
+            createTile('cache-b', 'A', 'A', { tileHazardKind: 'cascade_cache' }),
+            createTile('safe-a', 'B', 'B'),
+            createTile('safe-b', 'B', 'B')
+        ]);
+
+        const resolved = resolveBoardTurn(flipTile(flipTile(run, 'cache-a'), 'cache-b'));
+
+        expect(resolved.board!.tiles.filter((tile) => tile.pairKey === 'B').every((tile) => tile.state === 'removed')).toBe(true);
+        expect(resolved.hazardCascadeCachesThisFloor).toBe(1);
+        expect(resolved.hazardTileTriggersThisFloor).toBe(1);
+        expect(isBoardComplete(resolved.board!)).toBe(true);
+    });
+
+    it('claims fragile cache bonus on a clean match without changing hazard density rules', () => {
+        const fragileRun = createRun([
+            createTile('fragile-a', 'A', 'A', { tileHazardKind: 'fragile_cache' }),
+            createTile('fragile-b', 'A', 'A', { tileHazardKind: 'fragile_cache' }),
+            createTile('safe-a', 'B', 'B'),
+            createTile('safe-b', 'B', 'B')
+        ]);
+        const normalRun = createRun([
+            createTile('plain-a', 'A', 'A'),
+            createTile('plain-b', 'A', 'A'),
+            createTile('safe-a', 'B', 'B'),
+            createTile('safe-b', 'B', 'B')
+        ]);
+
+        const fragileResolved = resolveBoardTurn(flipTile(flipTile(fragileRun, 'fragile-a'), 'fragile-b'));
+        const normalResolved = resolveBoardTurn(flipTile(flipTile(normalRun, 'plain-a'), 'plain-b'));
+
+        expect(fragileResolved.stats.currentLevelScore - normalResolved.stats.currentLevelScore).toBe(25);
+        expect(fragileResolved.hazardFragileCacheClaimsThisFloor).toBe(1);
+        expect(fragileResolved.hazardTileTriggersThisFloor).toBe(1);
+        expect(inspectBoardFairness(fragileResolved.board!).issues).toEqual([]);
+    });
+
+    it('breaks fragile cache on mismatch but keeps the pair matchable and completion-safe', () => {
+        const run = createRun([
+            createTile('fragile-a', 'A', 'A', { tileHazardKind: 'fragile_cache' }),
+            createTile('fragile-b', 'A', 'A', { tileHazardKind: 'fragile_cache' }),
+            createTile('safe-a', 'B', 'B'),
+            createTile('safe-b', 'B', 'B')
+        ]);
+
+        const broken = resolveBoardTurn(flipTile(flipTile(run, 'fragile-a'), 'safe-a'));
+
+        expect(broken.hazardFragileCacheBreaksThisFloor).toBe(1);
+        expect(broken.hazardFragileCacheClaimsThisFloor).toBe(0);
+        expect(broken.hazardTileTriggersThisFloor).toBe(1);
+        expect(broken.board!.tiles.filter((tile) => tile.pairKey === 'A').every((tile) => tile.tileHazardKind == null)).toBe(true);
+        expect(inspectBoardFairness(broken.board!).hasCompletionRoute).toBe(true);
+
+        const matchedAfterBreak = resolveBoardTurn(flipTile(flipTile(broken, 'fragile-a'), 'fragile-b'));
+        expect(matchedAfterBreak.hazardFragileCacheClaimsThisFloor).toBe(0);
+        expect(matchedAfterBreak.board!.tiles.filter((tile) => tile.pairKey === 'A').every((tile) => tile.state === 'matched')).toBe(true);
+    });
+
+    it('claims toll cache by trading match score for shop gold', () => {
+        const tollRun = createRun([
+            createTile('toll-a', 'A', 'A', { tileHazardKind: 'toll_cache' }),
+            createTile('toll-b', 'A', 'A', { tileHazardKind: 'toll_cache' }),
+            createTile('safe-a', 'B', 'B'),
+            createTile('safe-b', 'B', 'B')
+        ]);
+        const normalRun = createRun([
+            createTile('plain-a', 'A', 'A'),
+            createTile('plain-b', 'A', 'A'),
+            createTile('safe-a', 'B', 'B'),
+            createTile('safe-b', 'B', 'B')
+        ]);
+
+        const tollResolved = resolveBoardTurn(flipTile(flipTile(tollRun, 'toll-a'), 'toll-b'));
+        const normalResolved = resolveBoardTurn(flipTile(flipTile(normalRun, 'plain-a'), 'plain-b'));
+
+        expect(tollResolved.shopGold).toBe(tollRun.shopGold + TOLL_CACHE_SHOP_GOLD_REWARD);
+        expect(normalResolved.shopGold).toBe(normalRun.shopGold);
+        expect(normalResolved.stats.currentLevelScore - tollResolved.stats.currentLevelScore).toBe(TOLL_CACHE_MATCH_SCORE_TOLL);
+        expect(tollResolved.hazardTollCachesThisFloor).toBe(1);
+        expect(tollResolved.hazardTileTriggersThisFloor).toBe(1);
+        expect(inspectBoardFairness(tollResolved.board!).issues).toEqual([]);
+    });
+
+    it('claims fuse cache early for full payout and late for consolation gold', () => {
+        const fuseRun = createRun([
+            createTile('fuse-a', 'A', 'A', { tileHazardKind: 'fuse_cache' }),
+            createTile('fuse-b', 'A', 'A', { tileHazardKind: 'fuse_cache' }),
+            createTile('safe-a', 'B', 'B'),
+            createTile('safe-b', 'B', 'B')
+        ]);
+        const earlyResolved = resolveBoardTurn(flipTile(flipTile(fuseRun, 'fuse-a'), 'fuse-b'));
+        const lateRun: RunState = {
+            ...fuseRun,
+            matchResolutionsThisFloor: FUSE_CACHE_FRESH_RESOLUTION_LIMIT
+        };
+        const lateResolved = resolveBoardTurn(flipTile(flipTile(lateRun, 'fuse-a'), 'fuse-b'));
+
+        expect(earlyResolved.shopGold).toBe(fuseRun.shopGold + FUSE_CACHE_FRESH_SHOP_GOLD_REWARD);
+        expect(earlyResolved.stats.currentLevelScore).toBeGreaterThanOrEqual(
+            fuseRun.stats.currentLevelScore + FUSE_CACHE_FRESH_SCORE_REWARD
+        );
+        expect(earlyResolved.hazardFuseCachesThisFloor).toBe(1);
+        expect(earlyResolved.hazardFuseCacheExpiredClaimsThisFloor).toBe(0);
+        expect(earlyResolved.hazardTileTriggersThisFloor).toBe(1);
+        expect(lateResolved.shopGold).toBe(lateRun.shopGold + FUSE_CACHE_EXPIRED_SHOP_GOLD_REWARD);
+        expect(lateResolved.stats.currentLevelScore).toBeLessThan(earlyResolved.stats.currentLevelScore);
+        expect(lateResolved.hazardFuseCachesThisFloor).toBe(1);
+        expect(lateResolved.hazardFuseCacheExpiredClaimsThisFloor).toBe(1);
+        expect(inspectBoardFairness(earlyResolved.board!).issues).toEqual([]);
+    });
+
+    it('keeps cascade cache from removing utility, pickup, route, dungeon, and hazard pairs', () => {
+        const run = createRun([
+            createTile('cache-a', 'A', 'A', { tileHazardKind: 'cascade_cache' }),
+            createTile('cache-b', 'A', 'A', { tileHazardKind: 'cascade_cache' }),
+            createTile('route-a', 'B', 'B', { routeCardKind: 'greed_cache' }),
+            createTile('route-b', 'B', 'B', { routeCardKind: 'greed_cache' }),
+            createTile('pickup-a', 'C', 'C', { findableKind: 'shard_spark' }),
+            createTile('pickup-b', 'C', 'C', { findableKind: 'shard_spark' }),
+            createTile('enemy-a', 'D', 'D', { dungeonCardKind: 'enemy' }),
+            createTile('enemy-b', 'D', 'D', { dungeonCardKind: 'enemy' }),
+            createTile('other-hazard-a', 'E', 'E', { tileHazardKind: 'shuffle_snare' }),
+            createTile('other-hazard-b', 'E', 'E', { tileHazardKind: 'shuffle_snare' }),
+            createTile('safe-a', 'F', 'F'),
+            createTile('safe-b', 'F', 'F')
+        ]);
+
+        const resolved = resolveBoardTurn(flipTile(flipTile(run, 'cache-a'), 'cache-b'));
+
+        expect(resolved.hazardCascadeCachesThisFloor).toBe(1);
+        expect(resolved.board!.tiles.filter((tile) => tile.pairKey === 'F').every((tile) => tile.state === 'removed')).toBe(true);
+        for (const pairKey of ['B', 'C', 'D', 'E']) {
+            expect(resolved.board!.tiles.filter((tile) => tile.pairKey === pairKey).every((tile) => tile.state !== 'removed')).toBe(true);
+        }
+    });
+
+    it('keeps cascade cache from removing the cursed pair', () => {
+        const run = createRun([
+            createTile('cache-a', 'A', 'A', { tileHazardKind: 'cascade_cache' }),
+            createTile('cache-b', 'A', 'A', { tileHazardKind: 'cascade_cache' }),
+            createTile('cursed-a', 'B', 'B'),
+            createTile('cursed-b', 'B', 'B'),
+            createTile('safe-a', 'C', 'C'),
+            createTile('safe-b', 'C', 'C')
+        ]);
+        const cursedRun = {
+            ...run,
+            board: {
+                ...run.board!,
+                cursedPairKey: 'B'
+            }
+        };
+
+        const resolved = resolveBoardTurn(flipTile(flipTile(cursedRun, 'cache-a'), 'cache-b'));
+
+        expect(resolved.hazardCascadeCachesThisFloor).toBe(1);
+        expect(resolved.board!.tiles.filter((tile) => tile.pairKey === 'B').every((tile) => tile.state !== 'removed')).toBe(true);
+        expect(resolved.board!.tiles.filter((tile) => tile.pairKey === 'C').every((tile) => tile.state === 'removed')).toBe(true);
+    });
+
+    it('does not trigger cascade cache when only the cursed pair is eligible', () => {
+        const run = createRun([
+            createTile('cache-a', 'A', 'A', { tileHazardKind: 'cascade_cache' }),
+            createTile('cache-b', 'A', 'A', { tileHazardKind: 'cascade_cache' }),
+            createTile('cursed-a', 'B', 'B'),
+            createTile('cursed-b', 'B', 'B')
+        ]);
+        const cursedRun = {
+            ...run,
+            board: {
+                ...run.board!,
+                cursedPairKey: 'B'
+            }
+        };
+
+        const resolved = resolveBoardTurn(flipTile(flipTile(cursedRun, 'cache-a'), 'cache-b'));
+
+        expect(resolved.hazardCascadeCachesThisFloor).toBe(0);
+        expect(resolved.hazardTileTriggersThisFloor).toBe(0);
+        expect(resolved.board!.tiles.filter((tile) => tile.pairKey === 'B').every((tile) => tile.state !== 'removed')).toBe(true);
+    });
+
+    it('triggers shuffle snare on mismatch without spending player shuffle powers', () => {
+        const run = {
+            ...createRun([
+                createTile('snare-a', 'A', 'A', { tileHazardKind: 'shuffle_snare' }),
+                createTile('snare-b', 'A', 'A', { tileHazardKind: 'shuffle_snare' }),
+                createTile('safe-a', 'B', 'B'),
+                createTile('safe-b', 'B', 'B'),
+                createTile('other-a', 'C', 'C'),
+                createTile('other-b', 'C', 'C')
+            ]),
+            pinnedTileIds: ['safe-a']
+        };
+
+        const resolved = resolveBoardTurn(flipTile(flipTile(run, 'snare-a'), 'safe-a'));
+
+        expect(resolved.hazardShuffleSnaresThisFloor).toBe(1);
+        expect(resolved.hazardTileTriggersThisFloor).toBe(1);
+        expect(resolved.shuffleUsedThisFloor).toBe(false);
+        expect(resolved.stats.shufflesUsed).toBe(0);
+        expect(resolved.pinnedTileIds).toEqual([]);
+        expect(inspectBoardFairness(resolved.board!).hasCompletionRoute).toBe(true);
+    });
+
+    it('spends a Guard Cache ward to block shuffle snare and preserve pins', () => {
+        const run = {
+            ...createRun([
+                createTile('snare-a', 'A', 'A', { tileHazardKind: 'shuffle_snare' }),
+                createTile('snare-b', 'A', 'A', { tileHazardKind: 'shuffle_snare' }),
+                createTile('safe-a', 'B', 'B'),
+                createTile('safe-b', 'B', 'B'),
+                createTile('other-a', 'C', 'C'),
+                createTile('other-b', 'C', 'C')
+            ]),
+            pinnedTileIds: ['safe-a'],
+            safeHazardWardChargesThisFloor: 1
+        };
+
+        const resolved = resolveBoardTurn(flipTile(flipTile(run, 'snare-a'), 'safe-a'));
+
+        expect(resolved.safeHazardWardChargesThisFloor).toBe(0);
+        expect(resolved.safeHazardWardsUsedThisFloor).toBe(1);
+        expect(resolved.hazardShuffleSnaresThisFloor).toBe(0);
+        expect(resolved.hazardTileTriggersThisFloor).toBe(0);
+        expect(resolved.pinnedTileIds).toEqual(['safe-a']);
+        expect(inspectBoardFairness(resolved.board!).hasCompletionRoute).toBe(true);
+    });
+
+    it('does not clear pins or count a snare trigger when no safe shuffle targets exist', () => {
+        const run = {
+            ...createRun([
+                createTile('snare-a', 'A', 'A', { tileHazardKind: 'shuffle_snare' }),
+                createTile('snare-b', 'A', 'A', { tileHazardKind: 'shuffle_snare' }),
+                createTile('route-a', 'B', 'B', { routeCardKind: 'greed_cache' }),
+                createTile('route-b', 'B', 'B', { routeCardKind: 'greed_cache' })
+            ]),
+            pinnedTileIds: ['route-a']
+        };
+
+        const resolved = resolveBoardTurn(flipTile(flipTile(run, 'snare-a'), 'route-a'));
+
+        expect(resolved.hazardShuffleSnaresThisFloor).toBe(0);
+        expect(resolved.hazardTileTriggersThisFloor).toBe(0);
+        expect(resolved.pinnedTileIds).toEqual(['route-a']);
+    });
+
+    it('spends a Guard Cache ward to block one fragile cache break', () => {
+        const run = {
+            ...createRun([
+                createTile('fragile-a', 'A', 'A', { tileHazardKind: 'fragile_cache' }),
+                createTile('fragile-b', 'A', 'A', { tileHazardKind: 'fragile_cache' }),
+                createTile('safe-a', 'B', 'B'),
+                createTile('safe-b', 'B', 'B')
+            ]),
+            safeHazardWardChargesThisFloor: 1
+        };
+
+        const resolved = resolveBoardTurn(flipTile(flipTile(run, 'fragile-a'), 'safe-a'));
+
+        expect(resolved.safeHazardWardChargesThisFloor).toBe(0);
+        expect(resolved.safeHazardWardsUsedThisFloor).toBe(1);
+        expect(resolved.hazardFragileCacheBreaksThisFloor).toBe(0);
+        expect(resolved.hazardTileTriggersThisFloor).toBe(0);
+        expect(resolved.board!.tiles.filter((tile) => tile.pairKey === 'A')).toEqual(
+            expect.arrayContaining([expect.objectContaining({ tileHazardKind: 'fragile_cache' })])
+        );
+    });
+
+    it('does not spend Guard Cache ward charges on mirror decoys', () => {
+        const run = {
+            ...createRun([
+                createTile('safe-a', 'A', 'A'),
+                createTile('safe-b', 'A', 'A'),
+                createTile('other-a', 'B', 'B'),
+                createTile('mirror', DECOY_PAIR_KEY, '?', { tileHazardKind: 'mirror_decoy' })
+            ]),
+            safeHazardWardChargesThisFloor: 1
+        };
+
+        const resolved = resolveBoardTurn(flipTile(flipTile(run, 'mirror'), 'safe-a'));
+
+        expect(resolved.safeHazardWardChargesThisFloor).toBe(1);
+        expect(resolved.safeHazardWardsUsedThisFloor).toBe(0);
+        expect(resolved.hazardMirrorDecoysThisFloor).toBe(1);
+        expect(resolved.hazardTileTriggersThisFloor).toBe(1);
+    });
+
+    it('lets mirror decoys remain face-up without blocking completion', () => {
+        const board: BoardState = {
+            level: 1,
+            pairCount: 1,
+            columns: 2,
+            rows: 2,
+            tiles: [
+                createTile('a1', 'A', 'A', { state: 'matched' }),
+                createTile('a2', 'A', 'A', { state: 'matched' }),
+                createTile('mirror', DECOY_PAIR_KEY, 'A', { state: 'flipped', tileHazardKind: 'mirror_decoy' })
+            ],
+            flippedTileIds: [],
+            matchedPairs: 1,
+            floorArchetypeId: null,
+            featuredObjectiveId: null
+        };
+
+        expect(isBoardComplete(board)).toBe(true);
+        expect(inspectBoardFairness(board).issues).toEqual([]);
     });
 });
 

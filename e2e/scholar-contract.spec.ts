@@ -1,14 +1,13 @@
 import { expect, test } from '@playwright/test';
-import { openMainMenuFromSave } from './visualScreenHelpers';
+import { ensureModeLibraryVisible, openChooseYourPath, openMainMenuFromSave } from './visualScreenHelpers';
 
 test.describe('Scholar contract run', () => {
     test.describe.configure({ retries: 1 });
 
     test('starts from Choose Your Path', async ({ page }) => {
         await openMainMenuFromSave(page, true);
-        await page.getByRole('button', { name: /^play$/i }).click();
-        await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
-        await page.getByRole('button', { name: /browse modes/i }).click();
+        await openChooseYourPath(page);
+        await ensureModeLibraryVisible(page);
         const scholar = page
             .getByRole('region', { name: /choose your path/i })
             .getByRole('button', { name: /scholar/i });

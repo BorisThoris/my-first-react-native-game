@@ -35,7 +35,7 @@ import {
     type ShaderMaterial,
     type Texture
 } from 'three';
-import type { BoardState, EnemyHazardState, GraphicsQualityPreset, RunStatus, Tile } from '../../shared/contracts';
+import type { BoardState, EnemyHazardState, GraphicsQualityPreset, HazardTileKind, RunStatus, Tile } from '../../shared/contracts';
 import { WILD_PAIR_KEY } from '../../shared/tile-identity';
 import { getPairProximityGridDistance } from '../../shared/pairProximityHint';
 import { getBoardAnisotropyCap } from '../../shared/graphicsQuality';
@@ -288,6 +288,7 @@ interface TileBezelProps {
     spotlightWardOnBack?: boolean;
     spotlightBountyOnBack?: boolean;
     powerBackAccent?: 'destroy' | 'peek' | 'stray' | 'pin' | null;
+    hazardBackAccent?: HazardTileKind | null;
     destroyBlockedDecoyBack?: boolean;
 }
 
@@ -338,6 +339,17 @@ const enemyHazardColor = (hazard: EnemyHazardState): string => {
     if (hazard.kind === 'observer') return '#87d8ee';
     return '#ff9f86';
 };
+
+const hazardTileColor = (kind: HazardTileKind): string =>
+    kind === 'cascade_cache'
+        ? '#5ee0c8'
+        : kind === 'mirror_decoy'
+          ? '#b99cff'
+          : kind === 'fragile_cache'
+            ? '#ffcf66'
+            : kind === 'toll_cache'
+              ? '#7bd88f'
+            : '#ff9f86';
 
 const enemyHazardGeometryForShape = (shape: DungeonEnemyMarkerShape): BufferGeometry => {
     if (shape === 'stalker-spear') return ENEMY_STALKER_MARKER_GEOMETRY;
@@ -1581,6 +1593,7 @@ const TileBezelInner = ({
     spotlightWardOnBack = false,
     spotlightBountyOnBack = false,
     powerBackAccent = null,
+    hazardBackAccent = null,
     destroyBlockedDecoyBack = false,
     focusDimmed = false,
     stickyFingerSlotMark = false,
@@ -2395,6 +2408,7 @@ const TileBezelInner = ({
                     spotlightBountyOnBack ||
                     destroyBlockedDecoyBack ||
                     powerBackAccent != null ||
+                    hazardBackAccent != null ||
                     (stickyFingerSlotMark && tile.state === 'hidden')) &&
                 !faceUp ? (
                     <group position={[0, 0, -faceZ - 0.00033]} rotation={[0, Math.PI, 0]}>
@@ -2518,6 +2532,24 @@ const TileBezelInner = ({
                                     depthTest
                                     depthWrite={false}
                                     opacity={0.88}
+                                    side={DoubleSide}
+                                    toneMapped={false}
+                                    transparent
+                                />
+                            </mesh>
+                        ) : null}
+                        {hazardBackAccent ? (
+                            <mesh
+                                geometry={findableCornerRingGeometry}
+                                position={[0, CARD_HEIGHT * 0.4, 0.00055]}
+                                raycast={noopMeshRaycast}
+                                renderOrder={10}
+                            >
+                                <meshBasicMaterial
+                                    color={hazardTileColor(hazardBackAccent)}
+                                    depthTest
+                                    depthWrite={false}
+                                    opacity={0.92}
                                     side={DoubleSide}
                                     toneMapped={false}
                                     transparent
@@ -2939,7 +2971,9 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                 flippedN === 0 &&
                 (tile.state === 'matched' || (tile.state === 'hidden' && !faceUp));
             let powerBackAccent: 'destroy' | 'peek' | 'stray' | 'pin' | null = null;
+            let hazardBackAccent: HazardTileKind | null = null;
             if (tile.state === 'hidden' && !faceUp) {
+                hazardBackAccent = tile.tileHazardKind ?? null;
                 if (pinModeBoardHintActive) {
                     powerBackAccent = 'pin';
                 } else if (destroyBlockedDecoyBack) {
@@ -2961,6 +2995,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                 memorizeCurseHighlight,
                 pairProximityDistance,
                 powerBackAccent,
+                hazardBackAccent,
                 presentationNBackAnchor,
                 presentationSilhouette,
                 presentationWideRecall,
@@ -3436,6 +3471,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                         faceUp,
                         fieldAmp,
                         focusDimmed,
+                        hazardBackAccent,
                         isPinned,
                         memorizeCurseHighlight,
                         pairProximityDistance,
@@ -3463,6 +3499,7 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                             tileFieldParallaxEnabled={tileFieldParallaxEnabled}
                             flipLocked={flipLocked}
                             focusDimmed={focusDimmed}
+                            hazardBackAccent={hazardBackAccent}
                             stickyFingerSlotMark={stickyFingerSlotMark}
                             hostConsolidatesTileFrames={hostConsolidatesTileFrames}
                             hoverTiltRef={hoverTiltRef}

@@ -83,6 +83,7 @@ describe('REG-076 boss and elite encounter identity', () => {
         for (const row of rows) {
             expect(row.teachingSentence.length).toBeGreaterThan(20);
             expect(row.counterplaySentence.length).toBeGreaterThan(20);
+            expect(row.floorClearSentence.length).toBeGreaterThan(20);
             expect(row.activeReminder.length).toBeGreaterThan(10);
             expect(row.tokens.length).toBeGreaterThan(0);
         }

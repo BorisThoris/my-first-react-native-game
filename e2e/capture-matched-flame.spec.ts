@@ -2,7 +2,7 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 import { GAMEPLAY_BOARD_VISUALS } from '../src/renderer/components/gameplayVisualConfig';
-import { buildMatchedFlameCaptureSaveJson, gotoWithSaveAndQuery, waitLevel1VisualReady } from './visualScreenHelpers';
+import { buildMatchedFlameCaptureSaveJson, openLevel1PlayWithSave, waitLevel1VisualReady } from './visualScreenHelpers';
 import { flipTileAtGridCellKeyboard, readFrameHiddenTileCount, waitForBoardPlayPhase } from './tileBoardGameFlow';
 
 /** Aligned with `GAMEPLAY_BOARD_VISUALS.matchedEdgeEffect.burstDuration` + small buffer for GPU/frame jitter. */
@@ -11,7 +11,7 @@ const MATCHED_RIM_BURST_WAIT_MS = Math.ceil(GAMEPLAY_BOARD_VISUALS.matchedEdgeEf
 const MATCHED_RIM_POST_BURST_SETTLE_MS = 1150;
 
 /**
- * PNGs for reviewing the matched-card ember rim (isolated shader + in-game board after one match).
+ * PNGs for reviewing the matched-card ember rim in the normal game board after one match.
  *
  * Run: `yarn capture:matched-flame`
  * Output: `test-results/matched-flame-capture/` (or `<VISUAL_CAPTURE_ROOT>/matched-flame-capture/`).
@@ -44,18 +44,6 @@ async function screenshotStageShell(page: Page, outName: string): Promise<void> 
         clip: { x, y, width, height },
         animations: 'disabled'
     });
-}
-
-async function setRangeControl(page: Page, label: string, value: number): Promise<void> {
-    await page.getByLabel(label).evaluate(
-        (node, nextValue) => {
-            const input = node as HTMLInputElement;
-            input.value = String(nextValue);
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-            input.dispatchEvent(new Event('change', { bubbles: true }));
-        },
-        value
-    );
 }
 
 /**
@@ -117,56 +105,14 @@ async function flipFirstMatchingPairWebGl(page: Page): Promise<void> {
     throw new Error('failed to find a matching pair (level 1)');
 }
 
-test.describe('Matched flame capture (dev)', () => {
+test.describe('Matched flame capture', () => {
     test.describe.configure({ mode: 'serial', retries: 1 });
-
-    test('isolated shader sandbox (full page)', async ({ page }) => {
-        await page.setViewportSize({ width: 960, height: 720 });
-        await page.goto('/?devSandbox=1&fx=matchedRimFire');
-        await expect(page.getByTestId('matched-rim-fire-sandbox')).toBeVisible();
-        const canvas = page.locator('canvas');
-        await expect(canvas).toBeVisible();
-        await expect
-            .poll(
-                async () =>
-                    canvas.evaluate((c) => {
-                        const el = c as HTMLCanvasElement;
-                        return el.width > 8 && el.height > 8;
-                    }),
-                { timeout: 15_000 }
-            )
-            .toBeTruthy();
-
-        const dir = getMatchedFlameCaptureDir();
-        await page.waitForTimeout(120);
-        await page.screenshot({
-            path: join(dir, '01-isolated-burst-high-960x720.png'),
-            fullPage: true,
-            animations: 'disabled'
-        });
-
-        await setRangeControl(page, 'Burst', 0);
-        await page.getByLabel('Reduce motion').check();
-        await expect(page.getByLabel('Reduce motion')).toBeChecked();
-        await page.waitForTimeout(120);
-        await page.screenshot({
-            path: join(dir, '02-isolated-settled-reduced-960x720.png'),
-            fullPage: true,
-            animations: 'disabled'
-        });
-    });
 
     test('in-game: level 1 after first match (tile stage)', async ({ page }) => {
         test.setTimeout(120_000);
 
         await page.setViewportSize({ width: 1280, height: 720 });
-        const params = new URLSearchParams({
-            devSandbox: '1',
-            fixture: 'arcade',
-            screen: 'playing',
-            skipIntro: '1'
-        });
-        await gotoWithSaveAndQuery(page, buildMatchedFlameCaptureSaveJson(), params.toString());
+        await openLevel1PlayWithSave(page, buildMatchedFlameCaptureSaveJson());
 
         await expect(page.getByTestId('game-hud')).toBeVisible({ timeout: 25_000 });
         await expect(page.getByTestId('tile-board-frame')).toBeVisible({ timeout: 25_000 });

@@ -12,8 +12,8 @@ async function expectChoosePathReviewLayout(
     await expect(title).toBeVisible();
     await expect(launcher).toBeVisible();
     await expect(launcher.getByRole('button', { name: /start run/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /browse modes/i })).toBeVisible();
-    await expect(page.getByTestId('choose-path-more-modes')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /hide modes/i })).toBeVisible();
+    await expect(page.getByTestId('choose-path-more-modes')).toBeVisible();
 
     const [inlineBackBox, titleBox] = await Promise.all([inlineBack.boundingBox(), title.boundingBox()]);
     expect(inlineBackBox).not.toBeNull();

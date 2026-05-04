@@ -128,7 +128,7 @@
 | Item | Status | Notes | Epic |
 |------|--------|-------|------|
 | Route cards and hard-route anchors | **Functional** | Safe/Greed/Mystery route choices feed next-board generation. Hard non-boss floors add Final Ward, Elite Cache, or Omen Seal; boss route floors add Keystone Pair. | [epic-route-world-pipeline](./epic-route-world-pipeline.md) |
-| Route action rules | **Functional** | Match claims route rewards; destroy denies eligible route rewards; peek reveals Mystery Veil/Secret Door/Omen Seal without claiming; Stray remove refuses Keystone Pair, Final Ward, and Omen Seal. | [epic-route-world-pipeline](./epic-route-world-pipeline.md) |
+| Route action rules | **Functional** | Match claims route rewards; destroy denies eligible route rewards; peek reveals Mystery Veil/Secret Door/Omen Seal/Mimic Cache without claiming; Stray remove refuses Keystone Pair, Final Ward, and Omen Seal. | [epic-route-world-pipeline](./epic-route-world-pipeline.md) |
 | Route-world presentation depth | **Functional** | Rendering/copy surfaces distinguish route families. Remaining polish is final art/audio and deeper trap-family tuning, not missing gameplay plumbing. | [epic-route-world-pipeline](./epic-route-world-pipeline.md) |
 
 ---

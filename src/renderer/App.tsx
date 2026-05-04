@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MouseEvent } from 'react';
+import { useEffect, useState, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useShallow } from 'zustand/react/shallow';
 import ChooseYourPathScreen from './components/ChooseYourPathScreen';
@@ -22,10 +22,6 @@ import { useViewportSize } from './hooks/useViewportSize';
 import styles from './styles/App.module.css';
 import { buildRendererThemeStyle } from './styles/theme';
 import { useGameplayMusic } from './audio/gameplayMusic';
-import BlueprintExplorer from './dev/BlueprintExplorer';
-import MatchedCardRimFireSandbox from './dev/MatchedCardRimFireSandbox';
-import ProceduralIllustrationGallerySandbox from './dev/ProceduralIllustrationGallerySandbox';
-import { readDevSandboxConfig } from './dev/devSandboxParams';
 import { setTelemetrySink } from '../shared/telemetry';
 import { useAppStore } from './store/useAppStore';
 
@@ -137,8 +133,6 @@ const App = () => {
     const showMenuShell = startupIntroContract.renderMenuShell;
     const menuShellBlurred = showMainMenu && startupIntroContract.menuPointerState === 'blocked';
 
-    const devSandboxAppliedRef = useRef(false);
-
     useEffect(() => {
         void hydrate();
     }, [hydrate]);
@@ -155,29 +149,6 @@ const App = () => {
             setTelemetrySink(null);
         };
     }, []);
-
-    useEffect(() => {
-        if (!hydrated || devSandboxAppliedRef.current) {
-            return;
-        }
-        const cfg = readDevSandboxConfig();
-        if (!cfg.enabled) {
-            return;
-        }
-        if (cfg.fxSandbox) {
-            devSandboxAppliedRef.current = true;
-            return;
-        }
-        devSandboxAppliedRef.current = true;
-        void Promise.resolve().then(() => {
-            if (cfg.skipIntro) {
-                setIntroPlayback('done');
-            }
-            if (cfg.screen) {
-                useAppStore.getState().__devApplySandbox(cfg);
-            }
-        });
-    }, [hydrated]);
 
     /** DS-010: `ShopScreen` returns null for invalid run state; snap view back so gameplay/floor summary stays coherent. */
     useEffect(() => {
@@ -225,19 +196,6 @@ const App = () => {
      *       (`data-testid` `match-score-floater` / `mismatch-score-floater`); above distraction HUD, under in-run
      *       OverlayModal shells (21+).
      */
-    if (import.meta.env.DEV) {
-        const fx = readDevSandboxConfig().fxSandbox;
-        if (fx === 'matchedRimFire') {
-            return <MatchedCardRimFireSandbox />;
-        }
-        if (fx === 'proceduralGallery') {
-            return <ProceduralIllustrationGallerySandbox />;
-        }
-        if (fx === 'projectGraph') {
-            return <BlueprintExplorer />;
-        }
-    }
-
     return (
         <div
             className={styles.app}

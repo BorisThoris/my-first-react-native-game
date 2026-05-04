@@ -231,7 +231,7 @@ describe('GameScreen (OVR-014)', () => {
 
     it('REG-026 surfaces action-gated playable onboarding without hiding card targets', () => {
         const playing = finishMemorizePhase(createNewRun(0));
-        const firstRealTile = playing.board!.tiles.find((tile) => tile.dungeonCardKind == null)!;
+        const firstRealTile = playing.board!.tiles.find((tile) => tile.dungeonCardKind == null && tile.pairKey !== '__decoy__')!;
         const firstPair = playing.board!.tiles.filter((tile) => tile.pairKey === firstRealTile.pairKey);
 
         const { rerender } = render(
@@ -555,6 +555,8 @@ describe('GameScreen (OVR-014)', () => {
         expect(getByText('Pick 1 of 2 this visit')).toBeTruthy();
         expect(getByText(/Featured-objective favor/)).toBeTruthy();
         expect(getByText(/Scholar contract/)).toBeTruthy();
+        expect(getByText(/The Saboteur: disarm, delete, reroute./)).toBeTruthy();
+        expect(getByText(/The Warden \/ The Seer: guard, absorb, stabilize./)).toBeTruthy();
         expect(gameSfxMocks.playRelicOfferOpenSfx).toHaveBeenCalledTimes(1);
     });
 
@@ -738,6 +740,9 @@ describe('GameScreen (OVR-014)', () => {
         expect(getByText(/Next: Speed Trial/)).toBeTruthy();
         expect(getByText(/Lantern Academy/)).toBeTruthy();
         expect(getByText(/speed check/)).toBeTruthy();
+        expect(screen.getByTestId('floor-clear-causality-grid')).toHaveTextContent('Baseline descent');
+        expect(screen.getByTestId('floor-clear-causality-grid')).toHaveTextContent('score, objective value, and assist discipline');
+        expect(getByText(/Baseline descent: Use assists only when they save more value/)).toBeTruthy();
         expect(screen.getByTestId('floor-clear-result-stack')).toHaveAttribute('data-route-choice-required', 'true');
         expect(screen.getByTestId('route-choice-panel')).toHaveTextContent('Choose the next room');
         expect(screen.getByTestId('route-choice-panel')).toHaveAttribute('data-decision-state', 'required');

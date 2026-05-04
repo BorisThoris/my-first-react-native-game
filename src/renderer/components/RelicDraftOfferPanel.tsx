@@ -187,7 +187,7 @@ const RelicDraftOfferPanel = ({
                             <span aria-hidden className={styles.runeStrip} />
                             {reason ? <span className={styles.reason}>{reason}</span> : null}
                             <span className={styles.archetypes}>{archetypes.join(' · ')}</span>
-                            <span className={styles.archetypes}>{impactCopy}</span>
+                            <span className={styles.impact}>{impactCopy}</span>
                             <p className={styles.body}>{desc}</p>
                         </button>
                     );

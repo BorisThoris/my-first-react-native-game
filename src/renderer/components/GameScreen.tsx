@@ -806,9 +806,6 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
     const viewportWantsMobileCamera = compactTouchChrome;
     const cameraViewportMode = deriveCameraViewportMode(settingsCameraViewportModePreference, viewportWantsMobileCamera);
     const clearLifeBonusLabel = run.lastLevelResult ? getClearLifeBonusLabel(run.lastLevelResult) : null;
-    const floorClearCausalityRows = run.lastLevelResult
-        ? getFloorClearCausalityRows(run.lastLevelResult, run.powersUsedThisRun)
-        : [];
     const objectiveBonusLine =
         run.lastLevelResult && (run.lastLevelResult.objectiveBonusScore ?? 0) > 0
             ? `Objective bonuses: +${run.lastLevelResult.objectiveBonusScore!.toLocaleString()}`
@@ -826,6 +823,9 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
               featuredObjectiveLabel: currentFeaturedObjectiveLabel
           })
         : null;
+    const floorClearCausalityRows = run.lastLevelResult
+        ? getFloorClearCausalityRows(run.lastLevelResult, run.powersUsedThisRun, currentFloorIdentity)
+        : [];
     const featuredObjectiveResultLine = run.lastLevelResult ? formatLevelResultObjectiveLine(run.lastLevelResult) : null;
     const featuredObjectiveFailureLine = featuredObjectiveFailReason(run);
     const favorGained = run.lastLevelResult?.relicFavorGained ?? 0;
@@ -922,6 +922,14 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
             ? pickFloorScheduleEntry(run.runSeed, run.runRulesVersion, run.lastLevelResult.level + 1, run.gameMode)
             : null;
     const nextFloorObjectiveLabel = getFeaturedObjectiveLabel(nextFloorPreview?.featuredObjectiveId ?? null);
+    const nextFloorIdentity = nextFloorPreview
+        ? getFloorIdentityContract({
+              floorTag: nextFloorPreview.floorTag,
+              floorArchetypeId: nextFloorPreview.floorArchetypeId,
+              mutators: nextFloorPreview.mutators,
+              featuredObjectiveLabel: nextFloorObjectiveLabel
+          })
+        : null;
     const nextFloorChapterIdentity = nextFloorPreview ? getFloorChapterIdentity(nextFloorPreview) : null;
     const nextFloorMutatorNames =
         nextFloorPreview && nextFloorPreview.mutators.length > 0
@@ -937,6 +945,10 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         nextFloorPreview?.title && nextFloorObjectiveLabel
             ? `Next: ${nextFloorPreview.title} В· ${nextFloorObjectiveLabel} В· ${nextFloorMutatorLabels}`
             : null;
+
+    const nextFloorPreviewIdentityLine = nextFloorPreview && nextFloorIdentity
+        ? `${nextFloorIdentity.label}: ${nextFloorIdentity.counterplaySentence}`
+        : null;
 
     const gauntletRemainingMs =
         run.gauntletDeadlineMs !== null ? Math.max(0, run.gauntletDeadlineMs - gauntletNowMs) : null;
@@ -955,7 +967,28 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         chainAnnounceActive: run.status === 'playing',
         gambitThirdPickActive,
         gambitOpportunityFlippedIds:
-            gambitThirdPickActive && run.board ? run.board.flippedTileIds : null
+            gambitThirdPickActive && run.board ? run.board.flippedTileIds : null,
+        reduceMotion: settingsReduceMotion,
+        hazardTileTriggersThisFloor: run.hazardTileTriggersThisFloor,
+        hazardShuffleSnaresThisFloor: run.hazardShuffleSnaresThisFloor,
+        hazardCascadeCachesThisFloor: run.hazardCascadeCachesThisFloor,
+        hazardMirrorDecoysThisFloor: run.hazardMirrorDecoysThisFloor,
+        hazardFragileCacheClaimsThisFloor: run.hazardFragileCacheClaimsThisFloor,
+        hazardFragileCacheBreaksThisFloor: run.hazardFragileCacheBreaksThisFloor,
+        hazardTollCachesThisFloor: run.hazardTollCachesThisFloor,
+        hazardFuseCachesThisFloor: run.hazardFuseCachesThisFloor,
+        hazardFuseCacheExpiredClaimsThisFloor: run.hazardFuseCacheExpiredClaimsThisFloor,
+        lanternWardScoutsThisFloor: run.lanternWardScoutsThisFloor,
+        omenSealScoutsThisFloor: run.omenSealScoutsThisFloor,
+        mimicCacheClaimsThisFloor: run.mimicCacheClaimsThisFloor,
+        mimicCacheBitesThisFloor: run.mimicCacheBitesThisFloor,
+        mimicCacheGuardBitesThisFloor: run.mimicCacheGuardBitesThisFloor,
+        anchorSealUsesThisFloor: run.anchorSealUsesThisFloor,
+        loadedGatewayPlansThisFloor: run.loadedGatewayPlansThisFloor,
+        catalystAltarUpgradesThisFloor: run.catalystAltarUpgradesThisFloor,
+        parasiteVesselConversionsThisFloor: run.parasiteVesselConversionsThisFloor,
+        pinLatticeRewardsThisFloor: run.pinLatticeRewardsThisFloor,
+        safeHazardWardsUsedThisFloor: run.safeHazardWardsUsedThisFloor
     });
 
     const shiftingSpotlightActive = useMemo(
@@ -1615,6 +1648,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                             {objectiveBonusLine ? <p className={styles.modalNote}>{objectiveBonusLine}</p> : null}
                             {bonusTagsLine ? <p className={styles.modalNote}>{bonusTagsLine}</p> : null}
                             {nextFloorPreviewLine ? <p className={styles.modalNote}>{nextFloorPreviewLine}</p> : null}
+                            {nextFloorPreviewIdentityLine ? <p className={styles.modalNote}>{nextFloorPreviewIdentityLine}</p> : null}
                             {currentDungeonNode ? (
                                 <p className={styles.modalNote}>
                                     Cleared node: {currentDungeonNode.label}. Choose a connected room to shape the next board.

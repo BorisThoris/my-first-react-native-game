@@ -34,6 +34,8 @@ describe('REG-085 run history, replay, and journal', () => {
             }
         });
         expect(entry.build.relicIds).toContain('chapter_compass');
+        expect(entry.journalRows.find((row) => row.id === 'build')?.value).toContain('The Slayer');
+        expect(entry.journalRows.find((row) => row.id === 'build')?.detail).toContain('prepare, focus, finish');
         expect(entry.journalRows.map((row) => row.id).slice(0, 4)).toEqual(['summary', 'build', 'replay', 'encore']);
         expect(entry.journalRows.map((row) => row.id)).toEqual(
             expect.arrayContaining(['dungeon_node', 'dungeon_objective', 'dungeon_rewards'])
@@ -112,5 +114,13 @@ describe('REG-085 run history, replay, and journal', () => {
         expect(rows.every((row) => row.exportSafe && row.offlineOnly)).toBe(true);
         expect(buildRunHistoryExportString(run)).toContain('Dungeon node');
         expect(buildRunHistoryExportString(run)).not.toMatch(/token|email|path/i);
+    });
+
+    it('uses primary build archetype in journal recap when relics exist', () => {
+        const entry = buildRunHistoryEntry(completedRun());
+        const journal = buildRunJournalRows(completedRun());
+
+        expect(entry.journalRows.find((row) => row.id === 'build')?.value).toContain('The Slayer');
+        expect(journal.find((row) => row.id === 'build')?.value).toContain('The Slayer');
     });
 });

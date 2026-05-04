@@ -8,7 +8,7 @@
  */
 export const SAVE_SCHEMA_VERSION = 5;
 /** Bump when generation rules change (tile order, mutators, pair layout). */
-export const GAME_RULES_VERSION = 19;
+export const GAME_RULES_VERSION = 27;
 export const INITIAL_LIVES = 4;
 /** Hard cap on life total during a run; HUD renders this many heart slots (PLAY-004 — honest max, not mock’s three). */
 export const MAX_LIVES = 5;
@@ -54,6 +54,29 @@ export const FLIP_PAR_BONUS_SCORE = 45;
 export const SHIFTING_BOUNTY_MATCH_BONUS = 30;
 /** `shifting_spotlight`: subtracted from match score when the current ward pair is matched (floored at 0 with base match). */
 export const SHIFTING_WARD_MATCH_PENALTY = 22;
+/** `toll_cache`: deterministic match-score toll paid for converting a clean hazard match into shop gold. */
+export const TOLL_CACHE_MATCH_SCORE_TOLL = 15;
+/** `toll_cache`: temporary shop wallet awarded when its pair is matched cleanly. */
+export const TOLL_CACHE_SHOP_GOLD_REWARD = 1;
+/** `fuse_cache`: clean-match score paid while the cache is still fresh. */
+export const FUSE_CACHE_FRESH_SCORE_REWARD = 35;
+/** `fuse_cache`: temporary shop wallet awarded while the cache is still fresh. */
+export const FUSE_CACHE_FRESH_SHOP_GOLD_REWARD = 2;
+/** `fuse_cache`: temporary shop wallet awarded after the fuse expires. */
+export const FUSE_CACHE_EXPIRED_SHOP_GOLD_REWARD = 1;
+/** `fuse_cache`: number of floor resolutions before the full payout expires. */
+export const FUSE_CACHE_FRESH_RESOLUTION_LIMIT = 3;
+/** `mimic_cache`: controlled route-special score reward when scouted/revealed before matching. */
+export const MIMIC_CACHE_CONTROLLED_SCORE_REWARD = 20;
+/** `mimic_cache`: controlled route-special shop wallet when scouted/revealed before matching. */
+export const MIMIC_CACHE_CONTROLLED_SHOP_GOLD_REWARD = 2;
+/** `mimic_cache`: blind route-special shop wallet after the bite branch. */
+export const MIMIC_CACHE_BLIND_SHOP_GOLD_REWARD = 1;
+export const LOADED_GATEWAY_SCORE_REWARD = 20;
+export const CATALYST_ALTAR_FALLBACK_SCORE_REWARD = 15;
+export const CATALYST_ALTAR_UPGRADED_SCORE_REWARD = 45;
+export const PARASITE_VESSEL_FALLBACK_SCORE_REWARD = 15;
+export const PIN_LATTICE_SCORE_REWARD = 20;
 export const BOSS_FLOOR_SCORE_MULTIPLIER = 1.25;
 
 export type DisplayMode = 'windowed' | 'fullscreen';
@@ -315,8 +338,16 @@ export interface Tile {
     routeSpecialKind?: RouteSpecialKind;
     /** True after an information tool has identified this route-world special without claiming it. */
     routeSpecialRevealed?: boolean;
+    /** Source of route-special information reveal; affects player-facing copy only. */
+    routeSpecialRevealSource?: 'peek' | 'lantern_ward' | 'omen_seal';
     /** Dungeon-card layer: encounter/room object carried by this card pair. */
     dungeonCardKind?: DungeonCardKind;
+    /** Optional board hazard marker for generated or authored hazard tile effects. */
+    tileHazardKind?: HazardTileKind;
+    /** True when Lantern Ward has identified this hidden card as safe-to-know information. */
+    lanternScouted?: boolean;
+    /** Source of passive scout information for hidden dungeon/hazard cards; affects player-facing copy only. */
+    scoutRevealSource?: 'lantern_ward' | 'omen_seal';
     /** Boss identity when this dungeon card is the floor's boss pair. */
     dungeonBossId?: DungeonBossId;
     /** Hidden until revealed, then resolved after its one-shot or pair reward is consumed. */
@@ -439,6 +470,25 @@ export interface LevelResult {
     endlessRiskWagerStreakLost?: number;
     bossTrophyCacheOutcome?: 'claimed' | 'forfeited';
     bossTrophyCacheScore?: number;
+    hazardTileTriggers?: number;
+    hazardShuffleSnares?: number;
+    hazardCascadeCaches?: number;
+    hazardMirrorDecoys?: number;
+    hazardFragileCacheClaims?: number;
+    hazardFragileCacheBreaks?: number;
+    hazardTollCaches?: number;
+    hazardFuseCaches?: number;
+    hazardFuseCacheExpiredClaims?: number;
+    lanternWardScouts?: number;
+    omenSealScouts?: number;
+    mimicCacheClaims?: number;
+    mimicCacheBites?: number;
+    anchorSealUses?: number;
+    loadedGatewayPlans?: number;
+    catalystAltarUpgrades?: number;
+    parasiteVesselConversions?: number;
+    pinLatticeRewards?: number;
+    safeHazardWardsUsed?: number;
     /** REG-017: deterministic local route options for the next floor; UI-only until map/shop nodes land. */
     routeChoices?: RouteChoice[];
 }
@@ -451,7 +501,14 @@ export type RouteSpecialKind =
     | 'final_ward'
     | 'greed_toll'
     | 'fragile_cache'
+    | 'guard_cache'
     | 'lantern_ward'
+    | 'mimic_cache'
+    | 'anchor_seal'
+    | 'loaded_gateway'
+    | 'catalyst_altar'
+    | 'parasite_vessel'
+    | 'pin_lattice'
     | 'omen_seal'
     | 'secret_door'
     | 'keystone_pair';
@@ -470,6 +527,7 @@ export type DungeonCardKind =
     | 'lever'
     | 'shop'
     | 'room';
+export type HazardTileKind = 'shuffle_snare' | 'cascade_cache' | 'mirror_decoy' | 'fragile_cache' | 'toll_cache' | 'fuse_cache';
 export type DungeonCardState = 'hidden' | 'revealed' | 'resolved';
 export type DungeonBossId = 'trap_warden' | 'rush_sentinel' | 'treasure_keeper' | 'spire_observer';
 export type EnemyHazardKind = 'sentinel' | 'stalker' | 'warden' | 'observer';
@@ -845,6 +903,29 @@ export interface RunState {
     findablesClaimedThisFloor: number;
     /** Findables: total pickup pairs that spawned this floor (claimed or forfeited). */
     findablesTotalThisFloor: number;
+    /** Hazard tiles: total normal-run hazard triggers this floor. */
+    hazardTileTriggersThisFloor: number;
+    hazardShuffleSnaresThisFloor: number;
+    hazardCascadeCachesThisFloor: number;
+    hazardMirrorDecoysThisFloor: number;
+    hazardFragileCacheClaimsThisFloor: number;
+    hazardFragileCacheBreaksThisFloor: number;
+    hazardTollCachesThisFloor: number;
+    hazardFuseCachesThisFloor: number;
+    hazardFuseCacheExpiredClaimsThisFloor: number;
+    lanternWardScoutsThisFloor: number;
+    omenSealScoutsThisFloor: number;
+    mimicCacheClaimsThisFloor: number;
+    mimicCacheBitesThisFloor: number;
+    mimicCacheGuardBitesThisFloor: number;
+    anchorSealChargesThisFloor: number;
+    anchorSealUsesThisFloor: number;
+    loadedGatewayPlansThisFloor: number;
+    catalystAltarUpgradesThisFloor: number;
+    parasiteVesselConversionsThisFloor: number;
+    pinLatticeRewardsThisFloor: number;
+    safeHazardWardChargesThisFloor: number;
+    safeHazardWardsUsedThisFloor: number;
     /** `shifting_spotlight`: increments each time ward/bounty rotates this floor (seed step for next pick). */
     shiftingSpotlightNonce: number;
     dungeonEnemiesDefeated: number;

@@ -12,6 +12,7 @@ import {
     getRelicDraftRow,
     getRelicRoleAuditRows,
     getRelicDraftOptionReasons,
+    getRunBuildProfile,
     isRelicDraftEligible,
     effectiveRelicDraftWeight,
     relicMilestoneIndexForFloor,
@@ -184,6 +185,42 @@ describe('rollRelicOptions', () => {
         expect(rows.every((row) => row.decisionImpact.length > 0)).toBe(true);
         expect(rows.every((row) => row.impactCopy.includes(':'))).toBe(true);
         expect(rows.every((row) => row.rescueDirection === 'clear')).toBe(true);
+    });
+
+    it('derives a deterministic run build profile from drafted relic archetypes', () => {
+        const run = {
+            ...createNewRun(0),
+            relicIds: ['peek_charge_plus_one', 'pin_cap_plus_one', 'stray_charge_plus_one', 'wager_surety']
+        } as RunState;
+        const profile = getRunBuildProfile(run);
+
+        expect(profile.primary).toMatchObject({
+            id: 'reveal_scout',
+            label: 'The Seer',
+            score: 3,
+            supportingRelicIds: ['peek_charge_plus_one', 'pin_cap_plus_one', 'stray_charge_plus_one']
+        });
+        expect(profile.summary).toBe('The Seer · 3 build signals');
+        expect(profile.tooltip).toContain('peek, pin, read');
+        expect(profile.signals.map((signal) => signal.id).slice(0, 3)).toEqual([
+            'reveal_scout',
+            'route_gambler',
+            'treasure_greed'
+        ]);
+    });
+
+    it('uses definition order to break build-profile ties and stays honest before first relic', () => {
+        expect(getRunBuildProfile({ relicIds: [] }).summary).toBe('First relic still ahead');
+
+        const tied = getRunBuildProfile({
+            relicIds: ['guard_token_plus_one']
+        });
+        expect(tied.signals.map((signal) => signal.id)).toEqual([
+            'guard_tank',
+            'route_gambler',
+            'combo_shard_engine'
+        ]);
+        expect(tied.primary?.id).toBe('guard_tank');
     });
 
     it('is deterministic for the same seed, tier, floor, and pickRound', () => {

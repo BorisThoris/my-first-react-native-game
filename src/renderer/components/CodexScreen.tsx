@@ -18,6 +18,7 @@ import {
 import { getCodexKnowledgeBaseRows } from '../../shared/codex-knowledge-base';
 import type { MutatorId, RelicId } from '../../shared/contracts';
 import { getCodexRewardSignal } from '../../shared/meta-reward-signals';
+import { getRelicBuildArchetypeSummaries } from '../../shared/relics';
 import { getUiStateCopy } from '../../shared/ui-state-copy';
 import { Eyebrow, MetaFrame, Panel, ScreenTitle, UiButton } from '../ui';
 import {
@@ -53,6 +54,7 @@ const TOC: { href: string; label: string; kind: TocKind }[] = [
     { href: '#codex-pickups', label: 'Pickups', kind: 'guide' },
     { href: '#codex-contracts', label: 'Contracts', kind: 'guide' },
     { href: '#codex-featured-runs', label: 'Featured', kind: 'guide' },
+    { href: '#codex-builds', label: 'Builds', kind: 'guide' },
     { href: '#codex-modes', label: 'Modes', kind: 'guide' },
     { href: '#codex-achievements', label: 'Achievements', kind: 'table' },
     { href: '#codex-relics', label: 'Relics', kind: 'table' },
@@ -119,6 +121,18 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
     const pickupsFiltered = filterTopics(ENCYCLOPEDIA_PICKUP_AND_BOARD_TOPICS, debouncedFilterQuery);
     const contractsFiltered = filterTopics(ENCYCLOPEDIA_CONTRACT_TOPICS, debouncedFilterQuery);
     const featuredFiltered = filterTopics(ENCYCLOPEDIA_FEATURED_RUN_TOPICS, debouncedFilterQuery);
+    const buildRows = useMemo(
+        () =>
+            getRelicBuildArchetypeSummaries().map((row) => ({
+                id: row.id,
+                title: row.label,
+                description: `${row.fantasy} ${row.summary} Decisions: ${row.decisionVerbs.join(', ')}. Relics: ${row.relicIds
+                    .map((id) => RELIC_CATALOG[id]?.title ?? id)
+                    .join(', ')}.`
+            })),
+        []
+    );
+    const buildRowsFiltered = filterTopics(buildRows, debouncedFilterQuery);
 
     const relicList = useMemo(
         () => (Object.keys(RELIC_CATALOG) as RelicId[]).map((id) => RELIC_CATALOG[id]),
@@ -166,6 +180,7 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
             tabAllows('guide') ? pickupsFiltered.length : 0,
             tabAllows('guide') ? contractsFiltered.length : 0,
             tabAllows('guide') ? featuredFiltered.length : 0,
+            tabAllows('guide') ? buildRowsFiltered.length : 0,
             tabAllows('guide') ? filteredModes.length : 0,
             tabAllows('table') ? filteredAchievements.length : 0,
             tabAllows('table') ? filteredRelics.length : 0,
@@ -450,6 +465,28 @@ const CodexScreen = ({ stackedOnGameplay = false }: CodexScreenProps) => {
                                         <div className={styles.entry} key={topic.id}>
                                             <strong>{topic.title}</strong>
                                             <p>{topic.description}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </details>
+                        </Panel>
+                    ) : null}
+
+                    {showGuidePanel(buildRowsFiltered.length) ? (
+                        <Panel className={panelClassName} padding="lg" variant="default">
+                            <details
+                                className={`${styles.sectionFold} ${metaStyles.sectionAnchor}`}
+                                id="codex-builds"
+                                open
+                            >
+                                <summary className={`${styles.groupTitle} ${styles.foldSummary}`}>
+                                    Build archetypes
+                                </summary>
+                                <div className={styles.group}>
+                                    {buildRowsFiltered.map((row) => (
+                                        <div className={styles.entry} key={row.id}>
+                                            <strong>{row.title}</strong>
+                                            <p>{row.description}</p>
                                         </div>
                                     ))}
                                 </div>

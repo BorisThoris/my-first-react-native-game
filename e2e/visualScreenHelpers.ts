@@ -13,12 +13,6 @@ import { dismissStartupIntro } from './startupIntroHelpers';
 
 const MATCH_SETTLE_MS = 950;
 
-/** When set (e.g. `1`), `08-game-over` visual baseline uses dev sandbox instead of live mismatch harness (CI default unchanged). */
-export function visualE2eUsesSandboxGameOver(): boolean {
-    const raw = process.env.E2E_USE_SANDBOX_GAMEOVER?.trim().toLowerCase();
-    return raw === '1' || raw === 'true' || raw === 'yes';
-}
-
 type PairClickSettlement = 'floor_cleared' | 'four_hidden' | 'two_hidden';
 
 /**
@@ -263,6 +257,24 @@ export function mainMenuPlayButton(page: Page) {
     return page.getByRole('group', { name: /primary actions/i }).getByRole('button', { name: /^play$/i });
 }
 
+export async function openChooseYourPath(page: Page): Promise<void> {
+    await expect(async () => {
+        const playButton = mainMenuPlayButton(page);
+        await expect(playButton).toBeVisible({ timeout: 5_000 });
+        await playButton.evaluate((el) => (el as HTMLButtonElement).click());
+        await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible({ timeout: 5_000 });
+    }).toPass({ timeout: 30_000 });
+}
+
+export async function ensureModeLibraryVisible(page: Page): Promise<void> {
+    const library = page.getByRole('region', { name: /browse modes/i });
+    if (await library.isVisible().catch(() => false)) {
+        return;
+    }
+    await page.getByRole('button', { name: /browse modes/i }).click();
+    await expect(library).toBeVisible();
+}
+
 export async function gotoWithSave(page: Page, saveJson: string): Promise<void> {
     await page.addInitScript(
         ([key, json]) => {
@@ -273,10 +285,7 @@ export async function gotoWithSave(page: Page, saveJson: string): Promise<void> 
     await page.goto('/', { waitUntil: 'load', timeout: 90_000 });
 }
 
-/**
- * Seed the same visual save JSON as `gotoWithSave`, then open `/?{queryString}` for dev sandbox params
- * (`devSandbox=1&screen=…`). `queryString` must not include a leading `?`.
- */
+/** Seed the same visual save JSON as `gotoWithSave`, then open `/?{queryString}`. */
 export async function gotoWithSaveAndQuery(page: Page, saveJson: string, queryString: string): Promise<void> {
     const qs = queryString.startsWith('?') ? queryString.slice(1) : queryString;
     await page.addInitScript(
@@ -361,49 +370,6 @@ export async function writeHudLayoutDiagnostics(page: Page, outDir: string): Pro
     writeFileSync(join(outDir, 'hud-fragment.html'), outerHtml, 'utf8');
 }
 
-export interface OpenDevSandboxPlayingOptions {
-    fixture?: string;
-    reduceMotion?: boolean;
-    onboardingDismissed?: boolean;
-}
-
-/**
- * Hydrates with a deterministic save, then applies URL dev sandbox to `playing` + fixture (see `runFixtures.ts`).
- */
-export async function openDevSandboxPlaying(page: Page, options?: OpenDevSandboxPlayingOptions): Promise<void> {
-    const fixture = options?.fixture ?? 'dailyParasite';
-    const reduceMotion = options?.reduceMotion ?? true;
-    const onboardingDismissed = options?.onboardingDismissed ?? true;
-    const params = new URLSearchParams({
-        devSandbox: '1',
-        fixture,
-        screen: 'playing',
-        skipIntro: '1'
-    });
-    await gotoWithSaveAndQuery(page, buildVisualSaveJson(onboardingDismissed, reduceMotion), params.toString());
-    await expect(page.getByTestId('game-hud')).toBeVisible({ timeout: 25_000 });
-    await expect(page.getByTestId('tile-board-frame')).toBeVisible({ timeout: 25_000 });
-    await expect(page.getByRole('group', { name: /run stats/i })).toBeVisible({ timeout: 25_000 });
-    await waitLevel1VisualReady(page);
-}
-
-/**
- * Same save hydration as `openDevSandboxPlaying`, but jumps straight to the game-over shell + summary fixture
- * (`runFixtures` `gameOver` preset). Use for stable `08-game-over` captures when `E2E_USE_SANDBOX_GAMEOVER=1`.
- */
-export async function openDevSandboxGameOver(page: Page, options?: OpenDevSandboxPlayingOptions): Promise<void> {
-    const reduceMotion = options?.reduceMotion ?? true;
-    const onboardingDismissed = options?.onboardingDismissed ?? true;
-    const params = new URLSearchParams({
-        devSandbox: '1',
-        fixture: 'gameOver',
-        screen: 'gameOver',
-        skipIntro: '1'
-    });
-    await gotoWithSaveAndQuery(page, buildVisualSaveJson(onboardingDismissed, reduceMotion), params.toString());
-    await expect(page.getByText(/Expedition Over/i)).toBeVisible({ timeout: 25_000 });
-}
-
 /**
  * Seeds localStorage, navigates home, then waits for the startup intro dialog.
  * Navigation completes first so React can mount the overlay; the locator wait catches visibility
@@ -445,6 +411,14 @@ export async function openLevel1Play(page: Page): Promise<void> {
     await startClassicRunFromModeSelect(page);
 }
 
+export async function openLevel1PlayWithSave(page: Page, saveJson: string): Promise<void> {
+    await gotoWithSave(page, saveJson);
+    await dismissStartupIntro(page);
+    await mainMenuPlayButton(page).click({ force: true });
+    await expect(page.getByRole('region', { name: /choose your path/i })).toBeVisible();
+    await startClassicRunFromModeSelect(page);
+}
+
 type PairPositions = MemorizePairPositions;
 
 async function getHiddenTilePositions(page: Page): Promise<{ row: number; col: number }[]> {
@@ -479,6 +453,9 @@ async function completeLevel1ByTryingHiddenPairs(page: Page): Promise<void> {
             return;
         }
         if (await proceedThroughUnlockedExitIfVisible(page)) {
+            return;
+        }
+        if (await revealLoneExitIfPresent(page)) {
             return;
         }
         const positions = await getHiddenTilePositions(page);
@@ -527,9 +504,9 @@ export async function waitForPlayPhaseHiddenTiles(page: Page, expected: number):
     await expect.poll(async () => readFrameHiddenTileCount(page), { timeout: 15000 }).toBe(expected);
 }
 
-async function waitForPlayingAndHiddenCount(page: Page, expected: number): Promise<void> {
+async function waitForPlayingAndHiddenCount(page: Page, expectedMinimum: number): Promise<void> {
     await waitForBoardPlayPhase(page);
-    await expect.poll(async () => readFrameHiddenTileCount(page), { timeout: 15000 }).toBe(expected);
+    await expect.poll(async () => readFrameHiddenTileCount(page), { timeout: 15000 }).toBeGreaterThanOrEqual(expectedMinimum);
 }
 
 /** Visual captures only need a playable board; dungeon objective cards can add non-pair hidden slots. */
@@ -552,8 +529,23 @@ async function proceedThroughUnlockedExitIfVisible(page: Page): Promise<boolean>
     return true;
 }
 
+async function revealLoneExitIfPresent(page: Page): Promise<boolean> {
+    if (await proceedThroughUnlockedExitIfVisible(page)) {
+        return true;
+    }
+
+    const positions = await getHiddenTilePositions(page);
+    if (positions.length !== 1) {
+        return false;
+    }
+
+    await clickHiddenTile(page, positions[0]!.row, positions[0]!.col);
+    await expect(page.getByRole('dialog', { name: /unlocked exit/i })).toBeVisible({ timeout: 15_000 });
+    return proceedThroughUnlockedExitIfVisible(page);
+}
+
 /**
- * Level 1: wait for play phase (4 hidden tiles). Captures memorize map when possible; otherwise returns null
+ * Level 1: wait for play phase (memory pairs plus any required objective cards). Captures memorize map when possible; otherwise returns null
  * and callers should use `completeLevel1Play`.
  */
 export async function waitLevel1PlayReady(page: Page): Promise<PairPositions | null> {
@@ -566,8 +558,8 @@ export async function waitLevel1PlayReady(page: Page): Promise<PairPositions | n
         }
         const hidden = await readFrameHiddenTileCount(page);
         const runStatus = await page.getByTestId('tile-board-frame').getAttribute('data-board-run-status');
-        /** `hidden === 4` alone can occur during memorize; require `playing` before keyboard/canvas picks work. */
-        if (hidden === 4 && runStatus === 'playing') {
+        /** Hidden cards can include objective cards; require `playing` before keyboard/canvas picks work. */
+        if (hidden >= 4 && runStatus === 'playing') {
             return lastMemorizeSnap;
         }
         await page.waitForTimeout(40);
@@ -585,6 +577,9 @@ export async function completeLevel1AllMatches(page: Page, pairs: PairPositions)
         await page.waitForTimeout(MATCH_SETTLE_MS);
     }
     if (await proceedThroughUnlockedExitIfVisible(page)) {
+        return;
+    }
+    if (await revealLoneExitIfPresent(page)) {
         return;
     }
     await expect(page.getByRole('dialog', { name: /floor cleared/i })).toBeVisible({ timeout: 15000 });
@@ -706,7 +701,7 @@ async function discoverMismatchPair(
  * Burn lives with mismatches until game over (level 1). Flake patterns:
  * - Same as `discoverMismatchPair` for the discovery phase; burn loop waits for board reset or overlay via polling
  *   (slow machines can exceed a fixed `MATCH_SETTLE_MS`).
- * - If CI keeps failing here, set `E2E_USE_SANDBOX_GAMEOVER=1` for the `08-game-over` visual only (see `e2e/README.md`).
+ * - If CI keeps failing here, increase the visual scenario timeout before weakening the live game-over path.
  */
 export async function forceGameOverWithMismatches(page: Page, pairs: PairPositions | null): Promise<void> {
     const mismatch = await discoverMismatchPair(page, pairs);

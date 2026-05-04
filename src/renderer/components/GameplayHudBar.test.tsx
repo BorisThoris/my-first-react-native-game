@@ -70,6 +70,8 @@ describe('GameplayHudBar', () => {
         expect(screen.getByTestId('hud-encounter-identity').textContent).toContain('Boss');
         expect(screen.getByTestId('hud-encounter-identity').getAttribute('title')).toContain('Boss pressure');
         expect(screen.getByTestId('hud-encounter-identity').getAttribute('title')).toContain('Placeholder');
+        expect(screen.getByTestId('hud-floor-identity-reminder')).toHaveTextContent('Boss trophy');
+        expect(screen.getByTestId('hud-floor-identity-reminder').getAttribute('title')).toContain('Study the first reveal');
     });
 
     it('does not show favor UI on non-endless runs', () => {
@@ -112,6 +114,34 @@ describe('GameplayHudBar', () => {
         expect(screen.getByTestId('hud-difficulty-profile')).toHaveTextContent('Standard');
         expect(screen.getByTestId('hud-combo-shards').getAttribute('title')).toContain('Temporary run currency');
         expect(screen.getByTestId('hud-secondary-stat-drawer')).toHaveTextContent('Difficulty');
+    });
+
+    it('shows active hazard tile count and shared hazard copy in the context rail', () => {
+        const baseRun = finishMemorizePhase(createDailyRun(0, { echoFeedbackEnabled: false }));
+        const run = {
+            ...baseRun,
+            board: {
+                ...baseRun.board!,
+                tiles: baseRun.board!.tiles.map((tile, index) =>
+                    index < 2
+                        ? { ...tile, tileHazardKind: 'shuffle_snare' as const }
+                        : { ...tile, tileHazardKind: undefined }
+                )
+            }
+        } as RunState;
+
+        render(
+            <GameplayHudBar
+                cameraViewportMode={false}
+                gauntletRemainingMs={null}
+                politeHudAnnouncement=""
+                run={run}
+            />
+        );
+
+        expect(screen.getByTestId('hud-hazard-tiles')).toHaveTextContent('2');
+        expect(screen.getByTestId('hud-hazard-tiles').getAttribute('title')).toContain('Shuffle Snare x2');
+        expect(screen.getByTestId('hud-hazard-tiles').getAttribute('title')).toContain('reshuffles safe hidden tiles');
     });
 
     it('shows Perfect Memory eligible when achievements track and no assist power was used', () => {
@@ -183,5 +213,35 @@ describe('GameplayHudBar', () => {
         );
 
         expect(screen.getByTestId('hud-endless-risk-wager').textContent).toContain('+3 Favor');
+    });
+
+    it('shows build identity after relics exist and hides it before the first relic', () => {
+        const emptyRun = finishMemorizePhase(createDailyRun(0, { echoFeedbackEnabled: false }));
+        const buildRun = {
+            ...emptyRun,
+            relicIds: ['peek_charge_plus_one', 'pin_cap_plus_one', 'stray_charge_plus_one']
+        } as RunState;
+
+        const { rerender } = render(
+            <GameplayHudBar
+                cameraViewportMode={false}
+                gauntletRemainingMs={null}
+                politeHudAnnouncement=""
+                run={emptyRun}
+            />
+        );
+        expect(screen.queryByTestId('hud-build-profile')).toBeNull();
+
+        rerender(
+            <GameplayHudBar
+                cameraViewportMode={false}
+                gauntletRemainingMs={null}
+                politeHudAnnouncement=""
+                run={buildRun}
+            />
+        );
+
+        expect(screen.getByTestId('hud-build-profile')).toHaveTextContent('The Seer');
+        expect(screen.getByTestId('hud-build-profile').getAttribute('title')).toContain('peek, pin, read');
     });
 });

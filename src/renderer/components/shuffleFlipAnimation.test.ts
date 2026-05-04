@@ -122,6 +122,7 @@ describe('premium board motion transforms', () => {
         const shuffle = computeShuffleMotionTransform(sampleTime, deadline, budget, 4, 9, 3, 3);
         const entrance = computeBoardEntranceMotionTransform(sampleTime, deadline, budget, 4, 9, 3, 3);
 
+        expect(entrance).not.toEqual(shuffle);
         expect(Math.hypot(entrance.rx, entrance.ry)).toBeGreaterThan(0);
         expect(Math.hypot(entrance.rx, entrance.ry)).toBeLessThan(2.5);
         expect(Math.abs(entrance.rotY)).toBeGreaterThan(0);

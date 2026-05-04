@@ -103,8 +103,6 @@ import {
     type MatchScorePop,
     type MismatchScorePop
 } from './matchScorePop';
-import type { DevSandboxConfig } from '../dev/devSandboxParams';
-import { buildSandboxRun } from '../dev/runFixtures';
 import { needsRelicPick } from '../../shared/relics';
 import {
     playDestroyPairSfx,
@@ -223,8 +221,6 @@ interface AppState {
     restartRun: () => void;
     endRun: () => void;
     triggerDebugReveal: () => void;
-    /** DEV-only: jump to a screen / fixture from URL sandbox params. No-op in production. */
-    __devApplySandbox: (config: DevSandboxConfig) => void;
 }
 
 let memorizeTimer: ActiveTimer | null = null;
@@ -1848,159 +1844,6 @@ export const useAppStore = create<AppState>((set, get) => ({
 
         if (nextRun.timerState.debugRevealRemainingMs !== null) {
             scheduleDebugRevealTimer(nextRun.timerState.debugRevealRemainingMs);
-        }
-    },
-
-    __devApplySandbox: (config: DevSandboxConfig) => {
-        if (!import.meta.env.DEV || !config.enabled) {
-            return;
-        }
-        clearAllTimers();
-        const { saveData, settings } = get();
-        const best = saveData.bestScore;
-        const screen = config.screen;
-        if (!screen) {
-            return;
-        }
-
-        const resetChrome = {
-            newlyUnlockedAchievements: [] as AchievementId[],
-            boardPinMode: false,
-            destroyPairArmed: false,
-            peekModeArmed: false,
-            ...BOARD_FLOATER_POP_CLEAR
-        };
-
-        if (screen === 'menu') {
-            set({
-                view: 'menu',
-                run: null,
-                ...resetChrome,
-                subscreenReturnView: 'menu',
-                settingsReturnView: 'menu'
-            });
-            return;
-        }
-
-        if (screen === 'settings') {
-            set({
-                view: 'settings',
-                run: null,
-                ...resetChrome,
-                subscreenReturnView: 'menu',
-                settingsReturnView: 'menu'
-            });
-            return;
-        }
-
-        if (screen === 'modeSelect') {
-            set({
-                view: 'modeSelect',
-                run: null,
-                ...resetChrome,
-                subscreenReturnView: 'menu',
-                settingsReturnView: 'menu'
-            });
-            return;
-        }
-
-        if (screen === 'collection') {
-            set({
-                view: 'collection',
-                run: null,
-                ...resetChrome,
-                subscreenReturnView: 'menu',
-                settingsReturnView: 'menu'
-            });
-            return;
-        }
-
-        if (screen === 'profile') {
-            set({
-                view: 'profile',
-                run: null,
-                ...resetChrome,
-                subscreenReturnView: 'menu',
-                settingsReturnView: 'menu'
-            });
-            return;
-        }
-
-        if (screen === 'inventory' || screen === 'codex') {
-            set({
-                view: screen,
-                run: null,
-                ...resetChrome,
-                subscreenReturnView: 'menu',
-                settingsReturnView: 'menu'
-            });
-            return;
-        }
-
-        if (screen === 'playing') {
-            const run = patchRunFromUserSettings(buildSandboxRun(config.fixture, best), settings);
-            const seededAchievements =
-                config.unlockAchievements.length > 0 ? config.unlockAchievements : resetChrome.newlyUnlockedAchievements;
-            set({
-                view: 'playing',
-                run,
-                ...resetChrome,
-                newlyUnlockedAchievements: seededAchievements,
-                subscreenReturnView: 'menu',
-                settingsReturnView: 'menu'
-            });
-            prepareMemorizeTimerForBoardReady(run);
-            if (
-                run.status === 'resolving' &&
-                run.timerState.resolveRemainingMs !== null &&
-                run.timerState.resolveRemainingMs > 0
-            ) {
-                scheduleResolveTimer(run.timerState.resolveRemainingMs);
-            }
-            return;
-        }
-
-        if (screen === 'shop') {
-            const run = patchRunFromUserSettings(buildSandboxRun(config.fixture ?? 'shop', best), settings);
-            const shopRun =
-                run.status === 'levelComplete' && run.shopOffers.length > 0
-                    ? run
-                    : patchRunFromUserSettings(buildSandboxRun('shop', best), settings);
-            set({
-                view: 'shop',
-                run: shopRun,
-                ...resetChrome,
-                subscreenReturnView: 'menu',
-                settingsReturnView: 'menu'
-            });
-            return;
-        }
-
-        if (screen === 'sideRoom') {
-            const run = patchRunFromUserSettings(buildSandboxRun(config.fixture ?? 'sideRoom', best), settings);
-            const sideRoomRun =
-                run.status === 'levelComplete' && run.sideRoom
-                    ? run
-                    : patchRunFromUserSettings(buildSandboxRun('sideRoom', best), settings);
-            set({
-                view: 'sideRoom',
-                run: sideRoomRun,
-                ...resetChrome,
-                subscreenReturnView: 'menu',
-                settingsReturnView: 'menu'
-            });
-            return;
-        }
-
-        if (screen === 'gameOver') {
-            const run = patchRunFromUserSettings(buildSandboxRun(config.fixture ?? 'gameOver', best), settings);
-            set({
-                view: 'gameOver',
-                run,
-                ...resetChrome,
-                subscreenReturnView: 'menu',
-                settingsReturnView: 'menu'
-            });
         }
     }
 }));
