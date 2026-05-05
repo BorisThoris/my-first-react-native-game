@@ -33,6 +33,7 @@ import { pairProximityUiStrings } from '../ui/strings/pairProximityUi';
 import { isTilePickable } from './tileBoardPick';
 import TileBoardPostFx from './TileBoardPostFx';
 import TileBoardScene, { type TileBoardSceneHandle, type TileHoverTiltState } from './TileBoardScene';
+import { getResolvingSelectionState } from './tileResolvingSelection';
 import { DUNGEON_BOARD_STAGE_LAYER_POLICY, DUNGEON_BOARD_STAGE_PERFORMANCE_BUDGET } from './tileBoardStageLayers';
 import {
     COMPACT_BOARD_FIT_MARGIN,
@@ -468,6 +469,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
     /** When false, no tile should show the keyboard focus ring (avoids a permanent “hover” on first pickable tile). */
     const [boardApplicationFocused, setBoardApplicationFocused] = useState(false);
     const [boardLiveMessage, setBoardLiveMessage] = useState('');
+    const [lastResolutionFeedback, setLastResolutionFeedback] = useState('');
 
     useEffect(
         () => () => {
@@ -511,7 +513,7 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
     );
 
     /** Row,col pairs for tiles still hidden — used by e2e (canvas picking has no per-tile DOM). */
-    const hiddenSlotsAttr = useMemo(
+const hiddenSlotsAttr = useMemo(
         () =>
             board.tiles
                 .map((tile, index) => {
@@ -526,6 +528,87 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
                 .join(';'),
         [board.columns, board.tiles]
     );
+
+    const cardFeedbackStatesAttr = useMemo(() => {
+        const pickable = new Set(getPickableTileIds(board, interactive, allowGambitThirdFlip));
+        const counts = new Map<string, number>();
+        const add = (key: string): void => {
+            counts.set(key, (counts.get(key) ?? 0) + 1);
+        };
+
+        for (const tile of board.tiles) {
+            if (tile.state === 'removed') {
+                add('removed');
+                continue;
+            }
+
+            const faceUp = tile.state !== 'hidden' || previewActive || debugPeekActive || peekSet.has(tile.id);
+            const resolvingSelection = getResolvingSelectionState(board, runStatus, tile.id);
+
+            if (tile.state === 'hidden' && !faceUp) {
+                add('hidden');
+            }
+            if (faceUp && tile.state === 'flipped') {
+                add('flipped');
+            }
+            if (tile.state === 'matched') {
+                add('matched');
+            }
+            if (resolvingSelection) {
+                add(resolvingSelection);
+            }
+            if (!pickable.has(tile.id) && tile.state !== 'matched') {
+                add('non-pickable');
+            }
+            if (pickable.has(tile.id)) {
+                add('pickable');
+            }
+            if (focusedTileId === tile.id && boardApplicationFocused) {
+                add('focused');
+            }
+            if (tile.tileHazardKind) {
+                add('hazard');
+            }
+            if (tile.routeSpecialKind || tile.routeCardKind) {
+                add('route');
+            }
+            if (tile.dungeonCardKind || tile.dungeonBossId) {
+                add('objective');
+            }
+        }
+
+        return [...counts.entries()]
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([key, count]) => `${key}:${count}`)
+            .join(';');
+    }, [
+        allowGambitThirdFlip,
+        board,
+        boardApplicationFocused,
+        debugPeekActive,
+        focusedTileId,
+        interactive,
+        peekSet,
+        previewActive,
+        runStatus
+    ]);
+
+    useEffect(() => {
+        const counts = new Map<string, number>();
+        for (const tile of board.tiles) {
+            const resolvingSelection = getResolvingSelectionState(board, runStatus, tile.id);
+            if (resolvingSelection === 'match' || resolvingSelection === 'mismatch') {
+                counts.set(resolvingSelection, (counts.get(resolvingSelection) ?? 0) + 1);
+            }
+        }
+        const next = [...counts.entries()]
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([key, count]) => `${key}:${count}`)
+            .join(';');
+        if (next) {
+            setLastResolutionFeedback(next);
+        }
+    }, [board, runStatus]);
 
     const boardEntranceKey = useMemo(
         () =>
@@ -1543,6 +1626,9 @@ const TileBoard = forwardRef<TileBoardHandle, TileBoardProps>(function TileBoard
             data-dungeon-comfort-focus-order={DNG065_DUNGEON_COMFORT_FOCUS_ORDER.join('>')}
             data-dungeon-mobile-board-primary={DNG065_MOBILE_BOARD_PRIORITY.boardPrimary ? 'true' : 'false'}
             data-dungeon-touch-target-min={DNG065_MOBILE_BOARD_PRIORITY.minTouchTargetPx}
+            data-card-feedback-states={cardFeedbackStatesAttr}
+            data-card-feedback-last-resolution={lastResolutionFeedback}
+            data-card-feedback-reduced-motion={reduceMotion ? 'static-state-cues' : 'animated-state-cues'}
             data-hidden-tile-count={hiddenTileCount}
             data-hidden-slots={hiddenSlotsAttr}
             {...(devE2ePairPositionsJson ? { 'data-e2e-pair-positions': devE2ePairPositionsJson } : {})}

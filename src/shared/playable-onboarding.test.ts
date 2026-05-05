@@ -17,11 +17,16 @@ describe('REG-026 playable onboarding', () => {
         expect(second?.targetTileIds).toContain(first!.targetTileIds[1]);
     });
 
-    it('stops appearing for completed onboarding profiles and after the guided floor', () => {
+    it('uses onboardingDismissed as the durable completion flag', () => {
         const run = finishMemorizePhase(createNewRun(0));
         expect(getPlayableOnboardingStep(run, { onboardingDismissed: true, powersFtueSeen: false })).toBeNull();
-        expect(getPlayableOnboardingStep(run, { onboardingDismissed: false, powersFtueSeen: true })).toBeNull();
+        expect(getPlayableOnboardingStep(run, { onboardingDismissed: false, powersFtueSeen: true })?.id).toBe(
+            'first_match'
+        );
+    });
 
+    it('stops appearing after the guided floor', () => {
+        const run = finishMemorizePhase(createNewRun(0));
         const laterRun = {
             ...run,
             board: run.board ? { ...run.board, level: 3 } : null

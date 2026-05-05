@@ -852,6 +852,10 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
         favorBankedPickCount > 0
             ? `Extra relic ${favorBankedPickCount === 1 ? 'pick' : 'picks'} banked for the next shrine`
             : null;
+    const firstClearOnboardingLine =
+        run.lastLevelResult?.level === 1 && saveData.onboardingDismissed
+            ? 'First-run guide complete. Continue when you are ready; deeper help stays available from Codex.'
+            : null;
     const endlessRiskWagerOfferAvailable = canOfferEndlessRiskWager(run);
     const acceptedEndlessRiskWager =
         run.lastLevelResult && run.endlessRiskWager?.acceptedOnLevel === run.lastLevelResult.level
@@ -1645,6 +1649,7 @@ const GameScreen = ({ achievements, run, suppressStatusOverlays = false }: GameS
                             {endlessRiskWagerOutcomeLine ? <p className={styles.modalNote}>{endlessRiskWagerOutcomeLine}</p> : null}
                             {favorGainLine ? <p className={styles.modalNote}>{favorGainLine}</p> : null}
                             {favorBankedLine ? <p className={styles.modalNote}>{favorBankedLine}</p> : null}
+                            {firstClearOnboardingLine ? <p className={styles.modalNote}>{firstClearOnboardingLine}</p> : null}
                             {objectiveBonusLine ? <p className={styles.modalNote}>{objectiveBonusLine}</p> : null}
                             {bonusTagsLine ? <p className={styles.modalNote}>{bonusTagsLine}</p> : null}
                             {nextFloorPreviewLine ? <p className={styles.modalNote}>{nextFloorPreviewLine}</p> : null}

@@ -30,6 +30,11 @@ export const gameOverScreenCopy = {
         gauntlet: 'Gauntlet descent',
         meditation: 'Meditation descent',
         puzzle: 'Puzzle descent',
+        scholar: 'Scholar contract',
+        pinVow: 'Pin vow descent',
+        wild: 'Wild run',
+        practice: 'Practice descent',
+        dungeonShowcase: 'Dungeon Showcase',
         classic: 'Classic descent'
     },
     modeIdentity: {
@@ -37,6 +42,11 @@ export const gameOverScreenCopy = {
         meditation: 'Focused comfort: calmer memorize pacing for study and mutator practice.',
         puzzle: 'Curated challenge: fixed board and local completion tracking.',
         daily: 'Shared UTC seed: local-only comparison, no online leaderboard.',
+        scholar: 'Scholar contract: no full-board shuffle, stricter memory proof, and contract rewards.',
+        pinVow: 'Pin vow: route planning mattered because pinned notes were capped across the run.',
+        wild: 'Wild Run: joker-style matching pressure stayed attached through the final summary.',
+        practice: 'Practice descent: training rules were explicit, with progression expectations reduced.',
+        dungeonShowcase: 'Dungeon Showcase: wide-recall route pressure and dungeon systems were the featured contract.',
         classic: 'Long-run core: routes, shop gold, relics, and featured objectives.'
     },
     flipHistoryCopy: (flipCount: number) =>

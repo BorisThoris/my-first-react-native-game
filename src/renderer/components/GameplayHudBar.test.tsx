@@ -1,7 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { FloorArchetypeId, FeaturedObjectiveId, RunState } from '../../shared/contracts';
-import { createDailyRun, createNewRun, finishMemorizePhase } from '../../shared/game-core';
+import { BUILTIN_PUZZLES } from '../../shared/builtin-puzzles';
+import { createDailyRun, createDungeonShowcaseRun, createNewRun, createPuzzleRun, finishMemorizePhase } from '../../shared/game-core';
 import GameplayHudBar from './GameplayHudBar';
 
 describe('GameplayHudBar', () => {
@@ -91,6 +92,55 @@ describe('GameplayHudBar', () => {
         expect(screen.queryByTestId('hud-favor-progress')).toBeNull();
         expect(screen.queryByTestId('hud-featured-streak')).toBeNull();
         expect(screen.queryByTestId('hud-endless-risk-wager')).toBeNull();
+    });
+
+    it('surfaces stable started-mode identity for contract and puzzle variants', () => {
+        const starterPuzzle = BUILTIN_PUZZLES.starter_pairs!;
+        const cases: Array<{ expected: RegExp | string; run: RunState }> = [
+            {
+                expected: 'Dungeon Showcase',
+                run: createDungeonShowcaseRun(0, { echoFeedbackEnabled: false })
+            },
+            {
+                expected: /Puzzle: Starter 2.2/,
+                run: createPuzzleRun(0, starterPuzzle.id, starterPuzzle.tiles, 1, { echoFeedbackEnabled: false })
+            },
+            {
+                expected: 'Practice',
+                run: createNewRun(0, { echoFeedbackEnabled: false, practiceMode: true })
+            },
+            {
+                expected: 'Pin vow',
+                run: createNewRun(0, {
+                    activeContract: { noShuffle: false, noDestroy: false, maxMismatches: null, maxPinsTotalRun: 10 },
+                    echoFeedbackEnabled: false
+                })
+            }
+        ];
+
+        const { unmount } = render(
+            <GameplayHudBar
+                cameraViewportMode={false}
+                gauntletRemainingMs={null}
+                politeHudAnnouncement=""
+                run={cases[0]!.run}
+            />
+        );
+        expect(screen.getByTestId('hud-mode-identity')).toHaveTextContent(cases[0]!.expected);
+        unmount();
+
+        for (const { expected, run } of cases.slice(1)) {
+            const rendered = render(
+                <GameplayHudBar
+                    cameraViewportMode={false}
+                    gauntletRemainingMs={null}
+                    politeHudAnnouncement=""
+                    run={run}
+                />
+            );
+            expect(screen.getByTestId('hud-mode-identity')).toHaveTextContent(expected);
+            rendered.unmount();
+        }
     });
 
     it('shows shuffle, destroy, peek economy on memorize and playing', () => {

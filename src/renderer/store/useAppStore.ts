@@ -388,6 +388,13 @@ const applyResolvedRun = (resolvedRun: RunState): void => {
         bestScore: Math.max(state.saveData.bestScore, nextRun.stats.bestScore)
     });
 
+    if (nextRun.status === 'levelComplete' && !nextSave.onboardingDismissed) {
+        nextSave = normalizeSaveData({
+            ...nextSave,
+            onboardingDismissed: true
+        });
+    }
+
     if (unlockedAchievements.length > 0) {
         const unlockTags = unlockedAchievements.map((id) => `achievement:${id}`);
         nextSave = normalizeSaveData({

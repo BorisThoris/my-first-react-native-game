@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import type { RouteNodeType } from '../../shared/contracts';
+import type { RouteNodeType, RouteSideRoomState } from '../../shared/contracts';
 import { focusFirstTabbableOrContainer, handleTabFocusTrapEvent } from '../a11y/focusables';
 import { popModalFocusSnapshot, pushModalFocusSnapshot } from '../a11y/modalFocusReturnStack';
 import {
@@ -16,6 +16,19 @@ import styles from './SideRoomScreen.module.css';
 
 const routeLabel = (routeType: RouteNodeType): string =>
     routeType === 'safe' ? 'Safe route' : routeType === 'greed' ? 'Greedy route' : 'Mystery route';
+
+const sideRoomNodeKindStamp = (sideRoom: RouteSideRoomState): string => {
+    if (sideRoom.nodeKind) {
+        return sideRoom.nodeKind;
+    }
+    if (sideRoom.kind === 'run_event') {
+        return 'event';
+    }
+    if (sideRoom.kind === 'rest_shrine') {
+        return 'rest';
+    }
+    return sideRoom.routeType === 'greed' ? 'treasure' : sideRoom.routeType;
+};
 
 const SideRoomScreen = () => {
     const rootRef = useRef<HTMLElement | null>(null);
@@ -61,12 +74,16 @@ const SideRoomScreen = () => {
     }
 
     const sideRoom = run.sideRoom;
+    const nodeKindStamp = sideRoomNodeKindStamp(sideRoom);
 
     return (
         <section
             aria-label="Route side room"
             aria-modal="true"
             className={styles.overlay}
+            data-node-kind={nodeKindStamp}
+            data-route-type={sideRoom.routeType}
+            data-side-room-kind={sideRoom.kind}
             data-testid="side-room-screen"
             ref={rootRef}
             role="dialog"
@@ -82,13 +99,19 @@ const SideRoomScreen = () => {
                     <p>{sideRoom.body}</p>
                 </header>
 
-                <div className={styles.rewardPanel}>
+                <div className={styles.rewardPanel} data-testid="side-room-reward-panel">
                     <strong>{sideRoom.primaryLabel}</strong>
                     <p className={styles.rewardText}>{sideRoom.primaryDetail}</p>
                     {sideRoom.choices && sideRoom.choices.length > 0 ? (
                         <div className={styles.choiceList}>
                             {sideRoom.choices.map((choice) => (
-                                <div className={styles.choiceRow} key={choice.id}>
+                                <div
+                                    className={styles.choiceRow}
+                                    data-choice-id={choice.id}
+                                    data-choice-primary={choice.primary ? 'true' : 'false'}
+                                    data-testid={`side-room-choice-${choice.id}`}
+                                    key={choice.id}
+                                >
                                     <strong>{choice.label}</strong>
                                     <p>{choice.detail}</p>
                                 </div>

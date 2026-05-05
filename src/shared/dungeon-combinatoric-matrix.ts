@@ -19,7 +19,7 @@ export interface DungeonCombinatoricMatrixRow {
     rationale: string;
 }
 
-export const DUNGEON_COMBINATORIC_MATRIX_VERSION = 'dng-070-v1' as const;
+export const DUNGEON_COMBINATORIC_MATRIX_VERSION = 'dng-070-v2' as const;
 
 export const DUNGEON_COMBINATORIC_MATRIX: readonly DungeonCombinatoricMatrixRow[] = [
     {
@@ -167,6 +167,126 @@ export const DUNGEON_COMBINATORIC_MATRIX: readonly DungeonCombinatoricMatrixRow[
         viewport: 'overlay',
         evidence: ['src/shared/relics.test.ts', 'src/shared/mechanics-encyclopedia.test.ts'],
         rationale: 'Relic offers must not contradict active contracts or mutator rules.'
+    },
+    {
+        id: 'ppi009_fixture_route_choices_seeded_floor_clear',
+        priority: 'P0',
+        status: 'covered',
+        mode: 'Classic Run / playable path fixture',
+        node: 'Floor clear route choice',
+        archetype: 'deterministic route fork',
+        objective: 'choose safe / greed / mystery next route',
+        mutator: 'seeded fixture path',
+        relicOrEconomy: 'route reward preview / pending route card plan',
+        cardFamily: 'Safe Ward + Greed Cache + Mystery Veil',
+        enemy: 'post-clear board has no active enemy blocker',
+        input: 'route choice confirm',
+        viewport: 'fixture-ready interlude',
+        evidence: ['src/shared/playable-path-fixtures.test.ts', 'src/shared/dungeon-combinatoric-matrix.test.ts'],
+        rationale: 'PPI-009 needs route-state proof that does not depend on random first-floor route availability.'
+    },
+    {
+        id: 'ppi009_fixture_shop_wallet_compatible_offer',
+        priority: 'P0',
+        status: 'covered',
+        mode: 'Classic Run / playable path fixture',
+        node: 'Shop interlude',
+        archetype: 'deterministic vendor floor',
+        objective: 'buy or skip without blocking next floor',
+        mutator: 'seeded fixture path',
+        relicOrEconomy: 'shop gold, low-gold offer disabled state, compatible stock',
+        cardFamily: 'shop service cards',
+        enemy: 'none during vendor prompt',
+        input: 'shop buy/skip confirm',
+        viewport: 'fixture-ready shop overlay',
+        evidence: [
+            'src/shared/playable-path-fixtures.test.ts',
+            'src/shared/shop-rules.test.ts',
+            'src/shared/dungeon-combinatoric-matrix.test.ts'
+        ],
+        rationale: 'Playable-path shop proof must cover both spendable stock and low-wallet non-purchase states without creating a dead end.'
+    },
+    {
+        id: 'ppi009_fixture_side_room_then_shop_handoff',
+        priority: 'P0',
+        status: 'covered',
+        mode: 'Classic Run / playable path fixture',
+        node: 'Side room into optional shop',
+        archetype: 'rest / event / bonus reward side room',
+        objective: 'resolve or skip side room and preserve continuation',
+        mutator: 'seeded safe / greed / mystery route branch',
+        relicOrEconomy: 'heal, event choice, bonus reward, shop offers',
+        cardFamily: 'room cards + route reward cards',
+        enemy: 'enemy contact deferred until next board',
+        input: 'side-room choice and continue confirm',
+        viewport: 'fixture-ready side-room overlay',
+        evidence: [
+            'src/shared/playable-path-fixtures.test.ts',
+            'src/shared/rest-shrine.test.ts',
+            'src/shared/run-events.test.ts',
+            'src/shared/bonus-rewards.test.ts',
+            'src/shared/dungeon-combinatoric-matrix.test.ts'
+        ],
+        rationale: 'The side-room handoff is a high-risk playable-path transition because it can combine one-shot rewards, shop state, and next-floor routing.'
+    },
+    {
+        id: 'ppi009_fixture_relic_draft_before_next_floor',
+        priority: 'P0',
+        status: 'covered',
+        mode: 'Classic Run / playable path fixture',
+        node: 'Milestone relic draft',
+        archetype: 'deterministic post-floor draft',
+        objective: 'pick or inspect relic before continuing',
+        mutator: 'seeded milestone path',
+        relicOrEconomy: 'relic offer options and Favor reset',
+        cardFamily: 'not card-family specific',
+        enemy: 'none during relic draft',
+        input: 'relic pick confirm',
+        viewport: 'fixture-ready relic overlay',
+        evidence: [
+            'src/shared/playable-path-fixtures.test.ts',
+            'src/shared/relics.test.ts',
+            'src/shared/dungeon-combinatoric-matrix.test.ts'
+        ],
+        rationale: 'Relic drafts must remain reproducible as a non-terminal state with an obvious legal pick before the next generated board.'
+    },
+    {
+        id: 'ppi009_fixture_game_over_terminal_explained',
+        priority: 'P0',
+        status: 'covered',
+        mode: 'Classic Run / playable path fixture',
+        node: 'Game over',
+        archetype: 'terminal post-run state',
+        objective: 'show final summary and restart/menu actions',
+        mutator: 'seeded zero-life terminal state',
+        relicOrEconomy: 'run summary score and rewards',
+        cardFamily: 'not card-family specific',
+        enemy: 'terminal state after failure',
+        input: 'restart or menu confirm',
+        viewport: 'fixture-ready game-over screen',
+        evidence: [
+            'src/shared/playable-path-fixtures.test.ts',
+            'src/shared/softlock-fairness.test.ts',
+            'src/shared/dungeon-combinatoric-matrix.test.ts'
+        ],
+        rationale: 'PPI-009 allows terminal states only when they are explicit, summarized, and no longer pretend to have a board completion route.'
+    },
+    {
+        id: 'ppi009_high_risk_board_completion_timing',
+        priority: 'P0',
+        status: 'covered',
+        mode: 'Classic Run / board fairness',
+        node: 'High-risk active board',
+        archetype: 'trap, decoy, locked exit, boss objective, wild edge',
+        objective: 'complete final actionable pair or report unreachable objective',
+        mutator: 'glass_floor / route lock / wild singleton edge',
+        relicOrEconomy: 'destroy, peek, stray, key or no-key exit state',
+        cardFamily: 'trap cards + glass decoy + exit + objective cards',
+        enemy: 'final hazard pair, boss route, stale hazard references',
+        input: 'tile flip / power targeting / exit activation',
+        viewport: 'active board',
+        evidence: ['src/shared/softlock-fairness.test.ts', 'src/shared/dungeon-combinatoric-matrix.test.ts'],
+        rationale: 'Board timing proof owns the cases most likely to strand a player near completion: final traps, decoys, locked exits, missing boss routes, and orphaned wilds.'
     },
     {
         id: 'forbidden_stray_remove_protected_route_anchors',

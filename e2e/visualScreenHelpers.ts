@@ -135,6 +135,35 @@ export const buildVisualSaveJson = (onboardingDismissed: boolean, reduceMotion =
         powersFtueSeen: true
     });
 
+export const buildFreshProfileSaveJson = (reduceMotion = true): string =>
+    JSON.stringify({
+        schemaVersion: SAVE_SCHEMA_VERSION,
+        bestScore: 0,
+        achievements: {
+            ACH_FIRST_CLEAR: false,
+            ACH_LEVEL_FIVE: false,
+            ACH_SCORE_THOUSAND: false,
+            ACH_PERFECT_CLEAR: false,
+            ACH_LAST_LIFE: false
+        },
+        settings: {
+            masterVolume: 0.8,
+            musicVolume: 0.55,
+            sfxVolume: 0.8,
+            displayMode: 'windowed',
+            uiScale: 1,
+            reduceMotion,
+            debugFlags: {
+                showDebugTools: false,
+                allowBoardReveal: false,
+                disableAchievementsOnDebug: true
+            }
+        },
+        onboardingDismissed: false,
+        lastRunSummary: null,
+        powersFtueSeen: false
+    });
+
 /**
  * Save JSON for Playwright captures of matched rim fire: `graphicsQuality: high` (shader on; hidden on low)
  * and motion enabled so the flame animates in screenshots.
@@ -282,7 +311,7 @@ export async function gotoWithSave(page: Page, saveJson: string): Promise<void> 
         },
         [STORAGE_KEY, saveJson]
     );
-    await page.goto('/', { waitUntil: 'load', timeout: 90_000 });
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 90_000 });
 }
 
 /** Seed the same visual save JSON as `gotoWithSave`, then open `/?{queryString}`. */
@@ -294,7 +323,7 @@ export async function gotoWithSaveAndQuery(page: Page, saveJson: string, querySt
         },
         [STORAGE_KEY, saveJson]
     );
-    await page.goto(`/?${qs}`, { waitUntil: 'load', timeout: 90_000 });
+    await page.goto(`/?${qs}`, { waitUntil: 'domcontentloaded', timeout: 90_000 });
 }
 
 /** Output folder for HUD/board crops vs `docs/ENDPRODUCTIMAGE.png` (see `capture:endproduct-parity`). */

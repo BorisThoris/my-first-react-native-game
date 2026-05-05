@@ -39,7 +39,7 @@ vi.mock('../store/useAppStore', () => ({
 }));
 
 const gameOverRunFixture = (): RunState => {
-    let run = finishMemorizePhase(createNewRun(100, { practiceMode: true, runSeed: 0xabc }));
+    let run = finishMemorizePhase(createNewRun(100, { runSeed: 0xabc }));
     run = { ...run, status: 'gameOver', lives: 0 };
     return createRunSummary(run, []);
 };
@@ -100,5 +100,35 @@ describe('GameOverScreen (REF-031)', () => {
         expect(screen.getByTestId('game-over-next-run-loop')).toHaveTextContent(/Next goal/);
         expect(screen.getByTestId('game-over-dungeon-journal')).toHaveTextContent(/Dungeon node/);
         expect(screen.getByTestId('game-over-dungeon-journal')).toHaveTextContent(/Dungeon rewards/);
+    });
+
+    it('PPI-006 preserves contract mode identity in game-over summary', () => {
+        const run = gameOverRunFixture();
+        const scholarRun: RunState = {
+            ...run,
+            activeContract: {
+                noShuffle: true,
+                noDestroy: false,
+                maxMismatches: null,
+                bonusRelicDraftPick: true
+            },
+            lastRunSummary: run.lastRunSummary
+                ? {
+                      ...run.lastRunSummary,
+                      activeContract: {
+                          noShuffle: true,
+                          noDestroy: false,
+                          maxMismatches: null,
+                          bonusRelicDraftPick: true
+                      }
+                  }
+                : null
+        };
+
+        render(<GameOverScreen run={scholarRun} />);
+
+        expect(screen.getByTestId('game-over-mode-heading')).toHaveTextContent(/Scholar contract/i);
+        expect(screen.getByTestId('game-over-mode-identity')).toHaveTextContent(/no full-board shuffle/i);
+        expect(screen.getByTestId('game-over-next-run-loop')).toHaveTextContent(/Scholar Contract/i);
     });
 });

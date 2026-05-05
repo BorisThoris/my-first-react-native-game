@@ -35,11 +35,11 @@ const OverlayActionDock = ({
     const secondaryActions = actions.filter((action) => !isPrimaryAction(action));
     const primaryActions = actions.filter(isPrimaryAction);
 
-    const renderAction = (action: OverlayAction) => (
+    const renderAction = (action: OverlayAction, index: number) => (
         <UiButton
             className={`${styles.actionButton} ${actionClassName}`.trim()}
             disabled={action.disabled}
-            key={action.label}
+            key={`${action.label}:${index}`}
             onClick={action.onClick}
             size={size}
             variant={action.variant ?? 'primary'}

@@ -8343,6 +8343,9 @@ export const createRunSummary = (run: RunState, unlockedAchievements: Achievemen
         gameMode: run.gameMode,
         dailyDateKeyUtc: run.dailyDateKeyUtc ?? undefined,
         activeMutators: [...run.activeMutators],
-        relicIds: [...run.relicIds]
+        relicIds: [...run.relicIds],
+        practiceMode: run.practiceMode,
+        wildMenuRun: run.wildMenuRun,
+        activeContract: run.activeContract ? { ...run.activeContract } : null
     }
 });

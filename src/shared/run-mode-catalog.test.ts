@@ -60,6 +60,17 @@ describe('REG-050 mode identity copy', () => {
         expect(byId.gauntlet?.outcomeSummary).toContain('timed');
         expect(byId.meditation?.outcomeSummary).toContain('comfort');
     });
+
+    it('gives every catalog mode one stable start-contract identity signal', () => {
+        const missing = RUN_MODE_CATALOG.filter((mode) => !mode.startContract);
+        expect(missing).toEqual([]);
+
+        for (const mode of RUN_MODE_CATALOG) {
+            expect(mode.startContract?.label).toBe('Start signal');
+            expect(mode.startContract?.signal).toMatch(/\S/);
+            expect(mode.startContract?.testId).toMatch(/\S/);
+        }
+    });
 });
 
 describe('REG-081 challenge mode gates', () => {

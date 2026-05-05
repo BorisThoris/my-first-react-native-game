@@ -725,6 +725,15 @@ const ChooseYourPathScreen = () => {
                     title={libraryDetailMode.title}
                 >
                     <p className={styles.libraryDetailDescription}>{libraryDetailMode.shortDescription}</p>
+                    {libraryDetailMode.startContract ? (
+                        <p
+                            className={styles.libraryDetailIdentity}
+                            data-start-contract-testid={libraryDetailMode.startContract.testId}
+                            data-testid="choose-path-start-contract"
+                        >
+                            <strong>{libraryDetailMode.startContract.label}:</strong> {libraryDetailMode.startContract.signal}
+                        </p>
+                    ) : null}
                     {libraryDetailMode.identityTag ? (
                         <p className={styles.libraryDetailIdentity}>{libraryDetailMode.identityTag}</p>
                     ) : null}

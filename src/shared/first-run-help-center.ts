@@ -14,7 +14,7 @@ export interface FirstRunHelpCenterRow {
 }
 
 export const getFirstRunHelpCenterRows = (save: Pick<SaveData, 'onboardingDismissed' | 'powersFtueSeen'>): FirstRunHelpCenterRow[] => {
-    const completed = save.onboardingDismissed || save.powersFtueSeen === true;
+    const completed = save.onboardingDismissed;
     const firstStatus: FirstRunHelpCenterStatus = completed ? 'complete' : 'active';
     const laterStatus: FirstRunHelpCenterStatus = completed ? 'replayable' : 'active';
 

@@ -2950,6 +2950,7 @@
     width: 100%;
     padding: 0;
     display: block;
+    overflow: hidden;
     z-index: 0;
 }
 
@@ -3409,6 +3410,12 @@
 }
 
 /* REF-096 — keyboard shortcuts help */
+@media (max-height: 620px) {
+    .shell[data-mobile-camera-mode='true'] .dungeonRunStrip {
+        display: none;
+    }
+}
+
 .shortcutsHelpList {
     margin: 0;
     padding-left: 1.25rem;

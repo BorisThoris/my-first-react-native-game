@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createRef, useState, type ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { BoardState } from '../../shared/contracts';
+import type { BoardState, RunStatus } from '../../shared/contracts';
 import { PlatformTiltProvider } from '../platformTilt/PlatformTiltProvider';
 import {
     DNG065_BOARD_APPLICATION_LABEL,
@@ -44,14 +44,27 @@ const renderBoard = (props: {
     onTileSelect: (id: string) => void;
     previewActive: boolean;
     reduceMotion: boolean;
+    runStatus?: RunStatus;
     viewportResetToken?: number;
     guidedTargetTileIds?: string[];
 }): ReturnType<typeof render> =>
-    render(
+    {
+        const {
+            mobileCameraMode = false,
+            viewportResetToken = 0,
+            ...tileBoardProps
+        } = props;
+
+        return render(
         <PlatformTiltProvider>
-            <TileBoard mobileCameraMode={props.mobileCameraMode ?? false} viewportResetToken={props.viewportResetToken ?? 0} {...props} />
+            <TileBoard
+                mobileCameraMode={mobileCameraMode}
+                viewportResetToken={viewportResetToken}
+                {...tileBoardProps}
+            />
         </PlatformTiltProvider>
-    );
+        );
+    };
 
 const board: BoardState = {
     level: 1,
@@ -93,6 +106,87 @@ describe('TileBoard touch and click controls', () => {
         const frame = screen.getByTestId('tile-board-frame');
         expect(frame).toHaveAttribute('data-hidden-tile-count', '4');
         expect(frame).toHaveAttribute('data-board-run-status', 'playing');
+    });
+
+    it('exposes stable card feedback states for hidden, hazard, route, objective, and non-pickable cards', () => {
+        const feedbackBoard: BoardState = {
+            ...board,
+            tiles: [
+                { id: 'a1', pairKey: 'A', symbol: 'A', label: 'A', state: 'hidden', routeCardKind: 'greed_cache' },
+                { id: 'a2', pairKey: 'A', symbol: 'A', label: 'A', state: 'hidden', dungeonCardKind: 'lever', dungeonCardState: 'hidden' },
+                { id: 'b1', pairKey: 'B', symbol: 'B', label: 'B', state: 'hidden', tileHazardKind: 'shuffle_snare' },
+                { id: 'b2', pairKey: 'B', symbol: 'B', label: 'B', state: 'matched' }
+            ]
+        };
+
+        renderBoard({
+            board: feedbackBoard,
+            debugPeekActive: false,
+            interactive: false,
+            onTileSelect: vi.fn(),
+            previewActive: false,
+            reduceMotion: true
+        });
+
+        const frame = screen.getByTestId('tile-board-frame');
+        expect(frame).toHaveAttribute('data-card-feedback-reduced-motion', 'static-state-cues');
+        expect(frame).toHaveAttribute('data-card-feedback-last-resolution', '');
+        expect(frame.getAttribute('data-card-feedback-states')).toContain('hazard:1');
+        expect(frame.getAttribute('data-card-feedback-states')).toContain('hidden:3');
+        expect(frame.getAttribute('data-card-feedback-states')).toContain('matched:1');
+        expect(frame.getAttribute('data-card-feedback-states')).toContain('non-pickable:3');
+        expect(frame.getAttribute('data-card-feedback-states')).toContain('objective:1');
+        expect(frame.getAttribute('data-card-feedback-states')).toContain('route:1');
+    });
+
+    it('exposes reduced-motion match and mismatch feedback states without relying on animation', () => {
+        const resolvingBoard: BoardState = {
+            ...board,
+            flippedTileIds: ['a1', 'b1'],
+            tiles: [
+                { id: 'a1', pairKey: 'A', symbol: 'A', label: 'A', state: 'flipped' },
+                { id: 'a2', pairKey: 'A', symbol: 'A', label: 'A', state: 'hidden' },
+                { id: 'b1', pairKey: 'B', symbol: 'B', label: 'B', state: 'flipped' },
+                { id: 'b2', pairKey: 'B', symbol: 'B', label: 'B', state: 'hidden' }
+            ]
+        };
+
+        const rendered = renderBoard({
+            board: resolvingBoard,
+            debugPeekActive: false,
+            interactive: true,
+            onTileSelect: vi.fn(),
+            previewActive: false,
+            reduceMotion: true,
+            runStatus: 'resolving'
+        });
+
+        let frame = screen.getByTestId('tile-board-frame');
+        expect(frame).toHaveAttribute('data-card-feedback-reduced-motion', 'static-state-cues');
+        expect(frame.getAttribute('data-card-feedback-states')).toContain('mismatch:2');
+        expect(frame.getAttribute('data-card-feedback-states')).toContain('flipped:2');
+        expect(frame.getAttribute('data-card-feedback-states')).toContain('non-pickable:2');
+        expect(frame.getAttribute('data-card-feedback-last-resolution')).toContain('mismatch:2');
+
+        rendered.rerender(
+            <PlatformTiltProvider>
+                <TileBoard
+                    board={{ ...resolvingBoard, flippedTileIds: ['a1', 'a2'], tiles: resolvingBoard.tiles.map((tile) => tile.pairKey === 'A' ? { ...tile, state: 'flipped' } : tile) }}
+                    debugPeekActive={false}
+                    interactive
+                    mobileCameraMode={false}
+                    onTileSelect={vi.fn()}
+                    previewActive={false}
+                    reduceMotion
+                    runStatus="resolving"
+                    viewportResetToken={0}
+                />
+            </PlatformTiltProvider>
+        );
+
+        frame = screen.getByTestId('tile-board-frame');
+        expect(frame.getAttribute('data-card-feedback-states')).toContain('match:2');
+        expect(frame.getAttribute('data-card-feedback-last-resolution')).toContain('match:2');
     });
 
     it('arms deal-in motion on mount when motion is enabled', async () => {

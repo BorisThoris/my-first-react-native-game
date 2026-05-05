@@ -15,4 +15,15 @@ describe('REG-098 first-run help center rows', () => {
         expect(completedRows.find((row) => row.id === 'flip_match')?.status).toBe('complete');
         expect(completedRows.find((row) => row.id === 'deeper_help')?.action).toMatch(/Codex/i);
     });
+
+    it('does not treat powersFtueSeen alone as help center completion', () => {
+        const rows = getFirstRunHelpCenterRows({
+            ...createDefaultSaveData(),
+            onboardingDismissed: false,
+            powersFtueSeen: true
+        });
+
+        expect(rows.find((row) => row.id === 'flip_match')?.status).toBe('active');
+        expect(rows.find((row) => row.id === 'score_recover')?.status).toBe('active');
+    });
 });

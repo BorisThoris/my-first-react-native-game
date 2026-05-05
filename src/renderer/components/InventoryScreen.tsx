@@ -367,23 +367,25 @@ const InventoryScreen = ({ stackedOnGameplay = false }: InventoryScreenProps) =>
                     </div>
                 </Panel>
 
-                <Panel className={panelClassName} padding="lg" variant="default">
-                    <div className={`${styles.loadoutSection} ${metaStyles.sectionAnchor}`} id="inventory-economy">
-                        <h2 className={styles.sectionTitle}>Run economy</h2>
-                        <div className={metaStyles.archiveCatalogGrid}>
-                            {economyRows.map((row) => (
-                                <div className={metaStyles.archiveCatalogRow} key={row.key}>
-                                    <p className={metaStyles.archiveCatalogRowTitle}>
-                                        {row.label}: {row.value}
-                                    </p>
-                                    <p className={metaStyles.subtitle}>
-                                        {row.persistence}. {row.sink}
-                                    </p>
-                                </div>
-                            ))}
+                <MetaFrame data-testid="inventory-meta-frame-economy">
+                    <Panel className={panelClassName} padding="lg" variant="default">
+                        <div className={`${styles.loadoutSection} ${metaStyles.sectionAnchor}`} id="inventory-economy">
+                            <h2 className={styles.sectionTitle}>Run economy</h2>
+                            <div className={metaStyles.archiveCatalogGrid}>
+                                {economyRows.map((row) => (
+                                    <div className={metaStyles.archiveCatalogRow} key={row.key}>
+                                        <p className={metaStyles.archiveCatalogRowTitle}>
+                                            {row.label}: {row.value}
+                                        </p>
+                                        <p className={metaStyles.subtitle}>
+                                            {row.persistence}. {row.sink}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                    </div>
-                </Panel>
+                    </Panel>
+                </MetaFrame>
             </div>
         </section>
     );

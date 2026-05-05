@@ -289,6 +289,9 @@ interface TileBezelProps {
     spotlightBountyOnBack?: boolean;
     powerBackAccent?: 'destroy' | 'peek' | 'stray' | 'pin' | null;
     hazardBackAccent?: HazardTileKind | null;
+    routeBackAccent?: boolean;
+    objectiveBackAccent?: boolean;
+    nonPickableBack?: boolean;
     destroyBlockedDecoyBack?: boolean;
 }
 
@@ -735,6 +738,7 @@ interface TileBezelFramePropsSnapshot {
     presentationWideRecall: boolean;
     presentationSilhouette: boolean;
     presentationNBackAnchor: boolean;
+    nonPickableBack: boolean;
     /** Cancels match pulse / flip pop when a new resolving pair replaces the previous without a full idle frame. */
     resolvingMatchWaveKey: string | null;
 }
@@ -1101,6 +1105,8 @@ const advanceTileBezelFrame = (bag: TileBezelFrameBag, state: RootState, delta: 
     scratchCardTint.set('#ffffff');
     if (hiddenPinned) {
         scratchCardTint.set('#d4b870');
+    } else if (p.nonPickableBack) {
+        scratchCardTint.set('#9a94a3');
     } else if (p.tile.state === 'matched' && p.faceUp) {
         /** No face tint when the ember rim shows (medium+); low quality uses static matched chrome instead. */
         if (p.graphicsQuality === 'low') {
@@ -1594,6 +1600,9 @@ const TileBezelInner = ({
     spotlightBountyOnBack = false,
     powerBackAccent = null,
     hazardBackAccent = null,
+    routeBackAccent = false,
+    objectiveBackAccent = false,
+    nonPickableBack = false,
     destroyBlockedDecoyBack = false,
     focusDimmed = false,
     stickyFingerSlotMark = false,
@@ -1687,6 +1696,7 @@ const TileBezelInner = ({
         presentationWideRecall,
         presentationSilhouette,
         presentationNBackAnchor,
+        nonPickableBack,
         resolvingMatchWaveKey
     };
 
@@ -2409,6 +2419,9 @@ const TileBezelInner = ({
                     destroyBlockedDecoyBack ||
                     powerBackAccent != null ||
                     hazardBackAccent != null ||
+                    routeBackAccent ||
+                    objectiveBackAccent ||
+                    nonPickableBack ||
                     (stickyFingerSlotMark && tile.state === 'hidden')) &&
                 !faceUp ? (
                     <group position={[0, 0, -faceZ - 0.00033]} rotation={[0, Math.PI, 0]}>
@@ -2550,6 +2563,61 @@ const TileBezelInner = ({
                                     depthTest
                                     depthWrite={false}
                                     opacity={0.92}
+                                    side={DoubleSide}
+                                    toneMapped={false}
+                                    transparent
+                                />
+                            </mesh>
+                        ) : null}
+                        {routeBackAccent ? (
+                            <mesh
+                                geometry={findableCornerRingGeometry}
+                                position={[-CARD_WIDTH * 0.34, 0, 0.00057]}
+                                rotation={[0, 0, Math.PI / 4]}
+                                raycast={noopMeshRaycast}
+                                renderOrder={DUNGEON_BOARD_STAGE_LAYER_POLICY.objectiveRing.renderOrder}
+                            >
+                                <meshBasicMaterial
+                                    color="#59b4d9"
+                                    depthTest
+                                    depthWrite={false}
+                                    opacity={0.86}
+                                    side={DoubleSide}
+                                    toneMapped={false}
+                                    transparent
+                                />
+                            </mesh>
+                        ) : null}
+                        {objectiveBackAccent ? (
+                            <mesh
+                                geometry={findableCornerRingGeometry}
+                                position={[CARD_WIDTH * 0.34, 0, 0.00058]}
+                                raycast={noopMeshRaycast}
+                                renderOrder={DUNGEON_BOARD_STAGE_LAYER_POLICY.objectiveGlyph.renderOrder}
+                            >
+                                <meshBasicMaterial
+                                    color="#f2d39d"
+                                    depthTest
+                                    depthWrite={false}
+                                    opacity={0.9}
+                                    side={DoubleSide}
+                                    toneMapped={false}
+                                    transparent
+                                />
+                            </mesh>
+                        ) : null}
+                        {nonPickableBack ? (
+                            <mesh
+                                geometry={hoverGoldRimGeomH}
+                                position={[0, -CARD_HEIGHT * 0.5 + HOVER_GOLD_RIM_STRIP * 1.15, 0.00059]}
+                                raycast={noopMeshRaycast}
+                                renderOrder={DUNGEON_BOARD_STAGE_LAYER_POLICY.passiveHover.renderOrder}
+                            >
+                                <meshBasicMaterial
+                                    color="#b6a4bd"
+                                    depthTest
+                                    depthWrite={false}
+                                    opacity={0.34}
                                     side={DoubleSide}
                                     toneMapped={false}
                                     transparent
@@ -2972,8 +3040,14 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                 (tile.state === 'matched' || (tile.state === 'hidden' && !faceUp));
             let powerBackAccent: 'destroy' | 'peek' | 'stray' | 'pin' | null = null;
             let hazardBackAccent: HazardTileKind | null = null;
+            let routeBackAccent = false;
+            let objectiveBackAccent = false;
+            let nonPickableBack = false;
             if (tile.state === 'hidden' && !faceUp) {
                 hazardBackAccent = tile.tileHazardKind ?? null;
+                routeBackAccent = Boolean(tile.routeSpecialKind || tile.routeCardKind);
+                objectiveBackAccent = Boolean(tile.dungeonCardKind || tile.dungeonBossId);
+                nonPickableBack = !isTilePickable(tile, interactive, flipLocked);
                 if (pinModeBoardHintActive) {
                     powerBackAccent = 'pin';
                 } else if (destroyBlockedDecoyBack) {
@@ -2996,6 +3070,9 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                 pairProximityDistance,
                 powerBackAccent,
                 hazardBackAccent,
+                routeBackAccent,
+                objectiveBackAccent,
+                nonPickableBack,
                 presentationNBackAnchor,
                 presentationSilhouette,
                 presentationWideRecall,
@@ -3474,12 +3551,15 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                         hazardBackAccent,
                         isPinned,
                         memorizeCurseHighlight,
+                        nonPickableBack,
+                        objectiveBackAccent,
                         pairProximityDistance,
                         powerBackAccent,
                         presentationNBackAnchor,
                         presentationSilhouette,
                         presentationWideRecall,
                         resolvingSelection,
+                        routeBackAccent,
                         shuffleBoardOrderIndex,
                         spotlightBountyHighlight,
                         spotlightBountyOnBack,
@@ -3500,6 +3580,9 @@ const TileBoardScene = forwardRef<TileBoardSceneHandle, TileBoardSceneProps>(({
                             flipLocked={flipLocked}
                             focusDimmed={focusDimmed}
                             hazardBackAccent={hazardBackAccent}
+                            routeBackAccent={routeBackAccent}
+                            objectiveBackAccent={objectiveBackAccent}
+                            nonPickableBack={nonPickableBack}
                             stickyFingerSlotMark={stickyFingerSlotMark}
                             hostConsolidatesTileFrames={hostConsolidatesTileFrames}
                             hoverTiltRef={hoverTiltRef}

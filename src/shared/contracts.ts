@@ -749,6 +749,9 @@ export interface RunSummary {
     dailyDateKeyUtc?: string;
     activeMutators?: MutatorId[];
     relicIds?: RelicId[];
+    practiceMode?: boolean;
+    wildMenuRun?: boolean;
+    activeContract?: ContractFlags | null;
 }
 
 export interface RunTimerState {

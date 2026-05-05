@@ -11,6 +11,23 @@ export interface GameOverNextRunRow {
 }
 
 const modeLabel = (summary: RunSummary): string => {
+    if (summary.activeContract?.noShuffle) {
+        return 'Scholar Contract';
+    }
+    if (summary.activeContract?.maxPinsTotalRun != null) {
+        return 'Pin Vow';
+    }
+    if (summary.wildMenuRun) {
+        return 'Wild Run';
+    }
+    if (
+        summary.practiceMode &&
+        summary.gameMode === 'endless' &&
+        (summary.highestLevel ?? 0) >= 5 &&
+        summary.activeMutators?.includes('wide_recall')
+    ) {
+        return 'Dungeon Showcase';
+    }
     switch (summary.gameMode) {
         case 'daily':
             return summary.dailyDateKeyUtc ? `Daily ${summary.dailyDateKeyUtc}` : 'Daily';
@@ -21,6 +38,9 @@ const modeLabel = (summary: RunSummary): string => {
         case 'puzzle':
             return 'Puzzle';
         default:
+            if (summary.practiceMode) {
+                return 'Practice';
+            }
             return 'Classic';
     }
 };

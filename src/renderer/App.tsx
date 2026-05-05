@@ -23,6 +23,11 @@ import styles from './styles/App.module.css';
 import { buildRendererThemeStyle } from './styles/theme';
 import { useGameplayMusic } from './audio/gameplayMusic';
 import { setTelemetrySink } from '../shared/telemetry';
+import { createRunSummary } from '../shared/game';
+import {
+    createPlayablePathFixture,
+    type PlayablePathFixtureId
+} from '../shared/playable-path-fixtures';
 import { useAppStore } from './store/useAppStore';
 
 /** Landmark id for A11Y-002 skip link (`href` / programmatic focus). */
@@ -147,6 +152,58 @@ const App = () => {
         });
         return () => {
             setTelemetrySink(null);
+        };
+    }, []);
+
+    /** Dev-only E2E seam: keep long post-run UI tests focused on post-run behavior, not mismatch burn time. */
+    useEffect(() => {
+        if (!import.meta.env.DEV) {
+            return undefined;
+        }
+        const w = window as Window & {
+            __memoryDungeonE2e?: {
+                forceGameOver: () => void;
+                startClassicGameOver: () => void;
+                startFixture: (id: PlayablePathFixtureId) => Promise<void>;
+            };
+        };
+        const forceCurrentRunGameOver = (): void => {
+            const current = useAppStore.getState().run;
+            if (!current) {
+                return;
+            }
+            useAppStore.setState({
+                view: 'gameOver',
+                run: createRunSummary({ ...current, status: 'gameOver' }, [])
+            });
+        };
+        w.__memoryDungeonE2e = {
+            forceGameOver: forceCurrentRunGameOver,
+            startClassicGameOver: () => {
+                useAppStore.getState().startRun();
+                forceCurrentRunGameOver();
+            },
+            startFixture: async (id: PlayablePathFixtureId) => {
+                const fixture = createPlayablePathFixture(id, {
+                    bestScore: useAppStore.getState().saveData.bestScore
+                });
+                useAppStore.setState({
+                    view: fixture.view,
+                    run: fixture.run,
+                    saveData: fixture.saveData,
+                    settings: fixture.saveData.settings,
+                    shopReturnMode: fixture.shopReturnMode ?? null,
+                    boardPinMode: false,
+                    destroyPairArmed: false,
+                    peekModeArmed: false,
+                    dungeonExitPromptOpen: false,
+                    matchScorePop: null,
+                    mismatchScorePop: null
+                });
+            }
+        };
+        return () => {
+            delete w.__memoryDungeonE2e;
         };
     }, []);
 

@@ -43,14 +43,13 @@ const firstUnmatchedPair = (board: BoardState | null): string[] => {
 
 export const getPlayableOnboardingScenario = ({
     board,
-    onboardingDismissed,
-    powersFtueSeen
+    onboardingDismissed
 }: {
     board: BoardState | null;
     onboardingDismissed: boolean;
     powersFtueSeen?: boolean;
 }): OnboardingScenario => {
-    const completed = onboardingDismissed || powersFtueSeen === true;
+    const completed = onboardingDismissed;
     const matchedPairs = board?.matchedPairs ?? 0;
     const targetTileIds = firstUnmatchedPair(board);
     const activeId: OnboardingStepId = completed

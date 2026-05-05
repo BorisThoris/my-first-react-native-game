@@ -897,6 +897,7 @@ describe('useAppStore timers', () => {
             expect(run?.lastLevelResult?.perfect).toBe(true);
 
             if (floor === 1) {
+                expect(useAppStore.getState().saveData.onboardingDismissed).toBe(true);
                 useAppStore.getState().continueToNextLevel();
                 notifyCurrentBoardReady();
                 const nextMemorizeMs = useAppStore.getState().run?.timerState.memorizeRemainingMs ?? 0;

@@ -139,6 +139,10 @@ const ShopScreen = () => {
             aria-label="Vendor alcove"
             aria-modal="true"
             className={styles.overlay}
+            data-pending-route-type={run.pendingRouteCardPlan?.routeType ?? 'none'}
+            data-shop-gold={run.shopGold}
+            data-shop-rerolls={run.shopRerolls}
+            data-shop-return-mode={shopReturnMode ?? 'none'}
             data-testid="shop-screen"
             ref={rootRef}
             role="dialog"
@@ -169,7 +173,15 @@ const ShopScreen = () => {
                         const status = offerStatus(offer, run.shopGold);
                         const disabled = status !== 'available';
                         return (
-                            <article className={styles.stockCard} data-status={status} key={offer.id} role="listitem">
+                            <article
+                                className={styles.stockCard}
+                                data-offer-id={offer.id}
+                                data-offer-item-id={offer.itemId}
+                                data-status={status}
+                                data-testid={`shop-offer-${offer.itemId}`}
+                                key={offer.id}
+                                role="listitem"
+                            >
                                 <div className={styles.stockTopline}>
                                     <span className={styles.stockCategory}>{offer.category}</span>
                                     <span className={styles.stockCost}>{statusText(offer, run.shopGold)}</span>
@@ -215,6 +227,7 @@ const ShopScreen = () => {
                         leading={
                             <button
                                 className={styles.rerollButton}
+                                data-testid="shop-reroll-button"
                                 disabled={!rerollAvailable}
                                 onClick={() => {
                                     resumeUiSfxContext();

@@ -207,6 +207,40 @@ describe('GameScreen (OVR-014)', () => {
         expect(screen.getByText(/Clean clears, safe routes, shops, rests, and shrines can restore them/i)).toBeInTheDocument();
     });
 
+    it('surfaces first-clear onboarding completion copy after completion is durable', () => {
+        const saveData = { ...createDefaultSaveData(), onboardingDismissed: true };
+        act(() => {
+            useAppStore.setState({ saveData, settings: saveData.settings });
+        });
+
+        render(
+            <PlatformTiltProvider>
+                <NotificationHost>
+                    <GameScreen achievements={[]} run={levelCompleteRunFixture()} />
+                </NotificationHost>
+            </PlatformTiltProvider>
+        );
+
+        expect(screen.getByText(/First-run guide complete/i)).toBeInTheDocument();
+    });
+
+    it('still surfaces playable onboarding when only powers FTUE has been seen', () => {
+        const saveData = { ...createDefaultSaveData(), onboardingDismissed: false, powersFtueSeen: true };
+        act(() => {
+            useAppStore.setState({ saveData, settings: saveData.settings });
+        });
+
+        render(
+            <PlatformTiltProvider>
+                <NotificationHost>
+                    <GameScreen achievements={[]} run={finishMemorizePhase(createNewRun(0))} />
+                </NotificationHost>
+            </PlatformTiltProvider>
+        );
+
+        expect(screen.getByTestId('playable-onboarding-prompt')).toHaveTextContent(/Make your first match/i);
+    });
+
     it('keyboard shortcuts overlay lists board navigation and Gambit tip after F1', () => {
         const playing = finishMemorizePhase(createNewRun(0));
         render(

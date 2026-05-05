@@ -9,6 +9,7 @@ import {
 } from '../../shared/floor-mutator-schedule';
 import { getSecondaryObjectiveStatusRows } from '../../shared/secondary-objectives';
 import { getDefaultDifficultyProfile } from '../../shared/difficulty-profile';
+import { BUILTIN_PUZZLES } from '../../shared/builtin-puzzles';
 import { getFindableKindLabel, getFindableRewardCopy } from '../../shared/findables';
 import { getHazardTileBoardSummary } from '../../shared/hazard-tiles';
 import { getRunEconomyEntry } from '../../shared/run-economy';
@@ -131,17 +132,35 @@ const GameplayHudBar = ({
     }
 
     const dailyDateStripKey = run.gameMode === 'daily' && run.dailyDateKeyUtc ? run.dailyDateKeyUtc : null;
+    const dungeonShowcaseActive =
+        run.practiceMode &&
+        run.gameMode === 'endless' &&
+        board.level >= 5 &&
+        run.activeMutators.includes('wide_recall') &&
+        !run.wildMenuRun &&
+        run.activeContract == null;
+    const puzzleModeTitle = run.puzzleId ? (BUILTIN_PUZZLES[run.puzzleId]?.title ?? run.puzzleId) : null;
     const hudModeLabel =
         dailyDateStripKey != null
             ? 'Daily challenge'
             : gauntletRemainingMs !== null
               ? 'Gauntlet'
+              : dungeonShowcaseActive
+                ? 'Dungeon Showcase'
+                : run.gameMode === 'puzzle'
+                  ? puzzleModeTitle
+                      ? `Puzzle: ${puzzleModeTitle}`
+                      : 'Puzzle'
               : run.activeContract?.noShuffle
                 ? 'Scholar Contract'
+                : run.activeContract?.maxPinsTotalRun != null
+                  ? 'Pin vow'
                 : run.gameMode === 'meditation'
                   ? 'Meditation Run'
                   : run.wildMenuRun
                     ? 'Wild Run'
+                    : run.practiceMode
+                      ? 'Practice'
                     : run.gameMode === 'endless'
                       ? 'Classic Dungeon'
                       : 'Arcade Run';
@@ -424,14 +443,13 @@ const GameplayHudBar = ({
                     <details
                         className={`${styles.hudContextSecondaryStrip} ${styles.hudContextRegion}`}
                         data-testid="hud-wing-right"
-                        open={cameraViewportMode ? true : undefined}
                         aria-label="Run context"
                     >
                         <summary className={styles.hudContextSummary} title="Run context">
                             Info
                         </summary>
                         <div className={styles.hudStripRightInnerColumn}>
-                            <div className={`${styles.hudSegment} ${styles.hudMetaSegment}`}>
+                            <div className={`${styles.hudSegment} ${styles.hudMetaSegment}`} data-testid="hud-mode-identity">
                                 <span className={styles.statKey}>Mode</span>
                                 <span className={styles.statVal}>{hudModeLabel}</span>
                                 {endlessChapterActive && board.actTitle ? (

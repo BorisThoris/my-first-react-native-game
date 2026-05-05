@@ -25,6 +25,23 @@ const mutatorLabel = (id: MutatorId): string => MUTATOR_CATALOG[id].title;
 const relicLabel = (id: RelicId): string => RELIC_CATALOG[id].title;
 
 const runModeIdentityLine = (summary: NonNullable<RunState['lastRunSummary']>): string => {
+    if (summary.activeContract?.noShuffle) {
+        return gameOverScreenCopy.modeIdentity.scholar;
+    }
+    if (summary.activeContract?.maxPinsTotalRun != null) {
+        return gameOverScreenCopy.modeIdentity.pinVow;
+    }
+    if (summary.wildMenuRun) {
+        return gameOverScreenCopy.modeIdentity.wild;
+    }
+    if (
+        summary.practiceMode &&
+        summary.gameMode === 'endless' &&
+        summary.highestLevel >= 5 &&
+        summary.activeMutators?.includes('wide_recall')
+    ) {
+        return gameOverScreenCopy.modeIdentity.dungeonShowcase;
+    }
     switch (summary.gameMode) {
         case 'gauntlet':
             return gameOverScreenCopy.modeIdentity.gauntlet;
@@ -35,7 +52,45 @@ const runModeIdentityLine = (summary: NonNullable<RunState['lastRunSummary']>): 
         case 'daily':
             return gameOverScreenCopy.modeIdentity.daily;
         default:
+            if (summary.practiceMode) {
+                return gameOverScreenCopy.modeIdentity.practice;
+            }
             return gameOverScreenCopy.modeIdentity.classic;
+    }
+};
+
+const runModeHeading = (summary: NonNullable<RunState['lastRunSummary']>): string => {
+    if (summary.gameMode === 'daily' && summary.dailyDateKeyUtc) {
+        return gameOverScreenCopy.runModeHeadings.daily(summary.dailyDateKeyUtc);
+    }
+    if (summary.activeContract?.noShuffle) {
+        return gameOverScreenCopy.runModeHeadings.scholar;
+    }
+    if (summary.activeContract?.maxPinsTotalRun != null) {
+        return gameOverScreenCopy.runModeHeadings.pinVow;
+    }
+    if (summary.wildMenuRun) {
+        return gameOverScreenCopy.runModeHeadings.wild;
+    }
+    if (
+        summary.practiceMode &&
+        summary.gameMode === 'endless' &&
+        summary.highestLevel >= 5 &&
+        summary.activeMutators?.includes('wide_recall')
+    ) {
+        return gameOverScreenCopy.runModeHeadings.dungeonShowcase;
+    }
+    switch (summary.gameMode) {
+        case 'gauntlet':
+            return gameOverScreenCopy.runModeHeadings.gauntlet;
+        case 'meditation':
+            return gameOverScreenCopy.runModeHeadings.meditation;
+        case 'puzzle':
+            return gameOverScreenCopy.runModeHeadings.puzzle;
+        default:
+            return summary.practiceMode
+                ? gameOverScreenCopy.runModeHeadings.practice
+                : gameOverScreenCopy.runModeHeadings.classic;
     }
 };
 
@@ -87,8 +142,8 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
     const journalEntry = buildRunJournalEntry(run);
     const nextRunRows = getGameOverNextRunRows(run);
     const metaItems = [
-        ...(summary.activeMutators?.map((id) => mutatorLabel(id)) ?? []),
-        ...(summary.relicIds?.map((id) => relicLabel(id)) ?? [])
+        ...(summary.activeMutators?.map((id) => ({ kind: 'mutator' as const, label: mutatorLabel(id) })) ?? []),
+        ...(summary.relicIds?.map((id) => ({ kind: 'relic' as const, label: relicLabel(id) })) ?? [])
     ];
 
     return (
@@ -170,10 +225,14 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
                         <p className={styles.copy}>{gameOverScreenCopy.floorCaption(summary.highestLevel)}</p>
 
                         {metaItems.length > 0 ? (
-                            <div className={styles.metaStrip}>
+                            <div className={styles.metaStrip} data-testid="game-over-meta-strip">
                                 {metaItems.map((item) => (
-                                    <span className={styles.metaChip} key={item}>
-                                        {item}
+                                    <span
+                                        className={styles.metaChip}
+                                        data-testid={item.kind === 'relic' ? 'game-over-relic-chip' : 'game-over-mutator-chip'}
+                                        key={`${item.kind}:${item.label}`}
+                                    >
+                                        {item.label}
                                     </span>
                                 ))}
                             </div>
@@ -262,18 +321,12 @@ const GameOverScreen = ({ run }: GameOverScreenProps) => {
 
                         <Panel className={styles.actionPanel} padding="lg" variant="muted">
                             <span className={styles.panelKicker}>{gameOverScreenCopy.runSnapshotKicker}</span>
-                            <strong className={styles.panelHeading}>
-                                {summary.gameMode === 'daily' && summary.dailyDateKeyUtc
-                                    ? gameOverScreenCopy.runModeHeadings.daily(summary.dailyDateKeyUtc)
-                                    : summary.gameMode === 'gauntlet'
-                                      ? gameOverScreenCopy.runModeHeadings.gauntlet
-                                      : summary.gameMode === 'meditation'
-                                        ? gameOverScreenCopy.runModeHeadings.meditation
-                                        : summary.gameMode === 'puzzle'
-                                          ? gameOverScreenCopy.runModeHeadings.puzzle
-                                          : gameOverScreenCopy.runModeHeadings.classic}
+                            <strong className={styles.panelHeading} data-testid="game-over-mode-heading">
+                                {runModeHeading(summary)}
                             </strong>
-                            <p className={styles.panelCopy}>{runModeIdentityLine(summary)}</p>
+                            <p className={styles.panelCopy} data-testid="game-over-mode-identity">
+                                {runModeIdentityLine(summary)}
+                            </p>
                             {dailyResultRow ? (
                                 <p className={styles.panelCopy}>
                                     Share: {dailyResultRow.shareString} · {dailyResultRow.repeatAttemptRule}
